@@ -9,7 +9,7 @@
 | Business service -> Starter PEP | Verified reference JWT and named runtime Redis | Missing/invalid snapshots, mappings or fences deny |
 | Trusted provider -> Manifest/internal API | Scoped service identity and tenant/APP contract | Manifest content remains strictly validated and immutable |
 | RBAC3 Admin -> Gateway Admin | HMAC Definition report credential | Separate OAuth read token; credentials are not interchangeable |
-| RBAC3 Admin -> DDC | DDC signing credential and explicit service identity | Endpoint, env, namespace, host, port and version require configuration |
+| RBAC3 Admin -> DDC | Separate runtime/registry signing credentials and explicit service identity | Direct RPC target, env, namespace, host, port and version require local configuration |
 | Admin -> PostgreSQL/Redis | Named deployment-owned clients | No implicit localhost, primary bean or cross-role database reuse |
 
 ## 2. Tenant and APP isolation
@@ -71,7 +71,7 @@ value in hidden DOM state or alternate JSON fields.
 
 Use TLS for all cross-process links and restrict management endpoints by network
 policy plus scoped credentials. Do not expose internal authorization, Manifest
-reporting, DDC registry write or Gateway report endpoints publicly. Set bounded
+reporting, the DDC gRPC control plane, or Gateway report endpoints publicly. Set bounded
 connect/read timeouts, payload limits, worker concurrency and retry backoff.
 
 Verification scripts accept only explicit URLs and secret files. Fixture cleanup

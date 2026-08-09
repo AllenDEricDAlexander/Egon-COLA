@@ -25,14 +25,16 @@ serialization protocol.
 
 | Module | Responsibility | Published |
 |---|---|---|
-| `egon-cola-component-rpc-starter` | Provider server, Consumer proxy, DDC registration/discovery, metadata, deadlines, and exception mapping | Yes, and listed in the Components BOM |
+| `egon-cola-component-rpc-starter` | Transport-neutral Provider server, Consumer proxy, direct/discovered channel abstractions, metadata, deadlines, and exception mapping | Yes, and listed in the Components BOM |
+| `egon-cola-component-rpc-ddc-adapter` | Optional direct DDC gRPC adapter for configuration, registry, management, and RPC discovery ports | Yes, and listed in the Components BOM |
 | `egon-cola-component-rpc-test` | Test-only aggregator | No |
 | `...-test-contract` | One Echo Proto and its generated Java/gRPC classes | No |
 | `...-test-provider` | Provider test application | No |
 | `...-test-consumer` | Consumer test application | No |
 | `...-test-suite` | Mock Gateway, real-TCP tests, and opt-in process verification | No |
 
-The RPC root intentionally contains only the Starter and Test aggregators. Test
+The RPC root contains the transport-neutral Starter, the optional DDC Adapter, and
+the Test aggregator. Test
 artifacts are never added to the public BOM.
 
 ## Runtime Topology
@@ -45,13 +47,15 @@ Consumer ── one channel per active Gateway ──> internal Gateway set
                                                  └── forwards the unary call ──> Provider
 
 Provider ── register/heartbeat/deregister ─┐
-Gateway  ── register/heartbeat/deregister ─┼──> DDC Admin set ──> shared Redis
+Gateway  ── register/heartbeat/deregister ─┼──> direct DDC gRPC target ──> Admin set ──> shared Redis
 Consumer ── discover/subscribe Gateway ────┘
 ```
 
 DDC supplies the shared lease and service-registry boundary. Provider and Gateway
 registrations are temporary Redis leases. Every registration gets a new `leaseId`;
 heartbeat and deregistration atomically match `instanceId + leaseId`.
+The DDC target is local bootstrap configuration, not a service discovered through
+DDC. Normal RPC traffic still goes through discovered Gateways.
 
 The Consumer never queries `RPC_PROVIDER` and never opens a Provider channel. It
 round-robins across active Gateway channels and can try another Gateway only for a
@@ -61,7 +65,9 @@ failures are not retried by the Consumer.
 
 ## Dependency
 
-Import the Components BOM and add only the Starter to production applications:
+Import the Components BOM. Use the Starter alone for custom/direct channel wiring;
+applications using DDC configuration or registry add the DDC Adapter, which brings
+the Starter and DDC SDK transitively:
 
 ```xml
 <dependencyManagement>
@@ -69,7 +75,7 @@ Import the Components BOM and add only the Starter to production applications:
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-components-bom</artifactId>
-            <version>5.2.3</version>
+            <version>5.3.3</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -79,7 +85,7 @@ Import the Components BOM and add only the Starter to production applications:
 <dependencies>
     <dependency>
         <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-rpc-starter</artifactId>
+        <artifactId>egon-cola-component-rpc-ddc-adapter</artifactId>
     </dependency>
 </dependencies>
 ```
@@ -209,9 +215,15 @@ egon:
         enabled: false
         env: dev
         namespace: default
-        admin:
-          endpoint: http://127.0.0.1:18080
-          signature-enabled: false
+        rpc:
+          target: dns:///ddc-admin.example.internal:19080
+          load-balancing-policy: round_robin
+          tls:
+            development-plaintext: true
+          auth:
+            registry:
+              access-key: ${DDC_REGISTRY_ACCESS_KEY}
+              secret-key: ${DDC_REGISTRY_SECRET_KEY}
         redis:
           host: 127.0.0.1
           port: 6379
@@ -295,8 +307,15 @@ egon:
         enabled: false
         env: dev
         namespace: default
-        admin:
-          endpoint: http://127.0.0.1:18080
+        rpc:
+          target: dns:///ddc-admin.example.internal:19080
+          load-balancing-policy: round_robin
+          tls:
+            development-plaintext: true
+          auth:
+            registry:
+              access-key: ${DDC_REGISTRY_ACCESS_KEY}
+              secret-key: ${DDC_REGISTRY_SECRET_KEY}
         redis:
           host: 127.0.0.1
           port: 6379

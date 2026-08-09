@@ -81,15 +81,33 @@ egon:
           rpc:
             signature-enabled: ${DDC_RPC_SIGNATURE_ENABLED:true}
             credentials:
-              - credential-id: ${DDC_RPC_CREDENTIAL_ID:default-service}
-                access-key: ${DDC_RPC_ACCESS_KEY:}
-                secret: ${DDC_RPC_SECRET:}
-                client-type: ${DDC_RPC_CLIENT_TYPE:}
-                app-code-patterns: ${DDC_RPC_APP_CODE_PATTERNS:}
-                env-patterns: ${DDC_RPC_ENV_PATTERNS:}
-                biz-code-patterns: ${DDC_RPC_BIZ_CODE_PATTERNS:}
-                namespace-patterns: ${DDC_RPC_NAMESPACE_PATTERNS:}
-                allowed-operations: ${DDC_RPC_ALLOWED_OPERATIONS:}
+              - credential-id: ${DDC_RPC_RUNTIME_CREDENTIAL_ID:runtime}
+                access-key: ${DDC_RPC_RUNTIME_ACCESS_KEY:}
+                secret: ${DDC_RPC_RUNTIME_SECRET_KEY:}
+                client-type: SDK
+                app-code-patterns: ${DDC_RPC_RUNTIME_APP_CODE_PATTERNS:*}
+                env-patterns: ${DDC_RPC_RUNTIME_ENV_PATTERNS:*}
+                biz-code-patterns: ${DDC_RPC_RUNTIME_BIZ_CODE_PATTERNS:*}
+                namespace-patterns: ${DDC_RPC_RUNTIME_NAMESPACE_PATTERNS:*}
+                allowed-operations: SDK_REGISTER,SDK_HEARTBEAT,SDK_OFFLINE,CONFIG_PULL,PUBLISH_ACK
+              - credential-id: ${DDC_RPC_REGISTRY_CREDENTIAL_ID:registry}
+                access-key: ${DDC_RPC_REGISTRY_ACCESS_KEY:}
+                secret: ${DDC_RPC_REGISTRY_SECRET_KEY:}
+                client-type: REGISTRY
+                app-code-patterns: ${DDC_RPC_REGISTRY_APP_CODE_PATTERNS:*}
+                env-patterns: ${DDC_RPC_REGISTRY_ENV_PATTERNS:*}
+                biz-code-patterns: ${DDC_RPC_REGISTRY_BIZ_CODE_PATTERNS:*}
+                namespace-patterns: ${DDC_RPC_REGISTRY_NAMESPACE_PATTERNS:*}
+                allowed-operations: REGISTRY_REGISTER,REGISTRY_HEARTBEAT,REGISTRY_DEREGISTER,REGISTRY_READ
+              - credential-id: ${DDC_RPC_MANAGEMENT_CREDENTIAL_ID:management}
+                access-key: ${DDC_RPC_MANAGEMENT_ACCESS_KEY:}
+                secret: ${DDC_RPC_MANAGEMENT_SECRET_KEY:}
+                client-type: MANAGEMENT
+                app-code-patterns: ${DDC_RPC_MANAGEMENT_APP_CODE_PATTERNS:*}
+                env-patterns: ${DDC_RPC_MANAGEMENT_ENV_PATTERNS:*}
+                biz-code-patterns: ${DDC_RPC_MANAGEMENT_BIZ_CODE_PATTERNS:*}
+                namespace-patterns: ${DDC_RPC_MANAGEMENT_NAMESPACE_PATTERNS:*}
+                allowed-operations: MANAGEMENT_CONFIG_READ,MANAGEMENT_CONFIG_WRITE,MANAGEMENT_PUBLISH,MANAGEMENT_TASK_READ,MANAGEMENT_TASK_RETRY,MANAGEMENT_INSTANCE_READ,MANAGEMENT_SCOPE_READ,MANAGEMENT_REGISTRY_READ
             allowed-clock-skew-seconds: 300
             nonce-cache-max-size: 10000
           publish:

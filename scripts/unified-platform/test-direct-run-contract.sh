@@ -142,8 +142,12 @@ generated_runtime="${temporary_dir}/generated-runtime"
   source "${identity_script}" help >/dev/null
   initialize_directories
   printf '%s' 'test-redis-password' >"${secret_dir}/redis.password"
-  printf '%s' 'test-ddc-access-key' >"${secret_dir}/ddc-openapi.access-key"
-  printf '%s' 'test-ddc-secret' >"${secret_dir}/ddc-openapi.secret"
+  printf '%s' 'test-ddc-runtime-access-key' >"${secret_dir}/ddc-runtime.access-key"
+  printf '%s' 'test-ddc-runtime-secret' >"${secret_dir}/ddc-runtime.secret"
+  printf '%s' 'test-ddc-registry-access-key' >"${secret_dir}/ddc-registry.access-key"
+  printf '%s' 'test-ddc-registry-secret' >"${secret_dir}/ddc-registry.secret"
+  printf '%s' 'test-ddc-management-access-key' >"${secret_dir}/ddc-management.access-key"
+  printf '%s' 'test-ddc-management-secret' >"${secret_dir}/ddc-management.secret"
   printf '%s' 'test-gateway-master-key' >"${secret_dir}/gateway-master-key.base64"
   postgres_password() {
     printf '%s' 'test-postgres-password'
@@ -169,6 +173,14 @@ assert_env_equals "${idp_env}" IDP_INSTANCE_ID idp-local-1 \
   'local IdP must use a stable lease identity'
 assert_env_equals "${idp_env}" DDC_REGISTRY_REDIS_DATABASE 10 \
   'local IdP must use the DDC Registry Redis database'
+assert_env_equals "${idp_env}" DDC_RPC_TARGET dns:///127.0.0.1:19080 \
+  'local IdP must bootstrap DDC through direct RPC'
+assert_env_equals "${idp_env}" DDC_RPC_RUNTIME_ACCESS_KEY \
+  test-ddc-runtime-access-key \
+  'local IdP must use the runtime DDC credential'
+assert_env_equals "${idp_env}" DDC_RPC_REGISTRY_ACCESS_KEY \
+  test-ddc-registry-access-key \
+  'local IdP must use the registry DDC credential'
 
 rbac3_env="${generated_runtime}/env/rbac3.env"
 assert_env_equals "${rbac3_env}" RBAC3_DDC_ENABLED true \
@@ -188,6 +200,21 @@ assert_env_equals "${rbac3_env}" RBAC3_INSTANCE_ID rbac3-local-1 \
   'local RBAC3 must use a stable lease identity'
 assert_env_equals "${rbac3_env}" RBAC3_ARTIFACT_VERSION local \
   'local RBAC3 service identity must use the local artifact version'
+
+gateway_admin_env="${generated_runtime}/env/gateway-admin.env"
+assert_env_equals "${gateway_admin_env}" DDC_RPC_TARGET \
+  dns:///127.0.0.1:19080 \
+  'local Gateway Admin must bootstrap DDC through direct RPC'
+assert_env_equals "${gateway_admin_env}" DDC_RPC_MANAGEMENT_ACCESS_KEY \
+  test-ddc-management-access-key \
+  'local Gateway Admin must use the management DDC credential'
+
+ddc_env="${generated_runtime}/env/ddc.env"
+assert_env_equals "${ddc_env}" DDC_RPC_PORT 19080 \
+  'local DDC Admin must expose the direct RPC provider'
+assert_env_equals "${ddc_env}" DDC_RPC_REGISTRY_ACCESS_KEY \
+  test-ddc-registry-access-key \
+  'local DDC Admin must configure the registry credential profile'
 assert_env_equals "${rbac3_env}" DDC_REGISTRY_REDIS_DATABASE 10 \
   'local RBAC3 must use the DDC Registry Redis database'
 

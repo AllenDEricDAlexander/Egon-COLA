@@ -26,6 +26,12 @@ Engine can retain valid in-memory state and its last-known-good release during a
 temporary DDC outage, but a cold-start Engine must not claim Ready without the
 required rule and provider state.
 
+DDC is the bootstrap exception: Gateway Admin, Engines, Providers, and Consumers use
+a locally configured direct DDC gRPC target on port `19080` with `round_robin`; DDC
+does not register or discover itself. Redis Pub/Sub still carries change notifications.
+All ordinary RPC services remain DDC-supported and business calls still traverse the
+discovered Gateway set rather than connecting directly to Providers.
+
 ## Modules
 
 | Module | Responsibility | Business dependency entry |
@@ -55,7 +61,7 @@ Maven child. See its [frontend README](egon-cola-platform-gateway-admin-web/READ
   attempts, load balancing, and removal of expired or unhealthy instances.
 - Gateway Admin drafts, interface catalogs, release compilation, canonical hashes,
   authenticated management APIs, and runtime definition reconciliation.
-- TLS/mTLS for HTTP, RPC, DDC, and management transports, plus controlled certificate
+- TLS/mTLS for HTTP, RPC, direct DDC RPC, and management transports, plus controlled certificate
   reload and listener drain operations.
 - Micrometer Observation / OpenTelemetry spans and bounded Kafka call-event
   projection. Telemetry failures must not change the business response.

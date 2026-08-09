@@ -76,6 +76,156 @@ class GatewayComposeConfigurationTest {
     }
 
     @Test
+    void ddcAdminExposesDirectRpcAlongsideHumanHttp() throws IOException {
+        Map<String, Object> service = map(
+                map(compose().get("services")).get("ddc-admin")
+        );
+        Map<String, Object> environment = map(service.get("environment"));
+
+        assertThat(environment)
+                .containsEntry("DDC_RPC_PORT", 19080)
+                .containsEntry(
+                        "DDC_RPC_DEVELOPMENT_PLAINTEXT",
+                        "true"
+                )
+                .containsKeys(
+                        "DDC_RPC_RUNTIME_ACCESS_KEY",
+                        "DDC_RPC_RUNTIME_SECRET_KEY",
+                        "DDC_RPC_REGISTRY_ACCESS_KEY",
+                        "DDC_RPC_REGISTRY_SECRET_KEY",
+                        "DDC_RPC_MANAGEMENT_ACCESS_KEY",
+                        "DDC_RPC_MANAGEMENT_SECRET_KEY"
+                );
+        assertThat(list(service.get("ports")))
+                .contains("18070:18080", "19080:19080");
+        assertThat(map(service.get("healthcheck")))
+                .containsKey("test");
+        assertNoLegacyDdcHttpConfiguration(environment);
+    }
+
+    @Test
+    void consumersUseDirectDdcRpcWithoutDiscoveryBootstrap()
+            throws IOException {
+        Map<String, Object> services = map(compose().get("services"));
+        for (String serviceName : List.of(
+                "gateway-admin",
+                "gateway-engine",
+                "gateway-engine-2")) {
+            Map<String, Object> environment = map(
+                    map(services.get(serviceName)).get("environment")
+            );
+            assertThat(environment)
+                    .as(serviceName)
+                    .containsEntry(
+                            "EGON_COLA_COMPONENT_DDC_RPC_TARGET",
+                            "dns:///ddc-admin:19080"
+                    )
+                    .containsEntry(
+                            "EGON_COLA_COMPONENT_DDC_RPC_LOAD_BALANCING_POLICY",
+                            "round_robin"
+                    );
+            assertNoLegacyDdcHttpConfiguration(environment);
+        }
+        assertThat(map(map(services.get("gateway-admin"))
+                .get("environment")))
+                .containsKeys(
+                        "EGON_COLA_COMPONENT_DDC_RPC_AUTH_"
+                                + "MANAGEMENT_ACCESS_KEY",
+                        "EGON_COLA_COMPONENT_DDC_RPC_AUTH_"
+                                + "MANAGEMENT_SECRET_KEY"
+                );
+        for (String serviceName : List.of(
+                "gateway-engine",
+                "gateway-engine-2")) {
+            assertThat(map(map(services.get(serviceName))
+                    .get("environment")))
+                    .as(serviceName)
+                    .containsKeys(
+                            "EGON_COLA_COMPONENT_DDC_RPC_AUTH_"
+                                    + "RUNTIME_ACCESS_KEY",
+                            "EGON_COLA_COMPONENT_DDC_RPC_AUTH_"
+                                    + "REGISTRY_ACCESS_KEY"
+                    );
+        }
+    }
+
+    @Test
+    void demoApplicationsUseDirectDdcRpcProfiles()
+            throws IOException {
+        Map<String, Object> services = map(
+                compose("compose.demo.yml").get("services")
+        );
+        for (String serviceName : List.of(
+                "http-provider-mvc",
+                "http-provider-webflux",
+                "rpc-provider",
+                "rpc-consumer")) {
+            Map<String, Object> environment = map(
+                    map(services.get(serviceName)).get("environment")
+            );
+            assertThat(environment)
+                    .as(serviceName)
+                    .containsEntry(
+                            "EGON_COLA_COMPONENT_DDC_RPC_TARGET",
+                            "dns:///ddc-admin:19080"
+                    )
+                    .containsKeys(
+                            "EGON_COLA_COMPONENT_DDC_RPC_AUTH_"
+                                    + "RUNTIME_ACCESS_KEY",
+                            "EGON_COLA_COMPONENT_DDC_RPC_AUTH_"
+                                    + "REGISTRY_ACCESS_KEY"
+                    );
+            assertNoLegacyDdcHttpConfiguration(environment);
+        }
+    }
+
+    @Test
+    void haComposeBalancesDdcRpcAcrossActiveActiveNodes()
+            throws IOException {
+        Map<String, Object> services = map(
+                compose("compose.ha.yml").get("services")
+        );
+        Map<String, Object> secondDdc = map(services.get("ddc-admin-2"));
+        Map<String, Object> secondDdcEnvironment = map(
+                secondDdc.get("environment")
+        );
+        Map<String, Object> proxy = map(
+                services.get("control-plane-proxy")
+        );
+
+        assertThat(secondDdcEnvironment)
+                .containsEntry("DDC_RPC_PORT", 19080)
+                .containsEntry(
+                        "SPRING_DATASOURCE_URL",
+                        "jdbc:postgresql://postgres:5432/gateway_ddc"
+                )
+                .containsEntry(
+                        "EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_HOST",
+                        "ddc-redis"
+                );
+        assertThat(list(secondDdc.get("ports")))
+                .contains("18170:18080", "19180:19080");
+        assertThat(list(proxy.get("ports"))).contains("19280:19080");
+
+        for (String serviceName : List.of(
+                "gateway-admin",
+                "gateway-admin-2",
+                "gateway-engine",
+                "gateway-engine-2")) {
+            Map<String, Object> environment = map(
+                    map(services.get(serviceName)).get("environment")
+            );
+            assertThat(environment)
+                    .as(serviceName)
+                    .containsEntry(
+                            "EGON_COLA_COMPONENT_DDC_RPC_TARGET",
+                            "dns:///control-plane-proxy:19080"
+                    );
+            assertNoLegacyDdcHttpConfiguration(environment);
+        }
+    }
+
+    @Test
     void envProvidesStableRpcServiceIdentityDefaults() throws IOException {
         Properties environment = deploymentEnvironment();
 
@@ -255,6 +405,15 @@ class GatewayComposeConfigurationTest {
         assertThat(engine.getRpc().getVersion()).isEqualTo("1.0.0");
     }
 
+    private void assertNoLegacyDdcHttpConfiguration(
+            Map<String, Object> environment) {
+        assertThat(environment.keySet())
+                .noneMatch(key -> key.contains("DDC_ADMIN_ENDPOINT"))
+                .noneMatch(key -> key.contains("DDC_ADMIN_OPENAPI"))
+                .noneMatch(key -> key.startsWith("DDC_OPENAPI_"))
+                .noneMatch(key -> key.startsWith("GATEWAY_ADMIN_DDC_ENDPOINT"));
+    }
+
     private Map<String, Object> resolvedEnvironment(
             Map<String, Object> environment) throws IOException {
         Properties defaults = deploymentEnvironment();
@@ -351,6 +510,11 @@ class GatewayComposeConfigurationTest {
     @SuppressWarnings("unchecked")
     private Map<String, Object> map(Object value) {
         return (Map<String, Object>) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Object> list(Object value) {
+        return (List<Object>) value;
     }
 
     private Path deploymentFile(String fileName) {

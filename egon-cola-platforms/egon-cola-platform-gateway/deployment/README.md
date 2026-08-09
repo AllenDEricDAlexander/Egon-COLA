@@ -16,8 +16,10 @@ Build the three executable artifacts from the repository root:
   -am clean package -DskipTests
 ```
 
-Copy `.env.example` to `.env` and fill it locally with random credentials and a Base64-encoded
-32-byte master key. Do not commit `.env`. The operator may then run:
+Copy `.env.example` to `.env` and fill it locally with separate random DDC runtime,
+registry, and management credentials plus a Base64-encoded 32-byte master key. Do
+not reuse one DDC secret across capability profiles and do not commit `.env`. The
+operator may then run:
 
 ```bash
 docker compose --env-file .env -f compose.yml build
@@ -35,7 +37,8 @@ facade is `./scripts/demo.sh`; `down` preserves data and the explicitly destruct
 
 | Service | Local port | Purpose |
 |---|---:|---|
-| DDC Admin | 18070 | DDC OpenAPI/management |
+| DDC Admin HTTP | 18070 | Human management API and Actuator readiness |
+| DDC Admin gRPC | 19080 | Direct runtime, registry, and management facades |
 | Gateway Admin | 18080 | Management API and health endpoints |
 | Engine 1 PUBLIC | 18081 | External HTTP data plane |
 | Engine 1 INTERNAL | 18082 | Internal HTTP data plane |
@@ -65,7 +68,9 @@ Admin Web  GET /healthz
 ```
 
 An Engine process being alive does not mean that it is business-ready. For a first deployment,
-start DDC/Admin first, wait for the Engine to register as a Config Client, and then have Admin
+deploy DDC Admin with its gRPC provider on `19080` first, verify HTTP readiness, then
+start DDC-dependent Admin/Provider/Engine consumers. Wait for the Engine to register
+as a Config Client, and then have Admin
 publish the first valid Rule Release. An Engine should receive traffic only after its listener,
 valid rules, and required Providers are ready.
 
@@ -111,8 +116,9 @@ a cold-start node must not claim Ready on that basis.
 
 ## Control-plane HA
 
-`compose.ha.yml` adds a second DDC Admin, a second Gateway Admin, and an HAProxy that only
-forwards TCP on top of shared PostgreSQL, DDC Redis, and Kafka. It does not introduce Raft or
+`compose.ha.yml` adds a second DDC Admin, a second Gateway Admin, and an HAProxy with
+separate TCP frontends for human DDC HTTP (`18070`), DDC HTTP/2 gRPC (`19080`), and
+Gateway Admin HTTP (`18080`) on top of shared PostgreSQL, DDC Redis, and Kafka. It does not introduce Raft or
 change the business Gateway boundary. DDC publish consistency is still provided by PostgreSQL
 row locks, conditional version updates, and persistent publish tasks; Redis provides cache,
 Registry, and notification functions. DDC Admin can connect to production Redis with:
@@ -132,10 +138,12 @@ docker compose --env-file .env \
   -f compose.yml -f compose.ha.yml --profile ha up -d
 ```
 
-Proxy ports `18270` and `18280` point to the two DDC Admin instances and the two Gateway Admin
-instances respectively. Removing either Admin container causes the TCP health check to remove
-that node. The other instance continues reading the same publish task, so startup recovery in
-the second instance does not report a false failure.
+Proxy ports `18270`, `19280`, and `18280` expose DDC human HTTP, DDC gRPC, and
+Gateway Admin HTTP respectively. DDC clients use the logical target
+`dns:///control-plane-proxy:19080` and `round_robin`; they do not discover DDC through
+DDC. Removing either Admin container causes the TCP health check to remove that node.
+The other instance continues reading the same PostgreSQL publish task and shared Redis
+state. No sticky session, leader election, or Admin-local authoritative state is required.
 
 RPC Gateway Slots use the DDC `INTERNAL_GATEWAY` instance set in the same way. The Consumer keeps
 unchanged channels, adds channels for new Engines, and performs bounded drain for Engines that
@@ -146,7 +154,7 @@ are not invoked again.
 ## TLS and mTLS
 
 Production mode does not accept implicit plaintext. PUBLIC HTTP may use one-way TLS; INTERNAL
-HTTP, RPC Slots, DDC management, and Gateway Admin management can require mTLS. Certificates,
+HTTP, RPC Slots, direct DDC RPC, and Gateway Admin management can require mTLS. Certificates,
 private keys, and trust chains are injected only through read-only file paths. There is no
 skip-SAN/authority-validation or Trust-All switch. Local plaintext must explicitly set
 `development-plaintext=true` or `transport-security.mode=DEVELOPMENT_PLAINTEXT`.
@@ -166,8 +174,8 @@ gateway-engine-2.crt / gateway-engine-2.key
 ```
 
 Private keys must be unencrypted PKCS#8 PEM. Certificate SANs must cover actual connection
-names. With HA and mTLS, DDC and Gateway Admin server certificates must also cover
-`control-plane-proxy`. Validate the configuration with:
+names. With HA and mTLS, both DDC gRPC server certificates must cover the logical
+`control-plane-proxy` authority because HAProxy uses TCP passthrough. Validate the configuration with:
 
 ```bash
 docker compose --env-file .env \
@@ -207,6 +215,7 @@ tags. Collector unavailability does not affect Gateway business responses.
 - PostgreSQL, Redis, Kafka, and Admin in the base `compose.yml` remain single-node development dependencies;
 - `compose.ha.yml` validates stateless dual Admin only and does not claim that single-node PostgreSQL/Redis/Kafka are HA;
 - Providers are discovered only through the DDC Registry, and rules are distributed only through DDC DB/Redis/PubSub;
+- DDC bootstrap is direct unary gRPC through a configured logical target; there is no machine HTTP fallback, DDC self-registration, streaming configuration channel, or sticky-session requirement;
 - Nacos, Dubbo, and Nginx management are outside this deployment;
 - Compose exposes two Engine ports, but ingress L4/L7 load balancing remains owned by the deployment platform;
 - Secret Manager, NetworkPolicy, and external observability platforms remain owned by the deployment platform.

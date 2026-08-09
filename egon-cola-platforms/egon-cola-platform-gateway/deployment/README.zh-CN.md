@@ -15,7 +15,8 @@
   -am clean package -DskipTests
 ```
 
-复制 `.env.example` 为 `.env`，仅在本机填入随机凭据和 32 字节主密钥的 Base64。
+复制 `.env.example` 为 `.env`，仅在本机填入独立的 DDC Runtime、Registry、Management
+随机凭据和 32 字节主密钥的 Base64。不要在不同能力之间复用 DDC Secret。
 不得提交 `.env`。随后可由操作者自行执行：
 
 ```bash
@@ -34,7 +35,8 @@ Demo project。
 
 | 服务 | 本机端口 | 用途 |
 |---|---:|---|
-| DDC Admin | 18070 | DDC OpenAPI/Management |
+| DDC Admin HTTP | 18070 | 人工管理 API 与 Actuator Readiness |
+| DDC Admin gRPC | 19080 | 直连 Runtime、Registry 与 Management Facade |
 | Gateway Admin | 18080 | 管理 API 与健康端点 |
 | Engine 1 PUBLIC | 18081 | 外部 HTTP 数据面 |
 | Engine 1 INTERNAL | 18082 | 内部 HTTP 数据面 |
@@ -63,7 +65,8 @@ Engine     GET :18083/actuator/health/readiness
 Admin Web  GET /healthz
 ```
 
-Engine 进程存活不代表业务 Ready。首次部署必须先启动 DDC/Admin，再启动 Engine，
+Engine 进程存活不代表业务 Ready。首次部署必须先部署并验证 DDC Admin
+`19080` gRPC Provider 和 HTTP Readiness，再启动依赖 DDC 的 Admin/Provider/Engine，
 等待 Engine 注册 Config Client，最后由 Admin 发布首个有效 Rule Release。Engine
 只有在 Listener、有效规则及必要 Provider 就绪后才应接流量。
 
@@ -107,7 +110,8 @@ Compose 为进程预留 30 秒优雅停止时间。Kafka 故障不应改变业�
 ## 控制面 HA
 
 `compose.ha.yml` 在共享 PostgreSQL、DDC Redis 和 Kafka 之上增加第二个 DDC Admin、
-第二个 Gateway Admin，以及只做 TCP 转发的 HAProxy。它不引入 Raft，也不改变业务
+第二个 Gateway Admin，以及分别代理 DDC 人工 HTTP（`18070`）、DDC HTTP/2 gRPC
+（`19080`）和 Gateway Admin HTTP（`18080`）的 HAProxy TCP Frontend。它不引入 Raft，也不改变业务
 网关边界：DDC 的发布一致性仍由 PostgreSQL 行锁、版本条件更新和持久化发布任务保证，
 Redis 负责缓存、Registry 与消息通知。DDC Admin 可通过以下属性接入生产 Redis：
 
@@ -126,9 +130,11 @@ docker compose --env-file .env \
   -f compose.yml -f compose.ha.yml --profile ha up -d
 ```
 
-代理端口 `18270` 和 `18280` 分别指向两个 DDC Admin 和两个 Gateway Admin。移除任一
-Admin 容器后，TCP 健康检查会摘除故障节点；发布请求在另一实例继续读取同一发布任务，
-不会由第二实例启动恢复逻辑误判为失败。
+代理端口 `18270`、`19280` 和 `18280` 分别暴露 DDC 人工 HTTP、DDC gRPC
+和 Gateway Admin HTTP。DDC 客户端使用 `dns:///control-plane-proxy:19080` 和
+`round_robin`，不通过 DDC 发现 DDC。移除任一 Admin 容器后，TCP 健康检查会摘除
+故障节点；另一实例继续读取共享 PostgreSQL 发布任务与 Redis 状态。不需要
+粘性会话、Leader 选举或 Admin 本地权威状态。
 
 RPC Gateway Slot 同样按 DDC `INTERNAL_GATEWAY` 实例集合工作。Consumer 增量保留未变化
 通道、为新增 Engine 建立通道、对下线 Engine 有界 Drain，使用 Round Robin 选点；
@@ -138,7 +144,7 @@ RPC Gateway Slot 同样按 DDC `INTERNAL_GATEWAY` 实例集合工作。Consumer 
 ## TLS 与 mTLS
 
 生产模式不接受隐式明文。PUBLIC HTTP 可配置单向 TLS；INTERNAL HTTP、RPC Slot、DDC
-Management 和 Gateway Admin Management 可强制 mTLS。证书、私钥和信任链仅通过只读
+直连 RPC 和 Gateway Admin Management 可强制 mTLS。证书、私钥和信任链仅通过只读
 文件路径注入，不提供跳过 SAN/Authority 校验或 Trust-All 开关。本地明文必须显式设置
 `development-plaintext=true` 或 `transport-security.mode=DEVELOPMENT_PLAINTEXT`。
 
@@ -155,8 +161,9 @@ gateway-engine.crt / gateway-engine.key
 gateway-engine-2.crt / gateway-engine-2.key
 ```
 
-私钥必须为未加密 PKCS#8 PEM。证书 SAN 必须覆盖实际连接名；组合 HA 与 mTLS 时，DDC
-和 Gateway Admin 服务端证书还须覆盖 `control-plane-proxy`。验证配置或启动命令为：
+私钥必须为未加密 PKCS#8 PEM。证书 SAN 必须覆盖实际连接名；组合 HA 与 mTLS 时，
+HAProxy 是 TCP Passthrough，因此两张 DDC gRPC 服务端证书都须覆盖逻辑 Authority
+`control-plane-proxy`。验证配置或启动命令为：
 
 ```bash
 docker compose --env-file .env \
@@ -194,6 +201,7 @@ MANAGEMENT_TRACING_SAMPLING_PROBABILITY=0.1
 - 基础 `compose.yml` 的 PostgreSQL、Redis、Kafka 和 Admin 仍为单节点开发依赖；
 - `compose.ha.yml` 只验证无状态双 Admin，不宣称单节点 PostgreSQL/Redis/Kafka 已 HA；
 - Provider 只通过 DDC Registry 发现，规则只通过 DDC DB/Redis/PubSub 下发；
+- DDC 引导使用本地配置的逻辑目标直连 unary gRPC；不保留机器 HTTP Fallback、不自注册、不流式下发配置、不要求粘性会话；
 - Nacos、Dubbo 与 Nginx 管理不属于该部署；
 - Compose 暴露两个 Engine 端口，但入口四层/七层负载均衡仍由部署平台负责；
 - Secret Manager、NetworkPolicy 和外部可观测平台由部署平台负责。

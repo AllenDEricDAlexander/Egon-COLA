@@ -26,15 +26,18 @@ temporary lease state in Redis and never create JPA or database tables.
 ## Deployment Topology
 
 ```text
-Configuration Clients ──HTTP/HMAC──┐
-RPC Providers ──────────HTTP/HMAC──┼──> one or more DDC Admins ──> PostgreSQL
-Internal Gateway ───────HTTP/HMAC──┘              │
-                                                  └──> shared Redis
+Configuration Clients ──direct gRPC/HMAC──┐
+RPC Providers ────────direct gRPC/HMAC──┼──> one logical DDC target ──> Admin set ──> PostgreSQL
+Internal Gateway ─────direct gRPC/HMAC──┘                                      │
+                                                                                 └──> shared Redis
 Configuration Clients <──── Redis Pub/Sub ────────┘
 Registry Subscribers  <──── Redis Pub/Sub ────────┘
 ```
 
-The Admin processes are the only management and lease API endpoints. They share
+The Admin processes are the only machine control-plane RPC providers. Clients use
+a locally configured `dns:///`, VIP, or load-balancer target and never bootstrap
+DDC through DDC service discovery. Admin HTTP remains for human management APIs and
+Actuator health only. The Admin processes share
 PostgreSQL and Redis; no Admin-local data is authoritative for a completed publish.
 Redis contains
 configuration cache, publish notifications, live configuration-client leases,
@@ -45,8 +48,9 @@ ACK, operation, and configuration-client projection data.
 
 | Module | Responsibility |
 |---|---|
-| `egon-cola-platform-dynamic-config-center-starter` | The only consumer SDK: native ConfigData loading, `@DdcValue`, selective refresh, typed management APIs, ACK, CONFIG_CLIENT leases, HMAC, and service-registry contracts |
-| `egon-cola-platform-dynamic-config-center-admin` | Standalone REST Admin, PostgreSQL persistence, Redis cache and leases, registry APIs, and synchronous publish state machine |
+| `egon-cola-platform-dynamic-config-center-starter` | Transport-neutral SDK runtime and ports: ConfigData, `@DdcValue`, selective refresh, ACK, leases, management and registry contracts |
+| `egon-cola-component-rpc-ddc-adapter` | Composition adapter under `components/rpc`: protobuf contracts, direct gRPC clients/providers, HMAC metadata, and Spring Boot wiring |
+| `egon-cola-platform-dynamic-config-center-admin` | Human REST Admin plus direct gRPC facades, PostgreSQL persistence, Redis cache/leases, and synchronous publish state machine |
 | `egon-cola-platform-dynamic-config-center-admin-web` | Standalone management console (React + antd + Vite, pure Node project outside the Maven reactor); build and deployment instructions live in `egon-cola-platform-dynamic-config-center-admin-web/README.md` |
 | `egon-cola-platform-dynamic-config-center-test` | Starter-only sample and black-box consumer verification; it has no Admin dependency |
 
@@ -83,13 +87,13 @@ top.egon.cola.component.ddc
 │   ├── state
 │   └── subscription
 └── transport
-    ├── http
     └── redis
 ```
 
 `DdcConfigClient`, `DdcServiceRegistryClient`, and `DdcManagementClient` remain
-separate domain facades. They share HTTP/TLS/HMAC and Redis transport resources,
-but not domain error handling or lifecycle logic.
+separate domain facades. The RPC-DDC Adapter implements them over three unary gRPC
+services. The starter does not depend on RPC; the dependency direction is
+`rpc-starter <- rpc-ddc-adapter -> ddc-starter`.
 
 ## Operations Endpoints
 
@@ -97,31 +101,32 @@ DDC Admin exposes `GET /actuator/health/readiness` for startup and readiness
 checks. `GET /actuator/info` exposes the application name and the Maven-filtered
 component version under `app.name` and `app.version`.
 
-Applications add only the Starter and import `ddc:application.yml` through
+Executable applications add the RPC-DDC Adapter and import `ddc:application.yml` through
 `spring.config.import`. `egon.cola.component.ddc.enabled=true` loads the remote YAML
 during ConfigData processing, then starts the `CONFIG_CLIENT` registration, pull,
 Redis subscription, heartbeat, and shutdown-offline lifecycle.
 `egon.cola.component.ddc.registry.enabled=true` independently enables RPC/Gateway
 service registration; those `RPC_PROVIDER`,
 `HTTP_PROVIDER`, and `INTERNAL_GATEWAY` leases are not configuration-client registrations. Every enabled
-remote path must explicitly configure the Admin Endpoint, matching HMAC credentials,
-and Redis topology. With `redis.enabled=false`, no registration, pull, subscription,
+remote path must locally configure the direct RPC target, matching least-privilege
+HMAC credentials, and Redis topology. With `redis.enabled=false`, no registration, pull, subscription,
 heartbeat, or ACK runs. Production multi-Admin access must use an external DNS name,
-VIP, or load balancer; Starter does not discover Admin processes.
+VIP, or HTTP/2-capable load balancer with `round_robin`; DDC never discovers its own
+Admin processes and no DDC machine HTTP compatibility endpoint exists.
 
 ```xml
 <dependency>
     <groupId>top.egon</groupId>
-    <artifactId>egon-cola-platform-dynamic-config-center-starter</artifactId>
+    <artifactId>egon-cola-component-rpc-ddc-adapter</artifactId>
     <version>5.3.3</version>
 </dependency>
 ```
 
 ## Trace Propagation
 
-The Starter uses `egon-cola-component-common-trace` in `HttpDdcConfigClient`, the
-OpenAPI registry client, heartbeat, pull, ACK retry, Redis topic callbacks, and
-lease recovery tasks. DDC calls triggered by a business request inherit the
+The Starter and RPC-DDC Adapter use `egon-cola-component-common-trace` in gRPC
+facade calls, heartbeat, pull, ACK retry, Redis topic callbacks, and lease recovery
+tasks. DDC calls triggered by a business request inherit the
 current `traceId` and create a child span. Background tasks without an upstream
 trace open a fresh `TraceContext` for each logical operation and restore the
 worker thread MDC afterwards. Outbound requests write only `traceparent`,
@@ -205,15 +210,13 @@ The registration carries `instanceId`, host, port, secure flag, metadata,
 lease seconds, and heartbeat interval. Metadata is bounded and rejects reserved
 or sensitive keys.
 
-OpenAPI endpoints:
+Direct unary gRPC services:
 
-| Method and path | Purpose |
+| Service | Operations |
 |---|---|
-| `POST /api/v1/ddc/openapi/registry/instances/register` | Register and receive a new lease |
-| `POST /api/v1/ddc/openapi/registry/instances/heartbeat` | Renew only the matching current lease |
-| `POST /api/v1/ddc/openapi/registry/instances/deregister` | Remove only the matching current lease |
-| `GET /api/v1/ddc/openapi/registry/instances` | Read a stable live-instance snapshot for one service key |
-| `GET /api/v1/ddc/openapi/registry/services` | Read the live service catalog |
+| `DdcConfigRuntimeService` | register, heartbeat, offline, pull, publish ACK |
+| `DdcServiceRegistryService` | register, heartbeat, deregister, instance snapshot, service catalog |
+| `DdcManagementService` | config CRUD, publish/task operations, config-client, scope, and registry reads |
 
 `DdcServiceRegistryClient` also exposes instance and catalog subscriptions.
 Redis revisions and Pub/Sub notifications trigger reconciliation; expired
@@ -272,35 +275,48 @@ curl -X POST \
 The call is intentionally synchronous. Query the same `changeId` through
 `GET /api/v1/ddc/publish-tasks/{changeId}` when a caller loses the response.
 
-## OpenAPI HMAC
+## RPC HMAC
 
-HMAC protects every path under `/api/v1/ddc/openapi/` when
-`signature-enabled` is true. Required headers are:
+HMAC protects every published DDC unary method when `signature-enabled` is true.
+Required gRPC metadata is:
 
 | Header | Value |
 |---|---|
-| `X-DDC-Access-Key` | configured access key |
-| `X-DDC-Timestamp` | Unix epoch milliseconds |
-| `X-DDC-Nonce` | unique request nonce |
-| `X-DDC-Content-SHA256` | lowercase SHA-256 hex of the exact request body |
-| `X-DDC-Signature` | HMAC-SHA256 hex of the canonical request |
+| `x-egon-ddc-access-key` | configured access key |
+| `x-egon-ddc-timestamp` | Unix epoch milliseconds |
+| `x-egon-ddc-nonce` | unique request nonce |
+| `x-egon-ddc-content-sha256` | lowercase SHA-256 of deterministic protobuf bytes |
+| `x-egon-ddc-signature` | HMAC-SHA256 of the canonical request |
+| `x-egon-ddc-contract-version` | `v1` |
 
-The canonical value is six newline-separated fields:
+The canonical value is five newline-separated fields:
 
 ```text
-UPPERCASE_HTTP_METHOD
-request-path
-canonical-query
+v1
+full-grpc-method-name
 timestamp
 nonce
 content-sha256
 ```
 
-The canonical query percent-encodes UTF-8 with RFC 3986 unreserved characters,
-sorts by encoded key and value, and preserves repeated parameters. The Admin
-checks clock skew, access key, body digest, signature, and nonce replay.
+The Admin checks the known method/operation mapping, contract version, clock skew,
+access key, deterministic body digest, signature, nonce replay, client type, and
+scope. Runtime, registry, and management clients use separate credentials.
 
 ## Configuration
+
+Migration from the removed machine HTTP transport is intentionally breaking:
+
+| Removed prefix | Removed leaf | Direct RPC replacement |
+|---|---|---|
+| `egon.cola.component.ddc.admin` | `endpoint` | `egon.cola.component.ddc.rpc.target` |
+| `egon.cola.component.ddc.admin` | `tls.*` | `egon.cola.component.ddc.rpc.tls.*` |
+| `egon.cola.component.ddc.admin` | `access-key` / `secret-key` | `egon.cola.component.ddc.rpc.auth.runtime.*` or `.registry.*` by capability |
+| `gateway.admin.ddc` | `endpoint` and HMAC keys | `egon.cola.component.ddc.rpc.target` plus `.auth.management.*` |
+| `egon.cola.component.ddc.admin.openapi` | `signature-enabled` / `credentials` | `egon.cola.component.ddc.admin.rpc.signature-enabled` / `.credentials` |
+
+There is no compatibility alias. Credentials are environment-injected and runtime,
+registry, and management use distinct access-key/secret pairs.
 
 Business application:
 
@@ -318,11 +334,22 @@ egon:
         app-code: order-service
         env: dev
         namespace: default
-        admin:
-          endpoint: http://localhost:18080
-          signature-enabled: true
-          access-key: ${DDC_ACCESS_KEY}
-          secret-key: ${DDC_SECRET_KEY}
+        rpc:
+          target: dns:///ddc-admin.example.internal:19080
+          load-balancing-policy: round_robin
+          tls:
+            enabled: true
+            development-plaintext: false
+            certificate-chain-path: ${DDC_CLIENT_CERTIFICATE}
+            private-key-path: ${DDC_CLIENT_PRIVATE_KEY}
+            trust-certificate-collection-path: ${DDC_TRUST_CERTIFICATE}
+          auth:
+            runtime:
+              access-key: ${DDC_RUNTIME_ACCESS_KEY}
+              secret-key: ${DDC_RUNTIME_SECRET_KEY}
+            registry:
+              access-key: ${DDC_REGISTRY_ACCESS_KEY}
+              secret-key: ${DDC_REGISTRY_SECRET_KEY}
         redis:
           mode: SINGLE
           nodes: []
@@ -389,20 +416,42 @@ egon:
           lease:
             minimum-seconds: 5
             maximum-seconds: 300
-          openapi:
+          rpc:
             signature-enabled: true
             credentials:
-              - credential-id: gateway-engine
-                access-key: ${DDC_ACCESS_KEY}
-                secret: ${DDC_SECRET_KEY}
-                client-type: "*"
+              - credential-id: runtime
+                access-key: ${DDC_RUNTIME_ACCESS_KEY}
+                secret: ${DDC_RUNTIME_SECRET_KEY}
+                client-type: SDK
                 app-code-patterns: [gateway-engine-*]
                 env-patterns: [local]
+                biz-code-patterns: [infra]
                 namespace-patterns: [default]
                 allowed-operations: [SDK_REGISTER, SDK_HEARTBEAT,
-                  SDK_OFFLINE, CONFIG_PULL, CONFIG_VALUE, PUBLISH_ACK,
-                  REGISTRY_REGISTER, REGISTRY_HEARTBEAT,
-                  REGISTRY_DEREGISTER, REGISTRY_READ]
+                  SDK_OFFLINE, CONFIG_PULL, PUBLISH_ACK]
+              - credential-id: registry
+                access-key: ${DDC_REGISTRY_ACCESS_KEY}
+                secret: ${DDC_REGISTRY_SECRET_KEY}
+                client-type: REGISTRY
+                app-code-patterns: [gateway-*]
+                env-patterns: [local]
+                biz-code-patterns: [infra]
+                namespace-patterns: [default]
+                allowed-operations: [REGISTRY_REGISTER,
+                  REGISTRY_HEARTBEAT, REGISTRY_DEREGISTER, REGISTRY_READ]
+              - credential-id: management
+                access-key: ${DDC_MANAGEMENT_ACCESS_KEY}
+                secret: ${DDC_MANAGEMENT_SECRET_KEY}
+                client-type: MANAGEMENT
+                app-code-patterns: [gateway-engine-*]
+                env-patterns: [local]
+                biz-code-patterns: [infra]
+                namespace-patterns: [default]
+                allowed-operations: [MANAGEMENT_CONFIG_READ,
+                  MANAGEMENT_CONFIG_WRITE, MANAGEMENT_PUBLISH,
+                  MANAGEMENT_TASK_READ, MANAGEMENT_TASK_RETRY,
+                  MANAGEMENT_INSTANCE_READ, MANAGEMENT_SCOPE_READ,
+                  MANAGEMENT_REGISTRY_READ]
           publish:
             dispatch-timeout-ms: 5000
             default-timeout-ms: 30000
@@ -410,6 +459,20 @@ egon:
             scan-interval-ms: 1000
             completion-poll-interval-ms: 100
             recovery-stale-ms: 120000
+      rpc:
+        enabled: true
+        provider:
+          enabled: true
+          port: 19080
+          registration-mode: DISABLED
+        consumer:
+          enabled: false
+        tls:
+          enabled: true
+          development-plaintext: false
+          certificate-chain-path: ${DDC_SERVER_CERTIFICATE}
+          private-key-path: ${DDC_SERVER_PRIVATE_KEY}
+          trust-certificate-collection-path: ${DDC_TRUST_CERTIFICATE}
 ```
 
 The `test` profile uses SQLite with `create-drop` and disables Flyway and the
@@ -419,11 +482,11 @@ Admin Redis connection. It is not the production storage topology.
 
 ```bash
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-dynamic-config-center-starter,:egon-cola-platform-dynamic-config-center-admin,:egon-cola-platform-dynamic-config-center-test \
+  -pl :egon-cola-component-rpc-ddc-adapter,:egon-cola-platform-dynamic-config-center-admin,:egon-cola-platform-dynamic-config-center-test \
   -am clean test
 
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-dynamic-config-center-admin,:egon-cola-platform-dynamic-config-center-starter \
+  -pl :egon-cola-platform-dynamic-config-center-admin,:egon-cola-component-rpc-ddc-adapter \
   -am package -DskipTests
 ```
 
@@ -434,6 +497,7 @@ runtime evidence, use the [developer integration runbook](../egon-cola-platform-
 
 - no Raft, leader election, consensus log, or membership protocol;
 - multi-Admin operation requires shared PostgreSQL and Redis; the platform does not provision database or Redis HA;
+- DDC uses a direct logical RPC target with client-side or external round-robin; it does not register itself, discover itself, require sticky sessions, or stream config over gRPC;
 - no distributed consensus or general-purpose distributed lock service;
 - no embedded Redis and no database-backed service registry;
 - no embedded Admin UI or account system; the standalone Admin Web uses the

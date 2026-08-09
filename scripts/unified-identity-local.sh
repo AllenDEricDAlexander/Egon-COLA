@@ -13,6 +13,7 @@ idp_url="${UNIFIED_IDENTITY_IDP_URL:-http://127.0.0.1:18120}"
 rbac3_url="${UNIFIED_IDENTITY_RBAC3_URL:-http://127.0.0.1:18130}"
 gateway_admin_url="${UNIFIED_IDENTITY_GATEWAY_ADMIN_URL:-http://127.0.0.1:18140}"
 ddc_url="${UNIFIED_IDENTITY_DDC_URL:-http://127.0.0.1:18150}"
+ddc_rpc_target="${UNIFIED_IDENTITY_DDC_RPC_TARGET:-dns:///127.0.0.1:19080}"
 mock_url="${UNIFIED_IDENTITY_MOCK_URL:-http://127.0.0.1:18160}"
 gateway_url="${UNIFIED_IDENTITY_GATEWAY_URL:-http://127.0.0.1:18180}"
 
@@ -208,8 +209,12 @@ write_service_jwt() {
 
 write_runtime_secrets() {
   ensure_password "${secret_dir}/idp-admin.password"
-  ensure_secret "${secret_dir}/ddc-openapi.access-key" 18
-  ensure_secret "${secret_dir}/ddc-openapi.secret" 32
+  ensure_secret "${secret_dir}/ddc-runtime.access-key" 18
+  ensure_secret "${secret_dir}/ddc-runtime.secret" 32
+  ensure_secret "${secret_dir}/ddc-registry.access-key" 18
+  ensure_secret "${secret_dir}/ddc-registry.secret" 32
+  ensure_secret "${secret_dir}/ddc-management.access-key" 18
+  ensure_secret "${secret_dir}/ddc-management.secret" 32
   ensure_secret "${secret_dir}/gateway-master-key.base64" 32
   ensure_secret "${secret_dir}/rbac3-audit.secret" 32
   ensure_rsa_key_pair "${secret_dir}/idp"
@@ -274,9 +279,6 @@ java_property_key() {
     EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_DATABASE)
       printf 'egon.cola.component.ddc.admin.redis.database'
       ;;
-    EGON_COLA_COMPONENT_DDC_ADMIN_TLS_DEVELOPMENT_PLAINTEXT)
-      printf 'egon.cola.component.ddc.admin.tls.development-plaintext'
-      ;;
     EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST)
       printf 'egon.cola.component.ddc.consistency.fail-fast'
       ;;
@@ -308,9 +310,6 @@ java_property_key() {
       printf 'egon.cola.component.gateway.provider.http.fail-fast'
       ;;
     GATEWAY_ADMIN_DDC_ENABLED) printf 'gateway.admin.ddc.enabled' ;;
-    GATEWAY_ADMIN_DDC_ENDPOINT) printf 'gateway.admin.ddc.endpoint' ;;
-    GATEWAY_ADMIN_DDC_ACCESS_KEY) printf 'gateway.admin.ddc.access-key' ;;
-    GATEWAY_ADMIN_DDC_SECRET_KEY) printf 'gateway.admin.ddc.secret-key' ;;
     GATEWAY_ADMIN_SECRETS_MASTER_KEY_BASE64)
       printf 'gateway.admin.secrets.master-key-base64'
       ;;
@@ -375,16 +374,14 @@ write_service_env_files() {
   write_env "${file}" DDC_ADMIN_JWT_ISSUER "${idp_url}"
   write_env "${file}" DDC_ADMIN_JWT_AUDIENCE ddc-admin-web
   write_env "${file}" DDC_ADMIN_JWT_JWK_SET_URI "${idp_url}/oauth2/jwks"
-  write_env "${file}" DDC_OPENAPI_SIGNATURE_ENABLED true
-  write_env "${file}" DDC_OPENAPI_CREDENTIAL_ID unified-identity-local
-  write_env "${file}" DDC_OPENAPI_ACCESS_KEY "$(<"${secret_dir}/ddc-openapi.access-key")"
-  write_env "${file}" DDC_OPENAPI_SECRET "$(<"${secret_dir}/ddc-openapi.secret")"
-  write_env "${file}" DDC_OPENAPI_CLIENT_TYPE '*'
-  write_env "${file}" DDC_OPENAPI_APP_CODE_PATTERNS '*'
-  write_env "${file}" DDC_OPENAPI_ENV_PATTERNS '*'
-  write_env "${file}" DDC_OPENAPI_BIZ_CODE_PATTERNS '*'
-  write_env "${file}" DDC_OPENAPI_NAMESPACE_PATTERNS '*'
-  write_env "${file}" DDC_OPENAPI_ALLOWED_OPERATIONS '*'
+  write_env "${file}" DDC_RPC_PORT 19080
+  write_env "${file}" DDC_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" DDC_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/ddc-runtime.access-key")"
+  write_env "${file}" DDC_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/ddc-runtime.secret")"
+  write_env "${file}" DDC_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/ddc-registry.access-key")"
+  write_env "${file}" DDC_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/ddc-registry.secret")"
+  write_env "${file}" DDC_RPC_MANAGEMENT_ACCESS_KEY "$(<"${secret_dir}/ddc-management.access-key")"
+  write_env "${file}" DDC_RPC_MANAGEMENT_SECRET_KEY "$(<"${secret_dir}/ddc-management.secret")"
 
   file="$(new_env_file idp)"
   common_identity_env "${file}"
@@ -418,10 +415,12 @@ write_service_env_files() {
   write_env "${file}" DDC_BIZ_CODE identity
   write_env "${file}" DEPLOYMENT_ENV local
   write_env "${file}" DEPLOYMENT_NAMESPACE default
-  write_env "${file}" DDC_ADMIN_ENDPOINT "${ddc_url}"
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_TLS_DEVELOPMENT_PLAINTEXT true
-  write_env "${file}" DDC_REPORT_ACCESS_KEY "$(<"${secret_dir}/ddc-openapi.access-key")"
-  write_env "${file}" DDC_REPORT_SECRET_KEY "$(<"${secret_dir}/ddc-openapi.secret")"
+  write_env "${file}" DDC_RPC_TARGET "${ddc_rpc_target}"
+  write_env "${file}" DDC_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" DDC_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/ddc-runtime.access-key")"
+  write_env "${file}" DDC_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/ddc-runtime.secret")"
+  write_env "${file}" DDC_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/ddc-registry.access-key")"
+  write_env "${file}" DDC_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/ddc-registry.secret")"
   write_env "${file}" DDC_REGISTRY_REDIS_HOST "${redis_host}"
   write_env "${file}" DDC_REGISTRY_REDIS_PORT "${redis_port}"
   write_env "${file}" DDC_REGISTRY_REDIS_PASSWORD "${redis_password}"
@@ -443,10 +442,12 @@ write_service_env_files() {
   write_env "${file}" DDC_BIZ_CODE identity
   write_env "${file}" DEPLOYMENT_ENV local
   write_env "${file}" DEPLOYMENT_NAMESPACE default
-  write_env "${file}" DDC_ADMIN_ENDPOINT "${ddc_url}"
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_TLS_DEVELOPMENT_PLAINTEXT true
-  write_env "${file}" DDC_REPORT_ACCESS_KEY "$(<"${secret_dir}/ddc-openapi.access-key")"
-  write_env "${file}" DDC_REPORT_SECRET_KEY "$(<"${secret_dir}/ddc-openapi.secret")"
+  write_env "${file}" DDC_RPC_TARGET "${ddc_rpc_target}"
+  write_env "${file}" DDC_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" DDC_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/ddc-runtime.access-key")"
+  write_env "${file}" DDC_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/ddc-runtime.secret")"
+  write_env "${file}" DDC_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/ddc-registry.access-key")"
+  write_env "${file}" DDC_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/ddc-registry.secret")"
   write_env "${file}" DDC_REGISTRY_REDIS_HOST "${redis_host}"
   write_env "${file}" DDC_REGISTRY_REDIS_PORT "${redis_port}"
   write_env "${file}" DDC_REGISTRY_REDIS_PASSWORD "${redis_password}"
@@ -483,9 +484,10 @@ write_service_env_files() {
   write_env "${file}" GATEWAY_ADMIN_SECRETS_MASTER_KEY_BASE64 "$(<"${secret_dir}/gateway-master-key.base64")"
   write_env "${file}" GATEWAY_MCP_ARTIFACT_ROOT "${runtime_dir}/mcp-artifacts"
   write_env "${file}" GATEWAY_ADMIN_DDC_ENABLED true
-  write_env "${file}" GATEWAY_ADMIN_DDC_ENDPOINT "${ddc_url}"
-  write_env "${file}" GATEWAY_ADMIN_DDC_ACCESS_KEY "$(<"${secret_dir}/ddc-openapi.access-key")"
-  write_env "${file}" GATEWAY_ADMIN_DDC_SECRET_KEY "$(<"${secret_dir}/ddc-openapi.secret")"
+  write_env "${file}" DDC_RPC_TARGET "${ddc_rpc_target}"
+  write_env "${file}" DDC_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" DDC_RPC_MANAGEMENT_ACCESS_KEY "$(<"${secret_dir}/ddc-management.access-key")"
+  write_env "${file}" DDC_RPC_MANAGEMENT_SECRET_KEY "$(<"${secret_dir}/ddc-management.secret")"
   write_env "${file}" GATEWAY_ADMIN_DDC_TARGET_BIZ_CODE identity
   write_env "${file}" GATEWAY_ADMIN_DDC_TARGET_APP_CODE gateway-engine-default
   write_env "${file}" GATEWAY_ADMIN_DEFINITION_RECONCILE_DELAY 1000
@@ -498,10 +500,12 @@ write_service_env_files() {
   write_env "${file}" MOCK_BACKEND_RBAC3_SERVICE_CREDENTIAL_FILE "${secret_dir}/mock-backend.service.jwt"
   write_env "${file}" MOCK_BACKEND_DDC_ENABLED true
   write_env "${file}" DDC_BIZ_CODE identity
-  write_env "${file}" DDC_ADMIN_ENDPOINT "${ddc_url}"
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_TLS_DEVELOPMENT_PLAINTEXT true
-  write_env "${file}" DDC_OPENAPI_ACCESS_KEY "$(<"${secret_dir}/ddc-openapi.access-key")"
-  write_env "${file}" DDC_OPENAPI_SECRET "$(<"${secret_dir}/ddc-openapi.secret")"
+  write_env "${file}" DDC_RPC_TARGET "${ddc_rpc_target}"
+  write_env "${file}" DDC_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" DDC_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/ddc-runtime.access-key")"
+  write_env "${file}" DDC_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/ddc-runtime.secret")"
+  write_env "${file}" DDC_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/ddc-registry.access-key")"
+  write_env "${file}" DDC_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/ddc-registry.secret")"
   write_env "${file}" DDC_REGISTRY_REDIS_HOST "${redis_host}"
   write_env "${file}" DDC_REGISTRY_REDIS_PORT "${redis_port}"
   write_env "${file}" DDC_REGISTRY_REDIS_PASSWORD "${redis_password}"
@@ -541,10 +545,12 @@ write_service_env_files() {
   write_env "${file}" DDC_BIZ_CODE identity
   write_env "${file}" DDC_APP_CODE gateway-engine-default
   write_env "${file}" DDC_ENV local
-  write_env "${file}" DDC_ADMIN_ENDPOINT "${ddc_url}"
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_TLS_DEVELOPMENT_PLAINTEXT true
-  write_env "${file}" DDC_OPENAPI_ACCESS_KEY "$(<"${secret_dir}/ddc-openapi.access-key")"
-  write_env "${file}" DDC_OPENAPI_SECRET "$(<"${secret_dir}/ddc-openapi.secret")"
+  write_env "${file}" DDC_RPC_TARGET "${ddc_rpc_target}"
+  write_env "${file}" DDC_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" DDC_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/ddc-runtime.access-key")"
+  write_env "${file}" DDC_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/ddc-runtime.secret")"
+  write_env "${file}" DDC_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/ddc-registry.access-key")"
+  write_env "${file}" DDC_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/ddc-registry.secret")"
   write_env "${file}" DDC_REDIS_HOST "${redis_host}"
   write_env "${file}" DDC_REDIS_PORT "${redis_port}"
   write_env "${file}" DDC_REDIS_PASSWORD "${redis_password}"

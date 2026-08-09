@@ -21,14 +21,15 @@ IDL。Java 注解只负责将生成的 Descriptor 绑定到 Java 接口，不重
 
 | 模块 | 职责 | 是否发布 |
 |---|---|---|
-| `egon-cola-component-rpc-starter` | Provider Server、Consumer Proxy、DDC 注册发现、Metadata、Deadline 和异常转换 | 是，并加入 Components BOM |
+| `egon-cola-component-rpc-starter` | 传输无关的 Provider Server、Consumer Proxy、直连/发现 Channel 抽象、Metadata、Deadline 和异常转换 | 是，并加入 Components BOM |
+| `egon-cola-component-rpc-ddc-adapter` | 可选 DDC 直连 gRPC 适配器，实现配置、注册、管理和 RPC 发现端口 | 是，并加入 Components BOM |
 | `egon-cola-component-rpc-test` | 仅测试使用的聚合模块 | 否 |
 | `...-test-contract` | 单个 Echo Proto 及生成的 Java/gRPC 类 | 否 |
 | `...-test-provider` | Provider 测试应用 | 否 |
 | `...-test-consumer` | Consumer 测试应用 | 否 |
 | `...-test-suite` | Mock Gateway、真实 TCP 测试和可选进程验证 | 否 |
 
-RPC 根模块有意只包含 Starter 与 Test 两个聚合模块。所有测试产物均不进入公共
+RPC 根模块包含传输无关 Starter、可选 DDC Adapter 与 Test 聚合模块。所有测试产物均不进入公共
 BOM。
 
 ## 运行拓扑
@@ -41,12 +42,13 @@ Consumer ── 每个 Gateway 一个 Channel ──> 内部 Gateway 集合
                                              └── 转发 unary 调用 ──> Provider
 
 Provider ── 注册/心跳/注销 ─┐
-Gateway  ── 注册/心跳/注销 ─┼──> DDC Admin 集合 ──> 共享 Redis
+Gateway  ── 注册/心跳/注销 ─┼──> DDC 直连 gRPC 目标 ──> Admin 集合 ──> 共享 Redis
 Consumer ── 发现/订阅 Gateway ─┘
 ```
 
 DDC 提供共享的租约和服务注册边界。Provider 与 Gateway 注册信息都是 Redis 中的
 临时租约。每次注册生成新的 `leaseId`；心跳和注销原子匹配 `instanceId + leaseId`。
+DDC 目标是本地引导配置，不通过 DDC 发现。普通 RPC 业务流量仍经由已发现的 Gateway。
 
 Consumer 永不查询 `RPC_PROVIDER`，也不创建 Provider Channel。它在有效 Gateway
 Channel 间 Round Robin；只有 Gateway 阶段的 `UNAVAILABLE` 才会在同一个调用
@@ -55,7 +57,8 @@ Deadline 内尝试其他 Gateway。启动截止时间内没有活跃 Gateway，�
 
 ## 依赖
 
-生产应用导入 Components BOM，并且只依赖 Starter：
+生产应用导入 Components BOM。自定义/直连 Channel 组装可只依赖 Starter；
+使用 DDC 配置或注册的应用引入 DDC Adapter，它会传递引入 Starter 和 DDC SDK：
 
 ```xml
 <dependencyManagement>
@@ -63,7 +66,7 @@ Deadline 内尝试其他 Gateway。启动截止时间内没有活跃 Gateway，�
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-components-bom</artifactId>
-            <version>5.2.3</version>
+            <version>5.3.3</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -73,7 +76,7 @@ Deadline 内尝试其他 Gateway。启动截止时间内没有活跃 Gateway，�
 <dependencies>
     <dependency>
         <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-rpc-starter</artifactId>
+        <artifactId>egon-cola-component-rpc-ddc-adapter</artifactId>
     </dependency>
 </dependencies>
 ```
@@ -202,9 +205,15 @@ egon:
         enabled: false
         env: dev
         namespace: default
-        admin:
-          endpoint: http://127.0.0.1:18080
-          signature-enabled: false
+        rpc:
+          target: dns:///ddc-admin.example.internal:19080
+          load-balancing-policy: round_robin
+          tls:
+            development-plaintext: true
+          auth:
+            registry:
+              access-key: ${DDC_REGISTRY_ACCESS_KEY}
+              secret-key: ${DDC_REGISTRY_SECRET_KEY}
         redis:
           host: 127.0.0.1
           port: 6379
@@ -285,8 +294,15 @@ egon:
         enabled: false
         env: dev
         namespace: default
-        admin:
-          endpoint: http://127.0.0.1:18080
+        rpc:
+          target: dns:///ddc-admin.example.internal:19080
+          load-balancing-policy: round_robin
+          tls:
+            development-plaintext: true
+          auth:
+            registry:
+              access-key: ${DDC_REGISTRY_ACCESS_KEY}
+              secret-key: ${DDC_REGISTRY_SECRET_KEY}
         redis:
           host: 127.0.0.1
           port: 6379

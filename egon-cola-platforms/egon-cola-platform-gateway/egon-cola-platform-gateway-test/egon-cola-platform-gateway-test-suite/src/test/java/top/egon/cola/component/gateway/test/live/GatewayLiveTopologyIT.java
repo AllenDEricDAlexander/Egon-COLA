@@ -39,10 +39,23 @@ class GatewayLiveTopologyIT {
 
     private static final String NAMESPACE = "gateway-live";
 
-    private static final String DDC_ACCESS_KEY = "gateway-live-ddc";
+    private static final String DDC_RUNTIME_ACCESS_KEY =
+            "gateway-live-ddc-runtime";
 
-    private static final String DDC_SECRET_KEY =
-            "gateway-live-ddc-secret-at-least-32-bytes";
+    private static final String DDC_RUNTIME_SECRET_KEY =
+            "gateway-live-ddc-runtime-secret-at-least-32-bytes";
+
+    private static final String DDC_REGISTRY_ACCESS_KEY =
+            "gateway-live-ddc-registry";
+
+    private static final String DDC_REGISTRY_SECRET_KEY =
+            "gateway-live-ddc-registry-secret-at-least-32-bytes";
+
+    private static final String DDC_MANAGEMENT_ACCESS_KEY =
+            "gateway-live-ddc-management";
+
+    private static final String DDC_MANAGEMENT_SECRET_KEY =
+            "gateway-live-ddc-management-secret-at-least-32-bytes";
 
     private static final String APPLICATION_CODE =
             "gateway-test-http-provider";
@@ -1112,13 +1125,21 @@ class GatewayLiveTopologyIT {
                 "--egon.cola.component.ddc.admin.rpc."
                         + "signature-enabled=true",
                 "--egon.cola.component.ddc.admin.rpc.credentials[0]."
-                        + "credential-id=gateway-live-service",
+                        + "credential-id=gateway-live-runtime",
                 "--egon.cola.component.ddc.admin.rpc.credentials[0]."
-                        + "access-key=" + DDC_ACCESS_KEY,
+                        + "access-key=" + DDC_RUNTIME_ACCESS_KEY,
                 "--egon.cola.component.ddc.admin.rpc.credentials[0]."
-                        + "secret=" + DDC_SECRET_KEY,
+                        + "secret=" + DDC_RUNTIME_SECRET_KEY,
                 "--egon.cola.component.ddc.admin.rpc.credentials[0]."
-                        + "client-type=*"
+                        + "client-type=SDK",
+                "--egon.cola.component.ddc.admin.rpc.credentials[1]."
+                        + "credential-id=gateway-live-registry",
+                "--egon.cola.component.ddc.admin.rpc.credentials[1]."
+                        + "client-type=REGISTRY",
+                "--egon.cola.component.ddc.admin.rpc.credentials[2]."
+                        + "credential-id=gateway-live-management",
+                "--egon.cola.component.ddc.admin.rpc.credentials[2]."
+                        + "client-type=MANAGEMENT"
         );
     }
 
@@ -1193,19 +1214,19 @@ class GatewayLiveTopologyIT {
                 )
                 .argument(
                         "egon.cola.component.ddc.rpc.auth.runtime.access-key",
-                        DDC_ACCESS_KEY
+                        DDC_RUNTIME_ACCESS_KEY
                 )
                 .argument(
                         "egon.cola.component.ddc.rpc.auth.runtime.secret-key",
-                        DDC_SECRET_KEY
+                        DDC_RUNTIME_SECRET_KEY
                 )
                 .argument(
                         "egon.cola.component.ddc.rpc.auth.registry.access-key",
-                        DDC_ACCESS_KEY
+                        DDC_REGISTRY_ACCESS_KEY
                 )
                 .argument(
                         "egon.cola.component.ddc.rpc.auth.registry.secret-key",
-                        DDC_SECRET_KEY
+                        DDC_REGISTRY_SECRET_KEY
                 );
     }
 
@@ -1292,22 +1313,22 @@ class GatewayLiveTopologyIT {
                 .argument(
                         "egon.cola.component.ddc.admin.rpc."
                                 + "credentials[0].credential-id",
-                        "gateway-live-service"
+                        "gateway-live-runtime"
                 )
                 .argument(
                         "egon.cola.component.ddc.admin.rpc."
                                 + "credentials[0].access-key",
-                        DDC_ACCESS_KEY
+                        DDC_RUNTIME_ACCESS_KEY
                 )
                 .argument(
                         "egon.cola.component.ddc.admin.rpc."
                                 + "credentials[0].secret",
-                        DDC_SECRET_KEY
+                        DDC_RUNTIME_SECRET_KEY
                 )
                 .argument(
                         "egon.cola.component.ddc.admin.rpc."
                                 + "credentials[0].client-type",
-                        "*"
+                        "SDK"
                 )
                 .argument(
                         "egon.cola.component.ddc.admin.rpc."
@@ -1326,8 +1347,173 @@ class GatewayLiveTopologyIT {
                 )
                 .argument(
                         "egon.cola.component.ddc.admin.rpc."
-                                + "credentials[0].allowed-operations[0]",
+                                + "credentials[0].namespace-patterns[0]",
                         "*"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[0].allowed-operations[0]",
+                        "SDK_REGISTER"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[0].allowed-operations[1]",
+                        "SDK_HEARTBEAT"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[0].allowed-operations[2]",
+                        "SDK_OFFLINE"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[0].allowed-operations[3]",
+                        "CONFIG_PULL"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[0].allowed-operations[4]",
+                        "PUBLISH_ACK"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[1].credential-id",
+                        "gateway-live-registry"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[1].access-key",
+                        DDC_REGISTRY_ACCESS_KEY
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[1].secret",
+                        DDC_REGISTRY_SECRET_KEY
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[1].client-type",
+                        "REGISTRY"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[1].app-code-patterns[0]",
+                        "*"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[1].env-patterns[0]",
+                        "*"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[1].biz-code-patterns[0]",
+                        "*"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[1].namespace-patterns[0]",
+                        "*"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[1].allowed-operations[0]",
+                        "REGISTRY_REGISTER"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[1].allowed-operations[1]",
+                        "REGISTRY_HEARTBEAT"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[1].allowed-operations[2]",
+                        "REGISTRY_DEREGISTER"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[1].allowed-operations[3]",
+                        "REGISTRY_READ"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[2].credential-id",
+                        "gateway-live-management"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[2].access-key",
+                        DDC_MANAGEMENT_ACCESS_KEY
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[2].secret",
+                        DDC_MANAGEMENT_SECRET_KEY
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[2].client-type",
+                        "MANAGEMENT"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[2].app-code-patterns[0]",
+                        "*"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[2].env-patterns[0]",
+                        "*"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[2].biz-code-patterns[0]",
+                        "*"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[2].namespace-patterns[0]",
+                        "*"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[2].allowed-operations[0]",
+                        "MANAGEMENT_CONFIG_READ"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[2].allowed-operations[1]",
+                        "MANAGEMENT_CONFIG_WRITE"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[2].allowed-operations[2]",
+                        "MANAGEMENT_PUBLISH"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[2].allowed-operations[3]",
+                        "MANAGEMENT_TASK_READ"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[2].allowed-operations[4]",
+                        "MANAGEMENT_TASK_RETRY"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[2].allowed-operations[5]",
+                        "MANAGEMENT_INSTANCE_READ"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[2].allowed-operations[6]",
+                        "MANAGEMENT_SCOPE_READ"
+                )
+                .argument(
+                        "egon.cola.component.ddc.admin.rpc."
+                                + "credentials[2].allowed-operations[7]",
+                        "MANAGEMENT_REGISTRY_READ"
                 )
                 .startupTimeout(STARTUP_TIMEOUT)
                 .build();
@@ -1381,12 +1567,12 @@ class GatewayLiveTopologyIT {
                 .argument(
                         "egon.cola.component.ddc.rpc.auth.management."
                                 + "access-key",
-                        DDC_ACCESS_KEY
+                        DDC_MANAGEMENT_ACCESS_KEY
                 )
                 .argument(
                         "egon.cola.component.ddc.rpc.auth.management."
                                 + "secret-key",
-                        DDC_SECRET_KEY
+                        DDC_MANAGEMENT_SECRET_KEY
                 )
                 .argument(
                         "gateway.admin.definition-reconcile-delay",

@@ -21,15 +21,17 @@ V1 支持由共享 PostgreSQL 和 Redis 支撑的一个逻辑控制面。多个 
 ## 部署拓扑
 
 ```text
-配置客户端 ─────────HTTP/HMAC──┐
-RPC Provider ──────HTTP/HMAC──┼──> 一个或多个 DDC Admin ──> PostgreSQL
-内部 Gateway ──────HTTP/HMAC──┘             │
-                                             └──> 共享 Redis
+配置客户端 ──直连 gRPC/HMAC──┐
+RPC Provider ────直连 gRPC/HMAC──┼──> DDC 逻辑目标 ──> Admin 集合 ──> PostgreSQL
+内部 Gateway ────直连 gRPC/HMAC──┘                               │
+                                                                       └──> 共享 Redis
 配置客户端 <──────── Redis Pub/Sub ────────┘
 注册订阅方 <──────── Redis Pub/Sub ────────┘
 ```
 
-Admin 进程是唯一的管理和租约 API 入口。各 Admin 共享 PostgreSQL 和 Redis；已完成
+Admin 进程是唯一的机器控制面 RPC Provider。客户端通过本地配置的
+`dns:///`、VIP 或负载均衡目标直连，不通过 DDC 服务发现引导 DDC 自身。
+Admin HTTP 仅保留给人工管理 API 和 Actuator 健康检查。各 Admin 共享 PostgreSQL 和 Redis；已完成
 发布的事实不依赖某个 Admin 的本地状态。Redis 保存配置缓存、发布通知、配置客户端
 当前租约和服务注册租约。PostgreSQL 保存配置、版本、发布、ACK、操作日志和配置
 客户端管理投影数据。
@@ -38,8 +40,9 @@ Admin 进程是唯一的管理和租约 API 入口。各 Admin 共享 PostgreSQL
 
 | 模块 | 职责 |
 |---|---|
-| `egon-cola-platform-dynamic-config-center-starter` | 唯一业务侧 SDK：原生 ConfigData 加载、`@DdcValue`、选择性刷新、类型化管理 API、ACK、CONFIG_CLIENT 租约、HMAC 和服务注册契约 |
-| `egon-cola-platform-dynamic-config-center-admin` | 独立 REST Admin、PostgreSQL 持久化、Redis 缓存与租约、注册中心 API 和同步发布状态机 |
+| `egon-cola-platform-dynamic-config-center-starter` | 传输无关 SDK 运行时与端口：ConfigData、`@DdcValue`、选择性刷新、ACK、租约、管理和注册契约 |
+| `egon-cola-component-rpc-ddc-adapter` | 位于 `components/rpc` 的组装适配器：Protobuf 契约、直连 gRPC Client/Provider、HMAC Metadata 和 Spring Boot 装配 |
+| `egon-cola-platform-dynamic-config-center-admin` | 人工 REST Admin 与直连 gRPC Facade、PostgreSQL 持久化、Redis 缓存/租约和同步发布状态机 |
 | `egon-cola-platform-dynamic-config-center-admin-web` | 独立管理控制台（React + antd + Vite，纯 Node 工程，不进 Maven reactor）；构建与部署说明见 `egon-cola-platform-dynamic-config-center-admin-web/README.md` |
 | `egon-cola-platform-dynamic-config-center-test` | 仅依赖 Starter 的样例与黑盒消费端验证，不依赖 Admin |
 
@@ -75,12 +78,12 @@ top.egon.cola.component.ddc
 │   ├── state
 │   └── subscription
 └── transport
-    ├── http
     └── redis
 ```
 
 `DdcConfigClient`、`DdcServiceRegistryClient`、`DdcManagementClient` 仍是三套独立
-领域门面；它们复用 HTTP/TLS/HMAC 和 Redis 传输资源，但不合并领域错误处理与生命周期。
+领域门面，RPC-DDC Adapter 通过三个 unary gRPC Service 实现它们。Starter 不依赖
+RPC，依赖方向固定为 `rpc-starter <- rpc-ddc-adapter -> ddc-starter`。
 
 ## 运维端点
 
@@ -88,26 +91,27 @@ DDC Admin 使用 `GET /actuator/health/readiness` 作为启动与就绪探针。
 `GET /actuator/info` 在 `app.name` 和 `app.version` 中暴露应用名称与 Maven
 过滤后的组件版本。
 
-业务应用只引入 Starter，并通过 `spring.config.import` 导入 `ddc:application.yml`。
+可执行业务应用引入 RPC-DDC Adapter，并通过 `spring.config.import` 导入 `ddc:application.yml`。
 `egon.cola.component.ddc.enabled=true` 会在 ConfigData 阶段加载远端 YAML，随后启动
 `CONFIG_CLIENT` 注册、配置拉取、Redis 订阅、心跳和停机下线闭环；
 `egon.cola.component.ddc.registry.enabled=true` 独立启用 RPC/Gateway 服务注册，
 其中 `RPC_PROVIDER`、`HTTP_PROVIDER` 和 `INTERNAL_GATEWAY` 租约不是配置客户端注册。启用任一远程
-路径时都必须显式配置 Admin Endpoint、匹配的 HMAC 凭据和 Redis 拓扑。
+路径时都必须在本地显式配置直连 RPC 目标、匹配的最小权限 HMAC 凭据和 Redis 拓扑。
 `redis.enabled=false` 时不会执行注册、拉取、订阅、心跳或 ACK。生产多 Admin
-入口由外部 DNS、VIP 或负载均衡提供，Starter 不负责发现 Admin 进程。
+入口由外部 DNS、VIP 或支持 HTTP/2 的负载均衡提供，客户端使用
+`round_robin`。DDC 不发现自身 Admin，也不保留机器 HTTP 兼容端点。
 
 ```xml
 <dependency>
     <groupId>top.egon</groupId>
-    <artifactId>egon-cola-platform-dynamic-config-center-starter</artifactId>
+    <artifactId>egon-cola-component-rpc-ddc-adapter</artifactId>
     <version>5.3.3</version>
 </dependency>
 ```
 
 ## Trace 传播
 
-Starter 的 `HttpDdcConfigClient`、OpenAPI 注册客户端、心跳、拉取、ACK 重试、Redis
+Starter 和 RPC-DDC Adapter 的 gRPC Facade 调用、心跳、拉取、ACK 重试、Redis
 Topic 回调和租约恢复任务统一使用 `egon-cola-component-common-trace`。业务请求触发的
 DDC 调用会继承当前 `traceId` 并创建 child span；后台任务没有上游 Trace 时会为每次
 逻辑操作打开新的 `TraceContext`，并在结束后恢复原线程 MDC。出站只写
@@ -182,15 +186,13 @@ env + namespace + serviceKind + serviceName + group + version + protocol
 `instanceId`、主机、端口、secure 标志、元数据、租约秒数和心跳周期。
 元数据有数量和长度边界，并拒绝保留前缀与敏感字段。
 
-OpenAPI：
+直连 unary gRPC Service：
 
-| 方法和路径 | 用途 |
+| Service | 操作 |
 |---|---|
-| `POST /api/v1/ddc/openapi/registry/instances/register` | 注册并取得新租约 |
-| `POST /api/v1/ddc/openapi/registry/instances/heartbeat` | 仅续期匹配的当前租约 |
-| `POST /api/v1/ddc/openapi/registry/instances/deregister` | 仅删除匹配的当前租约 |
-| `GET /api/v1/ddc/openapi/registry/instances` | 查询一个服务 Key 的稳定有效实例快照 |
-| `GET /api/v1/ddc/openapi/registry/services` | 查询有效服务目录 |
+| `DdcConfigRuntimeService` | 注册、心跳、下线、拉取、发布 ACK |
+| `DdcServiceRegistryService` | 注册、心跳、注销、实例快照、服务目录 |
+| `DdcManagementService` | 配置 CRUD、发布/任务、配置客户端、Scope 和注册信息查询 |
 
 `DdcServiceRegistryClient` 同时提供实例快照和服务目录订阅。Redis Revision 和
 Pub/Sub 通知会触发校准，过期实例从快照中摘除。Redis 重启后注册状态按设计
@@ -244,35 +246,48 @@ curl -X POST \
 该调用有意保持同步。调用方丢失响应时，可用同一 `changeId` 请求
 `GET /api/v1/ddc/publish-tasks/{changeId}` 查询持久化结果。
 
-## OpenAPI HMAC
+## RPC HMAC
 
-`signature-enabled` 为 true 时，HMAC 保护
-`/api/v1/ddc/openapi/` 下的所有路径。必需请求头：
+`signature-enabled` 为 true 时，HMAC 保护所有已发布 DDC unary 方法。
+必需 gRPC Metadata：
 
 | Header | 值 |
 |---|---|
-| `X-DDC-Access-Key` | 配置的 access key |
-| `X-DDC-Timestamp` | Unix 毫秒时间戳 |
-| `X-DDC-Nonce` | 请求唯一随机数 |
-| `X-DDC-Content-SHA256` | 精确请求体的小写 SHA-256 十六进制 |
-| `X-DDC-Signature` | 规范请求的 HMAC-SHA256 十六进制 |
+| `x-egon-ddc-access-key` | 配置的 access key |
+| `x-egon-ddc-timestamp` | Unix 毫秒时间戳 |
+| `x-egon-ddc-nonce` | 请求唯一随机数 |
+| `x-egon-ddc-content-sha256` | protobuf 确定性序列化字节的小写 SHA-256 |
+| `x-egon-ddc-signature` | 规范请求的 HMAC-SHA256 |
+| `x-egon-ddc-contract-version` | `v1` |
 
-规范请求由六个换行分隔的字段组成：
+规范请求由五个换行分隔的字段组成：
 
 ```text
-大写 HTTP_METHOD
-请求路径
-规范查询串
+v1
+完整 gRPC 方法名
 timestamp
 nonce
 content-sha256
 ```
 
-规范查询串按 UTF-8 和 RFC 3986 非保留字符进行百分号编码，再按编码后的 Key
-和值排序，并保留重复参数。Admin 会检查时间偏移、Access Key、请求体摘要、
-签名和 Nonce 重放。
+Admin 会检查已知方法/操作映射、契约版本、时间偏移、Access Key、
+确定性请求体摘要、签名、Nonce 重放、客户端类型和 Scope。Runtime、Registry
+和 Management 客户端使用独立凭据。
 
 ## 配置
+
+从已删除机器 HTTP 传输迁移是有意的破坏性变更：
+
+| 已删除前缀 | 已删除叶子 | 直连 RPC 替代项 |
+|---|---|---|
+| `egon.cola.component.ddc.admin` | `endpoint` | `egon.cola.component.ddc.rpc.target` |
+| `egon.cola.component.ddc.admin` | `tls.*` | `egon.cola.component.ddc.rpc.tls.*` |
+| `egon.cola.component.ddc.admin` | `access-key` / `secret-key` | 按能力使用 `egon.cola.component.ddc.rpc.auth.runtime.*` 或 `.registry.*` |
+| `gateway.admin.ddc` | `endpoint` 和 HMAC Key | `egon.cola.component.ddc.rpc.target` 与 `.auth.management.*` |
+| `egon.cola.component.ddc.admin.openapi` | `signature-enabled` / `credentials` | `egon.cola.component.ddc.admin.rpc.signature-enabled` / `.credentials` |
+
+不提供兼容别名。凭据通过环境注入，Runtime、Registry 和 Management 使用
+不同的 Access Key/Secret 对。
 
 业务应用：
 
@@ -290,11 +305,22 @@ egon:
         app-code: order-service
         env: dev
         namespace: default
-        admin:
-          endpoint: http://localhost:18080
-          signature-enabled: true
-          access-key: ${DDC_ACCESS_KEY}
-          secret-key: ${DDC_SECRET_KEY}
+        rpc:
+          target: dns:///ddc-admin.example.internal:19080
+          load-balancing-policy: round_robin
+          tls:
+            enabled: true
+            development-plaintext: false
+            certificate-chain-path: ${DDC_CLIENT_CERTIFICATE}
+            private-key-path: ${DDC_CLIENT_PRIVATE_KEY}
+            trust-certificate-collection-path: ${DDC_TRUST_CERTIFICATE}
+          auth:
+            runtime:
+              access-key: ${DDC_RUNTIME_ACCESS_KEY}
+              secret-key: ${DDC_RUNTIME_SECRET_KEY}
+            registry:
+              access-key: ${DDC_REGISTRY_ACCESS_KEY}
+              secret-key: ${DDC_REGISTRY_SECRET_KEY}
         redis:
           mode: SINGLE
           nodes: []
@@ -358,20 +384,42 @@ egon:
           lease:
             minimum-seconds: 5
             maximum-seconds: 300
-          openapi:
+          rpc:
             signature-enabled: true
             credentials:
-              - credential-id: gateway-engine
-                access-key: ${DDC_ACCESS_KEY}
-                secret: ${DDC_SECRET_KEY}
-                client-type: "*"
+              - credential-id: runtime
+                access-key: ${DDC_RUNTIME_ACCESS_KEY}
+                secret: ${DDC_RUNTIME_SECRET_KEY}
+                client-type: SDK
                 app-code-patterns: [gateway-engine-*]
                 env-patterns: [local]
+                biz-code-patterns: [infra]
                 namespace-patterns: [default]
                 allowed-operations: [SDK_REGISTER, SDK_HEARTBEAT,
-                  SDK_OFFLINE, CONFIG_PULL, CONFIG_VALUE, PUBLISH_ACK,
-                  REGISTRY_REGISTER, REGISTRY_HEARTBEAT,
-                  REGISTRY_DEREGISTER, REGISTRY_READ]
+                  SDK_OFFLINE, CONFIG_PULL, PUBLISH_ACK]
+              - credential-id: registry
+                access-key: ${DDC_REGISTRY_ACCESS_KEY}
+                secret: ${DDC_REGISTRY_SECRET_KEY}
+                client-type: REGISTRY
+                app-code-patterns: [gateway-*]
+                env-patterns: [local]
+                biz-code-patterns: [infra]
+                namespace-patterns: [default]
+                allowed-operations: [REGISTRY_REGISTER,
+                  REGISTRY_HEARTBEAT, REGISTRY_DEREGISTER, REGISTRY_READ]
+              - credential-id: management
+                access-key: ${DDC_MANAGEMENT_ACCESS_KEY}
+                secret: ${DDC_MANAGEMENT_SECRET_KEY}
+                client-type: MANAGEMENT
+                app-code-patterns: [gateway-engine-*]
+                env-patterns: [local]
+                biz-code-patterns: [infra]
+                namespace-patterns: [default]
+                allowed-operations: [MANAGEMENT_CONFIG_READ,
+                  MANAGEMENT_CONFIG_WRITE, MANAGEMENT_PUBLISH,
+                  MANAGEMENT_TASK_READ, MANAGEMENT_TASK_RETRY,
+                  MANAGEMENT_INSTANCE_READ, MANAGEMENT_SCOPE_READ,
+                  MANAGEMENT_REGISTRY_READ]
           publish:
             dispatch-timeout-ms: 5000
             default-timeout-ms: 30000
@@ -379,6 +427,20 @@ egon:
             scan-interval-ms: 1000
             completion-poll-interval-ms: 100
             recovery-stale-ms: 120000
+      rpc:
+        enabled: true
+        provider:
+          enabled: true
+          port: 19080
+          registration-mode: DISABLED
+        consumer:
+          enabled: false
+        tls:
+          enabled: true
+          development-plaintext: false
+          certificate-chain-path: ${DDC_SERVER_CERTIFICATE}
+          private-key-path: ${DDC_SERVER_PRIVATE_KEY}
+          trust-certificate-collection-path: ${DDC_TRUST_CERTIFICATE}
 ```
 
 `test` Profile 使用 SQLite `create-drop`，并关闭 Flyway 和 Admin Redis
@@ -388,11 +450,11 @@ egon:
 
 ```bash
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-dynamic-config-center-starter,:egon-cola-platform-dynamic-config-center-admin,:egon-cola-platform-dynamic-config-center-test \
+  -pl :egon-cola-component-rpc-ddc-adapter,:egon-cola-platform-dynamic-config-center-admin,:egon-cola-platform-dynamic-config-center-test \
   -am clean test
 
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-dynamic-config-center-admin,:egon-cola-platform-dynamic-config-center-starter \
+  -pl :egon-cola-platform-dynamic-config-center-admin,:egon-cola-component-rpc-ddc-adapter \
   -am package -DskipTests
 ```
 
@@ -403,6 +465,7 @@ egon:
 
 - 不支持 Raft、Leader 选举、共识日志或成员协议；
 - 多 Admin 运行要求共享 PostgreSQL 和 Redis；平台不负责提供数据库或 Redis HA；
+- DDC 使用直连逻辑 RPC 目标和客户端/外部轮询；不注册或发现自身、不要求粘性会话、不通过 gRPC 流式下发配置；
 - 不提供分布式共识或通用分布式锁服务；
 - 不内嵌 Redis，不使用数据库持久化服务注册信息；
 - 不内嵌 Admin UI 或账号系统；独立 Admin Web 接入平台统一身份与授权，且不以兼容

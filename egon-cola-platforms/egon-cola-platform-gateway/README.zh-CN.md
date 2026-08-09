@@ -24,6 +24,11 @@ HTTP/RPC 客户端 ──> Gateway Engine <── 规则版本 ─┘
 last-known-good 规则；但冷启动 Engine 在缺少必要规则和 Provider 状态时不能声称
 Ready。
 
+DDC 是引导例外：Gateway Admin、Engine、Provider 和 Consumer 通过本地配置的
+`19080` DDC 直连 gRPC 目标与 `round_robin` 访问，DDC 不注册或发现自身。Redis
+Pub/Sub 仍承载变更通知。其他普通 RPC 服务仍由 DDC 支撑，业务调用仍经过
+已发现的 Gateway 集合，不直连 Provider。
+
 ## 模块
 
 | 模块 | 职责 | 是否为业务依赖入口 |
@@ -52,7 +57,7 @@ Admin Web 是与 Gateway 源码同目录的私有 React 应用，路径为
   以及过期/不健康实例摘除。
 - Gateway Admin 草稿、接口目录、规则版本编译、规范化摘要、鉴权管理 API 和
   运行时定义校准。
-- HTTP、RPC、DDC 和管理传输的 TLS/mTLS，以及受控证书刷新和监听器 Drain 操作。
+- HTTP、RPC、DDC 直连 RPC 和管理传输的 TLS/mTLS，以及受控证书刷新和监听器 Drain 操作。
 - Micrometer Observation / OpenTelemetry Span 和有界 Kafka 调用事件投影；遥测
   故障不得改变业务响应。
 

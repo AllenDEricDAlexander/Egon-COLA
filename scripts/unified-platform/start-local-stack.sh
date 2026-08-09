@@ -51,6 +51,7 @@ export UNIFIED_IDENTITY_IDP_URL="${IDP_BASE_URL}"
 export UNIFIED_IDENTITY_RBAC3_URL="${RBAC3_BASE_URL}"
 export UNIFIED_IDENTITY_GATEWAY_ADMIN_URL="${GATEWAY_ADMIN_BASE_URL}"
 export UNIFIED_IDENTITY_DDC_URL="${DDC_BASE_URL}"
+export UNIFIED_IDENTITY_DDC_RPC_TARGET="${DDC_RPC_TARGET}"
 export UNIFIED_IDENTITY_MOCK_URL="${MOCK_BACKEND_BASE_URL}"
 export UNIFIED_IDENTITY_GATEWAY_URL="${GATEWAY_BASE_URL}"
 export UNIFIED_IDENTITY_SKIP_BUILD="${UNIFIED_PLATFORM_SKIP_BUILD:-false}"
@@ -153,10 +154,12 @@ write_extra_service_env_files() {
   unified_platform_write_env "${file}" DDC_APP_CODE gateway-test-mcp-provider
   unified_platform_write_env "${file}" DDC_ENV local
   unified_platform_write_env "${file}" DDC_NAMESPACE default
-  unified_platform_write_env "${file}" DDC_ADMIN_ENDPOINT "${DDC_BASE_URL}"
-  unified_platform_write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_TLS_DEVELOPMENT_PLAINTEXT true
-  unified_platform_write_env "${file}" DDC_OPENAPI_ACCESS_KEY "$(<"${unified_platform_secret_dir}/ddc-openapi.access-key")"
-  unified_platform_write_env "${file}" DDC_OPENAPI_SECRET "$(<"${unified_platform_secret_dir}/ddc-openapi.secret")"
+  unified_platform_write_env "${file}" DDC_RPC_TARGET "${DDC_RPC_TARGET}"
+  unified_platform_write_env "${file}" DDC_RPC_DEVELOPMENT_PLAINTEXT true
+  unified_platform_write_env "${file}" DDC_RPC_RUNTIME_ACCESS_KEY "$(<"${unified_platform_secret_dir}/ddc-runtime.access-key")"
+  unified_platform_write_env "${file}" DDC_RPC_RUNTIME_SECRET_KEY "$(<"${unified_platform_secret_dir}/ddc-runtime.secret")"
+  unified_platform_write_env "${file}" DDC_RPC_REGISTRY_ACCESS_KEY "$(<"${unified_platform_secret_dir}/ddc-registry.access-key")"
+  unified_platform_write_env "${file}" DDC_RPC_REGISTRY_SECRET_KEY "$(<"${unified_platform_secret_dir}/ddc-registry.secret")"
   unified_platform_write_env "${file}" DDC_REGISTRY_ENABLED true
   unified_platform_write_env "${file}" DDC_REGISTRY_REDIS_HOST 127.0.0.1
   unified_platform_write_env "${file}" DDC_REGISTRY_REDIS_PORT 6379

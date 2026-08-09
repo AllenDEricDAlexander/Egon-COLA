@@ -92,8 +92,9 @@ credential for status reads. Status reads use the OAuth token file configured by
 
 | Variable | Rule |
 | --- | --- |
-| `DDC_ADMIN_ENDPOINT` | Explicit DDC Admin endpoint |
-| `DDC_REPORT_ACCESS_KEY` / `DDC_REPORT_SECRET_KEY` | DDC signed reporting credential |
+| `DDC_RPC_TARGET` | Locally configured direct DDC logical target, normally `dns:///host:19080` |
+| `DDC_RPC_RUNTIME_ACCESS_KEY` / `DDC_RPC_RUNTIME_SECRET_KEY` | DDC config-client credential |
+| `DDC_RPC_REGISTRY_ACCESS_KEY` / `DDC_RPC_REGISTRY_SECRET_KEY` | DDC provider-registry credential; do not reuse the runtime secret |
 | `DDC_BIZ_CODE` | DDC v3 business domain; must match Gateway Definition and provider queries |
 | `DEPLOYMENT_ENV` / `DEPLOYMENT_NAMESPACE` | Must match Gateway Definition and Release identity |
 | `RBAC3_ADVERTISED_HOST` / `RBAC3_ADVERTISED_PORT` | Address reachable by Gateway Engine |
@@ -103,6 +104,9 @@ The service registers under `DDC_BIZ_CODE + rbac3-admin` as `HTTP_PROVIDER`,
 protocol `http`, service name `rbac3-admin`, group `default`, and the deployed artifact version. Lease is 30
 seconds with a 10-second heartbeat. DDC must not advertise the instance before
 the provider port is actually reachable.
+The DDC target is bootstrap configuration and is never obtained from DDC service
+discovery. Multi-Admin deployments expose one HTTP/2-capable logical target with
+round-robin routing; no sticky session is required.
 
 ### 2.6 DDC configuration client and runtime policy
 
