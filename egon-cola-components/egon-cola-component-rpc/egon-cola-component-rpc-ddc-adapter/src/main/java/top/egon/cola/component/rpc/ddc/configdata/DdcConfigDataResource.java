@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.configdata;
+package top.egon.cola.component.rpc.ddc.configdata;
 
 import org.springframework.boot.context.config.ConfigDataResource;
 

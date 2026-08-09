@@ -8,6 +8,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.autoconfigure.DdcAutoConfiguration;
+import top.egon.cola.component.ddc.autoconfigure.DdcRedisAutoConfiguration;
+import top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfiguration;
 import top.egon.cola.component.ddc.service.registry.DdcRegistrySnapshotLoader;
 import top.egon.cola.component.rpc.consumer.RpcGatewayDirectory;
 import top.egon.cola.component.rpc.context.RpcProcessIdentityProvider;
@@ -76,6 +79,34 @@ class DdcRpcAutoConfigurationTest {
                             .hasSingleBean(RpcGatewayDirectory.class)
                             .hasSingleBean(RpcProcessIdentityProvider.class);
                     assertThat(context).doesNotHaveBean(DdcConfigClient.class);
+                });
+    }
+
+    @Test
+    void adapterPortsSatisfyStarterFailFastRequirements() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        DdcRedisAutoConfiguration.class,
+                        DdcRpcAutoConfiguration.class,
+                        DdcAutoConfiguration.class,
+                        DdcRegistryAutoConfiguration.class
+                ))
+                .withUserConfiguration(RedisOverride.class)
+                .withPropertyValues(
+                        "egon.cola.component.ddc.enabled=true",
+                        "egon.cola.component.ddc.redis.enabled=false",
+                        "egon.cola.component.ddc.registry.enabled=true",
+                        "egon.cola.component.ddc.rpc.target=localhost:65535",
+                        "egon.cola.component.ddc.rpc.auth.runtime.access-key=runtime-ak",
+                        "egon.cola.component.ddc.rpc.auth.runtime.secret-key=runtime-sk",
+                        "egon.cola.component.ddc.rpc.auth.registry.access-key=registry-ak",
+                        "egon.cola.component.ddc.rpc.auth.registry.secret-key=registry-sk"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context)
+                            .hasSingleBean(DdcConfigClient.class)
+                            .hasSingleBean(DdcServiceRegistryClient.class);
                 });
     }
 

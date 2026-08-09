@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.configdata;
+package top.egon.cola.component.rpc.ddc.configdata;
 
 import org.springframework.boot.context.config.ConfigData;
 import org.springframework.boot.context.config.ConfigDataLoader;
@@ -39,27 +39,45 @@ public final class DdcConfigDataLoader
             throws IOException, ConfigDataResourceNotFoundException {
         DdcConfigDataFetcher client = context.getBootstrapContext()
                 .get(DdcConfigDataFetcher.class);
-        DdcConfigValue value = client.load(resource.resourceName());
+        DdcConfigValue value;
+        try {
+            value = client.load(resource.resourceName());
+        } catch (RuntimeException exception) {
+            if (!resource.optional()) {
+                throw exception;
+            }
+            return empty(resource);
+        }
         if (value == null) {
             if (resource.optional()) {
-                DdcConfigFormatStrategy strategy =
-                        formatStrategies.getByResourceName(
-                                resource.resourceName()
-                        );
-                return configData(strategy.empty(resource.resourceName()));
+                return empty(resource);
             }
             throw new ConfigDataResourceNotFoundException(resource);
         }
-        DdcConfigFormatStrategy strategy = formatStrategies.get(
-                value.getFormat(),
-                resource.resourceName()
-        );
-        DdcDynamicPropertySource propertySource = strategy.load(
-                resource.resourceName(),
-                value.getContent(),
-                value.getVersion()
-        );
-        return configData(propertySource);
+        try {
+            DdcConfigFormatStrategy strategy = formatStrategies.get(
+                    value.getFormat(),
+                    resource.resourceName()
+            );
+            DdcDynamicPropertySource propertySource = strategy.load(
+                    resource.resourceName(),
+                    value.getContent(),
+                    value.getVersion()
+            );
+            return configData(propertySource);
+        } catch (RuntimeException | IOException exception) {
+            if (resource.optional()) {
+                return empty(resource);
+            }
+            throw exception;
+        }
+    }
+
+    /** 创建可选远端失败时使用的空动态属性源。 / Creates the empty dynamic source used for optional remote failures. */
+    private ConfigData empty(DdcConfigDataResource resource) {
+        DdcConfigFormatStrategy strategy =
+                formatStrategies.getByResourceName(resource.resourceName());
+        return configData(strategy.empty(resource.resourceName()));
     }
 
     /**

@@ -69,6 +69,10 @@ class DdcAutoConfigurationTest {
                             DdcRedisAutoConfiguration.class,
                             DdcAutoConfiguration.class
                     ))
+                    .withBean(
+                            DdcConfigClient.class,
+                            () -> mock(DdcConfigClient.class)
+                    )
                     .withInitializer(context -> context.getEnvironment()
                             .getPropertySources().addFirst(
                                     new DdcYamlConfigFormatStrategy()
@@ -92,11 +96,13 @@ class DdcAutoConfigurationTest {
 
     @Test
     void warnsWhenRemoteLifecycleIsDisabled(CapturedOutput output) {
-        contextRunner.withPropertyValues(
+        contextRunner.withBean(
+                        DdcConfigClient.class,
+                        () -> mock(DdcConfigClient.class)
+                )
+                .withPropertyValues(
                         "egon.cola.component.ddc.enabled=true",
-                        "egon.cola.component.ddc.redis.enabled=false",
-                        "egon.cola.component.ddc.admin.endpoint=http://ddc.test",
-                        "egon.cola.component.ddc.admin.tls.development-plaintext=true"
+                        "egon.cola.component.ddc.redis.enabled=false"
                 )
                 .run(context -> assertThat(output).contains(
                         "DDC remote lifecycle is disabled because "
@@ -108,15 +114,16 @@ class DdcAutoConfigurationTest {
     @Test
     void createsCoreBeansWhenEnabled() {
         AtomicReference<DdcAckDelivery> delivery = new AtomicReference<>();
-        contextRunner.withPropertyValues(
+        contextRunner.withBean(
+                        DdcConfigClient.class,
+                        () -> mock(DdcConfigClient.class)
+                )
+                .withPropertyValues(
                         "egon.cola.component.ddc.enabled=true",
                         "egon.cola.component.ddc.redis.enabled=false",
                         "egon.cola.component.ddc.app-code=demo",
                         "egon.cola.component.ddc.env=dev",
-                        "egon.cola.component.ddc.namespace=default",
-                        "egon.cola.component.ddc.admin.endpoint=http://ddc.test",
-                        "egon.cola.component.ddc.admin.tls."
-                                + "development-plaintext=true")
+                        "egon.cola.component.ddc.namespace=default")
                 .run(context -> {
                     assertThat(context).hasSingleBean(DdcProperties.class);
                     assertThat(context).hasSingleBean(DdcAckDeliveryProperties.class);
@@ -149,10 +156,7 @@ class DdcAutoConfigurationTest {
                     )
                     .withPropertyValues(
                             "egon.cola.component.ddc.enabled=true",
-                            "egon.cola.component.ddc.redis.enabled=true",
-                            "egon.cola.component.ddc.admin.endpoint=http://ddc.test",
-                            "egon.cola.component.ddc.admin.tls."
-                                    + "development-plaintext=true"
+                            "egon.cola.component.ddc.redis.enabled=true"
                     )
                     .run(context -> {
                         assertThat(context.getBean("ddcRedissonClient"))
@@ -176,10 +180,7 @@ class DdcAutoConfigurationTest {
                 )
                 .withPropertyValues(
                         "egon.cola.component.ddc.enabled=true",
-                        "egon.cola.component.ddc.redis.enabled=true",
-                        "egon.cola.component.ddc.admin.endpoint=http://ddc.test",
-                        "egon.cola.component.ddc.admin.tls."
-                                + "development-plaintext=true"
+                        "egon.cola.component.ddc.redis.enabled=true"
                 )
                 .run(context -> {
                     assertThat(context.getBean("ddcRedissonClient"))
@@ -195,11 +196,26 @@ class DdcAutoConfigurationTest {
                 .withBean(DdcConfigClient.class, () -> client)
                 .withPropertyValues(
                         "egon.cola.component.ddc.enabled=true",
-                        "egon.cola.component.ddc.redis.enabled=false",
-                        "egon.cola.component.ddc.admin.endpoint=http://ddc.test"
+                        "egon.cola.component.ddc.redis.enabled=false"
                 )
                 .run(context -> assertThat(context.getBean(DdcConfigClient.class))
                         .isSameAs(client));
+    }
+
+    @Test
+    void enabledRuntimeFailsFastWithoutConfigPort() {
+        contextRunner.withPropertyValues(
+                        "egon.cola.component.ddc.enabled=true",
+                        "egon.cola.component.ddc.redis.enabled=false"
+                )
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure())
+                            .hasMessage(
+                                    "Required DdcConfigClient Port is missing; add "
+                                            + "top.egon:egon-cola-component-rpc-ddc-adapter"
+                            );
+                });
     }
 
     @Test

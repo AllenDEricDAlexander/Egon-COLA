@@ -26,10 +26,7 @@ class DdcRegistryAutoConfigurationTest {
                     ))
                     .withPropertyValues(
                             "egon.cola.component.ddc.enabled=false",
-                            "egon.cola.component.ddc.registry.enabled=true",
-                            "egon.cola.component.ddc.admin.endpoint=http://ddc.test",
-                            "egon.cola.component.ddc.admin.tls."
-                                    + "development-plaintext=true"
+                            "egon.cola.component.ddc.registry.enabled=true"
                     );
 
     @Test
@@ -40,6 +37,10 @@ class DdcRegistryAutoConfigurationTest {
                         RedissonClient.class,
                         () -> mock(RedissonClient.class)
                 )
+                .withBean(
+                        DdcServiceRegistryClient.class,
+                        () -> mock(DdcServiceRegistryClient.class)
+                )
                 .run(context -> {
                     assertThat(context).hasSingleBean(DdcServiceRegistryClient.class);
                     assertThat(context).hasSingleBean(DdcServiceKeyFactory.class);
@@ -48,20 +49,19 @@ class DdcRegistryAutoConfigurationTest {
     }
 
     @Test
-    void registryFailsBeforeNetworkAccessWhenEndpointIsMissing() {
+    void registryFailsFastWithoutRegistryPort() {
         contextRunner
                 .withBean(
                         "ddcRedissonClient",
                         RedissonClient.class,
                         () -> mock(RedissonClient.class)
                 )
-                .withPropertyValues("egon.cola.component.ddc.admin.endpoint=")
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure())
-                            .hasRootCauseInstanceOf(IllegalArgumentException.class)
-                            .hasRootCauseMessage(
-                                    "egon.cola.component.ddc.admin.endpoint is required"
+                            .hasMessage(
+                                    "Required DdcServiceRegistryClient Port is missing; add "
+                                            + "top.egon:egon-cola-component-rpc-ddc-adapter"
                             );
                 });
     }
@@ -78,6 +78,10 @@ class DdcRegistryAutoConfigurationTest {
                             "applicationRedissonClient",
                             RedissonClient.class,
                             () -> applicationClient
+                    )
+                    .withBean(
+                            DdcServiceRegistryClient.class,
+                            () -> mock(DdcServiceRegistryClient.class)
                     )
                     .run(context -> {
                         assertThat(context.getBean("ddcRedissonClient"))
@@ -97,6 +101,10 @@ class DdcRegistryAutoConfigurationTest {
                         RedissonClient.class,
                         () -> dedicatedClient
                 )
+                .withBean(
+                        DdcServiceRegistryClient.class,
+                        () -> mock(DdcServiceRegistryClient.class)
+                )
                 .run(context -> assertThat(context.getBean(
                                 "ddcRedissonClient"
                         ))
@@ -114,10 +122,11 @@ class DdcRegistryAutoConfigurationTest {
                 .withPropertyValues(
                         "egon.cola.component.ddc.enabled=true",
                         "egon.cola.component.ddc.redis.enabled=false",
-                        "egon.cola.component.ddc.registry.enabled=false",
-                        "egon.cola.component.ddc.admin.endpoint=http://ddc.test",
-                        "egon.cola.component.ddc.admin.tls."
-                                + "development-plaintext=true"
+                        "egon.cola.component.ddc.registry.enabled=false"
+                )
+                .withBean(
+                        DdcConfigClient.class,
+                        () -> mock(DdcConfigClient.class)
                 )
                 .run(context -> {
                     assertThat(context).hasSingleBean(DdcConfigClient.class);

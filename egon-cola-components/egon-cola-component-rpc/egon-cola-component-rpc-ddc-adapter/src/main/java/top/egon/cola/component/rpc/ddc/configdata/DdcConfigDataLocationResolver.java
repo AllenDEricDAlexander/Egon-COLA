@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.configdata;
+package top.egon.cola.component.rpc.ddc.configdata;
 
 import org.springframework.boot.context.config.ConfigDataLocation;
 import org.springframework.boot.context.config.ConfigDataLocationNotFoundException;
@@ -9,6 +9,7 @@ import org.springframework.boot.context.properties.bind.Bindable;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
+import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcProperties;
 
 import java.util.List;
 
@@ -24,7 +25,7 @@ public final class DdcConfigDataLocationResolver
     public static final String PREFIX = "ddc:";
 
     /**
-     * Starter 唯一支持的远程资源名。 The only remote resource name supported by the starter.
+     * Adapter 唯一支持的远程资源名。 The only remote resource name supported by the adapter.
      */
     public static final String RESOURCE_NAME =
             DdcYamlConfigFormatStrategy.DEFAULT_RESOURCE_NAME;
@@ -33,6 +34,10 @@ public final class DdcConfigDataLocationResolver
      * 用于引导阶段绑定配置的属性前缀。 Property prefix used for bootstrap binding.
      */
     private static final String PROPERTIES_PREFIX = "egon.cola.component.ddc";
+
+    /** DDC Direct RPC 引导属性前缀。 / DDC Direct RPC bootstrap property prefix. */
+    private static final String RPC_PROPERTIES_PREFIX =
+            "egon.cola.component.ddc.rpc";
 
     /**
      * 判断位置是否使用 DDC 前缀。 Determines whether the location uses the DDC prefix.
@@ -80,10 +85,26 @@ public final class DdcConfigDataLocationResolver
         if (!properties.isEnabled()) {
             return List.of();
         }
-        validate(properties);
+        DdcRpcProperties rpcProperties = context.getBinder()
+                .bind(
+                        RPC_PROPERTIES_PREFIX,
+                        Bindable.of(DdcRpcProperties.class)
+                )
+                .orElseGet(DdcRpcProperties::new);
+        try {
+            validate(properties, rpcProperties);
+        } catch (RuntimeException exception) {
+            if (location.isOptional()) {
+                return List.of();
+            }
+            throw exception;
+        }
         context.getBootstrapContext().registerIfAbsent(
                 DdcConfigDataFetcher.class,
-                bootstrapContext -> new DdcConfigDataFetcher(properties)
+                bootstrapContext -> new DdcConfigDataFetcher(
+                        properties,
+                        rpcProperties
+                )
         );
         return List.of(new DdcConfigDataResource(
                 location.isOptional(),
@@ -96,12 +117,15 @@ public final class DdcConfigDataLocationResolver
     }
 
     /**
-     * 校验远程作用域、YAML 大小限制和管理端连接配置。 Validates the remote scope, YAML size limit, and management connection settings.
+     * 校验远程作用域、YAML 大小限制和 Direct RPC 引导配置。
+     * Validates the remote scope, YAML size limit, and Direct RPC bootstrap settings.
      *
      * @param properties 待校验的 DDC 属性。 DDC properties to validate
      * @throws IllegalArgumentException 任一必需设置无效时抛出。 thrown when any required setting is invalid
      */
-    private void validate(DdcProperties properties) {
+    private void validate(
+            DdcProperties properties,
+            DdcRpcProperties rpcProperties) {
         requireText(properties.getBizCode(), "biz-code");
         requireText(properties.getEnv(), "env");
         requireText(properties.getNamespace(), "namespace");
@@ -111,8 +135,11 @@ public final class DdcConfigDataLocationResolver
                     PROPERTIES_PREFIX + ".max-config-bytes must be positive"
             );
         }
-        properties.getAdmin().requireEndpoint();
-        properties.getAdmin().validateCredentials();
+        rpcProperties.requireTarget();
+        rpcProperties.transportSecurity();
+        if (rpcProperties.getAuth().isEnabled()) {
+            rpcProperties.runtimeCredential();
+        }
     }
 
     /**

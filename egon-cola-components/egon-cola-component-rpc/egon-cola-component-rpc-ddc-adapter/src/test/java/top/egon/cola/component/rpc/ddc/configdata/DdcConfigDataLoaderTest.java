@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.configdata;
+package top.egon.cola.component.rpc.ddc.configdata;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.BootstrapRegistry;
@@ -78,6 +78,49 @@ class DdcConfigDataLoaderTest {
 
         assertThatThrownBy(() -> loader.load(context, resource(false)))
                 .isInstanceOf(ConfigDataResourceNotFoundException.class);
+    }
+
+    @Test
+    void optionalTransportFailureKeepsAnEmptyDynamicSource()
+            throws Exception {
+        ConfigData configData = loader.load(
+                context(new DdcConfigDataFetcher(
+                        () -> {
+                            throw new IllegalStateException("unavailable");
+                        },
+                        1024
+                )),
+                resource(true)
+        );
+
+        assertThat(configData.getPropertySources()).singleElement()
+                .isInstanceOfSatisfying(
+                        DdcDynamicPropertySource.class,
+                        source -> assertThat(source.getPropertyNames()).isEmpty()
+                );
+    }
+
+    @Test
+    void requiredRemoteYamlCannotOverrideRpcBootstrapKeys() {
+        DdcConfigValue value = value("""
+                egon:
+                  cola:
+                    component:
+                      ddc:
+                        rpc:
+                          target: dns:///remote-ddc:19080
+                """, 1L);
+
+        assertThatThrownBy(() -> loader.load(
+                context(new DdcConfigDataFetcher(
+                        () -> List.of(value),
+                        1024
+                )),
+                resource(false)
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining(
+                        "egon.cola.component.ddc.rpc.target"
+                );
     }
 
     private ConfigDataLoaderContext context(DdcConfigDataFetcher client) {

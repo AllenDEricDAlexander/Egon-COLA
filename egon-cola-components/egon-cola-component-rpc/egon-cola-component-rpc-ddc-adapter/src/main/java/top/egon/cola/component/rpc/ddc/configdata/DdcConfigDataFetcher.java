@@ -1,11 +1,16 @@
-package top.egon.cola.component.ddc.configdata;
+package top.egon.cola.component.rpc.ddc.configdata;
 
 import org.springframework.lang.Nullable;
-import top.egon.cola.component.ddc.client.config.HttpDdcConfigClient;
+import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.ddc.model.config.DdcConfigValue;
+import top.egon.cola.component.rpc.context.RpcProcessIdentity;
+import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcProperties;
+import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
+import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
 
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
@@ -38,13 +43,17 @@ public class DdcConfigDataFetcher {
     private volatile List<DdcConfigValue> cachedValues;
 
     /**
-     * 使用 DDC 属性创建通过管理端 HTTP 接口拉取配置的客户端。 Creates a client that pulls configuration through the DDC management HTTP API.
+     * 使用本地 DDC 与 Direct RPC 属性创建一次性引导客户端。
+     * Creates a one-shot bootstrap client from local DDC and Direct RPC settings.
      *
-     * @param properties DDC 客户端属性。 DDC client properties
+     * @param properties    DDC 作用域与内容约束 / DDC scope and content constraints
+     * @param rpcProperties DDC Direct RPC 引导属性 / DDC Direct RPC bootstrap settings
      */
-    public DdcConfigDataFetcher(DdcProperties properties) {
+    public DdcConfigDataFetcher(
+            DdcProperties properties,
+            DdcRpcProperties rpcProperties) {
         this(
-                () -> new HttpDdcConfigClient(properties).pull(),
+                pullSupplier(properties, rpcProperties),
                 properties.getMaxConfigBytes(),
                 DdcConfigFormatStrategyRegistry.defaults()
         );
@@ -159,6 +168,53 @@ public class DdcConfigDataFetcher {
                 cachedValues = pulled == null ? List.of() : List.copyOf(pulled);
             }
             return cachedValues;
+        }
+    }
+
+    /** 创建每次拉取后可靠关闭 Channel 的引导调用。 / Creates a bootstrap pull that always closes its Channel. */
+    private static Supplier<List<DdcConfigValue>> pullSupplier(
+            DdcProperties properties,
+            DdcRpcProperties rpcProperties) {
+        Objects.requireNonNull(properties, "properties");
+        Objects.requireNonNull(rpcProperties, "rpcProperties");
+        DdcRpcClientFactory factory = new DdcRpcClientFactory(
+                rpcProperties,
+                properties,
+                bootstrapIdentity(properties)
+        );
+        return () -> {
+            try (DdcRpcClientHandle<DdcConfigClient> handle =
+                         factory.configClient()) {
+                return handle.client().pull();
+            }
+        };
+    }
+
+    /** 构造不依赖 ApplicationContext 的引导调用身份。 / Builds bootstrap identity without an ApplicationContext. */
+    private static RpcProcessIdentity bootstrapIdentity(
+            DdcProperties properties) {
+        String host = localHost();
+        long pid = ProcessHandle.current().pid();
+        String instanceId = properties.getInstance().getId();
+        if (instanceId == null || instanceId.isBlank()) {
+            instanceId = properties.getAppCode()
+                    + "-configdata-" + host + '-' + pid;
+        }
+        return new RpcProcessIdentity(
+                properties.getAppCode(),
+                properties.getEnv(),
+                host,
+                pid,
+                instanceId
+        );
+    }
+
+    /** 解析本机地址，失败时使用回环地址。 / Resolves the local host with a loopback fallback. */
+    private static String localHost() {
+        try {
+            return InetAddress.getLocalHost().getHostAddress();
+        } catch (Exception ignored) {
+            return "127.0.0.1";
         }
     }
 }

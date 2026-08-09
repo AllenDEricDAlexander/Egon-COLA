@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.configdata;
+package top.egon.cola.component.rpc.ddc.configdata;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.DefaultBootstrapContext;
@@ -49,8 +49,8 @@ class DdcConfigDataLocationResolverTest {
                         "egon.cola.component.ddc.env", "test",
                         "egon.cola.component.ddc.namespace", "default",
                         "egon.cola.component.ddc.app-code", "order-service",
-                        "egon.cola.component.ddc.admin.endpoint", "http://ddc.test",
-                        "egon.cola.component.ddc.admin.signature-enabled", false
+                        "egon.cola.component.ddc.rpc.target", "localhost:19080",
+                        "egon.cola.component.ddc.rpc.auth.enabled", false
                 )
         );
 
@@ -111,6 +111,26 @@ class DdcConfigDataLocationResolverTest {
                 .hasMessage(
                         "DDC ConfigData only supports YAML resources: feature.yaml"
                 );
+    }
+
+    @Test
+    void requiredLocationRejectsMissingRpcBootstrapWhileOptionalContinues() {
+        Map<String, Object> properties = Map.of(
+                "egon.cola.component.ddc.enabled", true,
+                "egon.cola.component.ddc.biz-code", "orders",
+                "egon.cola.component.ddc.env", "test",
+                "egon.cola.component.ddc.namespace", "default",
+                "egon.cola.component.ddc.app-code", "order-service"
+        );
+
+        assertThatThrownBy(() -> resolver.resolve(
+                context(new DefaultBootstrapContext(), properties),
+                ConfigDataLocation.of("ddc:application.yml")
+        )).hasMessageContaining("egon.cola.component.ddc.rpc.target");
+        assertThat(resolver.resolve(
+                context(new DefaultBootstrapContext(), properties),
+                ConfigDataLocation.of("optional:ddc:application.yml")
+        )).isEmpty();
     }
 
     private ConfigDataLocationResolverContext context(

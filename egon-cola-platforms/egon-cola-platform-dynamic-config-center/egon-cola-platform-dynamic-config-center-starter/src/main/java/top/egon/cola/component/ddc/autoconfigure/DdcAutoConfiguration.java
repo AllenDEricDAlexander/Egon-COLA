@@ -8,6 +8,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -23,7 +24,6 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import top.egon.cola.component.ddc.service.binding.DdcBeanPostProcessor;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
-import top.egon.cola.component.ddc.client.config.HttpDdcConfigClient;
 import top.egon.cola.component.ddc.redis.DdcRedisKeys;
 import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.ddc.listener.config.DdcConfigChangeListener;
@@ -118,16 +118,16 @@ public class DdcAutoConfiguration {
         return DdcConfigFormatStrategyRegistry.defaults();
     }
 
-    /**
-     * 在应用未提供替代实现时创建 HTTP 管理端客户端。 Creates the HTTP management client when the application supplies no replacement.
-     *
-     * @param properties DDC 属性。 DDC properties
-     * @return 管理端客户端。 management client
-     */
     @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     @ConditionalOnMissingBean(DdcConfigClient.class)
-    public DdcConfigClient ddcConfigClient(DdcProperties properties) {
-        return new HttpDdcConfigClient(properties);
+    public static BeanFactoryPostProcessor ddcConfigClientRequirement() {
+        return beanFactory -> {
+            throw new IllegalStateException(
+                    "Required DdcConfigClient Port is missing; add "
+                            + "top.egon:egon-cola-component-rpc-ddc-adapter"
+            );
+        };
     }
 
     /**
@@ -316,6 +316,12 @@ public class DdcAutoConfiguration {
      */
     @Bean("ddcRedisTopic")
     @ConditionalOnBean(name = "ddcRedissonClient")
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.ddc.redis",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
     public RTopic ddcRedisTopic(@Qualifier("ddcRedissonClient") RedissonClient redissonClient,
                                 DdcProperties properties) {
         return redissonClient.getTopic(

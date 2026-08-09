@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.configdata;
+package top.egon.cola.component.rpc.ddc.configdata;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.model.config.DdcConfigValue;

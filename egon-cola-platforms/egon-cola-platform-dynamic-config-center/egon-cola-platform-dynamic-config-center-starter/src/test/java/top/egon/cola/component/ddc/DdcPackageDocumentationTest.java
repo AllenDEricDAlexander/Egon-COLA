@@ -50,7 +50,6 @@ class DdcPackageDocumentationTest {
             "listener.registry",
             "state",
             "redis",
-            "configdata",
             "environment",
             "format",
             "observability",
