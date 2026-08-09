@@ -18,7 +18,7 @@ import top.egon.cola.component.ddc.state.DdcLeaseSessionHolder;
 import top.egon.cola.component.ddc.service.refresh.DdcRefreshService;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
-import top.egon.cola.component.ddc.transport.redis.DdcRedisTopicSubscription;
+import top.egon.cola.component.ddc.redis.DdcRedisTopicSubscription;
 
 import java.time.Instant;
 import java.util.ArrayList;

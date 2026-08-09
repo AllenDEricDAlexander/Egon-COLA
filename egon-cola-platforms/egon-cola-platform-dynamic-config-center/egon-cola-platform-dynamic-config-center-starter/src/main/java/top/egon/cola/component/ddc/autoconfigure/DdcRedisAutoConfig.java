@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import top.egon.cola.component.ddc.transport.redis.DdcRedisClientFactory;
+import top.egon.cola.component.ddc.redis.DdcRedisClientFactory;
 
 /**
  * 为配置发布订阅与服务注册订阅装配共享的 DDC Redisson 客户端。 /

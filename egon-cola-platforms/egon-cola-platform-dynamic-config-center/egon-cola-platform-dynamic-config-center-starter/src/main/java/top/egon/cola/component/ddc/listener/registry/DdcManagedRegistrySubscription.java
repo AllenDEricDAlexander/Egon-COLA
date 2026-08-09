@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.registry.subscription;
+package top.egon.cola.component.ddc.listener.registry;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import top.egon.cola.component.ddc.model.registry.DdcRegistryEvent;
 import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.observability.DdcTraceSupport;
-import top.egon.cola.component.ddc.transport.redis.DdcRedisTopicSubscription;
+import top.egon.cola.component.ddc.redis.DdcRedisTopicSubscription;
 
 import java.util.List;
 import java.util.Objects;

@@ -17,7 +17,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigLeaseRedisRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcServiceRegistryRedisRepository;
-import top.egon.cola.component.ddc.transport.redis.DdcRedisClientFactory;
+import top.egon.cola.component.ddc.redis.DdcRedisClientFactory;
 import top.egon.cola.component.ddc.model.config.DdcPublishMessage;
 import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;

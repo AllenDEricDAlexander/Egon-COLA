@@ -14,7 +14,7 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.observability.DdcTraceSupport;
 import top.egon.cola.component.ddc.state.DdcLeaseSessionHolder;
-import top.egon.cola.component.ddc.transport.redis.DdcRedisTopicSubscription;
+import top.egon.cola.component.ddc.redis.DdcRedisTopicSubscription;
 
 import java.util.Optional;
 import java.util.concurrent.Executors;

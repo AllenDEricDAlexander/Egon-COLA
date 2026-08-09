@@ -19,7 +19,7 @@ import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.state.DdcLocalConfigState;
-import top.egon.cola.component.ddc.transport.redis.DdcRedisTopicSubscription;
+import top.egon.cola.component.ddc.redis.DdcRedisTopicSubscription;
 
 import java.time.Instant;
 import java.util.ArrayList;

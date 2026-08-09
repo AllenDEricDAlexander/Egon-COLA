@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.configuration.subscription;
+package top.egon.cola.component.ddc.listener.config;
 
 import org.redisson.api.listener.MessageListener;
 import top.egon.cola.component.ddc.format.DdcChecksum;

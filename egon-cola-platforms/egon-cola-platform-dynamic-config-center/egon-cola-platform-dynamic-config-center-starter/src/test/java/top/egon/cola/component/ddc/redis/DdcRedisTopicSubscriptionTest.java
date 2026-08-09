@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.transport.redis;
+package top.egon.cola.component.ddc.redis;
 
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RTopic;

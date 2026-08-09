@@ -29,7 +29,7 @@ import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.state.DdcActiveRegistrationIndex;
 import top.egon.cola.component.ddc.service.registry.DdcRegistrySnapshotLoader;
-import top.egon.cola.component.ddc.registry.subscription.DdcRegistrySubscriptionCoordinator;
+import top.egon.cola.component.ddc.listener.registry.DdcRegistrySubscriptionCoordinator;
 
 import java.util.LinkedHashMap;
 import java.util.List;

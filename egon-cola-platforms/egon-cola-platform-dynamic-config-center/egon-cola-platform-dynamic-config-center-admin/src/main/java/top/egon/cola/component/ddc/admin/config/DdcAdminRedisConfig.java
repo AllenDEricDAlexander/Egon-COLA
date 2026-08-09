@@ -22,7 +22,7 @@ import top.egon.cola.component.ddc.admin.service.lease.DdcLeaseExpiryScanner;
 import top.egon.cola.component.ddc.admin.service.lease.DdcLeaseValidator;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.component.ddc.admin.service.registry.DdcServiceRegistryService;
-import top.egon.cola.component.ddc.transport.redis.DdcRedisClientFactory;
+import top.egon.cola.component.ddc.redis.DdcRedisClientFactory;
 
 @Configuration
 @EnableScheduling

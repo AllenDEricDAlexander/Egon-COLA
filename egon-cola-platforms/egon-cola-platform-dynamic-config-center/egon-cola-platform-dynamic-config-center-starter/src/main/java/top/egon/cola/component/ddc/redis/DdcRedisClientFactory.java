@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.transport.redis;
+package top.egon.cola.component.ddc.redis;
 
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;

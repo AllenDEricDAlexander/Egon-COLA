@@ -25,9 +25,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import top.egon.cola.component.ddc.service.binding.DdcBeanPostProcessor;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.client.config.HttpDdcConfigClient;
-import top.egon.cola.component.ddc.transport.redis.DdcRedisKeys;
+import top.egon.cola.component.ddc.redis.DdcRedisKeys;
 import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
-import top.egon.cola.component.ddc.configuration.subscription.DdcConfigChangeListener;
+import top.egon.cola.component.ddc.listener.config.DdcConfigChangeListener;
 import top.egon.cola.component.ddc.model.config.DdcPublishMessage;
 import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.service.refresh.DdcConfigurationPropertiesRebinder;
@@ -46,7 +46,7 @@ import top.egon.cola.component.ddc.state.DdcLeaseSessionHolder;
 import top.egon.cola.component.ddc.service.refresh.DdcRefreshService;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.service.refresh.DefaultDdcConfigApplierRegistry;
-import top.egon.cola.component.ddc.transport.redis.DdcRedisTopicSubscription;
+import top.egon.cola.component.ddc.redis.DdcRedisTopicSubscription;
 
 import java.util.List;
 

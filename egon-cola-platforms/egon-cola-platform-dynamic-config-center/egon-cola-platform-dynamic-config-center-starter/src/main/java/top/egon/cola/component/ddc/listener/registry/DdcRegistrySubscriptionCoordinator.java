@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.registry.subscription;
+package top.egon.cola.component.ddc.listener.registry;
 
 import org.redisson.api.RedissonClient;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;

@@ -1,4 +1,4 @@
-package top.egon.cola.component.ddc.transport.redis;
+package top.egon.cola.component.ddc.redis;
 
 import top.egon.cola.component.common.crypto.digest.Digests;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;

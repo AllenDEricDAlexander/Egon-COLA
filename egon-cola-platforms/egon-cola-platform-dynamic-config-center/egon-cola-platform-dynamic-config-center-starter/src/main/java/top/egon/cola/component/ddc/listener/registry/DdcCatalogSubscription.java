@@ -1,9 +1,9 @@
-package top.egon.cola.component.ddc.registry.subscription;
+package top.egon.cola.component.ddc.listener.registry;
 
 import top.egon.cola.component.ddc.service.registry.DdcRegistrySnapshotLoader;
 
 import org.redisson.api.RedissonClient;
-import top.egon.cola.component.ddc.transport.redis.DdcRedisKeys;
+import top.egon.cola.component.ddc.redis.DdcRedisKeys;
 import top.egon.cola.component.ddc.model.registry.DdcRegistryEvent;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
 import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;

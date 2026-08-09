@@ -14,7 +14,7 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.Transferable;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
-import top.egon.cola.component.ddc.transport.redis.DdcRedisClientFactory;
+import top.egon.cola.component.ddc.redis.DdcRedisClientFactory;
 
 import java.time.Duration;
 import java.util.ArrayList;
