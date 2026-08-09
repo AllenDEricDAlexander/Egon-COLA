@@ -1,139 +1,374 @@
-# DDC Starter 领域分包与基础设施收敛设计
+# DDC Starter 角色分包设计
 
-状态：已确认，进入实施
+状态：设计已确认，等待书面规格复核
 
 编写日期：2026-08-09
 
-代码基线：`main@84c908c4`
+代码基线：`main@9d3daef3`
 
 主要涉及模块：
 
 - `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter`
 - `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin`
 - `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-test`
-- 所有直接依赖 DDC Starter 公共类型的 Gateway、RPC、IdP、RBAC3 和测试模块
+- 所有直接引用 DDC Starter 类型的 Gateway、RPC、IdP、RBAC3 和测试模块
 
 本文记录用户于 2026-08-09 确认的破坏式重组方案。实现必须一次性迁移仓库内消费者，不保留旧包兼容壳，不修改数据库和 Flyway，不启动应用。
 
 ---
 
-## 1. 目标结论
+## 1. 设计结论
 
-DDC Starter 保持单一 Maven 模块和消费侧唯一入口，不再增加独立 client 或 infrastructure 模块。本次重构按领域能力组织 Java 包：
-
-1. `configuration` 承载远程配置的 ConfigData、运行时、刷新、绑定、格式和订阅；
-2. `registry` 承载服务注册、发现和服务快照订阅；
-3. `management` 承载配置写入、发布和运维查询契约；
-4. `transport` 只承载多个领域共同使用的 HTTP、HMAC、TLS 和 Redis Topic 基础设施；
-5. `lease` 承载配置客户端租约和服务实例租约共享的值对象；
-6. `autoconfigure` 只承载 Spring Boot 自动装配与属性；
-7. 删除没有生产调用方的 `DdcRedisConfigRepository`；
-8. 删除旧的顶层 `bootstrap`、`client`、`common`、`config`、`environment`、`format`、`listener`、`model`、`refresh`、`repository`、`service`、`trace` 包。
-
-目标不是减少领域契约数量，而是消除技术基础设施重复和无语义的顶层分层包。
-
-## 2. 客户端边界
-
-保留三套领域客户端：
-
-- `configuration.client.DdcConfigClient`：配置客户端注册、心跳、下线、拉取和 ACK；原 `DdcAdminClient` 改名，避免与管理接口混淆；
-- `registry.DdcServiceRegistryClient`：服务实例注册、心跳、注销、发现和订阅；公共包名保持不变以减少 Gateway/RPC 迁移噪声；
-- `management.DdcManagementClient`：配置写入、发布、任务和运维查询；保持独立错误模型和权限边界。
-
-原 `DdcBootstrapClient` 改为 `configuration.bootstrap.DdcConfigDataFetcher`。它仍由 Spring Boot BootstrapContext 管理，不依赖 ApplicationContext Bean，但复用共享 HTTP 请求基础设施。
-
-不创建统一 `DdcClient`，也不使用继承式 HTTP 客户端基类。
-
-## 3. HTTP 收敛
-
-新增 `transport.http.DdcOpenApiRequestFactory`，统一：
-
-- JSON 请求序列化；
-- 规范查询字符串和 URI；
-- 时间戳、nonce、正文摘要和 HMAC Header；
-- 可选签名；
-- Trace Header 注入。
-
-保留 `DdcRestClientFactory` 和 `DdcClientTransportSecurity`，移动到 `transport.http`。领域客户端继续拥有端点路径、查询参数、响应是否允许空数据以及领域异常映射，避免通用 Transport 理解配置、注册或管理业务码。
-
-## 4. Redis 收敛
-
-配置变更订阅和服务注册订阅当前使用同一份 `DdcProperties.Redis`，因此只创建一个名为 `ddcRedissonClient` 的 RedissonClient。自动装配必须在以下任一条件成立时创建它：
-
-- DDC 配置运行时启用且 `redis.enabled=true`；
-- `registry.enabled=true`。
-
-配置运行时和注册中心继续独立启停。共享连接不允许把 `registry.enabled` 与配置客户端 `enabled` 绑定为同一个业务开关。
-
-新增泛型 `transport.redis.DdcRedisTopicSubscription<T>`，统一 Topic 监听器注册、部分失败回滚、活动状态和幂等关闭。配置消息校验留在 `configuration.subscription.DdcConfigChangeListener`；注册事件解析、合并刷新和周期对账留在 `registry.subscription`。
-
-## 5. 注册订阅拆分
-
-原 `DdcRegistrySubscriptionManager` 同时处理 Topic、调度、实例快照、目录快照和本地过期。本次拆成：
-
-- `DdcRegistrySubscriptionCoordinator`：持有调度器、订阅集合和关闭生命周期；
-- `DdcManagedRegistrySubscription<T>`：共享事件刷新合并、定时对账和监听器隔离；
-- `DdcInstanceSubscription`：单服务实例快照和本地租约过期；
-- `DdcCatalogSubscription`：服务目录快照；
-- `DdcRegistrySnapshotLoader`：只读 HTTP 查询端口，避免 Subscription 依赖包含自身的完整 Registry Facade。
-
-公共 `DdcRegistrySubscription` 和 `DdcServiceRegistryClient` 契约不变。
-
-## 6. 目标包结构
+DDC 保持一个可执行代码模块：
 
 ```text
-top.egon.cola.component.ddc
-├── annotation
-├── autoconfigure
-├── configuration
-│   ├── bootstrap
-│   ├── binding
-│   ├── client
-│   ├── environment
-│   ├── format
-│   ├── model
-│   ├── refresh
-│   ├── runtime
-│   └── subscription
-├── error
-├── lease
-├── management
-│   ├── client
-│   └── model
-├── observability
-├── registry
-│   ├── client
-│   ├── model
-│   ├── state
-│   └── subscription
-└── transport
-    ├── http
-    └── redis
+egon-cola-platform-dynamic-config-center-starter
 ```
 
-公共扩展点位于对应领域根包或明确子包，不新增无语义的 `common`、`service`、`repository` 或全局 `model`。
+不新增 `autoconfigure`、`client`、`core` 或 `infrastructure` Maven 模块。业务应用、Gateway、RPC、IdP 和测试模块继续只依赖 Starter。
 
-## 7. 设计模式
+Starter 内部采用按代码角色划分的顶层包：
+
+- `api`：公共接口和扩展点；
+- `model`：跨模块使用的领域数据、请求、响应、事件和值对象；
+- `client`：HTTP 客户端实现及其共享 HTTP 能力；
+- `service`：绑定、刷新、生命周期和注册编排实现；
+- `listener`：配置和注册事件监听实现；
+- `state`：明确持有可变运行时状态的对象；
+- `redis`：Redisson 客户端、Key 和 Topic 订阅基础设施；
+- `configdata`：Spring Boot ConfigData SPI；
+- `autoconfigure`：Starter 内部的 Spring Boot 自动装配和配置属性；
+- `environment`、`format`、`observability`、`error`：边界清晰的支持能力。
+
+删除当前的 `configuration`、`runtime`、`transport` 和顶层 `lease` 包。它们分别混合了领域、实现阶段或不相关技术，不能从包名判断类的实际角色。
+
+## 2. Maven 模块边界
+
+目标 Reactor 结构保持不扩张：
+
+```text
+egon-cola-platform-dynamic-config-center
+├── egon-cola-platform-dynamic-config-center-starter
+├── egon-cola-platform-dynamic-config-center-admin
+└── egon-cola-platform-dynamic-config-center-test
+```
+
+Starter 同时承载公共 API、模型、客户端运行时和 Spring Boot 自动装配。`autoconfigure` 只是 Starter 内部包名，不是新的 Maven artifact。
+
+下游依赖规则：
+
+1. 业务侧和平台侧继续依赖 `egon-cola-platform-dynamic-config-center-starter`；
+2. Admin 继续通过 Starter 共享配置、租约、注册和 Management 契约；
+3. BOM 继续只暴露 Starter；
+4. 不新增只转发依赖或只保存少量 DTO 的模块。
+
+## 3. 包职责规则
+
+### 3.1 `api`
+
+只保存调用方可以实现、替换或直接调用的接口：
+
+- 客户端端口：`DdcConfigClient`、`DdcManagementClient`、`DdcServiceRegistryClient`；
+- 刷新扩展：`DdcConfigApplier`、`DdcConfigApplierRegistry`；
+- 注册订阅：`DdcRegistrySubscription`；
+- 实例扩展：`DdcInstanceIdProvider`、`DdcInstanceMetadataContributor`。
+
+`api` 不保存 HTTP、Redis、Spring Bean 生命周期或默认实现。
+
+### 3.2 `model`
+
+保存跨模块传递的领域数据：
+
+- `model.config`：配置值、发布消息、ACK、心跳、配置变更事件；
+- `model.instance`：实例身份和运行状态；
+- `model.lease`：租约会话、角色和操作结果；
+- `model.registry`：服务键、实例、注册、查询和快照；
+- `model.management`：管理查询、写入、发布和运维视图；
+- `model.client`：需要由调用方显式构造的客户端连接和传输安全配置。
+
+`model` 不使用 `pojo` 子包。`pojo` 只描述 Java 实现形式，不表达领域语义。
+
+并非所有普通 Java 对象都进入 `model`。例如 `DdcFieldBinding` 只属于字段绑定实现细节，应保留在 `service.binding`；内部任务、句柄和缓存节点也留在拥有它们的实现包。
+
+### 3.3 `client`
+
+保存三个客户端端口的 HTTP 实现：
+
+- `client.config.HttpDdcConfigClient`；
+- `client.management.HttpDdcManagementClient`；
+- `client.registry.HttpDdcServiceRegistryClient`；
+- `client.http` 保存上述客户端共享的请求签名、TLS、RestClient 和规范化请求能力。
+
+删除 `transport.http`。HTTP 是客户端实现方式，不是与 Redis 平级的业务传输层。
+
+### 3.4 `service`
+
+保存同步编排和业务运行时实现：
+
+- `service.binding`：字段发现、注册和刷新绑定；
+- `service.refresh`：配置应用、配置属性重绑定和刷新编排；
+- `service.lifecycle`：实例注册、ACK 投递和 Starter 生命周期；
+- `service.registry`：服务键创建和注册快照加载。
+
+公共接口放在 `api`，`service` 只保存实现和内部协作者，从结构上消除接口与实现混放。
+
+### 3.5 `listener`、`state` 和 `redis`
+
+- `listener.config` 只处理配置发布事件；
+- `listener.registry` 只处理注册目录和实例事件；
+- `state` 只保存本地配置、活动注册和租约会话等可变状态；
+- `redis` 只保存 Redisson 连接、Key 规则和通用 Topic 订阅资源句柄。
+
+删除 `transport.redis`。Redis 不再和 HTTP 包装在同一个泛化父包下。
+
+## 4. 目标包树
+
+```text
+egon-cola-platform-dynamic-config-center-starter
+├── pom.xml
+└── src/main
+    ├── java/top/egon/cola/component/ddc
+    │   ├── annotation
+    │   │   ├── DdcRefreshable.java
+    │   │   └── DdcValue.java
+    │   ├── api
+    │   │   ├── client
+    │   │   │   ├── DdcConfigClient.java
+    │   │   │   ├── DdcManagementClient.java
+    │   │   │   └── DdcServiceRegistryClient.java
+    │   │   ├── extension
+    │   │   │   ├── DdcInstanceIdProvider.java
+    │   │   │   └── DdcInstanceMetadataContributor.java
+    │   │   ├── refresh
+    │   │   │   ├── DdcConfigApplier.java
+    │   │   │   └── DdcConfigApplierRegistry.java
+    │   │   └── registry
+    │   │       └── DdcRegistrySubscription.java
+    │   ├── model
+    │   │   ├── client
+    │   │   │   ├── DdcClientTransportSecurity.java
+    │   │   │   └── DdcManagementClientProperties.java
+    │   │   ├── config
+    │   │   │   ├── DdcAckRequest.java
+    │   │   │   ├── DdcAckStatus.java
+    │   │   │   ├── DdcConfigFormat.java
+    │   │   │   ├── DdcConfigValue.java
+    │   │   │   ├── DdcConfigurationChangedEvent.java
+    │   │   │   ├── DdcHeartbeatRequest.java
+    │   │   │   ├── DdcInstanceRegisterRequest.java
+    │   │   │   ├── DdcPublishMessage.java
+    │   │   │   └── DdcPublishTarget.java
+    │   │   ├── instance
+    │   │   │   ├── DdcInstanceIdentity.java
+    │   │   │   └── DdcRuntimeState.java
+    │   │   ├── lease
+    │   │   │   ├── DdcLeaseOperationResult.java
+    │   │   │   ├── DdcLeaseOperationStatus.java
+    │   │   │   ├── DdcLeaseRole.java
+    │   │   │   └── DdcLeaseSession.java
+    │   │   ├── management
+    │   │   │   ├── DdcInstanceStatus.java
+    │   │   │   ├── DdcManagementConfig.java
+    │   │   │   ├── DdcManagementConfigClientInstance.java
+    │   │   │   ├── DdcManagementConfigDeleteRequest.java
+    │   │   │   ├── DdcManagementConfigQuery.java
+    │   │   │   ├── DdcManagementConfigUpsertRequest.java
+    │   │   │   ├── DdcManagementInstanceQuery.java
+    │   │   │   ├── DdcManagementPublishRequest.java
+    │   │   │   ├── DdcManagementPublishResult.java
+    │   │   │   ├── DdcManagementPublishStatus.java
+    │   │   │   ├── DdcManagementPublishTarget.java
+    │   │   │   ├── DdcManagementPublishTask.java
+    │   │   │   ├── DdcManagementScopeBinding.java
+    │   │   │   ├── DdcManagementScopeQuery.java
+    │   │   │   ├── DdcManagementServiceCatalog.java
+    │   │   │   ├── DdcManagementServiceInstance.java
+    │   │   │   ├── DdcManagementServiceKey.java
+    │   │   │   ├── DdcManagementServiceQuery.java
+    │   │   │   └── DdcManagementServiceSnapshot.java
+    │   │   └── registry
+    │   │       ├── DdcRegistryEvent.java
+    │   │       ├── DdcServiceCatalogSnapshot.java
+    │   │       ├── DdcServiceInstance.java
+    │   │       ├── DdcServiceKey.java
+    │   │       ├── DdcServiceKind.java
+    │   │       ├── DdcServiceLeaseRequest.java
+    │   │       ├── DdcServiceQuery.java
+    │   │       ├── DdcServiceRegistration.java
+    │   │       ├── DdcServiceSnapshot.java
+    │   │       ├── InstanceHealthState.java
+    │   │       └── ServiceInstanceMeta.java
+    │   ├── client
+    │   │   ├── config
+    │   │   │   └── HttpDdcConfigClient.java
+    │   │   ├── http
+    │   │   │   ├── DdcCanonicalRequest.java
+    │   │   │   ├── DdcOpenApiRequestFactory.java
+    │   │   │   ├── DdcRequestSigner.java
+    │   │   │   └── DdcRestClientFactory.java
+    │   │   ├── management
+    │   │   │   └── HttpDdcManagementClient.java
+    │   │   └── registry
+    │   │       └── HttpDdcServiceRegistryClient.java
+    │   ├── service
+    │   │   ├── binding
+    │   │   │   ├── DdcBeanPostProcessor.java
+    │   │   │   ├── DdcFieldBinding.java
+    │   │   │   ├── DdcFieldBindingService.java
+    │   │   │   └── DdcValueBindingRegistry.java
+    │   │   ├── lifecycle
+    │   │   │   ├── DdcAckDelivery.java
+    │   │   │   ├── DdcInstanceIdentityFactory.java
+    │   │   │   ├── DdcInstanceService.java
+    │   │   │   └── DdcRuntimeCoordinator.java
+    │   │   ├── refresh
+    │   │   │   ├── DdcConfigurationPropertiesRebinder.java
+    │   │   │   ├── DdcRefreshService.java
+    │   │   │   ├── DdcYamlConfigApplier.java
+    │   │   │   └── DefaultDdcConfigApplierRegistry.java
+    │   │   └── registry
+    │   │       ├── DdcRegistrySnapshotLoader.java
+    │   │       └── DdcServiceKeyFactory.java
+    │   ├── listener
+    │   │   ├── config
+    │   │   │   └── DdcConfigChangeListener.java
+    │   │   └── registry
+    │   │       ├── DdcCatalogSubscription.java
+    │   │       ├── DdcInstanceSubscription.java
+    │   │       ├── DdcManagedRegistrySubscription.java
+    │   │       └── DdcRegistrySubscriptionCoordinator.java
+    │   ├── state
+    │   │   ├── DdcActiveRegistrationIndex.java
+    │   │   ├── DdcLeaseSessionHolder.java
+    │   │   └── DdcLocalConfigState.java
+    │   ├── redis
+    │   │   ├── DdcRedisClientFactory.java
+    │   │   ├── DdcRedisKeys.java
+    │   │   └── DdcRedisTopicSubscription.java
+    │   ├── configdata
+    │   │   ├── DdcConfigDataFetcher.java
+    │   │   ├── DdcConfigDataLoader.java
+    │   │   ├── DdcConfigDataLocationResolver.java
+    │   │   └── DdcConfigDataResource.java
+    │   ├── environment
+    │   │   ├── DdcDynamicPropertySource.java
+    │   │   └── DdcReservedConfigurationKeys.java
+    │   ├── format
+    │   │   ├── DdcChecksum.java
+    │   │   ├── DdcConfigFormatStrategy.java
+    │   │   ├── DdcConfigFormatStrategyRegistry.java
+    │   │   ├── DdcYamlConfigFormatStrategy.java
+    │   │   └── ServiceInstanceMetaCodec.java
+    │   ├── observability
+    │   │   └── DdcTraceSupport.java
+    │   ├── error
+    │   │   ├── DdcErrorStatus.java
+    │   │   ├── DdcException.java
+    │   │   ├── http
+    │   │   │   └── DdcOpenApiRequestException.java
+    │   │   └── management
+    │   │       ├── DdcManagementClientException.java
+    │   │       └── DdcManagementErrorCode.java
+    │   └── autoconfigure
+    │       ├── properties
+    │       │   ├── DdcAckDeliveryProperties.java
+    │       │   └── DdcProperties.java
+    │       ├── DdcAutoConfiguration.java
+    │       ├── DdcRedisAutoConfiguration.java
+    │       └── DdcRegistryAutoConfiguration.java
+    └── resources/META-INF/spring
+        └── org.springframework.boot.autoconfigure.AutoConfiguration.imports
+```
+
+## 5. 自动装配规则
+
+`autoconfigure` 包保留在 Starter 内部，并遵循以下约束：
+
+1. `DdcAutoConfig` 重命名为 `DdcAutoConfiguration`；
+2. `DdcRedisAutoConfig` 重命名为 `DdcRedisAutoConfiguration`；
+3. `DdcRegistryAutoConfig` 重命名为 `DdcRegistryAutoConfiguration`；
+4. `AutoConfiguration.imports` 只列出上述自动装配类；
+5. 删除 `@ComponentScan` 和 `DdcLocalConfigState` 上的 `@Repository`；
+6. 所有 Starter Bean 通过明确的 `@Bean` 或精确 `@Import` 注册；
+7. 默认实现继续使用 `@ConditionalOnMissingBean` 允许应用覆盖；
+8. Redis 和注册能力继续通过现有属性条件独立启停；
+9. `DdcProperties` 和 `DdcAckDeliveryProperties` 统一放入 `autoconfigure.properties`。
+
+## 6. 迁移映射
+
+| 当前包 | 目标包 |
+| --- | --- |
+| `configuration.model` | `model.config`、`format` |
+| `lease` | `model.lease` |
+| `management.model` | `model.management`、`model.registry`、`format` |
+| `registry.model` | `model.registry` |
+| `configuration.client.DdcConfigClient` | `api.client` |
+| `management.DdcManagementClient` | `api.client` |
+| `registry.DdcServiceRegistryClient` | `api.client` |
+| `registry.DdcRegistrySubscription` | `api.registry` |
+| `configuration.client.HttpDdcConfigClient` | `client.config` |
+| `management.client.HttpDdcManagementClient` | `client.management` |
+| `registry.client.HttpDdcServiceRegistryClient` | `client.registry` |
+| `transport.http` | `client.http`、`model.client`、`error.http` |
+| `transport.redis` | `redis` |
+| `configuration.bootstrap` | `configdata` |
+| `configuration.binding` | `service.binding` |
+| `configuration.refresh` | `api.refresh`、`model.config`、`service.refresh` |
+| `configuration.runtime` | `api.extension`、`model.instance`、`state`、`service.lifecycle`、`autoconfigure.properties` |
+| `configuration.subscription` | `listener.config` |
+| `registry.subscription` | `listener.registry`、`service.registry` |
+| `registry.state` | `state` |
+| `configuration.environment` | `environment` |
+| `configuration.format` | `format` |
+
+用户允许破坏式更新，因此旧包直接删除，不增加 deprecated 转发类、继承壳或双包并存过渡期。
+
+## 7. 行为边界
+
+本次只重组模块内代码位置、可见边界和自动装配注册方式，不改变以下行为：
+
+- `ddc:application.yml` ConfigData 加载和 Spring Boot 属性优先级；
+- YAML-only 远程配置格式；
+- `@DdcValue` 字段刷新和 `@DdcRefreshable` 配置属性重绑定语义；
+- 配置客户端注册、默认值上报、拉取、ACK、心跳和下线顺序；
+- 服务注册、目录查询、实例订阅和本地租约过期；
+- HMAC、mTLS、Trace Header 和 Redis Topic 行为；
+- Admin 数据库结构和 Flyway 历史。
+
+如果迁移暴露现有行为错误，先以测试和实际调用链确认；不把无关行为重写混入包迁移提交。
+
+## 8. 设计模式
 
 - 保留配置格式和配置应用器的 Strategy/Registry；
-- 领域客户端使用 Facade；
-- Redis 通知继续使用 Observer；
-- HTTP 与 Redis 基础设施使用组合式 Adapter；
-- 不引入 Template Method、Abstract Factory、统一 God Client 或新 Maven 模块。
+- 保留 Redis Topic 和注册快照的 Observer；
+- 三个 HTTP Client 继续作为 `api.client` 端口的 Adapter；
+- 自动装配承担对象创建和条件化装配，不增加统一 God Client、Facade 基类、Template Method 或 Abstract Factory；
+- 不新增 `biz`、`pojo`、`common`、`impl` 等无法表达稳定职责的泛化包。
 
-## 8. 兼容与迁移
+## 9. 测试与验收
 
-用户允许破坏式更新，因此旧类名和旧包名直接删除，不提供 deprecated 转发类。所有仓库内 Java import、Spring SPI 文件、AutoConfiguration imports、测试、README 和示例配置必须同步更新。
+实现完成后必须满足：
 
-`registry.DdcServiceRegistryClient`、`registry.DdcRegistrySubscription` 和 `management.DdcManagementClient` 的领域包保持稳定。`service.DdcConfigApplier*`、`service.DdcRuntimeCoordinator`、`client.DdcAdminClient` 等旧路径一次性迁往 `configuration` 领域。
+1. Starter 仍是唯一消费入口，没有新增 Maven 模块；
+2. 生产源码中不再存在顶层 `configuration`、`lease`、`transport` 或职责混合的 `runtime` 包；
+3. 所有公共接口位于 `api`，所有领域数据位于对应 `model` 子包；
+4. HTTP 和 Redis 不再共享泛化父包；
+5. 自动装配不使用 `@ComponentScan` 或组件扫描发现 Starter Bean；
+6. 仓库内不存在旧包 import、旧自动装配类名或过渡兼容类；
+7. Starter 单元测试通过；
+8. DDC Admin/Test 模块测试通过；
+9. 受影响 Gateway、RPC、IdP、RBAC3 模块至少完成源码编译，相关测试按影响范围执行；
+10. README、包边界测试、示例和 SPI 资源同步更新；
+11. 不修改现有 Flyway 文件，不新增数据库迁移；
+12. 不启动任何应用进程。
 
-## 9. 验收
+## 10. 提交策略
 
-1. Starter 生产源码不再包含旧顶层技术包；
-2. 仓库内不存在旧包 import 或旧类名 `DdcAdminClient`、`DdcBootstrapClient`；
-3. 配置运行时和服务注册共用一个 RedissonClient；
-4. 两类 Redis Topic 订阅复用同一个泛型资源句柄；
-5. `DdcRedisConfigRepository` 被删除；
-6. ConfigData 启动、配置刷新、ACK、服务注册和订阅行为保持现有测试语义；
-7. DDC Starter/Admin/Test 以及受影响 Gateway、RPC、IdP、RBAC3 模块完成源码/Maven 验证；
-8. 不运行服务器、浏览器或数据库迁移。
+按可独立验证的迁移任务提交：
+
+1. 先迁移公共 API、模型和所有仓库内消费者；
+2. 再迁移 HTTP、Redis、ConfigData、服务、监听和状态实现；
+3. 最后重写自动装配注册、删除旧包并更新文档和边界测试；
+4. 每个任务使用路径限定提交，保留用户已有未提交修改。
+
+每个提交必须保持当前任务范围内源码可编译；若破坏式包迁移无法在单个提交内编译，则将强耦合移动与消费者更新合并为同一任务提交。
