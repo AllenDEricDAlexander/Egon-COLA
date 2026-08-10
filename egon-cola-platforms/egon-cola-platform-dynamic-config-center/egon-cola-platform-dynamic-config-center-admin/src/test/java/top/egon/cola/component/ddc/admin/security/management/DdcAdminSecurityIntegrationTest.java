@@ -23,6 +23,7 @@ import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.ddc.admin.service.cache.DdcCacheService;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
+import top.egon.cola.component.ddc.admin.service.publish.DdcPublishTaskQueryService;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
@@ -68,6 +69,9 @@ class DdcAdminSecurityIntegrationTest {
 
     @MockBean
     private DdcPublishService publishService;
+
+    @MockBean
+    private DdcPublishTaskQueryService publishTaskQueryService;
 
     @MockBean
     private DdcPublishTaskRepository publishTaskRepository;

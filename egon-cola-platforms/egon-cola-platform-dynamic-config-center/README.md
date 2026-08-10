@@ -60,6 +60,38 @@ by Admin). The console deploys as its own container, points at Admin via
 `DDC_ADMIN_API_BASE_URL`, and proxies `/api` same-origin through its static
 server, so Admin needs no CORS configuration.
 
+## Admin Page Queries
+
+DDC Admin exposes additive server-side page queries for human management:
+
+```text
+GET /api/v1/ddc/bizs/page
+GET /api/v1/ddc/namespaces/page
+GET /api/v1/ddc/envs/page
+GET /api/v1/ddc/apps/page
+GET /api/v1/ddc/namespace-env-app-bindings/page
+GET /api/v1/ddc/configs/page
+GET /api/v1/ddc/configs/{id}/versions/page
+GET /api/v1/ddc/publish-tasks/page
+GET /api/v1/ddc/instances/page
+GET /api/v1/ddc/cache/check/page
+GET /api/v1/ddc/registry/services/page
+GET /api/v1/ddc/registry/instances/page
+```
+
+For example:
+
+```text
+GET /api/v1/ddc/bizs/page?pageNo=1&pageSize=10
+success -> PageResultRecord { records, page }
+failure -> existing ResultRecord error envelope
+legacy list/catalog/snapshot endpoints remain available
+```
+
+Page numbers start at 1. These REST endpoints are for Admin Web and other human
+management clients. Starter and RPC machine clients continue to consume complete
+catalogs and snapshots rather than the Admin page contract.
+
 ## Starter Package Layout
 
 ```text

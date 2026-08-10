@@ -51,6 +51,37 @@ Admin 的 webui 已从 jar 中摘出（`/ddc-admin` 不再由 Admin 提供服务
 独立容器部署，经 `DDC_ADMIN_API_BASE_URL` 指向 Admin，`/api` 请求由 static-server
 同源反代，Admin 侧无需 CORS 配置。
 
+## Admin 分页查询
+
+DDC Admin 为人工管理场景提供以下增量式服务端分页查询：
+
+```text
+GET /api/v1/ddc/bizs/page
+GET /api/v1/ddc/namespaces/page
+GET /api/v1/ddc/envs/page
+GET /api/v1/ddc/apps/page
+GET /api/v1/ddc/namespace-env-app-bindings/page
+GET /api/v1/ddc/configs/page
+GET /api/v1/ddc/configs/{id}/versions/page
+GET /api/v1/ddc/publish-tasks/page
+GET /api/v1/ddc/instances/page
+GET /api/v1/ddc/cache/check/page
+GET /api/v1/ddc/registry/services/page
+GET /api/v1/ddc/registry/instances/page
+```
+
+例如：
+
+```text
+GET /api/v1/ddc/bizs/page?pageNo=1&pageSize=10
+成功 -> PageResultRecord { records, page }
+失败 -> 现有 ResultRecord 错误信封
+旧有列表、目录和快照接口继续保留
+```
+
+页码从 1 开始。这些 REST 接口服务于 Admin Web 和其他人工管理客户端；Starter 与
+RPC 机器客户端仍消费完整目录和快照，不使用 Admin 分页契约。
+
 ## Starter 分包
 
 ```text

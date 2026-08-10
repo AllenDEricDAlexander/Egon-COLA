@@ -74,6 +74,18 @@ environment list comes from the managed `/envs` entity. Every select also
 accepts typed values for new entries. Registry queries always use a complete
 four-part scope; the build-time defaults above initialize the first query.
 
+## Server-side pagination
+
+Management tables call the additive `/page` endpoints and read
+`PageResultRecord.records` plus `PageResultRecord.page`. Page numbers start at
+1; the UI offers 10, 20, or 50 rows per page. Scope selectors and namespace
+binding editors intentionally keep using the legacy list endpoints because
+they require complete option sets.
+
+Registry tables page service keys and lazily page instances for one selected
+service. DDC Starter and RPC clients continue to consume complete catalogs and
+snapshots; Admin Web pagination is not part of the machine RPC contract.
+
 ## Configuration resource contract
 
 The configuration page manages complete YAML resources instead of independent
