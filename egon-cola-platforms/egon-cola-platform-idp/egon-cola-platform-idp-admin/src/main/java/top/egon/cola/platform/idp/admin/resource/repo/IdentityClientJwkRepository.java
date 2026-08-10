@@ -37,4 +37,32 @@ public interface IdentityClientJwkRepository
             String clientId,
             String kid
     );
+
+    /**
+     * 判断 Client 是否至少拥有一个指定状态的公开凭证。
+     *
+     * <p>Checks whether a Client has at least one public credential in the given status.</p>
+     *
+     * @param clientId Client 标识；Client identifier
+     * @param status 凭证状态；credential status
+     * @return 存在时为 {@code true}；{@code true} when present
+     */
+    boolean existsByClientIdAndStatus(
+            String clientId,
+            IdentityClientJwkEntity.Status status
+    );
+
+    /**
+     * 统计 Client 指定状态的凭证。
+     *
+     * <p>Counts Client credentials in the given status.</p>
+     *
+     * @param clientId Client 标识；Client identifier
+     * @param status 凭证状态；credential status
+     * @return 凭证数量；credential count
+     */
+    long countByClientIdAndStatus(
+            String clientId,
+            IdentityClientJwkEntity.Status status
+    );
 }

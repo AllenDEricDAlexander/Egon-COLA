@@ -1,6 +1,10 @@
 package top.egon.cola.platform.idp.admin.resource.repo;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityResourceServerEntity;
 
 import java.util.Collection;
@@ -25,6 +29,21 @@ public interface IdentityResourceServerRepository
      */
     Optional<IdentityResourceServerEntity> findByResourceServerId(
             String resourceServerId
+    );
+
+    /**
+     * 以数据库写锁读取待变更 Resource Server。
+     *
+     * <p>Loads a Resource Server for mutation under a database write lock.</p>
+     *
+     * @param resourceServerId Resource Server 标识；Resource Server identifier
+     * @return Resource Server；Resource Server
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select resource from IdentityResourceServerEntity resource "
+            + "where resource.resourceServerId = :resourceServerId")
+    Optional<IdentityResourceServerEntity> findByResourceServerIdForUpdate(
+            @Param("resourceServerId") String resourceServerId
     );
 
     /**
@@ -78,6 +97,7 @@ public interface IdentityResourceServerRepository
      * @param appCodes 明确应用集合；explicit application codes
      * @return Resource Server 列表；Resource Server list
      */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<IdentityResourceServerEntity>
             findByBizCodeAndEnvironmentAndAppCodeIn(
             String bizCode,

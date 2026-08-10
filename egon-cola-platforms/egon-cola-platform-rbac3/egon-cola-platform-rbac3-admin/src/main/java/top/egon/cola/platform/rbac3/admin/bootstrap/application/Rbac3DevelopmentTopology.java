@@ -2,9 +2,15 @@ package top.egon.cola.platform.rbac3.admin.bootstrap.application;
 
 import java.util.List;
 
-/** Unified identity applications and administrative permissions used by the local profile. */
+/**
+ * 本地开发环境使用的统一身份应用及管理权限拓扑。
+ *
+ * <p>Unified identity applications and administrative permission topology
+ * used by the local development profile.</p>
+ */
 public final class Rbac3DevelopmentTopology {
 
+    /** RBAC3 管理应用权限；RBAC3 administration permissions. */
     private static final List<String> RBAC3_PERMISSIONS = List.of(
             "system:application:read",
             "system:audit:read",
@@ -48,6 +54,7 @@ public final class Rbac3DevelopmentTopology {
             "system:user-status:manage",
             "system:user:read");
 
+    /** 本地应用定义；local application definitions. */
     private static final List<ApplicationDefinition> APPLICATIONS = List.of(
             new ApplicationDefinition(
                     "rbac3-admin", "RBAC3 Administration", "RBAC3_LOCAL_ADMIN",
@@ -66,6 +73,12 @@ public final class Rbac3DevelopmentTopology {
                     "idp:oauth-client:create",
                     "idp:oauth-client:read",
                     "idp:oauth-client:update",
+                    "idp:resource-server:create",
+                    "idp:resource-server:grant",
+                    "idp:resource-server:key",
+                    "idp:resource-server:read",
+                    "idp:resource-server:status",
+                    "idp:resource-server:update",
                     "idp:signing-key:activate",
                     "idp:signing-key:publish",
                     "idp:signing-key:read",
@@ -110,13 +123,30 @@ public final class Rbac3DevelopmentTopology {
                     "mcp:unified-local:prompt:review_item:get",
                     "mcp:unified-local:prompt:rc.remote_summary:get")));
 
+    /** 禁止实例化静态拓扑；prevents instantiation of the static topology. */
     private Rbac3DevelopmentTopology() {
     }
 
+    /**
+     * 返回本地应用拓扑。
+     *
+     * @return 不可变应用定义；immutable application definitions
+     */
     public static List<ApplicationDefinition> applications() {
         return APPLICATIONS;
     }
 
+    /**
+     * 一个应用及其本地管理员权限定义。
+     *
+     * <p>Defines one application and its local administrator permissions.</p>
+     *
+     * @param applicationCode 应用编码；application code
+     * @param applicationName 应用名称；application name
+     * @param roleCode 本地管理员角色编码；local administrator role code
+     * @param displayPriority 展示优先级；display priority
+     * @param permissions 管理权限；administrative permissions
+     */
     public record ApplicationDefinition(
             String applicationCode,
             String applicationName,
@@ -124,6 +154,11 @@ public final class Rbac3DevelopmentTopology {
             int displayPriority,
             List<String> permissions
     ) {
+        /**
+         * 复制权限集合以保持拓扑不可变。
+         *
+         * <p>Copies permissions to keep the topology immutable.</p>
+         */
         public ApplicationDefinition {
             permissions = List.copyOf(permissions);
         }

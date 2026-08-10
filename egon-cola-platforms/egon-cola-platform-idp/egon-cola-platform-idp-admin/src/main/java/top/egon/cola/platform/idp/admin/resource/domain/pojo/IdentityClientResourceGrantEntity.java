@@ -225,6 +225,61 @@ public class IdentityClientResourceGrantEntity {
     }
 
     /**
+     * 更新授权事实并推进乐观锁版本。
+     *
+     * <p>Updates grant facts and advances the optimistic-lock version.</p>
+     *
+     * @param newGrantType 新授权类型；new grant type
+     * @param newTenantId 新租户；new tenant
+     * @param newAllowedScopes 新 Scope JSON；new scope JSON
+     * @param expectedVersion 期望版本；expected version
+     * @param now 更新时间；update instant
+     */
+    public void update(
+            GrantType newGrantType,
+            String newTenantId,
+            String newAllowedScopes,
+            long expectedVersion,
+            Instant now
+    ) {
+        requireVersion(expectedVersion);
+        Objects.requireNonNull(newGrantType, "newGrantType");
+        if (newGrantType == GrantType.USER_DELEGATION) {
+            if (newTenantId != null
+                    || !"[]".equals(jsonArray(newAllowedScopes)
+                    .replaceAll("\\s+", ""))) {
+                throw new IllegalArgumentException(
+                        "USER_DELEGATION must not contain tenant or scopes"
+                );
+            }
+        } else {
+            newTenantId = required(newTenantId, "tenantId");
+            newAllowedScopes = nonEmptyJsonArray(newAllowedScopes);
+        }
+        grantType = newGrantType;
+        tenantId = newTenantId;
+        allowedScopes = jsonArray(newAllowedScopes);
+        status = Status.ACTIVE;
+        version = Math.addExact(version, 1L);
+        updatedAt = Objects.requireNonNull(now, "now");
+    }
+
+    /**
+     * 校验删除前的乐观锁版本。
+     *
+     * <p>Checks the optimistic-lock version before deletion.</p>
+     *
+     * @param expectedVersion 期望版本；expected version
+     */
+    public void requireVersion(long expectedVersion) {
+        if (version != expectedVersion) {
+            throw new IllegalStateException(
+                    "stale Client Resource Grant version"
+            );
+        }
+    }
+
+    /**
      * 校验非空 JSON 数组文本。
      *
      * <p>Validates non-empty JSON-array text.</p>

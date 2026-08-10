@@ -191,6 +191,23 @@ public class IdentityClientJwkEntity {
     }
 
     /**
+     * 禁用公开凭证。
+     *
+     * <p>Disables the public credential.</p>
+     *
+     * @param expectedVersion 期望版本；expected version
+     * @param now 更新时间；update instant
+     */
+    public void disable(long expectedVersion, Instant now) {
+        if (version != expectedVersion) {
+            throw new IllegalStateException("stale Client JWK version");
+        }
+        status = Status.DISABLED;
+        version = Math.addExact(version, 1L);
+        updatedAt = Objects.requireNonNull(now, "now");
+    }
+
+    /**
      * 校验必填文本。
      *
      * <p>Validates required text.</p>

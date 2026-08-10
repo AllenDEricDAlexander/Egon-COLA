@@ -49,6 +49,25 @@ public interface IdentityClientResourceGrantRepository
     );
 
     /**
+     * 按 Client、Resource、类型和租户精确查询授权。
+     *
+     * <p>Finds a grant by Client, Resource, type, and tenant.</p>
+     *
+     * @param clientId Client 标识；Client identifier
+     * @param resourceServerId Resource Server 标识；Resource Server identifier
+     * @param grantType 授权类型；grant type
+     * @param tenantId 租户，用户委托时为空；tenant, null for user delegation
+     * @return 授权；grant
+     */
+    Optional<IdentityClientResourceGrantEntity>
+            findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
+            String clientId,
+            String resourceServerId,
+            IdentityClientResourceGrantEntity.GrantType grantType,
+            String tenantId
+    );
+
+    /**
      * 判断应用级授权是否存在。
      *
      * <p>Checks whether an application-level grant exists.</p>

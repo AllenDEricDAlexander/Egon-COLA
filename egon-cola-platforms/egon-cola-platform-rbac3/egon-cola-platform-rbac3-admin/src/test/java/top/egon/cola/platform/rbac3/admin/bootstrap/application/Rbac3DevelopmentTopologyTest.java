@@ -35,7 +35,13 @@ class Rbac3DevelopmentTopologyTest {
         assertThat(application("idp-admin").permissions()).contains(
                 "idp:bootstrap:read",
                 "idp:identity-user:read",
-                "idp:oauth-client:read");
+                "idp:oauth-client:read",
+                "idp:resource-server:read",
+                "idp:resource-server:create",
+                "idp:resource-server:update",
+                "idp:resource-server:status",
+                "idp:resource-server:key",
+                "idp:resource-server:grant");
         assertThat(application("gateway-admin").permissions()).contains(
                 "gateway:read",
                 "gateway:releases:write",

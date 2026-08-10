@@ -12,8 +12,8 @@ import top.egon.cola.platform.idp.admin.identity.controller.IdentityUserControll
 import top.egon.cola.platform.idp.admin.identity.domain.vo.CreatedIdentityUserVO;
 import top.egon.cola.platform.idp.admin.identity.domain.vo.IdentityUserVO;
 import top.egon.cola.platform.idp.admin.identity.service.IdentityUserService;
-import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthorizationPort;
-import top.egon.cola.platform.idp.admin.support.security.IdpSecurityConfig;
+import top.egon.cola.platform.idp.admin.resource.controller.ResourceServerController;
+import top.egon.cola.platform.idp.admin.resource.service.ResourceServerService;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 
 import java.time.Instant;
@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(IdentityUserController.class)
+@WebMvcTest({IdentityUserController.class, ResourceServerController.class})
 @Import(IdpSecurityConfig.class)
 class IdpAdminSecurityIT {
 
@@ -42,6 +42,9 @@ class IdpAdminSecurityIT {
 
     @MockitoBean
     private IdentityUserService users;
+
+    @MockitoBean
+    private ResourceServerService resources;
 
     @MockitoBean
     private IdpAdminAuthorizationPort authorization;
@@ -75,6 +78,23 @@ class IdpAdminSecurityIT {
                 any(IdentityPrincipal.class),
                 eq("idp:identity-user:create")
         );
+    }
+
+    @Test
+    void resourceMutationRequiresDedicatedRbac3Permission() throws Exception {
+        mockMvc.perform(post(
+                        "/api/v1/identity/resource-servers/{resourceServerId}/enable",
+                        "permission-idp-prod"
+                ).with(identityJwt())
+                        .contentType("application/json")
+                        .content("{\"expectedVersion\":0}"))
+                .andExpect(status().isOk());
+
+        verify(authorization).require(
+                any(IdentityPrincipal.class),
+                eq("idp:resource-server:status")
+        );
+        verify(resources).enable(eq("permission-idp-prod"), any());
     }
 
     @Test

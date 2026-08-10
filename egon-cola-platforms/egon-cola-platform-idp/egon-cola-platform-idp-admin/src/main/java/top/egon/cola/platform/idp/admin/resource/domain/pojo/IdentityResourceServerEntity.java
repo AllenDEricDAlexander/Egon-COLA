@@ -238,6 +238,90 @@ public class IdentityResourceServerEntity {
     }
 
     /**
+     * 启用 Resource Server 并推进投影版本。
+     *
+     * <p>Enables the Resource Server and advances its projection version.</p>
+     *
+     * @param expectedVersion 期望版本；expected version
+     * @param now 更新时间；update instant
+     */
+    public void enable(long expectedVersion, Instant now) {
+        mutateStatus(Status.ACTIVE, expectedVersion, now);
+    }
+
+    /**
+     * 禁用 Resource Server 并推进投影版本。
+     *
+     * <p>Disables the Resource Server and advances its projection version.</p>
+     *
+     * @param expectedVersion 期望版本；expected version
+     * @param now 更新时间；update instant
+     */
+    public void disable(long expectedVersion, Instant now) {
+        mutateStatus(Status.DISABLED, expectedVersion, now);
+    }
+
+    /**
+     * 在密钥或 Grant 变化时推进 Resource 投影版本。
+     *
+     * <p>Advances the Resource projection version when a key or Grant changes.</p>
+     *
+     * @param expectedVersion 期望版本；expected version
+     * @param now 更新时间；update instant
+     */
+    public void touch(long expectedVersion, Instant now) {
+        requireVersion(expectedVersion);
+        version = Math.addExact(version, 1L);
+        updatedAt = Objects.requireNonNull(now, "now");
+    }
+
+    /**
+     * 只校验当前版本，不修改实体。
+     *
+     * <p>Checks the current version without mutating the entity.</p>
+     *
+     * @param expectedVersion 期望版本；expected version
+     */
+    public void assertVersion(long expectedVersion) {
+        requireVersion(expectedVersion);
+    }
+
+    /**
+     * 修改状态并校验乐观锁。
+     *
+     * <p>Changes status after checking the optimistic-lock version.</p>
+     *
+     * @param nextStatus 目标状态；target status
+     * @param expectedVersion 期望版本；expected version
+     * @param now 更新时间；update instant
+     */
+    private void mutateStatus(
+            Status nextStatus,
+            long expectedVersion,
+            Instant now
+    ) {
+        requireVersion(expectedVersion);
+        status = Objects.requireNonNull(nextStatus, "nextStatus");
+        version = Math.addExact(version, 1L);
+        updatedAt = Objects.requireNonNull(now, "now");
+    }
+
+    /**
+     * 校验乐观锁版本。
+     *
+     * <p>Checks the optimistic-lock version.</p>
+     *
+     * @param expectedVersion 期望版本；expected version
+     */
+    private void requireVersion(long expectedVersion) {
+        if (version != expectedVersion) {
+            throw new IllegalStateException(
+                    "stale Resource Server version"
+            );
+        }
+    }
+
+    /**
      * 校验必填文本。
      *
      * <p>Validates required text.</p>
