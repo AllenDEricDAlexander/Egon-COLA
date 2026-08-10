@@ -1,4 +1,4 @@
-package top.egon.cola.platform.idp.admin;
+package top.egon.cola.platform.idp.admin.support.runtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;

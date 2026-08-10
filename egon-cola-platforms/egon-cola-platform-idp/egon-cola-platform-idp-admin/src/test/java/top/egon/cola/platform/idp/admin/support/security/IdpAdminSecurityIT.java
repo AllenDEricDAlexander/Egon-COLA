@@ -1,4 +1,4 @@
-package top.egon.cola.platform.idp.admin.interfaces.http;
+package top.egon.cola.platform.idp.admin.support.security;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

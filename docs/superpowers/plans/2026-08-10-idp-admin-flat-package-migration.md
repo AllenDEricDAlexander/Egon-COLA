@@ -121,8 +121,8 @@
 
 - Produces one source tree containing only the approved business-domain packages and `support` boundaries.
 
-- [ ] Scan for forbidden production packages: `.interfaces.http`, `.application`, `.configuration`, `.infrastructure`, `.integration`, root `.security`, root `.bootstrap`, and root `.outbox`.
-- [ ] Run `./mvnw -B -ntp -pl :egon-cola-platform-idp-admin -am test` and capture exit code 0.
-- [ ] Run `./mvnw -B -ntp -pl :egon-cola-platform-idp-admin -am package -DskipTests` and capture exit code 0.
-- [ ] Run `git diff --check`, inspect the final tree, and confirm no application was started.
-- [ ] Commit any final test/document-only cleanup as `test(idp): verify flat admin package structure`; omit this commit when no cleanup is required.
+- [x] Scan for forbidden production packages: `.interfaces.http`, `.application`, `.configuration`, `.infrastructure`, `.integration`, root `.security`, root `.bootstrap`, and root `.outbox`.
+- [x] Run `./mvnw -B -ntp -pl :egon-cola-platform-idp-admin -am test` and capture exit code 0.
+- [x] Run `./mvnw -B -ntp -pl :egon-cola-platform-idp-admin -am package -DskipTests` and capture exit code 0.
+- [x] Run `git diff --check`, inspect the final tree, and confirm no application was started.
+- [x] Commit any final test/document-only cleanup as `test(idp): verify flat admin package structure`; omit this commit when no cleanup is required.

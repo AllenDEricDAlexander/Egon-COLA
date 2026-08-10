@@ -1,4 +1,4 @@
-package top.egon.cola.platform.idp.admin.persistence;
+package top.egon.cola.platform.idp.admin.support.persistence;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.idp.admin.audit.domain.pojo.IdentityAuditLogEntity;

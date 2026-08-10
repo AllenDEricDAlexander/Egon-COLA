@@ -1,4 +1,4 @@
-package top.egon.cola.platform.idp.admin.migration;
+package top.egon.cola.platform.idp.admin.support.migration;
 
 import org.junit.jupiter.api.Test;
 

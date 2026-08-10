@@ -1,4 +1,4 @@
-package top.egon.cola.platform.idp.admin;
+package top.egon.cola.platform.idp.admin.support.runtime;
 
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
