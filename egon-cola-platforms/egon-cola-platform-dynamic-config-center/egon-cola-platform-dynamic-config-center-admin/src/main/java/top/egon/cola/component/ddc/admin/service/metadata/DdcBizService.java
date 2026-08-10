@@ -1,13 +1,16 @@
 package top.egon.cola.component.ddc.admin.service.metadata;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.exception.CommonException;
+import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.model.entity.DdcBizEntity;
 import top.egon.cola.component.ddc.admin.repository.DdcAppRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcBizRepository;
+import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
 
 import java.time.LocalDateTime;
@@ -37,6 +40,17 @@ public class DdcBizService {
         String trimmed = keyword.trim();
         return bizRepository.findByBizCodeContainingIgnoreCaseOrBizNameContainingIgnoreCase(
                 trimmed, trimmed);
+    }
+
+    public Page<DdcBizEntity> page(String keyword, PageQuery pageQuery) {
+        return bizRepository.search(
+                optional(keyword),
+                DdcAdminPageSupport.pageable(
+                        pageQuery,
+                        Sort.by("bizCode").ascending()
+                                .and(Sort.by("id").ascending())
+                )
+        );
     }
 
     public DdcBizEntity findByBizCode(String bizCode) {
@@ -96,5 +110,9 @@ public class DdcBizService {
     private DdcBizEntity require(String bizCode) {
         return bizRepository.findByBizCode(bizCode)
                 .orElseThrow(() -> new CommonException(DdcErrorStatus.BIZ_NOT_FOUND));
+    }
+
+    private String optional(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

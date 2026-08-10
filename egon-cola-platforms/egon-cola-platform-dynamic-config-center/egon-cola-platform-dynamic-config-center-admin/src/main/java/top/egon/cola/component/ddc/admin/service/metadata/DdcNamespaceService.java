@@ -1,14 +1,17 @@
 package top.egon.cola.component.ddc.admin.service.metadata;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.exception.CommonException;
+import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.model.entity.DdcNamespaceEntity;
 import top.egon.cola.component.ddc.admin.repository.DdcBizRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceRepository;
+import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
 
 import java.time.LocalDateTime;
@@ -55,6 +58,22 @@ public class DdcNamespaceService {
                 .filter(item -> item.getNamespace().toLowerCase().contains(value)
                         || item.getNamespaceCode().toLowerCase().contains(value))
                 .toList();
+    }
+
+    public Page<DdcNamespaceEntity> page(
+            String bizCode,
+            String keyword,
+            PageQuery pageQuery) {
+        return namespaceRepository.search(
+                optional(bizCode),
+                optional(keyword),
+                DdcAdminPageSupport.pageable(
+                        pageQuery,
+                        Sort.by("bizCode").ascending()
+                                .and(Sort.by("namespaceCode").ascending())
+                                .and(Sort.by("id").ascending())
+                )
+        );
     }
 
     public Optional<DdcNamespaceEntity> find(
@@ -122,5 +141,9 @@ public class DdcNamespaceService {
     private DdcNamespaceEntity require(String id) {
         return namespaceRepository.findById(id)
                 .orElseThrow(() -> new CommonException(DdcErrorStatus.NAMESPACE_NOT_FOUND));
+    }
+
+    private String optional(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }
