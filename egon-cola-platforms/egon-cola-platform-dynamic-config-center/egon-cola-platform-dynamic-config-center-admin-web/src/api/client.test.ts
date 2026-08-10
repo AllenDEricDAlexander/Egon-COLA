@@ -1,9 +1,34 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { DdcApiError, ddcApi, setDdcTokenProvider, setDdcUnauthorizedHandler } from './client'
+import { oauthClient } from '../auth/AuthContext'
+import {
+  DdcApiError,
+  ddcApi,
+  ddcPageApi,
+  setDdcTokenProvider,
+  setDdcUnauthorizedHandler,
+} from './client'
 
 const record = (data: unknown) => ({
   success: true, code: 0, status: 'SUCCESS', message: '', data,
   traceId: 'trace-1', timestamp: 1,
+})
+
+const pageRecord = <T,>(records: T[], total = records.length) => ({
+  success: true,
+  code: 0,
+  status: 'SUCCESS',
+  message: '',
+  records,
+  page: {
+    total,
+    pageNo: 2,
+    pageSize: 20,
+    pages: 2,
+    hasNext: false,
+    hasPrevious: true,
+  },
+  traceId: 'trace-page',
+  timestamp: 1,
 })
 
 describe('ddcApi', () => {
@@ -11,8 +36,14 @@ describe('ddcApi', () => {
     setDdcTokenProvider(() => 'token-1')
     setDdcUnauthorizedHandler(() => {})
     vi.stubGlobal('fetch', vi.fn())
+    vi.spyOn(oauthClient, 'refresh').mockRejectedValue(
+      new Error('refresh unavailable'),
+    )
   })
-  afterEach(() => vi.unstubAllGlobals())
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+  })
 
   const jsonResponse = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
@@ -31,6 +62,55 @@ describe('ddcApi', () => {
     const [, init] = vi.mocked(fetch).mock.calls[0]
     expect((init!.headers as Headers).get('Content-Type')).toBe('application/json')
     expect(init!.body).toBe(JSON.stringify({ resourceName: 'application.yml' }))
+  })
+
+  it('returns page records and forwards AbortSignal', async () => {
+    const controller = new AbortController()
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse(pageRecord([{ id: 'b1' }], 21)),
+    )
+
+    await expect(ddcPageApi<{ id: string }>(
+      '/api/v1/ddc/bizs/page',
+      { signal: controller.signal },
+    )).resolves.toMatchObject({
+      records: [{ id: 'b1' }],
+      page: { total: 21, pageNo: 2, pageSize: 20 },
+    })
+
+    expect(vi.mocked(fetch).mock.calls[0][1]?.signal)
+      .toBe(controller.signal)
+  })
+
+  it('accepts ResultRecord failures from the global exception handler', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({
+      success: false,
+      code: 422,
+      status: 'INVALID_REQUEST',
+      message: '请求参数无效',
+      data: null,
+      traceId: 'trace-error',
+      timestamp: 1,
+    }))
+
+    await expect(ddcPageApi('/api/v1/ddc/bizs/page'))
+      .rejects.toMatchObject({ code: '422', traceId: 'trace-error' })
+  })
+
+  it('keeps the original AbortSignal after refreshing a 401', async () => {
+    const controller = new AbortController()
+    vi.mocked(oauthClient.refresh).mockResolvedValue('token-2')
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse(record(null), 401))
+      .mockResolvedValueOnce(jsonResponse(record({ refreshed: true })))
+
+    await expect(ddcApi<{ refreshed: boolean }>(
+      '/api/v1/ddc/apps',
+      { signal: controller.signal },
+    )).resolves.toEqual({ refreshed: true })
+
+    expect(vi.mocked(fetch).mock.calls[1][1]?.signal)
+      .toBe(controller.signal)
   })
 
   it('throws DdcApiError with backend message on success=false', async () => {

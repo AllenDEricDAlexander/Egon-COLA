@@ -1,105 +1,86 @@
+import { QueryClientProvider } from '@tanstack/react-query'
+import { createElement, type PropsWithChildren } from 'react'
 import { renderHook, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { setDdcTokenProvider, setDdcUnauthorizedHandler } from '../../api/client'
-import { clearScopeOptionsCache, useScopeOptions } from './useScopeOptions'
+import { createDdcQueryClient } from '../../query/queryClient'
+import { scopeOptionKey, useScopeOption } from './useScopeOptions'
 
 const record = (data: unknown) => ({
-  success: true, code: 0, status: 'SUCCESS', message: '', data, traceId: 't', timestamp: 1,
+  success: true,
+  code: 0,
+  status: 'SUCCESS',
+  message: '',
+  data,
+  traceId: 't',
+  timestamp: 1,
 })
 
-const jsonResponse = (body: unknown) =>
-  new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } })
+const jsonResponse = (body: unknown) => new Response(
+  JSON.stringify(body),
+  { status: 200, headers: { 'Content-Type': 'application/json' } },
+)
 
-describe('useScopeOptions', () => {
+describe('useScopeOption', () => {
   beforeEach(() => {
-    clearScopeOptionsCache()
     setDdcTokenProvider(() => 'token')
     setDdcUnauthorizedHandler(() => {})
     vi.stubGlobal('fetch', vi.fn())
   })
 
-  it('loads all scope levels without forcing defaults', async () => {
-    vi.mocked(fetch).mockImplementation((input) => {
-      const url = String(input)
-      if (url.includes('/bizs')) {
-        return Promise.resolve(jsonResponse(record([
-          { id: 'b1', bizCode: 'pay-biz', bizName: '支付业务域', description: '', enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z' },
-        ])))
-      }
-      if (url.includes('/envs')) {
-        return Promise.resolve(jsonResponse(record([
-          { id: 'e1', envCode: 'dev', description: '开发环境', sortOrder: 10, enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z' },
-        ])))
-      }
-      if (url.includes('/apps')) {
-        return Promise.resolve(jsonResponse(record([
-          { id: 'a1', appCode: 'orders', bizCode: 'pay-biz', appName: '订单服务', owner: 'ops', description: '', enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z' },
-        ])))
-      }
-      if (url.includes('/namespaces')) {
-        return Promise.resolve(jsonResponse(record([
-          { id: 'n1', bizCode: 'pay-biz', namespaceCode: 'default', namespace: '默认', description: '', enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z' },
-        ])))
-      }
-      return Promise.resolve(jsonResponse(record(null)))
-    })
+  it('loads and maps only the requested scope path', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(record([
+      {
+        id: 'b1',
+        bizCode: 'pay-biz',
+        bizName: '支付业务域',
+        enabled: true,
+      },
+    ])))
+    const client = createDdcQueryClient()
+    const wrapper = ({ children }: PropsWithChildren) => createElement(
+      QueryClientProvider,
+      { client },
+      children,
+    )
 
-    const { result } = renderHook(() => useScopeOptions('', '', ''))
-    await waitFor(() => expect(result.current.bizs.length).toBe(1))
-    await waitFor(() => expect(result.current.envs.length).toBe(1))
-    await waitFor(() => expect(result.current.apps.length).toBe(1))
-    await waitFor(() => expect(result.current.namespaces.length).toBe(1))
-    expect(result.current.bizs[0]).toEqual({ value: 'pay-biz', label: 'pay-biz（支付业务域）' })
-    expect(result.current.envs[0]).toEqual({ value: 'dev', label: 'dev（开发环境）' })
-    expect(result.current.apps[0]).toEqual({ value: 'orders', label: 'orders（订单服务）' })
-    const appsCall = vi.mocked(fetch).mock.calls.find(([url]) => String(url).includes('/apps'))
-    expect(String(appsCall![0])).not.toContain('bizCode=')
+    const { result } = renderHook(
+      () => useScopeOption('/api/v1/ddc/bizs'),
+      { wrapper },
+    )
+
+    await waitFor(() => expect(result.current.data).toEqual([
+      { value: 'pay-biz', label: 'pay-biz（支付业务域）' },
+    ]))
+    expect(fetch).toHaveBeenCalledTimes(1)
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/v1/ddc/bizs',
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    )
+    expect(scopeOptionKey('/api/v1/ddc/bizs'))
+      .toEqual(['ddc', 'scope-options', '/api/v1/ddc/bizs'])
   })
 
-  it('reloads namespace, env and app options by cascade scope', async () => {
-    vi.mocked(fetch).mockImplementation((input) => {
-      const url = String(input)
-      if (url.includes('/bizs')) return Promise.resolve(jsonResponse(record([])))
-      if (url.includes('/envs')) return Promise.resolve(jsonResponse(record([])))
-      if (url.includes('/apps')) {
-        return Promise.resolve(jsonResponse(record([
-          { id: 'a1', appCode: 'orders', bizCode: 'pay-biz', appName: '', owner: 'ops', description: '', enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z' },
-        ])))
-      }
-      if (url.includes('/namespaces')) {
-        return Promise.resolve(jsonResponse(record([
-          { id: 'n1', bizCode: 'pay-biz', namespaceCode: 'default', namespace: '默认', description: '', enabled: true, createdAt: '2026-07-01T00:00:00Z', updatedAt: '2026-07-01T00:00:00Z' },
-        ])))
-      }
-      return Promise.resolve(jsonResponse(record(null)))
-    })
-
-    const { rerender } = renderHook(
-      ({ biz, namespace, env }: { biz: string; namespace: string; env: string }) => useScopeOptions(biz, namespace, env),
-      { initialProps: { biz: '', namespace: '', env: '' } },
+  it('shares cached options and refetches when the cascade path changes', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(record([])))
+    const client = createDdcQueryClient()
+    const wrapper = ({ children }: PropsWithChildren) => createElement(
+      QueryClientProvider,
+      { client },
+      children,
     )
-    await waitFor(() => {
-      const appsCall = vi.mocked(fetch).mock.calls.find(([url]) => String(url).includes('/apps'))
-      expect(appsCall).toBeDefined()
-    })
-    const beforeCalls = vi.mocked(fetch).mock.calls.length
+    const { rerender } = renderHook(
+      ({ path }: { path: string }) => useScopeOption(path),
+      { initialProps: { path: '/api/v1/ddc/apps' }, wrapper },
+    )
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
 
-    rerender({ biz: 'pay-biz', namespace: 'default', env: 'dev' })
-    await waitFor(() => {
-      const filtered = vi.mocked(fetch).mock.calls
-        .slice(beforeCalls)
-        .find(([url]) => String(url).includes('/apps'))
-      expect(filtered).toBeDefined()
-      expect(String(filtered![0])).toContain('bizCode=pay-biz')
-      expect(String(filtered![0])).toContain('namespaceCode=default')
-      expect(String(filtered![0])).toContain('env=dev')
-    })
-    await waitFor(() => {
-      const nsCall = vi.mocked(fetch).mock.calls
-        .slice(beforeCalls)
-        .find(([url]) => String(url).includes('/namespaces'))
-      expect(nsCall).toBeDefined()
-      expect(String(nsCall![0])).toContain('bizCode=pay-biz')
-    })
+    rerender({ path: '/api/v1/ddc/apps' })
+    expect(fetch).toHaveBeenCalledTimes(1)
+
+    rerender({ path: '/api/v1/ddc/apps?bizCode=pay-biz' })
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
+    expect(String(vi.mocked(fetch).mock.calls[1][0]))
+      .toContain('bizCode=pay-biz')
   })
 })

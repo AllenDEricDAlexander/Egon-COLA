@@ -1,4 +1,4 @@
-import type { ResultRecord } from './types'
+import type { PageResultRecord, ResultEnvelope } from './types'
 import { oauthClient } from '../auth/AuthContext'
 
 type TokenProvider = () => string
@@ -46,9 +46,16 @@ export class DdcApiError extends Error {
   }
 }
 
-export type DdcRequestOptions = { method?: string; body?: unknown }
+export type DdcRequestOptions = {
+  method?: string
+  body?: unknown
+  signal?: AbortSignal
+}
 
-export async function ddcApi<T>(path: string, options: DdcRequestOptions = {}): Promise<T> {
+const requestEnvelope = async (
+  path: string,
+  options: DdcRequestOptions,
+): Promise<ResultEnvelope & Record<string, unknown>> => {
   const headers = new Headers()
   headers.set('Authorization', `Bearer ${tokenProvider()}`)
   let body: string | undefined
@@ -56,25 +63,44 @@ export async function ddcApi<T>(path: string, options: DdcRequestOptions = {}): 
     headers.set('Content-Type', 'application/json')
     body = JSON.stringify(options.body)
   }
+  const request = () => fetch(path, {
+    method: options.method ?? 'GET',
+    headers,
+    body,
+    signal: options.signal,
+  })
+
   let response: Response
   try {
-    response = await fetch(path, { method: options.method ?? 'GET', headers, body })
+    response = await request()
     if (response.status === 401) {
       try {
         headers.set('Authorization', `Bearer ${await oauthClient.refresh()}`)
-        response = await fetch(path, { method: options.method ?? 'GET', headers, body })
-      } catch { /* final 401 handling clears the local session */ }
+        response = await request()
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          throw error
+        }
+      }
     }
-  } catch {
-    throw new DdcApiError(0, 'DDC_ADMIN_WEB_UPSTREAM_UNAVAILABLE', '无法连接 DDC 管理端')
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw error
+    }
+    throw new DdcApiError(
+      0,
+      'DDC_ADMIN_WEB_UPSTREAM_UNAVAILABLE',
+      '无法连接 DDC 管理端',
+    )
   }
-  const payload = (await response.json().catch(() => ({}))) as Partial<ResultRecord<unknown>>
+
+  const payload = (await response.json().catch(() => ({}))) as
+    Partial<ResultEnvelope> & Record<string, unknown>
   if (response.status === 401) {
     unauthorizedHandler()
     throw new DdcApiError(401, 'UNAUTHORIZED', '统一身份登录已过期，请重新登录', payload.traceId)
   }
   if (!response.ok || payload.success === false) {
-    // 后端业务失败为 HTTP 2xx + success=false，归类为 SERVER
     const errorStatus = response.ok ? 500 : response.status
     throw new DdcApiError(
       errorStatus,
@@ -83,5 +109,31 @@ export async function ddcApi<T>(path: string, options: DdcRequestOptions = {}): 
       payload.traceId,
     )
   }
+  return payload as ResultEnvelope & Record<string, unknown>
+}
+
+export async function ddcApi<T>(
+  path: string,
+  options: DdcRequestOptions = {},
+): Promise<T> {
+  const payload = await requestEnvelope(path, options)
   return payload.data as T
+}
+
+export async function ddcPageApi<T>(
+  path: string,
+  options: DdcRequestOptions = {},
+): Promise<PageResultRecord<T>> {
+  const payload = await requestEnvelope(path, options)
+  if (!Array.isArray(payload.records)
+      || payload.page === null
+      || typeof payload.page !== 'object') {
+    throw new DdcApiError(
+      500,
+      'DDC_INVALID_PAGE_RESPONSE',
+      '分页响应格式无效',
+      payload.traceId,
+    )
+  }
+  return payload as PageResultRecord<T>
 }

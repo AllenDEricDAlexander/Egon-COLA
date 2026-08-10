@@ -1,5 +1,5 @@
 import { Select, type SelectProps } from 'antd'
-import { useScopeOptions, type ScopeOption } from './useScopeOptions'
+import { useScopeOption, withParams } from './useScopeOptions'
 
 type Props = {
   value?: string
@@ -19,7 +19,11 @@ const filterOption: SelectProps['filterOption'] = (input, option) =>
   String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
 
 export default function AppSelect({ value, onChange, bizCode = '', namespaceCode = '', env = '', disabled, placeholder = '请选择或输入应用' }: Props) {
-  const { apps, loading } = useScopeOptions(bizCode, namespaceCode, env)
+  const query = useScopeOption(withParams(
+    '/api/v1/ddc/apps',
+    { bizCode, namespaceCode, env },
+  ))
+  const apps = query.data ?? []
   return (
     <Select
       mode="tags"
@@ -27,9 +31,9 @@ export default function AppSelect({ value, onChange, bizCode = '', namespaceCode
       showSearch
       value={toArray(value)}
       onChange={(values) => onChange?.(toValue(values))}
-      options={apps.map((option: ScopeOption) => ({ value: option.value, label: option.label }))}
+      options={apps.map((option) => ({ value: option.value, label: option.label }))}
       filterOption={filterOption}
-      loading={loading}
+      loading={query.isFetching}
       disabled={disabled}
       placeholder={placeholder}
       style={{ width: '100%' }}

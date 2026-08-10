@@ -1,7 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { setDdcTokenProvider, setDdcUnauthorizedHandler } from '../api/client'
-import { clearScopeOptionsCache } from '../components/scope/useScopeOptions'
 import AppsPage from './AppsPage'
 
 const record = (data: unknown) => ({
@@ -13,7 +12,6 @@ const jsonResponse = (body: unknown) =>
 
 describe('AppsPage', () => {
   beforeEach(() => {
-    clearScopeOptionsCache()
     setDdcTokenProvider(() => 'token')
     setDdcUnauthorizedHandler(() => {})
     vi.stubGlobal('fetch', vi.fn())

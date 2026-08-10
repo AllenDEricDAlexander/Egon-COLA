@@ -1,8 +1,8 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { useState } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { setDdcTokenProvider, setDdcUnauthorizedHandler } from '../../api/client'
-import { clearScopeOptionsCache } from './useScopeOptions'
+import { renderWithQueryClient } from '../../test/renderWithQueryClient'
 import ScopeSelects, { type ScopeValue } from './ScopeSelects'
 
 // 说明：jsdom + React 19 下 antd 下拉 portal 的选项点击事件无法送达 React（环境缺口，
@@ -42,7 +42,6 @@ const mockScopeEndpoints = (bizs: string[], apps: string[], nss: string[], envs:
 
 describe('ScopeSelects', () => {
   beforeEach(() => {
-    clearScopeOptionsCache()
     setDdcTokenProvider(() => 'token')
     setDdcUnauthorizedHandler(() => {})
     vi.stubGlobal('fetch', vi.fn())
@@ -54,7 +53,7 @@ describe('ScopeSelects', () => {
     const value: ScopeValue = { bizCode: '', namespaceCode: '', env: '', appCode: '' }
     const onChange = vi.fn((next: ScopeValue) => Object.assign(value, next))
 
-    render(<ScopeSelects value={value} onChange={onChange} />)
+    renderWithQueryClient(<ScopeSelects value={value} onChange={onChange} />)
     await waitFor(() => expect(screen.getAllByText('请选择或输入业务域').length).toBeGreaterThan(0))
 
     // 输入新业务域：清空所有下级
@@ -77,7 +76,7 @@ describe('ScopeSelects', () => {
   it('loads namespace, env and app options by the selected parent scope', async () => {
     mockScopeEndpoints(['pay-biz'], ['orders-app'], ['default'], ['dev'])
 
-    render(<ScopeSelects value={{ bizCode: 'pay-biz', namespaceCode: 'default', env: 'dev', appCode: 'orders-app' }} onChange={() => {}} />)
+    renderWithQueryClient(<ScopeSelects value={{ bizCode: 'pay-biz', namespaceCode: 'default', env: 'dev', appCode: 'orders-app' }} onChange={() => {}} />)
     await waitFor(() => {
       const appsCall = vi.mocked(fetch).mock.calls
         .find(([url]) => String(url).includes('/apps')
@@ -117,7 +116,7 @@ describe('ScopeSelects', () => {
       )
     }
 
-    render(<Harness />)
+    renderWithQueryClient(<Harness />)
     await waitFor(() => expect(screen.getAllByText(/pay-biz/).length).toBeGreaterThan(0))
 
     // 换业务域（maxCount=1 需先移除 tag 再输入）

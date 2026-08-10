@@ -1,5 +1,5 @@
 import { Select, type SelectProps } from 'antd'
-import { useScopeOptions } from './useScopeOptions'
+import { useScopeOption, withParams } from './useScopeOptions'
 
 type Props = {
   value?: string
@@ -18,7 +18,11 @@ const filterOption: SelectProps['filterOption'] = (input, option) =>
   String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
 
 export default function EnvSelect({ value, onChange, bizCode = '', namespaceCode = '', disabled, placeholder = '请选择或输入环境' }: Props) {
-  const { envs, loading } = useScopeOptions(bizCode, namespaceCode, '')
+  const query = useScopeOption(withParams(
+    '/api/v1/ddc/envs',
+    { bizCode, namespaceCode },
+  ))
+  const envs = query.data ?? []
   return (
     <Select
       mode="tags"
@@ -28,7 +32,7 @@ export default function EnvSelect({ value, onChange, bizCode = '', namespaceCode
       onChange={(values) => onChange?.(toValue(values))}
       options={envs.map((option) => ({ value: option.value, label: option.label }))}
       filterOption={filterOption}
-      loading={loading}
+      loading={query.isFetching}
       disabled={disabled}
       placeholder={placeholder}
       style={{ width: '100%' }}

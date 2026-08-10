@@ -1,11 +1,26 @@
-export type ResultRecord<T> = {
+export type ResultEnvelope = {
   success: boolean
   code: number
   status: string
   message: string
-  data: T
-  traceId: string
+  traceId?: string
   timestamp: number
+}
+
+export type ResultRecord<T> = ResultEnvelope & { data: T }
+
+export type PageMetaRecord = {
+  total: number
+  pageNo: number
+  pageSize: number
+  pages: number
+  hasNext: boolean
+  hasPrevious: boolean
+}
+
+export type PageResultRecord<T> = ResultEnvelope & {
+  records: T[]
+  page: PageMetaRecord
 }
 
 export type RegistryService = {

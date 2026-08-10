@@ -1,5 +1,5 @@
 import { Select, type SelectProps } from 'antd'
-import { useScopeOptions } from './useScopeOptions'
+import { useScopeOption } from './useScopeOptions'
 
 type Props = {
   value?: string
@@ -16,7 +16,8 @@ const filterOption: SelectProps['filterOption'] = (input, option) =>
   String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
 
 export default function BizSelect({ value, onChange, disabled, placeholder = '请选择或输入业务域' }: Props) {
-  const { bizs, loading } = useScopeOptions('', '', '')
+  const query = useScopeOption('/api/v1/ddc/bizs')
+  const bizs = query.data ?? []
   return (
     <Select
       mode="tags"
@@ -26,7 +27,7 @@ export default function BizSelect({ value, onChange, disabled, placeholder = '�
       onChange={(values) => onChange?.(toValue(values))}
       options={bizs.map((option) => ({ value: option.value, label: option.label }))}
       filterOption={filterOption}
-      loading={loading}
+      loading={query.isFetching}
       disabled={disabled}
       placeholder={placeholder}
       style={{ width: '100%' }}
