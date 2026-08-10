@@ -106,9 +106,9 @@
 - `SigningKeyService` exposes list/publish/activate/retire; `IdentityAuditService` exposes paged query.
 
 - [ ] Add/adjust DTO/VO and Service contract tests.
-- [ ] Move and refactor token and audit production code.
-- [ ] Run signing-key, key-loader, token-claims, refresh-rotation, audit and persistence entity tests.
-- [ ] Commit as `refactor(idp): flatten admin token and audit packages`.
+- [x] Move and refactor token and audit production code.
+- [x] Run signing-key, key-loader, token-claims, refresh-rotation, audit and persistence entity tests.
+- [x] Commit as `refactor(idp): flatten admin token and audit packages`.
 
 ### Task 5: Final Residual and Reactor Verification
 

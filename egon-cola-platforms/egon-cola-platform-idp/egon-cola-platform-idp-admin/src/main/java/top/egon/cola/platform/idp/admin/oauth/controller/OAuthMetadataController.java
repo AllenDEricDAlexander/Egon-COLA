@@ -3,7 +3,7 @@ package top.egon.cola.platform.idp.admin.oauth.controller;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.platform.idp.admin.token.infrastructure.Rs256TokenService;
+import top.egon.cola.platform.idp.admin.token.service.impl.Rs256TokenService;
 
 import java.net.URI;
 import java.util.LinkedHashMap;

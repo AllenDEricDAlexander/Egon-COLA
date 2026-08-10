@@ -1,12 +1,12 @@
 package top.egon.cola.platform.idp.admin.persistence;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.idp.admin.audit.domain.IdentityAuditLogEntity;
+import top.egon.cola.platform.idp.admin.audit.domain.pojo.IdentityAuditLogEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientAudienceEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientRedirectUriEntity;
 import top.egon.cola.platform.idp.admin.support.outbox.domain.pojo.IdentityOutboxEventEntity;
-import top.egon.cola.platform.idp.admin.token.domain.IdentitySigningKeyEntity;
+import top.egon.cola.platform.idp.admin.token.domain.pojo.IdentitySigningKeyEntity;
 
 import java.time.Instant;
 

@@ -12,7 +12,7 @@ import top.egon.cola.platform.idp.admin.oauth.controller.OAuthTokenController;
 import top.egon.cola.platform.idp.admin.support.ddc.AtomicIdpRuntimePolicy;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdpSsoSessionStore;
 import top.egon.cola.platform.idp.admin.support.security.IdpSsoAuthenticationFilter;
-import top.egon.cola.platform.idp.admin.token.infrastructure.Rs256TokenService;
+import top.egon.cola.platform.idp.admin.token.service.impl.Rs256TokenService;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationCode;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationFacade;
 import top.egon.cola.platform.idp.core.oauth.OAuthClient;

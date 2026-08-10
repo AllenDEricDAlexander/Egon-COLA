@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.MethodParameter;
 import top.egon.cola.platform.idp.admin.support.runtime.IdpPlatformConfiguration;
 import top.egon.cola.platform.idp.admin.oauth.config.OAuthConfig;
-import top.egon.cola.platform.idp.admin.token.configuration.IdpTokenConfiguration;
+import top.egon.cola.platform.idp.admin.token.config.TokenConfig;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -52,7 +52,7 @@ class IdpRedisClientResolutionTest {
     private static List<Method> redisDependentBeanMethods() {
         return List.of(
                 OAuthConfig.class,
-                IdpTokenConfiguration.class,
+                TokenConfig.class,
                 IdpPlatformConfiguration.class
         ).stream()
                 .flatMap(type -> Arrays.stream(type.getDeclaredMethods()))

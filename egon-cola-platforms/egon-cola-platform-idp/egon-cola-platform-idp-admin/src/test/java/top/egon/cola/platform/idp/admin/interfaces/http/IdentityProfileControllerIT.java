@@ -4,12 +4,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import top.egon.cola.platform.idp.admin.audit.domain.IdentityAuditLogEntity;
-import top.egon.cola.platform.idp.admin.audit.infrastructure.IdentityAuditLogRepository;
+import top.egon.cola.platform.idp.admin.audit.controller.IdentityAuditController;
+import top.egon.cola.platform.idp.admin.audit.domain.vo.IdentityAuditPageVO;
+import top.egon.cola.platform.idp.admin.audit.domain.vo.IdentityAuditVO;
+import top.egon.cola.platform.idp.admin.audit.service.IdentityAuditService;
 import top.egon.cola.platform.idp.admin.identity.controller.IdentityProfileController;
 import top.egon.cola.platform.idp.admin.oauth.controller.OAuthUserInfoController;
 import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthenticationToken;
@@ -45,25 +46,29 @@ class IdentityProfileControllerIT {
     private JwtDecoder jwtDecoder;
 
     @MockitoBean
-    private IdentityAuditLogRepository audits;
+    private IdentityAuditService audits;
 
     @MockitoBean
     private IdpAdminAuthorizationPort authorization;
 
     @Test
     void returnsOnlySafePagedAuditFields() throws Exception {
-        IdentityAuditLogEntity audit = IdentityAuditLogEntity.record(
+        IdentityAuditVO audit = new IdentityAuditVO(
                 "audit-1",
                 "IDENTITY_LOGIN_SUCCEEDED",
                 "admin-sub",
                 "alice-sub",
                 "SUCCESS",
                 "AUTHENTICATED",
-                "{\"internal\":\"must-not-leak\"}",
                 Instant.parse("2026-08-02T00:00:00Z")
         );
-        when(audits.findAll(any(org.springframework.data.domain.Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(audit)));
+        when(audits.list(any())).thenReturn(new IdentityAuditPageVO(
+                List.of(audit),
+                0,
+                20,
+                1,
+                1
+        ));
 
         mockMvc.perform(get("/api/v1/identity/audits")
                         .param("page", "0")
@@ -107,6 +112,9 @@ class IdentityProfileControllerIT {
 
     @Test
     void invalidAuditPageReturnsSafeBadRequest() throws Exception {
+        when(audits.list(any())).thenThrow(
+                new IllegalArgumentException("invalid audit page request")
+        );
         mockMvc.perform(get("/api/v1/identity/audits")
                         .param("page", "-1")
                         .with(identityJwt()))

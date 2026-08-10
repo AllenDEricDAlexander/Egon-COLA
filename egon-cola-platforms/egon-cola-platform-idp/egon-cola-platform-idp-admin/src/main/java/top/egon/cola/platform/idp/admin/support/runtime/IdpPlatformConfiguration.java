@@ -10,22 +10,19 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
-import top.egon.cola.platform.idp.admin.audit.infrastructure.IdentityAuditLogRepository;
+import top.egon.cola.platform.idp.admin.audit.repo.IdentityAuditLogRepository;
 import top.egon.cola.platform.idp.admin.support.bootstrap.IdpBootstrapRunner;
 import top.egon.cola.platform.idp.admin.support.bootstrap.IdpBootstrapService;
 import top.egon.cola.platform.idp.admin.support.outbox.service.IdentityOutboxPublisher;
 import top.egon.cola.platform.idp.admin.identity.service.IdentityUserStateService;
 import top.egon.cola.platform.idp.admin.support.outbox.repo.IdentityOutboxEventRepository;
-import top.egon.cola.platform.idp.admin.token.application.SigningKeyRuntime;
-import top.egon.cola.platform.idp.admin.token.infrastructure.ExternalPemSigningKeyRuntime;
-import top.egon.cola.platform.idp.admin.token.infrastructure.Rs256TokenService;
+import top.egon.cola.platform.idp.admin.token.service.impl.Rs256TokenService;
 import top.egon.cola.platform.idp.core.port.RefreshTokenStore;
 
 import java.time.Clock;
@@ -56,18 +53,6 @@ public class IdpPlatformConfiguration {
                 stateKeyPrefix,
                 idpClock
         );
-    }
-
-    @Bean
-    JwtDecoder idpJwtDecoder(Rs256TokenService tokens) {
-        return tokens.jwtDecoder();
-    }
-
-    @Bean
-    SigningKeyRuntime signingKeyRuntime(
-            @Value("${egon.idp.oauth.signing-key.kid}") String configuredKid
-    ) {
-        return new ExternalPemSigningKeyRuntime(configuredKid);
     }
 
     @Bean

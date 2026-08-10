@@ -16,9 +16,9 @@ import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRedirectUriRepo
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.JpaOAuthClientStore;
 import top.egon.cola.platform.idp.admin.oauth.service.impl.OAuthClientServiceImpl;
-import top.egon.cola.platform.idp.admin.token.application.SigningKeyAdminService;
-import top.egon.cola.platform.idp.admin.token.application.SigningKeyRuntime;
-import top.egon.cola.platform.idp.admin.token.infrastructure.IdentitySigningKeyRepository;
+import top.egon.cola.platform.idp.admin.token.repo.IdentitySigningKeyRepository;
+import top.egon.cola.platform.idp.admin.token.service.SigningKeyRuntime;
+import top.egon.cola.platform.idp.admin.token.service.impl.SigningKeyServiceImpl;
 import top.egon.cola.platform.idp.core.audit.IdentitySecurityEventPort;
 import top.egon.cola.platform.idp.core.port.IdentityUserStatePort;
 import top.egon.cola.platform.idp.core.port.IdentityUserStore;
@@ -79,16 +79,16 @@ class SpringConstructorResolutionTest {
     }
 
     @Test
-    void createsSigningKeyAdminServiceUsingItsProductionConstructor() {
+    void createsSigningKeyServiceUsingItsProductionConstructor() {
         try (AnnotationConfigApplicationContext context = contextWith(
                 IdentitySigningKeyRepository.class,
                 SigningKeyRuntime.class,
                 ObjectMapper.class
         )) {
-            context.registerBean(SigningKeyAdminService.class);
+            context.registerBean(SigningKeyServiceImpl.class);
             context.refresh();
 
-            assertThat(context.getBean(SigningKeyAdminService.class))
+            assertThat(context.getBean(SigningKeyServiceImpl.class))
                     .isNotNull();
         }
     }
