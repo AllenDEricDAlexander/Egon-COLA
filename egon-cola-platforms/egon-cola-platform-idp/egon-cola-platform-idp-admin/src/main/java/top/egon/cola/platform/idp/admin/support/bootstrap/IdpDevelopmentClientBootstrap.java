@@ -5,7 +5,9 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import top.egon.cola.platform.idp.admin.oauth.application.OAuthClientAdminService;
+import top.egon.cola.platform.idp.admin.oauth.domain.dto.CreateOAuthClientDTO;
+import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthClientVO;
+import top.egon.cola.platform.idp.admin.oauth.service.OAuthClientService;
 
 import java.util.List;
 import java.util.Map;
@@ -37,17 +39,17 @@ public class IdpDevelopmentClientBootstrap implements ApplicationRunner {
             ),
             new ClientSpec("mock-backend", "Unified Identity Mock Backend", 18161));
 
-    private final OAuthClientAdminService clients;
+    private final OAuthClientService clients;
 
-    public IdpDevelopmentClientBootstrap(OAuthClientAdminService clients) {
+    public IdpDevelopmentClientBootstrap(OAuthClientService clients) {
         this.clients = Objects.requireNonNull(clients, "clients");
     }
 
     @Override
     public void run(ApplicationArguments arguments) {
-        Map<String, OAuthClientAdminService.ClientView> existing =
+        Map<String, OAuthClientVO> existing =
                 clients.list().stream().collect(Collectors.toUnmodifiableMap(
-                        OAuthClientAdminService.ClientView::clientId,
+                        OAuthClientVO::clientId,
                         client -> client
                 ));
         CLIENTS.forEach(client -> reconcile(client, existing.get(
@@ -57,7 +59,7 @@ public class IdpDevelopmentClientBootstrap implements ApplicationRunner {
 
     private void reconcile(
             ClientSpec client,
-            OAuthClientAdminService.ClientView existing) {
+            OAuthClientVO existing) {
         if (existing == null) {
             create(client);
             return;
@@ -75,7 +77,7 @@ public class IdpDevelopmentClientBootstrap implements ApplicationRunner {
     }
 
     private void create(ClientSpec client) {
-        clients.create(new OAuthClientAdminService.CreateClientCommand(
+        clients.create(new CreateOAuthClientDTO(
                 client.clientId(),
                 client.clientName(),
                 ACCESS_TOKEN_TTL_SECONDS,

@@ -1,4 +1,4 @@
-package top.egon.cola.platform.idp.admin.identity.controller;
+package top.egon.cola.platform.idp.admin.oauth.controller;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -6,11 +6,16 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthorizationPort;
+import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthUserInfoVO;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 
 import java.util.Objects;
 
+/**
+ * 向 OAuth 客户端返回当前访问令牌对应的身份声明。
+ *
+ * <p>Returns identity claims associated with the current access token to OAuth clients.</p>
+ */
 @RestController
 @GatewayInterfaceGroup(
         businessDomainCode = "platform",
@@ -24,30 +29,28 @@ import java.util.Objects;
         group = "default",
         version = "1.0.0",
         basePath = "/")
-public class IdentityProfileController {
+public class OAuthUserInfoController {
 
-    private final IdpAdminAuthorizationPort authorization;
-
-    public IdentityProfileController(
-            IdpAdminAuthorizationPort authorization
-    ) {
-        this.authorization = Objects.requireNonNull(
-                authorization,
-                "authorization"
-        );
-    }
-
-    @GetMapping("/api/v1/identity/me")
+    @GetMapping("/oauth2/userinfo")
     @GatewayOperation(
-            name = "idp-identity-me-v1",
-            summary = "查询当前统一身份",
+            name = "idp-oauth-userinfo-v1",
+            summary = "查询 OAuth 当前身份声明",
             externalAccessible = true,
-            tags = {"idp", "identity"})
-    public IdentityPrincipal me(
+            tags = {"idp", "oauth"})
+    public OAuthUserInfoVO userInfo(
             @AuthenticationPrincipal IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:identity:self:read");
-        return Objects.requireNonNull(principal, "principal");
+        IdentityPrincipal identity = Objects.requireNonNull(
+                principal,
+                "principal"
+        );
+        return new OAuthUserInfoVO(
+                identity.subject(),
+                identity.tenantId(),
+                identity.sessionId(),
+                identity.clientId(),
+                identity.tokenVersion(),
+                identity.audience()
+        );
     }
-
 }

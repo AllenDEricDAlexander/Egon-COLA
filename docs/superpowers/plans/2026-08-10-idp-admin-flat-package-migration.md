@@ -84,10 +84,10 @@
 - Preserve Authorization Code + PKCE S256 validation, redirect/audience exact matching, refresh-cookie-only transport and OAuth error bodies.
 - `OAuthClientService` exposes list/create/update/redirect/audience operations with extracted DTO/VO types.
 
-- [ ] Add/adjust contract assertions for the extracted OAuth DTO/VO JSON names.
-- [ ] Move and refactor OAuth production code.
-- [ ] Run `IdpSsoSessionStoreTest`, `OAuthAuthorizationFlowIT`, `OAuthClientAdminServiceTest`, `IdpSsoLoginControllerIT`, `OAuthTokenTransportIT`, and `IdentityProfileControllerIT` under their new names/packages.
-- [ ] Commit as `refactor(idp): flatten admin oauth packages`.
+- [x] Add/adjust contract assertions for the extracted OAuth DTO/VO JSON names.
+- [x] Move and refactor OAuth production code.
+- [x] Run `IdpSsoSessionStoreTest`, `OAuthAuthorizationFlowIT`, `OAuthClientAdminServiceTest`, `IdpSsoLoginControllerIT`, `OAuthTokenTransportIT`, and `IdentityProfileControllerIT` under their new names/packages.
+- [x] Commit as `refactor(idp): flatten admin oauth packages`.
 
 ### Task 4: Migrate Token and Audit Domains
 

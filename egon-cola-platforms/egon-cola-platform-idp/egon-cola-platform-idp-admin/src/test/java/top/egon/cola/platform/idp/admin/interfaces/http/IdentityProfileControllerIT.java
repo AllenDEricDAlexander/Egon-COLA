@@ -11,6 +11,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.platform.idp.admin.audit.domain.IdentityAuditLogEntity;
 import top.egon.cola.platform.idp.admin.audit.infrastructure.IdentityAuditLogRepository;
 import top.egon.cola.platform.idp.admin.identity.controller.IdentityProfileController;
+import top.egon.cola.platform.idp.admin.oauth.controller.OAuthUserInfoController;
 import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthenticationToken;
 import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthorizationPort;
 import top.egon.cola.platform.idp.admin.support.security.IdpSecurityConfig;
@@ -31,7 +32,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest({
         IdentityAuditController.class,
-        IdentityProfileController.class
+        IdentityProfileController.class,
+        OAuthUserInfoController.class
 })
 @Import(IdpSecurityConfig.class)
 class IdentityProfileControllerIT {

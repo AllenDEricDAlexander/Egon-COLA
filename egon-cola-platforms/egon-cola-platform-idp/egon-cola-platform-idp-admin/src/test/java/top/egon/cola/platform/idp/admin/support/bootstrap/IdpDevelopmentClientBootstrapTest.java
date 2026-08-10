@@ -2,7 +2,8 @@ package top.egon.cola.platform.idp.admin.support.bootstrap;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.DefaultApplicationArguments;
-import top.egon.cola.platform.idp.admin.oauth.application.OAuthClientAdminService;
+import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthClientVO;
+import top.egon.cola.platform.idp.admin.oauth.service.OAuthClientService;
 
 import java.util.List;
 
@@ -16,7 +17,7 @@ class IdpDevelopmentClientBootstrapTest {
 
     @Test
     void createsOnlyMissingPublicClients() throws Exception {
-        OAuthClientAdminService clients = mock(OAuthClientAdminService.class);
+        OAuthClientService clients = mock(OAuthClientService.class);
         when(clients.list()).thenReturn(List.of(client("idp-admin-web")));
         IdpDevelopmentClientBootstrap bootstrap =
                 new IdpDevelopmentClientBootstrap(clients);
@@ -35,8 +36,8 @@ class IdpDevelopmentClientBootstrapTest {
     @Test
     void replacesAnObsoleteRedirectUriOnAnExistingDevelopmentClient()
             throws Exception {
-        OAuthClientAdminService clients = mock(OAuthClientAdminService.class);
-        when(clients.list()).thenReturn(List.of(new OAuthClientAdminService.ClientView(
+        OAuthClientService clients = mock(OAuthClientService.class);
+        when(clients.list()).thenReturn(List.of(new OAuthClientVO(
                 "ddc-admin-web", "DDC Admin Web", "PUBLIC", "ACTIVE", true,
                 900, 604800,
                 List.of("http://127.0.0.1:18151/oauth/callback"),
@@ -58,8 +59,8 @@ class IdpDevelopmentClientBootstrapTest {
         );
     }
 
-    private static OAuthClientAdminService.ClientView client(String clientId) {
-        return new OAuthClientAdminService.ClientView(
+    private static OAuthClientVO client(String clientId) {
+        return new OAuthClientVO(
                 clientId, clientId, "PUBLIC", "ACTIVE", true,
                 900, 604800, List.of(), List.of(), 0,
                 java.time.Instant.EPOCH, java.time.Instant.EPOCH);

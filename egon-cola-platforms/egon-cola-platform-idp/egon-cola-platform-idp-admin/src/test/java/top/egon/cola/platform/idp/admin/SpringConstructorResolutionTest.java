@@ -11,11 +11,11 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.idp.admin.identity.repo.IdentityUserDirectory;
 import top.egon.cola.platform.idp.admin.identity.service.impl.IdentityUserServiceImpl;
-import top.egon.cola.platform.idp.admin.oauth.application.OAuthClientAdminService;
-import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientAudienceRepository;
-import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientRedirectUriRepository;
-import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientRepository;
-import top.egon.cola.platform.idp.admin.oauth.infrastructure.JpaOAuthClientStore;
+import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientAudienceRepository;
+import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRedirectUriRepository;
+import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
+import top.egon.cola.platform.idp.admin.oauth.repo.JpaOAuthClientStore;
+import top.egon.cola.platform.idp.admin.oauth.service.impl.OAuthClientServiceImpl;
 import top.egon.cola.platform.idp.admin.token.application.SigningKeyAdminService;
 import top.egon.cola.platform.idp.admin.token.application.SigningKeyRuntime;
 import top.egon.cola.platform.idp.admin.token.infrastructure.IdentitySigningKeyRepository;
@@ -44,17 +44,17 @@ class SpringConstructorResolutionTest {
     }
 
     @Test
-    void createsOAuthClientAdminServiceUsingItsProductionConstructor() {
+    void createsOAuthClientServiceUsingItsProductionConstructor() {
         try (AnnotationConfigApplicationContext context = contextWith(
                 IdentityClientRepository.class,
                 IdentityClientRedirectUriRepository.class,
                 IdentityClientAudienceRepository.class,
                 LongIdGenerator.class
         )) {
-            context.registerBean(OAuthClientAdminService.class);
+            context.registerBean(OAuthClientServiceImpl.class);
             context.refresh();
 
-            assertThat(context.getBean(OAuthClientAdminService.class))
+            assertThat(context.getBean(OAuthClientServiceImpl.class))
                     .isNotNull();
         }
     }
