@@ -1,6 +1,6 @@
 # OAuth 2.0 Resource Server 准入与认证设计
 
-> 状态：已确认，等待实施计划（2026-08-10）
+> 状态：已按 `bizCode + appCode + env` 修订，等待复审（2026-08-10）
 > 设计日期：2026-08-10
 > 适用仓库：`/Users/mario/SelfProject/Egon-COLA`
 > 主模块：`egon-cola-platform-idp`
@@ -41,7 +41,7 @@ Resource Server 实例启动认证以及 `client_credentials` 服务间调用方
 2. IdP 只校验 `Client -> audience` 字符串关系，不能证明目标 Resource Server 已获批准。
 3. DDC 注册只校验字段格式，任何知道注册协议的进程都可以声明任意 `bizCode/appCode/env`。
 4. IdP 只支持 `authorization_code` 和 `refresh_token`，没有 `client_credentials`。
-5. 用户是否有权进入目标业务域没有参与 Resource Token 签发；只有租户成员身份被校验。
+5. 用户是否有权进入目标应用没有参与 Resource Token 签发；只有租户成员身份被校验。
 6. Resource Server 的身份、公钥和服务权限尚未形成 IdP 与 RBAC3 的单一职责链路。
 
 ## 3. 需求确认结果
@@ -49,8 +49,8 @@ Resource Server 实例启动认证以及 `client_credentials` 服务间调用方
 | 编号 | 已确认决策 |
 |---|---|
 | RS-01 | 使用 `private_key_jwt` 认证 Resource Server；私钥只在服务部署环境，IdP 只保存公钥 |
-| RS-02 | Resource Server 以 `bizCode + env` 为逻辑身份，实例只作为运行态租约和审计事实 |
-| RS-03 | Resource Server 由管理员创建并启用；启用后，同一 `bizCode + env` 的实例启动时自动获准接入，不逐实例审批 |
+| RS-02 | Resource Server 以 `bizCode + appCode + env` 为逻辑身份，实例只作为运行态租约和审计事实 |
+| RS-03 | Resource Server 由管理员按应用创建并启用；可按 `bizCode` 批量管理多个应用，启用后同一 `bizCode + appCode + env` 的实例启动时自动获准接入，不逐实例审批 |
 | RS-04 | IdP 管逻辑 Resource Server 和机器凭证；DDC 管实例注册、心跳、发现和下线 |
 | RS-05 | Gateway 与下游 Resource Server 都必须验证 JWT；具体业务权限仍在下游通过 RBAC3 判断 |
 | RS-06 | 授权请求采用 RFC 8707 `resource` 参数；一个 Access Token 只能面向一个 Resource Server |
@@ -58,7 +58,7 @@ Resource Server 实例启动认证以及 `client_credentials` 服务间调用方
 | RS-08 | 用户角色、权限、数据范围和字段策略不写入用户 Access Token；RBAC3 保持授权权威 |
 | RS-09 | 本期同时实现 `client_credentials` 服务间调用 |
 | RS-10 | IdP 不可用时，已认证实例运行到短期准入凭证到期；新实例和续签失败时关闭接入 |
-| RS-11 | Resource Server 是平台环境级资源，租户访问资格和接口权限由 RBAC3 控制 |
+| RS-11 | Resource Server 是平台应用环境级资源，租户访问资格和接口权限由 RBAC3 控制 |
 | RS-12 | 本期包含后端、数据库、Starter、Gateway、DDC、RBAC3 集成、测试和文档，不包含管理前端 |
 
 ## 4. 核心业务语义
@@ -67,42 +67,58 @@ Resource Server 实例启动认证以及 `client_credentials` 服务间调用方
 
 | 对象 | 业务含义 | 示例 |
 |---|---|---|
-| OAuth Client | 请求 Token 并调用 API 的应用 | `order-admin-web`、`order-service` |
-| Resource Server | 接收 Access Token 的业务安全边界 | `order@prod` |
-| Resource 实例 | Resource Server 的一个运行进程 | `order-service-7d9f...` |
-| RBAC Permission | 用户或服务进入业务域后能够执行的操作 | `order:query`、`order:refund` |
+| OAuth Client | 请求 Token 并调用 API 的应用 | `idp-admin-web`、`rbac3-service` |
+| Resource Server | 接收 Access Token 的应用安全边界 | `permission/idp@prod` |
+| Resource 实例 | Resource Server 的一个运行进程 | `idp-admin-7d9f...` |
+| RBAC Permission | 用户或服务进入应用后能够执行的操作 | `idp:user:query`、`idp:client:update` |
 
 一个后端服务可以同时是 Resource Server 和 Confidential OAuth Client：它作为
 Resource Server 接收调用，作为 Client 使用 `client_credentials` 调用其他 Resource Server。
 
-### 4.2 `bizCode + env` 是准入和 Token 信任边界
+### 4.2 `bizCode + appCode + env` 是准入和 Token 信任边界
 
 Resource Server 的逻辑唯一性为：
 
 ```text
-(bizCode, environment) -> one resourceUri
+(bizCode, appCode, environment) -> one resourceUri
 ```
 
 例如：
 
 ```text
-bizCode             = order
+bizCode             = permission
+appCode             = idp
 environment         = prod
-resourceUri         = https://api.egon.internal/prod/resources/order
-rbacApplicationCode = order
-entryPermissionCode = biz:order:access
+resourceUri         = https://api.egon.internal/prod/permission/idp
+rbacApplicationCode = idp
+entryPermissionCode = idp:access
 ```
 
-同一 `bizCode + env` 下的所有 `appCode` 和实例共享同一个 Resource Audience，管理员
-不逐应用或逐实例审批。只要实例拥有该业务环境的私钥，并且声明与登记的 `bizCode + env`
-一致，就可以在启动时自动申请接入。
+同一个 `permission` 业务域下还可以登记独立的 `rbac3@prod` Resource Server：
 
-该决策意味着同一业务域内的服务属于同一个 Token 信任边界。若两个服务不能共享这个
-信任边界，必须拆成不同 `bizCode` 或不同 Resource Server，不能只依靠 `appCode` 隔离。
+```text
+bizCode             = permission
+appCode             = rbac3
+environment         = prod
+resourceUri         = https://api.egon.internal/prod/permission/rbac3
+rbacApplicationCode = rbac3
+entryPermissionCode = rbac3:access
+```
+
+`bizCode` 是业务域和批量管理维度，不是 Audience 边界；`appCode` 才把同一业务域下的
+不同应用隔离为独立 Resource Server。每个应用拥有独立的 Resource URI、Audience、
+Management Client、公钥和入口权限。`idp` Token 不能访问同属 `permission` 业务域的
+`rbac3` Resource。
+
+同一 `bizCode + appCode + env` 下的分布式实例共享应用级 Resource 身份。管理员可以按
+`bizCode + env` 批量创建、启用或授权当前明确选中的应用，但系统最终必须展开并保存为
+逐应用 Resource Server/Grant 记录。批量操作不得形成自动覆盖未来新应用的通配授权；
+新 `appCode` 仍需由管理员创建或纳入一次新的显式批量操作。实例只要拥有本应用环境的
+私钥，并且声明与登记的三元组一致，就可以在启动时自动申请接入，不需要逐实例审批。
 
 ### 4.3 用户 Resource Token 与 RBAC3 的双闸门
 
-用户只有 A 业务权限、没有 B 业务权限时：
+用户只有 A 应用权限、没有 B 应用权限时，即使 A、B 同属一个 `bizCode`：
 
 - IdP 不得向该用户签发 B Resource Token；
 - 已签发的 A Token 因 `aud` 不匹配，不能调用 B Resource；
@@ -111,11 +127,11 @@ entryPermissionCode = biz:order:access
 因此业务边界固定为：
 
 ```text
-Resource Token = 是否允许进入某个业务 Resource
+Resource Token = 是否允许进入某个应用 Resource
 RBAC3 Permission = 进入后允许执行哪些具体操作
 ```
 
-Token 签发阶段只做业务入口权限 `entryPermissionCode` 判断，不把所有接口权限复制进
+Token 签发阶段只做应用入口权限 `entryPermissionCode` 判断，不把所有接口权限复制进
 用户 JWT。权限变更后，RBAC3 下游快照和 Fence 仍可立即拒绝后续业务操作，而不必等待
 Access Token 过期。
 
@@ -131,29 +147,31 @@ flowchart LR
     Gateway["Gateway"]
     Client["User or Service Client"]
 
-    Admin -->|"创建 biz + env Resource、公钥和授权关系"| IdP
+    Admin -->|"创建 biz + app + env Resource、公钥和授权关系"| IdP
     Service -->|"private_key_jwt 申请准入"| IdP
     IdP -->|"短期 Admission Ticket"| Service
     Service -->|"Ticket + 实例信息注册和续租"| DDC
     DDC -->|"只发布已认证实例"| Gateway
     Client -->|"resource 参数申请 Token"| IdP
-    IdP -->|"业务入口或服务权限决策"| RBAC3
+    IdP -->|"应用入口或服务权限决策"| RBAC3
     IdP -->|"单 Resource Access Token"| Client
     Client -->|"Bearer Token"| Gateway
-    Gateway -->|"验证 Token、aud 和路由 biz"| Service
+    Gateway -->|"验证 Token、aud 和路由 biz/app/env"| Service
     Service -->|"加载授权快照并检查具体权限"| RBAC3
 ```
 
 ## 6. 管理员创建 Resource Server
 
-管理员通过 IdP Admin API 创建 Resource Server，创建成功并启用即代表该业务域已经
-完成平台审批。没有运行实例申请和人工审批队列。
+管理员通过 IdP Admin API 为业务域下的具体应用创建 Resource Server，创建成功并启用
+即代表该 `bizCode + appCode + env` 已经完成平台审批。没有运行实例申请和人工审批队列。
 
 创建信息至少包括：
 
-- `resourceServerId`：稳定内部标识；
-- `resourceUri`：RFC 8707 Resource Identifier，必须是无 Fragment 的绝对 URI；
+- `resourceServerId`：稳定内部标识，建议显式体现 `bizCode/appCode/env`；
+- `resourceUri`：RFC 8707 Resource Identifier，必须是无 Fragment 的绝对 URI，并且
+  精确标识当前应用和环境；
 - `bizCode`；
+- `appCode`；
 - `environment`；
 - `displayName`；
 - `managementClientId`：与 Resource Server 绑定的 Confidential Client；
@@ -178,7 +196,12 @@ POST   /api/v1/identity/resource-servers/{resourceServerId}/keys
 DELETE /api/v1/identity/resource-servers/{resourceServerId}/keys/{kid}
 PUT    /api/v1/identity/clients/{clientId}/resources/{resourceServerId}
 DELETE /api/v1/identity/clients/{clientId}/resources/{resourceServerId}
+POST   /api/v1/identity/resource-servers/actions/batch
+POST   /api/v1/identity/clients/{clientId}/resource-grants/actions/batch
 ```
+
+批量接口使用 `bizCode + environment + appCodes[]` 作为选择条件，服务端逐个校验并写入
+应用级 Resource Server 或 Grant；不保存 `bizCode=*` 或“未来应用自动继承”的通配规则。
 
 管理接口继续使用 IdP Admin 现有 RBAC3 管理权限体系，并新增：
 
@@ -217,8 +240,8 @@ IdP 必须校验：
 4. `aud` 精确等于 Admission Endpoint；
 5. `iat/exp` 在安全时间窗内；
 6. Redis 中不存在相同 `(clientId, jti)`，校验成功后写入短期防重放记录；
-7. 请求声明的 `bizCode + env` 与 Resource Server 精确匹配；
-8. `appCode` 和 `instanceId` 非空且满足现有 DDC 长度和格式约束。
+7. 请求声明的 `bizCode + appCode + env` 与 Resource Server 精确匹配；
+8. `instanceId` 非空且满足现有 DDC 长度和格式约束。
 
 ### 7.2 Admission Ticket
 
@@ -253,13 +276,14 @@ DDC 校验签名、用途、Audience、有效期以及 `biz/app/env/instanceId` 
 测试环境可以注入内存 Admission Port，但不能通过普通业务配置关闭生产准入。
 
 DDC 租约到期时间不得晚于 Admission Ticket 到期时间。实例在心跳期间自动向 IdP
-续签 Ticket，再用新 Ticket 延长租约。管理员不审批 `appCode` 或 `instanceId`。
+续签 Ticket，再用新 Ticket 延长租约。管理员审批应用级 Resource Server，不审批
+同一应用下的 `instanceId`。
 
 资源禁用时：
 
 1. IdP 立即拒绝新的 Admission 和续签；
 2. IdP 通过现有 Transactional Outbox 发布 `IDENTITY_RESOURCE_SERVER_DISABLED`；
-3. DDC 消费事件并撤销匹配 `bizCode + env` 的 CONFIG_CLIENT 和 Provider 租约；
+3. DDC 消费事件并撤销匹配 `bizCode + appCode + env` 的 CONFIG_CLIENT 和 Provider 租约；
 4. Gateway 从 DDC 目录移除对应实例；
 5. 即使事件暂时不可用，现有短期 Ticket 到期后也无法继续续租。
 
@@ -276,11 +300,11 @@ GET /oauth2/authorize
     &redirect_uri=...
     &code_challenge=...
     &code_challenge_method=S256
-    &resource=https://api.egon.internal/resources/order
+    &resource=https://api.egon.internal/prod/permission/idp
 ```
 
 本期主动限制为一个请求只能出现一个 `resource`。Access Token 的 `aud` 数组必须且
-只能包含该 Resource URI，避免多 Audience Token 造成业务域间的 Token 转发风险。
+只能包含该 Resource URI，避免多 Audience Token 造成应用间的 Token 转发风险。
 
 ### 8.2 签发前检查
 
@@ -292,7 +316,7 @@ Authorization、Authorization Code Exchange 和 Refresh 共用同一个
 3. Resource Server 存在且为 `ACTIVE`；
 4. `Client -> Resource Server` 的 `USER_DELEGATION` Grant 为 `ACTIVE`；
 5. 用户身份和当前租户成员关系为 `ACTIVE`；
-6. IdP 调用 RBAC3 Resource Access Decision，校验用户拥有 Resource Server 绑定的
+6. IdP 调用 RBAC3 Resource Access Decision，校验用户拥有目标应用 Resource Server 绑定的
    `entryPermissionCode`；
 7. 所有检查通过后，授权码和 Refresh Grant 才能绑定该 Resource。
 
@@ -337,7 +361,7 @@ iat / nbf / exp
 Gateway 必须：
 
 1. 验证签名、`typ=at+jwt`、Issuer、时间声明和用户状态；
-2. 根据路由定义中的 `bizCode` 和当前环境解析唯一 Resource URI；
+2. 根据路由定义中的 `bizCode + appCode + env` 解析唯一 Resource URI；
 3. 要求 Token `aud` 精确包含且只包含该 Resource URI；
 4. 读取 IdP Resource Server 运行态投影，确认 Resource 仍为 `ACTIVE` 且版本有效；
 5. 清理客户端伪造的用户/服务受信头，再写入已验证身份头；
@@ -407,6 +431,7 @@ aud              = exactly one target resourceUri
 tid              = one tenant id
 scope            = RBAC3-approved service scopes
 source_biz
+source_app
 source_env
 credential_id
 resource_version
@@ -430,6 +455,7 @@ identity_resource_server
 ├── resource_server_id
 ├── resource_uri
 ├── biz_code
+├── app_code
 ├── environment
 ├── display_name
 ├── management_client_id
@@ -467,7 +493,7 @@ identity_client_resource_grant
 
 ```text
 UNIQUE (resource_uri)
-UNIQUE (biz_code, environment)
+UNIQUE (biz_code, app_code, environment)
 UNIQUE (client_id, kid)
 UNIQUE (client_id, resource_server_id, grant_type)
 ```
@@ -489,8 +515,8 @@ identity:resource-uri:{sha256(resourceUri)}
 identity:client-assertion-replay:{clientId}:{jti}
 ```
 
-Resource 投影至少包含状态、Resource URI、`bizCode`、环境和版本。Starter 与 Gateway
-读取该投影，投影缺失、格式错误、版本不一致或 Redis 不可用时 Fail Closed。
+Resource 投影至少包含状态、Resource URI、`bizCode`、`appCode`、环境和版本。Starter
+与 Gateway 读取该投影，投影缺失、格式错误、版本不一致或 Redis 不可用时 Fail Closed。
 
 ### 11.3 DDC
 
@@ -521,7 +547,7 @@ core/port/
 └── ResourceServerRuntimePort
 ```
 
-`ResourceServerAdmissionPolicy` 使用领域服务集中表达状态、业务、环境、凭证和重放约束。
+`ResourceServerAdmissionPolicy` 使用领域服务集中表达状态、业务域、应用、环境、凭证和重放约束。
 它是 Specification 风格的显式策略对象，但不拆成大量单条件类，避免过度设计。
 
 第一期只有 `private_key_jwt`，不引入认证 Strategy 层。以后确实增加 mTLS 时，再将
@@ -552,12 +578,12 @@ IdP 模块现有中英双语 Javadoc 要求。
 | 模块 | 改造内容 |
 |---|---|
 | `idp-starter` | 启动 Admission Client、精确 Resource 校验、USER/SERVICE Token 识别、Resource 状态读取 |
-| `idp-gateway-adapter` | 路由 `bizCode -> resourceUri` 解析、单 Audience 校验、USER/SERVICE Principal 映射 |
+| `idp-gateway-adapter` | 路由 `bizCode + appCode + env -> resourceUri` 解析、单 Audience 校验、USER/SERVICE Principal 映射 |
 | `idp-admin` OAuth | `resource` 参数、Confidential Client、`private_key_jwt`、`client_credentials`、RFC 9068 Token |
 | `rbac3-admin` | 用户 Resource Access Decision、Service Scope Decision 内部接口 |
 | `rbac3-starter` | 用户细粒度权限保持现有快照模式；补充 Service Principal 权限入口 |
 | DDC Starter/Admin | Admission Ticket 获取、注册携带、验证、续签、禁用事件撤租 |
-| Gateway Engine | 只使用已认证 DDC 实例；把路由 biz 传给 Resource Audience Resolver |
+| Gateway Engine | 只使用已认证 DDC 实例；把路由 `bizCode + appCode + env` 传给 Resource Audience Resolver |
 
 ## 13. 错误语义
 
@@ -566,7 +592,7 @@ IdP 模块现有中英双语 Javadoc 要求。
 | 场景 | 错误 |
 |---|---|
 | Resource 不存在、禁用或 Client 未绑定 | `invalid_target` |
-| 用户缺少业务入口权限 | `access_denied` |
+| 用户缺少应用入口权限 | `access_denied` |
 | RBAC3 暂时不可用 | `temporarily_unavailable` |
 | Client Assertion 无效、过期、重放 | `invalid_client` |
 | Client Credentials Scope 越权 | `invalid_scope` |
@@ -580,6 +606,7 @@ IdP 模块现有中英双语 Javadoc 要求。
 IDP_RESOURCE_SERVER_NOT_FOUND
 IDP_RESOURCE_SERVER_DISABLED
 IDP_RESOURCE_SERVER_BIZ_MISMATCH
+IDP_RESOURCE_SERVER_APP_MISMATCH
 IDP_RESOURCE_SERVER_ENV_MISMATCH
 IDP_RESOURCE_SERVER_CREDENTIAL_INVALID
 IDP_CLIENT_ASSERTION_AUDIENCE_INVALID
@@ -610,18 +637,19 @@ DDC_RESOURCE_ADMISSION_BINDING_MISMATCH
 
 ### 15.1 Resource Server 准入
 
-1. 未登记 `bizCode + env` 的服务无法获得 Admission Ticket。
-2. 只伪造 `bizCode`、没有私钥的进程无法注册 DDC。
+1. 未登记 `bizCode + appCode + env` 的服务无法获得 Admission Ticket。
+2. 只伪造 `bizCode/appCode/env`、没有对应应用私钥的进程无法注册 DDC。
 3. 错误 `kid/aud/iss/sub`、过期 Assertion 和重复 `jti` 全部拒绝。
-4. 同一已启用 `bizCode + env` 的多个实例可自动接入，不产生逐实例审批记录。
-5. Ticket 与注册请求的 `biz/app/env/instanceId` 任一不一致时拒绝注册。
-6. Resource 禁用后停止新接入和续签，并撤销已有 DDC 租约。
-7. IdP 不可用时，已有实例只运行到 Ticket 到期，新实例 Fail Closed。
+4. 同一已启用 `bizCode + appCode + env` 的多个实例可自动接入，不产生逐实例审批记录。
+5. 同一 `bizCode` 下的 `idp` 与 `rbac3` 使用不同 Resource URI、Audience、凭证和入口权限。
+6. Ticket 与注册请求的 `biz/app/env/instanceId` 任一不一致时拒绝注册。
+7. Resource 禁用后只撤销匹配三元组的 DDC 租约，不影响同业务域的其他应用。
+8. IdP 不可用时，已有实例只运行到 Ticket 到期，新实例 Fail Closed。
 
 ### 15.2 用户 Token 与 RBAC3
 
-1. 有 A 业务入口权限的用户可以获得 A Resource Token。
-2. 没有 B 业务入口权限的用户申请 B Token 返回 `access_denied`。
+1. 有 A 应用入口权限的用户可以获得 A Resource Token。
+2. 没有 B 应用入口权限的用户申请 B Token 返回 `access_denied`，即使 A、B 同属一个业务域。
 3. A Token 调用 B Resource 因 Audience 不匹配返回 `401 invalid_token`。
 4. 用户有 A Resource Token 但缺少具体接口权限时，下游 RBAC3 返回 `403`。
 5. 用户权限撤销后，现有 Token不能继续执行被撤销操作，Refresh 不能产生新 Token。
