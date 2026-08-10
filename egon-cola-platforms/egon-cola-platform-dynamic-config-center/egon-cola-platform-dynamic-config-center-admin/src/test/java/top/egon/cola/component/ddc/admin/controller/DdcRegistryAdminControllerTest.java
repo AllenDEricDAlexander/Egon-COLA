@@ -2,11 +2,15 @@ package top.egon.cola.component.ddc.admin.controller;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.ddc.admin.config.DdcGlobalExceptionHandler;
 import top.egon.cola.component.ddc.admin.controller.register.DdcRegistryAdminController;
 import top.egon.cola.component.ddc.admin.service.management.DdcManagementFacade;
+import top.egon.cola.component.ddc.admin.service.management.DdcRegistryAdminPageService;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceInstance;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceKey;
@@ -30,8 +34,11 @@ class DdcRegistryAdminControllerTest {
 
     private final DdcManagementFacade facade = mock(DdcManagementFacade.class);
 
+    private final DdcRegistryAdminPageService pageService =
+            mock(DdcRegistryAdminPageService.class);
+
     private final MockMvc mockMvc = MockMvcBuilders
-            .standaloneSetup(new DdcRegistryAdminController(facade))
+            .standaloneSetup(new DdcRegistryAdminController(facade, pageService))
             .setControllerAdvice(new DdcGlobalExceptionHandler())
             .build();
 
@@ -117,6 +124,63 @@ class DdcRegistryAdminControllerTest {
         assertThat(query.getValue().bizCode()).isNull();
         assertThat(query.getValue().namespaceCode()).isNull();
         assertThat(query.getValue().appCode()).isNull();
+    }
+
+    @Test
+    void returnsPagedServicesWithoutChangingLegacyCatalog() throws Exception {
+        when(pageService.pageServices(
+                any(DdcManagementServiceQuery.class), any(PageQuery.class)
+        )).thenReturn(new PageImpl<>(
+                List.of(key()), PageRequest.of(0, 10), 1
+        ));
+        when(facade.getServiceKeys(any())).thenReturn(
+                new DdcManagementServiceCatalog(
+                        7L, Instant.EPOCH, List.of(key())
+                )
+        );
+
+        mockMvc.perform(get("/api/v1/ddc/registry/services/page")
+                        .param("pageNo", "1")
+                        .param("pageSize", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.records").isArray())
+                .andExpect(jsonPath("$.page.total").value(1))
+                .andExpect(jsonPath("$.data").doesNotExist());
+
+        mockMvc.perform(get("/api/v1/ddc/registry/services"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.generation").exists())
+                .andExpect(jsonPath("$.data.services").isArray());
+    }
+
+    @Test
+    void returnsPagedInstances() throws Exception {
+        DdcManagementServiceInstance instance =
+                new DdcManagementServiceInstance(
+                        "rpc-provider-local-1", "lease-1", "192.168.6.186",
+                        19101, false, Map.of(), "ONLINE",
+                        Instant.EPOCH, Instant.EPOCH, Instant.EPOCH
+                );
+        when(pageService.pageInstances(
+                any(DdcManagementServiceQuery.class), any(PageQuery.class)
+        )).thenReturn(new PageImpl<>(
+                List.of(instance), PageRequest.of(0, 10), 1
+        ));
+
+        mockMvc.perform(get("/api/v1/ddc/registry/instances/page")
+                        .param("bizCode", "pay-biz")
+                        .param("appCode", "orders-app")
+                        .param("env", "dev")
+                        .param("serviceKind", "RPC_PROVIDER")
+                        .param("protocol", "grpc")
+                        .param("serviceName", "EchoService")
+                        .param("pageNo", "1")
+                        .param("pageSize", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.records[0].instanceId")
+                        .value("rpc-provider-local-1"))
+                .andExpect(jsonPath("$.page.total").value(1))
+                .andExpect(jsonPath("$.data").doesNotExist());
     }
 
     @Test

@@ -4,9 +4,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.common.core.pojo.PageResultRecord;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.service.management.DdcManagementFacade;
+import top.egon.cola.component.ddc.admin.service.management.DdcRegistryAdminPageService;
+import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceCatalog;
+import top.egon.cola.component.ddc.model.management.DdcManagementServiceInstance;
+import top.egon.cola.component.ddc.model.management.DdcManagementServiceKey;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceSnapshot;
 
@@ -16,8 +22,14 @@ public class DdcRegistryAdminController {
 
     private final DdcManagementFacade facade;
 
-    public DdcRegistryAdminController(DdcManagementFacade facade) {
+    private final DdcRegistryAdminPageService pageService;
+
+    public DdcRegistryAdminController(
+            DdcManagementFacade facade,
+            DdcRegistryAdminPageService pageService
+    ) {
         this.facade = facade;
+        this.pageService = pageService;
     }
 
     @GetMapping("/services")
@@ -48,6 +60,31 @@ public class DdcRegistryAdminController {
         )));
     }
 
+    @GetMapping("/services/page")
+    public PageResultRecord<DdcManagementServiceKey> pageServices(
+            @RequestParam(value = "bizCode", required = false) String bizCode,
+            @RequestParam(value = "namespaceCode", required = false)
+            String namespaceCode,
+            @RequestParam(value = "env", required = false) String env,
+            @RequestParam(value = "appCode", required = false) String appCode,
+            @RequestParam(value = "serviceKind", required = false)
+            String serviceKind,
+            @RequestParam(value = "protocol", required = false) String protocol,
+            @RequestParam(value = "serviceName", required = false)
+            String serviceName,
+            @RequestParam(value = "group", required = false) String group,
+            @RequestParam(value = "version", required = false) String version,
+            PageQuery pageQuery
+    ) {
+        return DdcAdminPageSupport.result(pageService.pageServices(
+                query(
+                        bizCode, namespaceCode, env, appCode, serviceKind,
+                        protocol, serviceName, group, version
+                ),
+                pageQuery
+        ));
+    }
+
     @GetMapping("/instances")
     public ResultRecord<DdcManagementServiceSnapshot> instances(
             @RequestParam("bizCode") String bizCode,
@@ -70,6 +107,27 @@ public class DdcRegistryAdminController {
                 group,
                 version
         )));
+    }
+
+    @GetMapping("/instances/page")
+    public PageResultRecord<DdcManagementServiceInstance> pageInstances(
+            @RequestParam("bizCode") String bizCode,
+            @RequestParam("env") String env,
+            @RequestParam("appCode") String appCode,
+            @RequestParam("serviceKind") String serviceKind,
+            @RequestParam("protocol") String protocol,
+            @RequestParam("serviceName") String serviceName,
+            @RequestParam(value = "group", required = false) String group,
+            @RequestParam(value = "version", required = false) String version,
+            PageQuery pageQuery
+    ) {
+        return DdcAdminPageSupport.result(pageService.pageInstances(
+                query(
+                        bizCode, null, env, appCode, serviceKind,
+                        protocol, serviceName, group, version
+                ),
+                pageQuery
+        ));
     }
 
     private DdcManagementServiceQuery query(
