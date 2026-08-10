@@ -1,9 +1,12 @@
 package top.egon.cola.component.ddc.admin.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import top.egon.cola.component.ddc.admin.model.entity.DdcNamespaceEnvAppBindingEntity;
+import top.egon.cola.component.ddc.admin.model.vo.DdcNamespaceEnvAppBindingVO;
 
 import java.util.List;
 
@@ -61,4 +64,42 @@ public interface DdcNamespaceEnvAppBindingRepository
     List<Object[]> findVisiblePhysicalScopes(
             @Param("bizCode") String bizCode,
             @Param("namespaceCode") String namespaceCode);
+
+    @Query(value = """
+            select new top.egon.cola.component.ddc.admin.model.vo.DdcNamespaceEnvAppBindingVO(
+                   binding.id,
+                   namespace.bizCode,
+                   namespace.id,
+                   namespace.namespaceCode,
+                   binding.envCode,
+                   app.id,
+                   app.appCode,
+                   app.appName,
+                   binding.enabled)
+              from DdcNamespaceEnvAppBindingEntity binding
+              join DdcNamespaceEntity namespace on namespace.id = binding.namespaceId
+              join DdcAppEntity app on app.id = binding.appId
+             where (:bizCode is null or namespace.bizCode = :bizCode)
+               and (:namespaceCode is null or namespace.namespaceCode = :namespaceCode)
+               and (:env is null or binding.envCode = :env)
+               and (:appCode is null or app.appCode = :appCode)
+             order by namespace.bizCode, namespace.namespaceCode,
+                      binding.envCode, app.appCode, binding.id
+            """,
+            countQuery = """
+            select count(binding)
+              from DdcNamespaceEnvAppBindingEntity binding
+              join DdcNamespaceEntity namespace on namespace.id = binding.namespaceId
+              join DdcAppEntity app on app.id = binding.appId
+             where (:bizCode is null or namespace.bizCode = :bizCode)
+               and (:namespaceCode is null or namespace.namespaceCode = :namespaceCode)
+               and (:env is null or binding.envCode = :env)
+               and (:appCode is null or app.appCode = :appCode)
+            """)
+    Page<DdcNamespaceEnvAppBindingVO> search(
+            @Param("bizCode") String bizCode,
+            @Param("namespaceCode") String namespaceCode,
+            @Param("env") String env,
+            @Param("appCode") String appCode,
+            Pageable pageable);
 }

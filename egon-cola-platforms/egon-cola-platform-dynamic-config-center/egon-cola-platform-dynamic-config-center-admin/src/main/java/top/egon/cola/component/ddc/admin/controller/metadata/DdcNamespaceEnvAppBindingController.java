@@ -9,10 +9,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.common.core.pojo.PageResultRecord;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.model.dto.DdcNamespaceEnvAppBindingRequest;
 import top.egon.cola.component.ddc.admin.model.vo.DdcNamespaceEnvAppBindingVO;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcNamespaceEnvAppBindingService;
+import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
 
 import java.util.List;
 
@@ -35,6 +38,17 @@ public class DdcNamespaceEnvAppBindingController {
             @RequestParam(value = "appCode", required = false) String appCode) {
         return ResultRecord.success(bindingService.list(
                 bizCode, namespaceCode, env, appCode));
+    }
+
+    @GetMapping("/page")
+    public PageResultRecord<DdcNamespaceEnvAppBindingVO> page(
+            @RequestParam(value = "bizCode", required = false) String bizCode,
+            @RequestParam(value = "namespaceCode", required = false) String namespaceCode,
+            @RequestParam(value = "env", required = false) String env,
+            @RequestParam(value = "appCode", required = false) String appCode,
+            PageQuery pageQuery) {
+        return DdcAdminPageSupport.result(bindingService.page(
+                bizCode, namespaceCode, env, appCode, pageQuery));
     }
 
     @PostMapping

@@ -13,6 +13,7 @@ import top.egon.cola.component.ddc.admin.model.entity.DdcBizEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcEnvEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcNamespaceEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcNamespaceEnvAppBindingEntity;
+import top.egon.cola.component.ddc.admin.model.vo.DdcNamespaceEnvAppBindingVO;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -82,6 +83,12 @@ class DdcMetadataPagingRepositoryTest {
                 "disabled",
                 null,
                 PageRequest.of(0, 10));
+        Page<DdcNamespaceEnvAppBindingVO> bindingPage = bindingRepository.search(
+                "infra",
+                "default",
+                "prod",
+                "gateway",
+                PageRequest.of(0, 10));
 
         assertThat(envPage.getTotalElements()).isEqualTo(1);
         assertThat(envPage.getContent())
@@ -92,6 +99,13 @@ class DdcMetadataPagingRepositoryTest {
                 .extracting(DdcAppEntity::getAppCode)
                 .containsExactly("gateway");
         assertThat(disabledNamespacePage).isEmpty();
+        assertThat(bindingPage.getTotalElements()).isEqualTo(1);
+        assertThat(bindingPage.getContent()).singleElement().satisfies(row -> {
+            assertThat(row.bizCode()).isEqualTo("infra");
+            assertThat(row.namespaceCode()).isEqualTo("default");
+            assertThat(row.env()).isEqualTo("prod");
+            assertThat(row.appCode()).isEqualTo("gateway");
+        });
     }
 
     private DdcBizEntity biz(String id, String bizCode) {

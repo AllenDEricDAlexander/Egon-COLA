@@ -1,8 +1,10 @@
 package top.egon.cola.component.ddc.admin.service.metadata;
 
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.exception.CommonException;
+import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.model.dto.DdcNamespaceEnvAppBindingRequest;
 import top.egon.cola.component.ddc.admin.model.entity.DdcAppEntity;
@@ -13,6 +15,7 @@ import top.egon.cola.component.ddc.admin.repository.DdcAppRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcEnvRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceRepository;
+import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
 
 import java.time.LocalDateTime;
@@ -58,6 +61,21 @@ public class DdcNamespaceEnvAppBindingService {
                         .thenComparing(DdcNamespaceEnvAppBindingVO::env)
                         .thenComparing(DdcNamespaceEnvAppBindingVO::appCode))
                 .toList();
+    }
+
+    public Page<DdcNamespaceEnvAppBindingVO> page(
+            String bizCode,
+            String namespaceCode,
+            String env,
+            String appCode,
+            PageQuery pageQuery) {
+        return bindingRepository.search(
+                optional(bizCode),
+                optional(namespaceCode),
+                optional(env),
+                optional(appCode),
+                DdcAdminPageSupport.pageable(pageQuery)
+        );
     }
 
     @Transactional
@@ -219,5 +237,9 @@ public class DdcNamespaceEnvAppBindingService {
             throw new CommonException(DdcErrorStatus.INVALID_REQUEST);
         }
         return value.trim();
+    }
+
+    private String optional(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }
