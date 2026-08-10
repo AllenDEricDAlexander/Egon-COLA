@@ -6,6 +6,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
+import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigQueryRequest;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigRollbackRequest;
@@ -16,6 +17,7 @@ import top.egon.cola.component.ddc.admin.model.entity.DdcConfigVersionEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcNamespaceEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcNamespaceEnvAppBindingEntity;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVO;
+import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVersionVO;
 import top.egon.cola.component.ddc.admin.repository.DdcAppRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcOperationLogRepository;
@@ -84,6 +86,29 @@ class DdcConfigServiceTest {
                     assertThat(value.getVisibleNamespaces())
                             .containsExactly("team-a");
                 });
+    }
+
+    @Test
+    void pagesConfigsAndVersionsWithoutMaterializingTheFullResult() {
+        DdcConfigVO first = configService.create(
+                config("infra", "prod", "gateway", "gateway config"),
+                "tester");
+        configService.create(
+                config("infra", "prod", "worker", "worker config"),
+                "tester");
+        DdcConfigQueryRequest query = new DdcConfigQueryRequest();
+        query.setBizCode(" infra ");
+
+        var configs = configService.page(query, new PageQuery(1, 1));
+        var versions = configService.pageVersions(
+                first.getId(), new PageQuery(1, 10));
+
+        assertThat(configs.getContent()).hasSize(1);
+        assertThat(configs.getTotalElements()).isEqualTo(2);
+        assertThat(versions.getTotalElements()).isEqualTo(1);
+        assertThat(versions.getContent())
+                .extracting(DdcConfigVersionVO::getConfigId)
+                .containsExactly(first.getId());
     }
 
     @Test

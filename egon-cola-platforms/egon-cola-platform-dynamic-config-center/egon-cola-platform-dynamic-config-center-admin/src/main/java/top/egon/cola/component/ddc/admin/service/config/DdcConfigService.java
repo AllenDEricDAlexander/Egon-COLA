@@ -2,8 +2,10 @@ package top.egon.cola.component.ddc.admin.service.config;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
@@ -21,6 +23,7 @@ import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
+import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
 import top.egon.cola.component.ddc.model.config.DdcConfigFormat;
@@ -298,6 +301,23 @@ public class DdcConfigService {
                 .toList();
     }
 
+    public Page<DdcConfigVO> page(
+            DdcConfigQueryRequest request,
+            PageQuery pageQuery) {
+        DdcConfigQueryRequest query = request == null
+                ? new DdcConfigQueryRequest()
+                : request;
+        return configItemRepository.search(
+                optional(query.getBizCode()),
+                optional(query.getNamespaceCode()),
+                optional(query.getEnv()),
+                optional(query.getAppCode()),
+                null,
+                query.isIncludeDeleted(),
+                DdcAdminPageSupport.pageable(pageQuery)
+        ).map(this::config);
+    }
+
     public DdcConfigVO get(String configId) {
         return DdcConfigVO.from(getConfig(configId));
     }
@@ -327,6 +347,15 @@ public class DdcConfigService {
         return versionRepository.findByConfigIdOrderByVersionDesc(configId).stream()
                 .map(DdcConfigVersionVO::from)
                 .toList();
+    }
+
+    public Page<DdcConfigVersionVO> pageVersions(
+            String configId,
+            PageQuery pageQuery) {
+        return versionRepository.findByConfigIdOrderByVersionDescIdDesc(
+                configId,
+                DdcAdminPageSupport.pageable(pageQuery)
+        ).map(DdcConfigVersionVO::from);
     }
 
     private DdcConfigItemEntity getConfig(String configId) {

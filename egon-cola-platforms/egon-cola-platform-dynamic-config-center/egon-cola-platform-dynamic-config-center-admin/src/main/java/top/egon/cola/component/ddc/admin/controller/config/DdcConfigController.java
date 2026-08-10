@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.common.core.pojo.PageResultRecord;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigQueryRequest;
@@ -21,6 +23,7 @@ import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVersionVO;
 import top.egon.cola.component.ddc.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
+import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
 
 import java.util.List;
 
@@ -40,6 +43,13 @@ public class DdcConfigController {
     @GetMapping
     public ResultRecord<List<DdcConfigVO>> list(DdcConfigQueryRequest request) {
         return ResultRecord.success(configService.list(request));
+    }
+
+    @GetMapping("/page")
+    public PageResultRecord<DdcConfigVO> page(
+            DdcConfigQueryRequest request,
+            PageQuery pageQuery) {
+        return DdcAdminPageSupport.result(configService.page(request, pageQuery));
     }
 
     @PostMapping
@@ -96,6 +106,14 @@ public class DdcConfigController {
     @GetMapping("/{id}/versions")
     public ResultRecord<List<DdcConfigVersionVO>> versions(@PathVariable("id") String id) {
         return ResultRecord.success(configService.versions(id));
+    }
+
+    @GetMapping("/{id}/versions/page")
+    public PageResultRecord<DdcConfigVersionVO> pageVersions(
+            @PathVariable("id") String id,
+            PageQuery pageQuery) {
+        return DdcAdminPageSupport.result(
+                configService.pageVersions(id, pageQuery));
     }
 
     @PostMapping("/{id}/rollback")
