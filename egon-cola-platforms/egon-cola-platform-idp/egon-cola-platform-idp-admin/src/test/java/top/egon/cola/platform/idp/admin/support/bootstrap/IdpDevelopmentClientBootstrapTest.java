@@ -4,10 +4,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.DefaultApplicationArguments;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthClientVO;
 import top.egon.cola.platform.idp.admin.oauth.service.OAuthClientService;
+import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientResourceGrantEntity;
+import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityResourceServerEntity;
+import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
+import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepository;
 
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -18,9 +24,13 @@ class IdpDevelopmentClientBootstrapTest {
     @Test
     void createsOnlyMissingPublicClients() throws Exception {
         OAuthClientService clients = mock(OAuthClientService.class);
+        IdentityResourceServerRepository resources =
+                mock(IdentityResourceServerRepository.class);
+        IdentityClientResourceGrantRepository grants =
+                mock(IdentityClientResourceGrantRepository.class);
         when(clients.list()).thenReturn(List.of(client("idp-admin-web")));
         IdpDevelopmentClientBootstrap bootstrap =
-                new IdpDevelopmentClientBootstrap(clients);
+                new IdpDevelopmentClientBootstrap(clients, resources, grants);
 
         bootstrap.run(new DefaultApplicationArguments());
 
@@ -30,13 +40,26 @@ class IdpDevelopmentClientBootstrapTest {
                 command.clientId().equals("mock-backend")
                         && command.redirectUris().equals(List.of(
                         "http://127.0.0.1:18161/oauth/callback"))
-                        && command.audiences().equals(List.of("mock-backend"))));
+                        && command.audiences().isEmpty()));
+        verify(resources).save(argThat(resource ->
+                resource.getResourceServerId().equals("permission-idp-local")
+                        && resource.getAppCode().equals("idp")));
+        verify(resources).save(argThat(resource ->
+                resource.getResourceServerId().equals("permission-rbac3-local")
+                        && resource.getAppCode().equals("rbac3")));
+        verify(grants, atLeastOnce()).save(any(
+                IdentityClientResourceGrantEntity.class
+        ));
     }
 
     @Test
     void replacesAnObsoleteRedirectUriOnAnExistingDevelopmentClient()
             throws Exception {
         OAuthClientService clients = mock(OAuthClientService.class);
+        IdentityResourceServerRepository resources =
+                mock(IdentityResourceServerRepository.class);
+        IdentityClientResourceGrantRepository grants =
+                mock(IdentityClientResourceGrantRepository.class);
         when(clients.list()).thenReturn(List.of(new OAuthClientVO(
                 "ddc-admin-web", "DDC Admin Web", "PUBLIC", "ACTIVE", true,
                 900, 604800,
@@ -45,7 +68,7 @@ class IdpDevelopmentClientBootstrapTest {
                 java.time.Instant.EPOCH, java.time.Instant.EPOCH
         )));
         IdpDevelopmentClientBootstrap bootstrap =
-                new IdpDevelopmentClientBootstrap(clients);
+                new IdpDevelopmentClientBootstrap(clients, resources, grants);
 
         bootstrap.run(new DefaultApplicationArguments());
 

@@ -14,14 +14,16 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.client.RestClient;
 import top.egon.cola.platform.idp.admin.support.rbac3.HttpTenantMembershipAdapter;
 import top.egon.cola.platform.idp.admin.oauth.controller.OAuthAuthorizationController;
-import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientAudienceEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientRedirectUriEntity;
-import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientAudienceRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRedirectUriRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.JpaOAuthClientStore;
 import top.egon.cola.platform.idp.admin.oauth.repo.RedisAuthorizationCodeStore;
+import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientResourceGrantEntity;
+import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityResourceServerEntity;
+import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
+import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepository;
 import top.egon.cola.platform.idp.admin.support.security.IdpSsoPrincipal;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationCode;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationFacade;
@@ -103,8 +105,11 @@ class OAuthAuthorizationFlowIT {
         IdentityClientRedirectUriRepository redirects = mock(
                 IdentityClientRedirectUriRepository.class
         );
-        IdentityClientAudienceRepository audiences = mock(
-                IdentityClientAudienceRepository.class
+        IdentityResourceServerRepository resources = mock(
+                IdentityResourceServerRepository.class
+        );
+        IdentityClientResourceGrantRepository grants = mock(
+                IdentityClientResourceGrantRepository.class
         );
         Instant now = Instant.parse("2026-08-02T00:00:00Z");
         IdentityClientEntity entity = IdentityClientEntity.createPublic(
@@ -124,19 +129,42 @@ class OAuthAuthorizationFlowIT {
                         now
                 )
         ));
-        when(audiences.findByClientId("gateway-admin-web")).thenReturn(List.of(
-                IdentityClientAudienceEntity.create(
-                        "audience-1",
+        IdentityResourceServerEntity resource =
+                IdentityResourceServerEntity.create(
+                        "resource-row-1",
+                        "platform-gateway-local",
+                        "https://api.egon.internal/local/platform/gateway",
+                        "platform",
+                        "gateway",
+                        "local",
+                        "Gateway Local",
                         "gateway-admin-web",
-                        "gateway-admin",
+                        "gateway",
+                        "gateway:access",
+                        300,
+                        IdentityResourceServerEntity.Status.ACTIVE,
+                        now
+                );
+        when(grants.findByClientIdAndGrantTypeAndStatus(
+                "gateway-admin-web",
+                IdentityClientResourceGrantEntity.GrantType.USER_DELEGATION,
+                IdentityClientResourceGrantEntity.Status.ACTIVE
+        )).thenReturn(List.of(
+                IdentityClientResourceGrantEntity.userDelegation(
+                        "grant-row-1",
+                        "gateway-admin-web",
+                        resource.getResourceServerId(),
                         now
                 )
         ));
+        when(resources.findByResourceServerId(resource.getResourceServerId()))
+                .thenReturn(Optional.of(resource));
 
         OAuthClient client = new JpaOAuthClientStore(
                 clients,
                 redirects,
-                audiences
+                resources,
+                grants
         ).findById("gateway-admin-web").orElseThrow();
 
         assertEquals(OAuthClient.Status.ACTIVE, client.status());
@@ -146,7 +174,7 @@ class OAuthAuthorizationFlowIT {
         assertTrue(client.acceptsRedirectUri(
                 "https://gateway.example.test/oauth/callback"
         ));
-        assertTrue(client.acceptsAudience("gateway-admin"));
+        assertTrue(client.acceptsAudience(resource.getResourceUri()));
     }
 
     @Test

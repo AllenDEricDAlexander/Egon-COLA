@@ -11,12 +11,13 @@ import org.springframework.web.client.RestClient;
 import top.egon.cola.platform.idp.admin.support.rbac3.FileServiceAuthorizationSupplier;
 import top.egon.cola.platform.idp.admin.support.rbac3.HttpTenantMembershipAdapter;
 import top.egon.cola.platform.idp.admin.support.ddc.IdpRuntimePolicy;
-import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientAudienceRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRedirectUriRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdpSsoSessionStore;
 import top.egon.cola.platform.idp.admin.oauth.repo.JpaOAuthClientStore;
 import top.egon.cola.platform.idp.admin.oauth.repo.RedisAuthorizationCodeStore;
+import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
+import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepository;
 import top.egon.cola.platform.idp.admin.support.security.IdpSsoAuthenticationFilter;
 import top.egon.cola.platform.idp.admin.support.security.IdpAuthorizationAuthenticationEntryPoint;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationFacade;
@@ -73,9 +74,10 @@ public class OAuthConfig {
     OAuthClientStore oauthClientStore(
             IdentityClientRepository clients,
             IdentityClientRedirectUriRepository redirects,
-            IdentityClientAudienceRepository audiences
+            IdentityResourceServerRepository resources,
+            IdentityClientResourceGrantRepository grants
     ) {
-        return new JpaOAuthClientStore(clients, redirects, audiences);
+        return new JpaOAuthClientStore(clients, redirects, resources, grants);
     }
 
     @Bean

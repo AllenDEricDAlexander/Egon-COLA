@@ -11,11 +11,12 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.idp.admin.identity.repo.IdentityUserDirectory;
 import top.egon.cola.platform.idp.admin.identity.service.impl.IdentityUserServiceImpl;
-import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientAudienceRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRedirectUriRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.JpaOAuthClientStore;
 import top.egon.cola.platform.idp.admin.oauth.service.impl.OAuthClientServiceImpl;
+import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
+import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepository;
 import top.egon.cola.platform.idp.admin.token.repo.IdentitySigningKeyRepository;
 import top.egon.cola.platform.idp.admin.token.service.SigningKeyRuntime;
 import top.egon.cola.platform.idp.admin.token.service.impl.SigningKeyServiceImpl;
@@ -48,7 +49,8 @@ class SpringConstructorResolutionTest {
         try (AnnotationConfigApplicationContext context = contextWith(
                 IdentityClientRepository.class,
                 IdentityClientRedirectUriRepository.class,
-                IdentityClientAudienceRepository.class,
+                IdentityResourceServerRepository.class,
+                IdentityClientResourceGrantRepository.class,
                 LongIdGenerator.class
         )) {
             context.registerBean(OAuthClientServiceImpl.class);
@@ -137,17 +139,29 @@ class SpringConstructorResolutionTest {
         }
 
         @Bean
-        IdentityClientAudienceRepository identityClientAudienceRepository() {
-            return mock(IdentityClientAudienceRepository.class);
+        IdentityResourceServerRepository identityResourceServerRepository() {
+            return mock(IdentityResourceServerRepository.class);
+        }
+
+        @Bean
+        IdentityClientResourceGrantRepository
+                identityClientResourceGrantRepository() {
+            return mock(IdentityClientResourceGrantRepository.class);
         }
 
         @Bean
         OAuthClientStore oauthClientStore(
                 IdentityClientRepository clients,
                 IdentityClientRedirectUriRepository redirects,
-                IdentityClientAudienceRepository audiences
+                IdentityResourceServerRepository resources,
+                IdentityClientResourceGrantRepository grants
         ) {
-            return new JpaOAuthClientStore(clients, redirects, audiences);
+            return new JpaOAuthClientStore(
+                    clients,
+                    redirects,
+                    resources,
+                    grants
+            );
         }
     }
 }

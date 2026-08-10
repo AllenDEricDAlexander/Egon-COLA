@@ -6,14 +6,16 @@ import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.CreateOAuthClientDTO;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.UpdateOAuthClientDTO;
-import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientAudienceEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientRedirectUriEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthClientVO;
-import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientAudienceRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRedirectUriRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
 import top.egon.cola.platform.idp.admin.oauth.service.OAuthClientService;
+import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientResourceGrantEntity;
+import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityResourceServerEntity;
+import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
+import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepository;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -27,7 +29,8 @@ public class OAuthClientServiceImpl implements OAuthClientService {
 
     private final IdentityClientRepository clients;
     private final IdentityClientRedirectUriRepository redirects;
-    private final IdentityClientAudienceRepository audiences;
+    private final IdentityResourceServerRepository resources;
+    private final IdentityClientResourceGrantRepository grants;
     private final LongIdGenerator ids;
     private final Clock clock;
 
@@ -35,22 +38,25 @@ public class OAuthClientServiceImpl implements OAuthClientService {
     public OAuthClientServiceImpl(
             IdentityClientRepository clients,
             IdentityClientRedirectUriRepository redirects,
-            IdentityClientAudienceRepository audiences,
+            IdentityResourceServerRepository resources,
+            IdentityClientResourceGrantRepository grants,
             LongIdGenerator ids
     ) {
-        this(clients, redirects, audiences, ids, Clock.systemUTC());
+        this(clients, redirects, resources, grants, ids, Clock.systemUTC());
     }
 
     OAuthClientServiceImpl(
             IdentityClientRepository clients,
             IdentityClientRedirectUriRepository redirects,
-            IdentityClientAudienceRepository audiences,
+            IdentityResourceServerRepository resources,
+            IdentityClientResourceGrantRepository grants,
             LongIdGenerator ids,
             Clock clock
     ) {
         this.clients = Objects.requireNonNull(clients, "clients");
         this.redirects = Objects.requireNonNull(redirects, "redirects");
-        this.audiences = Objects.requireNonNull(audiences, "audiences");
+        this.resources = Objects.requireNonNull(resources, "resources");
+        this.grants = Objects.requireNonNull(grants, "grants");
         this.ids = Objects.requireNonNull(ids, "ids");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
@@ -79,9 +85,9 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                 command.audiences(),
                 "audiences"
         );
-        if (redirectValues.isEmpty() || audienceValues.isEmpty()) {
+        if (redirectValues.isEmpty()) {
             throw new IllegalArgumentException(
-                    "public client requires redirect URI and audience"
+                    "public client requires redirect URI"
             );
         }
         Instant now = clock.instant();
@@ -102,13 +108,10 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                         now
                 )
         ));
-        audienceValues.forEach(value -> audiences.save(
-                IdentityClientAudienceEntity.create(
-                        ids.nextId(),
-                        client.getClientId(),
-                        value,
-                        now
-                )
+        audienceValues.forEach(value -> saveUserGrant(
+                client.getClientId(),
+                resource(value),
+                now
         ));
         return view(client, redirectValues, audienceValues);
     }
@@ -170,16 +173,13 @@ public class OAuthClientServiceImpl implements OAuthClientService {
     public OAuthClientVO putAudience(String clientId, String audience) {
         IdentityClientEntity client = client(clientId);
         String exactAudience = exact(audience, "audience");
-        if (!audiences.existsByClientIdAndAudience(
+        IdentityResourceServerEntity resource = resource(exactAudience);
+        if (!grants.existsByClientIdAndResourceServerIdAndGrantType(
                 client.getClientId(),
-                exactAudience
+                resource.getResourceServerId(),
+                IdentityClientResourceGrantEntity.GrantType.USER_DELEGATION
         )) {
-            audiences.save(IdentityClientAudienceEntity.create(
-                    ids.nextId(),
-                    client.getClientId(),
-                    exactAudience,
-                    clock.instant()
-            ));
+            saveUserGrant(client.getClientId(), resource, clock.instant());
         }
         return view(client);
     }
@@ -188,9 +188,13 @@ public class OAuthClientServiceImpl implements OAuthClientService {
     @Override
     public OAuthClientVO deleteAudience(String clientId, String audience) {
         IdentityClientEntity client = client(clientId);
-        audiences.deleteByClientIdAndAudience(
-                client.getClientId(),
+        IdentityResourceServerEntity resource = resource(
                 exact(audience, "audience")
+        );
+        grants.deleteByClientIdAndResourceServerIdAndGrantType(
+                client.getClientId(),
+                resource.getResourceServerId(),
+                IdentityClientResourceGrantEntity.GrantType.USER_DELEGATION
         );
         return view(client);
     }
@@ -202,8 +206,16 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                         .map(IdentityClientRedirectUriEntity::getRedirectUri)
                         .sorted()
                         .toList(),
-                audiences.findByClientId(client.getClientId()).stream()
-                        .map(IdentityClientAudienceEntity::getAudience)
+                grants.findByClientIdAndGrantTypeAndStatus(
+                                client.getClientId(),
+                                IdentityClientResourceGrantEntity.GrantType
+                                        .USER_DELEGATION,
+                                IdentityClientResourceGrantEntity.Status.ACTIVE
+                        ).stream()
+                        .map(IdentityClientResourceGrantEntity
+                                ::getResourceServerId)
+                        .map(this::resourceById)
+                        .map(IdentityResourceServerEntity::getResourceUri)
                         .sorted()
                         .toList()
         );
@@ -235,6 +247,35 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "OAuth client was not found"
                 ));
+    }
+
+    private IdentityResourceServerEntity resource(String resourceUri) {
+        return resources.findByResourceUri(exact(resourceUri, "audience"))
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Resource Server was not found"
+                ));
+    }
+
+    private IdentityResourceServerEntity resourceById(
+            String resourceServerId
+    ) {
+        return resources.findByResourceServerId(resourceServerId)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Resource Grant references a missing Resource Server"
+                ));
+    }
+
+    private void saveUserGrant(
+            String clientId,
+            IdentityResourceServerEntity resource,
+            Instant now
+    ) {
+        grants.save(IdentityClientResourceGrantEntity.userDelegation(
+                ids.nextId(),
+                clientId,
+                resource.getResourceServerId(),
+                now
+        ));
     }
 
     private static List<String> exactValues(

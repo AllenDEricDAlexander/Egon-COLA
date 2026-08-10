@@ -4,13 +4,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.CreateOAuthClientDTO;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.UpdateOAuthClientDTO;
-import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientAudienceEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientRedirectUriEntity;
-import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientAudienceRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRedirectUriRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthClientVO;
+import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientResourceGrantEntity;
+import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityResourceServerEntity;
+import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
+import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepository;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -34,8 +36,10 @@ class OAuthClientServiceImplTest {
             mock(IdentityClientRepository.class);
     private final IdentityClientRedirectUriRepository redirects =
             mock(IdentityClientRedirectUriRepository.class);
-    private final IdentityClientAudienceRepository audiences =
-            mock(IdentityClientAudienceRepository.class);
+    private final IdentityResourceServerRepository resources =
+            mock(IdentityResourceServerRepository.class);
+    private final IdentityClientResourceGrantRepository grants =
+            mock(IdentityClientResourceGrantRepository.class);
     private final AtomicLong ids = new AtomicLong(2000L);
 
     private OAuthClientServiceImpl service;
@@ -45,7 +49,8 @@ class OAuthClientServiceImplTest {
         service = new OAuthClientServiceImpl(
                 clients,
                 redirects,
-                audiences,
+                resources,
+                grants,
                 ids::incrementAndGet,
                 Clock.fixed(NOW, ZoneOffset.UTC)
         );
@@ -55,6 +60,9 @@ class OAuthClientServiceImplTest {
     void createsPublicPkceClientWithExactRedirectsAndAudiences() {
         when(clients.existsById("gateway-admin-web")).thenReturn(false);
         when(clients.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        IdentityResourceServerEntity resource = resource();
+        when(resources.findByResourceUri(resource.getResourceUri()))
+                .thenReturn(Optional.of(resource));
 
         OAuthClientVO created = service.create(
                 new CreateOAuthClientDTO(
@@ -63,7 +71,7 @@ class OAuthClientServiceImplTest {
                         900,
                         604800,
                         List.of("http://127.0.0.1:5173/oauth/callback"),
-                        List.of("gateway-admin")
+                        List.of(resource.getResourceUri())
                 )
         );
 
@@ -71,9 +79,10 @@ class OAuthClientServiceImplTest {
         assertThat(created.pkceRequired()).isTrue();
         assertThat(created.redirectUris())
                 .containsExactly("http://127.0.0.1:5173/oauth/callback");
-        assertThat(created.audiences()).containsExactly("gateway-admin");
+        assertThat(created.audiences())
+                .containsExactly(resource.getResourceUri());
         verify(redirects).save(any(IdentityClientRedirectUriEntity.class));
-        verify(audiences).save(any(IdentityClientAudienceEntity.class));
+        verify(grants).save(any(IdentityClientResourceGrantEntity.class));
     }
 
     @Test
@@ -90,8 +99,15 @@ class OAuthClientServiceImplTest {
         when(clients.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(redirects.findByClientId("gateway-admin-web"))
                 .thenReturn(List.of());
-        when(audiences.findByClientId("gateway-admin-web"))
+        when(grants.findByClientIdAndGrantTypeAndStatus(
+                "gateway-admin-web",
+                IdentityClientResourceGrantEntity.GrantType.USER_DELEGATION,
+                IdentityClientResourceGrantEntity.Status.ACTIVE
+        ))
                 .thenReturn(List.of());
+        IdentityResourceServerEntity resource = resource();
+        when(resources.findByResourceUri(resource.getResourceUri()))
+                .thenReturn(Optional.of(resource));
 
         OAuthClientVO updated = service.update(
                 "gateway-admin-web",
@@ -107,14 +123,36 @@ class OAuthClientServiceImplTest {
                 "gateway-admin-web",
                 "http://127.0.0.1:5173/oauth/callback"
         );
-        service.deleteAudience("gateway-admin-web", "gateway-admin");
+        service.deleteAudience(
+                "gateway-admin-web",
+                resource.getResourceUri()
+        );
 
         assertThat(updated.status()).isEqualTo("DISABLED");
         assertThat(updated.version()).isEqualTo(1L);
         verify(redirects).save(any(IdentityClientRedirectUriEntity.class));
-        verify(audiences).deleteByClientIdAndAudience(
+        verify(grants).deleteByClientIdAndResourceServerIdAndGrantType(
                 "gateway-admin-web",
-                "gateway-admin"
+                resource.getResourceServerId(),
+                IdentityClientResourceGrantEntity.GrantType.USER_DELEGATION
+        );
+    }
+
+    private static IdentityResourceServerEntity resource() {
+        return IdentityResourceServerEntity.create(
+                "resource-row-1",
+                "platform-gateway-local",
+                "https://api.egon.internal/local/platform/gateway",
+                "platform",
+                "gateway",
+                "local",
+                "Gateway Local",
+                "gateway-admin-web",
+                "gateway",
+                "gateway:access",
+                300,
+                IdentityResourceServerEntity.Status.ACTIVE,
+                NOW
         );
     }
 }

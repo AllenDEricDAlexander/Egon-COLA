@@ -2,6 +2,10 @@ package top.egon.cola.platform.idp.admin.oauth.repo;
 
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientEntity;
+import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientResourceGrantEntity;
+import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityResourceServerEntity;
+import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
+import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepository;
 import top.egon.cola.platform.idp.core.oauth.OAuthClient;
 import top.egon.cola.platform.idp.core.port.OAuthClientStore;
 
@@ -13,16 +17,19 @@ public class JpaOAuthClientStore implements OAuthClientStore {
 
     private final IdentityClientRepository clients;
     private final IdentityClientRedirectUriRepository redirects;
-    private final IdentityClientAudienceRepository audiences;
+    private final IdentityResourceServerRepository resources;
+    private final IdentityClientResourceGrantRepository grants;
 
     public JpaOAuthClientStore(
             IdentityClientRepository clients,
             IdentityClientRedirectUriRepository redirects,
-            IdentityClientAudienceRepository audiences
+            IdentityResourceServerRepository resources,
+            IdentityClientResourceGrantRepository grants
     ) {
         this.clients = Objects.requireNonNull(clients, "clients");
         this.redirects = Objects.requireNonNull(redirects, "redirects");
-        this.audiences = Objects.requireNonNull(audiences, "audiences");
+        this.resources = Objects.requireNonNull(resources, "resources");
+        this.grants = Objects.requireNonNull(grants, "grants");
     }
 
     @Override
@@ -42,8 +49,19 @@ public class JpaOAuthClientStore implements OAuthClientStore {
                 redirects.findByClientId(entity.getClientId()).stream()
                         .map(value -> value.getRedirectUri())
                         .toList(),
-                audiences.findByClientId(entity.getClientId()).stream()
-                        .map(value -> value.getAudience())
+                grants.findByClientIdAndGrantTypeAndStatus(
+                                entity.getClientId(),
+                                IdentityClientResourceGrantEntity.GrantType
+                                        .USER_DELEGATION,
+                                IdentityClientResourceGrantEntity.Status.ACTIVE
+                        ).stream()
+                        .map(value -> resources.findByResourceServerId(
+                                        value.getResourceServerId()
+                                ).orElseThrow(() -> new IllegalStateException(
+                                        "Resource Grant references a missing "
+                                                + "Resource Server"
+                                )))
+                        .map(IdentityResourceServerEntity::getResourceUri)
                         .toList(),
                 Duration.ofSeconds(entity.getAccessTokenTtlSeconds()),
                 Duration.ofSeconds(entity.getRefreshTokenTtlSeconds())
