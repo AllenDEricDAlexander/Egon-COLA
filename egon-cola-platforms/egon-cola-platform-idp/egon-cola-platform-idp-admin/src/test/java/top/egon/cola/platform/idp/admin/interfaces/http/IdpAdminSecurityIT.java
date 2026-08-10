@@ -8,7 +8,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import top.egon.cola.platform.idp.admin.identity.application.IdentityUserAdminService;
+import top.egon.cola.platform.idp.admin.identity.controller.IdentityUserController;
+import top.egon.cola.platform.idp.admin.identity.domain.vo.CreatedIdentityUserVO;
+import top.egon.cola.platform.idp.admin.identity.domain.vo.IdentityUserVO;
+import top.egon.cola.platform.idp.admin.identity.service.IdentityUserService;
 import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthorizationPort;
 import top.egon.cola.platform.idp.admin.support.security.IdpSecurityConfig;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
@@ -38,7 +41,7 @@ class IdpAdminSecurityIT {
     private JwtDecoder jwtDecoder;
 
     @MockitoBean
-    private IdentityUserAdminService users;
+    private IdentityUserService users;
 
     @MockitoBean
     private IdpAdminAuthorizationPort authorization;
@@ -51,7 +54,7 @@ class IdpAdminSecurityIT {
 
     @Test
     void authenticatedMutationRequiresRbac3Permission() throws Exception {
-        when(users.create(any())).thenReturn(new IdentityUserAdminService.CreatedUserView(
+        when(users.create(any())).thenReturn(new CreatedIdentityUserVO(
                 "1001",
                 "alice",
                 "Alice",
@@ -88,7 +91,7 @@ class IdpAdminSecurityIT {
     void bindsIdentitySubjectForUserUpdateWithoutCompilerParameterMetadata()
             throws Exception {
         when(users.update(eq("1001"), any())).thenReturn(
-                new IdentityUserAdminService.UserView(
+                new IdentityUserVO(
                         "1001", "alice", "Alice", "DISABLED",
                         1L, 0, null, null, 2L
                 )

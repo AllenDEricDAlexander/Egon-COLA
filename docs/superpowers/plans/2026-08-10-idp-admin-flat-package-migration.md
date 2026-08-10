@@ -61,10 +61,10 @@
 - `IdentityUserStateService` exposes `int reconcile()`.
 - JSON field names and admin permission checks remain byte-for-byte compatible at the Controller boundary.
 
-- [ ] Add/adjust compile-time tests for Service interfaces and extracted DTO/VO contracts.
-- [ ] Move and refactor the identity production code.
-- [ ] Run `IdentityUserAdminServiceTest`, `IdentityUserStateReconcilerTest`, `IdentityEntityMappingTest`, `IdentityPersistenceAdapterTest`, `SpringPasswordHashAdapterTest`, and `IdentityProfileControllerIT` under their new names/packages.
-- [ ] Commit as `refactor(idp): flatten admin identity packages`.
+- [x] Add/adjust compile-time tests for Service interfaces and extracted DTO/VO contracts.
+- [x] Move and refactor the identity production code.
+- [x] Run `IdentityUserAdminServiceTest`, `IdentityUserStateReconcilerTest`, `IdentityEntityMappingTest`, `IdentityPersistenceAdapterTest`, `SpringPasswordHashAdapterTest`, and `IdentityProfileControllerIT` under their new names/packages.
+- [x] Commit as `refactor(idp): flatten admin identity packages`.
 
 ### Task 3: Migrate the OAuth Domain
 

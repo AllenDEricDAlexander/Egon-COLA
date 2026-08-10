@@ -1,4 +1,4 @@
-package top.egon.cola.platform.idp.admin.identity.infrastructure;
+package top.egon.cola.platform.idp.admin.identity.repo;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
@@ -6,8 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.idp.admin.identity.domain.IdentityCredentialEntity;
-import top.egon.cola.platform.idp.admin.identity.domain.IdentityUserEntity;
+import top.egon.cola.platform.idp.admin.identity.domain.pojo.IdentityCredentialEntity;
+import top.egon.cola.platform.idp.admin.identity.domain.pojo.IdentityUserEntity;
 import top.egon.cola.platform.idp.core.identity.IdentityUser;
 import top.egon.cola.platform.idp.core.identity.PasswordCredential;
 import top.egon.cola.platform.idp.core.port.IdentityUserStore;

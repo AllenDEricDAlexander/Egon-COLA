@@ -7,7 +7,7 @@ import org.redisson.client.codec.StringCodec;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.platform.idp.admin.audit.domain.IdentityAuditLogEntity;
 import top.egon.cola.platform.idp.admin.audit.infrastructure.IdentityAuditLogRepository;
-import top.egon.cola.platform.idp.admin.identity.application.IdentityUserStateReconciler;
+import top.egon.cola.platform.idp.admin.identity.service.IdentityStateProjection;
 import top.egon.cola.platform.idp.admin.support.outbox.domain.pojo.IdentityOutboxEventEntity;
 import top.egon.cola.platform.idp.admin.support.outbox.repo.IdentityOutboxEventRepository;
 import top.egon.cola.platform.idp.contract.IdentityUserState;
@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
 public class IdentityOutboxPublisher
         implements IdentityUserStatePort,
         IdentitySecurityEventPort,
-        IdentityUserStateReconciler.StateProjection {
+        IdentityStateProjection {
 
     private static final Pattern SAFE_SUBJECT = Pattern.compile(
             "[A-Za-z0-9._~-]{1,64}"

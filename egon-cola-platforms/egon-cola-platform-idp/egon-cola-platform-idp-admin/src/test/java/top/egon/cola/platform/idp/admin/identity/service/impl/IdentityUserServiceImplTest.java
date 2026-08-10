@@ -1,7 +1,13 @@
-package top.egon.cola.platform.idp.admin.identity.application;
+package top.egon.cola.platform.idp.admin.identity.service.impl;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.platform.idp.admin.identity.domain.dto.CreateIdentityUserDTO;
+import top.egon.cola.platform.idp.admin.identity.domain.dto.UpdateIdentityUserDTO;
+import top.egon.cola.platform.idp.admin.identity.domain.vo.CreatedIdentityUserVO;
+import top.egon.cola.platform.idp.admin.identity.domain.vo.IdentityUserVO;
+import top.egon.cola.platform.idp.admin.identity.domain.vo.ResetPasswordVO;
+import top.egon.cola.platform.idp.admin.identity.repo.IdentityUserDirectory;
 import top.egon.cola.platform.idp.contract.IdentityUserState;
 import top.egon.cola.platform.idp.core.audit.IdentitySecurityEvent;
 import top.egon.cola.platform.idp.core.audit.IdentitySecurityEventPort;
@@ -25,7 +31,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class IdentityUserAdminServiceTest {
+class IdentityUserServiceImplTest {
 
     private static final Instant NOW =
             Instant.parse("2026-08-02T00:00:00Z");
@@ -33,11 +39,11 @@ class IdentityUserAdminServiceTest {
     private final FakePersistence persistence = new FakePersistence();
     private final FakeState state = new FakeState();
     private final List<IdentitySecurityEvent> events = new ArrayList<>();
-    private IdentityUserAdminService service;
+    private IdentityUserServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new IdentityUserAdminService(
+        service = new IdentityUserServiceImpl(
                 persistence,
                 persistence,
                 persistence,
@@ -53,8 +59,8 @@ class IdentityUserAdminServiceTest {
 
     @Test
     void createsNormalizedUserWithOneTimePasswordAndStateProjection() {
-        IdentityUserAdminService.CreatedUserView created = service.create(
-                new IdentityUserAdminService.CreateUserCommand(
+        CreatedIdentityUserVO created = service.create(
+                new CreateIdentityUserDTO(
                         " Alice ",
                         "Alice Zhang"
                 )
@@ -74,20 +80,20 @@ class IdentityUserAdminServiceTest {
 
     @Test
     void disablingAndPasswordResetBumpTokenVersionAndRevokeFamilies() {
-        service.create(new IdentityUserAdminService.CreateUserCommand(
+        service.create(new CreateIdentityUserDTO(
                 "alice",
                 "Alice"
         ));
 
-        IdentityUserAdminService.UserView disabled = service.update(
+        IdentityUserVO disabled = service.update(
                 "1001",
-                new IdentityUserAdminService.UpdateUserCommand(
+                new UpdateIdentityUserDTO(
                         "Alice Disabled",
                         IdentityUserStatus.DISABLED,
                         0L
                 )
         );
-        IdentityUserAdminService.ResetPasswordView reset =
+        ResetPasswordVO reset =
                 service.resetPassword("1001");
 
         assertThat(disabled.tokenVersion()).isEqualTo(1L);
@@ -102,7 +108,7 @@ class IdentityUserAdminServiceTest {
 
     private static final class FakePersistence
             implements IdentityUserStore, PasswordCredentialStore,
-            IdentityUserAdminService.UserDirectory {
+            IdentityUserDirectory {
 
         private final Map<String, IdentityUser> users = new HashMap<>();
         private final Map<String, PasswordCredential> credentials =

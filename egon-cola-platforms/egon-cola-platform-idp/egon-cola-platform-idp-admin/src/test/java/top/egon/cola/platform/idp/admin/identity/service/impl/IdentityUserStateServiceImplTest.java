@@ -1,4 +1,4 @@
-package top.egon.cola.platform.idp.admin.identity.application;
+package top.egon.cola.platform.idp.admin.identity.service.impl;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.idp.contract.IdentityUserState;
@@ -13,7 +13,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class IdentityUserStateReconcilerTest {
+class IdentityUserStateServiceImplTest {
 
     private static final Instant NOW =
             Instant.parse("2026-08-02T00:00:00Z");
@@ -21,8 +21,8 @@ class IdentityUserStateReconcilerTest {
     @Test
     void restoresEveryPersistentUserStateAtStartup() {
         List<IdentityUserState> projected = new ArrayList<>();
-        IdentityUserStateReconciler reconciler =
-                new IdentityUserStateReconciler(
+        IdentityUserStateServiceImpl service =
+                new IdentityUserStateServiceImpl(
                         () -> List.of(
                                 user("alice", IdentityUserStatus.ACTIVE, 4L),
                                 user("bob", IdentityUserStatus.DISABLED, 7L)
@@ -31,7 +31,7 @@ class IdentityUserStateReconcilerTest {
                         Clock.fixed(NOW, ZoneOffset.UTC)
                 );
 
-        int count = reconciler.reconcile();
+        int count = service.reconcile();
 
         assertThat(count).isEqualTo(2);
         assertThat(projected)

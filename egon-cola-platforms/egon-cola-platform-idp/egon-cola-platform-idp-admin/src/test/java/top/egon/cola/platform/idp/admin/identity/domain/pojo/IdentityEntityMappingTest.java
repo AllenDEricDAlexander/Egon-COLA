@@ -1,4 +1,4 @@
-package top.egon.cola.platform.idp.admin.identity.domain;
+package top.egon.cola.platform.idp.admin.identity.domain.pojo;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.idp.core.identity.IdentityUser;

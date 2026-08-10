@@ -1,4 +1,4 @@
-package top.egon.cola.platform.idp.admin.identity.infrastructure;
+package top.egon.cola.platform.idp.admin.identity.service.impl;
 
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;

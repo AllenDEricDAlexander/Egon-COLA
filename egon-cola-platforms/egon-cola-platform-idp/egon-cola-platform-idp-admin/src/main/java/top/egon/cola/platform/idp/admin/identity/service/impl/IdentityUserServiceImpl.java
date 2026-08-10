@@ -1,9 +1,16 @@
-package top.egon.cola.platform.idp.admin.identity.application;
+package top.egon.cola.platform.idp.admin.identity.service.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.platform.idp.admin.identity.domain.dto.CreateIdentityUserDTO;
+import top.egon.cola.platform.idp.admin.identity.domain.dto.UpdateIdentityUserDTO;
+import top.egon.cola.platform.idp.admin.identity.domain.vo.CreatedIdentityUserVO;
+import top.egon.cola.platform.idp.admin.identity.domain.vo.IdentityUserVO;
+import top.egon.cola.platform.idp.admin.identity.domain.vo.ResetPasswordVO;
+import top.egon.cola.platform.idp.admin.identity.repo.IdentityUserDirectory;
+import top.egon.cola.platform.idp.admin.identity.service.IdentityUserService;
 import top.egon.cola.platform.idp.contract.IdentityUserState;
 import top.egon.cola.platform.idp.core.audit.IdentitySecurityEvent;
 import top.egon.cola.platform.idp.core.audit.IdentitySecurityEventPort;
@@ -27,11 +34,11 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 @Service
-public class IdentityUserAdminService {
+public class IdentityUserServiceImpl implements IdentityUserService {
 
     private final IdentityUserStore users;
     private final PasswordCredentialStore credentials;
-    private final UserDirectory directory;
+    private final IdentityUserDirectory directory;
     private final PasswordHashPort passwordHashes;
     private final IdentityUserStatePort states;
     private final IdentitySecurityEventPort securityEvents;
@@ -41,10 +48,10 @@ public class IdentityUserAdminService {
     private final Supplier<String> temporaryPasswords;
 
     @Autowired
-    public IdentityUserAdminService(
+    public IdentityUserServiceImpl(
             IdentityUserStore users,
             PasswordCredentialStore credentials,
-            UserDirectory directory,
+            IdentityUserDirectory directory,
             PasswordHashPort passwordHashes,
             IdentityUserStatePort states,
             IdentitySecurityEventPort securityEvents,
@@ -64,10 +71,10 @@ public class IdentityUserAdminService {
         );
     }
 
-    IdentityUserAdminService(
+    IdentityUserServiceImpl(
             IdentityUserStore users,
             PasswordCredentialStore credentials,
-            UserDirectory directory,
+            IdentityUserDirectory directory,
             PasswordHashPort passwordHashes,
             IdentityUserStatePort states,
             IdentitySecurityEventPort securityEvents,
@@ -98,15 +105,17 @@ public class IdentityUserAdminService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserView> list() {
+    @Override
+    public List<IdentityUserVO> list() {
         return directory.list().stream()
                 .sorted(Comparator.comparing(IdentityUser::normalizedUsername))
-                .map(IdentityUserAdminService::view)
+                .map(IdentityUserServiceImpl::view)
                 .toList();
     }
 
     @Transactional
-    public CreatedUserView create(CreateUserCommand command) {
+    @Override
+    public CreatedIdentityUserVO create(CreateIdentityUserDTO command) {
         Objects.requireNonNull(command, "command");
         String normalized = normalizer.normalize(command.username());
         if (users.findByNormalizedUsername(normalized).isPresent()) {
@@ -143,7 +152,7 @@ public class IdentityUserAdminService {
             Arrays.fill(rawPassword, '\0');
         }
         publish(user, "IDENTITY_USER_CREATED", "USER_CREATED", now);
-        return new CreatedUserView(
+        return new CreatedIdentityUserVO(
                 subject,
                 username,
                 user.displayName(),
@@ -153,7 +162,11 @@ public class IdentityUserAdminService {
     }
 
     @Transactional
-    public UserView update(String identitySub, UpdateUserCommand command) {
+    @Override
+    public IdentityUserVO update(
+            String identitySub,
+            UpdateIdentityUserDTO command
+    ) {
         Objects.requireNonNull(command, "command");
         IdentityUser current = user(identitySub);
         if (current.version() != command.expectedVersion()) {
@@ -185,7 +198,8 @@ public class IdentityUserAdminService {
     }
 
     @Transactional
-    public ResetPasswordView resetPassword(String identitySub) {
+    @Override
+    public ResetPasswordVO resetPassword(String identitySub) {
         IdentityUser current = user(identitySub);
         PasswordCredential credential = credentials.findActive(current.id())
                 .orElseThrow(() -> new IllegalStateException(
@@ -210,7 +224,7 @@ public class IdentityUserAdminService {
                 "PASSWORD_RESET",
                 now
         );
-        return new ResetPasswordView(
+        return new ResetPasswordVO(
                 revoked.id(),
                 oneTimePassword,
                 true,
@@ -219,7 +233,8 @@ public class IdentityUserAdminService {
     }
 
     @Transactional
-    public UserView revokeAll(String identitySub) {
+    @Override
+    public IdentityUserVO revokeAll(String identitySub) {
         IdentityUser current = user(identitySub);
         IdentityUser revoked = current.revokeSecurityState();
         users.save(revoked, current.version());
@@ -282,8 +297,8 @@ public class IdentityUserAdminService {
         );
     }
 
-    private static UserView view(IdentityUser user) {
-        return new UserView(
+    private static IdentityUserVO view(IdentityUser user) {
+        return new IdentityUserVO(
                 user.id(),
                 user.username(),
                 user.displayName(),
@@ -321,48 +336,4 @@ public class IdentityUserAdminService {
         return value.trim();
     }
 
-    @FunctionalInterface
-    public interface UserDirectory {
-        List<IdentityUser> list();
-    }
-
-    public record CreateUserCommand(String username, String displayName) {
-    }
-
-    public record UpdateUserCommand(
-            String displayName,
-            IdentityUserStatus status,
-            long expectedVersion
-    ) {
-    }
-
-    public record UserView(
-            String subject,
-            String username,
-            String displayName,
-            String status,
-            long tokenVersion,
-            int failedLoginCount,
-            Instant lockedUntil,
-            Instant lastLoginAt,
-            long version
-    ) {
-    }
-
-    public record CreatedUserView(
-            String subject,
-            String username,
-            String displayName,
-            String status,
-            String oneTimePassword
-    ) {
-    }
-
-    public record ResetPasswordView(
-            String subject,
-            String oneTimePassword,
-            boolean mustChangePassword,
-            long tokenVersion
-    ) {
-    }
 }

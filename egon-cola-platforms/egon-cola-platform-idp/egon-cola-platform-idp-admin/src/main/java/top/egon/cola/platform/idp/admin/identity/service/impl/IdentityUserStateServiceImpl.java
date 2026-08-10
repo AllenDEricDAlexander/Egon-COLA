@@ -1,7 +1,10 @@
-package top.egon.cola.platform.idp.admin.identity.application;
+package top.egon.cola.platform.idp.admin.identity.service.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import top.egon.cola.platform.idp.admin.identity.repo.IdentityUserDirectory;
+import top.egon.cola.platform.idp.admin.identity.service.IdentityStateProjection;
+import top.egon.cola.platform.idp.admin.identity.service.IdentityUserStateService;
 import top.egon.cola.platform.idp.contract.IdentityUserState;
 import top.egon.cola.platform.idp.core.identity.IdentityUser;
 
@@ -14,23 +17,23 @@ import java.util.Objects;
  * Restores the Redis identity projection from PostgreSQL before readiness.
  */
 @Service
-public class IdentityUserStateReconciler {
+public class IdentityUserStateServiceImpl implements IdentityUserStateService {
 
-    private final IdentityUserAdminService.UserDirectory directory;
-    private final StateProjection projection;
+    private final IdentityUserDirectory directory;
+    private final IdentityStateProjection projection;
     private final Clock clock;
 
     @Autowired
-    public IdentityUserStateReconciler(
-            IdentityUserAdminService.UserDirectory directory,
-            StateProjection projection
+    public IdentityUserStateServiceImpl(
+            IdentityUserDirectory directory,
+            IdentityStateProjection projection
     ) {
         this(directory, projection, Clock.systemUTC());
     }
 
-    IdentityUserStateReconciler(
-            IdentityUserAdminService.UserDirectory directory,
-            StateProjection projection,
+    IdentityUserStateServiceImpl(
+            IdentityUserDirectory directory,
+            IdentityStateProjection projection,
             Clock clock
     ) {
         this.directory = Objects.requireNonNull(directory, "directory");
@@ -38,6 +41,7 @@ public class IdentityUserStateReconciler {
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
+    @Override
     public int reconcile() {
         List<IdentityUser> users = directory.list();
         Instant now = clock.instant();
@@ -50,10 +54,5 @@ public class IdentityUserStateReconciler {
             ));
         }
         return users.size();
-    }
-
-    @FunctionalInterface
-    public interface StateProjection {
-        void project(IdentityUserState state);
     }
 }

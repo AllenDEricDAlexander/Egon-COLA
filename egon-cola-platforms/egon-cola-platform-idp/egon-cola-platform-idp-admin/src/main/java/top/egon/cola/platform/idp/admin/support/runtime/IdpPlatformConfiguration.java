@@ -20,21 +20,13 @@ import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.platform.idp.admin.audit.infrastructure.IdentityAuditLogRepository;
 import top.egon.cola.platform.idp.admin.support.bootstrap.IdpBootstrapRunner;
 import top.egon.cola.platform.idp.admin.support.bootstrap.IdpBootstrapService;
-import top.egon.cola.platform.idp.admin.support.ddc.IdpRuntimePolicy;
 import top.egon.cola.platform.idp.admin.support.outbox.service.IdentityOutboxPublisher;
-import top.egon.cola.platform.idp.admin.identity.application.IdentityUserStateReconciler;
+import top.egon.cola.platform.idp.admin.identity.service.IdentityUserStateService;
 import top.egon.cola.platform.idp.admin.support.outbox.repo.IdentityOutboxEventRepository;
 import top.egon.cola.platform.idp.admin.token.application.SigningKeyRuntime;
 import top.egon.cola.platform.idp.admin.token.infrastructure.ExternalPemSigningKeyRuntime;
 import top.egon.cola.platform.idp.admin.token.infrastructure.Rs256TokenService;
-import top.egon.cola.platform.idp.core.identity.IdentityFacade;
-import top.egon.cola.platform.idp.core.identity.UsernameNormalizer;
-import top.egon.cola.platform.idp.core.port.IdentityUserStatePort;
-import top.egon.cola.platform.idp.core.port.IdentityUserStore;
-import top.egon.cola.platform.idp.core.port.PasswordCredentialStore;
-import top.egon.cola.platform.idp.core.port.PasswordHashPort;
 import top.egon.cola.platform.idp.core.port.RefreshTokenStore;
-import top.egon.cola.platform.idp.core.audit.IdentitySecurityEventPort;
 
 import java.time.Clock;
 import java.util.Map;
@@ -67,27 +59,6 @@ public class IdpPlatformConfiguration {
     }
 
     @Bean
-    IdentityFacade identityFacade(
-            IdentityUserStore users,
-            PasswordCredentialStore credentials,
-            PasswordHashPort passwordHashes,
-            IdentityUserStatePort states,
-            IdentitySecurityEventPort securityEvents,
-            IdpRuntimePolicy runtimePolicy
-    ) {
-        return IdentityFacade.dynamicPolicy(
-                users,
-                credentials,
-                passwordHashes,
-                states,
-                securityEvents,
-                new UsernameNormalizer(),
-                () -> runtimePolicy.current().maximumLoginFailures(),
-                () -> runtimePolicy.current().loginLockDuration()
-        );
-    }
-
-    @Bean
     JwtDecoder idpJwtDecoder(Rs256TokenService tokens) {
         return tokens.jwtDecoder();
     }
@@ -102,7 +73,7 @@ public class IdpPlatformConfiguration {
     @Bean
     ApplicationRunner idpBootstrapApplicationRunner(
             IdpBootstrapService bootstrap,
-            IdentityUserStateReconciler stateReconciler
+            IdentityUserStateService stateService
     ) {
         IdpBootstrapRunner runner = new IdpBootstrapRunner(bootstrap);
         return (ApplicationArguments arguments) -> {
@@ -110,7 +81,7 @@ public class IdpPlatformConfiguration {
                     arguments.getSourceArgs(),
                     Map.copyOf(System.getenv())
             );
-            stateReconciler.reconcile();
+            stateService.reconcile();
         };
     }
 

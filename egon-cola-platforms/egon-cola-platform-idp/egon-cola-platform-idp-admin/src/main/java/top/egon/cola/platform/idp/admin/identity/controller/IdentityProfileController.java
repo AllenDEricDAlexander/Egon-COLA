@@ -1,4 +1,4 @@
-package top.egon.cola.platform.idp.admin.interfaces.http;
+package top.egon.cola.platform.idp.admin.identity.controller;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

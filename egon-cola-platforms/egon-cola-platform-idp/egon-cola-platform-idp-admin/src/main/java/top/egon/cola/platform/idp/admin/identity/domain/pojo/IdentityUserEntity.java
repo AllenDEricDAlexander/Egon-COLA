@@ -1,4 +1,4 @@
-package top.egon.cola.platform.idp.admin.identity.domain;
+package top.egon.cola.platform.idp.admin.identity.domain.pojo;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

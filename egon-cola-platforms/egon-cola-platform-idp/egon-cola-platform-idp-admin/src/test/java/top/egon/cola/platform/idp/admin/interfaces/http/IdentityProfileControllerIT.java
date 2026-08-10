@@ -10,6 +10,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.platform.idp.admin.audit.domain.IdentityAuditLogEntity;
 import top.egon.cola.platform.idp.admin.audit.infrastructure.IdentityAuditLogRepository;
+import top.egon.cola.platform.idp.admin.identity.controller.IdentityProfileController;
 import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthenticationToken;
 import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthorizationPort;
 import top.egon.cola.platform.idp.admin.support.security.IdpSecurityConfig;

@@ -1,10 +1,9 @@
-package top.egon.cola.platform.idp.admin.identity.infrastructure;
+package top.egon.cola.platform.idp.admin.identity.repo;
 
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.idp.admin.identity.application.IdentityUserAdminService;
-import top.egon.cola.platform.idp.admin.identity.domain.IdentityUserEntity;
+import top.egon.cola.platform.idp.admin.identity.domain.pojo.IdentityUserEntity;
 import top.egon.cola.platform.idp.core.identity.IdentityUser;
 
 import java.util.List;
@@ -12,7 +11,7 @@ import java.util.Objects;
 
 @Repository
 public class JpaIdentityUserDirectory
-        implements IdentityUserAdminService.UserDirectory {
+        implements IdentityUserDirectory {
 
     private final EntityManager entityManager;
 

@@ -9,7 +9,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.idp.admin.identity.application.IdentityUserAdminService;
+import top.egon.cola.platform.idp.admin.identity.repo.IdentityUserDirectory;
+import top.egon.cola.platform.idp.admin.identity.service.impl.IdentityUserServiceImpl;
 import top.egon.cola.platform.idp.admin.oauth.application.OAuthClientAdminService;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientAudienceRepository;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientRedirectUriRepository;
@@ -59,20 +60,20 @@ class SpringConstructorResolutionTest {
     }
 
     @Test
-    void createsIdentityUserAdminServiceUsingItsProductionConstructor() {
+    void createsIdentityUserServiceUsingItsProductionConstructor() {
         try (AnnotationConfigApplicationContext context = contextWith(
                 IdentityUserStore.class,
                 PasswordCredentialStore.class,
-                IdentityUserAdminService.UserDirectory.class,
+                IdentityUserDirectory.class,
                 PasswordHashPort.class,
                 IdentityUserStatePort.class,
                 IdentitySecurityEventPort.class,
                 LongIdGenerator.class
         )) {
-            context.registerBean(IdentityUserAdminService.class);
+            context.registerBean(IdentityUserServiceImpl.class);
             context.refresh();
 
-            assertThat(context.getBean(IdentityUserAdminService.class))
+            assertThat(context.getBean(IdentityUserServiceImpl.class))
                     .isNotNull();
         }
     }
