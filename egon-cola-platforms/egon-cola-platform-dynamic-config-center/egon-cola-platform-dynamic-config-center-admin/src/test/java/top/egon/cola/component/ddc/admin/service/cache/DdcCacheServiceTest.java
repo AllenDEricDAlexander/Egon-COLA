@@ -1,6 +1,10 @@
 package top.egon.cola.component.ddc.admin.service.cache;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigVersionEntity;
 import top.egon.cola.component.ddc.admin.model.vo.DdcCacheCheckRow;
@@ -11,9 +15,12 @@ import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 class DdcCacheServiceTest {
@@ -76,6 +83,39 @@ class DdcCacheServiceTest {
 
         assertThat(service.rebuild("default", "dev", "demo")).isZero();
         verifyNoInteractions(versionRepository, redisRepository);
+    }
+
+    @Test
+    void pageChecksRedisOnlyForVersionsOnTheCurrentPage() {
+        DdcConfigItemRepository configItemRepository = mock(DdcConfigItemRepository.class);
+        DdcConfigVersionRepository versionRepository = mock(DdcConfigVersionRepository.class);
+        DdcRedisRepository redisRepository = mock(DdcRedisRepository.class);
+        DdcConfigVersionEntity current = version("application.yml", "true", 2L);
+        when(versionRepository.findPublishedRuntimeVersions(
+                eq("infra"), eq("prod"), eq("gateway"), eq("DELETE"),
+                any(Pageable.class)))
+                .thenReturn(new PageImpl<>(
+                        List.of(current), PageRequest.of(1, 1), 2));
+        when(redisRepository.readConfigValue(
+                "infra", "prod", "gateway", "application.yml"))
+                .thenReturn("true");
+        when(redisRepository.readConfigVersion(
+                "infra", "prod", "gateway", "application.yml"))
+                .thenReturn(2L);
+        DdcCacheService service = new DdcCacheService(
+                configItemRepository, versionRepository, redisRepository);
+
+        var page = service.page(
+                "infra", "prod", "gateway", new PageQuery(2, 1));
+
+        assertThat(page.getTotalElements()).isEqualTo(2);
+        assertThat(page.getContent()).singleElement()
+                .satisfies(row -> assertThat(row.isMatched()).isTrue());
+        verify(redisRepository).readConfigValue(
+                "infra", "prod", "gateway", "application.yml");
+        verify(redisRepository).readConfigVersion(
+                "infra", "prod", "gateway", "application.yml");
+        verifyNoMoreInteractions(redisRepository);
     }
 
     private DdcConfigItemEntity item(

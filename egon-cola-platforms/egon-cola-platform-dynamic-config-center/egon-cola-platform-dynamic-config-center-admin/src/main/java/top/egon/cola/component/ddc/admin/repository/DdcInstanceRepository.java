@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.admin.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -16,6 +18,12 @@ public interface DdcInstanceRepository extends JpaRepository<DdcInstanceEntity, 
 
     List<DdcInstanceEntity> findByBizCodeAndEnvAndAppCode(
             String bizCode, String env, String appCode);
+
+    Page<DdcInstanceEntity> findByBizCodeAndEnvAndAppCode(
+            String bizCode,
+            String env,
+            String appCode,
+            Pageable pageable);
 
     List<DdcInstanceEntity> findByBizCodeAndEnvAndAppCodeAndStatus(
             String bizCode, String env, String appCode, String status);

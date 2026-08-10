@@ -2,6 +2,10 @@ package top.egon.cola.component.ddc.admin.service.lease;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.ddc.admin.model.entity.DdcInstanceEntity;
 import top.egon.cola.component.ddc.admin.repository.DdcInstanceRepository;
 import top.egon.cola.component.ddc.model.config.DdcInstanceRegisterRequest;
@@ -11,17 +15,43 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 import java.util.TimeZone;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ResourceLock("java.util.TimeZone.default")
 class DdcInstanceAdminServiceTest {
+
+    @Test
+    void pagesPersistentInstancesNewestFirst() {
+        DdcInstanceRepository repository = mock(DdcInstanceRepository.class);
+        DdcConfigLeaseService leaseService = mock(DdcConfigLeaseService.class);
+        DdcInstanceEntity instance = new DdcInstanceEntity();
+        instance.setId("instance-1");
+        when(repository.findByBizCodeAndEnvAndAppCode(
+                eq("infra"), eq("prod"), eq("gateway"), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(
+                        List.of(instance), PageRequest.of(0, 10), 1));
+        DdcInstanceAdminService service = new DdcInstanceAdminService(
+                repository, leaseService);
+
+        var page = service.page(
+                "infra", "prod", "gateway", new PageQuery(1, 10));
+
+        assertThat(page.getContent()).containsExactly(instance);
+        var pageable = org.mockito.ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByBizCodeAndEnvAndAppCode(
+                eq("infra"), eq("prod"), eq("gateway"), pageable.capture());
+        assertThat(pageable.getValue().getSort().toString())
+                .isEqualTo("updatedAt: DESC,id: DESC");
+    }
 
     @Test
     void storesLeaseExpiryInTheDatabaseLocalTimeConvention() {

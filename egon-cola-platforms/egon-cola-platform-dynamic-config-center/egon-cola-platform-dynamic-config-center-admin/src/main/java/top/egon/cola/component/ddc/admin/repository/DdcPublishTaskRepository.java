@@ -1,6 +1,8 @@
 package top.egon.cola.component.ddc.admin.repository;
 
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
@@ -26,6 +28,23 @@ public interface DdcPublishTaskRepository extends JpaRepository<DdcPublishTaskEn
     List<DdcPublishTaskEntity> findByStatusInAndUpdatedAtBefore(
             Collection<String> statuses,
             LocalDateTime updatedAt);
+
+    @Query("""
+            select task from DdcPublishTaskEntity task
+             where (:bizCode is null or task.bizCode = :bizCode)
+               and (:env is null or task.env = :env)
+               and (:appCode is null or task.appCode = :appCode)
+               and (:status is null or task.status = :status)
+               and (:changeId is null
+                    or lower(task.changeId) like lower(concat('%', :changeId, '%')))
+            """)
+    Page<DdcPublishTaskEntity> search(
+            @Param("bizCode") String bizCode,
+            @Param("env") String env,
+            @Param("appCode") String appCode,
+            @Param("status") String status,
+            @Param("changeId") String changeId,
+            Pageable pageable);
 
     @Transactional
     @Modifying(clearAutomatically = true, flushAutomatically = true)

@@ -1,6 +1,9 @@
 package top.egon.cola.component.ddc.admin.service.cache;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigVersionEntity;
@@ -9,6 +12,7 @@ import top.egon.cola.component.ddc.admin.model.vo.DdcCacheCheckRow;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
+import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
 
 import java.util.List;
 import java.util.Objects;
@@ -62,6 +66,25 @@ public class DdcCacheService {
                 .filter(this::isRuntimeValue)
                 .map(version -> checkVersion(bizCode, env, appCode, version))
                 .toList();
+    }
+
+    public Page<DdcCacheCheckRow> page(
+            String bizCode,
+            String env,
+            String appCode,
+            PageQuery pageQuery
+    ) {
+        return versionRepository.findPublishedRuntimeVersions(
+                bizCode,
+                env,
+                appCode,
+                ChangeType.DELETE.name(),
+                DdcAdminPageSupport.pageable(
+                        pageQuery,
+                        Sort.by("resourceName").ascending()
+                                .and(Sort.by("id").ascending())
+                )
+        ).map(version -> checkVersion(bizCode, env, appCode, version));
     }
 
     private DdcCacheCheckRow checkVersion(

@@ -1,11 +1,15 @@
 package top.egon.cola.component.ddc.admin.service.lease;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.model.entity.DdcInstanceEntity;
 import top.egon.cola.component.ddc.admin.model.enums.InstanceStatus;
 import top.egon.cola.component.ddc.admin.repository.DdcInstanceRepository;
+import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.config.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
@@ -81,6 +85,23 @@ public class DdcInstanceAdminService {
             String bizCode, String env, String appCode) {
         return instanceRepository.findByBizCodeAndEnvAndAppCode(
                 bizCode, env, appCode);
+    }
+
+    public Page<DdcInstanceEntity> page(
+            String bizCode,
+            String env,
+            String appCode,
+            PageQuery pageQuery
+    ) {
+        return instanceRepository.findByBizCodeAndEnvAndAppCode(
+                bizCode,
+                env,
+                appCode,
+                DdcAdminPageSupport.pageable(
+                        pageQuery,
+                        Sort.by(Sort.Direction.DESC, "updatedAt", "id")
+                )
+        );
     }
 
     private LocalDateTime localTime(Instant value) {
