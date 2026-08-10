@@ -104,6 +104,109 @@ class AuthorizationDecisionServiceTest {
                                 .isEqualTo("APPLICATION_BINDING_DENIED"));
     }
 
+    @Test
+    void allowsOnlyAnActiveIdentityWithTheTargetApplicationEntryPermission() {
+        AuthorizationDecisionService service = resourceAccessService(
+                "alice-sub", "tenant-1", snapshot(true), false);
+
+        var result = service.decideResourceAccess(
+                servicePrincipal("idp-admin", "*"), resourceAccessRequest("finance-web"));
+
+        assertThat(result.decision()).isEqualTo(Decision.ALLOW);
+        assertThat(result.reasonCode()).isEqualTo("ALLOW");
+        assertThat(result.authVersion()).isEqualTo(43L);
+        assertThat(result.sessionVersion()).isEqualTo(2L);
+        assertThat(result.policyVersion()).isEqualTo(18L);
+        assertThat(result.decidedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    void deniesMissingEntryPermissionWithoutReturningAuthorizationDetails() {
+        AuthorizationDecisionService service = resourceAccessService(
+                "alice-sub", "tenant-1", snapshot(false), false);
+
+        var result = service.decideResourceAccess(
+                servicePrincipal("idp-admin", "*"), resourceAccessRequest("finance-web"));
+
+        assertThat(result.decision()).isEqualTo(Decision.DENY);
+        assertThat(result.reasonCode()).isEqualTo("ENTRY_PERMISSION_DENIED");
+        assertThat(result.authVersion()).isEqualTo(43L);
+        assertThat(result.sessionVersion()).isEqualTo(2L);
+        assertThat(result.policyVersion()).isEqualTo(18L);
+    }
+
+    @Test
+    void deniesInactiveOrMismatchedIdentitySessionAndAnUnknownApplication() {
+        AuthorizationDecisionService inactive = new AuthorizationDecisionService(
+                (tenantId, sessionId) -> {
+                    throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
+                },
+                (tenantId, sessionId) -> false,
+                Clock.fixed(NOW, ZoneOffset.UTC));
+
+        var inactiveResult = inactive.decideResourceAccess(
+                servicePrincipal("idp-admin", "*"), resourceAccessRequest("finance-web"));
+
+        assertThat(inactiveResult.decision()).isEqualTo(Decision.DENY);
+        assertThat(inactiveResult.reasonCode()).isEqualTo("IDENTITY_SESSION_INACTIVE");
+        assertThat(inactiveResult.authVersion()).isNull();
+        assertThat(inactiveResult.sessionVersion()).isNull();
+        assertThat(inactiveResult.policyVersion()).isNull();
+
+        AuthorizationDecisionService wrongIdentity = resourceAccessService(
+                "another-sub", "tenant-1", snapshot(true), false);
+        assertThat(wrongIdentity.decideResourceAccess(
+                servicePrincipal("idp-admin", "*"), resourceAccessRequest("finance-web"))
+                .reasonCode()).isEqualTo("IDENTITY_SESSION_INACTIVE");
+
+        AuthorizationDecisionService wrongTenant = resourceAccessService(
+                "alice-sub", "tenant-2", snapshot(true), false);
+        assertThat(wrongTenant.decideResourceAccess(
+                servicePrincipal("idp-admin", "*"), resourceAccessRequest("finance-web"))
+                .reasonCode()).isEqualTo("IDENTITY_SESSION_INACTIVE");
+
+        AuthorizationDecisionService service = resourceAccessService(
+                "alice-sub", "tenant-1", snapshot(true), false);
+        var wrongApplication = service.decideResourceAccess(
+                servicePrincipal("idp-admin", "*"), resourceAccessRequest("inventory-web"));
+        assertThat(wrongApplication.decision()).isEqualTo(Decision.DENY);
+        assertThat(wrongApplication.reasonCode()).isEqualTo("APPLICATION_BINDING_DENIED");
+    }
+
+    @Test
+    void deniesFencedSessionAndRejectsAServiceOutsideTheRequestedTenant() {
+        AuthorizationDecisionService fenced = resourceAccessService(
+                "alice-sub", "tenant-1", snapshot(true), true);
+
+        var result = fenced.decideResourceAccess(
+                servicePrincipal("idp-admin", "*"), resourceAccessRequest("finance-web"));
+
+        assertThat(result.decision()).isEqualTo(Decision.DENY);
+        assertThat(result.reasonCode()).isEqualTo("AUTH_PROPAGATION_PENDING");
+        assertThat(result.authVersion()).isNull();
+        assertThatThrownBy(() -> fenced.decideResourceAccess(
+                servicePrincipal("idp-admin", "tenant-2"),
+                resourceAccessRequest("finance-web")))
+                .isInstanceOfSatisfying(Rbac3RuleViolation.class,
+                        error -> assertThat(error.reasonCode())
+                                .isEqualTo("SERVICE_IDENTITY_DENIED"));
+    }
+
+    @Test
+    void propagatesDecisionStoreFailureForFailClosedTransportMapping() {
+        AuthorizationDecisionService unavailable = new AuthorizationDecisionService(
+                (tenantId, sessionId) -> {
+                    throw new IllegalStateException("decision store unavailable");
+                },
+                (tenantId, sessionId) -> false,
+                Clock.fixed(NOW, ZoneOffset.UTC));
+
+        assertThatThrownBy(() -> unavailable.decideResourceAccess(
+                servicePrincipal("idp-admin", "*"), resourceAccessRequest("finance-web")))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("decision store unavailable");
+    }
+
     private void assertVersionFailure(
             AuthorizationDecisionService service,
             AuthorizationDecisionService.TokenVersions versions,
@@ -127,6 +230,24 @@ class AuthorizationDecisionServiceTest {
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
+    private AuthorizationDecisionService resourceAccessService(
+            String identitySub,
+            String recordTenantId,
+            SessionAuthorizationSnapshot snapshot,
+            boolean fenced) {
+        return new AuthorizationDecisionService(
+                (tenantId, sessionId) -> new AuthorizationDecisionService.SnapshotRecord(
+                        recordTenantId, identitySub, "user-1", snapshot),
+                (tenantId, sessionId) -> fenced,
+                Clock.fixed(NOW, ZoneOffset.UTC));
+    }
+
+    private AuthorizationDecisionService.ResourceAccessRequest resourceAccessRequest(
+            String applicationCode) {
+        return new AuthorizationDecisionService.ResourceAccessRequest(
+                "alice-sub", "tenant-1", "session-1", applicationCode, PERMISSION);
+    }
+
     private AuthorizationDecisionService.DecisionRequest request(String permission) {
         return new AuthorizationDecisionService.DecisionRequest(
                 new AuthorizationDecisionService.Subject(
@@ -142,8 +263,14 @@ class AuthorizationDecisionServiceTest {
     }
 
     private CurrentRbac3ServicePrincipal servicePrincipal(String applicationCode) {
+        return servicePrincipal(applicationCode, "tenant-1");
+    }
+
+    private CurrentRbac3ServicePrincipal servicePrincipal(
+            String applicationCode,
+            String tenantId) {
         return new CurrentRbac3ServicePrincipal(
-                "tenant-1", "finance-service", applicationCode,
+                tenantId, "finance-service", applicationCode,
                 "prod", "default", "credential-1",
                 Set.of("service:authorization:decide", "service:authorization:snapshot"));
     }

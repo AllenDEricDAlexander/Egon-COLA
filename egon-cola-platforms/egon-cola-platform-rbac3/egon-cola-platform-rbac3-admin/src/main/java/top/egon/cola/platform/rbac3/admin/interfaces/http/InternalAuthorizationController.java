@@ -22,6 +22,12 @@ import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationS
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
+import java.util.Objects;
+
+/**
+ * 暴露给平台内部受信服务的 RBAC3 授权快照与判定接口。
+ * RBAC3 authorization snapshot and decision endpoints exposed to trusted platform services.
+ */
 @RestController
 @RequestMapping("/internal/v1/authorization")
 @GatewayInterfaceGroup(
@@ -38,16 +44,36 @@ import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
         basePath = "/internal/v1")
 public class InternalAuthorizationController {
 
+    /** 类型化授权判定服务。 / Typed authorization-decision service. */
     private final AuthorizationDecisionService service;
+    /** 系统级授权快照服务。 / System-level authorization snapshot service. */
     private final SystemAuthorizationSnapshotService systemSnapshots;
 
+    /**
+     * 创建内部授权控制器。
+     * Creates the internal authorization controller.
+     *
+     * @param service 类型化授权判定服务 / typed authorization-decision service
+     * @param systemSnapshots 系统级授权快照服务 / system-level authorization snapshot service
+     */
     public InternalAuthorizationController(
             AuthorizationDecisionService service,
             SystemAuthorizationSnapshotService systemSnapshots) {
-        this.service = service;
-        this.systemSnapshots = systemSnapshots;
+        this.service = Objects.requireNonNull(service, "service");
+        this.systemSnapshots = Objects.requireNonNull(systemSnapshots, "systemSnapshots");
     }
 
+    /**
+     * 按 IdP 主体和目标系统读取跨租户系统授权上下文。
+     * Loads a cross-tenant system authorization context by IdP subject and target system.
+     *
+     * @param tenantId 目标租户 / target tenant
+     * @param sessionId IdP 会话标识 / IdP session identifier
+     * @param systemCode 目标系统编码 / target system code
+     * @param identitySub IdP 稳定主体标识 / stable IdP subject
+     * @param principal 已认证调用服务 / authenticated calling service
+     * @return 系统授权快照 / system authorization snapshot
+     */
     @GetMapping("/contexts/{tenantId}/{sessionId}")
     @RequiresRbac3Permission(permission = "service:authorization:snapshot")
     @GatewayOperation(name = "rbac3-internal-system-snapshot-v1",
@@ -68,6 +94,14 @@ public class InternalAuthorizationController {
                 tenantId, sessionId, systemCode, identitySub));
     }
 
+    /**
+     * 冷加载当前租户中调用服务绑定应用的会话授权快照。
+     * Cold-loads the session authorization snapshot for the caller-bound application in the current tenant.
+     *
+     * @param sessionId 会话标识 / session identifier
+     * @param principal 已认证调用服务 / authenticated calling service
+     * @return 应用受限会话快照 / application-bound session snapshot
+     */
     @GetMapping("/sessions/{sessionId}/snapshot")
     @RequiresRbac3Permission(permission = "service:authorization:snapshot")
     @GatewayOperation(name = "rbac3-internal-session-snapshot-v1",
@@ -79,6 +113,14 @@ public class InternalAuthorizationController {
         return ApiEnvelope.success(service.snapshot(principal, tenantId(), sessionId));
     }
 
+    /**
+     * 在一致会话快照上执行类型化授权判定。
+     * Executes a typed authorization decision against a consistent session snapshot.
+     *
+     * @param request 类型化授权请求 / typed authorization request
+     * @param principal 已认证调用服务 / authenticated calling service
+     * @return 函数、数据和字段判定组合 / function, data, and field decision bundle
+     */
     @PostMapping("/decisions")
     @RequiresRbac3Permission(permission = "service:authorization:decide")
     @GatewayOperation(name = "rbac3-internal-authorization-decision-v1",
@@ -90,6 +132,34 @@ public class InternalAuthorizationController {
         return ApiEnvelope.success(service.decide(principal, request));
     }
 
+    /**
+     * 判定 IdP 用户是否具备目标 Resource Server 应用的入口权限。
+     * Decides whether an IdP user has the entry permission for a target Resource Server application.
+     *
+     * @param request 最小资源入口请求 / minimal resource-entry request
+     * @param principal 已认证的 IdP 调用服务 / authenticated IdP calling service
+     * @return 仅含判定、原因和授权版本的响应 / response containing only decision, reason, and versions
+     */
+    @PostMapping("/resource-access-decisions")
+    @RequiresRbac3Permission(permission = "service:authorization:decide")
+    @GatewayOperation(name = "rbac3-internal-resource-access-decision-v1",
+            summary = "判定用户是否具备Resource Server应用入口权限",
+            externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
+    public ApiEnvelope<ResourceAccessDecisionResponse> decideResourceAccess(
+            @Valid @RequestBody ResourceAccessDecisionRequest request,
+            @AuthenticationPrincipal CurrentRbac3ServicePrincipal principal) {
+        return ApiEnvelope.success(ResourceAccessDecisionResponse.from(
+                service.decideResourceAccess(principal, request.toCommand())));
+    }
+
+    /**
+     * 校验当前租户会话是否仍处于授权传播 Fence 中。
+     * Verifies whether a current-tenant session is still behind an authorization propagation fence.
+     *
+     * @param request Fence 校验请求 / fence-verification request
+     * @param principal 已认证调用服务 / authenticated calling service
+     * @return Fence 校验结果 / fence-verification result
+     */
     @PostMapping("/fences/verify")
     @RequiresRbac3Permission(permission = "service:authorization:fence")
     @GatewayOperation(name = "rbac3-internal-authorization-fence-verify-v1",
@@ -102,10 +172,33 @@ public class InternalAuthorizationController {
                 principal, tenantId(), request.sessionId()));
     }
 
+    /**
+     * 获取当前请求上下文的有效租户标识。
+     * Returns the effective tenant identifier from the current request context.
+     *
+     * @return 有效租户标识 / effective tenant identifier
+     */
     private static String tenantId() {
         return TenantContext.requireCurrent().effectiveTenantId();
     }
 
+    /**
+     * 会话授权传播 Fence 校验请求。
+     * Session authorization propagation-fence verification request.
+     *
+     * @param sessionId 会话标识 / session identifier
+     */
     public record FenceRequest(@NotBlank String sessionId) {
+
+        /**
+         * 校验并规范化 Fence 校验请求。
+         * Validates and normalizes the fence-verification request.
+         */
+        public FenceRequest {
+            if (sessionId == null || sessionId.isBlank()) {
+                throw new IllegalArgumentException("sessionId is required");
+            }
+            sessionId = sessionId.trim();
+        }
     }
 }
