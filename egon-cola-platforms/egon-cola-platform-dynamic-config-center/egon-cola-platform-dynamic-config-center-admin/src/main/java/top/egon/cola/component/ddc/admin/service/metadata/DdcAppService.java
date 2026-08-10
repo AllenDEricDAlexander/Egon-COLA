@@ -1,14 +1,18 @@
 package top.egon.cola.component.ddc.admin.service.metadata;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.exception.CommonException;
+import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.model.entity.DdcAppEntity;
 import top.egon.cola.component.ddc.admin.repository.DdcAppRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcBizRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
+import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
 
 import java.time.LocalDateTime;
@@ -67,6 +71,30 @@ public class DdcAppService {
         }
         return appRepository.findByAppCodeContainingIgnoreCaseOrAppNameContainingIgnoreCase(
                 trimmedKeyword, trimmedKeyword);
+    }
+
+    public Page<DdcAppEntity> page(
+            String bizCode,
+            String namespaceCode,
+            String env,
+            String keyword,
+            PageQuery pageQuery) {
+        Pageable pageable = DdcAdminPageSupport.pageable(
+                pageQuery,
+                Sort.by("bizCode").ascending()
+                        .and(Sort.by("appCode").ascending())
+                        .and(Sort.by("id").ascending())
+        );
+        if (hasText(namespaceCode) && hasText(env) && !hasText(bizCode)) {
+            return Page.empty(pageable);
+        }
+        return appRepository.search(
+                optional(bizCode),
+                optional(namespaceCode),
+                optional(env),
+                optional(keyword),
+                pageable
+        );
     }
 
     public Optional<DdcAppEntity> findById(String id) {
@@ -144,6 +172,10 @@ public class DdcAppService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private String optional(String value) {
+        return hasText(value) ? value.trim() : null;
     }
 
     private String appCacheKey(DdcAppEntity app) {

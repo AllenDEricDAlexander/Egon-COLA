@@ -9,9 +9,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.common.core.pojo.PageResultRecord;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.model.entity.DdcEnvEntity;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcEnvService;
+import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
 
 import java.util.List;
 
@@ -32,6 +35,16 @@ public class DdcEnvController {
             @RequestParam(value = "keyword", required = false) String keyword) {
         return ResultRecord.success(envService.list(
                 bizCode, namespaceCode, keyword));
+    }
+
+    @GetMapping("/page")
+    public PageResultRecord<DdcEnvEntity> page(
+            @RequestParam(value = "bizCode", required = false) String bizCode,
+            @RequestParam(value = "namespaceCode", required = false) String namespaceCode,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            PageQuery pageQuery) {
+        return DdcAdminPageSupport.result(envService.page(
+                bizCode, namespaceCode, keyword, pageQuery));
     }
 
     @GetMapping("/{code}")

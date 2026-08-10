@@ -1,13 +1,17 @@
 package top.egon.cola.component.ddc.admin.service.metadata;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.exception.CommonException;
+import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.model.entity.DdcEnvEntity;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcEnvRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
+import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
 
 import java.time.LocalDateTime;
@@ -56,6 +60,24 @@ public class DdcEnvService {
         String trimmed = keyword.trim();
         return envRepository.findByEnvCodeContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
                 trimmed, trimmed);
+    }
+
+    public Page<DdcEnvEntity> page(
+            String bizCode,
+            String namespaceCode,
+            String keyword,
+            PageQuery pageQuery) {
+        return envRepository.search(
+                optional(bizCode),
+                optional(namespaceCode),
+                optional(keyword),
+                DdcAdminPageSupport.pageable(
+                        pageQuery,
+                        Sort.by("sortOrder").ascending()
+                                .and(Sort.by("envCode").ascending())
+                                .and(Sort.by("id").ascending())
+                )
+        );
     }
 
     public DdcEnvEntity findByEnvCode(String envCode) {
@@ -139,5 +161,9 @@ public class DdcEnvService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private String optional(String value) {
+        return hasText(value) ? value.trim() : null;
     }
 }
