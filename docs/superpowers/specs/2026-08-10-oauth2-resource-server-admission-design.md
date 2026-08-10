@@ -1,6 +1,6 @@
 # OAuth 2.0 Resource Server 准入与认证设计
 
-> 状态：已按 `bizCode + appCode + env` 修订，等待复审（2026-08-10）
+> 状态：已按 `bizCode + appCode + env` 以及“RBAC3 只负责用户权限、IdP 负责服务访问授权”修订，等待复审（2026-08-10）
 > 设计日期：2026-08-10
 > 适用仓库：`/Users/mario/SelfProject/Egon-COLA`
 > 主模块：`egon-cola-platform-idp`
@@ -14,10 +14,11 @@ Resource Server 实例启动认证以及 `client_credentials` 服务间调用方
 本文扩展
 `2026-08-01-unified-identity-platform-design.md`，保留以下既有边界：
 
-- IdP 是人员身份、OAuth Client、Access Token 和机器凭证的唯一认证权威；
-- RBAC3 是租户内用户权限和服务权限的唯一授权权威；
+- IdP 是人员身份、OAuth Client、Access Token、机器凭证和服务访问授权的唯一权威；
+- RBAC3 是租户内用户角色、入口权限、接口权限、数据权限和字段权限的唯一授权权威；
 - Gateway 负责 Token、目标 Resource 和受信路由身份校验，不执行具体业务权限判断；
-- 下游 Resource Server 二次校验 Token，并使用 RBAC3 Starter 执行具体业务权限判断；
+- 下游 Resource Server 二次校验 Token；USER Token 使用 RBAC3 Starter 执行用户权限判断，
+  SERVICE Token 只校验 IdP 签发的 Scope，不调用 RBAC3；
 - DDC 负责配置客户端和 Provider 实例的注册、租约、发现与下线，不负责定义 OAuth 权限。
 
 当本文与旧设计中的自由字符串 `audience`、静态 `clientIds` 或无身份 DDC 注册方式冲突时，
@@ -42,7 +43,8 @@ Resource Server 实例启动认证以及 `client_credentials` 服务间调用方
 3. DDC 注册只校验字段格式，任何知道注册协议的进程都可以声明任意 `bizCode/appCode/env`。
 4. IdP 只支持 `authorization_code` 和 `refresh_token`，没有 `client_credentials`。
 5. 用户是否有权进入目标应用没有参与 Resource Token 签发；只有租户成员身份被校验。
-6. Resource Server 的身份、公钥和服务权限尚未形成 IdP 与 RBAC3 的单一职责链路。
+6. Resource Server 的身份、公钥以及 `Client -> Resource -> Tenant -> Scope` 服务访问授权
+   尚未在 IdP 内形成完整的单一职责链路。
 
 ## 3. 需求确认结果
 
@@ -52,14 +54,14 @@ Resource Server 实例启动认证以及 `client_credentials` 服务间调用方
 | RS-02 | Resource Server 以 `bizCode + appCode + env` 为逻辑身份，实例只作为运行态租约和审计事实 |
 | RS-03 | Resource Server 由管理员按应用创建并启用；可按 `bizCode` 批量管理多个应用，启用后同一 `bizCode + appCode + env` 的实例启动时自动获准接入，不逐实例审批 |
 | RS-04 | IdP 管逻辑 Resource Server 和机器凭证；DDC 管实例注册、心跳、发现和下线 |
-| RS-05 | Gateway 与下游 Resource Server 都必须验证 JWT；具体业务权限仍在下游通过 RBAC3 判断 |
+| RS-05 | Gateway 与下游 Resource Server 都必须验证 JWT；用户业务权限由下游 RBAC3 判断，服务调用权限由下游校验 IdP 签发的 Scope |
 | RS-06 | 授权请求采用 RFC 8707 `resource` 参数；一个 Access Token 只能面向一个 Resource Server |
 | RS-07 | 直接切换到新 Resource 模型，不保留旧 `audience` 请求参数和静态兼容逻辑 |
 | RS-08 | 用户角色、权限、数据范围和字段策略不写入用户 Access Token；RBAC3 保持授权权威 |
 | RS-09 | 本期同时实现 `client_credentials` 服务间调用 |
 | RS-10 | IdP 不可用时，已认证实例运行到短期准入凭证到期；新实例和续签失败时关闭接入 |
-| RS-11 | Resource Server 是平台应用环境级资源，租户访问资格和接口权限由 RBAC3 控制 |
-| RS-12 | 本期包含后端、数据库、Starter、Gateway、DDC、RBAC3 集成、测试和文档，不包含管理前端 |
+| RS-11 | Resource Server 是平台应用环境级资源；用户访问资格和用户接口权限由 RBAC3 控制，服务访问目标、租户和 Scope 由 IdP 控制 |
+| RS-12 | 本期包含后端、数据库、Starter、Gateway、DDC、RBAC3 用户授权集成、测试和文档，不包含管理前端 |
 
 ## 4. 核心业务语义
 
@@ -70,7 +72,8 @@ Resource Server 实例启动认证以及 `client_credentials` 服务间调用方
 | OAuth Client | 请求 Token 并调用 API 的应用 | `idp-admin-web`、`rbac3-service` |
 | Resource Server | 接收 Access Token 的应用安全边界 | `permission/idp@prod` |
 | Resource 实例 | Resource Server 的一个运行进程 | `idp-admin-7d9f...` |
-| RBAC Permission | 用户或服务进入应用后能够执行的操作 | `idp:user:query`、`idp:client:update` |
+| RBAC Permission | 用户进入应用后能够执行的操作 | `idp:user:query`、`idp:client:update` |
+| IdP Service Access Grant | 服务 Client 可访问的目标 Resource、租户和 Scope | `idp-service -> rbac3@prod / tenant-001 / rbac3:policy:read` |
 
 一个后端服务可以同时是 Resource Server 和 Confidential OAuth Client：它作为
 Resource Server 接收调用，作为 Client 使用 `client_credentials` 调用其他 Resource Server。
@@ -135,6 +138,19 @@ Token 签发阶段只做应用入口权限 `entryPermissionCode` 判断，不把
 用户 JWT。权限变更后，RBAC3 下游快照和 Fence 仍可立即拒绝后续业务操作，而不必等待
 Access Token 过期。
 
+### 4.4 服务间调用不经过 RBAC3
+
+服务调用与用户授权是两条独立链路。服务使用 `client_credentials` 请求目标 Resource
+Token 时，IdP 根据自己维护的 Service Access Grant 判断：
+
+```text
+Source Client + Target Resource + Tenant + Allowed Scopes = Service Access Grant
+```
+
+RBAC3 不保存 Service Principal、Service Permission 或 Service Scope，不参与服务 Token
+签发，也不参与 SERVICE Token 的请求鉴权。IdP 签发的 `scope` 是本次服务调用的授权结果；
+目标 Resource Server 只需验证 Token、Audience、租户以及当前操作要求的 Scope。
+
 ## 5. 总体架构
 
 ```mermaid
@@ -142,22 +158,30 @@ flowchart LR
     Admin["平台管理员"]
     IdP["IdP Authorization Server"]
     RBAC3["RBAC3 Authorization Authority"]
+    ServiceGrant["IdP Service Access Grant"]
     Service["Resource Server Instance"]
     DDC["DDC Registry"]
     Gateway["Gateway"]
-    Client["User or Service Client"]
+    UserClient["User Client"]
+    ServiceClient["Service Client"]
+    ScopeGuard["Resource Scope Guard"]
 
     Admin -->|"创建 biz + app + env Resource、公钥和授权关系"| IdP
     Service -->|"private_key_jwt 申请准入"| IdP
     IdP -->|"短期 Admission Ticket"| Service
     Service -->|"Ticket + 实例信息注册和续租"| DDC
     DDC -->|"只发布已认证实例"| Gateway
-    Client -->|"resource 参数申请 Token"| IdP
-    IdP -->|"应用入口或服务权限决策"| RBAC3
-    IdP -->|"单 Resource Access Token"| Client
-    Client -->|"Bearer Token"| Gateway
+    UserClient -->|"authorization_code + resource"| IdP
+    IdP -->|"只查询用户入口权限"| RBAC3
+    ServiceClient -->|"client_credentials + resource + tenant + scope"| IdP
+    IdP -->|"读取服务访问授权"| ServiceGrant
+    IdP -->|"单 Resource Access Token"| UserClient
+    IdP -->|"单 Resource Service Token"| ServiceClient
+    UserClient -->|"USER Bearer Token"| Gateway
+    ServiceClient -->|"SERVICE Bearer Token"| Gateway
     Gateway -->|"验证 Token、aud 和路由 biz/app/env"| Service
-    Service -->|"加载授权快照并检查具体权限"| RBAC3
+    Service -->|"USER：加载授权快照并检查用户权限"| RBAC3
+    Service -->|"SERVICE：本地检查 IdP 授权 Scope"| ScopeGuard
 ```
 
 ## 6. 管理员创建 Resource Server
@@ -360,23 +384,30 @@ iat / nbf / exp
 
 Gateway 必须：
 
-1. 验证签名、`typ=at+jwt`、Issuer、时间声明和用户状态；
-2. 根据路由定义中的 `bizCode + appCode + env` 解析唯一 Resource URI；
-3. 要求 Token `aud` 精确包含且只包含该 Resource URI；
-4. 读取 IdP Resource Server 运行态投影，确认 Resource 仍为 `ACTIVE` 且版本有效；
-5. 清理客户端伪造的用户/服务受信头，再写入已验证身份头；
-6. 只路由到 DDC 中持有有效认证租约的实例。
+1. 验证签名、`typ=at+jwt`、Issuer 和时间声明；
+2. 根据 `principal_type` 校验主体：USER 校验用户、会话和 Token Version，SERVICE
+   校验 Client 类型以及 Token 中的服务身份声明；
+3. 根据路由定义中的 `bizCode + appCode + env` 解析唯一 Resource URI；
+4. 要求 Token `aud` 精确包含且只包含该 Resource URI；
+5. 读取 IdP Resource Server 运行态投影，确认 Resource 仍为 `ACTIVE` 且版本有效；
+6. 清理客户端伪造的用户/服务受信头，再写入已验证身份头；
+7. 只路由到 DDC 中持有有效认证租约的实例。
 
 Gateway 不调用 RBAC3，也不判断 `order:query` 等具体权限。
 
 ### 9.2 下游 Resource Server
 
 IdP Starter 配置从多值 `audiences/clientIds` 改为当前服务唯一的 `resourceUri` 和
-Resource Server 标识。下游必须再次执行与 Gateway 一致的 JWT、Audience、用户状态
+Resource Server 标识。下游必须再次执行与 Gateway 一致的 JWT、Audience、主体状态
 和 Resource 状态校验。
 
-下游随后由 RBAC3 Starter 加载当前系统授权快照并执行接口权限检查。直接访问后端时，
-同样经过 IdP Starter 和 RBAC3 Starter，因此不能通过绕过 Gateway 逃避权限判断。
+下游根据 `principal_type` 分流：
+
+- `USER`：由 RBAC3 Starter 加载当前系统授权快照并执行用户接口、数据和字段权限检查；
+- `SERVICE`：校验 Token 中由 IdP 授权的 `scope` 是否覆盖当前操作要求的 Scope，不调用 RBAC3。
+
+直接访问后端时同样必须经过 IdP Starter。USER 请求继续经过 RBAC3 Starter，SERVICE
+请求继续经过 Scope 校验，因此不能通过绕过 Gateway 逃避对应权限判断。
 
 ## 10. Client Credentials 服务间调用
 
@@ -386,10 +417,22 @@ Resource Server 标识。下游必须再次执行与 Gateway 一致的 JWT、Aud
 该 Client 使用同一套 IdP 公钥凭证模型进行 `private_key_jwt` 认证，但 Admission Endpoint
 和 Token Endpoint 使用不同的 `aud`，Assertion 不能跨端点重放。
 
-机器凭证由 IdP 管理。RBAC3 只保留 Service Principal 和 Service Permission 授权事实，
-不得成为第二套机器凭证认证源。当前 RBAC3 中尚未形成运行链路的 Service Credential
-模型本期不参与认证；是否删除旧表和实体在实施计划中通过全仓引用审计单独列明，不能在
-未验证引用的情况下直接删除。
+机器凭证和服务访问授权都由 IdP 管理。RBAC3 只负责 USER Principal 的用户权限，不保存
+Service Principal、Service Permission 或 Service Scope，也不成为服务 Token 的认证或
+授权依赖。
+
+IdP 中一条服务访问授权必须明确绑定：
+
+```text
+sourceClientId
+targetResourceServerId
+tenantId
+allowedScopes
+status
+```
+
+服务启动准入和服务间调用仍是两种不同授权：Admission Ticket 只允许实例注册 DDC；
+Client Credentials Grant 只允许 Source Client 获取面向目标 Resource 的 Service Token。
 
 ### 10.2 Token 请求
 
@@ -397,12 +440,12 @@ Resource Server 标识。下游必须再次执行与 Gateway 一致的 JWT、Aud
 POST /oauth2/token
 
 grant_type=client_credentials
-client_id=order-service
+client_id=idp-service
 client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer
 client_assertion=<signed assertion>
-resource=https://api.egon.internal/resources/inventory
+resource=https://api.egon.internal/prod/permission/rbac3
 tenant_id=tenant-001
-scope=inventory:reserve
+scope=rbac3:policy:read
 ```
 
 第一期要求每个 Client Credentials Token 绑定一个明确租户，不支持 `tid=*`。平台级
@@ -412,10 +455,12 @@ IdP 检查：
 
 1. Confidential Client 和凭证有效，Assertion 未重放；
 2. 目标 Resource Server 为 `ACTIVE`；
-3. `Client -> Resource Server` 的 `CLIENT_CREDENTIALS` Grant 为 `ACTIVE`；
-4. 请求 Scope 是 Grant 允许 Scope 的子集；
-5. RBAC3 确认该 Service Principal 在目标租户拥有相应 Service Permission；
-6. Resource、租户、Scope 和 Source Client 关系全部通过后才签发 Token。
+3. `Source Client -> Target Resource -> Tenant` 的 `CLIENT_CREDENTIALS` Grant 为 `ACTIVE`；
+4. 请求 Scope 是该 IdP Grant 的 `allowedScopes` 子集；
+5. IdP 根据 Source Client 绑定的 Resource Server 身份生成
+   `source_biz/source_app/source_env`，不接受调用方自行声明；
+6. 以上判断全部在 IdP 内完成，不调用 RBAC3；
+7. Resource、租户、Scope 和 Source Client 关系全部通过后才签发 Token。
 
 Client Credentials 不签发 Refresh Token。Token 过期后，服务重新认证并获取新 Token。
 
@@ -429,7 +474,7 @@ sub              = service client id
 client_id        = service client id
 aud              = exactly one target resourceUri
 tid              = one tenant id
-scope            = RBAC3-approved service scopes
+scope            = IdP-granted service scopes
 source_biz
 source_app
 source_env
@@ -438,10 +483,48 @@ resource_version
 jti / iat / nbf / exp
 ```
 
-服务 Token 的 `scope` 是 RBAC3 服务权限在 Token 有效期内的最小快照，不替代 RBAC3
-的权限权威地位。下游必须将业务操作所需服务权限与 Scope 匹配；Gateway 仍只校验
-身份、Resource 和路由绑定，不执行服务权限判断。高风险操作可继续使用 RBAC3 在线
-Fence。Service Token 使用短 TTL，不允许通过 Refresh 延长旧授权。
+其中 `scope` 必须为：
+
+```text
+scope = IdP Service Access Grant 允许 Scope 与本次请求 Scope 的交集
+```
+
+服务 Token 的 `scope` 是 IdP 服务访问授权在 Token 有效期内的最小签名快照。下游必须
+将当前业务操作所需 Scope 与 Token Scope 匹配；Gateway 仍只校验身份、Resource 和
+路由绑定，不执行服务 Scope 判断。整个 SERVICE 链路不调用 RBAC3。Service Token 使用
+短 TTL，不允许通过 Refresh 延长旧授权；Grant 撤销后不再签发新 Token，已签发 Token
+最多存活到短 TTL 到期。
+
+### 10.4 服务间调用端到端泳道
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Source as "Source Resource Server"
+    participant IdP as "IdP Token Endpoint"
+    participant Grant as "IdP Service Access Grant"
+    participant Gateway as "Gateway"
+    participant Target as "Target Resource Server"
+
+    Source->>Source: "使用私钥生成 private_key_jwt"
+    Source->>IdP: "client_credentials + resource + tenant_id + scope"
+    IdP->>IdP: "校验 Client、公钥、Assertion 和防重放"
+    IdP->>Grant: "查询 Source Client + Target Resource + Tenant"
+    Grant-->>IdP: "返回 ACTIVE Grant 和 allowedScopes"
+
+    alt "请求 Scope 在 IdP 授权范围内"
+        IdP-->>Source: "签发单 Resource、单租户 SERVICE Token"
+        Source->>Gateway: "携带 SERVICE Token 调用目标 App"
+        Gateway->>Gateway: "校验 JWT、aud、Resource 状态和路由绑定"
+        Gateway->>Target: "转发到已准入实例"
+        Target->>Target: "再次校验 JWT、aud、tenant_id 和操作 Scope"
+        Target-->>Source: "返回业务结果"
+    else "Grant 不存在、已禁用或 Scope 越权"
+        IdP-->>Source: "拒绝签发 Token"
+    end
+
+    Note over IdP,Target: "SERVICE 链路不调用 RBAC3"
+```
 
 ## 11. 数据模型
 
@@ -483,6 +566,7 @@ identity_client_resource_grant
 ├── client_id
 ├── resource_server_id
 ├── grant_type
+├── tenant_id
 ├── allowed_scopes
 ├── status
 ├── version
@@ -495,11 +579,13 @@ identity_client_resource_grant
 UNIQUE (resource_uri)
 UNIQUE (biz_code, app_code, environment)
 UNIQUE (client_id, kid)
-UNIQUE (client_id, resource_server_id, grant_type)
+UNIQUE (client_id, resource_server_id) WHERE grant_type = USER_DELEGATION
+UNIQUE (client_id, resource_server_id, tenant_id) WHERE grant_type = CLIENT_CREDENTIALS
 ```
 
 `grant_type` 仅允许 `USER_DELEGATION` 和 `CLIENT_CREDENTIALS`。用户授权关系的
-`allowed_scopes` 为空；Service Grant 至少包含一个 Scope。
+`tenant_id` 和 `allowed_scopes` 为空；Service Grant 的 `tenant_id` 必填，并且至少包含
+一个 Scope。服务访问授权完全保存在 IdP，不在 RBAC3 建立对应授权记录。
 
 现有 IdP V1 Flyway 文件保持不变。新增一个 V2 迁移完成新表创建、约束创建以及旧
 `identity_client_audience` 删除。由于选择直接切换，不实现旧 `audience` 到新 Resource
@@ -513,6 +599,7 @@ UNIQUE (client_id, resource_server_id, grant_type)
 identity:resource-server:{resourceServerId}
 identity:resource-uri:{sha256(resourceUri)}
 identity:client-assertion-replay:{clientId}:{jti}
+identity:service-resource-grant:{clientId}:{resourceServerId}:{tenantId}
 ```
 
 Resource 投影至少包含状态、Resource URI、`bizCode`、`appCode`、环境和版本。Starter
@@ -538,17 +625,22 @@ core/resource/
 ├── ResourceGrantType
 ├── ResourceServerAdmissionPolicy
 ├── UserResourceAccessPolicy
+├── ClientCredentialsAccessPolicy
 └── ResourceServerFacade
 
 core/port/
 ├── ResourceServerStore
 ├── ClientCredentialStore
-├── ResourceAccessAuthorizationPort
+├── UserResourceAccessAuthorizationPort
 └── ResourceServerRuntimePort
 ```
 
 `ResourceServerAdmissionPolicy` 使用领域服务集中表达状态、业务域、应用、环境、凭证和重放约束。
 它是 Specification 风格的显式策略对象，但不拆成大量单条件类，避免过度设计。
+
+`UserResourceAccessPolicy` 通过 `UserResourceAccessAuthorizationPort` 调用 RBAC3；
+`ClientCredentialsAccessPolicy` 只读取 IdP 的 Client、Resource 和 Service Grant。两类主体
+采用两个清晰的策略对象隔离规则，不引入可插拔 Strategy 工厂，因为当前不存在第三种授权路径。
 
 第一期只有 `private_key_jwt`，不引入认证 Strategy 层。以后确实增加 mTLS 时，再将
 Client Assertion 与 mTLS 抽成并列认证策略。
@@ -577,11 +669,11 @@ IdP 模块现有中英双语 Javadoc 要求。
 
 | 模块 | 改造内容 |
 |---|---|
-| `idp-starter` | 启动 Admission Client、精确 Resource 校验、USER/SERVICE Token 识别、Resource 状态读取 |
+| `idp-starter` | 启动 Admission Client、精确 Resource 校验、USER/SERVICE Token 识别、Resource 状态读取和 SERVICE Scope 提取 |
 | `idp-gateway-adapter` | 路由 `bizCode + appCode + env -> resourceUri` 解析、单 Audience 校验、USER/SERVICE Principal 映射 |
-| `idp-admin` OAuth | `resource` 参数、Confidential Client、`private_key_jwt`、`client_credentials`、RFC 9068 Token |
-| `rbac3-admin` | 用户 Resource Access Decision、Service Scope Decision 内部接口 |
-| `rbac3-starter` | 用户细粒度权限保持现有快照模式；补充 Service Principal 权限入口 |
+| `idp-admin` OAuth | `resource` 参数、Confidential Client、`private_key_jwt`、Service Access Grant、`client_credentials`、RFC 9068 Token |
+| `rbac3-admin` | 只提供用户 Resource Access Decision 内部接口 |
+| `rbac3-starter` | 只负责 USER Principal 的用户细粒度权限快照和判断，不处理 SERVICE Principal |
 | DDC Starter/Admin | Admission Ticket 获取、注册携带、验证、续签、禁用事件撤租 |
 | Gateway Engine | 只使用已认证 DDC 实例；把路由 `bizCode + appCode + env` 传给 Resource Audience Resolver |
 
@@ -593,8 +685,10 @@ IdP 模块现有中英双语 Javadoc 要求。
 |---|---|
 | Resource 不存在、禁用或 Client 未绑定 | `invalid_target` |
 | 用户缺少应用入口权限 | `access_denied` |
-| RBAC3 暂时不可用 | `temporarily_unavailable` |
+| RBAC3 暂时不可用，仅影响用户授权 | `temporarily_unavailable` |
 | Client Assertion 无效、过期、重放 | `invalid_client` |
+| Client 不允许使用 `client_credentials` | `unauthorized_client` |
+| Client 没有目标 Resource 和租户的 Service Grant | `invalid_target` |
 | Client Credentials Scope 越权 | `invalid_scope` |
 | Refresh 时 Resource、Grant 或用户授权失效 | `invalid_grant` |
 
@@ -628,10 +722,11 @@ DDC_RESOURCE_ADMISSION_BINDING_MISMATCH
 4. 只接受显式配置的非对称签名算法，拒绝 `none` 和算法降级。
 5. 公钥按 `kid` 轮换；禁用或过期密钥立即不能签发新 Ticket/Token。
 6. 私钥文件必须使用绝对路径和 owner-only 权限，不允许写入普通配置或日志。
-7. 除本机测试外，Admission、Token 和 RBAC3 内部调用必须使用 HTTPS。
-8. Resource、Client Grant、用户入口权限和服务 Scope 任一检查失败都必须 Fail Closed。
+7. 除本机测试外，Admission、Token 和用户授权所需的 RBAC3 内部调用必须使用 HTTPS。
+8. Resource、Client Grant、用户入口权限和 IdP Service Grant 任一检查失败都必须 Fail Closed。
 9. Gateway 和下游必须清理客户端伪造的 `X-Egon-*` 受信身份头。
-10. 用户 Token 不携带角色和权限；服务 Token Scope 必须是 RBAC3 已授权集合的子集。
+10. 用户 Token 不携带角色和权限；服务 Token Scope 必须是 IdP Service Grant 的允许集合子集。
+11. RBAC3 不保存或判断 Service Principal、Service Permission 和 Service Scope。
 
 ## 15. 验收矩阵
 
@@ -661,8 +756,9 @@ DDC_RESOURCE_ADMISSION_BINDING_MISMATCH
 1. 有效 Confidential Client 可用 `private_key_jwt` 获取单 Resource、单租户服务 Token。
 2. 未授权目标 Resource、租户或 Scope 均拒绝签发。
 3. Service Token 不包含 Refresh Token。
-4. Service Token 调用错误 Resource 返回 `401`，缺少目标操作 Scope/Permission 返回 `403`。
-5. Resource、Client、密钥或 Service Permission 禁用后不能获得新 Token。
+4. Service Token 调用错误 Resource 返回 `401`，缺少目标操作 Scope 返回 `403`。
+5. Resource、Client、密钥或 IdP Service Grant 禁用后不能获得新 Token。
+6. Client Credentials 签发和 SERVICE Token 请求鉴权全链路不调用 RBAC3。
 
 ### 15.4 工程验证
 
@@ -670,7 +766,7 @@ DDC_RESOURCE_ADMISSION_BINDING_MISMATCH
 2. IdP Core 的 Resource、Grant、Admission、User Access 和 Client Credentials 单元测试通过。
 3. IdP Starter 与 Gateway Adapter 的 Fail-Closed 安全矩阵通过。
 4. DDC CONFIG_CLIENT、HTTP Provider 和 RPC Provider 注册认证测试通过。
-5. RBAC3 用户入口决策和服务权限决策测试通过。
+5. RBAC3 用户入口决策测试以及 IdP Service Grant/Scope 决策测试通过。
 6. 相关 Maven 模块定向编译和测试通过。
 7. 不自动启动完整项目；运行态联调由用户在实施完成后发起。
 
@@ -680,9 +776,9 @@ DDC_RESOURCE_ADMISSION_BINDING_MISMATCH
 
 1. IdP Resource/Grant/凭证领域模型和 V2 数据库迁移；
 2. IdP Admin Resource 管理 API、公钥轮换和运行态投影；
-3. RBAC3 用户 Resource Access 与 Service Permission 决策接口；
+3. RBAC3 用户 Resource Access Decision 接口；
 4. OAuth `resource`、用户双闸门、RFC 9068 Token 改造；
-5. Confidential Client、`private_key_jwt` 和 `client_credentials`；
+5. IdP Service Access Grant、Confidential Client、`private_key_jwt` 和 `client_credentials`；
 6. Admission Endpoint 与 IdP Starter 启动认证；
 7. DDC 注册、心跳、事件撤租的 Admission 集成；
 8. Gateway 和下游精确 Resource 校验、USER/SERVICE 主体处理；
@@ -699,6 +795,7 @@ DDC_RESOURCE_ADMISSION_BINDING_MISMATCH
 - mTLS、SPIFFE/SPIRE 或 Kubernetes Workload Identity；
 - 多 Resource/Multi-Audience Access Token；
 - 用户角色和权限写入 Access Token；
+- RBAC3 Service Principal、Service Permission 和 Service Scope；
 - Opaque Token 和每请求 Token Introspection；
 - `tid=*` 的跨租户 Service Token；
 - 生产环境双栈兼容旧 `audience` 请求和配置。
