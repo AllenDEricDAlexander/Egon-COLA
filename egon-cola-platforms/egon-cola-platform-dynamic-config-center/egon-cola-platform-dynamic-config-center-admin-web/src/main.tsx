@@ -6,6 +6,7 @@ import 'antd/dist/reset.css'
 import { AdminThemeProvider, injectTokens, initI18n, I18nProvider } from '@egon-cola/admin-web-shared'
 import App from './App'
 import { queryClient } from './query/queryClient'
+import './styles/admin.css'
 
 injectTokens()
 

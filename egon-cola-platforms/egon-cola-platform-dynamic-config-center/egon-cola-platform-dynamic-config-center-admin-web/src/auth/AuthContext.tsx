@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import {
   createOAuthClient,
   createTokenStore,
+  decodeTokenPayload,
   type OAuthClient,
 } from '@egon-cola/admin-web-shared'
 import { setDdcTokenProvider, setDdcUnauthorizedHandler } from '../api/client'
@@ -38,6 +39,7 @@ const subscribeToken = (fn: () => void): (() => void) => tokenStore.subscribe(()
 
 type AuthContextValue = {
   token: string
+  readonly identity: string
   loading: boolean
   error?: string
   login: (tenantId: string, returnTo?: string) => Promise<void>
@@ -46,10 +48,27 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+export const identityFromToken = (token: string): string => {
+  if (!token) return ''
+  try {
+    const claims = decodeTokenPayload(token)
+    return [
+      claims.displayName,
+      claims.name,
+      claims.preferred_username,
+      claims.sub,
+    ].find((value): value is string =>
+      typeof value === 'string' && value.trim() !== '') ?? ''
+  } catch {
+    return ''
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>()
+  const identity = useMemo(() => identityFromToken(token), [token])
 
   const clearSession = useCallback(() => {
     tokenStore.clear()
@@ -106,8 +125,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(
-    () => ({ token, loading, error, login, logout }),
-    [error, loading, login, logout, token],
+    () => ({ token, identity, loading, error, login, logout }),
+    [error, identity, loading, login, logout, token],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

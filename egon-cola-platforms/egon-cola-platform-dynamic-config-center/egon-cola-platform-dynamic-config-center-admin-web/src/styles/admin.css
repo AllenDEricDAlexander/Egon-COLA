@@ -1,0 +1,27 @@
+.ddc-admin-layout,
+.ddc-admin-main,
+.ddc-admin-content {
+  min-width: 0;
+}
+
+.ddc-admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.ddc-admin-content {
+  padding: 24px;
+  overflow-x: hidden;
+}
+
+.ddc-admin-table-card .ant-card-body {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+@media (max-width: 767px) {
+  .ddc-admin-content {
+    padding: 12px;
+  }
+}
