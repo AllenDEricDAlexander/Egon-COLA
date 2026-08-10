@@ -1,8 +1,8 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { App } from 'antd'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { setDdcTokenProvider, setDdcUnauthorizedHandler } from '../api/client'
 import type { DdcConfig } from '../api/types'
+import { renderWithQueryClient } from '../test/renderWithQueryClient'
 import ConfigEditorDialog from './ConfigEditorDialog'
 
 vi.mock('../components/scope/ScopeSelects', () => ({
@@ -49,16 +49,14 @@ describe('ConfigEditorDialog', () => {
       return Promise.resolve(jsonResponse(record(config)))
     })
 
-    render(
-      <App>
-        <ConfigEditorDialog
-          open
-          config={null}
-          defaultScope={{ bizCode: '', namespaceCode: '', env: '', appCode: '' }}
-          onClose={() => {}}
-          onSaved={onSaved}
-        />
-      </App>,
+    renderWithQueryClient(
+      <ConfigEditorDialog
+        open
+        config={null}
+        defaultScope={{ bizCode: '', namespaceCode: '', env: '', appCode: '' }}
+        onClose={() => {}}
+        onSaved={onSaved}
+      />,
     )
 
     expect(await screen.findByText('新建 application.yml')).toBeInTheDocument()
@@ -85,16 +83,14 @@ describe('ConfigEditorDialog', () => {
     const onSaved = vi.fn()
     vi.mocked(fetch).mockResolvedValue(jsonResponse(record(config)))
 
-    render(
-      <App>
-        <ConfigEditorDialog
-          open
-          config={config}
-          defaultScope={{ bizCode: '', namespaceCode: '', env: '', appCode: '' }}
-          onClose={() => {}}
-          onSaved={onSaved}
-        />
-      </App>,
+    renderWithQueryClient(
+      <ConfigEditorDialog
+        open
+        config={config}
+        defaultScope={{ bizCode: '', namespaceCode: '', env: '', appCode: '' }}
+        onClose={() => {}}
+        onSaved={onSaved}
+      />,
     )
 
     const editor = await screen.findByLabelText('YAML 内容')
@@ -111,5 +107,21 @@ describe('ConfigEditorDialog', () => {
       changeReason: '关闭功能',
       currentVersion: 3,
     })
+  })
+
+  it('uses a viewport-safe width on narrow screens', async () => {
+    renderWithQueryClient(
+      <ConfigEditorDialog
+        open
+        config={config}
+        defaultScope={{ bizCode: '', namespaceCode: '', env: '', appCode: '' }}
+        onClose={() => {}}
+        onSaved={() => {}}
+      />,
+    )
+
+    await screen.findByText('编辑 application.yml')
+    expect(document.querySelector('.ant-modal'))
+      .toHaveStyle({ width: 'calc(100vw - 24px)' })
   })
 })

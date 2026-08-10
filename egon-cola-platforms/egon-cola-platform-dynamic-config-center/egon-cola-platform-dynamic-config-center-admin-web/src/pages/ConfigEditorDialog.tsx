@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { App, Form, Input, Modal, Space, Tag, Typography } from 'antd'
+import { useQueryClient } from '@tanstack/react-query'
+import { App, Form, Grid, Input, Modal, Space, Tag, Typography } from 'antd'
 import { ddcApi } from '../api/client'
 import type { DdcConfig, DdcNamespaceEnvAppBinding } from '../api/types'
 import ScopeSelects, { type ScopeValue } from '../components/scope/ScopeSelects'
+import { scopeOptionQueryKey } from '../components/scope/useScopeOptions'
 
 export type ConfigScope = ScopeValue
 
@@ -38,6 +40,8 @@ const ensureBinding = async (scope: ConfigScope) => {
 export default function ConfigEditorDialog({ open, config, defaultScope, onClose, onSaved }: Props) {
   const [form] = Form.useForm<FormValues>()
   const { message } = App.useApp()
+  const screens = Grid.useBreakpoint()
+  const queryClient = useQueryClient()
   const [scope, setScope] = useState<ConfigScope>(defaultScope)
   const [saving, setSaving] = useState(false)
   const editing = Boolean(config?.id)
@@ -102,6 +106,8 @@ export default function ConfigEditorDialog({ open, config, defaultScope, onClose
           },
         })
       }
+      await queryClient.invalidateQueries({ queryKey: ['ddc', 'configs'] })
+      await queryClient.invalidateQueries({ queryKey: scopeOptionQueryKey })
       message.success('配置已保存')
       onSaved()
     } catch (error) {
@@ -120,7 +126,14 @@ export default function ConfigEditorDialog({ open, config, defaultScope, onClose
       okText="保存"
       confirmLoading={saving}
       destroyOnHidden
-      width={860}
+      width={screens.md ? 860 : 'calc(100vw - 24px)'}
+      styles={{
+        body: {
+          maxHeight: 'calc(100vh - 180px)',
+          overflowX: 'hidden',
+          overflowY: 'auto',
+        },
+      }}
     >
       <Form<FormValues> form={form} layout="vertical">
         <Form.Item label="业务域 / 命名空间 / 环境 / 应用" required shouldUpdate>
