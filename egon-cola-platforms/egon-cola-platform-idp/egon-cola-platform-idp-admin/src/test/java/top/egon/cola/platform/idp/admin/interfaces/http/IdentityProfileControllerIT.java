@@ -10,9 +10,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.platform.idp.admin.audit.domain.IdentityAuditLogEntity;
 import top.egon.cola.platform.idp.admin.audit.infrastructure.IdentityAuditLogRepository;
-import top.egon.cola.platform.idp.admin.security.IdpAdminAuthenticationToken;
-import top.egon.cola.platform.idp.admin.security.IdpAdminAuthorizationPort;
-import top.egon.cola.platform.idp.admin.security.IdpAdminSecurityConfiguration;
+import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthenticationToken;
+import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthorizationPort;
+import top.egon.cola.platform.idp.admin.support.security.IdpSecurityConfig;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 
 import java.time.Instant;
@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         IdentityAuditController.class,
         IdentityProfileController.class
 })
-@Import(IdpAdminSecurityConfiguration.class)
+@Import(IdpSecurityConfig.class)
 class IdentityProfileControllerIT {
 
     @Autowired

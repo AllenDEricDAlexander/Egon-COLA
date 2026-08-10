@@ -10,7 +10,8 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdpSsoSessionStore;
-import top.egon.cola.platform.idp.admin.security.IdpAdminSecurityConfiguration;
+import top.egon.cola.platform.idp.admin.support.security.IdpSecurityConfig;
+import top.egon.cola.platform.idp.admin.support.web.IdpHttpExceptionHandler;
 import top.egon.cola.platform.idp.core.identity.AuthenticatedIdentity;
 import top.egon.cola.platform.idp.core.identity.IdentityFacade;
 
@@ -38,7 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         properties = "egon.idp.oauth.allowed-origins="
                 + "http://127.0.0.1:18121,http://127.0.0.1:18152"
 )
-@Import({IdpAdminSecurityConfiguration.class, IdpHttpExceptionHandler.class})
+@Import({IdpSecurityConfig.class, IdpHttpExceptionHandler.class})
 class IdpSsoLoginControllerIT {
 
     private static final String DDC_ADMIN_ORIGIN =

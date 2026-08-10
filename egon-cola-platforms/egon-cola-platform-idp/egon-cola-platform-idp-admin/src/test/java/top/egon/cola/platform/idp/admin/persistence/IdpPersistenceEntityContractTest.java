@@ -5,7 +5,7 @@ import top.egon.cola.platform.idp.admin.audit.domain.IdentityAuditLogEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.IdentityClientAudienceEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.IdentityClientEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.IdentityClientRedirectUriEntity;
-import top.egon.cola.platform.idp.admin.outbox.domain.IdentityOutboxEventEntity;
+import top.egon.cola.platform.idp.admin.support.outbox.domain.pojo.IdentityOutboxEventEntity;
 import top.egon.cola.platform.idp.admin.token.domain.IdentitySigningKeyEntity;
 
 import java.time.Instant;

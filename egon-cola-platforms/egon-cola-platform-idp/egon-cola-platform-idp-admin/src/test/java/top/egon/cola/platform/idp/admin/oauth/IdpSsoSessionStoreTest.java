@@ -12,8 +12,8 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdpSsoSessionStore;
-import top.egon.cola.platform.idp.admin.security.IdpAuthorizationAuthenticationEntryPoint;
-import top.egon.cola.platform.idp.admin.security.IdpSsoAuthenticationFilter;
+import top.egon.cola.platform.idp.admin.support.security.IdpAuthorizationAuthenticationEntryPoint;
+import top.egon.cola.platform.idp.admin.support.security.IdpSsoAuthenticationFilter;
 
 import java.security.SecureRandom;
 import java.time.Duration;

@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.idp.admin.security.IdpAdminAuthorizationPort;
+import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthorizationPort;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 
 import java.util.Objects;

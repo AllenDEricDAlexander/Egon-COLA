@@ -12,7 +12,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationFacade;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationRequest;
 import top.egon.cola.platform.idp.core.oauth.OAuthException;
-import top.egon.cola.platform.idp.admin.security.IdpSsoPrincipal;
+import top.egon.cola.platform.idp.admin.support.security.IdpSsoPrincipal;
 
 import java.net.URI;
 import java.security.Principal;

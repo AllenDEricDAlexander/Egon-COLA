@@ -12,7 +12,7 @@ import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.client.RestClient;
-import top.egon.cola.platform.idp.admin.integration.rbac3.HttpTenantMembershipAdapter;
+import top.egon.cola.platform.idp.admin.support.rbac3.HttpTenantMembershipAdapter;
 import top.egon.cola.platform.idp.admin.interfaces.http.OAuthAuthorizationController;
 import top.egon.cola.platform.idp.admin.oauth.domain.IdentityClientAudienceEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.IdentityClientEntity;
@@ -22,7 +22,7 @@ import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientRedir
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdentityClientRepository;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.JpaOAuthClientStore;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.RedisAuthorizationCodeStore;
-import top.egon.cola.platform.idp.admin.security.IdpSsoPrincipal;
+import top.egon.cola.platform.idp.admin.support.security.IdpSsoPrincipal;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationCode;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationFacade;
 import top.egon.cola.platform.idp.core.oauth.OAuthClient;

@@ -9,8 +9,8 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.platform.idp.admin.identity.application.IdentityUserAdminService;
-import top.egon.cola.platform.idp.admin.security.IdpAdminAuthorizationPort;
-import top.egon.cola.platform.idp.admin.security.IdpAdminSecurityConfiguration;
+import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthorizationPort;
+import top.egon.cola.platform.idp.admin.support.security.IdpSecurityConfig;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 
 import java.time.Instant;
@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(IdentityUserController.class)
-@Import(IdpAdminSecurityConfiguration.class)
+@Import(IdpSecurityConfig.class)
 class IdpAdminSecurityIT {
 
     @Autowired
@@ -133,7 +133,7 @@ class IdpAdminSecurityIT {
     }
 
     private org.springframework.test.web.servlet.request.RequestPostProcessor identityJwt() {
-        return authentication(new top.egon.cola.platform.idp.admin.security
+        return authentication(new top.egon.cola.platform.idp.admin.support.security
                 .IdpAdminAuthenticationToken(new IdentityPrincipal(
                 "admin-sub",
                 "tenant-a",

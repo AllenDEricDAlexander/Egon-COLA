@@ -19,9 +19,9 @@ import top.egon.cola.platform.idp.core.oauth.OAuthException;
 import top.egon.cola.platform.idp.core.port.OAuthClientStore;
 import top.egon.cola.platform.idp.core.token.TokenException;
 import top.egon.cola.platform.idp.core.token.TokenFacade;
-import top.egon.cola.platform.idp.admin.integration.ddc.IdpRuntimePolicy;
+import top.egon.cola.platform.idp.admin.support.ddc.IdpRuntimePolicy;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdpSsoSessionStore;
-import top.egon.cola.platform.idp.admin.security.IdpSsoAuthenticationFilter;
+import top.egon.cola.platform.idp.admin.support.security.IdpSsoAuthenticationFilter;
 
 import java.security.Principal;
 import java.time.Clock;

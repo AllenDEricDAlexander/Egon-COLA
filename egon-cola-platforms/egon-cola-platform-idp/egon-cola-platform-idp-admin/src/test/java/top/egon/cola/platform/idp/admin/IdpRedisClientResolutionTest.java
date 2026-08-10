@@ -6,7 +6,7 @@ import org.springframework.beans.factory.config.DependencyDescriptor;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.MethodParameter;
-import top.egon.cola.platform.idp.admin.integration.runtime.IdpPlatformConfiguration;
+import top.egon.cola.platform.idp.admin.support.runtime.IdpPlatformConfiguration;
 import top.egon.cola.platform.idp.admin.oauth.configuration.IdpOAuthConfiguration;
 import top.egon.cola.platform.idp.admin.token.configuration.IdpTokenConfiguration;
 

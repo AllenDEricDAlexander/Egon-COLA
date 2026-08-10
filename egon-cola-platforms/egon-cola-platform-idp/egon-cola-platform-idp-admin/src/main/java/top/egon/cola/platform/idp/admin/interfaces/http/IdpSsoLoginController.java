@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.platform.idp.admin.oauth.infrastructure.IdpSsoSessionStore;
-import top.egon.cola.platform.idp.admin.security.IdpSsoAuthenticationFilter;
+import top.egon.cola.platform.idp.admin.support.security.IdpSsoAuthenticationFilter;
 import top.egon.cola.platform.idp.core.identity.AuthenticatedIdentity;
 import top.egon.cola.platform.idp.core.identity.IdentityException;
 import top.egon.cola.platform.idp.core.identity.IdentityFacade;

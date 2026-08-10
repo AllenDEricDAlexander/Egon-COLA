@@ -23,7 +23,7 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.idp.admin.oauth.application.OAuthClientAdminService;
 import top.egon.cola.platform.idp.admin.oauth.domain.IdentityClientEntity;
-import top.egon.cola.platform.idp.admin.security.IdpAdminAuthorizationPort;
+import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthorizationPort;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 
 import java.util.List;
