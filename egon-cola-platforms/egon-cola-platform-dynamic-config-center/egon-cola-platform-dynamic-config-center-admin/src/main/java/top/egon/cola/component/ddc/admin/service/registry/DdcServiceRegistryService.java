@@ -81,7 +81,11 @@ public class DdcServiceRegistryService {
                 now,
                 session.leaseExpireAt(),
                 "ONLINE",
-                0L
+                0L,
+                null,
+                null,
+                null,
+                null
         ));
         return session;
     }

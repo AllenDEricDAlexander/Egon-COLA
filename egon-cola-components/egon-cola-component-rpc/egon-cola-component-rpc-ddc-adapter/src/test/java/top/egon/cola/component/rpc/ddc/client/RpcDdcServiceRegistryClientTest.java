@@ -68,7 +68,7 @@ class RpcDdcServiceRegistryClientTest {
         });
 
         assertThat(client.register(registration(key))).isEqualTo(session);
-        assertThat(client.heartbeat("instance-1", "lease-1").renewed()).isTrue();
+        assertThat(client.heartbeat(lease(key())).renewed()).isTrue();
         assertThat(client.getInstances(key).revision()).isEqualTo(7);
         assertThat(client.getServiceKeys(query).revision()).isEqualTo(8);
         client.subscribe(key, ignored -> { }).close();
@@ -78,7 +78,8 @@ class RpcDdcServiceRegistryClientTest {
 
         verify(rpc).heartbeatService(argThat(request ->
                 request.getServiceKey().getServiceKind()
-                        == top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcServiceKind.DDC_SERVICE_KIND_RPC_PROVIDER));
+                        == top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcServiceKind.DDC_SERVICE_KIND_RPC_PROVIDER
+                        && request.getAdmissionTicket().equals("service-heartbeat-ticket")));
     }
 
     @Test
@@ -110,9 +111,9 @@ class RpcDdcServiceRegistryClientTest {
         client.register(registration(key()));
         assertThat(client.deregister("instance-1", "lease-1").status())
                 .isEqualTo(DdcLeaseOperationStatus.NOT_DELETED);
-        assertThat(client.heartbeat("instance-1", "lease-1").status())
+        assertThat(client.heartbeat(lease(key())).status())
                 .isEqualTo(DdcLeaseOperationStatus.NOT_FOUND);
-        assertThatThrownBy(() -> client.heartbeat("instance-1", "lease-1"))
+        assertThatThrownBy(() -> client.heartbeat(lease(key())))
                 .isInstanceOf(top.egon.cola.component.ddc.error.DdcException.class);
         verify(rpc, times(1)).heartbeatService(any());
     }
@@ -126,6 +127,16 @@ class RpcDdcServiceRegistryClientTest {
             top.egon.cola.component.ddc.model.registry.DdcServiceKey key) {
         return new DdcServiceRegistration(
                 "instance-1", key, "127.0.0.1", 19090, false,
-                Map.of("zone", "a"), 30, 10);
+                Map.of("zone", "a"), 30, 10, "service-register-ticket");
+    }
+
+    private DdcServiceLeaseRequest lease(
+            top.egon.cola.component.ddc.model.registry.DdcServiceKey key) {
+        DdcServiceLeaseRequest request = new DdcServiceLeaseRequest();
+        request.setServiceKey(key);
+        request.setInstanceId("instance-1");
+        request.setLeaseId("lease-1");
+        request.setAdmissionTicket("service-heartbeat-ticket");
+        return request;
     }
 }

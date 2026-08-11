@@ -24,6 +24,10 @@ import java.util.Map;
  * @param leaseExpireAt            租约到期时间 / lease expiration time
  * @param status                   实例状态的线协议值 / wire value of the instance status
  * @param revision                 实例记录修订号 / instance record revision
+ * @param resourceServerId         准入 Resource Server 标识 / admitted Resource Server identifier
+ * @param resourceVersion          准入时的 Resource 版本 / Resource version at admission
+ * @param credentialId             签发准入所用凭据标识 / credential identifier used for admission
+ * @param admissionExpiresAt       准入票据到期时间 / admission-ticket expiration time
  */
 public record DdcServiceInstance(
         String instanceId,
@@ -39,7 +43,11 @@ public record DdcServiceInstance(
         Instant lastHeartbeatAt,
         Instant leaseExpireAt,
         String status,
-        long revision
+        long revision,
+        @Nullable String resourceServerId,
+        @Nullable Long resourceVersion,
+        @Nullable String credentialId,
+        @Nullable Instant admissionExpiresAt
 ) implements Comparable<DdcServiceInstance> {
 
     /**
@@ -60,6 +68,21 @@ public record DdcServiceInstance(
             throw new IllegalArgumentException("serviceKey is required");
         }
         metadata = DdcServiceRegistration.validatedMetadata(metadata);
+        boolean hasAdmissionAudit = resourceServerId != null
+                || resourceVersion != null
+                || credentialId != null
+                || admissionExpiresAt != null;
+        if (hasAdmissionAudit && (resourceServerId == null
+                || resourceServerId.isBlank()
+                || resourceVersion == null
+                || resourceVersion <= 0
+                || credentialId == null
+                || credentialId.isBlank()
+                || admissionExpiresAt == null)) {
+            throw new IllegalArgumentException(
+                    "complete admission audit fields are required"
+            );
+        }
     }
 
     /**

@@ -24,6 +24,12 @@ public class DdcServiceLeaseRequest {
     private String leaseId;
 
     /**
+     * 仅用于心跳验证的 IdP 短期准入票据。
+     * / Short-lived IdP admission ticket used only for heartbeat validation.
+     */
+    private String admissionTicket;
+
+    /**
      * 返回租约所属服务键。 / Returns the service key that owns the lease.
      *
      * @return 服务键 / service key
@@ -75,5 +81,37 @@ public class DdcServiceLeaseRequest {
      */
     public void setLeaseId(String leaseId) {
         this.leaseId = leaseId;
+    }
+
+    /**
+     * 返回心跳准入票据。 / Returns the heartbeat admission ticket.
+     *
+     * @return 原始准入 JWT / raw admission JWT
+     */
+    public String getAdmissionTicket() {
+        return admissionTicket;
+    }
+
+    /**
+     * 设置心跳准入票据。 / Sets the heartbeat admission ticket.
+     *
+     * @param admissionTicket 原始准入 JWT / raw admission JWT
+     */
+    public void setAdmissionTicket(String admissionTicket) {
+        this.admissionTicket = admissionTicket;
+    }
+
+    /**
+     * 返回不会泄漏原始准入 JWT 的租约诊断文本。
+     * / Returns lease diagnostic text that never exposes the raw admission JWT.
+     *
+     * @return 已脱敏租约摘要 / redacted lease summary
+     */
+    @Override
+    public String toString() {
+        return "DdcServiceLeaseRequest[serviceKey=" + serviceKey
+                + ", instanceId=" + instanceId
+                + ", leaseId=" + leaseId
+                + ", admissionTicket=<redacted>]";
     }
 }

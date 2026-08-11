@@ -36,6 +36,7 @@ class DdcConfigProtoMapperTest {
         registration.setLeaseSeconds(30);
         registration.setHeartbeatIntervalSeconds(10);
         registration.setMetadata(Map.of("zone", "east"));
+        registration.setAdmissionTicket("config-register-ticket");
 
         DdcInstanceRegisterRequest restored = mapper.fromRegisterRequest(
                 mapper.toRegisterRequest(registration));
@@ -54,6 +55,7 @@ class DdcConfigProtoMapperTest {
         heartbeat.setPid("21");
         heartbeat.setSdkVersion("5.3.3");
         heartbeat.setMetadata(Map.of("zone", "east"));
+        heartbeat.setAdmissionTicket("config-heartbeat-ticket");
 
         assertThat(mapper.fromHeartbeatRequest(
                 mapper.toHeartbeatRequest(heartbeat)))
@@ -69,6 +71,13 @@ class DdcConfigProtoMapperTest {
                         DdcHeartbeatRequest::getAppCode
                 ).containsExactly(
                         "instance-1", "lease-1", "retail", "prod", "order");
+
+        assertThat(mapper.toRegisterRequest(registration).getAdmissionTicket())
+                .isEqualTo("config-register-ticket");
+        assertThat(mapper.toHeartbeatRequest(heartbeat).getAdmissionTicket())
+                .isEqualTo("config-heartbeat-ticket");
+        assertThat(mapper.toOfflineRequest(heartbeat).getAllFields().keySet())
+                .noneMatch(field -> field.getName().equals("admission_ticket"));
     }
 
     @Test
@@ -140,6 +149,7 @@ class DdcConfigProtoMapperTest {
         excessiveMetadata.setSdkVersion("1.0");
         excessiveMetadata.setLeaseSeconds(30);
         excessiveMetadata.setHeartbeatIntervalSeconds(10);
+        excessiveMetadata.setAdmissionTicket("config-register-ticket");
         java.util.LinkedHashMap<String, String> metadata = new java.util.LinkedHashMap<>();
         for (int index = 0; index < 33; index++) {
             metadata.put("key-" + index, "value");

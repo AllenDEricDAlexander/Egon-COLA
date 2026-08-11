@@ -6,6 +6,7 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
@@ -13,9 +14,12 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
+import top.egon.cola.component.ddc.model.admission.DdcAdmissionTicket;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 
 import java.time.Instant;
+import java.net.URI;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -86,7 +90,8 @@ class RpcGatewaySlotRuntimeTest {
         RpcGatewaySlotRuntime runtime = new RpcGatewaySlotRuntime(
                 registry,
                 serviceKeyFactory(),
-                properties(3, 1)
+                properties(3, 1),
+                admissionTickets()
         );
         runtime.listenerStarted(19090);
         runtime.engineReady();
@@ -114,7 +119,8 @@ class RpcGatewaySlotRuntimeTest {
         RpcGatewaySlotRuntime runtime = new RpcGatewaySlotRuntime(
                 registry,
                 serviceKeyFactory(),
-                properties(3, 1)
+                properties(3, 1),
+                admissionTickets()
         );
         runtime.listenerStarted(19090);
 
@@ -136,7 +142,8 @@ class RpcGatewaySlotRuntimeTest {
         RpcGatewaySlotRuntime runtime = new RpcGatewaySlotRuntime(
                 registry,
                 serviceKeyFactory(),
-                properties()
+                properties(),
+                admissionTickets()
         );
 
         runtime.listenerStarted(19090);
@@ -175,7 +182,8 @@ class RpcGatewaySlotRuntimeTest {
         RpcGatewaySlotRuntime runtime = new RpcGatewaySlotRuntime(
                 registry,
                 serviceKeyFactory(),
-                properties()
+                properties(),
+                admissionTickets()
         );
         runtime.listenerStarted(19090);
         runtime.engineReady();
@@ -193,6 +201,22 @@ class RpcGatewaySlotRuntimeTest {
         properties.setEnv("local");
         properties.setNamespace("default");
         return new DdcServiceKeyFactory(properties);
+    }
+
+    private DdcAdmissionTicketSupplier admissionTickets() {
+        return (bizCode, appCode, environment, instanceId) ->
+                new DdcAdmissionTicket(
+                        "test-admission-ticket",
+                        Instant.parse("2099-01-01T00:00:00Z"),
+                        "resource-test",
+                        URI.create("urn:egon:resource:test"),
+                        1L,
+                        bizCode,
+                        appCode,
+                        environment,
+                        instanceId,
+                        "kid-test"
+                );
     }
 
     private RpcGatewaySlotProperties properties(
@@ -260,8 +284,7 @@ class RpcGatewaySlotRuntimeTest {
 
         @Override
         public DdcLeaseOperationResult heartbeat(
-                String instanceId,
-                String leaseId) {
+                DdcServiceLeaseRequest request) {
             if (heartbeatFailures.getAndUpdate(
                     failures -> Math.max(0, failures - 1)
             ) > 0) {

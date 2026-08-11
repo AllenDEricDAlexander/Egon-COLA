@@ -9,6 +9,7 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,6 +28,10 @@ class DdcRegistryAutoConfigurationTest {
                     .withPropertyValues(
                             "egon.cola.component.ddc.enabled=false",
                             "egon.cola.component.ddc.registry.enabled=true"
+                    )
+                    .withBean(
+                            DdcAdmissionTicketSupplier.class,
+                            () -> mock(DdcAdmissionTicketSupplier.class)
                     );
 
     @Test
@@ -127,6 +132,10 @@ class DdcRegistryAutoConfigurationTest {
                 .withBean(
                         DdcConfigClient.class,
                         () -> mock(DdcConfigClient.class)
+                )
+                .withBean(
+                        DdcAdmissionTicketSupplier.class,
+                        () -> mock(DdcAdmissionTicketSupplier.class)
                 )
                 .run(context -> {
                     assertThat(context).hasSingleBean(DdcConfigClient.class);

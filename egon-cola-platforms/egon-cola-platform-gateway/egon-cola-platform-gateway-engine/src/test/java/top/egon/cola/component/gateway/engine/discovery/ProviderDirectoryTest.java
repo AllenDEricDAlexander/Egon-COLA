@@ -5,6 +5,7 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
 import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
@@ -145,7 +146,11 @@ class ProviderDirectoryTest {
                 leaseExpireAt.minusSeconds(10),
                 leaseExpireAt,
                 status,
-                1
+                1,
+                null,
+                null,
+                null,
+                null
         );
     }
 
@@ -250,8 +255,7 @@ class ProviderDirectoryTest {
 
         @Override
         public DdcLeaseOperationResult heartbeat(
-                String instanceId,
-                String leaseId) {
+                DdcServiceLeaseRequest request) {
             throw new UnsupportedOperationException();
         }
 

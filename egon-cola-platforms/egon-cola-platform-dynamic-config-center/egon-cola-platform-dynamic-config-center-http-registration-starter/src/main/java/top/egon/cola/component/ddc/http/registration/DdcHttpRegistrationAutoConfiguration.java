@@ -16,6 +16,7 @@ import org.springframework.core.env.Environment;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 
 import java.util.LinkedHashMap;
@@ -34,6 +35,20 @@ import java.util.Map;
 )
 public class DdcHttpRegistrationAutoConfiguration {
 
+    /**
+     * 创建在 Web Server Ready 后执行准入注册的运行时。
+     * / Creates the runtime that performs admitted registration after the web server is ready.
+     *
+     * @param registry DDC 服务注册客户端 / DDC service-registry client
+     * @param serviceKeyFactory 服务键工厂 / service-key factory
+     * @param contributors HTTP 注册信息贡献器 / HTTP registration contributors
+     * @param properties HTTP 注册配置 / HTTP registration configuration
+     * @param ddcProperties DDC 物理作用域配置 / DDC physical-scope configuration
+     * @param ddcIdentity 可选 DDC 实例身份 / optional DDC instance identity
+     * @param environment Spring 环境 / Spring environment
+     * @param admissionTickets 准入票据端口 / admission-ticket port
+     * @return HTTP 注册运行时 / HTTP registration runtime
+     */
     @Bean(destroyMethod = "close")
     @ConditionalOnBean(DdcServiceRegistryClient.class)
     @ConditionalOnMissingBean(DdcHttpRegistrationRuntime.class)
@@ -44,7 +59,8 @@ public class DdcHttpRegistrationAutoConfiguration {
             DdcHttpRegistrationProperties properties,
             DdcProperties ddcProperties,
             ObjectProvider<DdcInstanceIdentity> ddcIdentity,
-            Environment environment) {
+            Environment environment,
+            DdcAdmissionTicketSupplier admissionTickets) {
         RegistrationContribution contribution = mergeContributions(
                 contributors
         );
@@ -62,7 +78,8 @@ public class DdcHttpRegistrationAutoConfiguration {
                         contribution.serviceVersion(),
                         contribution.metadata(),
                         0
-                )
+                ),
+                admissionTickets
         );
     }
 

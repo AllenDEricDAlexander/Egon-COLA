@@ -93,7 +93,9 @@ public class DdcServiceRegistryRedisRepository {
                     instance.host(), instance.port(), instance.secure(), instance.metadata(),
                     instance.leaseSeconds(), instance.heartbeatIntervalSeconds(),
                     instance.registeredAt(), heartbeatAt, leaseExpireAt,
-                    instance.status(), instance.revision()
+                    instance.status(), instance.revision(),
+                    instance.resourceServerId(), instance.resourceVersion(),
+                    instance.credentialId(), instance.admissionExpiresAt()
             );
             instanceBucket(serviceKey, request.getInstanceId()).set(
                     instanceJson(renewed, renewed.revision()),

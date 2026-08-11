@@ -67,6 +67,12 @@ public class DdcHeartbeatRequest {
      */
     private Map<String, String> metadata = Map.of();
 
+    /**
+     * IdP 签发且仅用于本次心跳验证的短期准入票据。
+     * / Short-lived IdP admission ticket used only to validate this heartbeat.
+     */
+    private String admissionTicket;
+
 
     /**
      * 返回实例标识。 / Returns the instance identifier.
@@ -289,5 +295,23 @@ public class DdcHeartbeatRequest {
      */
     public void setMetadata(@Nullable Map<String, String> metadata) {
         this.metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
+    }
+
+    /**
+     * 返回短期准入票据。 / Returns the short-lived admission ticket.
+     *
+     * @return 原始准入 JWT / raw admission JWT
+     */
+    public String getAdmissionTicket() {
+        return admissionTicket;
+    }
+
+    /**
+     * 设置短期准入票据。 / Sets the short-lived admission ticket.
+     *
+     * @param admissionTicket 原始准入 JWT / raw admission JWT
+     */
+    public void setAdmissionTicket(String admissionTicket) {
+        this.admissionTicket = admissionTicket;
     }
 }

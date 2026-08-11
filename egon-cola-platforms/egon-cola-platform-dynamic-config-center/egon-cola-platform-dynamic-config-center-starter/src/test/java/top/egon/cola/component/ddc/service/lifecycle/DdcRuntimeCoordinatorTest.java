@@ -18,9 +18,11 @@ import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
+import top.egon.cola.component.ddc.model.admission.DdcAdmissionTicket;
 import top.egon.cola.component.ddc.state.DdcLocalConfigState;
 import top.egon.cola.component.ddc.redis.DdcRedisTopicSubscription;
 
+import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -310,7 +312,25 @@ class DdcRuntimeCoordinatorTest {
                 "5.2.3"
         );
         DdcInstanceService instanceService =
-                new DdcInstanceService(properties, adminClient, identity, holder);
+                new DdcInstanceService(
+                        properties,
+                        adminClient,
+                        identity,
+                        holder,
+                        List.of(),
+                        (biz, app, env, instance) -> new DdcAdmissionTicket(
+                                "admission.jwt.value",
+                                Instant.parse("2026-08-10T00:05:00Z"),
+                                "resource-demo",
+                                URI.create("https://api.example/demo"),
+                                1L,
+                                biz,
+                                app,
+                                env,
+                                instance,
+                                "kid-test"
+                        )
+                );
         return new DdcRuntimeCoordinator(
                 properties,
                 instanceService,

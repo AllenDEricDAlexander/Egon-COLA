@@ -7,6 +7,10 @@ import top.egon.cola.component.rpc.contract.RpcContractValidator;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcConfigRuntimeServiceGrpc;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcManagementServiceGrpc;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcServiceRegistryServiceGrpc;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.HeartbeatConfigClientRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.HeartbeatServiceRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.RegisterConfigClientRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.RegisterServiceRequest;
 
 import java.util.List;
 
@@ -31,6 +35,18 @@ class DdcRpcContractDescriptorTest {
                 DdcManagementRpc.class,
                 DdcManagementServiceGrpc.getServiceDescriptor()
         );
+    }
+
+    @Test
+    void appendsAdmissionTicketWithoutRenumberingExistingFields() {
+        assertThat(RegisterConfigClientRequest.getDescriptor()
+                .findFieldByName("admission_ticket").getNumber()).isEqualTo(10);
+        assertThat(HeartbeatConfigClientRequest.getDescriptor()
+                .findFieldByName("admission_ticket").getNumber()).isEqualTo(9);
+        assertThat(RegisterServiceRequest.getDescriptor()
+                .findFieldByName("admission_ticket").getNumber()).isEqualTo(9);
+        assertThat(HeartbeatServiceRequest.getDescriptor()
+                .findFieldByName("admission_ticket").getNumber()).isEqualTo(4);
     }
 
     private void assertContract(

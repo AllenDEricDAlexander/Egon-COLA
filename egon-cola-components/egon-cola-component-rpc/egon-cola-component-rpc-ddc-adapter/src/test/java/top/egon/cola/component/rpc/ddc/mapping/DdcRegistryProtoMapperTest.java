@@ -34,7 +34,7 @@ class DdcRegistryProtoMapperTest {
         DdcServiceKey key = key(DdcServiceKind.RPC_PROVIDER);
         DdcServiceRegistration registration = new DdcServiceRegistration(
                 "instance-1", key, "10.0.0.1", 19080, true,
-                Map.of("zone", "east"), 30, 10);
+                Map.of("zone", "east"), 30, 10, "service-register-ticket");
         assertThat(mapper.fromRegisterRequest(mapper.toRegisterRequest(registration)))
                 .usingRecursiveComparison().isEqualTo(registration);
 
@@ -42,21 +42,33 @@ class DdcRegistryProtoMapperTest {
         lease.setServiceKey(key);
         lease.setInstanceId("instance-1");
         lease.setLeaseId("lease-1");
+        lease.setAdmissionTicket("service-heartbeat-ticket");
         assertThat(mapper.fromHeartbeatRequest(mapper.toHeartbeatRequest(lease)))
                 .usingRecursiveComparison().isEqualTo(lease);
         assertThat(mapper.fromDeregisterRequest(mapper.toDeregisterRequest(lease)))
-                .usingRecursiveComparison().isEqualTo(lease);
+                .usingRecursiveComparison()
+                .ignoringFields("admissionTicket")
+                .isEqualTo(lease);
 
         Instant now = Instant.parse("2026-08-09T08:00:00.123456Z");
         DdcServiceInstance instance = new DdcServiceInstance(
                 "instance-1", "lease-1", key, "10.0.0.1", 19080, true,
                 Map.of("zone", "east"), 30, 10, now, now, now.plusSeconds(30),
-                "ONLINE", 7L);
+                "ONLINE", 7L, "resource-order", 12L, "kid-2026",
+                now.plusSeconds(20));
         DdcServiceSnapshot snapshot = new DdcServiceSnapshot(
                 key, 9L, List.of(instance), now);
         assertThat(mapper.fromInstancesResponse(
                 mapper.toInstancesResponse(snapshot)))
                 .usingRecursiveComparison().isEqualTo(snapshot);
+        assertThat(mapper.toRegisterRequest(registration).getAdmissionTicket())
+                .isEqualTo("service-register-ticket");
+        assertThat(mapper.toHeartbeatRequest(lease).getAdmissionTicket())
+                .isEqualTo("service-heartbeat-ticket");
+        assertThat(mapper.toDeregisterRequest(lease).getAllFields().keySet())
+                .noneMatch(field -> field.getName().equals("admission_ticket"));
+        assertThat(mapper.toProto(instance).getDescriptorForType()
+                .findFieldByName("admission_ticket")).isNull();
 
         DdcServiceQuery query = new DdcServiceQuery(
                 "retail", "prod", "order", DdcServiceKind.RPC_PROVIDER,

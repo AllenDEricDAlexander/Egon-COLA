@@ -51,7 +51,9 @@ public final class DdcConfigProtoMapper {
                 .setLeaseSeconds(value.getLeaseSeconds())
                 .setHeartbeatIntervalSeconds(
                         value.getHeartbeatIntervalSeconds())
-                .putAllMetadata(common.validatedMetadata(value.getMetadata()));
+                .putAllMetadata(common.validatedMetadata(value.getMetadata()))
+                .setAdmissionTicket(DdcCommonProtoMapper.require(
+                        value.getAdmissionTicket(), "admissionTicket"));
         if (value.getPort() != null) {
             builder.setPort(value.getPort());
         }
@@ -74,6 +76,7 @@ public final class DdcConfigProtoMapper {
         result.setLeaseSeconds(value.getLeaseSeconds());
         result.setHeartbeatIntervalSeconds(value.getHeartbeatIntervalSeconds());
         result.setMetadata(common.validatedMetadata(value.getMetadataMap()));
+        result.setAdmissionTicket(value.getAdmissionTicket());
         return result;
     }
 
@@ -91,7 +94,9 @@ public final class DdcConfigProtoMapper {
                 .setPid(DdcCommonProtoMapper.require(value.getPid(), "pid"))
                 .setSdkVersion(DdcCommonProtoMapper.require(
                         value.getSdkVersion(), "sdkVersion"))
-                .putAllMetadata(common.validatedMetadata(value.getMetadata()));
+                .putAllMetadata(common.validatedMetadata(value.getMetadata()))
+                .setAdmissionTicket(DdcCommonProtoMapper.require(
+                        value.getAdmissionTicket(), "admissionTicket"));
         if (value.getPort() != null) {
             builder.setPort(value.getPort());
         }
@@ -114,6 +119,7 @@ public final class DdcConfigProtoMapper {
         result.setPid(value.getPid());
         result.setSdkVersion(value.getSdkVersion());
         result.setMetadata(common.validatedMetadata(value.getMetadataMap()));
+        result.setAdmissionTicket(value.getAdmissionTicket());
         return result;
     }
 

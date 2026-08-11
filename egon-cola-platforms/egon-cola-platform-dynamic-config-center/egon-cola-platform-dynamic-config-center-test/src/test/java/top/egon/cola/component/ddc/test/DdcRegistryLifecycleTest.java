@@ -6,6 +6,7 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
 import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
@@ -50,10 +51,13 @@ class DdcRegistryLifecycleTest {
         assertThat(snapshots.getLast().instances())
                 .extracting(DdcServiceInstance::instanceId)
                 .containsExactly(registration.instanceId());
-        assertThat(registry.heartbeat(
-                session.instanceId(),
-                session.leaseId()
-        ).status()).isEqualTo(DdcLeaseOperationStatus.RENEWED);
+        DdcServiceLeaseRequest heartbeat = new DdcServiceLeaseRequest();
+        heartbeat.setServiceKey(registration.serviceKey());
+        heartbeat.setInstanceId(session.instanceId());
+        heartbeat.setLeaseId(session.leaseId());
+        heartbeat.setAdmissionTicket("test-admission-ticket");
+        assertThat(registry.heartbeat(heartbeat).status())
+                .isEqualTo(DdcLeaseOperationStatus.RENEWED);
         assertThat(registry.deregister(
                 session.instanceId(),
                 session.leaseId()
@@ -86,7 +90,8 @@ class DdcRegistryLifecycleTest {
                 false,
                 Map.of("zone", "local"),
                 kind == DdcServiceKind.RPC_PROVIDER ? 30 : 15,
-                kind == DdcServiceKind.RPC_PROVIDER ? 10 : 5
+                kind == DdcServiceKind.RPC_PROVIDER ? 10 : 5,
+                "test-admission-ticket"
         );
     }
 
@@ -122,7 +127,11 @@ class DdcRegistryLifecycleTest {
                     NOW,
                     expiresAt,
                     "UP",
-                    ++revision
+                    ++revision,
+                    null,
+                    null,
+                    null,
+                    null
             );
             instances.put(registration.instanceId(), instance);
             notifyListeners(registration.serviceKey());
@@ -139,8 +148,9 @@ class DdcRegistryLifecycleTest {
 
         @Override
         public synchronized DdcLeaseOperationResult heartbeat(
-                String instanceId,
-                String leaseId) {
+                DdcServiceLeaseRequest request) {
+            String instanceId = request.getInstanceId();
+            String leaseId = request.getLeaseId();
             DdcServiceInstance current = instances.get(instanceId);
             if (current == null) {
                 return new DdcLeaseOperationResult(
@@ -169,7 +179,11 @@ class DdcRegistryLifecycleTest {
                     NOW,
                     expiresAt,
                     current.status(),
-                    ++revision
+                    ++revision,
+                    current.resourceServerId(),
+                    current.resourceVersion(),
+                    current.credentialId(),
+                    current.admissionExpiresAt()
             ));
             notifyListeners(current.serviceKey());
             return new DdcLeaseOperationResult(

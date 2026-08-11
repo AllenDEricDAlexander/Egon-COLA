@@ -5,6 +5,7 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
+import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
@@ -30,11 +31,11 @@ public interface DdcServiceRegistryClient {
      * 为指定实例租约续期。
      * / Renews the lease for the specified instance.
      *
-     * @param instanceId 实例标识 / instance identifier
-     * @param leaseId    租约标识 / lease identifier
+     * @param request 包含服务键、实例、租约和短期准入票据的续期请求
+     *                / renewal request containing service key, instance, lease, and short-lived admission ticket
      * @return 租约操作结果 / lease operation result
      */
-    DdcLeaseOperationResult heartbeat(String instanceId, String leaseId);
+    DdcLeaseOperationResult heartbeat(DdcServiceLeaseRequest request);
 
     /**
      * 注销指定实例租约。

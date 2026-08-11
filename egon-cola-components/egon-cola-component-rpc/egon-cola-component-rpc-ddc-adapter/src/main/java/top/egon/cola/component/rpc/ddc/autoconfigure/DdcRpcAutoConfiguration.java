@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.autoconfigure.DdcAutoConfiguration;
 import top.egon.cola.component.ddc.autoconfigure.DdcRedisAutoConfiguration;
 import top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfiguration;
@@ -169,14 +170,27 @@ public class DdcRpcAutoConfiguration {
         return client;
     }
 
+    /**
+     * 创建携带 IdP 准入票据的 RPC Provider 注册端口。
+     * / Creates the RPC Provider registry port that carries IdP admission tickets.
+     *
+     * @param client DDC 服务注册客户端 / DDC service-registry client
+     * @param properties DDC 物理作用域配置 / DDC physical-scope configuration
+     * @param admissionTickets 准入票据端口 / admission-ticket port
+     * @return RPC Provider 注册端口 / RPC Provider registry port
+     */
     @Bean
     @ConditionalOnBean(DdcServiceRegistryClient.class)
     @ConditionalOnMissingBean(RpcProviderRegistry.class)
     public RpcProviderRegistry ddcRpcProviderRegistry(
             DdcServiceRegistryClient client,
-            DdcProperties properties) {
+            DdcProperties properties,
+            DdcAdmissionTicketSupplier admissionTickets) {
         return new DdcRpcProviderRegistry(
-                client, properties.getBizCode(), properties.getAppCode());
+                client,
+                properties.getBizCode(),
+                properties.getAppCode(),
+                admissionTickets);
     }
 
     @Bean

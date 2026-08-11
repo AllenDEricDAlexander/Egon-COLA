@@ -153,7 +153,8 @@ class DdcServiceRegistryRedisRepositoryTest {
         return new DdcServiceInstance(
                 "provider-1", leaseId, serviceKey, "127.0.0.1", 19090, false,
                 Map.of("zone", "east"), 30, 10, NOW, NOW,
-                NOW.plusSeconds(30), "ONLINE", 0L
+                NOW.plusSeconds(30), "ONLINE", 0L,
+                null, null, null, null
         );
     }
 
@@ -162,6 +163,7 @@ class DdcServiceRegistryRedisRepositoryTest {
         request.setServiceKey(SERVICE_KEY);
         request.setInstanceId("provider-1");
         request.setLeaseId(leaseId);
+        request.setAdmissionTicket("test-admission-ticket");
         return request;
     }
 

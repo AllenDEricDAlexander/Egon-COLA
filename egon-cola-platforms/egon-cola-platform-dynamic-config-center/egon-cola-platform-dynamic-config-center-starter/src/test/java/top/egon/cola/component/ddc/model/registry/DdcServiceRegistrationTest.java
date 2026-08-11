@@ -97,6 +97,29 @@ class DdcServiceRegistrationTest {
                 .hasMessageContaining("non-reserved");
     }
 
+    @Test
+    void requiresAdmissionTicketOutsideMetadataAndRedactsItFromText() {
+        DdcServiceRegistration registration = registration(Map.of());
+
+        assertThat(registration.admissionTicket()).isEqualTo("admission.jwt.value");
+        assertThat(registration.metadata()).doesNotContainKey("admission_ticket");
+        assertThat(registration.toString())
+                .contains("admissionTicket=<redacted>")
+                .doesNotContain("admission.jwt.value");
+        assertThatThrownBy(() -> new DdcServiceRegistration(
+                registration.instanceId(),
+                registration.serviceKey(),
+                registration.host(),
+                registration.port(),
+                registration.secure(),
+                registration.metadata(),
+                registration.leaseSeconds(),
+                registration.heartbeatIntervalSeconds(),
+                " "
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("admissionTicket");
+    }
+
     private DdcServiceRegistration registration(Map<String, String> metadata) {
         return new DdcServiceRegistration(
                 "provider-1",
@@ -116,7 +139,8 @@ class DdcServiceRegistrationTest {
                 false,
                 metadata,
                 30,
-                10
+                10,
+                "admission.jwt.value"
         );
     }
 }

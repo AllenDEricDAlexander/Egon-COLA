@@ -114,6 +114,10 @@ message DdcServiceInstance {
   google.protobuf.Timestamp lease_expire_at = 12;
   string status = 13;
   int64 revision = 14;
+  optional string resource_server_id = 15;
+  optional int64 resource_version = 16;
+  optional string credential_id = 17;
+  optional google.protobuf.Timestamp admission_expires_at = 18;
 }
 
 message DdcConfig {

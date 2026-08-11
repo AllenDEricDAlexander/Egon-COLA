@@ -6,6 +6,7 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
@@ -13,9 +14,12 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
+import top.egon.cola.component.ddc.model.admission.DdcAdmissionTicket;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 
 import java.time.Instant;
+import java.net.URI;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -33,7 +37,8 @@ class DdcHttpRegistrationRuntimeTest {
         DdcHttpRegistrationRuntime runtime = new DdcHttpRegistrationRuntime(
                 registry,
                 serviceKeyFactory(),
-                properties()
+                properties(),
+                admissionTickets()
         );
 
         runtime.onHttpServerReady(18080);
@@ -57,7 +62,8 @@ class DdcHttpRegistrationRuntimeTest {
         DdcHttpRegistrationRuntime runtime = new DdcHttpRegistrationRuntime(
                 registry,
                 serviceKeyFactory(),
-                properties()
+                properties(),
+                admissionTickets()
         );
 
         runtime.onHttpServerReady(18080);
@@ -138,6 +144,22 @@ class DdcHttpRegistrationRuntimeTest {
         return new DdcServiceKeyFactory(properties);
     }
 
+    private DdcAdmissionTicketSupplier admissionTickets() {
+        return (bizCode, appCode, environment, instanceId) ->
+                new DdcAdmissionTicket(
+                        "test-admission-ticket",
+                        Instant.parse("2099-01-01T00:00:00Z"),
+                        "resource-test",
+                        URI.create("urn:egon:resource:test"),
+                        1L,
+                        bizCode,
+                        appCode,
+                        environment,
+                        instanceId,
+                        "kid-test"
+                );
+    }
+
     private static final class FakeRegistry
             implements DdcServiceRegistryClient {
 
@@ -173,8 +195,7 @@ class DdcHttpRegistrationRuntimeTest {
 
         @Override
         public DdcLeaseOperationResult heartbeat(
-                String instanceId,
-                String leaseId) {
+                DdcServiceLeaseRequest request) {
             return new DdcLeaseOperationResult(
                     renewed
                             ? DdcLeaseOperationStatus.RENEWED

@@ -162,7 +162,7 @@ class DdcActiveActiveAdminIT {
                 "active-active-service", "default", "1.0.0", "grpc");
         DdcServiceRegistration registration = new DdcServiceRegistration(
                 "registry-instance", key, "127.0.0.1", 19091,
-                false, Map.of(), 30, 5);
+                false, Map.of(), 30, 5, "test-admission-ticket");
 
         DdcServiceRegistryRpc registryA = rpc(
                 DdcServiceRegistryRpc.class, rpcPort(nodeA)).client();

@@ -22,6 +22,7 @@ import java.util.TreeMap;
  * @param metadata                 不可变的实例元数据 / immutable instance metadata
  * @param leaseSeconds             租约有效期秒数 / lease duration in seconds
  * @param heartbeatIntervalSeconds 心跳间隔秒数 / heartbeat interval in seconds
+ * @param admissionTicket          IdP 短期准入票据 / short-lived IdP admission ticket
  */
 public record DdcServiceRegistration(
         String instanceId,
@@ -31,7 +32,8 @@ public record DdcServiceRegistration(
         boolean secure,
         @Nullable Map<String, String> metadata,
         int leaseSeconds,
-        int heartbeatIntervalSeconds
+        int heartbeatIntervalSeconds,
+        String admissionTicket
 ) {
 
     /**
@@ -65,6 +67,26 @@ public record DdcServiceRegistration(
                     "heartbeatIntervalSeconds must be positive and less than leaseSeconds"
             );
         }
+        admissionTicket = require(admissionTicket, "admissionTicket");
+    }
+
+    /**
+     * 返回不会泄漏原始准入 JWT 的诊断文本。
+     * / Returns diagnostic text that never exposes the raw admission JWT.
+     *
+     * @return 已脱敏的注册摘要 / redacted registration summary
+     */
+    @Override
+    public String toString() {
+        return "DdcServiceRegistration[instanceId=" + instanceId
+                + ", serviceKey=" + serviceKey
+                + ", host=" + host
+                + ", port=" + port
+                + ", secure=" + secure
+                + ", metadata=" + metadata
+                + ", leaseSeconds=" + leaseSeconds
+                + ", heartbeatIntervalSeconds=" + heartbeatIntervalSeconds
+                + ", admissionTicket=<redacted>]";
     }
 
     /**

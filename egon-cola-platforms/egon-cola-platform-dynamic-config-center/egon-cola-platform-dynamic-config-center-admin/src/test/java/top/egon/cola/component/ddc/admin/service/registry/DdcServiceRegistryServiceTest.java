@@ -109,7 +109,8 @@ class DdcServiceRegistryServiceTest {
                 false,
                 metadata,
                 30,
-                10
+                10,
+                "test-admission-ticket"
         );
     }
 }

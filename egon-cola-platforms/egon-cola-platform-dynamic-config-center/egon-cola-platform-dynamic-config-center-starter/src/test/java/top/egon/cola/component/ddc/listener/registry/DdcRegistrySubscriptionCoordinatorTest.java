@@ -236,7 +236,11 @@ class DdcRegistrySubscriptionCoordinatorTest {
                 NOW,
                 NOW.plusSeconds(30),
                 "ONLINE",
-                revision
+                revision,
+                "resource-order",
+                1L,
+                "kid-test",
+                NOW.plusSeconds(20)
         );
         return new DdcServiceSnapshot(SERVICE_KEY, revision, List.of(instance), NOW);
     }

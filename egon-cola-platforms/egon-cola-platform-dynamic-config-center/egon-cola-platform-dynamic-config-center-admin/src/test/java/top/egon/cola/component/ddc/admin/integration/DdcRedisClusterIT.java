@@ -225,7 +225,8 @@ class DdcRedisClusterIT {
         return new DdcServiceInstance(
                 "provider-1", "service-lease-1", serviceKey,
                 "127.0.0.1", 19090, false, Map.of("zone", "east"),
-                30, 10, NOW, NOW, NOW.plusSeconds(30), "ONLINE", 0L
+                30, 10, NOW, NOW, NOW.plusSeconds(30), "ONLINE", 0L,
+                null, null, null, null
         );
     }
 
@@ -234,6 +235,7 @@ class DdcRedisClusterIT {
         request.setServiceKey(instance.serviceKey());
         request.setInstanceId(instance.instanceId());
         request.setLeaseId(instance.leaseId());
+        request.setAdmissionTicket("test-admission-ticket");
         return request;
     }
 }

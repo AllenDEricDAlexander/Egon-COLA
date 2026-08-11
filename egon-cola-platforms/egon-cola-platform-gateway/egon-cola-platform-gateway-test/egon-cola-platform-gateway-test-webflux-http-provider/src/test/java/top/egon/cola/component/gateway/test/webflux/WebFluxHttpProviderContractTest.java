@@ -22,6 +22,7 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
@@ -383,8 +384,7 @@ class WebFluxHttpProviderContractTest {
 
         @Override
         public DdcLeaseOperationResult heartbeat(
-                String instanceId,
-                String leaseId) {
+                DdcServiceLeaseRequest request) {
             return new DdcLeaseOperationResult(
                     DdcLeaseOperationStatus.RENEWED,
                     Instant.now().plusSeconds(30)

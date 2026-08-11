@@ -103,14 +103,27 @@ public final class CachingDdcAdmissionTicketSupplier
      * <p>Returns an unexpired, exactly bound ticket and attempts renewal inside the renewal
      * window.</p>
      *
-     * @param request 精确 DDC 准入请求；exact DDC admission request
+     * @param bizCode 生产者实际业务域编码；actual producer business-domain code
+     * @param appCode 生产者实际应用编码；actual producer application code
+     * @param environment 生产者实际环境编码；actual producer environment code
+     * @param instanceId 生产者实际实例标识；actual producer instance identifier
      * @return 当前可用票据；currently usable ticket
      */
     @Override
     public synchronized DdcAdmissionTicket getTicket(
-            DdcAdmissionRequest request
+            String bizCode,
+            String appCode,
+            String environment,
+            String instanceId
     ) {
-        Objects.requireNonNull(request, "request");
+        DdcAdmissionRequest request = new DdcAdmissionRequest(
+                expectedRequest.resourceServerId(),
+                expectedRequest.resourceUri(),
+                bizCode,
+                appCode,
+                environment,
+                instanceId
+        );
         if (!expectedRequest.equals(request)) {
             throw new IllegalArgumentException(
                     "admission request does not match configuration"

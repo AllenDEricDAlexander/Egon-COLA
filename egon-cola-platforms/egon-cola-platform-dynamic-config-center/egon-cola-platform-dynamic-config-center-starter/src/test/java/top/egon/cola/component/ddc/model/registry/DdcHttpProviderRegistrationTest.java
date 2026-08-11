@@ -77,7 +77,8 @@ class DdcHttpProviderRegistrationTest {
                 secure,
                 Map.of("gateway.zone", "cn-east"),
                 30,
-                10
+                10,
+                "admission.jwt.value"
         );
     }
 }

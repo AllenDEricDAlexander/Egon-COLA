@@ -60,9 +60,16 @@ public final class RpcDdcServiceRegistryClient implements DdcServiceRegistryClie
     }
 
     @Override
-    public DdcLeaseOperationResult heartbeat(String instanceId, String leaseId) {
-        DdcServiceKey key = registrations.require(instanceId, leaseId);
-        DdcServiceLeaseRequest request = lease(instanceId, leaseId, key);
+    public DdcLeaseOperationResult heartbeat(DdcServiceLeaseRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("lease request is required");
+        }
+        DdcServiceKey key = registrations.require(
+                request.getInstanceId(), request.getLeaseId());
+        if (!key.equals(request.getServiceKey())) {
+            throw new IllegalArgumentException(
+                    "heartbeat serviceKey does not match active registration");
+        }
         DdcLeaseOperationResult result = invoke(
                 DdcRpcOperation.REGISTRY_HEARTBEAT, () -> {
             var response = rpc.heartbeatService(mapper.toHeartbeatRequest(request));
@@ -71,7 +78,7 @@ public final class RpcDdcServiceRegistryClient implements DdcServiceRegistryClie
         });
         if (result.status() == DdcLeaseOperationStatus.NOT_FOUND
                 || result.status() == DdcLeaseOperationStatus.LEASE_MISMATCH) {
-            registrations.remove(leaseId);
+            registrations.remove(request.getLeaseId());
         }
         return result;
     }

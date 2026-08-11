@@ -42,7 +42,8 @@ class DdcRpcGatewayDirectoryTest {
                         "127.0.0.1", 19091, false,
                         Map.of("gateway.weight", "80"), 30, 10,
                         now.minusSeconds(10), now, now.plusSeconds(30),
-                        "ONLINE", 12)), now));
+                        "ONLINE", 12, "resource-gateway", 1L,
+                        "kid-test", now.plusSeconds(20))), now));
 
         assertThat(key.getValue().serviceKind())
                 .isEqualTo(DdcServiceKind.INTERNAL_GATEWAY);

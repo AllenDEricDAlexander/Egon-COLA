@@ -20,6 +20,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry;
@@ -1285,12 +1286,24 @@ public class GatewayEngineConfiguration {
         };
     }
 
+    /**
+     * 创建携带 IdP 准入票据的 Gateway RPC Slot 运行时。
+     * / Creates the Gateway RPC-slot runtime that carries IdP admission tickets.
+     *
+     * @param registry DDC 服务注册客户端 / DDC service-registry client
+     * @param serviceKeyFactory 服务键工厂 / service-key factory
+     * @param ddcIdentity Gateway 的 DDC 实例身份 / Gateway DDC instance identity
+     * @param properties Gateway Engine 配置 / Gateway Engine configuration
+     * @param admissionTickets 准入票据端口 / admission-ticket port
+     * @return Gateway RPC Slot 运行时 / Gateway RPC-slot runtime
+     */
     @Bean
     public RpcGatewaySlotRuntime gatewayRpcSlotRuntime(
             DdcServiceRegistryClient registry,
             DdcServiceKeyFactory serviceKeyFactory,
             DdcInstanceIdentity ddcIdentity,
-            GatewayEngineRuntimeProperties properties) {
+            GatewayEngineRuntimeProperties properties,
+            DdcAdmissionTicketSupplier admissionTickets) {
         GatewayEngineRuntimeProperties.Rpc rpc = properties.getRpc();
         return new RpcGatewaySlotRuntime(
                 registry,
@@ -1310,7 +1323,8 @@ public class GatewayEngineConfiguration {
                         rpc.getTls().isEnabled(),
                         rpc.getLeaseSeconds(),
                         rpc.getHeartbeatIntervalSeconds()
-                )
+                ),
+                admissionTickets
         );
     }
 

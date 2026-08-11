@@ -39,6 +39,7 @@ import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.binding.DdcFieldBindingService;
 import top.egon.cola.component.ddc.api.extension.DdcInstanceIdProvider;
+import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.service.lifecycle.DdcInstanceIdentityFactory;
 import top.egon.cola.component.ddc.api.extension.DdcInstanceMetadataContributor;
 import top.egon.cola.component.ddc.service.lifecycle.DdcInstanceService;
@@ -387,6 +388,7 @@ public class DdcAutoConfiguration {
      * @param identity             当前实例身份。 current instance identity
      * @param sessionHolder        租约会话持有器。 lease-session holder
      * @param metadataContributors 有序实例元数据贡献器。 ordered instance-metadata contributors
+     * @param admissionTickets     IdP 准入票据端口。 IdP admission-ticket port
      * @return DDC 实例服务。 DDC instance service
      */
     @Bean
@@ -395,13 +397,15 @@ public class DdcAutoConfiguration {
                                                  DdcInstanceIdentity identity,
                                                  DdcLeaseSessionHolder sessionHolder,
                                                  ObjectProvider<DdcInstanceMetadataContributor>
-                                                         metadataContributors) {
+                                                         metadataContributors,
+                                                 DdcAdmissionTicketSupplier admissionTickets) {
         return new DdcInstanceService(
                 properties,
                 adminClient,
                 identity,
                 sessionHolder,
-                metadataContributors.orderedStream().toList()
+                metadataContributors.orderedStream().toList(),
+                admissionTickets
         );
     }
 

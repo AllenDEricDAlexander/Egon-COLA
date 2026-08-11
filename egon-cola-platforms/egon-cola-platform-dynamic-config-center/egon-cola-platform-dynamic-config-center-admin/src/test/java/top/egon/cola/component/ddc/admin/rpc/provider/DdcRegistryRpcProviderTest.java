@@ -45,11 +45,13 @@ class DdcRegistryRpcProviderTest {
         DdcServiceKey key = key();
         DdcServiceRegistration registration = new DdcServiceRegistration(
                 "provider-1", key, "127.0.0.1", 19090, false,
-                Map.of("zone", "east"), 30, 10);
+                Map.of("zone", "east"), 30, 10,
+                "test-admission-ticket");
         DdcServiceLeaseRequest lease = new DdcServiceLeaseRequest();
         lease.setServiceKey(key);
         lease.setInstanceId("provider-1");
         lease.setLeaseId("lease-1");
+        lease.setAdmissionTicket("test-admission-ticket");
         DdcServiceQuery query = new DdcServiceQuery(
                 "biz", "test", "app", DdcServiceKind.RPC_PROVIDER,
                 "grpc", null, null, null);

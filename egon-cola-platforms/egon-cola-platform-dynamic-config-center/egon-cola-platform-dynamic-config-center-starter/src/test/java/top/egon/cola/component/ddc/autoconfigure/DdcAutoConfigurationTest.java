@@ -14,6 +14,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
+import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.redis.DdcRedisKeys;
 import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
@@ -61,7 +62,11 @@ class DdcAutoConfigurationTest {
             .withConfiguration(AutoConfigurations.of(
                     DdcRedisAutoConfiguration.class,
                     DdcAutoConfiguration.class
-            ));
+            ))
+            .withBean(
+                    DdcAdmissionTicketSupplier.class,
+                    () -> mock(DdcAdmissionTicketSupplier.class)
+            );
 
     private final ApplicationContextRunner redisContextRunner =
             new ApplicationContextRunner(NonStartingApplicationContext::new)
@@ -72,6 +77,10 @@ class DdcAutoConfigurationTest {
                     .withBean(
                             DdcConfigClient.class,
                             () -> mock(DdcConfigClient.class)
+                    )
+                    .withBean(
+                            DdcAdmissionTicketSupplier.class,
+                            () -> mock(DdcAdmissionTicketSupplier.class)
                     )
                     .withInitializer(context -> context.getEnvironment()
                             .getPropertySources().addFirst(

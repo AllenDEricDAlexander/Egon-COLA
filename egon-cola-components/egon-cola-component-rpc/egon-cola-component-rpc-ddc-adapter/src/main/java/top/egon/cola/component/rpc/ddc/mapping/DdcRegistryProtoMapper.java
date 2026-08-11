@@ -40,6 +40,7 @@ public final class DdcRegistryProtoMapper {
                 .setLeaseSeconds(value.leaseSeconds())
                 .setHeartbeatIntervalSeconds(
                         value.heartbeatIntervalSeconds())
+                .setAdmissionTicket(value.admissionTicket())
                 .build());
     }
 
@@ -57,7 +58,9 @@ public final class DdcRegistryProtoMapper {
                 value.getSecure(),
                 common.validatedMetadata(value.getMetadataMap()),
                 value.getLeaseSeconds(),
-                value.getHeartbeatIntervalSeconds()
+                value.getHeartbeatIntervalSeconds(),
+                DdcCommonProtoMapper.require(
+                        value.getAdmissionTicket(), "admissionTicket")
         );
     }
 
@@ -68,22 +71,27 @@ public final class DdcRegistryProtoMapper {
                 .setServiceKey(common.toProto(value.getServiceKey()))
                 .setInstanceId(value.getInstanceId())
                 .setLeaseId(value.getLeaseId())
+                .setAdmissionTicket(DdcCommonProtoMapper.require(
+                        value.getAdmissionTicket(), "admissionTicket"))
                 .build());
     }
 
     public DdcServiceLeaseRequest fromHeartbeatRequest(
             HeartbeatServiceRequest value) {
         common.checked(value);
-        return lease(
+        DdcServiceLeaseRequest result = lease(
                 value.hasServiceKey() ? common.fromProto(value.getServiceKey()) : null,
                 value.getInstanceId(),
                 value.getLeaseId()
         );
+        result.setAdmissionTicket(DdcCommonProtoMapper.require(
+                value.getAdmissionTicket(), "admissionTicket"));
+        return result;
     }
 
     public DeregisterServiceRequest toDeregisterRequest(
             DdcServiceLeaseRequest value) {
-        requireLease(value);
+        requireLeaseIdentity(value);
         return common.checked(DeregisterServiceRequest.newBuilder()
                 .setServiceKey(common.toProto(value.getServiceKey()))
                 .setInstanceId(value.getInstanceId())
@@ -104,7 +112,7 @@ public final class DdcRegistryProtoMapper {
     public top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcServiceInstance toProto(
             DdcServiceInstance value) {
         require(value, "service instance");
-        return common.checked(top.egon.cola.component.rpc.ddc.contract.proto.v1
+        var builder = top.egon.cola.component.rpc.ddc.contract.proto.v1
                 .DdcServiceInstance.newBuilder()
                 .setInstanceId(value.instanceId())
                 .setLeaseId(value.leaseId())
@@ -120,8 +128,15 @@ public final class DdcRegistryProtoMapper {
                 .setLastHeartbeatAt(common.toTimestamp(value.lastHeartbeatAt()))
                 .setLeaseExpireAt(common.toTimestamp(value.leaseExpireAt()))
                 .setStatus(value.status())
-                .setRevision(value.revision())
-                .build());
+                .setRevision(value.revision());
+        if (value.resourceServerId() != null) {
+            builder.setResourceServerId(value.resourceServerId());
+            builder.setResourceVersion(value.resourceVersion());
+            builder.setCredentialId(value.credentialId());
+            builder.setAdmissionExpiresAt(common.toTimestamp(
+                    value.admissionExpiresAt()));
+        }
+        return common.checked(builder.build());
     }
 
     public DdcServiceInstance fromProto(
@@ -144,7 +159,13 @@ public final class DdcRegistryProtoMapper {
                 common.fromTimestamp(value.getLastHeartbeatAt()),
                 common.fromTimestamp(value.getLeaseExpireAt()),
                 value.getStatus(),
-                value.getRevision()
+                value.getRevision(),
+                value.hasResourceServerId() ? value.getResourceServerId() : null,
+                value.hasResourceVersion() ? value.getResourceVersion() : null,
+                value.hasCredentialId() ? value.getCredentialId() : null,
+                value.hasAdmissionExpiresAt()
+                        ? common.fromTimestamp(value.getAdmissionExpiresAt())
+                        : null
         );
     }
 
@@ -220,6 +241,12 @@ public final class DdcRegistryProtoMapper {
     }
 
     private static void requireLease(DdcServiceLeaseRequest value) {
+        requireLeaseIdentity(value);
+        DdcCommonProtoMapper.require(
+                value.getAdmissionTicket(), "admissionTicket");
+    }
+
+    private static void requireLeaseIdentity(DdcServiceLeaseRequest value) {
         require(value, "lease request");
         require(value.getServiceKey(), "serviceKey");
         DdcCommonProtoMapper.require(value.getInstanceId(), "instanceId");

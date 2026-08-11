@@ -45,13 +45,13 @@ class CachingDdcAdmissionTicketSupplierTest {
                         clock
                 );
 
-        assertThat(supplier.getTicket(REQUEST).value())
+        assertThat(getTicket(supplier).value())
                 .isEqualTo("ticket-1");
         clock.advance(Duration.ofSeconds(89));
-        assertThat(supplier.getTicket(REQUEST).value())
+        assertThat(getTicket(supplier).value())
                 .isEqualTo("ticket-1");
         clock.advance(Duration.ofSeconds(2));
-        assertThat(supplier.getTicket(REQUEST).value())
+        assertThat(getTicket(supplier).value())
                 .isEqualTo("ticket-2");
         assertThat(calls).hasValue(2);
     }
@@ -73,14 +73,14 @@ class CachingDdcAdmissionTicketSupplierTest {
                         Duration.ofSeconds(20),
                         clock
                 );
-        supplier.getTicket(REQUEST);
+        getTicket(supplier);
         clock.advance(Duration.ofSeconds(45));
 
-        assertThat(supplier.getTicket(REQUEST).value())
+        assertThat(getTicket(supplier).value())
                 .isEqualTo("ticket-1");
 
         clock.advance(Duration.ofSeconds(16));
-        assertThatThrownBy(() -> supplier.getTicket(REQUEST))
+        assertThatThrownBy(() -> getTicket(supplier))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("IdP unavailable");
     }
@@ -94,16 +94,12 @@ class CachingDdcAdmissionTicketSupplierTest {
                         Duration.ofSeconds(30),
                         Clock.fixed(NOW, ZoneOffset.UTC)
                 );
-        DdcAdmissionRequest wrongApplication = new DdcAdmissionRequest(
-                "rs-rbac3-prod",
-                URI.create("https://api.example/rbac3"),
+        assertThatThrownBy(() -> supplier.getTicket(
                 "platform",
                 "rbac3",
                 "prod",
                 "idp-10.0.0.8-8080"
-        );
-
-        assertThatThrownBy(() -> supplier.getTicket(wrongApplication))
+        ))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("admission request does not match configuration");
     }
@@ -130,7 +126,7 @@ class CachingDdcAdmissionTicketSupplierTest {
                         Clock.fixed(NOW, ZoneOffset.UTC)
                 );
 
-        assertThatThrownBy(() -> supplier.getTicket(REQUEST))
+        assertThatThrownBy(() -> getTicket(supplier))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("IdP admission ticket is invalid or too short-lived");
     }
@@ -150,6 +146,16 @@ class CachingDdcAdmissionTicketSupplierTest {
                 "prod",
                 "idp-10.0.0.8-8080",
                 "idp-service-2026-08"
+        );
+    }
+
+    private static DdcAdmissionTicket getTicket(
+            CachingDdcAdmissionTicketSupplier supplier) {
+        return supplier.getTicket(
+                REQUEST.bizCode(),
+                REQUEST.appCode(),
+                REQUEST.environment(),
+                REQUEST.instanceId()
         );
     }
 

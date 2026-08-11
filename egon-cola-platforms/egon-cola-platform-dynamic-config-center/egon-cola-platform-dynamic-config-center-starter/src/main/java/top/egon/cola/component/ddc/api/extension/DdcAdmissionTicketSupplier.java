@@ -1,6 +1,5 @@
 package top.egon.cola.component.ddc.api.extension;
 
-import top.egon.cola.component.ddc.model.admission.DdcAdmissionRequest;
 import top.egon.cola.component.ddc.model.admission.DdcAdmissionTicket;
 
 /**
@@ -22,10 +21,18 @@ public interface DdcAdmissionTicketSupplier {
      *
      * <p>Gets the currently usable ticket for an exact Resource instance identity.</p>
      *
-     * @param request 精确准入请求；exact admission request
+     * @param bizCode 生产者实际发送的业务域编码；business-domain code actually sent by the producer
+     * @param appCode 生产者实际发送的应用编码；application code actually sent by the producer
+     * @param environment 生产者实际发送的环境编码；environment code actually sent by the producer
+     * @param instanceId 生产者实际发送的实例标识；instance identifier actually sent by the producer
      * @return 未过期且绑定到请求身份的票据；unexpired ticket bound to the request identity
      * @throws RuntimeException 无法安全取得票据时抛出并 Fail Closed；when a ticket cannot be
      * safely acquired, failing closed
      */
-    DdcAdmissionTicket getTicket(DdcAdmissionRequest request);
+    DdcAdmissionTicket getTicket(
+            String bizCode,
+            String appCode,
+            String environment,
+            String instanceId
+    );
 }

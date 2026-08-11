@@ -32,7 +32,7 @@ class IdpStarterAutoConfigurationTest {
                     .withBean(RedissonClient.class,
                             () -> mock(RedissonClient.class))
                     .withBean(DdcAdmissionTicketSupplier.class,
-                            () -> request -> {
+                            () -> (biz, app, env, instance) -> {
                                 throw new IllegalStateException("not invoked");
                             })
                     .withPropertyValues(

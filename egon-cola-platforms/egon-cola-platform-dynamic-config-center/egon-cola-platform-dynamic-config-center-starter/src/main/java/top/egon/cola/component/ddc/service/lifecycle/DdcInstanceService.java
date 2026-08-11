@@ -4,6 +4,7 @@ import top.egon.cola.component.ddc.state.DdcLeaseSessionHolder;
 
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.api.extension.DdcInstanceMetadataContributor;
+import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.error.DdcException;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
@@ -50,20 +51,10 @@ public class DdcInstanceService {
     private final List<DdcInstanceMetadataContributor> metadataContributors;
 
     /**
-     * 创建不包含自定义元数据贡献器的实例服务。
-     * Creates an instance service without custom metadata contributors.
-     *
-     * @param properties    DDC 客户端配置; DDC client configuration
-     * @param adminClient   DDC 管理端客户端; DDC administration client
-     * @param identity      实例身份; instance identity
-     * @param sessionHolder 租约会话持有器; lease session holder
+     * 为精确配置客户端实例提供短期准入票据的端口。
+     * Port supplying short-lived admission tickets for the exact configuration-client instance.
      */
-    public DdcInstanceService(DdcProperties properties,
-                              DdcConfigClient adminClient,
-                              DdcInstanceIdentity identity,
-                              DdcLeaseSessionHolder sessionHolder) {
-        this(properties, adminClient, identity, sessionHolder, List.of());
-    }
+    private final DdcAdmissionTicketSupplier admissionTickets;
 
     /**
      * 创建支持自定义实例元数据的实例服务。
@@ -74,18 +65,24 @@ public class DdcInstanceService {
      * @param identity             实例身份; instance identity
      * @param sessionHolder        租约会话持有器; lease session holder
      * @param metadataContributors 元数据贡献器; metadata contributors
+     * @param admissionTickets     准入票据端口; admission-ticket port
      */
     public DdcInstanceService(
             DdcProperties properties,
             DdcConfigClient adminClient,
             DdcInstanceIdentity identity,
             DdcLeaseSessionHolder sessionHolder,
-            List<DdcInstanceMetadataContributor> metadataContributors) {
+            List<DdcInstanceMetadataContributor> metadataContributors,
+            DdcAdmissionTicketSupplier admissionTickets) {
         this.properties = properties;
         this.adminClient = adminClient;
         this.identity = identity;
         this.sessionHolder = sessionHolder;
         this.metadataContributors = List.copyOf(metadataContributors);
+        this.admissionTickets = java.util.Objects.requireNonNull(
+                admissionTickets,
+                "admissionTickets"
+        );
     }
 
     /**
@@ -98,6 +95,7 @@ public class DdcInstanceService {
     public DdcLeaseSession register() {
         DdcInstanceRegisterRequest request = new DdcInstanceRegisterRequest();
         fill(request);
+        request.setAdmissionTicket(admissionTicket());
         request.setLeaseSeconds(properties.getInstance().getLeaseSeconds());
         request.setHeartbeatIntervalSeconds(properties.getInstance().getHeartbeatIntervalSeconds());
         DdcLeaseSession session = adminClient.register(request);
@@ -114,7 +112,9 @@ public class DdcInstanceService {
      * @return 租约操作结果; lease operation result
      */
     public DdcLeaseOperationResult heartbeat(DdcLeaseSession session) {
-        return adminClient.heartbeat(operationRequest(session));
+        DdcHeartbeatRequest request = operationRequest(session);
+        request.setAdmissionTicket(admissionTicket());
+        return adminClient.heartbeat(request);
     }
 
     /**
@@ -150,6 +150,21 @@ public class DdcInstanceService {
         request.setLeaseId(session.leaseId());
         fill(request);
         return request;
+    }
+
+    /**
+     * 为当前实例的精确业务、应用和环境身份取得准入 JWT。
+     * Acquires an admission JWT for the current instance's exact business, application, and environment identity.
+     *
+     * @return 原始短期准入 JWT; raw short-lived admission JWT
+     */
+    private String admissionTicket() {
+        return admissionTickets.getTicket(
+                identity.bizCode(),
+                identity.appCode(),
+                identity.env(),
+                identity.instanceId()
+        ).value();
     }
 
     /**

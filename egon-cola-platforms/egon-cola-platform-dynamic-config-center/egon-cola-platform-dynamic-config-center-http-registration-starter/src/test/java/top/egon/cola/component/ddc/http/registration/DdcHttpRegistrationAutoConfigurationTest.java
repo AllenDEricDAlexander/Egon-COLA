@@ -13,6 +13,7 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
@@ -22,7 +23,10 @@ import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
+import top.egon.cola.component.ddc.model.admission.DdcAdmissionTicket;
 
+import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -55,6 +59,10 @@ class DdcHttpRegistrationAutoConfigurationTest {
                     .withBean(
                             DdcInstanceIdentity.class,
                             this::ddcInstanceIdentity
+                    )
+                    .withBean(
+                            DdcAdmissionTicketSupplier.class,
+                            this::admissionTickets
                     )
                     .withPropertyValues(requiredProperties());
 
@@ -123,6 +131,10 @@ class DdcHttpRegistrationAutoConfigurationTest {
                         DdcInstanceIdentity.class,
                         this::ddcInstanceIdentity
                 )
+                .withBean(
+                        DdcAdmissionTicketSupplier.class,
+                        this::admissionTickets
+                )
                 .withBean(DdcServiceRegistryClient.class, () -> registry)
                 .run(context -> {
                     assertThat(context).hasSingleBean(
@@ -157,6 +169,10 @@ class DdcHttpRegistrationAutoConfigurationTest {
                 .withBean(
                         DdcServiceKeyFactory.class,
                         this::serviceKeyFactory
+                )
+                .withBean(
+                        DdcAdmissionTicketSupplier.class,
+                        this::admissionTickets
                 )
                 .withBean(DdcServiceRegistryClient.class, () -> registry)
                 .run(context -> {
@@ -298,6 +314,22 @@ class DdcHttpRegistrationAutoConfigurationTest {
         return new DdcServiceKeyFactory(properties);
     }
 
+    private DdcAdmissionTicketSupplier admissionTickets() {
+        return (bizCode, appCode, environment, instanceId) ->
+                new DdcAdmissionTicket(
+                        "test-admission-ticket",
+                        Instant.parse("2099-01-01T00:00:00Z"),
+                        "resource-test",
+                        URI.create("urn:egon:resource:test"),
+                        1L,
+                        bizCode,
+                        appCode,
+                        environment,
+                        instanceId,
+                        "kid-test"
+                );
+    }
+
     private DdcInstanceIdentity ddcInstanceIdentity() {
         return new DdcInstanceIdentity(
                 "ddc-runtime-1",
@@ -373,8 +405,7 @@ class DdcHttpRegistrationAutoConfigurationTest {
 
         @Override
         public DdcLeaseOperationResult heartbeat(
-                String instanceId,
-                String leaseId) {
+                DdcServiceLeaseRequest request) {
             return new DdcLeaseOperationResult(
                     DdcLeaseOperationStatus.RENEWED,
                     Instant.now().plusSeconds(3)

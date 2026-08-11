@@ -2,6 +2,7 @@ package top.egon.cola.component.ddc.test;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
+import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.config.DdcAckRequest;
 import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
@@ -21,6 +22,7 @@ import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.ddc.redis.DdcRedisTopicSubscription;
 
 import java.time.Instant;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -50,7 +52,9 @@ class DdcLeaseLifecycleTest {
                         "100",
                         "5.2.3"
                 ),
-                sessionHolder
+                sessionHolder,
+                List.of(),
+                admissionTickets()
         );
         DdcRedisTopicSubscription<DdcPublishMessage> subscription =
                 mock(DdcRedisTopicSubscription.class);
@@ -100,6 +104,22 @@ class DdcLeaseLifecycleTest {
         properties.getInstance().setHeartbeatIntervalSeconds(10);
         properties.getInstance().setLeaseSeconds(30);
         return properties;
+    }
+
+    private DdcAdmissionTicketSupplier admissionTickets() {
+        return (bizCode, appCode, environment, instanceId) ->
+                new top.egon.cola.component.ddc.model.admission.DdcAdmissionTicket(
+                        "test-admission-ticket",
+                        Instant.parse("2099-01-01T00:00:00Z"),
+                        "resource-test",
+                        URI.create("urn:egon:resource:test"),
+                        1L,
+                        bizCode,
+                        appCode,
+                        environment,
+                        instanceId,
+                        "kid-test"
+                );
     }
 
     private static final class RecordingAdminClient implements DdcConfigClient {

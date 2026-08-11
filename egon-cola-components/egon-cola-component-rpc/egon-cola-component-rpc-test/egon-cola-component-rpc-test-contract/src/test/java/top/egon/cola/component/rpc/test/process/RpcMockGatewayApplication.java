@@ -13,6 +13,7 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
+import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
 import top.egon.cola.component.rpc.consumer.RpcGatewayEndpoint;
 import top.egon.cola.component.rpc.consumer.RpcGatewayQuery;
@@ -42,6 +43,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -205,6 +208,9 @@ public final class RpcMockGatewayApplication {
 
         private final String env;
 
+        private final ConcurrentMap<String, DdcServiceKey> activeServices =
+                new ConcurrentHashMap<>();
+
         private ProcessDdcRpcRegistry(
                 DdcServiceRegistryClient delegate,
                 String env) {
@@ -227,16 +233,22 @@ public final class RpcMockGatewayApplication {
         private RpcProviderLease register(
                 RpcProviderRegistration registration,
                 DdcServiceKind kind) {
+            DdcServiceKey serviceKey = key(
+                    registration.serviceIdentity(),
+                    kind
+            );
             var session = delegate.register(new DdcServiceRegistration(
                     registration.processIdentity().instanceId(),
-                    key(registration.serviceIdentity(), kind),
+                    serviceKey,
                     registration.host(),
                     registration.port(),
                     registration.secure(),
                     registration.metadata(),
                     registration.leaseSeconds(),
-                    registration.heartbeatIntervalSeconds()
+                    registration.heartbeatIntervalSeconds(),
+                    "test-admission-ticket"
             ));
+            activeServices.put(session.leaseId(), serviceKey);
             return new RpcProviderLease(
                     session.instanceId(),
                     session.leaseId(),
@@ -248,19 +260,23 @@ public final class RpcMockGatewayApplication {
         @Override
         public RpcLeaseOperationResult heartbeat(
                 RpcProviderLeaseIdentity lease) {
-            return result(delegate.heartbeat(
-                    lease.instanceId(),
-                    lease.leaseId()
-            ));
+            DdcServiceLeaseRequest request = new DdcServiceLeaseRequest();
+            request.setServiceKey(activeServices.get(lease.leaseId()));
+            request.setInstanceId(lease.instanceId());
+            request.setLeaseId(lease.leaseId());
+            request.setAdmissionTicket("test-admission-ticket");
+            return result(delegate.heartbeat(request));
         }
 
         @Override
         public RpcLeaseOperationResult deregister(
                 RpcProviderLeaseIdentity lease) {
-            return result(delegate.deregister(
+            RpcLeaseOperationResult result = result(delegate.deregister(
                     lease.instanceId(),
                     lease.leaseId()
             ));
+            activeServices.remove(lease.leaseId());
+            return result;
         }
 
         @Override
