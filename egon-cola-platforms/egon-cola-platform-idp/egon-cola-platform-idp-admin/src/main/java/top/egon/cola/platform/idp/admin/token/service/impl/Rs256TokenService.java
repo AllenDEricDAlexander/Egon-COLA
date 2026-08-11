@@ -21,6 +21,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import top.egon.cola.platform.idp.core.port.TokenSigner;
 import top.egon.cola.platform.idp.core.token.AccessTokenClaims;
 import top.egon.cola.platform.idp.core.token.RefreshTokenClaims;
+import top.egon.cola.platform.idp.core.token.ServiceAccessTokenClaims;
 import top.egon.cola.platform.idp.core.token.TokenException;
 
 import java.net.URI;
@@ -129,6 +130,38 @@ public final class Rs256TokenService implements TokenSigner {
                 .claim("token_version", claims.tokenVersion())
                 .claim("resource_version", claims.resourceVersion())
                 .claim("nonce", claims.nonce())
+                .id(claims.tokenId())
+                .issuedAt(claims.issuedAt())
+                .notBefore(claims.notBefore())
+                .expiresAt(claims.expiresAt())
+                .build();
+        return encode(claimSet, "at+jwt");
+    }
+
+    /**
+     * 签发 {@code typ=at+jwt} 的单 Resource SERVICE Access Token。
+     *
+     * <p>Signs a single-Resource SERVICE access token with {@code typ=at+jwt}.</p>
+     *
+     * @param claims 可信 SERVICE Token 声明；trusted SERVICE token claims
+     * @return 紧凑 JWT；compact JWT
+     */
+    @Override
+    public String signServiceAccess(ServiceAccessTokenClaims claims) {
+        Objects.requireNonNull(claims, "claims");
+        JwtClaimsSet claimSet = JwtClaimsSet.builder()
+                .issuer(issuer)
+                .subject(claims.subject())
+                .audience(List.of(claims.audience().toString()))
+                .claim("principal_type", claims.principalType().name())
+                .claim("client_id", claims.clientId())
+                .claim("tid", claims.tenantId())
+                .claim("scope", List.copyOf(claims.scopes()))
+                .claim("source_biz", claims.sourceBizCode())
+                .claim("source_app", claims.sourceAppCode())
+                .claim("source_env", claims.sourceEnvironment())
+                .claim("credential_id", claims.credentialId())
+                .claim("resource_version", claims.resourceVersion())
                 .id(claims.tokenId())
                 .issuedAt(claims.issuedAt())
                 .notBefore(claims.notBefore())

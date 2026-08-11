@@ -11,13 +11,17 @@ import top.egon.cola.platform.idp.admin.oauth.controller.OAuthMetadataController
 import top.egon.cola.platform.idp.admin.oauth.controller.OAuthTokenController;
 import top.egon.cola.platform.idp.admin.support.ddc.AtomicIdpRuntimePolicy;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdpSsoSessionStore;
+import top.egon.cola.platform.idp.admin.oauth.service.impl.PrivateKeyJwtAuthenticator;
 import top.egon.cola.platform.idp.admin.support.security.IdpSsoAuthenticationFilter;
+import top.egon.cola.platform.idp.admin.token.service.impl.ClientCredentialsTokenService;
 import top.egon.cola.platform.idp.admin.token.service.impl.Rs256TokenService;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationCode;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationFacade;
+import top.egon.cola.platform.idp.core.oauth.ClientAssertionAuthentication;
 import top.egon.cola.platform.idp.core.oauth.OAuthClient;
 import top.egon.cola.platform.idp.core.port.OAuthClientStore;
 import top.egon.cola.platform.idp.core.token.TokenFacade;
+import top.egon.cola.platform.idp.core.token.ServiceAccessToken;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -26,6 +30,7 @@ import java.time.ZoneOffset;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
@@ -52,6 +57,8 @@ class OAuthTokenTransportIT {
 
     private AuthorizationFacade authorizations;
     private TokenFacade tokens;
+    private PrivateKeyJwtAuthenticator clientAuthenticator;
+    private ClientCredentialsTokenService clientCredentialsTokens;
     private IdpSsoSessionStore ssoSessions;
     private MockMvc mockMvc;
 
@@ -59,6 +66,8 @@ class OAuthTokenTransportIT {
     void setUp() {
         authorizations = mock(AuthorizationFacade.class);
         tokens = mock(TokenFacade.class);
+        clientAuthenticator = mock(PrivateKeyJwtAuthenticator.class);
+        clientCredentialsTokens = mock(ClientCredentialsTokenService.class);
         ssoSessions = mock(IdpSsoSessionStore.class);
         OAuthClientStore clients = clientId -> CLIENT_ID.equals(clientId)
                 ? Optional.of(client())
@@ -66,6 +75,8 @@ class OAuthTokenTransportIT {
         OAuthTokenController controller = new OAuthTokenController(
                 authorizations,
                 tokens,
+                clientAuthenticator,
+                clientCredentialsTokens,
                 clients,
                 ssoSessions,
                 new AtomicIdpRuntimePolicy(),
@@ -73,6 +84,56 @@ class OAuthTokenTransportIT {
                 false
         );
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    }
+
+    @Test
+    void clientCredentialsReturnsServiceAccessOnlyWithoutRefreshCookie()
+            throws Exception {
+        ClientAssertionAuthentication authentication =
+                new ClientAssertionAuthentication(
+                        "idp-service",
+                        "idp-service-key-1",
+                        "assertion-1",
+                        NOW,
+                        NOW.plusSeconds(60)
+                );
+        when(clientAuthenticator.authenticate(
+                PrivateKeyJwtAuthenticator.ASSERTION_TYPE,
+                "idp-service",
+                "signed-assertion"
+        )).thenReturn(authentication);
+        when(clientCredentialsTokens.issue(
+                authentication,
+                URI.create(RESOURCE),
+                "tenant-001",
+                Set.of("rbac3:policy:read"),
+                Duration.ofMinutes(15)
+        )).thenReturn(new ServiceAccessToken(
+                "service-access-value",
+                "Bearer",
+                NOW.plusSeconds(300),
+                Set.of("rbac3:policy:read")
+        ));
+
+        mockMvc.perform(post("/oauth2/token")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("grant_type", "client_credentials")
+                        .param("client_id", "idp-service")
+                        .param("client_assertion_type",
+                                PrivateKeyJwtAuthenticator.ASSERTION_TYPE)
+                        .param("client_assertion", "signed-assertion")
+                        .param("resource", RESOURCE)
+                        .param("tenant_id", "tenant-001")
+                        .param("scope", "rbac3:policy:read"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.access_token")
+                        .value("service-access-value"))
+                .andExpect(jsonPath("$.token_type").value("Bearer"))
+                .andExpect(jsonPath("$.expires_in").value(300))
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE))
+                .andExpect(content().string(not(containsString(
+                        "refresh_token"
+                ))));
     }
 
     @Test
@@ -191,6 +252,8 @@ class OAuthTokenTransportIT {
         OAuthTokenController controller = new OAuthTokenController(
                 authorizations,
                 tokens,
+                clientAuthenticator,
+                clientCredentialsTokens,
                 clients,
                 ssoSessions,
                 policy,
@@ -323,7 +386,15 @@ class OAuthTokenTransportIT {
                 .andExpect(jsonPath("$.token_endpoint")
                         .value("https://idp.example.test/oauth2/token"))
                 .andExpect(jsonPath("$.jwks_uri")
-                        .value("https://idp.example.test/oauth2/jwks"));
+                        .value("https://idp.example.test/oauth2/jwks"))
+                .andExpect(jsonPath("$.grant_types_supported")
+                        .value(org.hamcrest.Matchers.hasItem(
+                                "client_credentials"
+                        )))
+                .andExpect(jsonPath("$.token_endpoint_auth_methods_supported")
+                        .value(org.hamcrest.Matchers.hasItem(
+                                "private_key_jwt"
+                        )));
         metadata.perform(get("/oauth2/jwks"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.keys[0].kid").value("key-1"));

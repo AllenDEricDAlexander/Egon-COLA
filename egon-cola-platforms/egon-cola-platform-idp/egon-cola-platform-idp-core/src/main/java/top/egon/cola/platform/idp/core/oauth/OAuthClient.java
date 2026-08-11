@@ -46,8 +46,20 @@ public record OAuthClient(
         refreshTokenTtl = durationInRange(
                 refreshTokenTtl, Duration.ofDays(1), Duration.ofDays(30),
                 "refreshTokenTtl");
-        if (redirectUris.isEmpty()) {
-            throw new IllegalArgumentException("at least one redirect URI is required");
+        if (clientType == ClientType.PUBLIC && redirectUris.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "public Client requires at least one redirect URI"
+            );
+        }
+        if (clientType == ClientType.PUBLIC && !pkceRequired) {
+            throw new IllegalArgumentException(
+                    "public Client must require PKCE"
+            );
+        }
+        if (clientType == ClientType.CONFIDENTIAL && pkceRequired) {
+            throw new IllegalArgumentException(
+                    "confidential Client must not require PKCE"
+            );
         }
     }
 

@@ -86,6 +86,29 @@ class OAuthClientServiceImplTest {
     }
 
     @Test
+    void createsMachineConfidentialClientWithoutBrowserValues() {
+        when(clients.existsById("idp-service")).thenReturn(false);
+        when(clients.save(any())).thenAnswer(
+                invocation -> invocation.getArgument(0)
+        );
+
+        OAuthClientVO created = service.create(new CreateOAuthClientDTO(
+                "idp-service",
+                "IdP Service",
+                IdentityClientEntity.ClientType.CONFIDENTIAL,
+                300,
+                86_400,
+                List.of(),
+                List.of()
+        ));
+
+        assertThat(created.clientType()).isEqualTo("CONFIDENTIAL");
+        assertThat(created.pkceRequired()).isFalse();
+        assertThat(created.redirectUris()).isEmpty();
+        assertThat(created.audiences()).isEmpty();
+    }
+
+    @Test
     void updatesClientUsingOptimisticVersionAndManagesExactValues() {
         IdentityClientEntity client = IdentityClientEntity.createPublic(
                 "gateway-admin-web",

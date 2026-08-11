@@ -82,7 +82,15 @@ egon:
         private-key-file: ${IDP_SIGNING_PRIVATE_KEY_FILE}
     rbac3:
       base-url: ${IDP_RBAC3_BASE_URL}
-      authorization-header-file: ${IDP_RBAC3_AUTHORIZATION_HEADER_FILE}
+      service-token:
+        client-id: ${IDP_RBAC3_SERVICE_CLIENT_ID}
+        key-id: ${IDP_RBAC3_SERVICE_KEY_ID}
+        private-key-file: ${IDP_RBAC3_SERVICE_PRIVATE_KEY_FILE}
+        resource-uri: ${IDP_RBAC3_RESOURCE_URI}
+        tenant-id: ${IDP_RBAC3_SERVICE_TENANT_ID}
+        scopes: ${IDP_RBAC3_SERVICE_SCOPES}
+        ttl-seconds: ${IDP_RBAC3_SERVICE_TOKEN_TTL_SECONDS:300}
+        renewal-skew-seconds: ${IDP_RBAC3_SERVICE_TOKEN_RENEWAL_SKEW_SECONDS:30}
   cola:
     component:
       id:

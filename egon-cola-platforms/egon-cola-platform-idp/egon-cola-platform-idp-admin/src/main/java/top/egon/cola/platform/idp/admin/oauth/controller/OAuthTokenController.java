@@ -16,21 +16,29 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthErrorVO;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthTokenVO;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdpSsoSessionStore;
+import top.egon.cola.platform.idp.admin.oauth.service.impl.PrivateKeyJwtAuthenticator;
 import top.egon.cola.platform.idp.admin.support.ddc.IdpRuntimePolicy;
 import top.egon.cola.platform.idp.admin.support.security.IdpSsoAuthenticationFilter;
+import top.egon.cola.platform.idp.admin.token.service.impl.ClientCredentialsTokenService;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationCode;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationFacade;
+import top.egon.cola.platform.idp.core.oauth.ClientAssertionAuthentication;
 import top.egon.cola.platform.idp.core.oauth.OAuthClient;
 import top.egon.cola.platform.idp.core.oauth.OAuthException;
 import top.egon.cola.platform.idp.core.port.OAuthClientStore;
 import top.egon.cola.platform.idp.core.token.TokenException;
 import top.egon.cola.platform.idp.core.token.TokenFacade;
+import top.egon.cola.platform.idp.core.token.ServiceAccessToken;
 
+import java.net.URI;
 import java.security.Principal;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * OAuth Token、撤销与退出端点控制器。
@@ -51,6 +59,12 @@ public class OAuthTokenController {
 
     /** Token 生命周期门面；token-lifecycle facade. */
     private final TokenFacade tokens;
+
+    /** {@code private_key_jwt} Client 认证器；Client authenticator. */
+    private final PrivateKeyJwtAuthenticator clientAuthenticator;
+
+    /** Client Credentials SERVICE Token 签发服务；SERVICE token issuance service. */
+    private final ClientCredentialsTokenService clientCredentialsTokens;
 
     /** OAuth Client 查询端口；OAuth Client lookup port. */
     private final OAuthClientStore clients;
@@ -74,6 +88,8 @@ public class OAuthTokenController {
      *
      * @param authorizations 授权码用例门面；authorization-code use-case facade
      * @param tokens Token 生命周期门面；token-lifecycle facade
+     * @param clientAuthenticator {@code private_key_jwt} 认证器；Client authenticator
+     * @param clientCredentialsTokens SERVICE Token 签发服务；SERVICE token issuance service
      * @param clients OAuth Client 查询端口；OAuth Client lookup port
      * @param ssoSessions SSO 会话存储；SSO-session store
      * @param runtimePolicy 动态 OAuth 策略；dynamic OAuth policy
@@ -83,6 +99,8 @@ public class OAuthTokenController {
     public OAuthTokenController(
             AuthorizationFacade authorizations,
             TokenFacade tokens,
+            PrivateKeyJwtAuthenticator clientAuthenticator,
+            ClientCredentialsTokenService clientCredentialsTokens,
             OAuthClientStore clients,
             IdpSsoSessionStore ssoSessions,
             IdpRuntimePolicy runtimePolicy,
@@ -95,6 +113,14 @@ public class OAuthTokenController {
                 "authorizations"
         );
         this.tokens = Objects.requireNonNull(tokens, "tokens");
+        this.clientAuthenticator = Objects.requireNonNull(
+                clientAuthenticator,
+                "clientAuthenticator"
+        );
+        this.clientCredentialsTokens = Objects.requireNonNull(
+                clientCredentialsTokens,
+                "clientCredentialsTokens"
+        );
         this.clients = Objects.requireNonNull(clients, "clients");
         this.ssoSessions = Objects.requireNonNull(ssoSessions, "ssoSessions");
         this.runtimePolicy = Objects.requireNonNull(
@@ -106,13 +132,15 @@ public class OAuthTokenController {
     }
 
     /**
-     * 使用授权码或 Refresh Cookie 签发单 Resource USER Access Token。
+     * 使用授权码、Refresh Cookie 或 Client Credentials 签发单 Resource Access Token。
      *
-     * <p>Issues a single-Resource USER access token from an authorization code or refresh cookie.</p>
+     * <p>Issues a single-Resource access token from an authorization code, refresh cookie, or
+     * Client Credentials.</p>
      *
      * @param form 原始表单参数；raw form parameters
      * @param request HTTP 请求，用于读取 HttpOnly Cookie；HTTP request used to read HttpOnly cookies
-     * @return Access Token 响应和轮换后的 Refresh Cookie；access-token response and rotated refresh cookie
+     * @return Access Token 响应；USER 流程同时轮换 Refresh Cookie；access-token response, with
+     * a rotated refresh cookie for USER flows
      */
     @PostMapping(
             value = "/oauth2/token",
@@ -126,12 +154,15 @@ public class OAuthTokenController {
             throw oauth("invalid_request");
         }
         String grantType = single(form, "grant_type");
+        IdpRuntimePolicy.Snapshot policy = runtimePolicy.current();
+        if ("client_credentials".equals(grantType)) {
+            return clientCredentials(form, policy.accessTokenTtl());
+        }
         OAuthClient client = activeClient(single(form, "client_id"));
         String refreshCookie = cookieValue(
                 request,
                 refreshCookieName(client.clientId())
         );
-        IdpRuntimePolicy.Snapshot policy = runtimePolicy.current();
         TokenFacade.TokenPair pair;
         if ("authorization_code".equals(grantType)) {
             String resource = single(form, "resource");
@@ -175,6 +206,47 @@ public class OAuthTokenController {
                 .body(new OAuthTokenVO(
                         pair.accessToken(),
                         "Bearer",
+                        Math.max(0L, expiresIn)
+                ));
+    }
+
+    /**
+     * 认证 Confidential Client 并签发不含 Refresh Token 的 SERVICE Token。
+     *
+     * <p>Authenticates a Confidential Client and issues a SERVICE token without a refresh token.</p>
+     *
+     * @param form OAuth 表单；OAuth form
+     * @param accessTokenTtl 动态短期 Token 有效期；dynamic short-lived token lifetime
+     * @return SERVICE Token 响应；SERVICE token response
+     */
+    private ResponseEntity<OAuthTokenVO> clientCredentials(
+            MultiValueMap<String, String> form,
+            Duration accessTokenTtl
+    ) {
+        String clientId = single(form, "client_id");
+        ClientAssertionAuthentication authentication =
+                clientAuthenticator.authenticate(
+                        single(form, "client_assertion_type"),
+                        clientId,
+                        single(form, "client_assertion")
+                );
+        ServiceAccessToken token = clientCredentialsTokens.issue(
+                authentication,
+                resource(single(form, "resource")),
+                single(form, "tenant_id"),
+                scopes(single(form, "scope")),
+                accessTokenTtl
+        );
+        long expiresIn = Duration.between(
+                clock.instant(),
+                token.expiresAt()
+        ).toSeconds();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .header("Pragma", "no-cache")
+                .body(new OAuthTokenVO(
+                        token.accessToken(),
+                        token.tokenType(),
                         Math.max(0L, expiresIn)
                 ));
     }
@@ -281,9 +353,58 @@ public class OAuthTokenController {
         String error = exception instanceof OAuthException oauthException
                 ? oauthException.oauthError()
                 : ((TokenException) exception).oauthError();
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+        HttpStatus status = "invalid_client".equals(error)
+                ? HttpStatus.UNAUTHORIZED
+                : HttpStatus.BAD_REQUEST;
+        return ResponseEntity.status(status).body(
                 new OAuthErrorVO(error, "OAuth request is invalid")
         );
+    }
+
+    /**
+     * 校验 RFC 8707 Resource URI。
+     *
+     * <p>Validates an RFC 8707 Resource URI.</p>
+     *
+     * @param value 原始 Resource；raw Resource
+     * @return 已校验 URI；validated URI
+     */
+    private static URI resource(String value) {
+        try {
+            URI uri = URI.create(required(value));
+            if (!uri.isAbsolute()
+                    || uri.getFragment() != null
+                    || !uri.equals(uri.normalize())) {
+                throw oauth("invalid_target");
+            }
+            return uri;
+        } catch (IllegalArgumentException exception) {
+            throw oauth("invalid_target");
+        }
+    }
+
+    /**
+     * 解析并拒绝重复的空格分隔 OAuth Scope。
+     *
+     * <p>Parses space-delimited OAuth scopes and rejects duplicates.</p>
+     *
+     * @param value 原始 Scope 文本；raw scope text
+     * @return 排序后的不可变 Scope；sorted immutable scopes
+     */
+    private static Set<String> scopes(String value) {
+        String raw = required(value);
+        if (raw.contains("  ")) {
+            throw oauth("invalid_scope");
+        }
+        String[] parts = raw.split(" ");
+        TreeSet<String> result = new TreeSet<>();
+        Collections.addAll(result, parts);
+        if (result.isEmpty()
+                || result.size() != parts.length
+                || result.stream().anyMatch(String::isBlank)) {
+            throw oauth("invalid_scope");
+        }
+        return Collections.unmodifiableSet(result);
     }
 
     /**

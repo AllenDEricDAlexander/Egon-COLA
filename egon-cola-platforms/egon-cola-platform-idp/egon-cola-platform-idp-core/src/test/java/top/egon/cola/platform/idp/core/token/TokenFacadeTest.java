@@ -386,6 +386,13 @@ class TokenFacadeTest {
         }
 
         @Override
+        public String signServiceAccess(ServiceAccessTokenClaims claims) {
+            throw new UnsupportedOperationException(
+                    "SERVICE token signing is not used by TokenFacadeTest"
+            );
+        }
+
+        @Override
         public String signRefresh(RefreshTokenClaims claims) {
             String token = "refresh:" + claims.tokenId();
             refresh.put(token, claims);
