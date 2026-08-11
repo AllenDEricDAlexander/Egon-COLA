@@ -72,7 +72,7 @@ public class DdcAutoConfiguration {
      * 创建可刷新 {@code @DdcValue} 字段注册表。 Creates the refreshable {@code @DdcValue} field registry.
      *
      * @return 字段绑定注册表。 field-binding registry
-    */
+     */
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     public static DdcValueBindingRegistry ddcValueBindingRegistry() {
@@ -390,8 +390,14 @@ public class DdcAutoConfiguration {
      * @param metadataContributors 有序实例元数据贡献器。 ordered instance-metadata contributors
      * @param admissionTickets     IdP 准入票据端口。 IdP admission-ticket port
      * @return DDC 实例服务。 DDC instance service
-     */
+    */
     @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.ddc.redis",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
     public DdcInstanceService ddcInstanceService(DdcProperties properties,
                                                  DdcConfigClient adminClient,
                                                  DdcInstanceIdentity identity,

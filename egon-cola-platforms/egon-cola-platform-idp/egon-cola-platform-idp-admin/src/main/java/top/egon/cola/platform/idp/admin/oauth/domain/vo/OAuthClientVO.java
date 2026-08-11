@@ -17,7 +17,7 @@ public record OAuthClientVO(
         int accessTokenTtlSeconds,
         int refreshTokenTtlSeconds,
         List<String> redirectUris,
-        List<String> audiences,
+        List<String> resourceUris,
         long version,
         Instant createdAt,
         Instant updatedAt

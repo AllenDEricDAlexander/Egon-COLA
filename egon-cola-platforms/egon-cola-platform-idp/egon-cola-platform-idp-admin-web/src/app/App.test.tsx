@@ -36,7 +36,7 @@ beforeEach(() => {
         status: 'ACTIVE',
         pkceRequired: true,
         redirectUris: ['http://127.0.0.1:18121/oauth/callback'],
-        audiences: ['idp-admin-web'],
+        resourceUris: ['https://api.egon.internal/local/permission/idp'],
       }])
     }
     if (path === '/api/v1/identity/signing-keys') {

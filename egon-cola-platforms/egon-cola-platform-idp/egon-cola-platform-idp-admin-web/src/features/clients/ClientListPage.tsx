@@ -6,7 +6,7 @@ import { usePermission, PageState } from '@egon-cola/admin-web-shared'
 import type { OAuthClientView } from '../../api/types'
 
 interface ClientFormValues {
-  clientId: string; clientName: string; redirectUri: string; audience: string
+  clientId: string; clientName: string; redirectUri: string; resourceUri: string
 }
 
 export const ClientListPage = () => {
@@ -29,7 +29,7 @@ export const ClientListPage = () => {
         body: JSON.stringify({
           clientId: values.clientId, clientName: values.clientName,
           accessTokenTtlSeconds: 900, refreshTokenTtlSeconds: 604800,
-          redirectUris: [values.redirectUri], audiences: [values.audience],
+          redirectUris: [values.redirectUri], resourceUris: [values.resourceUri],
         }),
       }),
     onSuccess: async () => {
@@ -54,7 +54,7 @@ export const ClientListPage = () => {
             { title: '状态', dataIndex: 'status' },
             { title: 'PKCE', dataIndex: 'pkceRequired', render: (v: boolean) => v ? 'S256' : '否' },
             { title: '回调地址', dataIndex: 'redirectUris', render: (v: string[]) => v.join(', ') },
-            { title: 'Audience', dataIndex: 'audiences', render: (v: string[]) => v.join(', ') },
+            { title: 'Resource URI', dataIndex: 'resourceUris', render: (v: string[]) => v.join(', ') },
           ]} />
         </PageState>
       </Card>
@@ -67,7 +67,7 @@ export const ClientListPage = () => {
           <Form.Item name="clientId" label="Client ID" rules={[{ required: true }]}><Input /></Form.Item>
           <Form.Item name="clientName" label="名称" rules={[{ required: true }]}><Input /></Form.Item>
           <Form.Item name="redirectUri" label="精确回调地址" rules={[{ required: true }]}><Input /></Form.Item>
-          <Form.Item name="audience" label="Audience" rules={[{ required: true }]}><Input /></Form.Item>
+          <Form.Item name="resourceUri" label="Resource URI" rules={[{ required: true }]}><Input /></Form.Item>
         </Form>
       </Modal>
     </>

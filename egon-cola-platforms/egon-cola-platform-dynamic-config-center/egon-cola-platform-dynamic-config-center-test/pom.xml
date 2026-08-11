@@ -19,6 +19,11 @@
     <dependencies>
         <dependency>
             <groupId>top.egon</groupId>
+            <artifactId>egon-cola-platform-dynamic-config-center-admin</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
             <artifactId>egon-cola-platform-dynamic-config-center-starter</artifactId>
         </dependency>
         <dependency>

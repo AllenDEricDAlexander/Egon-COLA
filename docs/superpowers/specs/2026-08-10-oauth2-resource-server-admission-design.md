@@ -1,6 +1,6 @@
 # OAuth 2.0 Resource Server 准入与认证设计
 
-> 状态：已按 `bizCode + appCode + env` 以及“RBAC3 只负责用户权限、IdP 负责服务访问授权”修订，等待复审（2026-08-10）
+> 状态：已实现并通过本次范围源码级验收；运行态联调待用户启动（2026-08-11）
 > 设计日期：2026-08-10
 > 适用仓库：`/Users/mario/SelfProject/Egon-COLA`
 > 主模块：`egon-cola-platform-idp`
@@ -24,9 +24,9 @@ Resource Server 实例启动认证以及 `client_credentials` 服务间调用方
 当本文与旧设计中的自由字符串 `audience`、静态 `clientIds` 或无身份 DDC 注册方式冲突时，
 以本文为准。
 
-## 2. 当前实现结论
+## 2. 实施前基线与缺口
 
-当前实现已经具备以下能力：
+设计冻结时的实现已经具备以下能力：
 
 1. IdP 能签发 RS256 用户 Access Token，Token 包含 `sub`、`tid`、`sid`、
    `client_id`、`jti`、`token_version`、`aud` 和时间声明。
@@ -35,7 +35,7 @@ Resource Server 实例启动认证以及 `client_credentials` 服务间调用方
 3. RBAC3 能为指定系统生成用户授权快照，并在下游按权限编码执行细粒度授权。
 4. DDC 已使用 `bizCode/appCode/env/instanceId` 表达实例身份，并能签发和维护实例租约。
 
-当前缺口如下：
+设计冻结时的缺口如下，均由本文后续实施任务闭合：
 
 1. `audience` 只是 Client 下的自由字符串，没有独立 Resource Server、启停状态、
    业务归属、环境、公钥或准入规则。
@@ -806,3 +806,34 @@ DDC_RESOURCE_ADMISSION_BINDING_MISMATCH
 - [RFC 7523: JWT Profile for OAuth 2.0 Client Authentication](https://datatracker.ietf.org/doc/html/rfc7523)
 - [RFC 8707: Resource Indicators for OAuth 2.0](https://datatracker.ietf.org/doc/html/rfc8707)
 - [RFC 9068: JWT Profile for OAuth 2.0 Access Tokens](https://datatracker.ietf.org/doc/html/rfc9068)
+
+## 19. 实施与运维说明
+
+### 19.1 实施结果
+
+- Resource Server 以 `bizCode + appCode + env` 为唯一准入边界，每个三元组绑定一个 Resource URI；
+- USER Token 由 IdP 完成身份与目标 Resource 校验，并在签发前调用 RBAC3 判断用户入口权限；
+- SERVICE Token 的目标、租户与 Scope 全部由 IdP Service Grant 决定，不调用 RBAC3；
+- DDC 的配置客户端、HTTP Provider 与 RPC Provider 注册/心跳均携带 Admission Ticket，租约不得超过 Ticket 到期时间；
+- Gateway 从受信路由定义解析目标 Resource，并分别映射 USER/SERVICE 主体；具体用户业务权限仍由下游 RBAC3 执行；
+- 旧 `audience` 请求参数、静态 Client 白名单和 RBAC3 机器权限路径已从活动代码与配置移除。
+
+### 19.2 部署与迁移顺序
+
+1. 先应用 IdP V2，再应用 DDC V8（PostgreSQL/SQLite 对应方言），最后应用 Gateway V11；已有迁移文件不得修改或回退校验和。
+2. 在 IdP 中按精确三元组创建 Resource Server、Resource URI 和管理公钥，再创建 OAuth Client 与 Client Resource Grant。
+3. USER 入口权限在 RBAC3 配置；SERVICE 的目标、租户与 Scope 授权只在 IdP Service Grant 配置。
+4. 为每个应用配置对应的 `resource-server-id`、`resource-uri`、`biz/app/env` 和 Admission Endpoint；管理私钥仅部署到所属应用，文件使用 owner-only 权限。
+5. 先部署可签发 Token/Ticket 的 IdP，再部署 DDC、Gateway 和各 Resource Server。实例只有获得有效 Ticket 并建立认证租约后才进入 Ready。
+
+### 19.3 禁用、恢复与回滚边界
+
+- 禁用 Resource Server 后，IdP 停止签发新 Token/Ticket，并通过 Outbox 撤销该精确三元组的 DDC 租约；同一业务域的其他应用不受影响。
+- 恢复时先启用 Resource、公钥、Client Grant 和 Service Grant，再由实例重新申请 Ticket、注册租约并恢复 Ready。
+- 数据库迁移采用前向演进；代码回滚不能恢复旧 `audience` 或无 Admission Ticket 的注册协议。需要回滚时应先停止新协议流量，再恢复兼容版本与数据快照。
+
+### 19.4 验证边界
+
+- OAuth2/Admission 聚焦验收、IdP Admin 全量、Gateway Admin 全量、DDC 聚焦测试以及 RBAC3 本次变更测试均已通过；五个前端包共 179 个测试和对应类型检查通过。
+- 组合 Reactor 的 RBAC3 Admin 默认测试仍有 3 个既有 Gateway schema 发现错误，原因是 `Map<String, Object>` 不能生成完整 Gateway Schema；该问题与本次 OAuth2 Resource Server 准入改造无关。
+- 本次未启动任何应用服务，因此未宣称真实 IdP/DDC/Redis/PostgreSQL/Gateway 拓扑联调通过；运行态验收由用户后续启动服务执行。

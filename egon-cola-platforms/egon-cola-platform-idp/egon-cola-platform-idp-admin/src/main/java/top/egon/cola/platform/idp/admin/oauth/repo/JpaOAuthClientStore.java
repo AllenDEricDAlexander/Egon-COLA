@@ -15,10 +15,10 @@ import java.util.Optional;
  * <p>Loads OAuth Client protocol configuration from the IdP administration database.</p>
  *
  * <p>Resource Server 访问许可由独立的 {@code ResourceServerStore} 提供，Client 本身不再携带
- * 静态 audience 列表。</p>
+ * 静态 Resource URI 列表。</p>
  *
  * <p>Resource Server access grants are supplied by a separate {@code ResourceServerStore}; the
- * Client no longer carries a static audience list.</p>
+ * Client no longer carries a static Resource URI list.</p>
  */
 public class JpaOAuthClientStore implements OAuthClientStore {
 

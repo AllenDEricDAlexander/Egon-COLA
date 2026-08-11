@@ -28,7 +28,7 @@ const tokenStore = createTokenStore()
 const oauthClient: OAuthClient = createOAuthClient({
   issuer: requiredEnv('VITE_IDP_ISSUER'),
   clientId: requiredEnv('VITE_IDP_CLIENT_ID'),
-  audience: requiredEnv('VITE_IDP_AUDIENCE'),
+  resource: requiredEnv('VITE_IDP_RESOURCE'),
   redirectUri: (import.meta.env as Record<string, string>).VITE_IDP_REDIRECT_URI
     ?? `${window.location.origin}/oauth/callback`,
   tokenStore,

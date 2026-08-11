@@ -24,7 +24,7 @@ const createClient = () => {
   const client = createOAuthClient({
     issuer: 'http://127.0.0.1:18120',
     clientId: 'gateway-admin-web',
-    audience: 'gateway-admin-web',
+    resource: 'https://api.egon.internal/local/platform/gateway-admin',
     redirectUri: 'http://127.0.0.1:18141/oauth/callback',
     tokenStore: createTokenStore(),
   }, runtime)

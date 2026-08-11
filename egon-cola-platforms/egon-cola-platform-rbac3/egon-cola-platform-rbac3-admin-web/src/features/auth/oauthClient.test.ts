@@ -23,7 +23,7 @@ const runtime = (fetcher: typeof fetch, navigate = vi.fn()) => ({
 const configuration = {
   issuer: 'https://idp.example.test',
   clientId: 'rbac3-admin-web',
-  audience: 'rbac3-admin-web',
+  resource: 'https://api.egon.internal/local/permission/rbac3',
   redirectUri: 'https://gateway.example.test/oauth/callback',
 }
 
@@ -43,6 +43,10 @@ describe('OAuth PKCE client', () => {
     const authorizationUrl = new URL(navigate.mock.calls[0][0])
     expect(authorizationUrl.searchParams.get('code_challenge_method')).toBe('S256')
     expect(authorizationUrl.searchParams.get('tenant_id')).toBe('tenant-a')
+    expect(authorizationUrl.searchParams.get('resource')).toBe(
+      'https://api.egon.internal/local/permission/rbac3',
+    )
+    expect(authorizationUrl.searchParams.get('audience')).toBeNull()
     expect(authorizationUrl.searchParams.get('code_verifier')).toBeNull()
     const state = authorizationUrl.searchParams.get('state')!
     const nonce = authorizationUrl.searchParams.get('nonce')!

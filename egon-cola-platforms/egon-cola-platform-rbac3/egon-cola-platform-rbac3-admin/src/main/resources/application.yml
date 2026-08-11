@@ -50,8 +50,18 @@ egon.cola.platform:
     register-filter: false
     issuer: ${IDP_OAUTH_ISSUER}
     jwk-set-uri: ${IDP_JWK_SET_URI}
-    audiences: [rbac3-admin-web]
-    client-ids: [rbac3-admin-web]
+    resource-server-id: ${RBAC3_RESOURCE_SERVER_ID}
+    resource-uri: ${RBAC3_RESOURCE_URI}
+    admission:
+      biz-code: ${RBAC3_RESOURCE_BIZ_CODE:permission}
+      app-code: ${RBAC3_RESOURCE_APP_CODE:rbac3}
+      environment: ${DEPLOYMENT_ENV}
+      instance-id: ${RBAC3_INSTANCE_ID}
+      management-client-id: ${RBAC3_RESOURCE_MANAGEMENT_CLIENT_ID}
+      kid: ${RBAC3_RESOURCE_MANAGEMENT_KEY_ID}
+      private-key-path: ${RBAC3_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE}
+      endpoint: ${RBAC3_RESOURCE_ADMISSION_ENDPOINT}
+      renewal-skew: ${RBAC3_RESOURCE_ADMISSION_RENEWAL_SKEW:30s}
   rbac3:
     enabled: ${UNIFIED_IDENTITY_ENABLED:true}
     register-filter: false
@@ -89,7 +99,7 @@ egon:
       jwt-public-key-file: ${RBAC3_JWT_PUBLIC_KEY_FILE}
       jwt-kid: ${RBAC3_JWT_KID}
       issuer: ${RBAC3_JWT_ISSUER}
-      audiences: ${RBAC3_JWT_AUDIENCES}
+      resource-uris: ${RBAC3_JWT_RESOURCE_URIS}
       audit-cursor-secret-file: ${RBAC3_AUDIT_CURSOR_SECRET_FILE}
     topology:
       ddc-registry-client-bean: ddcRedissonClient
@@ -101,8 +111,8 @@ egon:
         machine-id: ${RBAC3_SNOWFLAKE_MACHINE_ID}
       ddc:
         enabled: true
-        biz-code: ${DDC_BIZ_CODE:rbac3}
-        app-code: rbac3-admin
+        biz-code: ${RBAC3_RESOURCE_BIZ_CODE:permission}
+        app-code: ${RBAC3_RESOURCE_APP_CODE:rbac3}
         env: ${DEPLOYMENT_ENV}
         namespace: ${DEPLOYMENT_NAMESPACE}
         instance:
@@ -155,8 +165,8 @@ egon:
         reporting:
           enabled: true
           admin-base-url: ${GATEWAY_ADMIN_BASE_URL}
-          biz-code: ${DDC_BIZ_CODE:rbac3}
-          application-code: rbac3-admin
+          biz-code: ${RBAC3_RESOURCE_BIZ_CODE:permission}
+          application-code: ${RBAC3_RESOURCE_APP_CODE:rbac3}
           application-name: RBAC3 Permission Admin
           env: ${DEPLOYMENT_ENV}
           namespace: ${DEPLOYMENT_NAMESPACE}

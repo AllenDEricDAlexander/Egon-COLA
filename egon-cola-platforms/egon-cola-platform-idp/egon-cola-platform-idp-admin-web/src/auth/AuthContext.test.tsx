@@ -55,7 +55,7 @@ const AuthState = () => {
 beforeAll(async () => {
   vi.stubEnv('VITE_IDP_ISSUER', 'http://127.0.0.1:18120')
   vi.stubEnv('VITE_IDP_CLIENT_ID', 'idp-admin-web')
-  vi.stubEnv('VITE_IDP_AUDIENCE', 'idp-admin-web')
+  vi.stubEnv('VITE_IDP_RESOURCE', 'https://api.egon.internal/local/permission/idp')
   ;({ AuthProvider, useAuth } = await import('./AuthContext'))
 })
 

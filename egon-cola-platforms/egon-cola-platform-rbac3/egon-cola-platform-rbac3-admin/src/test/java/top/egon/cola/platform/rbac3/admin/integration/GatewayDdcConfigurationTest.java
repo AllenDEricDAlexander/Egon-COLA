@@ -54,7 +54,7 @@ class GatewayDdcConfigurationTest {
         if (Files.exists(yaml)) {
             assertThat(Files.readString(yaml))
                     .doesNotContain("localhost", "127.0.0.1")
-                    .contains("DDC_BIZ_CODE", "RBAC3_ADVERTISED_PORT",
+                    .contains("RBAC3_RESOURCE_BIZ_CODE", "RBAC3_ADVERTISED_PORT",
                             "ddcRedissonClient",
                             "rbac3RuntimeRedissonClient");
         }
@@ -66,9 +66,9 @@ class GatewayDdcConfigurationTest {
 
         assertThat(production.getProperty("egon.cola.component.ddc.enabled")).isEqualTo(true);
         assertThat(production.getProperty("egon.cola.component.ddc.biz-code"))
-                .isEqualTo("${DDC_BIZ_CODE:rbac3}");
+                .isEqualTo("${RBAC3_RESOURCE_BIZ_CODE:permission}");
         assertThat(production.getProperty("egon.cola.component.ddc.app-code"))
-                .isEqualTo("rbac3-admin");
+                .isEqualTo("${RBAC3_RESOURCE_APP_CODE:rbac3}");
         assertThat(production.getProperty("egon.cola.component.ddc.env"))
                 .isEqualTo("${DEPLOYMENT_ENV}");
         assertThat(production.getProperty("egon.cola.component.ddc.namespace"))

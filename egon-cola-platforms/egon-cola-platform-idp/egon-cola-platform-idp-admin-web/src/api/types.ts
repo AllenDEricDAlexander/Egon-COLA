@@ -38,7 +38,7 @@ export interface OAuthClientView {
   readonly accessTokenTtlSeconds: number
   readonly refreshTokenTtlSeconds: number
   readonly redirectUris: readonly string[]
-  readonly audiences: readonly string[]
+  readonly resourceUris: readonly string[]
   readonly version: number
 }
 

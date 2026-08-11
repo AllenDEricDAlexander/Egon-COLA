@@ -5,7 +5,7 @@ export const rbac3AccessTokenStore = new InMemoryAccessTokenStore()
 export interface OAuthClientConfiguration {
   readonly issuer: string
   readonly clientId: string
-  readonly audience: string
+  readonly resource: string
   readonly redirectUri: string
 }
 
@@ -86,7 +86,7 @@ export const createBrowserOAuthClient = (
         response_type: 'code',
         client_id: configuration.clientId,
         redirect_uri: configuration.redirectUri,
-        audience: configuration.audience,
+        resource: configuration.resource,
         tenant_id: required(tenantId, 'tenantId'),
         state: transaction.state,
         nonce: transaction.nonce,
@@ -162,7 +162,8 @@ const browserRuntime = (): OAuthRuntime => ({
 export const rbac3OAuth = createBrowserOAuthClient({
   issuer: import.meta.env.VITE_IDP_ISSUER ?? 'http://127.0.0.1:18120',
   clientId: import.meta.env.VITE_IDP_CLIENT_ID ?? 'rbac3-admin-web',
-  audience: import.meta.env.VITE_IDP_AUDIENCE ?? 'rbac3-admin-web',
+  resource: import.meta.env.VITE_IDP_RESOURCE
+    ?? 'https://api.egon.internal/local/permission/rbac3',
   redirectUri: import.meta.env.VITE_IDP_REDIRECT_URI
     ?? `${window.location.origin}/oauth/callback`,
 }, browserRuntime())

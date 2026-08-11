@@ -23,6 +23,8 @@ egon.cola.platform:
   idp:
     issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
     jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+    resource-server-id: ${RBAC3_RESOURCE_SERVER_ID:permission-rbac3-local}
+    resource-uri: ${RBAC3_RESOURCE_URI:https://api.egon.internal/local/permission/rbac3}
   rbac3:
     runtime:
       redis-address: ${RBAC3_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
@@ -53,7 +55,7 @@ egon:
       jwt-public-key-file: ${RBAC3_JWT_PUBLIC_KEY_FILE:build/local-rbac3-public.pem}
       jwt-kid: ${RBAC3_JWT_KID:rbac3-local}
       issuer: ${RBAC3_JWT_ISSUER:http://localhost:8080}
-      audiences: ${RBAC3_JWT_AUDIENCES:rbac3-local}
+      resource-uris: ${RBAC3_JWT_RESOURCE_URIS:https://api.egon.internal/local/permission/rbac3}
       audit-cursor-secret-file: ${RBAC3_AUDIT_CURSOR_SECRET_FILE:build/local-audit-secret}
   cola:
     component:

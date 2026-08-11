@@ -66,6 +66,31 @@ Maven child. See its [frontend README](egon-cola-platform-gateway-admin-web/READ
 - Micrometer Observation / OpenTelemetry spans and bounded Kafka call-event
   projection. Telemetry failures must not change the business response.
 
+## OAuth Resource binding
+
+Gateway resolves the expected Resource Server from the trusted route target,
+not from a caller-supplied header or request parameter. A route targets one
+exact `bizCode + appCode + environment` triple, which maps to one absolute
+Resource URI such as
+`https://api.egon.internal/prod/permission/idp`. The IdP adapter accepts only a
+single-audience access token whose `aud` and `resource_version` match that route
+Resource and whose principal is either `USER` or `SERVICE`.
+
+Gateway performs authentication, exact Resource binding, trusted identity-header
+replacement, and routing. It does not decide user roles or interface/data/field
+permissions and does not ask RBAC3 whether a service may call another service.
+The downstream service repeats exact Resource validation: USER continues into
+RBAC3 authorization, while SERVICE is checked locally against the operation's
+required IdP scope.
+
+Gateway Admin and Engine are Resource Servers themselves and use owner-only
+private-key files to obtain Admission Tickets for DDC registration. Resource
+disable revokes only the matching route-provider leases and blocks new tokens
+and tickets. After restoring the Resource, key, grants, and route definition,
+instances obtain fresh tickets and reconcile normally. Deploy IdP V2 and DDC V8
+before Gateway V11; Gateway V11 removes the legacy audience column and is not
+rollback-compatible with binaries that still expect it.
+
 ## Trace Propagation
 
 The Gateway data plane uses the W3C Trace Context support from

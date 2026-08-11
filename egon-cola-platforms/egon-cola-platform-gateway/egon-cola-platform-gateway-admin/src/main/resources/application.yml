@@ -59,8 +59,18 @@ egon:
         register-filter: false
         issuer: ${IDP_OAUTH_ISSUER}
         jwk-set-uri: ${IDP_JWK_SET_URI}
-        audiences: [gateway-admin-web]
-        client-ids: [gateway-admin-web]
+        resource-server-id: ${GATEWAY_ADMIN_RESOURCE_SERVER_ID}
+        resource-uri: ${GATEWAY_ADMIN_RESOURCE_URI}
+        admission:
+          biz-code: ${GATEWAY_ADMIN_RESOURCE_BIZ_CODE:platform}
+          app-code: ${GATEWAY_ADMIN_RESOURCE_APP_CODE:gateway-admin}
+          environment: ${DEPLOYMENT_ENV}
+          instance-id: ${GATEWAY_ADMIN_INSTANCE_ID}
+          management-client-id: ${GATEWAY_ADMIN_RESOURCE_MANAGEMENT_CLIENT_ID}
+          kid: ${GATEWAY_ADMIN_RESOURCE_MANAGEMENT_KEY_ID}
+          private-key-path: ${GATEWAY_ADMIN_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE}
+          endpoint: ${GATEWAY_ADMIN_RESOURCE_ADMISSION_ENDPOINT}
+          renewal-skew: ${GATEWAY_ADMIN_RESOURCE_ADMISSION_RENEWAL_SKEW:30s}
       rbac3:
         enabled: ${UNIFIED_IDENTITY_ENABLED:true}
         register-filter: false
@@ -75,9 +85,9 @@ egon:
     component:
       ddc:
         enabled: ${DDC_ENABLED:false}
-        biz-code: ${DDC_BIZ_CODE:infra}
-        env: ${DDC_ENV:local}
-        app-code: ${DDC_APP_CODE:ga}
+        biz-code: ${GATEWAY_ADMIN_RESOURCE_BIZ_CODE:platform}
+        env: ${DEPLOYMENT_ENV}
+        app-code: ${GATEWAY_ADMIN_RESOURCE_APP_CODE:gateway-admin}
         rpc:
           target: ${DDC_RPC_TARGET:dns:///ddc-admin:19080}
           load-balancing-policy: round_robin

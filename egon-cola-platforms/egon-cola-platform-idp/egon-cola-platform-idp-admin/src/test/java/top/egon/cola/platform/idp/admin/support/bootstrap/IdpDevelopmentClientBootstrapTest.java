@@ -40,7 +40,7 @@ class IdpDevelopmentClientBootstrapTest {
                 command.clientId().equals("mock-backend")
                         && command.redirectUris().equals(List.of(
                         "http://127.0.0.1:18161/oauth/callback"))
-                        && command.audiences().isEmpty()));
+                        && command.resourceUris().isEmpty()));
         verify(resources).save(argThat(resource ->
                 resource.getResourceServerId().equals("permission-idp-local")
                         && resource.getAppCode().equals("idp")));

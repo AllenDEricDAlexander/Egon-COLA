@@ -3,7 +3,7 @@ import type { TokenStore } from './tokenStore'
 export interface OAuthClientConfiguration {
   readonly issuer: string
   readonly clientId: string
-  readonly audience: string
+  readonly resource: string
   readonly redirectUri: string
   readonly tokenStore: TokenStore
 }
@@ -121,7 +121,7 @@ export const createOAuthClient = (
         response_type: 'code',
         client_id: configuration.clientId,
         redirect_uri: configuration.redirectUri,
-        audience: configuration.audience,
+        resource: configuration.resource,
         tenant_id: trimmedTenant,
         state: transaction.state,
         nonce: transaction.nonce,

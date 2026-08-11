@@ -23,7 +23,7 @@ public interface OAuthClientService {
 
     OAuthClientVO deleteRedirectUri(String clientId, String redirectUri);
 
-    OAuthClientVO putAudience(String clientId, String audience);
+    OAuthClientVO putResourceUri(String clientId, String resourceUri);
 
-    OAuthClientVO deleteAudience(String clientId, String audience);
+    OAuthClientVO deleteResourceUri(String clientId, String resourceUri);
 }

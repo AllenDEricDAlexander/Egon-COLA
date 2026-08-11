@@ -120,29 +120,29 @@ public class OAuthClientController {
         return clients.deleteRedirectUri(clientId, request.value());
     }
 
-    @PutMapping("/{clientId}/audiences")
-    @GatewayOperation(name = "idp-oauth-client-audience-put-v1",
-            summary = "登记OAuth受众", externalAccessible = true,
+    @PutMapping("/{clientId}/resource-uris")
+    @GatewayOperation(name = "idp-oauth-client-resource-put-v1",
+            summary = "登记OAuth Resource URI", externalAccessible = true,
             tags = {"idp", "oauth-client"})
-    public OAuthClientVO putAudience(
+    public OAuthClientVO putResourceUri(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody OAuthValueDTO request,
             @AuthenticationPrincipal IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:oauth-client:update");
-        return clients.putAudience(clientId, request.value());
+        return clients.putResourceUri(clientId, request.value());
     }
 
-    @DeleteMapping("/{clientId}/audiences")
-    @GatewayOperation(name = "idp-oauth-client-audience-delete-v1",
-            summary = "删除OAuth受众", externalAccessible = true,
+    @DeleteMapping("/{clientId}/resource-uris")
+    @GatewayOperation(name = "idp-oauth-client-resource-delete-v1",
+            summary = "删除OAuth Resource URI", externalAccessible = true,
             tags = {"idp", "oauth-client"})
-    public OAuthClientVO deleteAudience(
+    public OAuthClientVO deleteResourceUri(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody OAuthValueDTO request,
             @AuthenticationPrincipal IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:oauth-client:update");
-        return clients.deleteAudience(clientId, request.value());
+        return clients.deleteResourceUri(clientId, request.value());
     }
 }

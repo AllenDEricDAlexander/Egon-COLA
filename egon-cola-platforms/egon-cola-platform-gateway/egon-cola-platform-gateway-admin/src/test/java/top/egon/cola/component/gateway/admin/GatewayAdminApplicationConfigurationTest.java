@@ -1,5 +1,7 @@
 package top.egon.cola.component.gateway.admin;
 
+import java.util.Properties;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -78,35 +80,45 @@ class GatewayAdminApplicationConfigurationTest {
     }
 
     @Test
-    void defaultsAdminAndPublicationToInfraGaAndInfraGe() {
+    void defaultsAdminResourceIdentityAndPublicationTarget() {
         YamlPropertiesFactoryBean loader = new YamlPropertiesFactoryBean();
         loader.setResources(new ClassPathResource("application.yml"));
+        Properties properties = loader.getObject();
 
-        assertEquals("${DDC_BIZ_CODE:infra}", loader.getObject()
+        assertEquals("${GATEWAY_ADMIN_RESOURCE_SERVER_ID}", properties
+                .getProperty("egon.cola.platform.idp.resource-server-id"));
+        assertEquals("${GATEWAY_ADMIN_RESOURCE_URI}", properties
+                .getProperty("egon.cola.platform.idp.resource-uri"));
+        assertEquals("${GATEWAY_ADMIN_RESOURCE_BIZ_CODE:platform}", properties
+                .getProperty("egon.cola.platform.idp.admission.biz-code"));
+        assertEquals("${GATEWAY_ADMIN_RESOURCE_APP_CODE:gateway-admin}", properties
+                .getProperty("egon.cola.platform.idp.admission.app-code"));
+        assertEquals("${DEPLOYMENT_ENV}", properties
+                .getProperty("egon.cola.platform.idp.admission.environment"));
+        assertEquals("${GATEWAY_ADMIN_RESOURCE_BIZ_CODE:platform}", properties
                 .getProperty("egon.cola.component.ddc.biz-code"));
-        assertEquals("${DDC_ENV:local}", loader.getObject()
+        assertEquals("${DEPLOYMENT_ENV}", properties
                 .getProperty("egon.cola.component.ddc.env"));
-        assertEquals("${DDC_APP_CODE:ga}", loader.getObject()
+        assertEquals("${GATEWAY_ADMIN_RESOURCE_APP_CODE:gateway-admin}", properties
                 .getProperty("egon.cola.component.ddc.app-code"));
-        assertEquals("${DDC_RPC_TARGET:dns:///ddc-admin:19080}",
-                loader.getObject().getProperty(
+        assertEquals("${DDC_RPC_TARGET:dns:///ddc-admin:19080}", properties.getProperty(
                         "egon.cola.component.ddc.rpc.target"
                 ));
-        assertEquals("round_robin", loader.getObject().getProperty(
+        assertEquals("round_robin", properties.getProperty(
                 "egon.cola.component.ddc.rpc.load-balancing-policy"
         ));
-        assertThat(loader.getObject().getProperty(
+        assertThat(properties.getProperty(
                 "gateway.admin.ddc." + "endpoint"
         )).isNull();
-        assertThat(loader.getObject().getProperty(
+        assertThat(properties.getProperty(
                 "egon.cola.component.ddc.admin." + "endpoint"
         )).isNull();
         assertEquals("${GATEWAY_ADMIN_DDC_TARGET_BIZ_CODE:infra}",
-                loader.getObject().getProperty(
+                properties.getProperty(
                         "gateway.admin.ddc.target-biz-code"
                 ));
         assertEquals("${GATEWAY_ADMIN_DDC_TARGET_APP_CODE:ge}",
-                loader.getObject().getProperty(
+                properties.getProperty(
                         "gateway.admin.ddc.target-app-code"
                 ));
     }

@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Loads deployment-owned RSA material and enforces issuer, audience and RS256.
+ * Loads deployment-owned RSA material and enforces issuer, Resource URI and RS256.
  */
 @Configuration(proxyBeanMethods = false)
 public class Rbac3JwtConfiguration {
@@ -68,14 +68,14 @@ public class Rbac3JwtConfiguration {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(material.publicKey())
                 .signatureAlgorithm(SignatureAlgorithm.RS256)
                 .build();
-        OAuth2TokenValidator<Jwt> audience = token -> token.getAudience().stream()
-                .anyMatch(properties.requireAudiences()::contains)
+        OAuth2TokenValidator<Jwt> resource = token -> token.getAudience().stream()
+                .anyMatch(properties.requireResourceUris()::contains)
                 ? OAuth2TokenValidatorResult.success()
                 : OAuth2TokenValidatorResult.failure(new OAuth2Error(
                         "invalid_token", "JWT audience is not accepted", null));
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
                 JwtValidators.createDefaultWithIssuer(properties.requireIssuer()),
-                audience));
+                resource));
         return decoder;
     }
 

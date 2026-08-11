@@ -130,9 +130,9 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                 command.redirectUris(),
                 "redirectUris"
         );
-        List<String> audienceValues = exactValues(
-                command.audiences(),
-                "audiences"
+        List<String> resourceValues = exactValues(
+                command.resourceUris(),
+                "resourceUris"
         );
         if (command.clientType() == IdentityClientEntity.ClientType.PUBLIC
                 && redirectValues.isEmpty()) {
@@ -142,7 +142,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
         }
         if (command.clientType()
                 == IdentityClientEntity.ClientType.CONFIDENTIAL
-                && (!redirectValues.isEmpty() || !audienceValues.isEmpty())) {
+                && (!redirectValues.isEmpty() || !resourceValues.isEmpty())) {
             throw new IllegalArgumentException(
                     "machine confidential client must not register browser values"
             );
@@ -176,12 +176,12 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                         now
                 )
         ));
-        audienceValues.forEach(value -> saveUserGrant(
+        resourceValues.forEach(value -> saveUserGrant(
                 clientId,
                 resource(value),
                 now
         ));
-        return view(client, redirectValues, audienceValues);
+        return view(client, redirectValues, resourceValues);
     }
 
     /** {@inheritDoc} */
@@ -244,11 +244,14 @@ public class OAuthClientServiceImpl implements OAuthClientService {
     /** {@inheritDoc} */
     @Transactional
     @Override
-    public OAuthClientVO putAudience(String clientId, String audience) {
+    public OAuthClientVO putResourceUri(
+            String clientId,
+            String resourceUri
+    ) {
         IdentityClientEntity client = client(clientId);
         requirePublic(client);
-        String exactAudience = exact(audience, "audience");
-        IdentityResourceServerEntity resource = resource(exactAudience);
+        IdentityResourceServerEntity resource = resource(
+                exact(resourceUri, "resourceUri"));
         if (!grants.existsByClientIdAndResourceServerIdAndGrantType(
                 client.getClientId(),
                 resource.getResourceServerId(),
@@ -262,11 +265,14 @@ public class OAuthClientServiceImpl implements OAuthClientService {
     /** {@inheritDoc} */
     @Transactional
     @Override
-    public OAuthClientVO deleteAudience(String clientId, String audience) {
+    public OAuthClientVO deleteResourceUri(
+            String clientId,
+            String resourceUri
+    ) {
         IdentityClientEntity client = client(clientId);
         requirePublic(client);
         IdentityResourceServerEntity resource = resource(
-                exact(audience, "audience")
+                exact(resourceUri, "resourceUri")
         );
         grants.deleteByClientIdAndResourceServerIdAndGrantType(
                 client.getClientId(),
@@ -313,13 +319,13 @@ public class OAuthClientServiceImpl implements OAuthClientService {
      *
      * @param client Client 持久化对象；Client persistence object
      * @param redirectUris 精确回调地址；exact redirect URIs
-     * @param audiences USER_DELEGATION Resource URI；USER_DELEGATION Resource URIs
+     * @param resourceUris USER_DELEGATION Resource URI；USER_DELEGATION Resource URIs
      * @return Client 管理视图；Client management view
      */
     private static OAuthClientVO view(
             IdentityClientEntity client,
             List<String> redirectUris,
-            List<String> audiences
+            List<String> resourceUris
     ) {
         return new OAuthClientVO(
                 client.getClientId(),
@@ -330,7 +336,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                 client.getAccessTokenTtlSeconds(),
                 client.getRefreshTokenTtlSeconds(),
                 List.copyOf(redirectUris),
-                List.copyOf(audiences),
+                List.copyOf(resourceUris),
                 client.getVersion(),
                 client.getCreatedAt(),
                 client.getUpdatedAt()
@@ -377,7 +383,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
      * @return Resource Server 持久化对象；Resource Server persistence object
      */
     private IdentityResourceServerEntity resource(String resourceUri) {
-        return resources.findByResourceUri(exact(resourceUri, "audience"))
+        return resources.findByResourceUri(exact(resourceUri, "resourceUri"))
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Resource Server was not found"
                 ));

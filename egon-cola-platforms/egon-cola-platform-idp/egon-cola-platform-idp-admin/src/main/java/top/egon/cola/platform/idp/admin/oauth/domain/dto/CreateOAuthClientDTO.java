@@ -18,7 +18,7 @@ import java.util.List;
  * @param accessTokenTtlSeconds Access Token 有效秒数；access-token lifetime in seconds
  * @param refreshTokenTtlSeconds Refresh Token 配置秒数；refresh-token configuration in seconds
  * @param redirectUris Public Client 精确回调地址；exact redirect URIs for a Public Client
- * @param audiences Public Client USER_DELEGATION Resource URI；Public Client USER_DELEGATION
+ * @param resourceUris Public Client USER_DELEGATION Resource URI；Public Client USER_DELEGATION
  * Resource URIs
  */
 public record CreateOAuthClientDTO(
@@ -28,7 +28,7 @@ public record CreateOAuthClientDTO(
         @Positive int accessTokenTtlSeconds,
         @Positive int refreshTokenTtlSeconds,
         @NotNull List<@NotBlank String> redirectUris,
-        @NotNull List<@NotBlank String> audiences
+        @NotNull List<@NotBlank String> resourceUris
 ) {
 
     /**
@@ -52,7 +52,7 @@ public record CreateOAuthClientDTO(
      * @param accessTokenTtlSeconds Access Token 有效秒数；access-token lifetime in seconds
      * @param refreshTokenTtlSeconds Refresh Token 有效秒数；refresh-token lifetime in seconds
      * @param redirectUris 精确回调地址；exact redirect URIs
-     * @param audiences USER_DELEGATION Resource URI；USER_DELEGATION Resource URIs
+     * @param resourceUris USER_DELEGATION Resource URI；USER_DELEGATION Resource URIs
      */
     public CreateOAuthClientDTO(
             String clientId,
@@ -60,7 +60,7 @@ public record CreateOAuthClientDTO(
             int accessTokenTtlSeconds,
             int refreshTokenTtlSeconds,
             List<String> redirectUris,
-            List<String> audiences
+            List<String> resourceUris
     ) {
         this(
                 clientId,
@@ -69,7 +69,7 @@ public record CreateOAuthClientDTO(
                 accessTokenTtlSeconds,
                 refreshTokenTtlSeconds,
                 redirectUris,
-                audiences
+                resourceUris
         );
     }
 }

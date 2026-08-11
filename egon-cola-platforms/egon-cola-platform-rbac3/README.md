@@ -55,6 +55,33 @@ There is no `rbac3-test` artifact and no aggregate runtime library.
 7. Gateway obtains provider instances from DDC and routes only when Definition,
    Lease, Release, consistency, Session snapshot and Fence checks all agree.
 
+## OAuth Resource authorization boundary
+
+RBAC3 owns USER authorization only. Before IdP issues or refreshes a USER token
+for an exact `bizCode + appCode + environment` Resource, RBAC3 confirms the
+user's tenant membership and application-entry permission. After authentication,
+the downstream Starter applies the user's interface, data, field, participation,
+and active-role policies. USER tokens contain identity and Resource state but no
+roles or permissions, so permission changes remain effective through RBAC3's
+snapshot and fence rules.
+
+RBAC3 does not own SERVICE principals, service grants, or service scopes. IdP
+authorizes `client_credentials` against an exact source Client, target Resource,
+tenant, and scope set. A verified SERVICE request is accepted locally only when
+its token contains the operation's required IdP scope; it never enters the RBAC3
+user decision path. Thus a user allowed into `permission/idp@prod` cannot obtain
+a token for `permission/rbac3@prod` unless that target's separate RBAC3 entry
+decision also succeeds, while service-to-service access is governed exclusively
+by IdP Service Grants.
+
+RBAC3 Admin uses its own exact Resource URI and owner-only admission private-key
+file for DDC registration. Disabling that Resource stops new tokens/tickets and
+revokes only the RBAC3 triple's leases; recovery requires re-enabling it,
+restoring the valid key and grants, and obtaining a fresh Ticket. Apply IdP V2
+and DDC V8 before deploying this contract. Roll back with a forward fix because
+old service-permission and unauthenticated-registration paths are intentionally
+removed.
+
 See [architecture.md](docs/architecture.md) for algorithms and design patterns,
 [api-and-manifest.md](docs/api-and-manifest.md) for contracts,
 [security-boundaries.md](docs/security-boundaries.md) for trust boundaries, and

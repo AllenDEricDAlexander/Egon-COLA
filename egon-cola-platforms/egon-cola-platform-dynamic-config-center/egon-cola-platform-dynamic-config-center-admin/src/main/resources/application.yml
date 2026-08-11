@@ -42,8 +42,18 @@ egon:
         register-filter: false
         issuer: ${IDP_OAUTH_ISSUER:}
         jwk-set-uri: ${IDP_JWK_SET_URI:}
-        audiences: [ddc-admin-web]
-        client-ids: [ddc-admin-web]
+        resource-server-id: ${DDC_RESOURCE_SERVER_ID:}
+        resource-uri: ${DDC_RESOURCE_URI:}
+        admission:
+          biz-code: ${DDC_RESOURCE_BIZ_CODE:platform}
+          app-code: ${DDC_RESOURCE_APP_CODE:ddc}
+          environment: ${DEPLOYMENT_ENV:local}
+          instance-id: ${DDC_INSTANCE_ID:ddc-local-1}
+          management-client-id: ${DDC_RESOURCE_MANAGEMENT_CLIENT_ID:}
+          kid: ${DDC_RESOURCE_MANAGEMENT_KEY_ID:}
+          private-key-path: ${DDC_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE:}
+          endpoint: ${DDC_RESOURCE_ADMISSION_ENDPOINT:}
+          renewal-skew: ${DDC_RESOURCE_ADMISSION_RENEWAL_SKEW:30s}
       rbac3:
         enabled: ${UNIFIED_IDENTITY_ENABLED:false}
         register-filter: false

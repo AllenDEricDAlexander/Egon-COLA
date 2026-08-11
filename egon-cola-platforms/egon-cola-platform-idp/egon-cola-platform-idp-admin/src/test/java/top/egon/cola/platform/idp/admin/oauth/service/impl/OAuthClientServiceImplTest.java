@@ -57,7 +57,7 @@ class OAuthClientServiceImplTest {
     }
 
     @Test
-    void createsPublicPkceClientWithExactRedirectsAndAudiences() {
+    void createsPublicPkceClientWithExactRedirectsAndResources() {
         when(clients.existsById("gateway-admin-web")).thenReturn(false);
         when(clients.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         IdentityResourceServerEntity resource = resource();
@@ -79,7 +79,7 @@ class OAuthClientServiceImplTest {
         assertThat(created.pkceRequired()).isTrue();
         assertThat(created.redirectUris())
                 .containsExactly("http://127.0.0.1:5173/oauth/callback");
-        assertThat(created.audiences())
+        assertThat(created.resourceUris())
                 .containsExactly(resource.getResourceUri());
         verify(redirects).save(any(IdentityClientRedirectUriEntity.class));
         verify(grants).save(any(IdentityClientResourceGrantEntity.class));
@@ -105,7 +105,7 @@ class OAuthClientServiceImplTest {
         assertThat(created.clientType()).isEqualTo("CONFIDENTIAL");
         assertThat(created.pkceRequired()).isFalse();
         assertThat(created.redirectUris()).isEmpty();
-        assertThat(created.audiences()).isEmpty();
+        assertThat(created.resourceUris()).isEmpty();
     }
 
     @Test
@@ -146,7 +146,7 @@ class OAuthClientServiceImplTest {
                 "gateway-admin-web",
                 "http://127.0.0.1:5173/oauth/callback"
         );
-        service.deleteAudience(
+        service.deleteResourceUri(
                 "gateway-admin-web",
                 resource.getResourceUri()
         );

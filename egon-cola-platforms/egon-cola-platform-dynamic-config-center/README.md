@@ -53,7 +53,7 @@ ACK, operation, and configuration-client projection data.
 | `egon-cola-component-rpc-ddc-adapter` | Composition adapter under `components/rpc`: protobuf contracts, direct gRPC clients/providers, HMAC metadata, and Spring Boot wiring |
 | `egon-cola-platform-dynamic-config-center-admin` | Human REST Admin plus direct gRPC facades, PostgreSQL persistence, Redis cache/leases, and synchronous publish state machine |
 | `egon-cola-platform-dynamic-config-center-admin-web` | Standalone management console (React + antd + Vite, pure Node project outside the Maven reactor); build and deployment instructions live in `egon-cola-platform-dynamic-config-center-admin-web/README.md` |
-| `egon-cola-platform-dynamic-config-center-test` | Starter-only sample and black-box consumer verification; it has no Admin dependency |
+| `egon-cola-platform-dynamic-config-center-test` | Starter samples, black-box consumer verification, and cross-boundary admission lifecycle acceptance tests |
 
 The Admin web UI has been extracted from the jar (`/ddc-admin` is no longer served
 by Admin). The console deploys as its own container, points at Admin via
@@ -232,6 +232,31 @@ The Admin accepts leases from 5 to 300 seconds, and the heartbeat interval must
 be shorter than the lease. Every register request creates a new `leaseId`.
 Redis bucket TTL is authoritative; heartbeat never recreates a missing lease.
 
+### IdP admission boundary
+
+Every configuration-client, HTTP Provider, RPC Provider, and internal-Gateway
+register or heartbeat request carries a fresh IdP Admission Ticket bound to the
+exact `bizCode + appCode + env + instanceId`. DDC verifies the ticket signature,
+dedicated token type, `ddc-registry` audience, logical Resource identity,
+resource version, physical triple, instance ID, credential ID, and expiry. Its
+lease expiry is capped at the Ticket expiry even when the requested lease is
+longer; raw tickets are never stored in registry or audit state.
+
+An enabled application is approved once at the Resource triple, so all of its
+instances may register without per-instance approval. A process must obtain a
+valid Ticket before advertising readiness. If IdP is unavailable, an existing
+lease may run only until its current Ticket expires: no new registration and no
+heartbeat can extend the lease beyond that boundary. The runtime enters recovery
+and becomes not ready when it cannot renew safely.
+
+Disabling a Resource publishes an IdP lifecycle event that removes only leases
+whose `bizCode + appCode + env` match the disabled Resource. Re-enable the
+Resource, restore a valid owner public key/credential, and let each instance
+obtain a new Ticket and lease to recover. Apply IdP V2 before DDC V8 consumers;
+V8 is a breaking protocol migration, has both PostgreSQL and SQLite variants,
+and must be rolled forward rather than by editing or reversing existing Flyway
+files.
+
 ## Service Registry
 
 The service identity is:
@@ -240,7 +265,8 @@ The service identity is:
 env + namespace + serviceKind + serviceName + group + version + protocol
 ```
 
-Supported `serviceKind` values are `RPC_PROVIDER` and `INTERNAL_GATEWAY`.
+Supported `serviceKind` values are `HTTP_PROVIDER`, `RPC_PROVIDER`, and
+`INTERNAL_GATEWAY`.
 The registration carries `instanceId`, host, port, secure flag, metadata,
 lease seconds, and heartbeat interval. Metadata is bounded and rejects reserved
 or sensitive keys.

@@ -13,7 +13,7 @@ public class Rbac3SecurityProperties {
     private String jwtPublicKeyFile;
     private String jwtKid;
     private String issuer;
-    private List<String> audiences = new ArrayList<>();
+    private List<String> resourceUris = new ArrayList<>();
     private String auditCursorSecretFile;
     private Duration verificationKeyRetention = Duration.ofDays(8);
 
@@ -49,12 +49,13 @@ public class Rbac3SecurityProperties {
         this.issuer = issuer;
     }
 
-    public List<String> getAudiences() {
-        return List.copyOf(audiences);
+    public List<String> getResourceUris() {
+        return List.copyOf(resourceUris);
     }
 
-    public void setAudiences(List<String> audiences) {
-        this.audiences = new ArrayList<>(audiences == null ? List.of() : audiences);
+    public void setResourceUris(List<String> resourceUris) {
+        this.resourceUris = new ArrayList<>(
+                resourceUris == null ? List.of() : resourceUris);
     }
 
     public String getAuditCursorSecretFile() {
@@ -89,12 +90,13 @@ public class Rbac3SecurityProperties {
         return required(issuer, "issuer");
     }
 
-    public List<String> requireAudiences() {
-        List<String> values = audiences.stream()
-                .map(value -> required(value, "audience"))
+    public List<String> requireResourceUris() {
+        List<String> values = resourceUris.stream()
+                .map(value -> required(value, "resourceUri"))
                 .toList();
         if (values.isEmpty()) {
-            throw new IllegalStateException("at least one JWT audience is required");
+            throw new IllegalStateException(
+                    "at least one JWT Resource URI is required");
         }
         return values;
     }
