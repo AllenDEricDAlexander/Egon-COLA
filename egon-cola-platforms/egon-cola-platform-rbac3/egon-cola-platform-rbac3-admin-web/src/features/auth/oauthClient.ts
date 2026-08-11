@@ -117,6 +117,7 @@ export const createBrowserOAuthClient = (
             code: required(parameters.get('code'), 'code'),
             code_verifier: transaction.verifier,
             redirect_uri: configuration.redirectUri,
+            resource: configuration.resource,
           }))
           storeToken(response, transaction.nonce)
           return safeReturnTo(transaction.returnTo)
@@ -129,6 +130,7 @@ export const createBrowserOAuthClient = (
         refreshInFlight = requestToken(new URLSearchParams({
           grant_type: 'refresh_token',
           client_id: configuration.clientId,
+          resource: configuration.resource,
         }))
           .then((response) => storeToken(response, currentNonce))
           .finally(() => { refreshInFlight = undefined })

@@ -159,6 +159,7 @@ export const createOAuthClient = (
               code,
               code_verifier: transaction.verifier,
               redirect_uri: configuration.redirectUri,
+              resource: configuration.resource,
             }))
             storeToken(response, transaction.nonce)
             runtime.storage.removeItem(TRANSACTION_KEY)
@@ -176,6 +177,7 @@ export const createOAuthClient = (
         refreshInFlight = requestToken(new URLSearchParams({
           grant_type: 'refresh_token',
           client_id: configuration.clientId,
+          resource: configuration.resource,
         }))
           .then((response) => storeToken(response))  // FIX: NO nonce validation on refresh
           .finally(() => { refreshInFlight = undefined })

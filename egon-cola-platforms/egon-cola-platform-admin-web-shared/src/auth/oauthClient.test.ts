@@ -34,6 +34,29 @@ const createClient = () => {
 beforeEach(() => window.sessionStorage.clear())
 
 describe('OAuth callback transaction', () => {
+  it('sends the configured resource during authorization code exchange', async () => {
+    const { client, fetch, navigate } = createClient()
+    await client.beginAuthorization('default', '/dashboard')
+    const authorizationUrl = new URL(navigate.mock.calls[0]![0] as string)
+    const transaction = JSON.parse(window.sessionStorage.getItem(
+      window.sessionStorage.key(0)!,
+    )!) as { nonce: string }
+    fetch.mockResolvedValueOnce(new Response(JSON.stringify({
+      access_token: accessToken(transaction.nonce),
+      token_type: 'Bearer',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+
+    await client.handleCallback(
+      `?code=code-1&state=${authorizationUrl.searchParams.get('state')}`,
+    )
+
+    const request = fetch.mock.calls[0]![1] as RequestInit
+    const form = new URLSearchParams(String(request.body))
+    expect(form.get('resource')).toBe(
+      'https://api.egon.internal/local/platform/gateway-admin',
+    )
+  })
+
   it('keeps the transaction when token exchange fails', async () => {
     const { client, fetch, navigate } = createClient()
     await client.beginAuthorization('default', '/dashboard')
@@ -65,5 +88,24 @@ describe('OAuth callback transaction', () => {
       `?code=code-2&state=${authorizationUrl.searchParams.get('state')}`,
     )).resolves.toBe('/dashboard')
     expect(window.sessionStorage.length).toBe(0)
+  })
+})
+
+describe('OAuth refresh transaction', () => {
+  it('sends the configured resource without exposing a refresh token', async () => {
+    const { client, fetch } = createClient()
+    fetch.mockResolvedValueOnce(new Response(JSON.stringify({
+      access_token: accessToken('refresh'),
+      token_type: 'Bearer',
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+
+    await client.refresh()
+
+    const request = fetch.mock.calls[0]![1] as RequestInit
+    const form = new URLSearchParams(String(request.body))
+    expect(form.get('resource')).toBe(
+      'https://api.egon.internal/local/platform/gateway-admin',
+    )
+    expect(form.has('refresh_token')).toBe(false)
   })
 })

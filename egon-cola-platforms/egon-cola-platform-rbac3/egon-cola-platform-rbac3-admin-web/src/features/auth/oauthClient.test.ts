@@ -33,6 +33,29 @@ afterEach(() => {
 })
 
 describe('OAuth PKCE client', () => {
+  it('sends the configured resource during authorization code exchange', async () => {
+    const navigate = vi.fn()
+    const fetcher = vi.fn<typeof fetch>()
+    const client = createBrowserOAuthClient(configuration, runtime(fetcher, navigate))
+    await client.beginAuthorization('tenant-a', '/dashboard')
+    const authorizationUrl = new URL(navigate.mock.calls[0][0])
+    const state = authorizationUrl.searchParams.get('state')!
+    const nonce = authorizationUrl.searchParams.get('nonce')!
+    fetcher.mockResolvedValueOnce(new Response(JSON.stringify({
+      access_token: jwt({ nonce }),
+      token_type: 'Bearer',
+      expires_in: 900,
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+
+    await client.handleCallback(`?code=one-time&state=${state}`)
+
+    const request = fetcher.mock.calls[0][1] as RequestInit
+    const form = new URLSearchParams(String(request.body))
+    expect(form.get('resource')).toBe(
+      'https://api.egon.internal/local/permission/rbac3',
+    )
+  })
+
   it('uses S256, validates state and nonce, then removes the transaction', async () => {
     const navigate = vi.fn()
     const fetcher = vi.fn<typeof fetch>()
@@ -108,7 +131,7 @@ describe('OAuth PKCE client', () => {
     expect(sessionStorage.length).toBe(0)
   })
 
-  it('deduplicates concurrent cookie refresh without sending a refresh token body', async () => {
+  it('deduplicates concurrent cookie refresh with resource and no refresh token body', async () => {
     let release: ((value: Response) => void) | undefined
     const fetcher = vi.fn<typeof fetch>(() => new Promise<Response>(
       (resolve) => { release = resolve },
@@ -126,8 +149,12 @@ describe('OAuth PKCE client', () => {
 
     await expect(Promise.all([first, second])).resolves.toHaveLength(2)
     const request = fetcher.mock.calls[0][1] as RequestInit
-    expect(String(request.body)).toBe(
-      'grant_type=refresh_token&client_id=rbac3-admin-web',
+    const form = new URLSearchParams(String(request.body))
+    expect(form.get('grant_type')).toBe('refresh_token')
+    expect(form.get('client_id')).toBe('rbac3-admin-web')
+    expect(form.get('resource')).toBe(
+      'https://api.egon.internal/local/permission/rbac3',
     )
+    expect(form.has('refresh_token')).toBe(false)
   })
 })
