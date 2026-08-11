@@ -29,6 +29,7 @@ class DdcPackageDocumentationTest {
             "api.refresh",
             "api.registry",
             "model",
+            "model.admission",
             "model.config",
             "model.instance",
             "model.lease",

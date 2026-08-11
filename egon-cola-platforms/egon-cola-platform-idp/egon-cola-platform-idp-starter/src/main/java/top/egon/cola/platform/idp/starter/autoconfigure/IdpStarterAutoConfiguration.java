@@ -20,25 +20,34 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.web.client.RestClient;
+import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
+import top.egon.cola.component.ddc.model.admission.DdcAdmissionRequest;
+import top.egon.cola.platform.idp.starter.admission.CachingDdcAdmissionTicketSupplier;
+import top.egon.cola.platform.idp.starter.admission.HttpResourceServerAdmissionClient;
+import top.egon.cola.platform.idp.starter.admission.OwnerOnlyPrivateKeyLoader;
+import top.egon.cola.platform.idp.starter.admission.PrivateKeyJwtAssertionFactory;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
 import top.egon.cola.platform.idp.starter.security.IdpJwtVerifier;
 import top.egon.cola.platform.idp.starter.security.RetryingJwtDecoder;
 import top.egon.cola.platform.idp.starter.state.IdentityUserStateReader;
 import top.egon.cola.platform.idp.starter.state.RedisIdentityUserStateReader;
 
+import java.security.SecureRandom;
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
 /**
  * 为普通 Servlet 资源服务器装配统一 IdP 身份验证能力。
- * 本配置创建 JWT 解码器、用户实时状态读取器、身份验证器与 Bearer 过滤器；
- * 它只消费并验证 IdP 签发的访问令牌，不负责签发令牌或执行接口权限判断。
+ * 本配置创建 Admission Ticket 供应器、JWT 解码器、用户实时状态读取器、身份验证器与
+ * Bearer 过滤器；它不签发 OAuth Access Token，也不执行接口权限判断。
  *
  * <p>Auto-configures unified IdP identity verification for regular Servlet resource servers.
- * It creates the JWT decoder, current-user-state reader, identity verifier, and Bearer filter.
- * It consumes and validates access tokens issued by the IdP; it neither issues tokens nor makes
- * endpoint authorization decisions.</p>
+ * It creates the Admission Ticket supplier, JWT decoder, current-user-state reader, identity
+ * verifier, and Bearer filter. It neither issues OAuth access tokens nor makes endpoint
+ * authorization decisions.</p>
  */
 @AutoConfiguration
 @EnableConfigurationProperties(IdpStarterProperties.class)
@@ -54,6 +63,62 @@ public class IdpStarterAutoConfiguration {
      * <p>Creates the IdP Starter auto-configuration instance.</p>
      */
     public IdpStarterAutoConfiguration() {
+    }
+
+    /**
+     * 创建 owner-only 私钥、端点绑定 Assertion、HTTP Client 与缓存组成的 DDC 准入票据供应器。
+     * 应用只能通过显式注入另一个 {@link DdcAdmissionTicketSupplier} 替换生产实现，普通配置中
+     * 不提供关闭准入的开关。
+     *
+     * <p>Creates the DDC admission-ticket supplier from an owner-only private key, endpoint-bound
+     * assertions, an HTTP client, and a renewal cache. Applications may replace the production
+     * implementation only by explicitly providing another {@link DdcAdmissionTicketSupplier}; no
+     * ordinary configuration switch disables admission.</p>
+     *
+     * @param properties IdP Starter 配置；IdP Starter settings
+     * @return DDC Admission Ticket 供应器；DDC Admission Ticket supplier
+     */
+    @Bean
+    @ConditionalOnMissingBean(DdcAdmissionTicketSupplier.class)
+    public DdcAdmissionTicketSupplier ddcAdmissionTicketSupplier(
+            IdpStarterProperties properties
+    ) {
+        properties.validate();
+        properties.validateAdmission();
+        IdpStarterProperties.Admission admission =
+                properties.getAdmission();
+        Clock clock = Clock.systemUTC();
+        PrivateKeyJwtAssertionFactory assertions =
+                new PrivateKeyJwtAssertionFactory(
+                        admission.getManagementClientId(),
+                        admission.getKid(),
+                        admission.getEndpoint(),
+                        new OwnerOnlyPrivateKeyLoader().load(
+                                admission.getPrivateKeyPath()),
+                        clock,
+                        new SecureRandom()
+                );
+        HttpResourceServerAdmissionClient client =
+                new HttpResourceServerAdmissionClient(
+                        RestClient.builder().build(),
+                        admission.getEndpoint(),
+                        properties.getIssuer(),
+                        assertions
+                );
+        DdcAdmissionRequest expectedRequest = new DdcAdmissionRequest(
+                admission.getResourceServerId(),
+                admission.getResourceUri(),
+                admission.getBizCode(),
+                admission.getAppCode(),
+                admission.getEnvironment(),
+                admission.getInstanceId()
+        );
+        return new CachingDdcAdmissionTicketSupplier(
+                client,
+                expectedRequest,
+                admission.getRenewalSkew(),
+                clock
+        );
     }
 
     /**

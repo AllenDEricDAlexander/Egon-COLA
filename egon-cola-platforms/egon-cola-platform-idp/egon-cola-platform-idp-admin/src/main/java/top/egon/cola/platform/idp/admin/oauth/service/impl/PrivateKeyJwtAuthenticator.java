@@ -146,11 +146,13 @@ public final class PrivateKeyJwtAuthenticator {
             Instant expiresAt = instant(claims.getExpirationTime());
             String tokenId = required(claims.getJWTID(), "jti");
             Instant now = clock.instant();
+            if (!claims.getAudience().equals(List.of(endpointAudience))) {
+                throw invalidClient(
+                        "IDP_CLIENT_ASSERTION_AUDIENCE_INVALID"
+                );
+            }
             if (!safeClientId.equals(claims.getIssuer())
                     || !safeClientId.equals(claims.getSubject())
-                    || !claims.getAudience().equals(
-                            List.of(endpointAudience)
-                    )
                     || issuedAt.isAfter(now.plus(ISSUED_AT_SKEW))
                     || !expiresAt.isAfter(now)
                     || !expiresAt.isAfter(issuedAt)
@@ -163,7 +165,7 @@ public final class PrivateKeyJwtAuthenticator {
                     tokenId,
                     expiresAt
             )) {
-                throw invalidClient();
+                throw invalidClient("IDP_CLIENT_ASSERTION_REPLAYED");
             }
             return new ClientAssertionAuthentication(
                     safeClientId,
@@ -239,6 +241,23 @@ public final class PrivateKeyJwtAuthenticator {
      * @return {@code invalid_client}；{@code invalid_client}
      */
     private static OAuthException invalidClient() {
-        return new OAuthException("invalid_client", "invalid_client");
+        return invalidClient("IDP_CLIENT_ASSERTION_INVALID");
+    }
+
+    /**
+     * 创建带内部稳定审计码、但对外仍统一为 {@code invalid_client} 的错误。
+     *
+     * <p>Creates an error with a stable internal audit code while remaining uniformly
+     * {@code invalid_client} externally.</p>
+     *
+     * @param internalCode 内部稳定码；internal stable code
+     * @return 不泄露认证细节的 OAuth 错误；OAuth error without authentication detail leakage
+     */
+    private static OAuthException invalidClient(String internalCode) {
+        return new OAuthException(
+                "invalid_client",
+                "invalid_client",
+                internalCode
+        );
     }
 }

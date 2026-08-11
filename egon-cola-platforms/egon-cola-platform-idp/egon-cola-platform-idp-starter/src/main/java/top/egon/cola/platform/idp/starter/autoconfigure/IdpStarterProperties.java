@@ -2,6 +2,9 @@ package top.egon.cola.platform.idp.starter.autoconfigure;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.net.URI;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -64,6 +67,13 @@ public class IdpStarterProperties {
      * <p>Redis key prefix used for current IdP user-state projections.</p>
      */
     private String userStateKeyPrefix = "identity:v1:user:";
+
+    /**
+     * Resource Server 启动准入和机器身份配置。
+     *
+     * <p>Resource Server startup-admission and machine-identity settings.</p>
+     */
+    private Admission admission = new Admission();
 
     /**
      * 创建使用默认值初始化的 IdP Starter 配置。
@@ -228,6 +238,28 @@ public class IdpStarterProperties {
     }
 
     /**
+     * 返回 Resource Server 启动准入配置。
+     *
+     * <p>Returns the Resource Server startup-admission settings.</p>
+     *
+     * @return 准入配置；admission settings
+     */
+    public Admission getAdmission() {
+        return admission;
+    }
+
+    /**
+     * 设置 Resource Server 启动准入配置。
+     *
+     * <p>Sets the Resource Server startup-admission settings.</p>
+     *
+     * @param admission 准入配置；admission settings
+     */
+    public void setAdmission(Admission admission) {
+        this.admission = admission;
+    }
+
+    /**
      * 校验启用身份验证所必需的全部配置。
      *
      * <p>Validates all settings required to enable identity verification.</p>
@@ -241,6 +273,48 @@ public class IdpStarterProperties {
         required(userStateKeyPrefix, "userStateKeyPrefix");
         requiredValues(audiences, "audiences");
         requiredValues(clientIds, "clientIds");
+    }
+
+    /**
+     * 校验生产 Admission Ticket 供应器所需的全部机器身份配置。
+     *
+     * <p>Validates all machine-identity settings required by the production Admission Ticket
+     * supplier.</p>
+     *
+     * @throws IllegalStateException 配置缺失、URI 边界不安全或私钥路径非绝对路径时抛出；when
+     * settings are missing, a URI boundary is unsafe, or the private-key path is not absolute
+     */
+    public void validateAdmission() {
+        if (admission == null) {
+            throw new IllegalStateException(
+                    "egon.cola.platform.idp.admission is required"
+            );
+        }
+        required(admission.resourceServerId, "admission.resourceServerId");
+        resource(admission.resourceUri, "admission.resourceUri");
+        required(admission.bizCode, "admission.bizCode");
+        required(admission.appCode, "admission.appCode");
+        required(admission.environment, "admission.environment");
+        required(admission.instanceId, "admission.instanceId");
+        required(
+                admission.managementClientId,
+                "admission.managementClientId"
+        );
+        required(admission.kid, "admission.kid");
+        if (admission.privateKeyPath == null
+                || !admission.privateKeyPath.isAbsolute()) {
+            throw new IllegalStateException(
+                    "egon.cola.platform.idp.admission.privateKeyPath must be absolute"
+            );
+        }
+        endpoint(admission.endpoint, "admission.endpoint");
+        if (admission.renewalSkew == null
+                || admission.renewalSkew.isZero()
+                || admission.renewalSkew.isNegative()) {
+            throw new IllegalStateException(
+                    "egon.cola.platform.idp.admission.renewalSkew must be positive"
+            );
+        }
     }
 
     /**
@@ -276,6 +350,221 @@ public class IdpStarterProperties {
             throw new IllegalStateException(
                     "egon.cola.platform.idp." + field
                             + " must contain non-blank values");
+        }
+    }
+
+    /**
+     * 校验 Resource URI。
+     *
+     * <p>Validates a Resource URI.</p>
+     *
+     * @param value Resource URI；Resource URI
+     * @param field 配置字段名；setting field name
+     */
+    private void resource(URI value, String field) {
+        if (value == null
+                || !value.isAbsolute()
+                || value.getFragment() != null
+                || !value.equals(value.normalize())) {
+            throw new IllegalStateException(
+                    "egon.cola.platform.idp." + field
+                            + " must be an absolute normalized URI without a fragment"
+            );
+        }
+    }
+
+    /**
+     * 校验 Admission Endpoint，并仅为回环本机测试允许 HTTP。
+     *
+     * <p>Validates the Admission Endpoint, allowing HTTP only for loopback local tests.</p>
+     *
+     * @param value Endpoint URI；Endpoint URI
+     * @param field 配置字段名；setting field name
+     */
+    private void endpoint(URI value, String field) {
+        resource(value, field);
+        if (value.getQuery() != null
+                || !("https".equalsIgnoreCase(value.getScheme())
+                || "http".equalsIgnoreCase(value.getScheme())
+                && loopback(value.getHost()))) {
+            throw new IllegalStateException(
+                    "egon.cola.platform.idp." + field
+                            + " must use HTTPS except for loopback testing"
+            );
+        }
+    }
+
+    /**
+     * 判断主机是否为显式本机回环地址。
+     *
+     * <p>Determines whether a host is an explicit local loopback address.</p>
+     *
+     * @param host URI 主机；URI host
+     * @return 回环地址时为 {@code true}；{@code true} for a loopback host
+     */
+    private boolean loopback(String host) {
+        return "localhost".equalsIgnoreCase(host)
+                || "127.0.0.1".equals(host)
+                || "::1".equals(host);
+    }
+
+    /**
+     * Resource Server Admission Ticket 和 Management Client 配置。
+     *
+     * <p>Resource Server Admission Ticket and Management Client settings.</p>
+     */
+    public static class Admission {
+
+        /** Resource Server 标识；Resource Server identifier. */
+        private String resourceServerId;
+
+        /** Resource URI；Resource URI. */
+        private URI resourceUri;
+
+        /** 业务域编码；business-domain code. */
+        private String bizCode;
+
+        /** 应用编码；application code. */
+        private String appCode;
+
+        /** 运行环境编码；runtime environment code. */
+        private String environment;
+
+        /** DDC 稳定实例标识；stable DDC instance identifier. */
+        private String instanceId;
+
+        /** Resource 绑定的 Confidential Management Client；Resource-bound confidential
+         * Management Client. */
+        private String managementClientId;
+
+        /** Client JWK kid；Client JWK kid. */
+        private String kid;
+
+        /** owner-only PKCS#8 RSA 私钥绝对路径；absolute owner-only PKCS#8 RSA private-key path. */
+        private Path privateKeyPath;
+
+        /** IdP Admission Endpoint；IdP Admission Endpoint. */
+        private URI endpoint;
+
+        /** 票据提前续签窗口；ticket renewal-ahead window. */
+        private Duration renewalSkew = Duration.ofSeconds(30);
+
+        /**
+         * 创建空 Admission 配置供 Spring 绑定。
+         *
+         * <p>Creates empty Admission settings for Spring binding.</p>
+         */
+        public Admission() {
+        }
+
+        /** @return Resource Server 标识；Resource Server identifier */
+        public String getResourceServerId() {
+            return resourceServerId;
+        }
+
+        /** @param resourceServerId Resource Server 标识；Resource Server identifier */
+        public void setResourceServerId(String resourceServerId) {
+            this.resourceServerId = resourceServerId;
+        }
+
+        /** @return Resource URI；Resource URI */
+        public URI getResourceUri() {
+            return resourceUri;
+        }
+
+        /** @param resourceUri Resource URI；Resource URI */
+        public void setResourceUri(URI resourceUri) {
+            this.resourceUri = resourceUri;
+        }
+
+        /** @return 业务域编码；business-domain code */
+        public String getBizCode() {
+            return bizCode;
+        }
+
+        /** @param bizCode 业务域编码；business-domain code */
+        public void setBizCode(String bizCode) {
+            this.bizCode = bizCode;
+        }
+
+        /** @return 应用编码；application code */
+        public String getAppCode() {
+            return appCode;
+        }
+
+        /** @param appCode 应用编码；application code */
+        public void setAppCode(String appCode) {
+            this.appCode = appCode;
+        }
+
+        /** @return 环境编码；environment code */
+        public String getEnvironment() {
+            return environment;
+        }
+
+        /** @param environment 环境编码；environment code */
+        public void setEnvironment(String environment) {
+            this.environment = environment;
+        }
+
+        /** @return DDC 实例标识；DDC instance identifier */
+        public String getInstanceId() {
+            return instanceId;
+        }
+
+        /** @param instanceId DDC 实例标识；DDC instance identifier */
+        public void setInstanceId(String instanceId) {
+            this.instanceId = instanceId;
+        }
+
+        /** @return Management Client 标识；Management Client identifier */
+        public String getManagementClientId() {
+            return managementClientId;
+        }
+
+        /** @param managementClientId Management Client 标识；Management Client identifier */
+        public void setManagementClientId(String managementClientId) {
+            this.managementClientId = managementClientId;
+        }
+
+        /** @return Client JWK kid；Client JWK kid */
+        public String getKid() {
+            return kid;
+        }
+
+        /** @param kid Client JWK kid；Client JWK kid */
+        public void setKid(String kid) {
+            this.kid = kid;
+        }
+
+        /** @return 私钥绝对路径；absolute private-key path */
+        public Path getPrivateKeyPath() {
+            return privateKeyPath;
+        }
+
+        /** @param privateKeyPath 私钥绝对路径；absolute private-key path */
+        public void setPrivateKeyPath(Path privateKeyPath) {
+            this.privateKeyPath = privateKeyPath;
+        }
+
+        /** @return IdP Admission Endpoint；IdP Admission Endpoint */
+        public URI getEndpoint() {
+            return endpoint;
+        }
+
+        /** @param endpoint IdP Admission Endpoint；IdP Admission Endpoint */
+        public void setEndpoint(URI endpoint) {
+            this.endpoint = endpoint;
+        }
+
+        /** @return 提前续签窗口；renewal-ahead window */
+        public Duration getRenewalSkew() {
+            return renewalSkew;
+        }
+
+        /** @param renewalSkew 提前续签窗口；renewal-ahead window */
+        public void setRenewalSkew(Duration renewalSkew) {
+            this.renewalSkew = renewalSkew;
         }
     }
 }

@@ -14,6 +14,52 @@ import java.util.Objects;
 public final class ResourceServerAdmissionPolicy {
 
     /**
+     * 校验 Resource、Management Client、公开凭证和完整准入请求。
+     *
+     * <p>Validates the Resource, Management Client, public credential, and complete admission
+     * request.</p>
+     *
+     * @param resource 已登记 Resource Server；registered Resource Server
+     * @param client 发起准入的 Management Client；Management Client requesting admission
+     * @param credential 已完成签名选择的公开凭证；public credential selected for signature
+     * verification
+     * @param request Resource 实例准入声明；Resource instance admission declaration
+     * @param now 当前校验时间；current verification instant
+     * @return 可用于签发 Ticket 的安全授权结果；safe authorization result used to issue a Ticket
+     */
+    public AdmissionAuthorization authorize(
+            ResourceServer resource,
+            OAuthClient client,
+            ClientJwkCredential credential,
+            AdmissionRequest request,
+            Instant now
+    ) {
+        Objects.requireNonNull(request, "request");
+        if (!resource.resourceServerId().equals(request.resourceServerId())) {
+            deny(
+                    "IDP_RESOURCE_SERVER_NOT_FOUND",
+                    "Resource Server identifier does not match"
+            );
+        }
+        if (!resource.resourceUri().equals(request.resourceUri())) {
+            deny(
+                    "IDP_RESOURCE_SERVER_URI_MISMATCH",
+                    "Resource URI does not match"
+            );
+        }
+        return authorize(
+                resource,
+                client,
+                credential,
+                request.bizCode(),
+                request.appCode(),
+                request.environment(),
+                request.instanceId(),
+                now
+        );
+    }
+
+    /**
      * 校验 Resource、Management Client、公开凭证和实例声明。
      *
      * <p>Validates the Resource, Management Client, public credential, and instance declaration.</p>

@@ -148,6 +148,37 @@ class ResourceServerPolicyTest {
     }
 
     @Test
+    void admissionPolicyRejectsAResourceUriDifferentFromTheRegisteredOne() {
+        ResourceServer resource = resource(ResourceServerStatus.ACTIVE);
+        ResourceServerAdmissionPolicy policy =
+                new ResourceServerAdmissionPolicy();
+        AdmissionRequest wrongResource = new AdmissionRequest(
+                resource.resourceServerId(),
+                java.net.URI.create("https://api.example/rbac3"),
+                resource.bizCode(),
+                resource.appCode(),
+                resource.environment(),
+                "idp-admin-01"
+        );
+
+        ResourceAuthorizationException exception = assertThrows(
+                ResourceAuthorizationException.class,
+                () -> policy.authorize(
+                        resource,
+                        confidentialClient("idp-service"),
+                        credential(
+                                "idp-service",
+                                ClientJwkCredential.Status.ACTIVE
+                        ),
+                        wrongResource,
+                        NOW
+                )
+        );
+
+        assertEquals("IDP_RESOURCE_SERVER_URI_MISMATCH", exception.code());
+    }
+
+    @Test
     void userPolicyRequiresResourceGrantMembershipAndRbacEntryPermission() {
         FakeResourceServerStore resources = new FakeResourceServerStore();
         ResourceServer resource = resource(ResourceServerStatus.ACTIVE);
