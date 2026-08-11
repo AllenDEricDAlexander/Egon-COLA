@@ -49,6 +49,8 @@ class DdcHttpRegistrationRuntimeTest {
 
         registry.renewed = false;
         runtime.heartbeatAndRecover();
+        assertEquals(DdcHttpRegistrationState.RECOVERING, runtime.state());
+        runtime.heartbeatAndRecover();
         assertEquals(2, registry.registrations.get());
         assertEquals(DdcHttpRegistrationState.REGISTERED, runtime.state());
 
@@ -71,6 +73,9 @@ class DdcHttpRegistrationRuntimeTest {
         registry.registrationFailures.set(2);
 
         assertDoesNotThrow(runtime::heartbeatAndRecover);
+        assertEquals(DdcHttpRegistrationState.RECOVERING, runtime.state());
+
+        runtime.heartbeatAndRecover();
         assertEquals(DdcHttpRegistrationState.RECOVERING, runtime.state());
 
         runtime.heartbeatAndRecover();
@@ -109,6 +114,80 @@ class DdcHttpRegistrationRuntimeTest {
                         Map.of()
                 )
         );
+    }
+
+    @Test
+    void initialAdmissionFailurePreventsRegistrationAndReady() {
+        FakeRegistry registry = new FakeRegistry();
+        RecordingAdmissionTickets admissionTickets =
+                new RecordingAdmissionTickets();
+        admissionTickets.failures.set(1);
+        DdcHttpRegistrationRuntime runtime = new DdcHttpRegistrationRuntime(
+                registry,
+                serviceKeyFactory(),
+                properties(),
+                admissionTickets
+        );
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> runtime.onHttpServerReady(18080)
+        );
+        assertEquals(DdcHttpRegistrationState.FAILED, runtime.state());
+        assertEquals(0, registry.registrations.get());
+        runtime.close();
+    }
+
+    @Test
+    void renewalFailureLeavesReadyAndRetainsLeaseForShutdown() {
+        FakeRegistry registry = new FakeRegistry();
+        RecordingAdmissionTickets admissionTickets =
+                new RecordingAdmissionTickets();
+        DdcHttpRegistrationRuntime runtime = new DdcHttpRegistrationRuntime(
+                registry,
+                serviceKeyFactory(),
+                properties(),
+                admissionTickets
+        );
+        runtime.onHttpServerReady(18080);
+        DdcLeaseSession established = runtime.lease().orElseThrow();
+        admissionTickets.failures.set(1);
+
+        runtime.heartbeatAndRecover();
+
+        assertEquals(DdcHttpRegistrationState.RECOVERING, runtime.state());
+        assertEquals(established, runtime.lease().orElseThrow());
+        assertEquals(0, registry.heartbeats.get());
+        runtime.close();
+        assertEquals(1, registry.deregistrations.get());
+        assertEquals(2, admissionTickets.calls.get());
+    }
+
+    @Test
+    void attachesCurrentTicketToRegistrationAndEveryHeartbeat() {
+        FakeRegistry registry = new FakeRegistry();
+        RecordingAdmissionTickets admissionTickets =
+                new RecordingAdmissionTickets();
+        DdcHttpRegistrationRuntime runtime = new DdcHttpRegistrationRuntime(
+                registry,
+                serviceKeyFactory(),
+                properties(),
+                admissionTickets
+        );
+
+        runtime.onHttpServerReady(18080);
+        runtime.heartbeatAndRecover();
+
+        assertEquals(
+                "admission-ticket-1",
+                registry.registration.admissionTicket()
+        );
+        assertEquals(
+                "admission-ticket-2",
+                registry.heartbeatRequest.getAdmissionTicket()
+        );
+        runtime.close();
+        assertEquals(2, admissionTickets.calls.get());
     }
 
     private DdcHttpRegistrationRuntimeProperties properties() {
@@ -167,11 +246,15 @@ class DdcHttpRegistrationRuntimeTest {
 
         private final AtomicInteger deregistrations = new AtomicInteger();
 
+        private final AtomicInteger heartbeats = new AtomicInteger();
+
         private final AtomicInteger registrationFailures = new AtomicInteger();
 
         private volatile boolean renewed = true;
 
         private volatile DdcServiceRegistration registration;
+
+        private volatile DdcServiceLeaseRequest heartbeatRequest;
 
         @Override
         public DdcLeaseSession register(DdcServiceRegistration registration) {
@@ -196,6 +279,8 @@ class DdcHttpRegistrationRuntimeTest {
         @Override
         public DdcLeaseOperationResult heartbeat(
                 DdcServiceLeaseRequest request) {
+            heartbeats.incrementAndGet();
+            heartbeatRequest = request;
             return new DdcLeaseOperationResult(
                     renewed
                             ? DdcLeaseOperationStatus.RENEWED
@@ -238,6 +323,41 @@ class DdcHttpRegistrationRuntimeTest {
                 DdcServiceQuery query,
                 Consumer<DdcServiceCatalogSnapshot> listener) {
             throw new UnsupportedOperationException();
+        }
+    }
+
+    private static final class RecordingAdmissionTickets
+            implements DdcAdmissionTicketSupplier {
+
+        private final AtomicInteger calls = new AtomicInteger();
+
+        private final AtomicInteger failures = new AtomicInteger();
+
+        @Override
+        public DdcAdmissionTicket getTicket(
+                String bizCode,
+                String appCode,
+                String environment,
+                String instanceId) {
+            int sequence = calls.incrementAndGet();
+            if (failures.getAndUpdate(value -> Math.max(0, value - 1))
+                    > 0) {
+                throw new IllegalStateException(
+                        "IdP admission unavailable"
+                );
+            }
+            return new DdcAdmissionTicket(
+                    "admission-ticket-" + sequence,
+                    Instant.parse("2099-01-01T00:00:00Z"),
+                    "resource-test",
+                    URI.create("urn:egon:resource:test"),
+                    1L,
+                    bizCode,
+                    appCode,
+                    environment,
+                    instanceId,
+                    "kid-test"
+            );
         }
     }
 }

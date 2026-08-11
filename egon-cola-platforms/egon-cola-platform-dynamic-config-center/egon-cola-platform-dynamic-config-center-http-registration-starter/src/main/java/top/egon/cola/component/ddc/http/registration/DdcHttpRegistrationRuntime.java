@@ -146,18 +146,22 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
             DdcLeaseOperationResult result = registry.heartbeat(request);
             if (!result.renewed()) {
                 lease = null;
-                recover();
-            } else if (result.leaseExpireAt() != null) {
-                renewLeaseExpiry(result);
+                state.set(DdcHttpRegistrationState.RECOVERING);
+                return;
             }
+            if (result.leaseExpireAt() == null) {
+                state.set(DdcHttpRegistrationState.RECOVERING);
+                return;
+            }
+            renewLeaseExpiry(result);
+            state.set(DdcHttpRegistrationState.REGISTERED);
         } catch (RuntimeException failure) {
-            lease = null;
+            state.set(DdcHttpRegistrationState.RECOVERING);
             LOGGER.warn(
                     "DDC HTTP registration heartbeat failed for {}",
                     properties.instanceId(),
                     failure
             );
-            recover();
         }
     }
 

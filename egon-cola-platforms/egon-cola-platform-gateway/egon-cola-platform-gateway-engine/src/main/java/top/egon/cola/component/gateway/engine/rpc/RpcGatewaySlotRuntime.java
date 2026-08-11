@@ -126,12 +126,12 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
                 || currentState == RpcGatewaySubsystemState.STOPPED) {
             return;
         }
-        if (lease == null
-                || currentState == RpcGatewaySubsystemState.RECOVERING) {
+        if (lease == null) {
             registerRecoverably();
             return;
         }
-        if (currentState != RpcGatewaySubsystemState.REGISTERED_READY) {
+        if (currentState != RpcGatewaySubsystemState.REGISTERED_READY
+                && currentState != RpcGatewaySubsystemState.RECOVERING) {
             return;
         }
         try {
@@ -150,12 +150,20 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
                 enterRecovery(new IllegalStateException(
                         "RPC Gateway slot lease was not renewed: "
                                 + result.status()
-                ));
-            } else if (result.leaseExpireAt() != null) {
-                renewLeaseExpiry(result.leaseExpireAt());
+                ), true);
+                return;
             }
+            if (result.leaseExpireAt() == null) {
+                enterRecovery(new IllegalStateException(
+                        "RPC Gateway slot renewal has no lease expiry"
+                ), false);
+                return;
+            }
+            renewLeaseExpiry(result.leaseExpireAt());
+            lastFailure = null;
+            state.set(RpcGatewaySubsystemState.REGISTERED_READY);
         } catch (RuntimeException failure) {
-            enterRecovery(failure);
+            enterRecovery(failure, false);
         }
     }
 
@@ -192,7 +200,7 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
             heartbeatAndRecover();
         } catch (RuntimeException failure) {
             synchronized (this) {
-                enterRecovery(failure);
+                enterRecovery(failure, false);
             }
         }
     }
@@ -216,20 +224,25 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
                     registry.register(registration),
                     "registered lease"
             );
+            lastFailure = null;
             state.set(RpcGatewaySubsystemState.REGISTERED_READY);
         } catch (RuntimeException failure) {
-            enterRecovery(failure);
+            enterRecovery(failure, false);
         }
     }
 
-    private void enterRecovery(RuntimeException failure) {
+    private void enterRecovery(
+            RuntimeException failure,
+            boolean leaseLost) {
         RpcGatewaySubsystemState currentState = state.get();
         if (currentState == RpcGatewaySubsystemState.DRAINING
                 || currentState == RpcGatewaySubsystemState.STOPPED
                 || currentState == RpcGatewaySubsystemState.DISABLED) {
             return;
         }
-        lease = null;
+        if (leaseLost) {
+            lease = null;
+        }
         lastFailure = failure;
         state.set(RpcGatewaySubsystemState.RECOVERING);
     }

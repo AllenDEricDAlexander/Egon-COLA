@@ -4,6 +4,7 @@ import top.egon.cola.component.ddc.state.DdcLeaseSessionHolder;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
+import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.service.refresh.DdcRefreshService;
 import top.egon.cola.component.ddc.error.DdcException;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
@@ -26,6 +27,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -86,6 +88,91 @@ class DdcRuntimeCoordinatorTest {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("register failed");
         assertThat(coordinator.state()).isEqualTo(DdcRuntimeState.FAILED);
+    }
+
+    @Test
+    void admissionFailureBeforeInitialRegistrationPreventsReady() {
+        RecordingAdminClient adminClient = new RecordingAdminClient(
+                new ArrayList<>()
+        );
+        RecordingAdmissionTickets admissionTickets =
+                new RecordingAdmissionTickets();
+        admissionTickets.failures.set(1);
+        DdcRuntimeCoordinator coordinator = coordinator(
+                adminClient,
+                mock(DdcRefreshService.class),
+                subscription(new ArrayList<>()),
+                properties(true),
+                new DdcLocalConfigState(),
+                admissionTickets
+        );
+
+        assertThatThrownBy(coordinator::start)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("IdP admission unavailable");
+        assertThat(coordinator.state()).isEqualTo(DdcRuntimeState.FAILED);
+        assertThat(adminClient.registerCount).isZero();
+    }
+
+    @Test
+    void renewalFailureLeavesReadyWithoutExtendingOrLosingShutdownLease() {
+        List<String> events = new ArrayList<>();
+        RecordingAdminClient adminClient = new RecordingAdminClient(events);
+        RecordingAdmissionTickets admissionTickets =
+                new RecordingAdmissionTickets();
+        DdcRuntimeCoordinator coordinator = coordinator(
+                adminClient,
+                mock(DdcRefreshService.class),
+                subscription(events),
+                properties(true),
+                new DdcLocalConfigState(),
+                admissionTickets
+        );
+        coordinator.start();
+        DdcLeaseSession established = coordinator.currentSession()
+                .orElseThrow();
+        admissionTickets.failures.set(1);
+
+        coordinator.heartbeatOnce();
+
+        assertThat(coordinator.state())
+                .isEqualTo(DdcRuntimeState.RECOVERING);
+        assertThat(coordinator.currentSession()).contains(established);
+        assertThat(adminClient.heartbeatCount).isZero();
+        coordinator.stop();
+        assertThat(events).endsWith("offline", "unsubscribe");
+        assertThat(admissionTickets.calls.get()).isEqualTo(2);
+    }
+
+    @Test
+    void everyRenewalUsesCurrentTicketAndUpdatesLocalLeaseExpiry() {
+        RecordingAdminClient adminClient = new RecordingAdminClient(
+                new ArrayList<>()
+        );
+        RecordingAdmissionTickets admissionTickets =
+                new RecordingAdmissionTickets();
+        DdcRuntimeCoordinator coordinator = coordinator(
+                adminClient,
+                mock(DdcRefreshService.class),
+                subscription(new ArrayList<>()),
+                properties(true),
+                new DdcLocalConfigState(),
+                admissionTickets
+        );
+        coordinator.start();
+        adminClient.heartbeatExpireAt = Instant.parse(
+                "2026-07-24T12:02:00Z"
+        );
+
+        coordinator.heartbeatOnce();
+
+        assertThat(adminClient.registrationAdmissionTicket)
+                .isEqualTo("admission-ticket-1");
+        assertThat(adminClient.heartbeatAdmissionTicket)
+                .isEqualTo("admission-ticket-2");
+        assertThat(coordinator.currentSession().orElseThrow()
+                .leaseExpireAt()).isEqualTo(adminClient.heartbeatExpireAt);
+        coordinator.stop();
     }
 
     @Test
@@ -300,6 +387,23 @@ class DdcRuntimeCoordinatorTest {
                                               DdcRedisTopicSubscription<DdcPublishMessage> subscription,
                                               DdcProperties properties,
                                               DdcLocalConfigState repository) {
+        return coordinator(
+                adminClient,
+                refreshService,
+                subscription,
+                properties,
+                repository,
+                new RecordingAdmissionTickets()
+        );
+    }
+
+    private DdcRuntimeCoordinator coordinator(
+            RecordingAdminClient adminClient,
+            DdcRefreshService refreshService,
+            DdcRedisTopicSubscription<DdcPublishMessage> subscription,
+            DdcProperties properties,
+            DdcLocalConfigState repository,
+            DdcAdmissionTicketSupplier admissionTickets) {
         DdcLeaseSessionHolder holder = new DdcLeaseSessionHolder();
         DdcInstanceIdentity identity = new DdcInstanceIdentity(
                 "instance-1",
@@ -318,18 +422,7 @@ class DdcRuntimeCoordinatorTest {
                         identity,
                         holder,
                         List.of(),
-                        (biz, app, env, instance) -> new DdcAdmissionTicket(
-                                "admission.jwt.value",
-                                Instant.parse("2026-08-10T00:05:00Z"),
-                                "resource-demo",
-                                URI.create("https://api.example/demo"),
-                                1L,
-                                biz,
-                                app,
-                                env,
-                                instance,
-                                "kid-test"
-                        )
+                        admissionTickets
                 );
         return new DdcRuntimeCoordinator(
                 properties,
@@ -369,6 +462,16 @@ class DdcRuntimeCoordinatorTest {
 
         private DdcLeaseOperationStatus heartbeatStatus = DdcLeaseOperationStatus.RENEWED;
 
+        private int heartbeatCount;
+
+        private Instant heartbeatExpireAt = Instant.parse(
+                "2026-07-24T12:01:00Z"
+        );
+
+        private String registrationAdmissionTicket;
+
+        private String heartbeatAdmissionTicket;
+
         private RecordingAdminClient(List<String> events) {
             this.events = events;
             this.snapshot = new DdcConfigValue();
@@ -380,6 +483,7 @@ class DdcRuntimeCoordinatorTest {
         @Override
         public DdcLeaseSession register(DdcInstanceRegisterRequest request) {
             events.add("register");
+            registrationAdmissionTicket = request.getAdmissionTicket();
             if (registrationFailures-- > 0) {
                 throw new IllegalStateException("register failed");
             }
@@ -398,7 +502,12 @@ class DdcRuntimeCoordinatorTest {
 
         @Override
         public DdcLeaseOperationResult heartbeat(DdcHeartbeatRequest request) {
-            return new DdcLeaseOperationResult(heartbeatStatus, Instant.parse("2026-07-24T12:01:00Z"));
+            heartbeatCount++;
+            heartbeatAdmissionTicket = request.getAdmissionTicket();
+            return new DdcLeaseOperationResult(
+                    heartbeatStatus,
+                    heartbeatExpireAt
+            );
         }
 
         @Override
@@ -419,6 +528,41 @@ class DdcRuntimeCoordinatorTest {
 
         @Override
         public void ack(DdcAckRequest request) {
+        }
+    }
+
+    private static final class RecordingAdmissionTickets
+            implements DdcAdmissionTicketSupplier {
+
+        private final AtomicInteger calls = new AtomicInteger();
+
+        private final AtomicInteger failures = new AtomicInteger();
+
+        @Override
+        public DdcAdmissionTicket getTicket(
+                String bizCode,
+                String appCode,
+                String environment,
+                String instanceId) {
+            int sequence = calls.incrementAndGet();
+            if (failures.getAndUpdate(value -> Math.max(0, value - 1))
+                    > 0) {
+                throw new IllegalStateException(
+                        "IdP admission unavailable"
+                );
+            }
+            return new DdcAdmissionTicket(
+                    "admission-ticket-" + sequence,
+                    Instant.parse("2026-08-10T00:05:00Z"),
+                    "resource-demo",
+                    URI.create("https://api.example/demo"),
+                    1L,
+                    bizCode,
+                    appCode,
+                    environment,
+                    instanceId,
+                    "kid-test"
+            );
         }
     }
 }

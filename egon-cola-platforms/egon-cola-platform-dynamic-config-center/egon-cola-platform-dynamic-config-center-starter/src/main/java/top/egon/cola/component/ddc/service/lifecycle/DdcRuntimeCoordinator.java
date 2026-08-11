@@ -17,6 +17,7 @@ import top.egon.cola.component.ddc.observability.DdcTraceSupport;
 import top.egon.cola.component.ddc.state.DdcLeaseSessionHolder;
 import top.egon.cola.component.ddc.redis.DdcRedisTopicSubscription;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -253,12 +254,41 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
             if (result.status() == DdcLeaseOperationStatus.NOT_FOUND
                     || result.status() == DdcLeaseOperationStatus.LEASE_MISMATCH) {
                 recover();
-            } else if (result.renewed()) {
+            } else if (result.renewed()
+                    && result.leaseExpireAt() != null) {
+                sessionHolder.replace(renewedSession(
+                        session,
+                        result.leaseExpireAt()
+                ));
                 state.set(DdcRuntimeState.READY);
+            } else {
+                state.set(DdcRuntimeState.RECOVERING);
             }
         } catch (RuntimeException exception) {
             state.set(DdcRuntimeState.RECOVERING);
         }
+    }
+
+    /**
+     * 使用服务端确认的到期时间更新本地租约，不改变租约身份。
+     * Updates the local lease with the server-confirmed expiry without changing its identity.
+     *
+     * @param current 当前租约; current lease
+     * @param leaseExpireAt 服务端确认的到期时间; server-confirmed expiry
+     * @return 更新后的租约; updated lease
+     */
+    private DdcLeaseSession renewedSession(
+            DdcLeaseSession current,
+            Instant leaseExpireAt) {
+        return new DdcLeaseSession(
+                current.instanceId(),
+                current.leaseId(),
+                current.role(),
+                current.leaseSeconds(),
+                current.heartbeatIntervalSeconds(),
+                current.registeredAt(),
+                leaseExpireAt
+        );
     }
 
     /**

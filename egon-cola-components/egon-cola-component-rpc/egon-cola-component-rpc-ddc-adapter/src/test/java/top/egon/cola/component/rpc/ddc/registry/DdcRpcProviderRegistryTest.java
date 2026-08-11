@@ -13,6 +13,7 @@ import top.egon.cola.component.rpc.provider.*;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -71,5 +72,60 @@ class DdcRpcProviderRegistryTest {
                         == DdcServiceKind.RPC_PROVIDER
                         && value.getAdmissionTicket()
                         .equals("admission.jwt.value")));
+    }
+
+    @Test
+    void acquiresCurrentTicketAtEachProviderLeaseBoundary() {
+        DdcServiceRegistryClient client = mock(DdcServiceRegistryClient.class);
+        Instant now = Instant.parse("2026-08-09T00:00:00Z");
+        when(client.register(any())).thenReturn(new DdcLeaseSession(
+                "instance-1", "lease-1", DdcLeaseRole.RPC_PROVIDER,
+                30, 10, now, now.plusSeconds(30)));
+        when(client.heartbeat(any(DdcServiceLeaseRequest.class))).thenReturn(
+                new DdcLeaseOperationResult(
+                        DdcLeaseOperationStatus.RENEWED,
+                        now.plusSeconds(30)
+                ));
+        AtomicInteger calls = new AtomicInteger();
+        DdcRpcProviderRegistry registry = new DdcRpcProviderRegistry(
+                client,
+                "biz",
+                "app",
+                (biz, app, env, instance) -> new DdcAdmissionTicket(
+                        "admission-ticket-" + calls.incrementAndGet(),
+                        now.plusSeconds(60),
+                        "resource-order",
+                        URI.create("https://api.example/order"),
+                        1L,
+                        biz,
+                        app,
+                        env,
+                        instance,
+                        "kid-test"
+                )
+        );
+        RpcProviderRegistration registration = new RpcProviderRegistration(
+                new RpcServiceIdentity(
+                        "OrderService", "default", "1.0.0"
+                ),
+                new RpcProcessIdentity(
+                        "orders", "test", "127.0.0.1", 1, "instance-1"
+                ),
+                "127.0.0.1", 19090, false,
+                Map.of(), 30, 10
+        );
+
+        RpcProviderLease lease = registry.register(registration);
+        registry.heartbeat(new RpcProviderLeaseIdentity(
+                registration.serviceIdentity(),
+                lease.instanceId(),
+                lease.leaseId()
+        ));
+
+        verify(client).register(argThat(value -> value.admissionTicket()
+                .equals("admission-ticket-1")));
+        verify(client).heartbeat(argThat(value -> value.getAdmissionTicket()
+                .equals("admission-ticket-2")));
+        assertThat(calls).hasValue(2);
     }
 }

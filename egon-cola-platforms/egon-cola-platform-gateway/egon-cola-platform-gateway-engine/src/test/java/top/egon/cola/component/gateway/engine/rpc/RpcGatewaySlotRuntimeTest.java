@@ -27,13 +27,12 @@ import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RpcGatewaySlotRuntimeTest {
 
     @Test
-    void recoversWithNewLeaseAfterHeartbeatException() {
+    void retriesExistingLeaseAfterHeartbeatException() {
         FakeRegistry registry = new FakeRegistry();
         RpcGatewaySlotRuntime runtime = readyRuntime(registry);
         String firstLease = runtime.lease().orElseThrow().leaseId();
@@ -42,7 +41,7 @@ class RpcGatewaySlotRuntimeTest {
         runtime.heartbeatAndRecover();
 
         assertEquals(RpcGatewaySubsystemState.RECOVERING, runtime.state());
-        assertTrue(runtime.lease().isEmpty());
+        assertEquals(firstLease, runtime.lease().orElseThrow().leaseId());
         assertTrue(runtime.lastFailure().isPresent());
 
         runtime.heartbeatAndRecover();
@@ -51,11 +50,11 @@ class RpcGatewaySlotRuntimeTest {
                 RpcGatewaySubsystemState.REGISTERED_READY,
                 runtime.state()
         );
-        assertNotEquals(
+        assertEquals(
                 firstLease,
                 runtime.lease().orElseThrow().leaseId()
         );
-        assertEquals(2, registry.registrations.get());
+        assertEquals(1, registry.registrations.get());
         runtime.close();
     }
 
@@ -178,6 +177,82 @@ class RpcGatewaySlotRuntimeTest {
         runtime.close();
     }
 
+    @Test
+    void initialAdmissionFailurePreventsGatewayReady() {
+        FakeRegistry registry = new FakeRegistry();
+        RecordingAdmissionTickets admissionTickets =
+                new RecordingAdmissionTickets();
+        admissionTickets.failures.set(1);
+        RpcGatewaySlotRuntime runtime = new RpcGatewaySlotRuntime(
+                registry,
+                serviceKeyFactory(),
+                properties(),
+                admissionTickets
+        );
+        runtime.listenerStarted(19090);
+
+        runtime.engineReady();
+
+        assertEquals(RpcGatewaySubsystemState.RECOVERING, runtime.state());
+        assertTrue(runtime.lastFailure().isPresent());
+        assertEquals(0, registry.registrations.get());
+        runtime.close();
+    }
+
+    @Test
+    void renewalFailureLeavesReadyAndRetainsLeaseForShutdown() {
+        FakeRegistry registry = new FakeRegistry();
+        RecordingAdmissionTickets admissionTickets =
+                new RecordingAdmissionTickets();
+        RpcGatewaySlotRuntime runtime = new RpcGatewaySlotRuntime(
+                registry,
+                serviceKeyFactory(),
+                properties(),
+                admissionTickets
+        );
+        runtime.listenerStarted(19090);
+        runtime.engineReady();
+        DdcLeaseSession established = runtime.lease().orElseThrow();
+        admissionTickets.failures.set(1);
+
+        runtime.heartbeatAndRecover();
+
+        assertEquals(RpcGatewaySubsystemState.RECOVERING, runtime.state());
+        assertEquals(established, runtime.lease().orElseThrow());
+        assertEquals(0, registry.heartbeats.get());
+        runtime.close();
+        assertEquals(1, registry.deregistrations.get());
+        assertEquals(2, admissionTickets.calls.get());
+    }
+
+    @Test
+    void attachesCurrentTicketToRegistrationAndEveryHeartbeat() {
+        FakeRegistry registry = new FakeRegistry();
+        RecordingAdmissionTickets admissionTickets =
+                new RecordingAdmissionTickets();
+        RpcGatewaySlotRuntime runtime = new RpcGatewaySlotRuntime(
+                registry,
+                serviceKeyFactory(),
+                properties(),
+                admissionTickets
+        );
+        runtime.listenerStarted(19090);
+        runtime.engineReady();
+
+        runtime.heartbeatAndRecover();
+
+        assertEquals(
+                "admission-ticket-1",
+                registry.registration.admissionTicket()
+        );
+        assertEquals(
+                "admission-ticket-2",
+                registry.heartbeatRequest.getAdmissionTicket()
+        );
+        runtime.close();
+        assertEquals(2, admissionTickets.calls.get());
+    }
+
     private RpcGatewaySlotRuntime readyRuntime(FakeRegistry registry) {
         RpcGatewaySlotRuntime runtime = new RpcGatewaySlotRuntime(
                 registry,
@@ -251,6 +326,8 @@ class RpcGatewaySlotRuntimeTest {
 
         private final AtomicInteger heartbeatFailures = new AtomicInteger();
 
+        private final AtomicInteger heartbeats = new AtomicInteger();
+
         private final CountDownLatch secondRegistrationAttempt =
                 new CountDownLatch(1);
 
@@ -258,6 +335,8 @@ class RpcGatewaySlotRuntimeTest {
                 DdcLeaseOperationStatus.RENEWED;
 
         private volatile DdcServiceRegistration registration;
+
+        private volatile DdcServiceLeaseRequest heartbeatRequest;
 
         @Override
         public DdcLeaseSession register(DdcServiceRegistration registration) {
@@ -285,6 +364,8 @@ class RpcGatewaySlotRuntimeTest {
         @Override
         public DdcLeaseOperationResult heartbeat(
                 DdcServiceLeaseRequest request) {
+            heartbeats.incrementAndGet();
+            heartbeatRequest = request;
             if (heartbeatFailures.getAndUpdate(
                     failures -> Math.max(0, failures - 1)
             ) > 0) {
@@ -330,6 +411,41 @@ class RpcGatewaySlotRuntimeTest {
                 DdcServiceQuery query,
                 Consumer<DdcServiceCatalogSnapshot> listener) {
             throw new UnsupportedOperationException();
+        }
+    }
+
+    private static final class RecordingAdmissionTickets
+            implements DdcAdmissionTicketSupplier {
+
+        private final AtomicInteger calls = new AtomicInteger();
+
+        private final AtomicInteger failures = new AtomicInteger();
+
+        @Override
+        public DdcAdmissionTicket getTicket(
+                String bizCode,
+                String appCode,
+                String environment,
+                String instanceId) {
+            int sequence = calls.incrementAndGet();
+            if (failures.getAndUpdate(value -> Math.max(0, value - 1))
+                    > 0) {
+                throw new IllegalStateException(
+                        "IdP admission unavailable"
+                );
+            }
+            return new DdcAdmissionTicket(
+                    "admission-ticket-" + sequence,
+                    Instant.parse("2099-01-01T00:00:00Z"),
+                    "resource-test",
+                    URI.create("urn:egon:resource:test"),
+                    1L,
+                    bizCode,
+                    appCode,
+                    environment,
+                    instanceId,
+                    "kid-test"
+            );
         }
     }
 }
