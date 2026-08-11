@@ -4,7 +4,9 @@ spring:
   profiles:
     default: local
   config:
-    import: optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/rbac3.properties
+    import:
+      - optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/rbac3.properties
+      - optional:ddc:application.yml
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
@@ -73,6 +75,15 @@ egon.cola.platform:
     authorization:
       endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT}
       service-credential-file: ${RBAC3_ADMIN_SERVICE_CREDENTIAL_FILE}
+      service-token:
+        enabled: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED:false}
+        token-endpoint: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_TOKEN_ENDPOINT:}
+        client-id: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_CLIENT_ID:}
+        key-id: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_KEY_ID:}
+        private-key-file: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_PRIVATE_KEY_FILE:}
+        resource-uri: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_RESOURCE_URI:}
+        scopes: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_SCOPES:}
+        renewal-skew: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_RENEWAL_SKEW:30s}
 
 egon:
   rbac3:

@@ -26,6 +26,8 @@ egon:
   idp:
     development-bootstrap:
       enabled: ${IDP_DEVELOPMENT_BOOTSTRAP_ENABLED:false}
+      key-directory: ${IDP_DEVELOPMENT_BOOTSTRAP_KEY_DIRECTORY:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/secrets}
+      rbac3-service-tenant-ids: ${IDP_DEVELOPMENT_RBAC3_SERVICE_TENANT_IDS:${IDP_DEVELOPMENT_RBAC3_SERVICE_TENANT_ID:default}}
     oauth:
       issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
       login-uri: ${IDP_OAUTH_LOGIN_URI:http://127.0.0.1:18121/login}

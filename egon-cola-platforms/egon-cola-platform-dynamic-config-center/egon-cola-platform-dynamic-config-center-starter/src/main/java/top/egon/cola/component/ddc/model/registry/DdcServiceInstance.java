@@ -75,7 +75,7 @@ public record DdcServiceInstance(
         if (hasAdmissionAudit && (resourceServerId == null
                 || resourceServerId.isBlank()
                 || resourceVersion == null
-                || resourceVersion <= 0
+                || resourceVersion < 0
                 || credentialId == null
                 || credentialId.isBlank()
                 || admissionExpiresAt == null)) {

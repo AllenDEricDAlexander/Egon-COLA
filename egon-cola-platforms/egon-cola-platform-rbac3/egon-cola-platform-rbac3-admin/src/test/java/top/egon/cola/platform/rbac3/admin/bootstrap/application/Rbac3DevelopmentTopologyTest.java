@@ -19,6 +19,7 @@ class Rbac3DevelopmentTopologyTest {
                         "idp-admin",
                         "gateway-admin",
                         "ddc-admin",
+                        "mock-backend",
                         "mock-backend");
         assertThat(applications.stream()
                 .flatMap(application -> application.permissions().stream())
@@ -56,10 +57,10 @@ class Rbac3DevelopmentTopologyTest {
                 "mock:read",
                 "mock:admin",
                 "mcp:unified-local:tool:local_query:call",
-                "mcp:unified-local:tool:local_query_task:call",
-                "mcp:unified-local:tool:local_query_task:task:get",
-                "mcp:unified-local:tool:local_query_task:task:update",
-                "mcp:unified-local:tool:local_query_task:task:cancel",
+                "mcp:unified-local:tool:local_echo_task:call",
+                "mcp:unified-local:tool:local_echo_task:task:get",
+                "mcp:unified-local:tool:local_echo_task:task:update",
+                "mcp:unified-local:tool:local_echo_task:task:cancel",
                 "mcp:unified-local:tool:high_risk_query:call",
                 "mcp:unified-local:tool:stable.remote_echo:call",
                 "mcp:unified-local:tool:rc.remote_echo:call",
@@ -69,12 +70,24 @@ class Rbac3DevelopmentTopologyTest {
                 "mcp:unified-local:resource:qa_dashboard:read",
                 "mcp:unified-local:prompt:review_item:get",
                 "mcp:unified-local:prompt:rc.remote_summary:get");
+        assertThat(role("mock-backend", "MOCK_LOCAL_ENTRY").permissions())
+                .containsExactly("mock:read");
     }
 
     private static Rbac3DevelopmentTopology.ApplicationDefinition application(
             String code) {
         return Rbac3DevelopmentTopology.applications().stream()
                 .filter(application -> application.applicationCode().equals(code))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private static Rbac3DevelopmentTopology.ApplicationDefinition role(
+            String applicationCode,
+            String roleCode) {
+        return Rbac3DevelopmentTopology.applications().stream()
+                .filter(application -> application.applicationCode().equals(applicationCode))
+                .filter(application -> application.roleCode().equals(roleCode))
                 .findFirst()
                 .orElseThrow();
     }

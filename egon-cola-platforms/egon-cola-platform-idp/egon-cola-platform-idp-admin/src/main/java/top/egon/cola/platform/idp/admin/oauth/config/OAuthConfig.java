@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.web.client.RestClient;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRedirectUriRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
@@ -205,6 +206,7 @@ public class OAuthConfig {
      * @return Token Endpoint Client 认证器；Token Endpoint Client authenticator
      */
     @Bean
+    @Primary
     PrivateKeyJwtAuthenticator privateKeyJwtAuthenticator(
             OAuthClientStore clients,
             ClientCredentialStore credentials,
@@ -367,6 +369,7 @@ public class OAuthConfig {
         return new HttpTenantMembershipAdapter(
                 restClientBuilder.build(),
                 baseUrl,
+                authorizationHeader::get,
                 authorizationHeader
         );
     }
@@ -390,7 +393,7 @@ public class OAuthConfig {
         return new HttpUserResourceAccessAuthorizationAdapter(
                 restClientBuilder.build(),
                 baseUrl,
-                authorizationHeader
+                authorizationHeader::get
         );
     }
 

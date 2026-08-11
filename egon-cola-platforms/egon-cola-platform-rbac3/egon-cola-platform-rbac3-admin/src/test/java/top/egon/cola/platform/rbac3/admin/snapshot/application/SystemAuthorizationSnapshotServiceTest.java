@@ -114,6 +114,38 @@ class SystemAuthorizationSnapshotServiceTest {
     }
 
     @Test
+    void completedDevelopmentInitializationWaitsForItsSnapshotPublication() {
+        AuthorizationContextFacade.AuthorizationContext unactivated =
+                context(0, true);
+        AuthorizationContextFacade.AuthorizationContext activated =
+                context(1, false);
+        AtomicInteger openings = new AtomicInteger();
+        AtomicInteger snapshotReads = new AtomicInteger();
+        AtomicInteger pauses = new AtomicInteger();
+        SystemAuthorizationSnapshotService service = new SystemAuthorizationSnapshotService(
+                (tenantId, sessionId, identitySub, now, expiresAt) ->
+                        openings.getAndIncrement() == 0 ? unactivated : activated,
+                (tenantId, sessionId) -> {
+                    if (snapshotReads.getAndIncrement() == 0) {
+                        throw new Rbac3RuleViolation("AUTH_SNAPSHOT_NOT_READY");
+                    }
+                    return new AuthorizationDecisionService.SnapshotRecord(
+                            tenantId, "alice-sub", "101",
+                            sessionSnapshot(7, 1, 11));
+                },
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                (authorizationContext, now) ->
+                        SystemAuthorizationSnapshotService.ContextInitialization.COMPLETED,
+                duration -> pauses.incrementAndGet());
+
+        var snapshot = service.snapshot("1", "5001", "gateway-admin", "alice-sub");
+
+        assertThat(snapshotReads).hasValue(2);
+        assertThat(pauses).hasValue(1);
+        assertThat(snapshot.permissions()).containsExactly("gateway:release:read");
+    }
+
+    @Test
     void concurrentDevelopmentInitializationWaitsForTheWinningSnapshotPublication() {
         AuthorizationContextFacade.AuthorizationContext unactivated =
                 new AuthorizationContextFacade.AuthorizationContext(

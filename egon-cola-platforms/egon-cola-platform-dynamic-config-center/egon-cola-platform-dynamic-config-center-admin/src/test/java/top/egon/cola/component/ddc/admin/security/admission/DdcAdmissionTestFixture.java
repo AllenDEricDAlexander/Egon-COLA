@@ -8,10 +8,15 @@ public final class DdcAdmissionTestFixture {
     }
 
     public static DdcAdmissionClaims claims(Instant expiresAt) {
+        return claims(expiresAt, 7L);
+    }
+
+    public static DdcAdmissionClaims claims(Instant expiresAt,
+                                             long resourceVersion) {
         return new DdcAdmissionClaims(
                 "resource-1",
                 "https://api.example/resource-1",
-                7L,
+                resourceVersion,
                 "default",
                 "demo",
                 "dev",

@@ -90,4 +90,19 @@ public @interface GatewaySchemaField {
      * @return the concrete implementation, or {@link Void} when none is declared
      */
     Class<?> implementation() default Void.class;
+
+    /**
+     * Whether an {@link Object}-typed property, collection element, or map
+     * value intentionally accepts arbitrary JSON.
+     *
+     * <p>This opt-in emits an unconstrained JSON Schema node only at the
+     * annotated dynamic value boundary. Erased generic content remains
+     * rejected by default.
+     *
+     * <p>是否明确允许 {@link Object} 类型的属性、集合元素或映射值承载任意 JSON；
+     * 仅在显式标注的动态值边界输出无约束 Schema，默认仍拒绝擦除泛型。
+     *
+     * @return {@code true} when arbitrary JSON is intentional
+     */
+    boolean allowArbitraryJson() default false;
 }

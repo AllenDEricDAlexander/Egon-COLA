@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
 import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
@@ -244,6 +245,7 @@ public class TenantUserDirectoryController {
     public record CreateTenantCommand(
             @NotBlank String code,
             @NotBlank String name,
+            @GatewaySchemaField(allowArbitraryJson = true)
             @NotNull Map<String, Object> settings
     ) {
     }
@@ -267,6 +269,7 @@ public class TenantUserDirectoryController {
             @PositiveOrZero long snapshotVersion,
             @NotBlank String checksum,
             @NotNull Instant generatedAt,
+            @GatewaySchemaField(allowArbitraryJson = true)
             @NotNull Map<String, Object> payload
     ) {
     }
@@ -296,6 +299,7 @@ public class TenantUserDirectoryController {
             String tenantCode,
             String tenantName,
             String status,
+            @GatewaySchemaField(allowArbitraryJson = true)
             Map<String, Object> settings,
             long version
     ) {
@@ -333,6 +337,7 @@ public class TenantUserDirectoryController {
             Instant generatedAt,
             Instant receivedAt,
             Instant activatedAt,
+            @GatewaySchemaField(allowArbitraryJson = true)
             Map<String, Object> counts
     ) {
     }

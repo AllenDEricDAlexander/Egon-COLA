@@ -1,10 +1,12 @@
 package top.egon.cola.component.ddc.admin.rpc.provider;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.service.management.DdcManagementFacade;
 import top.egon.cola.component.ddc.admin.service.lease.DdcResourceAdmissionRevocationService;
 import top.egon.cola.component.ddc.admin.security.rpc.DdcServicePrincipal;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
+import top.egon.cola.component.ddc.error.management.DdcManagementErrorCode;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigDeleteRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigUpsertRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishRequest;
@@ -81,11 +83,19 @@ public class DdcManagementRpcProvider implements DdcManagementRpc {
     @Override
     public FindConfigResponse findConfig(FindConfigRequest request) {
         DdcServicePrincipal.current();
-        return FindConfigResponse.newBuilder()
-                .setFound(true)
-                .setConfig(mapper.toConfig(
-                        facade.findConfig(mapper.fromFindRequest(request))))
-                .build();
+        try {
+            return FindConfigResponse.newBuilder()
+                    .setFound(true)
+                    .setConfig(mapper.toConfig(
+                            facade.findConfig(mapper.fromFindRequest(request))))
+                    .build();
+        } catch (DdcAdminException exception) {
+            if (exception.getCode()
+                    != DdcManagementErrorCode.CONFIG_NOT_FOUND.getCode()) {
+                throw exception;
+            }
+            return FindConfigResponse.getDefaultInstance();
+        }
     }
 
     @Override

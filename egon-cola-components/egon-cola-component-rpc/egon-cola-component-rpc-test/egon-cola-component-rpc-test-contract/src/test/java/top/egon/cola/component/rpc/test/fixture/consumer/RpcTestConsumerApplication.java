@@ -3,9 +3,12 @@ package top.egon.cola.component.rpc.test.fixture.consumer;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.Import;
+import top.egon.cola.component.rpc.test.fixture.RpcTestAdmissionConfiguration;
 import top.egon.cola.component.rpc.test.contract.proto.EchoResponse;
 
 @SpringBootApplication
+@Import(RpcTestAdmissionConfiguration.class)
 public class RpcTestConsumerApplication {
 
     public static void main(String[] args) {

@@ -27,6 +27,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -63,8 +65,8 @@ public final class LocalServiceAccessTokenSupplier
     /** 目标 Resource URI；target Resource URI. */
     private final URI resourceUri;
 
-    /** 精确目标租户；exact target tenant. */
-    private final String tenantId;
+    /** 无显式租户调用使用的默认租户；default tenant used by calls without an explicit tenant. */
+    private final String defaultTenantId;
 
     /** 请求 Scope；requested scopes. */
     private final Set<String> scopes;
@@ -81,8 +83,9 @@ public final class LocalServiceAccessTokenSupplier
     /** Client Assertion 生成器；Client Assertion supplier. */
     private final Supplier<String> assertions;
 
-    /** 最近签发并仍可安全使用的 Token；most recently issued token that remains safe to use. */
-    private volatile ServiceAccessToken cached;
+    /** 按精确租户隔离的可复用 Token；reusable tokens isolated by exact tenant. */
+    private final Map<String, ServiceAccessToken> cachedByTenant =
+            new HashMap<>();
 
     /**
      * 使用 owner-only PKCS#8 RSA 私钥创建生产 Token 提供器。
@@ -177,7 +180,7 @@ public final class LocalServiceAccessTokenSupplier
                 resourceUri,
                 "resourceUri"
         );
-        this.tenantId = required(tenantId, "tenantId");
+        this.defaultTenantId = required(tenantId, "tenantId");
         this.scopes = Set.copyOf(Objects.requireNonNull(scopes, "scopes"));
         if (this.scopes.isEmpty()) {
             throw new IllegalArgumentException("scopes must not be empty");
@@ -203,12 +206,22 @@ public final class LocalServiceAccessTokenSupplier
      */
     @Override
     public String get() {
-        ServiceAccessToken current = cached;
-        if (usable(current)) {
-            return current.authorizationHeader();
-        }
+        return get(defaultTenantId);
+    }
+
+    /**
+     * 返回绑定到指定精确租户的 Bearer Header，必要时同步续签。
+     *
+     * <p>Returns a bearer header bound to the requested exact tenant, renewing synchronously when
+     * necessary.</p>
+     *
+     * @param tenantId 精确目标租户；exact target tenant
+     * @return HTTP Authorization Header 值；HTTP Authorization header value
+     */
+    public String get(String tenantId) {
+        String exactTenantId = required(tenantId, "tenantId");
         synchronized (this) {
-            current = cached;
+            ServiceAccessToken current = cachedByTenant.get(exactTenantId);
             if (usable(current)) {
                 return current.authorizationHeader();
             }
@@ -221,11 +234,11 @@ public final class LocalServiceAccessTokenSupplier
             current = tokens.issue(
                     authentication,
                     resourceUri,
-                    tenantId,
+                    exactTenantId,
                     scopes,
                     accessTokenTtl
             );
-            cached = current;
+            cachedByTenant.put(exactTenantId, current);
             return current.authorizationHeader();
         }
     }

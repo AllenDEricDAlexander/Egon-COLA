@@ -27,6 +27,7 @@ import top.egon.cola.component.ddc.admin.service.lease.DdcLeaseValidator;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.component.ddc.admin.service.registry.DdcServiceRegistryService;
 import top.egon.cola.component.ddc.redis.DdcRedisClientFactory;
+import top.egon.cola.platform.idp.starter.state.IdentityResourceServerStateReader;
 
 @Configuration
 @EnableScheduling
@@ -79,9 +80,8 @@ public class DdcAdminRedisConfig {
      *
      * <p>Creates the shared IdP Resource Server admission-ticket verifier.</p>
      *
-     * @param redissonClient DDC 与 IdP 运行态投影所在 Redis 客户端；Redis client holding DDC
-     * leases and IdP runtime projections
-     * @param objectMapper JSON 解析器；JSON parser
+     * @param resourceStates IdP 权威 Resource Server 运行态读取器；authoritative IdP Resource
+     * Server runtime reader
      * @param properties DDC Admin 配置；DDC Admin settings
      * @return 准入校验器；admission verifier
      */
@@ -89,8 +89,7 @@ public class DdcAdminRedisConfig {
     @ConditionalOnBean(name = "ddcAdminRedissonClient")
     @ConditionalOnMissingBean(DdcAdmissionVerifier.class)
     public DdcAdmissionVerifier ddcAdmissionVerifier(
-            @Qualifier("ddcAdminRedissonClient") RedissonClient redissonClient,
-            ObjectMapper objectMapper,
+            IdentityResourceServerStateReader resourceStates,
             DdcAdminProperties properties
     ) {
         DdcAdminProperties.Admission admission = properties.getAdmission();
@@ -104,18 +103,21 @@ public class DdcAdminRedisConfig {
                 properties.getSecurity().getJwt().getJwkSetUri(),
                 null
         );
-        JwtDecoder decoder = hasText(jwkSetUri)
-                ? NimbusJwtDecoder.withJwkSetUri(jwkSetUri.trim()).build()
-                : token -> {
+        JwtDecoder decoder;
+        if (hasText(jwkSetUri)) {
+            decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri.trim())
+                    .validateType(false)
+                    .build();
+        } else {
+            decoder = token -> {
                     throw new JwtException(
                             "DDC admission JWK Set URI is not configured"
                     );
                 };
+        }
         return new IdpJwtDdcAdmissionVerifier(
                 decoder,
-                redissonClient,
-                objectMapper,
-                admission.getResourceProjectionPrefix(),
+                resourceStates,
                 issuer,
                 "ddc-registry"
         );

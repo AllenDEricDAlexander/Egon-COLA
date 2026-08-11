@@ -56,8 +56,7 @@ class RpcProcessIT {
         try (RpcProcessHarness processes = new RpcProcessHarness(scope)) {
             RpcProcessHarness.Child admin = processes.start(
                     "admin",
-                    "top.egon.cola.component.ddc.admin."
-                            + "DynamicConfigCenterAdminApplication",
+                    RpcTestDdcAdminApplication.class.getName(),
                     adminArguments(
                             adminPort,
                             adminRpcPort,
@@ -71,6 +70,7 @@ class RpcProcessIT {
                     STARTUP_TIMEOUT,
                     admin
             );
+            seedScope(database, env, namespace);
 
             try (RegistryResources registry = registry(
                     adminTarget,
@@ -89,6 +89,9 @@ class RpcProcessIT {
                                 namespace,
                                 List.of(
                                         "--egon.cola.component.rpc.provider.enabled=true",
+                                        "--egon.cola.component.rpc.consumer.enabled=false",
+                                        "--egon.cola.component.rpc.provider.registration-mode=REQUIRED",
+                                        "--egon.cola.component.rpc.provider.registration-fail-fast=true",
                                         "--egon.cola.component.rpc.provider.bind-address=127.0.0.1",
                                         "--egon.cola.component.rpc.provider.port="
                                                 + providerPort,
@@ -120,6 +123,7 @@ class RpcProcessIT {
 
                 java.util.ArrayList<String> gatewayArguments =
                         new java.util.ArrayList<>(List.of(
+                                "--egon.cola.component.id.machine-id=3",
                                 "--ddc.target=" + adminTarget,
                                 "--ddc.access-key=process-it",
                                 "--ddc.secret-key=process-it-secret-at-least-32-bytes",
@@ -171,7 +175,10 @@ class RpcProcessIT {
                                 env,
                                 namespace,
                                 List.of(
+                                        "--egon.cola.component.rpc.provider.enabled=false",
                                         "--egon.cola.component.rpc.consumer.enabled=true",
+                                        "--egon.cola.component.rpc.consumer.gateway-service-name="
+                                                + "egon-internal-rpc-gateway",
                                         "--rpc.test.run-once=true",
                                         "--rpc.test.message=process-call"
                                 )
@@ -265,7 +272,9 @@ class RpcProcessIT {
                 "--spring.jpa.hibernate.ddl-auto=none",
                 "--spring.flyway.enabled=true",
                 "--spring.flyway.locations=classpath:db/sqlite",
+                "--egon.cola.component.id.machine-id=1",
                 "--egon.cola.component.ddc.enabled=false",
+                "--egon.cola.component.ddc.admin.security.local-dev=true",
                 "--egon.cola.component.ddc.admin.redis.host=" + redisHost,
                 "--egon.cola.component.ddc.admin.redis.port=" + redisPort,
                 "--egon.cola.component.rpc.enabled=true",
@@ -302,6 +311,7 @@ class RpcProcessIT {
         java.util.ArrayList<String> arguments = new java.util.ArrayList<>(
                 List.of(
                         "--spring.main.web-application-type=none",
+                        "--egon.cola.component.id.machine-id=2",
                         "--egon.cola.component.ddc.enabled=false",
                         "--egon.cola.component.ddc.registry.enabled=true",
                         "--egon.cola.component.ddc.rpc.target="
@@ -393,6 +403,73 @@ class RpcProcessIT {
         ); var result = statement.executeQuery()) {
             assertThat(result.next()).isTrue();
             assertThat(result.getInt(1)).isEqualTo(2);
+        }
+    }
+
+    private void seedScope(
+            Path database,
+            String env,
+            String namespace) throws Exception {
+        try (var connection = DriverManager.getConnection(
+                "jdbc:sqlite:" + database
+        )) {
+            connection.setAutoCommit(false);
+            try (var statement = connection.createStatement()) {
+                statement.addBatch(
+                        "INSERT INTO ddc_biz (id, biz_code, biz_name, "
+                                + "enabled, created_at, updated_at) VALUES "
+                                + "('rpc-process-biz', 'test-biz', "
+                                + "'RPC process test business', 1, "
+                                + "strftime('%Y-%m-%d %H:%M:%f', 'now'), "
+                                + "strftime('%Y-%m-%d %H:%M:%f', 'now'))"
+                );
+                statement.addBatch(
+                        "INSERT INTO ddc_app (id, app_code, app_name, "
+                                + "enabled, created_at, updated_at, biz_code) "
+                                + "VALUES ('rpc-process-app', 'test-app', "
+                                + "'RPC process test application', 1, "
+                                + "strftime('%Y-%m-%d %H:%M:%f', 'now'), "
+                                + "strftime('%Y-%m-%d %H:%M:%f', 'now'), "
+                                + "'test-biz')"
+                );
+                statement.executeBatch();
+            }
+            try (var statement = connection.prepareStatement(
+                    "INSERT INTO ddc_env (id, env_code, description, "
+                            + "sort_order, enabled, created_at, updated_at) "
+                            + "VALUES ('rpc-process-env', ?, "
+                            + "'RPC process test environment', 0, 1, "
+                            + "strftime('%Y-%m-%d %H:%M:%f', 'now'), "
+                            + "strftime('%Y-%m-%d %H:%M:%f', 'now'))"
+            )) {
+                statement.setString(1, env);
+                statement.executeUpdate();
+            }
+            try (var statement = connection.prepareStatement(
+                    "INSERT INTO ddc_namespace (id, biz_code, "
+                            + "namespace_code, namespace, enabled, "
+                            + "created_at, updated_at) VALUES "
+                            + "('rpc-process-namespace', 'test-biz', ?, ?, 1, "
+                            + "strftime('%Y-%m-%d %H:%M:%f', 'now'), "
+                            + "strftime('%Y-%m-%d %H:%M:%f', 'now'))"
+            )) {
+                statement.setString(1, namespace);
+                statement.setString(2, namespace);
+                statement.executeUpdate();
+            }
+            try (var statement = connection.prepareStatement(
+                    "INSERT INTO ddc_namespace_env_app (id, namespace_id, "
+                            + "env_code, app_id, enabled, created_at, "
+                            + "updated_at) VALUES ('rpc-process-binding', "
+                            + "'rpc-process-namespace', ?, "
+                            + "'rpc-process-app', 1, "
+                            + "strftime('%Y-%m-%d %H:%M:%f', 'now'), "
+                            + "strftime('%Y-%m-%d %H:%M:%f', 'now'))"
+            )) {
+                statement.setString(1, env);
+                statement.executeUpdate();
+            }
+            connection.commit();
         }
     }
 

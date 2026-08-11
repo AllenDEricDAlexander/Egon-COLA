@@ -7,6 +7,7 @@ import top.egon.cola.platform.idp.starter.security.RequiresServiceScope;
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
+import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.net.URI;
 import java.lang.reflect.Method;
@@ -17,6 +18,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.mock;
@@ -25,7 +27,7 @@ import static org.mockito.Mockito.when;
 class InternalAuthorizationControllerTest {
 
     @Test
-    void idpServiceTokenCanLoadItsSystemForTheExactTenant() {
+    void serviceTokenCanLoadItsRbacSystemForTheExactTenant() {
         SystemAuthorizationSnapshotService snapshots = mock(
                 SystemAuthorizationSnapshotService.class);
         SystemAuthorizationSnapshot expected = new SystemAuthorizationSnapshot(
@@ -41,7 +43,7 @@ class InternalAuthorizationControllerTest {
                         mock(AuthorizationDecisionService.class), snapshots);
         ServiceIdentityPrincipal service = service(
                 "tenant-1",
-                "rbac3-admin",
+                "rbac3",
                 "service:authorization:snapshot"
         );
 
@@ -50,6 +52,18 @@ class InternalAuthorizationControllerTest {
                         "tenant-1", "99", "rbac3-admin", "alice-sub", service);
 
         assertEquals(expected, response.data());
+    }
+
+    @Test
+    void serviceTokenCannotLoadAnRbacSystemAcrossTenants() {
+        InternalAuthorizationController controller =
+                new InternalAuthorizationController(
+                        mock(AuthorizationDecisionService.class),
+                        mock(SystemAuthorizationSnapshotService.class));
+
+        assertThrows(Rbac3RuleViolation.class, () -> controller.systemSnapshot(
+                "tenant-1", "99", "rbac3-admin", "alice-sub",
+                service("tenant-2", "rbac3", "service:authorization:snapshot")));
     }
 
     @Test
@@ -70,8 +84,10 @@ class InternalAuthorizationControllerTest {
                 "service:authorization:decide"
         );
         when(decisions.decideResourceAccess(principal, command)).thenReturn(expected);
+        SystemAuthorizationSnapshotService snapshots = mock(
+                SystemAuthorizationSnapshotService.class);
         InternalAuthorizationController controller = new InternalAuthorizationController(
-                decisions, mock(SystemAuthorizationSnapshotService.class));
+                decisions, snapshots);
 
         ApiEnvelope<ResourceAccessDecisionResponse> envelope =
                 controller.decideResourceAccess(
@@ -89,6 +105,8 @@ class InternalAuthorizationControllerTest {
                 .containsExactly("decision", "reasonCode", "authVersion",
                         "sessionVersion", "policyVersion", "decidedAt");
         verify(decisions).decideResourceAccess(principal, command);
+        verify(snapshots).snapshot(
+                "tenant-1", "session-1", "finance-web", "alice-sub");
     }
 
     @Test

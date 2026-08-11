@@ -66,6 +66,9 @@ public class InternalAuthorizationController {
     /**
      * 按 IdP 主体和目标系统读取跨租户系统授权上下文。
      * Loads a cross-tenant system authorization context by IdP subject and target system.
+     * OAuth 来源应用编码与 RBAC3 系统编码属于不同命名空间；服务权限由 IdP Scope 与精确租户共同约束。
+     * OAuth source-app and RBAC3 system codes use separate namespaces; IdP scope and the exact
+     * tenant jointly constrain service access.
      *
      * @param tenantId 目标租户 / target tenant
      * @param sessionId IdP 会话标识 / IdP session identifier
@@ -85,8 +88,7 @@ public class InternalAuthorizationController {
             @RequestParam("systemCode") String systemCode,
             @RequestParam("identitySub") String identitySub,
             @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
-        if (!principal.tenantId().equals(tenantId)
-                || !principal.sourceAppCode().equals(systemCode)) {
+        if (!principal.tenantId().equals(tenantId)) {
             throw new Rbac3RuleViolation("SERVICE_IDENTITY_DENIED");
         }
         return ApiEnvelope.success(systemSnapshots.snapshot(
@@ -147,6 +149,12 @@ public class InternalAuthorizationController {
     public ApiEnvelope<ResourceAccessDecisionResponse> decideResourceAccess(
             @Valid @RequestBody ResourceAccessDecisionRequest request,
             @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
+        systemSnapshots.snapshot(
+                request.tid(),
+                request.sid(),
+                request.rbacApplicationCode(),
+                request.identitySub()
+        );
         return ApiEnvelope.success(ResourceAccessDecisionResponse.from(
                 service.decideResourceAccess(principal, request.toCommand())));
     }

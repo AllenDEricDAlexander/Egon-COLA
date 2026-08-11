@@ -109,10 +109,10 @@ public final class Rbac3DevelopmentTopology {
                     "mock:read",
                     "mock:admin",
                     "mcp:unified-local:tool:local_query:call",
-                    "mcp:unified-local:tool:local_query_task:call",
-                    "mcp:unified-local:tool:local_query_task:task:get",
-                    "mcp:unified-local:tool:local_query_task:task:update",
-                    "mcp:unified-local:tool:local_query_task:task:cancel",
+                    "mcp:unified-local:tool:local_echo_task:call",
+                    "mcp:unified-local:tool:local_echo_task:task:get",
+                    "mcp:unified-local:tool:local_echo_task:task:update",
+                    "mcp:unified-local:tool:local_echo_task:task:cancel",
                     "mcp:unified-local:tool:high_risk_query:call",
                     "mcp:unified-local:tool:stable.remote_echo:call",
                     "mcp:unified-local:tool:rc.remote_echo:call",
@@ -121,7 +121,11 @@ public final class Rbac3DevelopmentTopology {
                     "mcp:unified-local:resource:local_item:read",
                     "mcp:unified-local:resource:qa_dashboard:read",
                     "mcp:unified-local:prompt:review_item:get",
-                    "mcp:unified-local:prompt:rc.remote_summary:get")));
+                    "mcp:unified-local:prompt:rc.remote_summary:get")),
+            new ApplicationDefinition(
+                    "mock-backend", "Unified Identity Mock Backend",
+                    "MOCK_LOCAL_ENTRY", 40,
+                    List.of("mock:read")));
 
     /** 禁止实例化静态拓扑；prevents instantiation of the static topology. */
     private Rbac3DevelopmentTopology() {
@@ -137,15 +141,15 @@ public final class Rbac3DevelopmentTopology {
     }
 
     /**
-     * 一个应用及其本地管理员权限定义。
+     * 一个应用及其本地角色权限定义。
      *
-     * <p>Defines one application and its local administrator permissions.</p>
+     * <p>Defines one application and one local role's permissions.</p>
      *
      * @param applicationCode 应用编码；application code
      * @param applicationName 应用名称；application name
-     * @param roleCode 本地管理员角色编码；local administrator role code
+     * @param roleCode 本地角色编码；local role code
      * @param displayPriority 展示优先级；display priority
-     * @param permissions 管理权限；administrative permissions
+     * @param permissions 角色权限；role permissions
      */
     public record ApplicationDefinition(
             String applicationCode,

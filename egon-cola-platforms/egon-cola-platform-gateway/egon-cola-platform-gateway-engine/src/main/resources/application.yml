@@ -4,7 +4,9 @@ spring:
   profiles:
     default: local
   config:
-    import: optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/gateway-engine.properties
+    import:
+      - optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/gateway-engine.properties
+      - optional:ddc:application.yml
   datasource:
     url: ${GATEWAY_POSTGRES_URL:jdbc:postgresql://127.0.0.1:5432/gateway_admin}
     username: ${GATEWAY_POSTGRES_USER:postgres}
@@ -39,6 +41,22 @@ egon:
   cola:
     platform:
       idp:
+        enabled: ${DDC_ENABLED:true}
+        register-filter: false
+        issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
+        jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+        resource-server-id: ${GATEWAY_ENGINE_RESOURCE_SERVER_ID:}
+        resource-uri: ${GATEWAY_ENGINE_RESOURCE_URI:}
+        admission:
+          biz-code: ${DDC_BIZ_CODE:identity}
+          app-code: ${DDC_APP_CODE:gateway-engine-default}
+          environment: ${DDC_ENV:local}
+          instance-id: ${GATEWAY_ENGINE_DDC_INSTANCE_ID:}
+          management-client-id: ${GATEWAY_ENGINE_RESOURCE_MANAGEMENT_CLIENT_ID:}
+          kid: ${GATEWAY_ENGINE_RESOURCE_MANAGEMENT_KEY_ID:}
+          private-key-path: ${GATEWAY_ENGINE_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE:}
+          endpoint: ${GATEWAY_ENGINE_RESOURCE_ADMISSION_ENDPOINT:}
+          renewal-skew: ${GATEWAY_ENGINE_RESOURCE_ADMISSION_RENEWAL_SKEW:30s}
         gateway:
           enabled: ${IDP_GATEWAY_ENABLED:true}
           issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
@@ -68,6 +86,8 @@ egon:
         biz-code: ${DDC_BIZ_CODE:infra}
         env: ${DDC_ENV:local}
         app-code: ${DDC_APP_CODE:ge}
+        instance:
+          id: ${GATEWAY_ENGINE_DDC_INSTANCE_ID:}
         rpc:
           target: ${DDC_RPC_TARGET:dns:///ddc-admin:19080}
           load-balancing-policy: round_robin
@@ -117,6 +137,14 @@ egon:
               poll-interval: ${GATEWAY_MCP_TASK_POLL_INTERVAL:PT2S}
               default-ttl: ${GATEWAY_MCP_TASK_DEFAULT_TTL:PT24H}
               cleanup-interval: ${GATEWAY_MCP_TASK_CLEANUP_INTERVAL:PT10M}
+              service-token:
+                enabled: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_ENABLED:false}
+                token-endpoint: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_ENDPOINT:http://127.0.0.1:18120/oauth2/token}
+                client-id: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_CLIENT_ID:}
+                key-id: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_KEY_ID:}
+                private-key-file: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_PRIVATE_KEY_FILE:}
+                scopes: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_SCOPES:mcp:operation:invoke}
+                renewal-skew: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_RENEWAL_SKEW:30s}
             remote:
               discovery-timeout: ${GATEWAY_MCP_REMOTE_DISCOVERY_TIMEOUT:PT20S}
               call-timeout: ${GATEWAY_MCP_REMOTE_CALL_TIMEOUT:PT60S}

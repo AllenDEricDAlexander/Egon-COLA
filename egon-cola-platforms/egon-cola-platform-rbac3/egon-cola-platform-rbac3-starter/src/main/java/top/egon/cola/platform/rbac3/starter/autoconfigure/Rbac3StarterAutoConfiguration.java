@@ -14,6 +14,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterAutoConfiguration;
+import top.egon.cola.platform.idp.starter.admission.OwnerOnlyPrivateKeyLoader;
+import top.egon.cola.platform.idp.starter.admission.PrivateKeyJwtAssertionFactory;
 import top.egon.cola.platform.idp.starter.security.IdpJwtVerifier;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationBootstrapService;
@@ -22,6 +24,7 @@ import top.egon.cola.platform.rbac3.starter.cache.AuthorizationSnapshotCache;
 import top.egon.cola.platform.rbac3.starter.cache.RedisAuthorizationSnapshotCache;
 import top.egon.cola.platform.rbac3.starter.cache.SingleFlightSnapshotLoader;
 import top.egon.cola.platform.rbac3.starter.client.HttpRbac3AuthorizationClient;
+import top.egon.cola.platform.rbac3.starter.client.HttpTenantServiceTokenSupplier;
 import top.egon.cola.platform.rbac3.starter.client.Rbac3AuthorizationClient;
 import top.egon.cola.platform.rbac3.starter.event.Rbac3AuthorizationInvalidationConsumer;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFilter;
@@ -31,8 +34,12 @@ import top.egon.cola.platform.rbac3.starter.web.Rbac3AuthorizationExceptionHandl
 
 import java.net.URI;
 import java.nio.file.Path;
+import java.security.SecureRandom;
 import java.time.Clock;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @AutoConfiguration
 @AutoConfigureAfter(IdpStarterAutoConfiguration.class)
@@ -77,6 +84,11 @@ public class Rbac3StarterAutoConfiguration {
     @ConditionalOnProperty(
             prefix = "egon.cola.platform.rbac3.authorization",
             name = {"endpoint", "service-credential-file"})
+    @ConditionalOnProperty(
+            prefix = "egon.cola.platform.rbac3.authorization.service-token",
+            name = "enabled",
+            havingValue = "false",
+            matchIfMissing = true)
     @ConditionalOnMissingBean
     public Rbac3AuthorizationClient rbac3AuthorizationClient(
             ObjectMapper objectMapper,
@@ -87,6 +99,64 @@ public class Rbac3StarterAutoConfiguration {
                 Path.of(required(authorization.getServiceCredentialFile(),
                         "authorization.serviceCredentialFile")),
                 authorization.getFetchTimeout(), objectMapper);
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.platform.rbac3.authorization.service-token",
+            name = "enabled",
+            havingValue = "true")
+    @ConditionalOnMissingBean
+    public Rbac3AuthorizationClient tenantAwareRbac3AuthorizationClient(
+            ObjectMapper objectMapper,
+            Rbac3StarterProperties properties) {
+        var authorization = properties.getAuthorization();
+        var serviceToken = authorization.getServiceToken();
+        URI tokenEndpoint = URI.create(required(
+                serviceToken.getTokenEndpoint(),
+                "authorization.serviceToken.tokenEndpoint"
+        ));
+        Clock clock = Clock.systemUTC();
+        PrivateKeyJwtAssertionFactory assertions =
+                new PrivateKeyJwtAssertionFactory(
+                        required(
+                                serviceToken.getClientId(),
+                                "authorization.serviceToken.clientId"
+                        ),
+                        required(
+                                serviceToken.getKeyId(),
+                                "authorization.serviceToken.keyId"
+                        ),
+                        tokenEndpoint,
+                        new OwnerOnlyPrivateKeyLoader().load(Path.of(required(
+                                serviceToken.getPrivateKeyFile(),
+                                "authorization.serviceToken.privateKeyFile"
+                        ))),
+                        clock,
+                        new SecureRandom()
+                );
+        HttpTenantServiceTokenSupplier credentials =
+                new HttpTenantServiceTokenSupplier(
+                        tokenEndpoint,
+                        assertions,
+                        objectMapper,
+                        URI.create(required(
+                                serviceToken.getResourceUri(),
+                                "authorization.serviceToken.resourceUri"
+                        )),
+                        scopes(serviceToken.getScopes()),
+                        serviceToken.getRenewalSkew(),
+                        clock
+                );
+        return new HttpRbac3AuthorizationClient(
+                URI.create(required(
+                        authorization.getEndpoint(),
+                        "authorization.endpoint"
+                )),
+                credentials,
+                authorization.getFetchTimeout(),
+                objectMapper
+        );
     }
 
     @Bean
@@ -202,5 +272,14 @@ public class Rbac3StarterAutoConfiguration {
             throw new IllegalArgumentException(name + " is required");
         }
         return value.trim();
+    }
+
+    private static Set<String> scopes(String value) {
+        return Arrays.stream(required(
+                        value,
+                        "authorization.serviceToken.scopes"
+                ).split("[,\\s]+"))
+                .filter(scope -> !scope.isBlank())
+                .collect(Collectors.toUnmodifiableSet());
     }
 }

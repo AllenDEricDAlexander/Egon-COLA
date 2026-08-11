@@ -16,6 +16,7 @@ gateway_engine_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-
 mcp_provider_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-mcp-provider/target/gateway-test-mcp-provider-exec.jar"
 mcp_remote_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-mcp-remote/target/gateway-test-mcp-remote-exec.jar"
 gateway_admin_token_file="${unified_platform_secret_dir}/gateway-admin.access.jwt"
+idp_admin_token_file="${unified_platform_secret_dir}/idp-admin.access.jwt"
 gateway_group_file="${unified_platform_runtime_dir}/gateway-group.id"
 default_tenant_id=
 
@@ -101,6 +102,45 @@ gateway_api() {
   printf '%s' "${response}"
 }
 
+issue_mcp_user_token() {
+  UNIFIED_IDENTITY_OAUTH_CLIENT_ID=mock-backend \
+  UNIFIED_IDENTITY_OAUTH_TENANT=tenant-b \
+  UNIFIED_IDENTITY_OAUTH_RESOURCE_URI=https://api.egon.internal/local/identity/gateway-test-mcp-provider \
+  UNIFIED_IDENTITY_OAUTH_TOKEN_FILE="${unified_platform_secret_dir}/mcp-tenant-b.access.jwt" \
+    "${legacy_script}" issue-user-token
+}
+
+ensure_mcp_user_delegation() {
+  local resource_id=identity-gateway-test-mcp-provider-local
+  local resource_response resource_version response_file status body
+  if issue_mcp_user_token >/dev/null 2>&1; then
+    return
+  fi
+  [[ -s "${idp_admin_token_file}" ]] \
+    || unified_platform_fail "IdP Admin access token is unavailable"
+  response_file="$(mktemp "${unified_platform_runtime_dir}/idp-api.XXXXXX")"
+  resource_response="$(curl --max-time 30 -fsS \
+    -H "Authorization: Bearer $(<"${idp_admin_token_file}")" \
+    "${IDP_BASE_URL}/api/v1/identity/resource-servers/${resource_id}")" \
+    || unified_platform_fail "MCP provider Resource is unavailable"
+  resource_version="$(jq -er '.version' <<<"${resource_response}")"
+  body="$(jq -cn --argjson version "${resource_version}" \
+    '{grantType:"USER_DELEGATION",tenantId:null,allowedScopes:[],expectedResourceVersion:$version,expectedGrantVersion:null}')"
+  status="$(curl --max-time 30 -sS -o "${response_file}" -w '%{http_code}' \
+    -X PUT -H "Authorization: Bearer $(<"${idp_admin_token_file}")" \
+    -H 'Content-Type: application/json' -d "${body}" \
+    "${IDP_BASE_URL}/api/v1/identity/clients/mock-backend/resources/${resource_id}")"
+  if [[ ! "${status}" =~ ^2[0-9][0-9]$ ]]; then
+    body="$(<"${response_file}")"
+    rm -f "${response_file}"
+    unified_platform_fail \
+      "MCP USER_DELEGATION grant failed with HTTP ${status}: ${body}"
+  fi
+  rm -f "${response_file}"
+  issue_mcp_user_token \
+    || unified_platform_fail "MCP provider Resource token issuance failed"
+}
+
 draft_revision() {
   gateway_api GET "/api/v1/gateway/admin/gateway-groups/$1/draft" \
     | jq -er '.revision'
@@ -149,6 +189,50 @@ write_extra_service_env_files() {
   unified_platform_write_env "${file}" MCP_TEST_PROVIDER_PORT 18161
   unified_platform_write_env "${file}" MCP_TEST_PROVIDER_HOST 127.0.0.1
   unified_platform_write_env "${file}" MCP_TEST_PROVIDER_INSTANCE_ID mcp-provider-local-1
+  unified_platform_write_env "${file}" IDP_OAUTH_ISSUER "${IDP_BASE_URL}"
+  unified_platform_write_env "${file}" IDP_JWK_SET_URI \
+    "${IDP_BASE_URL}/oauth2/jwks"
+  unified_platform_write_env "${file}" MCP_PROVIDER_RESOURCE_SERVER_ID \
+    identity-gateway-test-mcp-provider-local
+  unified_platform_write_env "${file}" MCP_PROVIDER_RESOURCE_URI \
+    https://api.egon.internal/local/identity/gateway-test-mcp-provider
+  unified_platform_write_env "${file}" \
+    MCP_PROVIDER_RESOURCE_MANAGEMENT_CLIENT_ID mcp-provider-service
+  unified_platform_write_env "${file}" \
+    MCP_PROVIDER_RESOURCE_MANAGEMENT_KEY_ID mcp-provider-local
+  unified_platform_write_env "${file}" \
+    MCP_PROVIDER_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
+    "${unified_platform_secret_dir}/mcp-provider-private.pem"
+  unified_platform_write_env "${file}" \
+    MCP_PROVIDER_RESOURCE_ADMISSION_ENDPOINT \
+    "${IDP_BASE_URL}/oauth2/resource-server-admission"
+  unified_platform_write_env "${file}" MCP_PROVIDER_REDIS_ADDRESS \
+    redis://127.0.0.1:6379
+  unified_platform_write_env "${file}" MCP_PROVIDER_REDIS_DATABASE 8
+  unified_platform_write_env "${file}" MCP_PROVIDER_REDIS_PASSWORD_FILE \
+    "${unified_platform_secret_dir}/redis.password"
+  unified_platform_write_env "${file}" RBAC3_AUTHORIZATION_ENDPOINT \
+    "${RBAC3_BASE_URL}"
+  unified_platform_write_env "${file}" \
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED true
+  unified_platform_write_env "${file}" \
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_TOKEN_ENDPOINT \
+    "${IDP_BASE_URL}/oauth2/token"
+  unified_platform_write_env "${file}" \
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_CLIENT_ID \
+    mcp-provider-service
+  unified_platform_write_env "${file}" \
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_KEY_ID \
+    mcp-provider-local
+  unified_platform_write_env "${file}" \
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_PRIVATE_KEY_FILE \
+    "${unified_platform_secret_dir}/mcp-provider-private.pem"
+  unified_platform_write_env "${file}" \
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_RESOURCE_URI \
+    https://api.egon.internal/local/permission/rbac3
+  unified_platform_write_env "${file}" \
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_SCOPES \
+    "service:authorization:decide service:authorization:snapshot service:identity:resolve"
   unified_platform_write_env "${file}" DDC_ENABLED true
   unified_platform_write_env "${file}" DDC_BIZ_CODE identity
   unified_platform_write_env "${file}" DDC_APP_CODE gateway-test-mcp-provider
@@ -216,11 +300,14 @@ wait_mcp_provider_catalog() {
 }
 
 ensure_mcp_server() {
-  local group_id="$1" servers server_id revision response body
+  local group_id="$1" servers server server_id revision response body
+  local expected_resource
   servers="$(gateway_api GET \
     "/api/v1/gateway/admin/mcp/servers?gatewayGroupId=${group_id}")"
-  server_id="$(jq -r '.[] | select(.serverCode == "unified-local") | .id' \
+  server="$(jq -c '.[] | select(.serverCode == "unified-local")' \
     <<<"${servers}" | head -1)"
+  server_id="$(jq -r '.id // empty' <<<"${server}")"
+  expected_resource="$(jq -er '.server.resourceUri' "${release_fixture}")"
   if [[ -z "${server_id}" ]]; then
     revision="$(draft_revision "${group_id}")"
     body="$(jq -c --arg group "${group_id}" --argjson draft "${revision}" \
@@ -229,6 +316,16 @@ ensure_mcp_server() {
     response="$(gateway_api POST /api/v1/gateway/admin/mcp/servers \
       "${body}" unified-local-server-v1)"
     server_id="$(jq -er '.resourceId' <<<"${response}")"
+  elif [[ "$(jq -r '.resourceUri' <<<"${server}")" \
+      != "${expected_resource}" ]]; then
+    revision="$(draft_revision "${group_id}")"
+    body="$(jq -c --arg group "${group_id}" \
+      --argjson expected "$(jq -r '.revision' <<<"${server}")" \
+      --argjson draft "${revision}" \
+      '.server + {gatewayGroupId:$group,expectedRevision:$expected,expectedDraftRevision:$draft,changeReason:"Bind host-local MCP Server to its exact provider Resource"}' \
+      "${release_fixture}")"
+    gateway_api PUT "/api/v1/gateway/admin/mcp/servers/${server_id}" \
+      "${body}" unified-local-server-provider-resource-v1 >/dev/null
   fi
   printf '%s' "${server_id}" >"${unified_platform_runtime_dir}/mcp-server.id"
   chmod 600 "${unified_platform_runtime_dir}/mcp-server.id"
@@ -538,7 +635,7 @@ wait_mcp_endpoint() {
 
 start_admin_web() {
   local name="$1" web_dir="$2" vite="$3" web_url="$4"
-  local client_id="$5" proxy_name="$6" proxy_url="$7" port
+  local client_id="$5" proxy_name="$6" proxy_url="$7" port resource
   if unified_platform_process_running "${name}"; then
     return
   fi
@@ -546,12 +643,27 @@ start_admin_web() {
     || unified_platform_fail \
       "${name} dependencies are missing; run npm install in ${web_dir}"
   port="${web_url##*:}"
+  case "${client_id}" in
+    idp-admin-web)
+      resource=https://api.egon.internal/local/permission/idp
+      ;;
+    rbac3-admin-web)
+      resource=https://api.egon.internal/local/permission/rbac3
+      ;;
+    gateway-admin-web)
+      resource=https://api.egon.internal/local/platform/gateway-admin
+      ;;
+    ddc-admin-web)
+      resource=https://api.egon.internal/local/platform/ddc
+      ;;
+    *) unified_platform_fail "unknown Admin OAuth client: ${client_id}" ;;
+  esac
   (
     cd "${web_dir}"
     export "${proxy_name}=${proxy_url}"
     export VITE_IDP_ISSUER="${IDP_BASE_URL}"
     export VITE_IDP_CLIENT_ID="${client_id}"
-    export VITE_IDP_AUDIENCE="${client_id}"
+    export VITE_IDP_RESOURCE="${resource}"
     export VITE_IDP_REDIRECT_URI="${web_url}/oauth/callback"
     export VITE_DEFAULT_TENANT_ID="${default_tenant_id}"
     exec nohup "${vite}" \
@@ -590,6 +702,7 @@ unified_platform_start_jar mcp-provider \
 unified_platform_wait_http mcp-provider \
   "${MCP_PROVIDER_BASE_URL}/actuator/health/readiness"
 wait_mcp_provider_catalog
+ensure_mcp_user_delegation
 
 group_id="$(<"${gateway_group_file}")"
 ensure_mcp_server "${group_id}"

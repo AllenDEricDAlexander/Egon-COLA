@@ -1,13 +1,16 @@
 package top.egon.cola.platform.idp.admin.support.rbac3;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 import top.egon.cola.platform.idp.core.port.UserResourceAccessAuthorizationPort;
 
 import java.net.URI;
+import java.time.Instant;
 import java.util.Objects;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 /**
  * 调用 RBAC3 内部接口完成 USER Resource 入口权限判定。
@@ -22,6 +25,11 @@ import java.util.function.Supplier;
 public final class HttpUserResourceAccessAuthorizationAdapter
         implements UserResourceAccessAuthorizationPort {
 
+    /** 安全记录内部调用失败，不输出 Token 或用户请求；safe internal-call logger without tokens or user payloads. */
+    private static final Logger LOGGER = LoggerFactory.getLogger(
+            HttpUserResourceAccessAuthorizationAdapter.class
+    );
+
     /** RBAC3 决策路径；RBAC3 decision path. */
     private static final String DECISION_PATH =
             "/internal/v1/authorization/resource-access-decisions";
@@ -32,8 +40,8 @@ public final class HttpUserResourceAccessAuthorizationAdapter
     /** RBAC3 基础地址；RBAC3 base URL. */
     private final String baseUrl;
 
-    /** IdP 服务身份 Authorization 请求头提供器；IdP service Authorization header supplier. */
-    private final Supplier<String> authorizationHeader;
+    /** 按目标租户提供 IdP 服务身份请求头；provides IdP service headers by target tenant. */
+    private final Function<String, String> authorizationHeader;
 
     /**
      * 创建 RBAC3 USER Resource 决策适配器。
@@ -42,12 +50,12 @@ public final class HttpUserResourceAccessAuthorizationAdapter
      *
      * @param restClient HTTP 客户端；HTTP client
      * @param baseUrl RBAC3 基础地址；RBAC3 base URL
-     * @param authorizationHeader IdP 服务身份请求头提供器；IdP service header supplier
+     * @param authorizationHeader 按租户提供 IdP 服务身份请求头；IdP service header by tenant
      */
     public HttpUserResourceAccessAuthorizationAdapter(
             RestClient restClient,
             String baseUrl,
-            Supplier<String> authorizationHeader
+            Function<String, String> authorizationHeader
     ) {
         this.restClient = Objects.requireNonNull(restClient, "restClient");
         this.baseUrl = validBaseUrl(baseUrl);
@@ -72,7 +80,10 @@ public final class HttpUserResourceAccessAuthorizationAdapter
         try {
             DecisionEnvelope envelope = restClient.post()
                     .uri(baseUrl + DECISION_PATH)
-                    .header(HttpHeaders.AUTHORIZATION, serviceAuthorization())
+                    .header(
+                            HttpHeaders.AUTHORIZATION,
+                            serviceAuthorization(request.tenantId())
+                    )
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(new DecisionRequest(
                             required(request.identitySub(), "identitySub"),
@@ -91,14 +102,22 @@ public final class HttpUserResourceAccessAuthorizationAdapter
                     .onStatus(
                             status -> status.isError(),
                             (sent, received) -> {
-                                throw unavailable();
+                                throw new IllegalStateException(
+                                        "RBAC3 decision HTTP "
+                                                + received.getStatusCode().value()
+                                );
                             }
                     )
                     .body(DecisionEnvelope.class);
-            return toDomain(envelope == null ? null : envelope.data());
+            return toDomain(envelope);
         } catch (AccessUnavailableException exception) {
             throw exception;
         } catch (RuntimeException exception) {
+            LOGGER.warn(
+                    "RBAC3 Resource access decision call failed: {}: {}",
+                    exception.getClass().getSimpleName(),
+                    exception.getMessage()
+            );
             throw unavailable();
         }
     }
@@ -108,19 +127,25 @@ public final class HttpUserResourceAccessAuthorizationAdapter
      *
      * <p>Validates and maps an RBAC3 decision.</p>
      *
-     * @param response RBAC3 响应数据；RBAC3 response data
+     * @param envelope RBAC3 统一响应；RBAC3 response envelope
      * @return 领域决策；domain decision
      */
-    private AccessDecision toDomain(DecisionResponse response) {
-        if (response == null) {
+    private AccessDecision toDomain(DecisionEnvelope envelope) {
+        if (envelope == null || envelope.data() == null
+                || envelope.meta() == null) {
             throw unavailable();
         }
         try {
+            required(envelope.meta().requestId(), "requestId");
+            required(envelope.meta().traceId(), "traceId");
+            Objects.requireNonNull(envelope.meta().timestamp(), "timestamp");
+            DecisionResponse response = envelope.data();
             Decision decision = Decision.valueOf(required(
                     response.decision(),
                     "decision"
             ));
             String reason = required(response.reasonCode(), "reasonCode");
+            Objects.requireNonNull(response.decidedAt(), "decidedAt");
             return new AccessDecision(
                     decision,
                     reason,
@@ -138,10 +163,14 @@ public final class HttpUserResourceAccessAuthorizationAdapter
      *
      * <p>Obtains and validates the service-identity request header.</p>
      *
+     * @param tenantId 精确目标租户；exact target tenant
      * @return 可安全发送的 Authorization 请求头；safe Authorization header
      */
-    private String serviceAuthorization() {
-        String value = authorizationHeader.get();
+    private String serviceAuthorization(String tenantId) {
+        String value = authorizationHeader.apply(required(
+                tenantId,
+                "tenantId"
+        ));
         if (value == null
                 || value.isBlank()
                 || !value.equals(value.trim())
@@ -228,15 +257,15 @@ public final class HttpUserResourceAccessAuthorizationAdapter
      * <p>RBAC3 decision request body.</p>
      *
      * @param identitySub 用户身份；user identity
-     * @param tenantId 租户；tenant
-     * @param sessionId 身份会话；identity session
+     * @param tid 租户；tenant
+     * @param sid 身份会话；identity session
      * @param rbacApplicationCode RBAC3 应用；RBAC3 application
      * @param entryPermissionCode 入口权限；entry permission
      */
     private record DecisionRequest(
             String identitySub,
-            String tenantId,
-            String sessionId,
+            String tid,
+            String sid,
             String rbacApplicationCode,
             String entryPermissionCode
     ) {
@@ -248,8 +277,28 @@ public final class HttpUserResourceAccessAuthorizationAdapter
      * <p>RBAC3 response envelope.</p>
      *
      * @param data 最小决策数据；minimal decision data
+     * @param meta 统一响应元数据；response metadata
      */
-    private record DecisionEnvelope(DecisionResponse data) {
+    private record DecisionEnvelope(
+            DecisionResponse data,
+            ResponseMeta meta
+    ) {
+    }
+
+    /**
+     * RBAC3 统一响应元数据。
+     *
+     * <p>RBAC3 response metadata.</p>
+     *
+     * @param requestId 请求标识；request identifier
+     * @param traceId 链路标识；trace identifier
+     * @param timestamp 响应时间；response timestamp
+     */
+    private record ResponseMeta(
+            String requestId,
+            String traceId,
+            Instant timestamp
+    ) {
     }
 
     /**
@@ -262,13 +311,15 @@ public final class HttpUserResourceAccessAuthorizationAdapter
      * @param authVersion 授权版本；authorization version
      * @param sessionVersion 会话版本；session version
      * @param policyVersion 策略版本；policy version
+     * @param decidedAt 判定时间；decision time
      */
     private record DecisionResponse(
             String decision,
             String reasonCode,
             Long authVersion,
             Long sessionVersion,
-            Long policyVersion
+            Long policyVersion,
+            Instant decidedAt
     ) {
     }
 }

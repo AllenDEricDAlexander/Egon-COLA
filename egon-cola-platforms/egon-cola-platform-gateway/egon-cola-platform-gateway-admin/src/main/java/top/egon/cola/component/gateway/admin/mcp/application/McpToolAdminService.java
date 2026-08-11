@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.admin.mcp.application;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.uuid.UuidV7;
@@ -65,6 +66,7 @@ public class McpToolAdminService {
 
     private final Clock clock;
 
+    @Autowired
     public McpToolAdminService(
             McpReleaseContentFactory contentFactory,
             McpValidationService validation,

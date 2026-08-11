@@ -32,23 +32,6 @@ public interface IdentityClientResourceGrantRepository
     );
 
     /**
-     * 查询应用级授权。
-     *
-     * <p>Finds an application-level grant.</p>
-     *
-     * @param clientId Client 标识；Client identifier
-     * @param resourceServerId Resource Server 标识；Resource Server identifier
-     * @param grantType 授权类型；grant type
-     * @return 授权；grant
-     */
-    Optional<IdentityClientResourceGrantEntity>
-            findByClientIdAndResourceServerIdAndGrantType(
-            String clientId,
-            String resourceServerId,
-            IdentityClientResourceGrantEntity.GrantType grantType
-    );
-
-    /**
      * 按 Client、Resource、类型和租户精确查询授权。
      *
      * <p>Finds a grant by Client, Resource, type, and tenant.</p>

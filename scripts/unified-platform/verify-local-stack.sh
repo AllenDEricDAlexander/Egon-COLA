@@ -13,9 +13,55 @@ idp_admin_token_file="${unified_platform_secret_dir}/idp-admin.access.jwt"
 rbac3_admin_token_file="${unified_platform_secret_dir}/rbac3-default.access.jwt"
 ddc_admin_token_file="${unified_platform_secret_dir}/ddc-admin.access.jwt"
 tenant_token_file="${unified_platform_secret_dir}/tenant-b.access.jwt"
+mcp_token_file="${unified_platform_secret_dir}/mcp-tenant-b.access.jwt"
 rbac3_token_file="${unified_platform_secret_dir}/rbac3-tenant-b.access.jwt"
 gateway_group_file="${unified_platform_runtime_dir}/gateway-group.id"
 gateway_application_file="${unified_platform_runtime_dir}/gateway-application.id"
+
+identity_runtime_database() {
+  local env_file="$1" key="$2" jdbc_url database
+  [[ -s "${env_file}" ]] \
+    || unified_platform_fail "missing runtime environment: ${env_file}"
+  jdbc_url="$(bash -c '
+    set -a
+    # shellcheck disable=SC1090
+    source "$1"
+    printf "%s" "${!2-}"
+  ' _ "${env_file}" "${key}")"
+  [[ "${jdbc_url}" == jdbc:postgresql://*/* ]] \
+    || unified_platform_fail \
+      "${key} is not a PostgreSQL JDBC URL in ${env_file}"
+  database="${jdbc_url##*/}"
+  database="${database%%\?*}"
+  [[ "${database}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] \
+    || unified_platform_fail \
+      "${key} has an unsafe database name in ${env_file}"
+  printf '%s' "${database}"
+}
+
+identity_idp_database="$(identity_runtime_database \
+  "${unified_platform_env_dir}/idp.env" IDP_POSTGRES_URL)"
+identity_rbac3_database="$(identity_runtime_database \
+  "${unified_platform_env_dir}/rbac3.env" RBAC3_POSTGRES_URL)"
+identity_gateway_database="$(identity_runtime_database \
+  "${unified_platform_env_dir}/gateway-admin.env" SPRING_DATASOURCE_URL)"
+identity_ddc_database="$(identity_runtime_database \
+  "${unified_platform_env_dir}/ddc.env" SPRING_DATASOURCE_URL)"
+
+run_identity() {
+  UNIFIED_IDENTITY_RUNTIME_DIR="${unified_platform_runtime_dir}" \
+  UNIFIED_IDENTITY_IDP_URL="${IDP_BASE_URL}" \
+  UNIFIED_IDENTITY_RBAC3_URL="${RBAC3_BASE_URL}" \
+  UNIFIED_IDENTITY_GATEWAY_ADMIN_URL="${GATEWAY_ADMIN_BASE_URL}" \
+  UNIFIED_IDENTITY_DDC_URL="${DDC_BASE_URL}" \
+  UNIFIED_IDENTITY_MOCK_URL="${MOCK_BACKEND_BASE_URL}" \
+  UNIFIED_IDENTITY_GATEWAY_URL="${GATEWAY_BASE_URL}" \
+  UNIFIED_IDENTITY_IDP_DATABASE="${identity_idp_database}" \
+  UNIFIED_IDENTITY_RBAC3_DATABASE="${identity_rbac3_database}" \
+  UNIFIED_IDENTITY_GATEWAY_DATABASE="${identity_gateway_database}" \
+  UNIFIED_IDENTITY_DDC_DATABASE="${identity_ddc_database}" \
+    "${legacy_script}" "$@"
+}
 
 failures=0
 
@@ -84,6 +130,7 @@ done
 for file in \
   "${gateway_admin_token_file}" \
   "${tenant_token_file}" \
+  "${mcp_token_file}" \
   "${rbac3_token_file}" \
   "${gateway_group_file}" \
   "${gateway_application_file}"; do
@@ -114,7 +161,11 @@ role_ids() {
     jq -c '[.data.applications[].candidates[].rootRoleId] | unique' \
       "${candidates}"
   else
-    jq -c '[.data.applications[] | select(.applicationCode != "mock-backend") | .candidates[].rootRoleId] | unique' \
+    jq -c '[.data.applications[] as $application
+      | $application.candidates[]
+      | select($application.applicationCode != "mock-backend"
+          or .rootRoleCode == "MOCK_LOCAL_ENTRY")
+      | .rootRoleId] | unique' \
       "${candidates}"
   fi
 }
@@ -267,7 +318,7 @@ mcp_initialize() {
   headers="${tmp_dir}/${label}.headers"
   response="${tmp_dir}/${label}.json"
   http_code="$(curl -sS -D "${headers}" -o "${response}" -w '%{http_code}' \
-    -H "Authorization: Bearer $(<"${tenant_token_file}")" \
+    -H "Authorization: Bearer $(<"${mcp_token_file}")" \
     -H 'Accept: application/json, text/event-stream' \
     -H 'Content-Type: application/json' \
     --data '{"jsonrpc":"2.0","id":"initialize","method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{"tasks":{"requests":{"tools":{"call":{}}}}},"clientInfo":{"name":"unified-platform-verifier","version":"1.0.0"}}}' \
@@ -293,7 +344,7 @@ mcp_call() {
     --argjson params "${params}" \
     '{jsonrpc:"2.0",id:$id,method:$method,params:$params}')"
   http_code="$(curl -sS -o "${response}" -w '%{http_code}' \
-    -H "Authorization: Bearer $(<"${tenant_token_file}")" \
+    -H "Authorization: Bearer $(<"${mcp_token_file}")" \
     -H "Mcp-Session-Id: $(<"${session_file}")" \
     -H 'Mcp-Protocol-Version: 2025-11-25' \
     -H 'Accept: application/json, text/event-stream' \
@@ -319,19 +370,14 @@ verify_unknown_origin_rejected
 
 unified_platform_stage "verifying unified identity SSO and revocation semantics"
 if [[ "${UNIFIED_PLATFORM_SKIP_IDENTITY_VERIFY:-false}" != "true" ]]; then
-  UNIFIED_IDENTITY_RUNTIME_DIR="${unified_platform_runtime_dir}" \
-  UNIFIED_IDENTITY_IDP_URL="${IDP_BASE_URL}" \
-  UNIFIED_IDENTITY_RBAC3_URL="${RBAC3_BASE_URL}" \
-  UNIFIED_IDENTITY_GATEWAY_ADMIN_URL="${GATEWAY_ADMIN_BASE_URL}" \
-  UNIFIED_IDENTITY_DDC_URL="${DDC_BASE_URL}" \
-  UNIFIED_IDENTITY_MOCK_URL="${MOCK_BACKEND_BASE_URL}" \
-  UNIFIED_IDENTITY_GATEWAY_URL="${GATEWAY_BASE_URL}" \
-    "${legacy_script}" verify >"${tmp_dir}/identity-verification.log"
+  run_identity verify >"${tmp_dir}/identity-verification.log"
 fi
-UNIFIED_IDENTITY_RUNTIME_DIR="${unified_platform_runtime_dir}" \
-UNIFIED_IDENTITY_IDP_URL="${IDP_BASE_URL}" \
-UNIFIED_IDENTITY_RBAC3_URL="${RBAC3_BASE_URL}" \
-  "${legacy_script}" refresh-tokens >"${tmp_dir}/token-refresh.log"
+run_identity refresh-tokens >"${tmp_dir}/token-refresh.log"
+UNIFIED_IDENTITY_OAUTH_CLIENT_ID=mock-backend \
+UNIFIED_IDENTITY_OAUTH_TENANT=tenant-b \
+UNIFIED_IDENTITY_OAUTH_RESOURCE_URI=https://api.egon.internal/local/identity/gateway-test-mcp-provider \
+UNIFIED_IDENTITY_OAUTH_TOKEN_FILE="${mcp_token_file}" \
+  run_identity issue-user-token >"${tmp_dir}/mcp-token-refresh.log"
 
 unified_platform_stage "verifying authenticated Admin feature matrix"
 verify_authenticated_json idp-bootstrap \
@@ -529,7 +575,7 @@ assert_json "${response}" \
   '([.result.tools[].name] | sort) == ["high_risk_action","local_echo_task","local_query","rc.remote_echo","stable.remote_echo"]' \
   "MCP tool list is incomplete"
 response="$(mcp_call "${GATEWAY_BASE_URL}" "${stable_session}" \
-  local-tool tools/call '{"name":"local_query","arguments":{"prefix":"qa"}}')"
+  local-tool tools/call '{"name":"local_query","arguments":{"query":{"prefix":"qa"}}}')"
 assert_json "${response}" \
   '.result.isError == false and .result.structuredContent.items == ["qa-1","qa-2"]' \
   "local Gateway Operation tool failed"
@@ -588,7 +634,7 @@ assert_json "${response}" '.result.subscriptionId != null' \
   "MCP resource subscription failed"
 
 stable_stream="$(curl --max-time 3 -sSN \
-  -H "Authorization: Bearer $(<"${tenant_token_file}")" \
+  -H "Authorization: Bearer $(<"${mcp_token_file}")" \
   -H "Mcp-Session-Id: $(<"${stable_session}")" \
   -H 'Accept: text/event-stream' \
   "${GATEWAY_BASE_URL}/mcp/unified-local" || true)"
@@ -597,7 +643,7 @@ grep -Fq '"id":"cross-node-ping"' <<<"${stable_stream}" \
 
 unified_platform_stage "verifying durable task creation on A and read on B"
 response="$(mcp_call "${GATEWAY_BASE_URL}" "${stable_session}" task-create \
-  tools/call '{"name":"local_echo_task","arguments":{"command":{"value":"task"}}}')"
+  tools/call '{"name":"local_echo_task","arguments":{"body":{"value":"task"}}}')"
 assert_json "${response}" '.result.task.status == "working"' \
   "durable MCP task was not created"
 task_id="$(jq -er '.result.task.taskId' "${response}")"
@@ -616,7 +662,7 @@ assert_json "${response}" \
 unified_platform_stage "verifying stateless RC and Legacy SSE transports"
 rc_response="${tmp_dir}/rc-discover.json"
 rc_http_code="$(curl -sS -o "${rc_response}" -w '%{http_code}' \
-  -H "Authorization: Bearer $(<"${tenant_token_file}")" \
+  -H "Authorization: Bearer $(<"${mcp_token_file}")" \
   -H 'Content-Type: application/json' \
   -H 'Mcp-Protocol-Version: 2026-07-28' \
   -H 'Mcp-Method: server/discover' \
@@ -630,7 +676,7 @@ assert_json "${rc_response}" '.result.protocolVersion == "2026-07-28"' \
 legacy_headers="${tmp_dir}/legacy.headers"
 curl --max-time 2 -sSN -D "${legacy_headers}" \
   -o "${tmp_dir}/legacy-stream.txt" \
-  -H "Authorization: Bearer $(<"${tenant_token_file}")" \
+  -H "Authorization: Bearer $(<"${mcp_token_file}")" \
   -H 'Accept: text/event-stream' \
   "${GATEWAY_BASE_URL}/legacy/mcp/unified-local" || true
 grep -Eq '^HTTP/1\.[01] 200' "${legacy_headers}" \
@@ -641,7 +687,7 @@ legacy_path="$(sed -n 's/^data://p' "${tmp_dir}/legacy-stream.txt" | head -1)"
 [[ "${legacy_path}" == /legacy/mcp/unified-local?sessionId=* ]] \
   || unified_platform_fail "Legacy MCP message endpoint is invalid"
 legacy_http_code="$(curl -sS -o "${tmp_dir}/legacy-post.json" -w '%{http_code}' \
-  -H "Authorization: Bearer $(<"${tenant_token_file}")" \
+  -H "Authorization: Bearer $(<"${mcp_token_file}")" \
   -H 'Content-Type: application/json' \
   --data '{"jsonrpc":"2.0","id":"legacy-ping","method":"ping","params":{}}' \
   "${GATEWAY_BASE_URL}${legacy_path}")"
@@ -654,7 +700,7 @@ ddc_interrupted=true
 [[ "$(unified_platform_http_code "${DDC_BASE_URL}/actuator/health/readiness")" != "200" ]] \
   || unified_platform_fail "DDC interruption did not take effect"
 response="$(mcp_call "${GATEWAY_BASE_URL}" "${stable_session}" ddc-lkg \
-  tools/call '{"name":"local_query","arguments":{"prefix":"lkg"}}')"
+  tools/call '{"name":"local_query","arguments":{"query":{"prefix":"lkg"}}}')"
 assert_json "${response}" '.result.isError == false' \
   "Gateway lost the last-known-good release during DDC interruption"
 unified_platform_start_jar ddc \
@@ -673,7 +719,7 @@ assert_json "${history_file}" \
   '([.[] | select(.status == "SUCCESS")][0].attempts[0].targets | length) >= 2' \
   "latest release was not applied to both Gateway engines"
 response="$(mcp_call "${GATEWAY_BASE_URL}" "${stable_session}" release-lkg \
-  tools/call '{"name":"local_query","arguments":{"prefix":"release-lkg"}}')"
+  tools/call '{"name":"local_query","arguments":{"query":{"prefix":"release-lkg"}}}')"
 assert_json "${response}" '.result.isError == false' \
   "annotation-managed MCP release is unavailable"
 
@@ -705,7 +751,7 @@ roles_modified=true
 for ((attempt = 1; attempt <= 20; attempt++)); do
   response="$(mcp_call "${GATEWAY_BASE_URL}" "${stable_session}" \
     "rbac-denied-${attempt}" tools/call \
-    '{"name":"local_query","arguments":{"prefix":"denied"}}')"
+    '{"name":"local_query","arguments":{"query":{"prefix":"denied"}}}')"
   if jq -e '.error.dataCode == "MCP_FORBIDDEN"
       and (.error.data.reasonCode | startswith("RBAC3_"))' \
       "${response}" >/dev/null; then
@@ -722,7 +768,7 @@ roles_modified=false
 for ((attempt = 1; attempt <= 20; attempt++)); do
   response="$(mcp_call "${GATEWAY_BASE_URL}" "${stable_session}" \
     "rbac-restored-${attempt}" tools/call \
-    '{"name":"local_query","arguments":{"prefix":"restored"}}')"
+    '{"name":"local_query","arguments":{"query":{"prefix":"restored"}}}')"
   if jq -e '.result.isError == false' "${response}" >/dev/null; then
     break
   fi

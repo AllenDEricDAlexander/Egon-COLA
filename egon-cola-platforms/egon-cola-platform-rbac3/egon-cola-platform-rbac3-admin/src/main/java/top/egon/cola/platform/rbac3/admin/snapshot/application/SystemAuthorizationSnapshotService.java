@@ -19,9 +19,9 @@ import java.util.Set;
 public final class SystemAuthorizationSnapshotService {
 
     private static final Duration DEFAULT_CONTEXT_TTL = Duration.ofHours(12);
-    private static final Duration CONCURRENT_SNAPSHOT_RETRY_PAUSE =
+    private static final Duration INITIALIZED_SNAPSHOT_RETRY_PAUSE =
             Duration.ofMillis(25);
-    private static final int CONCURRENT_SNAPSHOT_READ_ATTEMPTS = 20;
+    private static final int INITIALIZED_SNAPSHOT_READ_ATTEMPTS = 20;
     private static final String RBAC3_ADMIN_SYSTEM = "rbac3-admin";
     private static final Set<String> RETRYABLE_SNAPSHOT_REASONS = Set.of(
             "AUTH_SNAPSHOT_NOT_READY",
@@ -110,20 +110,20 @@ public final class SystemAuthorizationSnapshotService {
     private AuthorizationDecisionService.SnapshotRecord loadSnapshot(
             AuthorizationContextFacade.AuthorizationContext context,
             ContextInitialization initialization) {
-        for (int attempt = 1; attempt <= CONCURRENT_SNAPSHOT_READ_ATTEMPTS; attempt++) {
+        for (int attempt = 1; attempt <= INITIALIZED_SNAPSHOT_READ_ATTEMPTS; attempt++) {
             try {
                 AuthorizationDecisionService.SnapshotRecord record = snapshots.load(
                         context.tenantId(), context.sessionId());
                 requireCurrentVersions(context, record.snapshot());
                 return record;
             } catch (Rbac3RuleViolation violation) {
-                boolean retry = initialization == ContextInitialization.CONCURRENT
+                boolean retry = initialization != ContextInitialization.UNCHANGED
                         && RETRYABLE_SNAPSHOT_REASONS.contains(violation.reasonCode())
-                        && attempt < CONCURRENT_SNAPSHOT_READ_ATTEMPTS;
+                        && attempt < INITIALIZED_SNAPSHOT_READ_ATTEMPTS;
                 if (!retry) {
                     throw violation;
                 }
-                retryPause.pause(CONCURRENT_SNAPSHOT_RETRY_PAUSE);
+                retryPause.pause(INITIALIZED_SNAPSHOT_RETRY_PAUSE);
             }
         }
         throw new IllegalStateException("concurrent snapshot retry exhausted");

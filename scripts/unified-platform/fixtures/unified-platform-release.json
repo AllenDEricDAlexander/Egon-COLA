@@ -10,7 +10,7 @@
       "STABLE_2025_11_25",
       "RC_2026_07_28"
     ],
-    "oauthAudience": "mock-backend",
+    "resourceUri": "https://api.egon.internal/local/identity/gateway-test-mcp-provider",
     "listCacheTtlSeconds": 5,
     "enabled": true
   },

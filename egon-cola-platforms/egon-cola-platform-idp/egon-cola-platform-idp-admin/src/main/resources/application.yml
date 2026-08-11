@@ -4,7 +4,9 @@ spring:
   profiles:
     default: local
   config:
-    import: optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/idp.properties
+    import:
+      - optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/idp.properties
+      - optional:ddc:application.yml
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2

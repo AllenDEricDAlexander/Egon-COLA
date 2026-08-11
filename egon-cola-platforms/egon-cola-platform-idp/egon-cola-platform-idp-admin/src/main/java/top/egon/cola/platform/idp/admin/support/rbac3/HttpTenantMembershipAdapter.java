@@ -8,6 +8,7 @@ import top.egon.cola.platform.idp.core.port.TenantMembershipPort;
 import java.net.URI;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -24,8 +25,11 @@ public final class HttpTenantMembershipAdapter
     /** RBAC3 基础地址；RBAC3 base URL. */
     private final String baseUrl;
 
-    /** IdP 服务身份 Authorization 请求头来源；IdP service Authorization header source. */
-    private final Supplier<String> authorizationHeader;
+    /** 按目标租户提供 IdP 服务身份请求头；provides IdP service headers by target tenant. */
+    private final Function<String, String> tenantAuthorizationHeader;
+
+    /** 无目标租户列表调用使用的默认请求头；default header for list calls without a target tenant. */
+    private final Supplier<String> defaultAuthorizationHeader;
 
     /**
      * 创建 RBAC3 租户成员关系适配器。
@@ -41,11 +45,39 @@ public final class HttpTenantMembershipAdapter
             String baseUrl,
             Supplier<String> authorizationHeader
     ) {
+        this(
+                restClient,
+                baseUrl,
+                ignored -> authorizationHeader.get(),
+                authorizationHeader
+        );
+    }
+
+    /**
+     * 创建可按精确租户选择服务身份的 RBAC3 成员关系适配器。
+     *
+     * <p>Creates an RBAC3 membership adapter that selects a service identity by exact tenant.</p>
+     *
+     * @param restClient HTTP 客户端；HTTP client
+     * @param baseUrl RBAC3 基础地址；RBAC3 base URL
+     * @param tenantAuthorizationHeader 按租户提供服务身份请求头；service header by tenant
+     * @param defaultAuthorizationHeader 列表调用默认请求头；default header for list calls
+     */
+    public HttpTenantMembershipAdapter(
+            RestClient restClient,
+            String baseUrl,
+            Function<String, String> tenantAuthorizationHeader,
+            Supplier<String> defaultAuthorizationHeader
+    ) {
         this.restClient = Objects.requireNonNull(restClient, "restClient");
         this.baseUrl = validBaseUrl(baseUrl);
-        this.authorizationHeader = Objects.requireNonNull(
-                authorizationHeader,
-                "authorizationHeader"
+        this.tenantAuthorizationHeader = Objects.requireNonNull(
+                tenantAuthorizationHeader,
+                "tenantAuthorizationHeader"
+        );
+        this.defaultAuthorizationHeader = Objects.requireNonNull(
+                defaultAuthorizationHeader,
+                "defaultAuthorizationHeader"
         );
     }
 
@@ -70,7 +102,7 @@ public final class HttpTenantMembershipAdapter
                     .uri(baseUrl + "/internal/v1/identity/resolve")
                     .header(
                             HttpHeaders.AUTHORIZATION,
-                            serviceAuthorization()
+                            serviceAuthorization(tenantId)
                     )
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(new ResolveRequest(
@@ -121,7 +153,7 @@ public final class HttpTenantMembershipAdapter
                     )
                     .header(
                             HttpHeaders.AUTHORIZATION,
-                            serviceAuthorization()
+                            defaultServiceAuthorization()
                     )
                     .retrieve()
                     .onStatus(
@@ -196,8 +228,33 @@ public final class HttpTenantMembershipAdapter
      *
      * @return 可安全发送的 Authorization 请求头；safe Authorization header
      */
-    private String serviceAuthorization() {
-        String value = authorizationHeader.get();
+    private String serviceAuthorization(String tenantId) {
+        return validAuthorization(tenantAuthorizationHeader.apply(required(
+                tenantId,
+                "tenantId"
+        )));
+    }
+
+    /**
+     * 获取列表调用使用的默认服务身份请求头。
+     *
+     * <p>Obtains the default service-identity header used by membership-list calls.</p>
+     *
+     * @return 可安全发送的 Authorization 请求头；safe Authorization header
+     */
+    private String defaultServiceAuthorization() {
+        return validAuthorization(defaultAuthorizationHeader.get());
+    }
+
+    /**
+     * 校验一个服务身份请求头。
+     *
+     * <p>Validates one service-identity request header.</p>
+     *
+     * @param value 原始请求头；raw header value
+     * @return 已校验请求头；validated header
+     */
+    private String validAuthorization(String value) {
         if (value == null
                 || value.isBlank()
                 || !value.equals(value.trim())

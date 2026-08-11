@@ -14,7 +14,7 @@ import java.util.Optional;
  *
  * <p>Domain adapter that queries OAuth Client public JWKs from the IdP administration database.</p>
  */
-public final class JpaClientCredentialStore implements ClientCredentialStore {
+public class JpaClientCredentialStore implements ClientCredentialStore {
 
     /** Client JWK 仓储；Client JWK repository. */
     private final IdentityClientJwkRepository credentials;

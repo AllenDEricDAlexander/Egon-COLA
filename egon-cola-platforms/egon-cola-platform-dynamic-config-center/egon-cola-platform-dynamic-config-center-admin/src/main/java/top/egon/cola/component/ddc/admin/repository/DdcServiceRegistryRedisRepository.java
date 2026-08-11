@@ -383,7 +383,7 @@ public class DdcServiceRegistryRedisRepository {
         return instance.resourceServerId() != null
                 && !instance.resourceServerId().isBlank()
                 && instance.resourceVersion() != null
-                && instance.resourceVersion() > 0
+                && instance.resourceVersion() >= 0
                 && instance.credentialId() != null
                 && !instance.credentialId().isBlank()
                 && instance.admissionExpiresAt() != null

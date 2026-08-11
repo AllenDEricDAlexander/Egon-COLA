@@ -363,7 +363,7 @@ public class DdcConfigLeaseRedisRepository {
                 && lease.path("leaseExpireAt").asLong() > now.toEpochMilli()
                 && lease.hasNonNull("resourceServerId")
                 && lease.path("resourceVersion").canConvertToLong()
-                && lease.path("resourceVersion").asLong() > 0
+                && lease.path("resourceVersion").asLong() >= 0
                 && lease.hasNonNull("credentialId")
                 && lease.path("admissionExpiresAt").canConvertToLong()
                 && lease.path("admissionExpiresAt").asLong() > now.toEpochMilli();

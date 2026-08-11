@@ -1,6 +1,8 @@
 spring:
   application:
     name: gateway-test-idp-backend
+  config:
+    import: optional:ddc:application.yml
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
@@ -59,6 +61,8 @@ egon:
         app-code: ${MOCK_BACKEND_RESOURCE_APP_CODE:mock-backend}
         env: ${DEPLOYMENT_ENV:local}
         namespace: ${DEPLOYMENT_NAMESPACE:default}
+        instance:
+          id: ${MOCK_BACKEND_INSTANCE_ID:mock-backend-local-1}
         rpc:
           target: ${DDC_RPC_TARGET:dns:///127.0.0.1:19080}
           load-balancing-policy: round_robin

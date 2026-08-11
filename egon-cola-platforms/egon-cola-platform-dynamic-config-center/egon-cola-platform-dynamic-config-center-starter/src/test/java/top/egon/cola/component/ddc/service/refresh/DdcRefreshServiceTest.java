@@ -125,6 +125,37 @@ class DdcRefreshServiceTest {
     }
 
     @Test
+    void explicitApplierReceivesOpaqueValueWithLiteralPlaceholder()
+            throws Exception {
+        AtomicReference<String> applied = new AtomicReference<>();
+        Harness harness = harness(registry -> registry.registerExact(
+                "feature.label",
+                (key, value, version) -> applied.set(value)
+        ));
+        DdcDynamicPropertySource source =
+                (DdcDynamicPropertySource) harness.environment
+                        .getPropertySources()
+                        .get("ddc:application.yml");
+        DdcDynamicPropertySource replacement =
+                new DdcYamlConfigFormatStrategy().load(
+                        "application.yml",
+                        """
+                                feature:
+                                  enabled: false
+                                  label: '{"template":"Review ${id}"}'
+                                """,
+                        2L
+                );
+        source.replace(replacement.snapshot());
+
+        harness.yamlConfigApplier.afterSingletonsInstantiated();
+
+        assertThat(applied).hasValue(
+                "{\"template\":\"Review ${id}\"}"
+        );
+    }
+
+    @Test
     void sameVersionConflictFailsWithoutChangingLastKnownGood()
             throws Exception {
         AtomicInteger applyCount = new AtomicInteger();

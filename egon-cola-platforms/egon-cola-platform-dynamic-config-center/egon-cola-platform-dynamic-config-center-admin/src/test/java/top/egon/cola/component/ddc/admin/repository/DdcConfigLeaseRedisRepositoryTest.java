@@ -98,6 +98,56 @@ class DdcConfigLeaseRedisRepositoryTest {
     }
 
     @Test
+    void initialResourceVersionZeroRemainsAnActivePublishTarget()
+            throws Exception {
+        RedissonClient redisson = mock(RedissonClient.class);
+        RLock lock = mock(RLock.class);
+        RBucket<String> bucket = bucket();
+        RSet<String> instances = set();
+        AtomicReference<String> stored = new AtomicReference<>();
+        when(redisson.getLock(anyString())).thenReturn(lock);
+        when(redisson.<String>getBucket(
+                DdcRedisKeys.configLeaseInstance(
+                        "retail", "dev", "demo", "instance-1"
+                ),
+                StringCodec.INSTANCE
+        )).thenReturn(bucket);
+        when(redisson.<String>getSet(
+                DdcRedisKeys.configLeaseInstances("retail", "dev", "demo"),
+                StringCodec.INSTANCE
+        )).thenReturn(instances);
+        when(bucket.get()).thenAnswer(invocation -> stored.get());
+        doAnswer(invocation -> {
+            stored.set(invocation.getArgument(0));
+            return null;
+        }).when(bucket).set(anyString(), eq(Duration.ofSeconds(30)));
+        when(instances.readAll()).thenReturn(Set.of("instance-1"));
+        DdcConfigLeaseRedisRepository repository =
+                new DdcConfigLeaseRedisRepository(redisson, new ObjectMapper());
+        DdcInstanceIdentity identity = new DdcInstanceIdentity(
+                "instance-1", "retail", "demo", "dev",
+                "127.0.0.1", 8080, "100", "5.3.3"
+        );
+        DdcLeaseSession session = new DdcLeaseSession(
+                "instance-1", "lease-1", DdcLeaseRole.CONFIG_CLIENT,
+                30, 10, NOW, NOW.plusSeconds(30)
+        );
+
+        repository.register(
+                identity,
+                session,
+                NOW,
+                claims(NOW.plusSeconds(60), 0L)
+        );
+
+        assertThat(repository.activeTargets(
+                "retail", "dev", "demo", NOW.plusSeconds(1)
+        )).containsExactly(new top.egon.cola.component.ddc.model.config.DdcPublishTarget(
+                "instance-1", "lease-1"
+        ));
+    }
+
+    @Test
     void heartbeatRejectsAnotherLeaseWithoutMutatingProjection() throws Exception {
         RedissonClient redisson = mock(RedissonClient.class);
         RLock lock = mock(RLock.class);

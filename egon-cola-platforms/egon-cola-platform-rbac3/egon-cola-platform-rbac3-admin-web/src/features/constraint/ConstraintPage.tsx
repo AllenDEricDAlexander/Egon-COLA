@@ -1,6 +1,6 @@
-import { PermissionGuard, useRbac3Session } from '@egon-cola/rbac3-react-sdk'
+import { useRbac3Session } from '@egon-cola/rbac3-react-sdk'
 import { useQuery } from '@tanstack/react-query'
-import { Button, Card, Table, Tabs, Tag, Typography } from 'antd'
+import { Card, Table, Tabs, Tag, Typography } from 'antd'
 import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
 import { PageState } from '@egon-cola/admin-web-shared'
 import { constraintApi, type SodSetView } from './constraint.api'

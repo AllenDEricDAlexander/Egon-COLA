@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /** Activates the generated local administrator roles for an opted-in development stack. */
@@ -18,11 +19,16 @@ public final class Rbac3DevelopmentAuthorizationContextInitializer
         implements SystemAuthorizationSnapshotService.ContextInitializer {
 
     private static final String DEVELOPMENT_ACTOR = "development-bootstrap";
-    private static final Map<String, String> DEVELOPMENT_ROLES_BY_APPLICATION =
+    /** 开发拓扑中按应用分组的角色编码；development role codes grouped by application. */
+    private static final Map<String, Set<String>> DEVELOPMENT_ROLES_BY_APPLICATION =
             Rbac3DevelopmentTopology.applications().stream()
-                    .collect(Collectors.toUnmodifiableMap(
+                    .collect(Collectors.groupingBy(
                             Rbac3DevelopmentTopology.ApplicationDefinition::applicationCode,
-                            Rbac3DevelopmentTopology.ApplicationDefinition::roleCode));
+                            Collectors.mapping(
+                                    Rbac3DevelopmentTopology.ApplicationDefinition::roleCode,
+                                    Collectors.toUnmodifiableSet()
+                            )
+                    ));
 
     private final boolean enabled;
     private final CandidateSource candidates;
@@ -57,10 +63,12 @@ public final class Rbac3DevelopmentAuthorizationContextInitializer
                 context.tenantId(), context.rbac3UserId(), now);
         List<String> roleIds = view.applications().stream()
                 .flatMap(application -> application.candidates().stream()
-                        .filter(candidate -> Objects.equals(
-                                DEVELOPMENT_ROLES_BY_APPLICATION.get(
-                                        application.applicationCode()),
-                                candidate.rootRoleCode())))
+                        .filter(candidate -> DEVELOPMENT_ROLES_BY_APPLICATION
+                                .getOrDefault(
+                                        application.applicationCode(),
+                                        Set.of()
+                                )
+                                .contains(candidate.rootRoleCode())))
                 .filter(candidate -> "PASSWORD".equals(candidate.requiredAuthStrength()))
                 .map(candidate -> candidate.rootRoleId())
                 .sorted()

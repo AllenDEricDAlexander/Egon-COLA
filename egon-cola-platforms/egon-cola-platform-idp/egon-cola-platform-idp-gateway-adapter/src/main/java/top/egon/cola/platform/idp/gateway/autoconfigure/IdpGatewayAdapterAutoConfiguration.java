@@ -259,7 +259,9 @@ public class IdpGatewayAdapterAutoConfiguration {
      */
     private JwtDecoder decoder(IdpGatewayAdapterProperties properties) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(
-                properties.getJwkSetUri().trim()).build();
+                        properties.getJwkSetUri().trim())
+                .validateType(false)
+                .build();
         decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(
                 properties.getIssuer().trim()));
         return decoder;

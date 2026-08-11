@@ -16,6 +16,8 @@
 - Use test-driven development: first add the smallest failing test, run it and confirm the expected failure, then implement, rerun, and commit.
 - Never edit an existing Flyway migration. Add exactly one next-version migration per affected database history:
   - IdP PostgreSQL: V2__add_oauth_resource_servers.sql.
+  - IdP PostgreSQL: V3__create_transactional_outbox_schema.sql. This runtime-discovered
+    prerequisite creates the IdP-owned transactional outbox schema without modifying V1 or V2.
   - DDC PostgreSQL: V8__add_resource_admission_audit.sql.
   - DDC SQLite: V8__add_resource_admission_audit.sql. This is the same logical V8 change applied once to each supported dialect history.
   - Gateway PostgreSQL: V11__rename_mcp_oauth_resource.sql.
@@ -1289,12 +1291,11 @@ The first scan must have no active result. Review every constructor result from 
   -am test
 ~~~
 
-Verification result (2026-08-11): the focused cross-module acceptance suite passed,
-Gateway Admin passed 169 tests, IdP Admin passed 94 tests, and the changed DDC/RBAC3
-fixtures passed their focused suites. The combined default reactor remains red only in
-three pre-existing RBAC3 Gateway discovery tests because
-`Map<String, Object>` cannot be converted to a complete Gateway schema. This unrelated
-failure is recorded in the spec and is not included in the OAuth2 implementation scope.
+Verification result (2026-08-11): the complete affected-module reactor passed. Gateway
+Admin passed 169 tests, RBAC3 Admin passed 150 tests, and IdP Admin passed 98 tests.
+Gateway schema discovery now supports only explicitly annotated arbitrary JSON boundaries,
+so the former three `Map<String, Object>` discovery failures are also green while the
+default schema path remains fail-closed.
 
 - [x] **Step 6: Typecheck and test the mechanically affected admin clients**
 
@@ -1316,7 +1317,9 @@ git diff --name-only HEAD~15..HEAD -- \
   '*/src/main/resources/db/**/V*.sql'
 ~~~
 
-Review the output manually. Only IdP V2, DDC V8 for PostgreSQL/SQLite, and Gateway V11 may be new. No pre-existing migration may be modified, renamed, or deleted.
+Review the output manually. Only IdP V2, the runtime-required IdP V3 transactional-outbox
+schema, DDC V8 for PostgreSQL/SQLite, and Gateway V11 may be new. No pre-existing migration
+may be modified, renamed, or deleted.
 
 - [x] **Step 8: Update documentation and spec status**
 
@@ -1331,7 +1334,9 @@ Document:
 - Resource disable/recovery behavior;
 - migration order and rollback limitations.
 
-Mark the spec implemented only after all verification passes. Do not start services.
+Mark the spec implemented only after all verification passes. The implementation phase did
+not start services; the user later explicitly authorized full runtime integration, which was
+executed after the static acceptance suite was green.
 
 - [x] **Step 9: Commit**
 
@@ -1388,6 +1393,6 @@ component-owned file.
 - [x] Downstream Starter validates the exact Resource; USER continues into RBAC3 and SERVICE uses local scope checks.
 - [x] Legacy audience/static-client/static-service-permission paths are absent from active code/config.
 - [x] New Java code and packages have complete Chinese/English documentation.
-- [x] Targeted acceptance and affected-module reactor tests pass; known unrelated suite failures are documented.
+- [x] Targeted acceptance and the complete affected-module reactor pass with no remaining known suite failure.
 - [x] No existing Flyway migration changed.
-- [x] No application process was started.
+- [x] User-authorized runtime integration passed, and the four platform backends/frontends plus test services remain running for manual review.

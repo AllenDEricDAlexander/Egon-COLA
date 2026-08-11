@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -52,6 +53,38 @@ class HttpRbac3AuthorizationClientTest {
                 "http://127.0.0.1:8088/internal/v1/authorization/contexts/tenant-a/sid-1"
                         + "?systemCode=finance&identitySub=alice-sub");
         assertThat(requestedCredential).hasValue("service-token");
+    }
+
+    @Test
+    void fetchSelectsServiceCredentialForTheExactTargetTenant()
+            throws Exception {
+        AtomicReference<String> requestedTenant = new AtomicReference<>();
+        AtomicReference<String> requestedCredential = new AtomicReference<>();
+        Function<String, String> credentials = tenantId -> {
+            requestedTenant.set(tenantId);
+            return "service-token-for-" + tenantId;
+        };
+        HttpRbac3AuthorizationClient client = new HttpRbac3AuthorizationClient(
+                URI.create("http://127.0.0.1:8088"), credentials,
+                Duration.ofSeconds(1), objectMapper(),
+                (uri, token, timeout) -> {
+                    requestedCredential.set(token);
+                    return new HttpRbac3AuthorizationClient.HttpResponse(200, """
+                            {"data":{"tenantId":"tenant-a","identitySub":"alice-sub",
+                            "rbac3UserId":"101","sessionId":"sid-1","systemCode":"finance",
+                            "authVersion":7,"contextVersion":3,"policyVersion":11,
+                            "activeRoleIds":[],"permissions":[],"dataScopes":{},
+                            "fieldPolicies":{},"checksum":"sha256:sid-1",
+                            "generatedAt":"2026-08-02T05:00:00Z",
+                            "expiresAt":"2026-08-02T06:00:00Z"}}
+                            """);
+                });
+
+        client.fetch("finance", principal());
+
+        assertThat(requestedTenant).hasValue("tenant-a");
+        assertThat(requestedCredential)
+                .hasValue("service-token-for-tenant-a");
     }
 
     @Test

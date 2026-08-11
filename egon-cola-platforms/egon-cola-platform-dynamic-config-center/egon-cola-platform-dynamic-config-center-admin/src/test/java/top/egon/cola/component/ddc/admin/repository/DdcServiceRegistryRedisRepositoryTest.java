@@ -20,6 +20,7 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -99,6 +100,41 @@ class DdcServiceRegistryRedisRepositoryTest {
         verify(globalRevision).incrementAndGet();
         verify(scopeLock).unlock();
         verify(globalLock).unlock();
+    }
+
+    @Test
+    void initialResourceVersionZeroRemainsDiscoverable() throws Exception {
+        RedissonClient redisson = mock(RedissonClient.class);
+        RScoredSortedSet<String> instances = scoredSet();
+        RBucket<String> bucket = bucket();
+        RAtomicLong revision = mock(RAtomicLong.class);
+        when(redisson.<String>getScoredSortedSet(
+                DdcRedisKeys.registryService(SERVICE_KEY), StringCodec.INSTANCE
+        )).thenReturn(instances);
+        when(instances.valueRange(
+                Double.NEGATIVE_INFINITY, true, NOW.toEpochMilli(), true
+        )).thenReturn(Set.of());
+        when(instances.valueRange(
+                NOW.toEpochMilli(), false, Double.POSITIVE_INFINITY, true
+        )).thenReturn(Set.of("provider-1"));
+        when(redisson.<String>getBucket(
+                DdcRedisKeys.registryInstance(SERVICE_KEY, "provider-1"),
+                StringCodec.INSTANCE
+        )).thenReturn(bucket);
+        when(bucket.get()).thenReturn(objectMapper.writeValueAsString(
+                instance(SERVICE_KEY, "lease-1", 0L)
+        ));
+        when(redisson.getAtomicLong(
+                DdcRedisKeys.registryRevision(SERVICE_KEY)
+        )).thenReturn(revision);
+
+        DdcServiceSnapshot snapshot = new DdcServiceRegistryRedisRepository(
+                redisson,
+                objectMapper
+        ).getInstances(SERVICE_KEY, NOW);
+
+        assertThat(snapshot.instances()).hasSize(1);
+        assertThat(snapshot.instances().getFirst().resourceVersion()).isZero();
     }
 
     @Test

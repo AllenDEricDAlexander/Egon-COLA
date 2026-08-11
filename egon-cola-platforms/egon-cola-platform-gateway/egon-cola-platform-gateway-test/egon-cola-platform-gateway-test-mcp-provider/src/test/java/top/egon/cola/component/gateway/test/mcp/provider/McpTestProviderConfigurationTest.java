@@ -26,6 +26,7 @@ class McpTestProviderConfigurationTest {
                         "DDC_RPC_RUNTIME_ACCESS_KEY=ddc-access",
                         "DDC_RPC_RUNTIME_SECRET_KEY=ddc-secret",
                         "DDC_REGISTRY_REDIS_PASSWORD=redis-secret",
+                        "MCP_TEST_PROVIDER_INSTANCE_ID=mcp-provider-local-1",
                         "GATEWAY_ADMIN_BASE_URL=http://127.0.0.1:18140",
                         "GATEWAY_REPORT_ACCESS_KEY=gateway-access",
                         "GATEWAY_REPORT_SECRET_KEY=gateway-secret",
@@ -48,6 +49,8 @@ class McpTestProviderConfigurationTest {
                             .isEqualTo("ddc-secret");
                     assertThat(ddc.getRedis().getPassword())
                             .isEqualTo("redis-secret");
+                    assertThat(ddc.getInstance().getId())
+                            .isEqualTo("mcp-provider-local-1");
                     assertThat(reporting.getAdminBaseUrl())
                             .isEqualTo("http://127.0.0.1:18140");
                     assertThat(reporting.getAccessKey())

@@ -2,6 +2,7 @@ package top.egon.cola.component.ddc.admin.rpc.provider;
 
 import org.junit.jupiter.api.Test;
 import io.grpc.Context;
+import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.security.rpc.DdcServicePrincipal;
 import top.egon.cola.component.ddc.admin.service.management.DdcManagementFacade;
 import top.egon.cola.component.ddc.admin.service.lease.DdcResourceAdmissionRevocationService;
@@ -21,6 +22,7 @@ import top.egon.cola.component.ddc.model.management.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceSnapshot;
 import top.egon.cola.component.ddc.model.management.DdcResourceAdmissionRevocationRequest;
 import top.egon.cola.component.ddc.model.management.DdcResourceAdmissionRevocationResult;
+import top.egon.cola.component.ddc.error.management.DdcManagementErrorCode;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetPublishTaskRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.RetryPublishTaskRequest;
 import top.egon.cola.component.rpc.ddc.mapping.DdcCommonProtoMapper;
@@ -36,6 +38,30 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DdcManagementRpcProviderTest {
+
+    @Test
+    void mapsMissingConfigToAnEmptyFindResponse() {
+        DdcManagementFacade facade = mock(DdcManagementFacade.class);
+        DdcResourceAdmissionRevocationService revocations =
+                mock(DdcResourceAdmissionRevocationService.class);
+        DdcManagementProtoMapper mapper = new DdcManagementProtoMapper(
+                new DdcCommonProtoMapper(4 * 1024 * 1024), 1024 * 1024);
+        DdcManagementRpcProvider provider = new DdcManagementRpcProvider(
+                facade, revocations, mapper);
+        DdcManagementConfigQuery query = new DdcManagementConfigQuery(
+                "biz", "test", "app");
+        when(facade.findConfig(query)).thenThrow(
+                new DdcAdminException(DdcManagementErrorCode.CONFIG_NOT_FOUND));
+
+        principal().bind(Context.current()).run(() -> {
+            var response = provider.findConfig(mapper.toFindRequest(query));
+
+            assertThat(response.getFound()).isFalse();
+            assertThat(response.hasConfig()).isFalse();
+        });
+
+        verify(facade).findConfig(query);
+    }
 
     @Test
     void mapsAndDelegatesAllElevenManagementMethods() {

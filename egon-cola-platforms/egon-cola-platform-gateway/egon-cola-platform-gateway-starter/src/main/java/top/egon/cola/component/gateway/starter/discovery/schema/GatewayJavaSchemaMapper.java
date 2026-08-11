@@ -371,18 +371,22 @@ public final class GatewayJavaSchemaMapper {
             } else if (number(raw)) {
                 result = type("number");
             } else if (type.isArrayType()) {
-                result = array(node(
-                        requireContent(type, "array"),
-                        emptyMetadata(),
-                        depth + 1
-                ));
+                result = array(metadata.allowsArbitraryJson(type)
+                        ? new LinkedHashMap<>()
+                        : node(
+                                requireContent(type, "array"),
+                                emptyMetadata(),
+                                depth + 1
+                        ));
             } else if (type.isCollectionLikeType()
                     || Collection.class.isAssignableFrom(raw)) {
-                result = array(node(
-                        requireContent(type, "collection"),
-                        emptyMetadata(),
-                        depth + 1
-                ));
+                result = array(metadata.allowsArbitraryJson(type)
+                        ? new LinkedHashMap<>()
+                        : node(
+                                requireContent(type, "collection"),
+                                emptyMetadata(),
+                                depth + 1
+                        ));
             } else if (type.isMapLikeType()
                     || Map.class.isAssignableFrom(raw)) {
                 JavaType keyType = type.getKeyType();
@@ -396,17 +400,23 @@ public final class GatewayJavaSchemaMapper {
                 result = type("object");
                 result.put(
                         "additionalProperties",
-                        node(
-                                requireContent(type, "map"),
-                                emptyMetadata(),
-                                depth + 1
-                        )
+                        metadata.allowsArbitraryJson(type)
+                                ? new LinkedHashMap<>()
+                                : node(
+                                        requireContent(type, "map"),
+                                        emptyMetadata(),
+                                        depth + 1
+                                )
                 );
             } else if (raw == Object.class) {
-                throw new IllegalArgumentException(
-                        "gateway schema type is incomplete: "
-                                + type.toCanonical()
-                );
+                if (metadata.allowsArbitraryJson(type)) {
+                    result = new LinkedHashMap<>();
+                } else {
+                    throw new IllegalArgumentException(
+                            "gateway schema type is incomplete: "
+                                    + type.toCanonical()
+                    );
+                }
             } else {
                 result = object(type, depth);
             }
@@ -620,6 +630,37 @@ public final class GatewayJavaSchemaMapper {
             }
             validateImplementationTarget(source, implementation);
             return objectMapper.constructType(implementation);
+        }
+
+        /**
+         * Validates and resolves the explicit arbitrary-JSON opt-in for an
+         * {@link Object}-typed value or container content.
+         * 中文说明：仅允许擦除为 Object 的值边界显式启用任意 JSON，具体类型或其他覆盖声明会被拒绝。
+         *
+         * @param source source value or container type
+         * @return {@code true} when an unconstrained JSON node should be used
+         */
+        private boolean allowsArbitraryJson(JavaType source) {
+            if (gateway == null || !gateway.allowArbitraryJson()) {
+                return false;
+            }
+            if (gateway.implementation() != Void.class
+                    || gateway.type() != GatewaySchemaType.AUTO) {
+                throw new IllegalArgumentException(
+                        "allowArbitraryJson cannot be combined with schema "
+                                + "implementation or type overrides"
+                );
+            }
+            JavaType target = source.isContainerType()
+                    ? source.getContentType()
+                    : source;
+            if (target != null && target.getRawClass() != Object.class) {
+                throw new IllegalArgumentException(
+                        "allowArbitraryJson is redundant for "
+                                + source.toCanonical()
+                );
+            }
+            return true;
         }
 
         /**

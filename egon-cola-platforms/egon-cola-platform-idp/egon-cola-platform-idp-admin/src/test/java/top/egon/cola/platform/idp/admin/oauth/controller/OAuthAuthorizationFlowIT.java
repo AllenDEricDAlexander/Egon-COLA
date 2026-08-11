@@ -1,5 +1,6 @@
 package top.egon.cola.platform.idp.admin.oauth.controller;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RBucket;
@@ -7,6 +8,7 @@ import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.test.web.servlet.MockMvc;
@@ -39,6 +41,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -50,6 +53,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.client.ExpectedCount.once;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -215,10 +219,15 @@ class OAuthAuthorizationFlowIT {
                           }
                         }
                         """, MediaType.APPLICATION_JSON));
+        AtomicReference<String> requestedTenant = new AtomicReference<>();
         HttpTenantMembershipAdapter adapter = new HttpTenantMembershipAdapter(
                 builder.build(),
                 "http://127.0.0.1:19090",
-                () -> "Bearer service-token"
+                tenantId -> {
+                    requestedTenant.set(tenantId);
+                    return "Bearer service-token";
+                },
+                () -> "Bearer default-service-token"
         );
 
         TenantMembershipPort.TenantMembership membership = adapter.resolve(
@@ -230,28 +239,48 @@ class OAuthAuthorizationFlowIT {
         assertEquals("tenant-user-a", membership.rbac3UserId());
         assertEquals(TenantMembershipPort.MembershipStatus.ACTIVE,
                 membership.status());
+        assertEquals("tenant-a", requestedTenant.get());
         server.verify();
     }
 
     @Test
     void trustedRbac3ResourceDecisionAdapterReturnsMinimalAllowAndDeny()
             throws Exception {
-        RestClient.Builder builder = RestClient.builder();
+        ObjectMapper strictMapper = new ObjectMapper()
+                .findAndRegisterModules()
+                .enable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+        RestClient.Builder builder = RestClient.builder()
+                .messageConverters(converters -> converters.replaceAll(
+                        converter -> converter
+                                instanceof MappingJackson2HttpMessageConverter
+                                ? new MappingJackson2HttpMessageConverter(strictMapper)
+                                : converter));
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
         server.expect(once(), requestTo(
                         "http://127.0.0.1:19090/internal/v1/authorization/"
                                 + "resource-access-decisions"))
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(header("Authorization", "Bearer service-token"))
+                .andExpect(content().json("""
+                        {"identitySub":"alice-sub","tid":"tenant-a",
+                        "sid":"sso-session-1","rbacApplicationCode":"gateway",
+                        "entryPermissionCode":"gateway:access"}
+                        """))
                 .andRespond(withSuccess("""
                         {"data":{"decision":"ALLOW","reasonCode":"ALLOW",
                         "authVersion":43,"sessionVersion":2,"policyVersion":18,
-                        "decidedAt":"2026-08-10T00:00:00Z"}}
+                        "decidedAt":"2026-08-10T00:00:00Z"},
+                        "meta":{"requestId":"request-1","traceId":"trace-1",
+                        "timestamp":"2026-08-10T00:00:01Z"}}
                         """, MediaType.APPLICATION_JSON));
+        AtomicReference<String> requestedTenant = new AtomicReference<>();
         HttpUserResourceAccessAuthorizationAdapter adapter =
                 new HttpUserResourceAccessAuthorizationAdapter(
                         builder.build(), "http://127.0.0.1:19090",
-                        () -> "Bearer service-token");
+                        tenantId -> {
+                            requestedTenant.set(tenantId);
+                            return "Bearer service-token";
+                        });
 
         UserResourceAccessAuthorizationPort.AccessDecision decision = adapter.decide(
                 new UserResourceAccessAuthorizationPort.AccessRequest(
@@ -263,6 +292,7 @@ class OAuthAuthorizationFlowIT {
         assertEquals(43L, decision.authorizationVersion());
         assertEquals(2L, decision.contextVersion());
         assertEquals(18L, decision.policyVersion());
+        assertEquals("tenant-a", requestedTenant.get());
         server.verify();
     }
 

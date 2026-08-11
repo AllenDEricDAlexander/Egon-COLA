@@ -1,6 +1,8 @@
 spring:
   application:
     name: gateway-test-mcp-provider
+  config:
+    import: optional:ddc:application.yml
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
@@ -21,6 +23,35 @@ management:
 
 egon:
   cola:
+    platform:
+      idp:
+        enabled: ${DDC_ENABLED:false}
+        register-filter: false
+        issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
+        jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+        resource-server-id: ${MCP_PROVIDER_RESOURCE_SERVER_ID:}
+        resource-uri: ${MCP_PROVIDER_RESOURCE_URI:}
+        admission:
+          biz-code: ${DDC_BIZ_CODE:identity}
+          app-code: ${DDC_APP_CODE:gateway-test-mcp-provider}
+          environment: ${DDC_ENV:local}
+          instance-id: ${MCP_TEST_PROVIDER_INSTANCE_ID:mcp-provider-1}
+          management-client-id: ${MCP_PROVIDER_RESOURCE_MANAGEMENT_CLIENT_ID:}
+          kid: ${MCP_PROVIDER_RESOURCE_MANAGEMENT_KEY_ID:}
+          private-key-path: ${MCP_PROVIDER_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE:}
+          endpoint: ${MCP_PROVIDER_RESOURCE_ADMISSION_ENDPOINT:}
+          renewal-skew: ${MCP_PROVIDER_RESOURCE_ADMISSION_RENEWAL_SKEW:30s}
+      rbac3:
+        enabled: true
+        register-filter: false
+        system-code: mock-backend
+        runtime:
+          redis-enabled: true
+          redis-address: ${MCP_PROVIDER_REDIS_ADDRESS:redis://127.0.0.1:6379}
+          database: ${MCP_PROVIDER_REDIS_DATABASE:8}
+          password-file: ${MCP_PROVIDER_REDIS_PASSWORD_FILE:}
+        authorization:
+          endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
     component:
       id:
         enabled: false
@@ -30,6 +61,8 @@ egon:
         app-code: ${DDC_APP_CODE:gateway-test-mcp-provider}
         env: ${DDC_ENV:local}
         namespace: ${DDC_NAMESPACE:gateway-test}
+        instance:
+          id: ${MCP_TEST_PROVIDER_INSTANCE_ID:mcp-provider-1}
         rpc:
           target: ${DDC_RPC_TARGET:dns:///127.0.0.1:19080}
           load-balancing-policy: round_robin

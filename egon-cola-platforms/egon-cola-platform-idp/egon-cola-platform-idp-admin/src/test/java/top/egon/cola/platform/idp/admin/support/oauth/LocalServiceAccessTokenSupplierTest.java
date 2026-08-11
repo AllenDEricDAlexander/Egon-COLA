@@ -96,6 +96,74 @@ class LocalServiceAccessTokenSupplierTest {
     }
 
     @Test
+    void cachesServiceTokensIndependentlyForEachExactTenant() {
+        MutableClock clock = new MutableClock(
+                Instant.parse("2026-08-10T00:00:00Z")
+        );
+        PrivateKeyJwtAuthenticator authenticator =
+                mock(PrivateKeyJwtAuthenticator.class);
+        ClientCredentialsTokenService tokens =
+                mock(ClientCredentialsTokenService.class);
+        AtomicInteger assertions = new AtomicInteger();
+        when(authenticator.authenticate(
+                eq(PrivateKeyJwtAuthenticator.ASSERTION_TYPE),
+                eq("idp-service"),
+                any()
+        )).thenAnswer(invocation -> new ClientAssertionAuthentication(
+                "idp-service",
+                "idp-service-key-1",
+                "assertion-" + assertions.get(),
+                clock.instant(),
+                clock.instant().plusSeconds(60)
+        ));
+        when(tokens.issue(any(), any(), any(), any(), any()))
+                .thenAnswer(invocation -> new ServiceAccessToken(
+                        "service-token-" + invocation.getArgument(2),
+                        "Bearer",
+                        clock.instant().plusSeconds(300),
+                        Set.of("service:authorization:decide")
+                ));
+        LocalServiceAccessTokenSupplier supplier =
+                new LocalServiceAccessTokenSupplier(
+                        authenticator,
+                        tokens,
+                        "idp-service",
+                        URI.create("https://api.egon.internal/prod/permission/rbac3"),
+                        "tenant-default",
+                        Set.of("service:authorization:decide"),
+                        Duration.ofMinutes(5),
+                        Duration.ofSeconds(30),
+                        clock,
+                        () -> "assertion-" + assertions.incrementAndGet()
+                );
+
+        assertThat(supplier.get())
+                .isEqualTo("Bearer service-token-tenant-default");
+        assertThat(supplier.get("tenant-b"))
+                .isEqualTo("Bearer service-token-tenant-b");
+        assertThat(supplier.get("tenant-b"))
+                .isEqualTo("Bearer service-token-tenant-b");
+        assertThat(supplier.get())
+                .isEqualTo("Bearer service-token-tenant-default");
+
+        verify(tokens).issue(
+                any(), any(), eq("tenant-default"),
+                eq(Set.of("service:authorization:decide")),
+                eq(Duration.ofMinutes(5))
+        );
+        verify(tokens).issue(
+                any(), any(), eq("tenant-b"),
+                eq(Set.of("service:authorization:decide")),
+                eq(Duration.ofMinutes(5))
+        );
+        verify(authenticator, times(2)).authenticate(
+                eq(PrivateKeyJwtAuthenticator.ASSERTION_TYPE),
+                eq("idp-service"),
+                any()
+        );
+    }
+
+    @Test
     void requiresAbsoluteOwnerOnlyPrivateKeyFile() throws Exception {
         PrivateKeyJwtAuthenticator authenticator =
                 mock(PrivateKeyJwtAuthenticator.class);

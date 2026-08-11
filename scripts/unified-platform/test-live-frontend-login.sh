@@ -86,7 +86,22 @@ login_code="$(curl --max-time 10 -sS -o "${fresh_dir}/login.json" \
 
 fresh_oauth_token() {
   local client_id="$1" origin="$2" output="$3"
-  local verifier challenge state headers code http_code
+  local resource verifier challenge state headers code http_code
+  case "${client_id}" in
+    idp-admin-web)
+      resource=https://api.egon.internal/local/permission/idp
+      ;;
+    rbac3-admin-web)
+      resource=https://api.egon.internal/local/permission/rbac3
+      ;;
+    gateway-admin-web)
+      resource=https://api.egon.internal/local/platform/gateway-admin
+      ;;
+    ddc-admin-web)
+      resource=https://api.egon.internal/local/platform/ddc
+      ;;
+    *) unified_platform_fail "unknown Admin OAuth client: ${client_id}" ;;
+  esac
   verifier="$(openssl rand -base64 48 | tr '+/' '-_' | tr -d '=\n')"
   challenge="$(printf '%s' "${verifier}" | openssl dgst -binary -sha256 \
     | openssl base64 -A | tr '+/' '-_' | tr -d '=')"
@@ -98,7 +113,7 @@ fresh_oauth_token() {
     --data-urlencode response_type=code \
     --data-urlencode "client_id=${client_id}" \
     --data-urlencode "redirect_uri=${origin}/oauth/callback" \
-    --data-urlencode "audience=${client_id}" \
+    --data-urlencode "resource=${resource}" \
     --data-urlencode "tenant_id=${tenant_id}" \
     --data-urlencode "state=${state}" --data-urlencode "nonce=${state}" \
     --data-urlencode "code_challenge=${challenge}" \
@@ -119,6 +134,7 @@ fresh_oauth_token() {
     --data-urlencode "client_id=${client_id}" \
     --data-urlencode "code=${code}" \
     --data-urlencode "code_verifier=${verifier}" \
+    --data-urlencode "resource=${resource}" \
     --data-urlencode "redirect_uri=${origin}/oauth/callback" \
     "${IDP_BASE_URL}/oauth2/token")"
   [[ "${http_code}" == '200' ]] \
@@ -144,6 +160,7 @@ idp_refresh_code="$(curl --max-time 10 -sS \
   -H 'Content-Type: application/x-www-form-urlencoded' \
   --data-urlencode grant_type=refresh_token \
   --data-urlencode client_id=idp-admin-web \
+  --data-urlencode resource=https://api.egon.internal/local/permission/idp \
   "${IDP_BASE_URL}/oauth2/token")"
 [[ "${idp_refresh_code}" == '200' ]] \
   || unified_platform_fail \
@@ -193,6 +210,7 @@ expected_role_pairs="$(jq -cn '[
   {applicationCode:"gateway-admin",rootRoleCode:"GATEWAY_LOCAL_ADMIN"},
   {applicationCode:"idp-admin",rootRoleCode:"IDP_LOCAL_ADMIN"},
   {applicationCode:"mock-backend",rootRoleCode:"MOCK_LOCAL_ADMIN"},
+  {applicationCode:"mock-backend",rootRoleCode:"MOCK_LOCAL_ENTRY"},
   {applicationCode:"rbac3-admin",rootRoleCode:"RBAC3_LOCAL_ADMIN"}
 ]')"
 verify_fresh_admin_json role-candidates \
@@ -211,10 +229,15 @@ expected_active_roles="$(jq -cer --argjson expected "${expected_role_pairs}" '
         .applicationCode == $candidate.applicationCode
         and .rootRoleCode == $candidate.rootRoleCode))
   ]
-  | sort_by(.applicationCode) as $matched
-  | ($expected | sort_by(.applicationCode)) as $expectedPairs
+  | sort_by(.applicationCode, .rootRoleCode) as $matched
+  | ($expected | sort_by(.applicationCode, .rootRoleCode)) as $expectedPairs
   | if ($matched | map({applicationCode, rootRoleCode})) == $expectedPairs
-    then $matched | map({applicationCode, rootRoleIds: [.rootRoleId]})
+    then $matched
+      | group_by(.applicationCode)
+      | map({
+          applicationCode: .[0].applicationCode,
+          rootRoleIds: (map(.rootRoleId) | sort)
+        })
     else error("generated local administrator role candidates are incomplete")
     end' "${fresh_dir}/role-candidates.json")"
 

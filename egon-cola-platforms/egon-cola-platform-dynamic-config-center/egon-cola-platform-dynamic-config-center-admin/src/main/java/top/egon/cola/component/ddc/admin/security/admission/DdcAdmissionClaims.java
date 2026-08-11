@@ -40,8 +40,10 @@ public record DdcAdmissionClaims(
     public DdcAdmissionClaims {
         resourceServerId = required(resourceServerId, "resourceServerId");
         resourceUri = required(resourceUri, "resourceUri");
-        if (resourceVersion <= 0) {
-            throw new IllegalArgumentException("resourceVersion must be positive");
+        if (resourceVersion < 0) {
+            throw new IllegalArgumentException(
+                    "resourceVersion must not be negative"
+            );
         }
         bizCode = required(bizCode, "bizCode");
         appCode = required(appCode, "appCode");

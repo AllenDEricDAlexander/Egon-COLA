@@ -36,13 +36,14 @@ class Rbac3DevelopmentAuthorizationContextInitializerTest {
                         application("ddc-admin",
                                 candidate("204", "DDC_LOCAL_ADMIN", "PASSWORD")),
                         application("mock-backend",
-                                candidate("205", "MOCK_LOCAL_ADMIN", "PASSWORD"))),
+                                candidate("205", "MOCK_LOCAL_ADMIN", "PASSWORD"),
+                                candidate("206", "MOCK_LOCAL_ENTRY", "PASSWORD"))),
                 captured::set);
 
         initializer.initialize(context(), NOW);
 
         assertThat(captured.get().requestedRoleIds())
-                .containsExactly("201", "202", "203", "204", "205");
+                .containsExactly("201", "202", "203", "204", "205", "206");
     }
 
     @Test

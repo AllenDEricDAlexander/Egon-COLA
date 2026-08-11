@@ -16,13 +16,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.function.Function;
 
 /** HTTP client for the service-credential protected RBAC3 snapshot endpoint. */
 public final class HttpRbac3AuthorizationClient
         implements Rbac3AuthorizationClient {
 
     private final URI endpoint;
-    private final Path credentialFile;
+    private final Function<String, String> credentials;
     private final Duration timeout;
     private final ObjectMapper objectMapper;
     private final Transport transport;
@@ -32,7 +33,16 @@ public final class HttpRbac3AuthorizationClient
             Path credentialFile,
             Duration timeout,
             ObjectMapper objectMapper) {
-        this(endpoint, credentialFile, timeout, objectMapper,
+        this(endpoint, tenantId -> credential(credentialFile), timeout, objectMapper,
+                new JdkTransport(timeout));
+    }
+
+    public HttpRbac3AuthorizationClient(
+            URI endpoint,
+            Function<String, String> credentials,
+            Duration timeout,
+            ObjectMapper objectMapper) {
+        this(endpoint, credentials, timeout, objectMapper,
                 new JdkTransport(timeout));
     }
 
@@ -42,8 +52,23 @@ public final class HttpRbac3AuthorizationClient
             Duration timeout,
             ObjectMapper objectMapper,
             Transport transport) {
+        this(
+                endpoint,
+                tenantId -> credential(credentialFile),
+                timeout,
+                objectMapper,
+                transport
+        );
+    }
+
+    HttpRbac3AuthorizationClient(
+            URI endpoint,
+            Function<String, String> credentials,
+            Duration timeout,
+            ObjectMapper objectMapper,
+            Transport transport) {
         this.endpoint = secureEndpoint(endpoint);
-        this.credentialFile = Objects.requireNonNull(credentialFile, "credentialFile");
+        this.credentials = Objects.requireNonNull(credentials, "credentials");
         this.timeout = bounded(timeout);
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
         this.transport = Objects.requireNonNull(transport, "transport");
@@ -59,7 +84,11 @@ public final class HttpRbac3AuthorizationClient
                 + "?systemCode=" + encode(systemCode)
                 + "&identitySub=" + encode(principal.subject()));
         try {
-            HttpResponse response = transport.get(uri, credential(), timeout);
+            HttpResponse response = transport.get(
+                    uri,
+                    credential(credentials.apply(principal.tenantId())),
+                    timeout
+            );
             if (response.statusCode() == 401 || response.statusCode() == 403
                     || response.statusCode() == 404) {
                 throw new AuthorizationDeniedException(
@@ -83,18 +112,24 @@ public final class HttpRbac3AuthorizationClient
         }
     }
 
-    private String credential() {
+    private static String credential(Path credentialFile) {
         try {
+            Objects.requireNonNull(credentialFile, "credentialFile");
             String value = Files.readString(credentialFile).trim();
-            if (value.isEmpty() || value.length() > 8192) {
-                throw new IllegalStateException(
-                        "RBAC3 service credential file is invalid");
-            }
-            return value;
+            return credential(value);
         } catch (IOException exception) {
             throw new AuthorizationUnavailableException(
                     "RBAC3_SERVICE_CREDENTIAL_UNAVAILABLE", exception);
         }
+    }
+
+    private static String credential(String value) {
+        if (value == null || value.isBlank() || value.length() > 8192) {
+            throw new AuthorizationUnavailableException(
+                    "RBAC3_SERVICE_CREDENTIAL_UNAVAILABLE"
+            );
+        }
+        return value.trim();
     }
 
     private static URI secureEndpoint(URI value) {

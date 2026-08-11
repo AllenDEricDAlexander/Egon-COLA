@@ -4,13 +4,16 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
+import top.egon.cola.platform.idp.core.resource.ResourceServerStatus;
+import top.egon.cola.platform.idp.starter.state.IdentityResourceServerState;
+import top.egon.cola.platform.idp.starter.state.IdentityResourceServerStateReader;
 
+import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -41,6 +44,32 @@ class IdpJwtDdcAdmissionVerifierTest {
                 NOW.plusSeconds(40)
         ));
         assertThat(claims.toString()).doesNotContain("signed-ticket");
+    }
+
+    @Test
+    void acceptsTheInitialResourceVersionZero() {
+        Jwt initialTicket = jwt(
+                Map.of(),
+                Map.of("resource_version", 0L)
+        );
+        IdentityResourceServerState initialProjection = resourceState(
+                ResourceServerStatus.ACTIVE,
+                0L,
+                "idp"
+        );
+
+        DdcAdmissionClaims claims = verifier(
+                initialTicket,
+                initialProjection
+        ).verify(
+                "signed-ticket",
+                "permission",
+                "idp",
+                "prod",
+                "idp-1"
+        );
+
+        assertThat(claims.resourceVersion()).isZero();
     }
 
     @Test
@@ -93,10 +122,18 @@ class IdpJwtDdcAdmissionVerifierTest {
     @Test
     void rejectsDisabledMissingMalformedAndStaleResourceProjection() {
         assertProjectionInvalid(null);
-        assertProjectionInvalid("not-json");
-        assertProjectionInvalid(activeProjection().replace("ACTIVE", "DISABLED"));
-        assertProjectionInvalid(activeProjection().replace("\"version\":7", "\"version\":8"));
-        assertProjectionInvalid(activeProjection().replace("\"appCode\":\"idp\"", "\"appCode\":\"rbac\""));
+        assertAdmissionFailure(
+                () -> verifier(jwt(), resourceServerId -> {
+                    throw new IllegalStateException("malformed projection");
+                }).verify("ticket", "permission", "idp", "prod", "idp-1"),
+                "DDC_RESOURCE_ADMISSION_INVALID"
+        );
+        assertProjectionInvalid(resourceState(
+                ResourceServerStatus.DISABLED, 7L, "idp"));
+        assertProjectionInvalid(resourceState(
+                ResourceServerStatus.ACTIVE, 8L, "idp"));
+        assertProjectionInvalid(resourceState(
+                ResourceServerStatus.ACTIVE, 7L, "rbac"));
     }
 
     private void assertInvalid(Jwt jwt) {
@@ -107,7 +144,9 @@ class IdpJwtDdcAdmissionVerifierTest {
         );
     }
 
-    private void assertProjectionInvalid(String projection) {
+    private void assertProjectionInvalid(
+            IdentityResourceServerState projection
+    ) {
         assertAdmissionFailure(
                 () -> verifier(jwt(), projection).verify(
                         "ticket", "permission", "idp", "prod", "idp-1"),
@@ -135,19 +174,35 @@ class IdpJwtDdcAdmissionVerifierTest {
                 .isEqualTo(status);
     }
 
-    private IdpJwtDdcAdmissionVerifier verifier(Jwt jwt, String projection) {
+    private IdpJwtDdcAdmissionVerifier verifier(
+            Jwt jwt,
+            IdentityResourceServerState projection
+    ) {
         return verifier(token -> jwt, projection);
     }
 
     private IdpJwtDdcAdmissionVerifier verifier(
             JwtDecoder decoder,
-            String projection
+            IdentityResourceServerState projection
     ) {
-        Function<String, String> reader = resourceServerId -> projection;
+        return verifier(decoder, resourceServerId ->
+                java.util.Optional.ofNullable(projection));
+    }
+
+    private IdpJwtDdcAdmissionVerifier verifier(
+            Jwt jwt,
+            IdentityResourceServerStateReader reader
+    ) {
+        return verifier(token -> jwt, reader);
+    }
+
+    private IdpJwtDdcAdmissionVerifier verifier(
+            JwtDecoder decoder,
+            IdentityResourceServerStateReader reader
+    ) {
         return new IdpJwtDdcAdmissionVerifier(
                 decoder,
                 reader,
-                new com.fasterxml.jackson.databind.ObjectMapper(),
                 ISSUER,
                 "ddc-registry",
                 Clock.fixed(NOW, ZoneOffset.UTC)
@@ -191,12 +246,23 @@ class IdpJwtDdcAdmissionVerifierTest {
         );
     }
 
-    private String activeProjection() {
-        return """
-                {"resourceServerId":"permission-idp-prod",\
-                "resourceUri":"https://api.example/idp",\
-                "bizCode":"permission","appCode":"idp",\
-                "environment":"prod","status":"ACTIVE","version":7}
-                """;
+    private IdentityResourceServerState activeProjection() {
+        return resourceState(ResourceServerStatus.ACTIVE, 7L, "idp");
+    }
+
+    private IdentityResourceServerState resourceState(
+            ResourceServerStatus status,
+            long version,
+            String appCode
+    ) {
+        return new IdentityResourceServerState(
+                RESOURCE_SERVER_ID,
+                URI.create("https://api.example/idp"),
+                "permission",
+                appCode,
+                "prod",
+                status,
+                version
+        );
     }
 }

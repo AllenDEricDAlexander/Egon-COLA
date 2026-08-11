@@ -1,20 +1,17 @@
 package top.egon.cola.component.ddc.admin.security.admission;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.redisson.api.RedissonClient;
-import org.redisson.client.codec.StringCodec;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
+import top.egon.cola.platform.idp.core.resource.ResourceServerStatus;
+import top.egon.cola.platform.idp.starter.state.IdentityResourceServerState;
+import top.egon.cola.platform.idp.starter.state.IdentityResourceServerStateReader;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 
 /**
  * 使用 IdP JWK 和 Redis Resource 运行态投影校验 DDC 准入票据。
@@ -39,11 +36,8 @@ public final class IdpJwtDdcAdmissionVerifier implements DdcAdmissionVerifier {
     /** JWT 签名和标准声明解码器；JWT signature and standard-claim decoder. */
     private final JwtDecoder decoder;
 
-    /** 按 Resource Server 标识读取运行态投影；runtime projection reader by Resource ID. */
-    private final Function<String, String> projectionReader;
-
-    /** JSON 投影解析器；JSON projection parser. */
-    private final ObjectMapper objectMapper;
+    /** 按 Resource Server 标识读取 IdP 权威运行态投影；authoritative IdP runtime state reader. */
+    private final IdentityResourceServerStateReader resourceStates;
 
     /** 期望 IdP Issuer；expected IdP issuer. */
     private final String issuer;
@@ -60,34 +54,23 @@ public final class IdpJwtDdcAdmissionVerifier implements DdcAdmissionVerifier {
      * <p>Creates the production IdP JWT admission verifier.</p>
      *
      * @param decoder IdP JWK JWT 解码器；IdP JWK JWT decoder
-     * @param redisson Redis 客户端；Redis client
-     * @param objectMapper JSON 解析器；JSON parser
-     * @param resourceProjectionPrefix Resource 主投影键前缀；Resource primary-projection key
-     * prefix
+     * @param resourceStates IdP Resource Server 运行态读取器；IdP Resource Server runtime reader
      * @param issuer 期望 IdP Issuer；expected IdP issuer
      * @param audience 期望 DDC Audience；expected DDC audience
      */
     public IdpJwtDdcAdmissionVerifier(
             JwtDecoder decoder,
-            RedissonClient redisson,
-            ObjectMapper objectMapper,
-            String resourceProjectionPrefix,
+            IdentityResourceServerStateReader resourceStates,
             String issuer,
             String audience
     ) {
         this(
                 decoder,
-                resourceServerId -> redisson.<String>getBucket(
-                        required(resourceProjectionPrefix, "resourceProjectionPrefix")
-                                + resourceServerId,
-                        StringCodec.INSTANCE
-                ).get(),
-                objectMapper,
+                resourceStates,
                 issuer,
                 audience,
                 Clock.systemUTC()
         );
-        Objects.requireNonNull(redisson, "redisson");
     }
 
     /**
@@ -96,26 +79,23 @@ public final class IdpJwtDdcAdmissionVerifier implements DdcAdmissionVerifier {
      * <p>Creates a verifier with injectable projection reader and clock.</p>
      *
      * @param decoder JWT 解码器；JWT decoder
-     * @param projectionReader Resource 投影读取器；Resource projection reader
-     * @param objectMapper JSON 解析器；JSON parser
+     * @param resourceStates IdP Resource Server 运行态读取器；IdP Resource Server runtime reader
      * @param issuer 期望 Issuer；expected issuer
      * @param audience 期望 Audience；expected audience
      * @param clock 安全时间源；security clock
      */
     IdpJwtDdcAdmissionVerifier(
             JwtDecoder decoder,
-            Function<String, String> projectionReader,
-            ObjectMapper objectMapper,
+            IdentityResourceServerStateReader resourceStates,
             String issuer,
             String audience,
             Clock clock
     ) {
         this.decoder = Objects.requireNonNull(decoder, "decoder");
-        this.projectionReader = Objects.requireNonNull(
-                projectionReader,
-                "projectionReader"
+        this.resourceStates = Objects.requireNonNull(
+                resourceStates,
+                "resourceStates"
         );
-        this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
         this.issuer = required(issuer, "issuer");
         this.audience = required(audience, "audience");
         this.clock = Objects.requireNonNull(clock, "clock");
@@ -262,25 +242,23 @@ public final class IdpJwtDdcAdmissionVerifier implements DdcAdmissionVerifier {
      */
     private void validateProjection(DdcAdmissionClaims claims) {
         try {
-            String value = projectionReader.apply(claims.resourceServerId());
-            if (value == null || value.isBlank()) {
-                throw failure(DdcErrorStatus.RESOURCE_ADMISSION_INVALID);
-            }
-            JsonNode projection = objectMapper.readTree(value);
-            if (!claims.resourceServerId().equals(text(projection, "resourceServerId"))
-                    || !claims.resourceUri().equals(text(projection, "resourceUri"))
-                    || !claims.bizCode().equals(text(projection, "bizCode"))
-                    || !claims.appCode().equals(text(projection, "appCode"))
-                    || !claims.environment().equals(text(projection, "environment"))
-                    || !"ACTIVE".equals(text(projection, "status"))
-                    || !projection.path("version").canConvertToLong()
-                    || projection.path("version").longValue()
-                    != claims.resourceVersion()) {
+            IdentityResourceServerState projection = resourceStates.read(
+                    claims.resourceServerId()
+            ).orElseThrow(() -> failure(
+                    DdcErrorStatus.RESOURCE_ADMISSION_INVALID));
+            if (!claims.resourceServerId().equals(projection.resourceServerId())
+                    || !claims.resourceUri().equals(
+                    projection.resourceUri().toString())
+                    || !claims.bizCode().equals(projection.bizCode())
+                    || !claims.appCode().equals(projection.appCode())
+                    || !claims.environment().equals(projection.environment())
+                    || projection.status() != ResourceServerStatus.ACTIVE
+                    || projection.version() != claims.resourceVersion()) {
                 throw failure(DdcErrorStatus.RESOURCE_ADMISSION_INVALID);
             }
         } catch (DdcAdmissionException failure) {
             throw failure;
-        } catch (JsonProcessingException | RuntimeException failure) {
+        } catch (RuntimeException failure) {
             throw failure(DdcErrorStatus.RESOURCE_ADMISSION_INVALID, failure);
         }
     }
@@ -296,20 +274,6 @@ public final class IdpJwtDdcAdmissionVerifier implements DdcAdmissionVerifier {
      */
     private String claim(Jwt jwt, String name) {
         return required(jwt.getClaimAsString(name), name);
-    }
-
-    /**
-     * 读取 JSON 必填文本字段。
-     *
-     * <p>Reads a required JSON text field.</p>
-     *
-     * @param node JSON 节点；JSON node
-     * @param name 字段名；field name
-     * @return 文本值；text value
-     */
-    private String text(JsonNode node, String name) {
-        JsonNode value = node.path(name);
-        return value.isTextual() ? value.textValue() : null;
     }
 
     /**

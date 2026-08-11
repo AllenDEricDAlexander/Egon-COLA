@@ -105,6 +105,7 @@ public class Rbac3StarterProperties {
         private Duration maximumJitter = Duration.ofSeconds(30);
         private Duration nearCacheTtl = Duration.ofSeconds(5);
         private Duration fetchTimeout = Duration.ofSeconds(1);
+        private final ServiceToken serviceToken = new ServiceToken();
 
         public String getEndpoint() {
             return endpoint;
@@ -152,6 +153,85 @@ public class Rbac3StarterProperties {
 
         public void setFetchTimeout(Duration fetchTimeout) {
             this.fetchTimeout = fetchTimeout;
+        }
+
+        public ServiceToken getServiceToken() {
+            return serviceToken;
+        }
+
+        public static class ServiceToken {
+            private boolean enabled;
+            private String tokenEndpoint;
+            private String clientId;
+            private String keyId;
+            private String privateKeyFile;
+            private String resourceUri;
+            private String scopes;
+            private Duration renewalSkew = Duration.ofSeconds(30);
+
+            public boolean isEnabled() {
+                return enabled;
+            }
+
+            public void setEnabled(boolean enabled) {
+                this.enabled = enabled;
+            }
+
+            public String getTokenEndpoint() {
+                return tokenEndpoint;
+            }
+
+            public void setTokenEndpoint(String tokenEndpoint) {
+                this.tokenEndpoint = tokenEndpoint;
+            }
+
+            public String getClientId() {
+                return clientId;
+            }
+
+            public void setClientId(String clientId) {
+                this.clientId = clientId;
+            }
+
+            public String getKeyId() {
+                return keyId;
+            }
+
+            public void setKeyId(String keyId) {
+                this.keyId = keyId;
+            }
+
+            public String getPrivateKeyFile() {
+                return privateKeyFile;
+            }
+
+            public void setPrivateKeyFile(String privateKeyFile) {
+                this.privateKeyFile = privateKeyFile;
+            }
+
+            public String getResourceUri() {
+                return resourceUri;
+            }
+
+            public void setResourceUri(String resourceUri) {
+                this.resourceUri = resourceUri;
+            }
+
+            public String getScopes() {
+                return scopes;
+            }
+
+            public void setScopes(String scopes) {
+                this.scopes = scopes;
+            }
+
+            public Duration getRenewalSkew() {
+                return renewalSkew;
+            }
+
+            public void setRenewalSkew(Duration renewalSkew) {
+                this.renewalSkew = renewalSkew;
+            }
         }
     }
 

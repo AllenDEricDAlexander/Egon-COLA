@@ -14,7 +14,7 @@ public interface DdcConfigApplier {
      * Applies a configuration value at the specified version.
      *
      * @param key     配置键; configuration key
-     * @param value   解析后的配置值，键被删除时可为 {@code null}; resolved value, possibly {@code null} when removed
+     * @param value   属性源原始字符串值，键被删除时可为 {@code null}; raw property-source string value, possibly {@code null} when removed
      * @param version 配置版本; configuration version
      */
     void apply(String key, @Nullable String value, long version);

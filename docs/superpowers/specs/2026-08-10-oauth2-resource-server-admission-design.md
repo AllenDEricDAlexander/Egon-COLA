@@ -768,7 +768,7 @@ DDC_RESOURCE_ADMISSION_BINDING_MISMATCH
 4. DDC CONFIG_CLIENT、HTTP Provider 和 RPC Provider 注册认证测试通过。
 5. RBAC3 用户入口决策测试以及 IdP Service Grant/Scope 决策测试通过。
 6. 相关 Maven 模块定向编译和测试通过。
-7. 不自动启动完整项目；运行态联调由用户在实施完成后发起。
+7. 实施阶段不自动启动完整项目；用户后续明确授权后，完整运行态联调已执行并通过。
 
 ## 16. 实施顺序约束
 
@@ -820,7 +820,7 @@ DDC_RESOURCE_ADMISSION_BINDING_MISMATCH
 
 ### 19.2 部署与迁移顺序
 
-1. 先应用 IdP V2，再应用 DDC V8（PostgreSQL/SQLite 对应方言），最后应用 Gateway V11；已有迁移文件不得修改或回退校验和。
+1. 先应用 IdP V2 和 IdP V3 Transactional Outbox Schema，再应用 DDC V8（PostgreSQL/SQLite 对应方言），最后应用 Gateway V11；已有迁移文件不得修改或回退校验和。
 2. 在 IdP 中按精确三元组创建 Resource Server、Resource URI 和管理公钥，再创建 OAuth Client 与 Client Resource Grant。
 3. USER 入口权限在 RBAC3 配置；SERVICE 的目标、租户与 Scope 授权只在 IdP Service Grant 配置。
 4. 为每个应用配置对应的 `resource-server-id`、`resource-uri`、`biz/app/env` 和 Admission Endpoint；管理私钥仅部署到所属应用，文件使用 owner-only 权限。
@@ -834,6 +834,6 @@ DDC_RESOURCE_ADMISSION_BINDING_MISMATCH
 
 ### 19.4 验证边界
 
-- OAuth2/Admission 聚焦验收、IdP Admin 全量、Gateway Admin 全量、DDC 聚焦测试以及 RBAC3 本次变更测试均已通过；五个前端包共 179 个测试和对应类型检查通过。
-- 组合 Reactor 的 RBAC3 Admin 默认测试仍有 3 个既有 Gateway schema 发现错误，原因是 `Map<String, Object>` 不能生成完整 Gateway Schema；该问题与本次 OAuth2 Resource Server 准入改造无关。
-- 本次未启动任何应用服务，因此未宣称真实 IdP/DDC/Redis/PostgreSQL/Gateway 拓扑联调通过；运行态验收由用户后续启动服务执行。
+- OAuth2/Admission 聚焦验收与完整受影响 Reactor 均已通过：IdP Admin 98、RBAC3 Admin 150、Gateway Admin 169 个测试全部通过；原 3 个 Gateway arbitrary JSON schema 发现错误已通过显式注解边界修复，默认路径继续 Fail-Closed。
+- 四个 Admin Web 的 typecheck、lint、test、build 均通过，共 141 个测试；RBAC3 保留 1 个未改文件中的既有 Hook lint warning，无 lint error。
+- 用户授权的真实 IdP/RBAC3/DDC/Redis/PostgreSQL/Gateway 双 Engine、HTTP/MCP、四个 Admin Web 与测试服务联调已通过。证据覆盖 SSO/Refresh Replay、目标 App 用户权限、SERVICE Scope、DDC Admission/LKG、跨 Engine Session/Task、Remote Circuit Recovery；联调服务保持运行供人工复核。

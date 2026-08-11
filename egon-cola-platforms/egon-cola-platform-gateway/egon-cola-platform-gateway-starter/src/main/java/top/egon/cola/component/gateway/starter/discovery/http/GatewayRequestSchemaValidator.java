@@ -397,7 +397,8 @@ public final class GatewayRequestSchemaValidator {
         List<GatewayRequestParameter> result = new ArrayList<>();
         for (MethodParameter methodParameter : handler.getMethodParameters()) {
             methodParameter.initParameterNameDiscovery(PARAMETER_NAMES);
-            if (frameworkType(methodParameter.getParameterType())) {
+            if (frameworkType(methodParameter.getParameterType())
+                    || authenticationPrincipal(methodParameter)) {
                 continue;
             }
             GatewayRequestLocation location = location(methodParameter);
@@ -712,6 +713,25 @@ public final class GatewayRequestSchemaValidator {
                 || name.startsWith("org.springframework.http.server.")
                 || name.startsWith("org.springframework.web.server.")
                 || java.security.Principal.class.isAssignableFrom(type);
+    }
+
+    /**
+     * Detects Spring Security's optional authentication-principal injection
+     * annotation without adding a mandatory Spring Security dependency.
+     * 中文说明：按注解类名识别可选的认证主体注入参数，避免把服务端身份发布成外部请求字段。
+     *
+     * @param parameter handler parameter to inspect
+     * @return {@code true} when the parameter is injected authentication state
+     */
+    private boolean authenticationPrincipal(MethodParameter parameter) {
+        return java.util.Arrays.stream(
+                        parameter.getParameterAnnotations()
+                )
+                .map(annotation -> annotation.annotationType().getName())
+                .anyMatch(name -> name.equals(
+                        "org.springframework.security.core.annotation."
+                                + "AuthenticationPrincipal"
+                ));
     }
 
     /**

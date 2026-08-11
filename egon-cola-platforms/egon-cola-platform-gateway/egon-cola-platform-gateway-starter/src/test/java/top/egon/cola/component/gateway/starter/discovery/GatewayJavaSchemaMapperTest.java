@@ -113,6 +113,27 @@ class GatewayJavaSchemaMapperTest {
     }
 
     @Test
+    void allowsArbitraryJsonOnlyAtAnExplicitDynamicMapBoundary()
+            throws Exception {
+        Map<String, Object> schema = mapper.schema(
+                Fixtures.class.getDeclaredMethod("dynamicDocument")
+                        .getGenericReturnType()
+        );
+
+        Map<String, Object> payload = map(
+                map(schema.get("properties")).get("payload")
+        );
+        assertThat(payload).containsEntry("type", "object");
+        assertThat(map(payload.get("additionalProperties"))).isEmpty();
+
+        assertThatThrownBy(() -> mapper.schema(
+                InvalidFixtures.class.getDeclaredMethod("erasedDocument")
+                        .getGenericReturnType()
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("map type is incomplete");
+    }
+
+    @Test
     void rejectsSchemasBeyondTheDepthSafetyLimit() {
         com.fasterxml.jackson.databind.JavaType type =
                 new ObjectMapper().constructType(String.class);
@@ -145,6 +166,10 @@ class GatewayJavaSchemaMapperTest {
         static OptionalPet optionalPet() {
             return null;
         }
+
+        static DynamicDocument dynamicDocument() {
+            return null;
+        }
     }
 
     private static final class InvalidFixtures {
@@ -154,6 +179,10 @@ class GatewayJavaSchemaMapperTest {
         }
 
         static InvalidExample invalidExample() {
+            return null;
+        }
+
+        static ErasedDocument erasedDocument() {
             return null;
         }
     }
@@ -214,6 +243,15 @@ class GatewayJavaSchemaMapperTest {
             )
             Optional<Pet> pet
     ) {
+    }
+
+    private record DynamicDocument(
+            @GatewaySchemaField(allowArbitraryJson = true)
+            Map<String, Object> payload
+    ) {
+    }
+
+    private record ErasedDocument(Map<String, Object> payload) {
     }
 
     private record OptionalRequired(

@@ -169,6 +169,9 @@ class GatewaySchemaAnnotationContractTest {
                 .getDeclaredMethod("example").getDefaultValue());
         assertEquals(Void.class, GatewaySchemaField.class
                 .getDeclaredMethod("implementation").getDefaultValue());
+        assertEquals(false, GatewaySchemaField.class
+                .getDeclaredMethod("allowArbitraryJson")
+                .getDefaultValue());
     }
 
     private void assertThatMethodIsAbsent(Class<?> type, String name) {

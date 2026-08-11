@@ -6,12 +6,15 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.AnyNestedCondition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
+import org.springframework.context.annotation.ConfigurationCondition.ConfigurationPhase;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
@@ -84,6 +87,7 @@ public class IdpStarterAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean(DdcAdmissionTicketSupplier.class)
+    @Conditional(DdcAdmissionRequiredCondition.class)
     public DdcAdmissionTicketSupplier ddcAdmissionTicketSupplier(
             IdpStarterProperties properties
     ) {
@@ -123,6 +127,49 @@ public class IdpStarterAutoConfiguration {
                 admission.getRenewalSkew(),
                 clock
         );
+    }
+
+    /**
+     * 仅在 DDC 配置客户端或注册中心参与运行时装配准入票据供应器。
+     *
+     * <p>Creates the admission-ticket supplier only when either the DDC configuration client or
+     * service registry participates in the application runtime.</p>
+     */
+    static final class DdcAdmissionRequiredCondition
+            extends AnyNestedCondition {
+
+        /**
+         * 创建按 Bean 注册阶段判断的任一条件组合。
+         *
+         * <p>Creates the any-match condition evaluated during bean registration.</p>
+         */
+        DdcAdmissionRequiredCondition() {
+            super(ConfigurationPhase.REGISTER_BEAN);
+        }
+
+        /**
+         * 匹配启用 DDC 配置客户端的应用。
+         *
+         * <p>Matches applications with the DDC configuration client enabled.</p>
+         */
+        @ConditionalOnProperty(
+                prefix = "egon.cola.component.ddc",
+                name = "enabled",
+                havingValue = "true")
+        static final class DdcConfigurationClientEnabled {
+        }
+
+        /**
+         * 匹配启用 DDC 服务注册中心的应用。
+         *
+         * <p>Matches applications with the DDC service registry enabled.</p>
+         */
+        @ConditionalOnProperty(
+                prefix = "egon.cola.component.ddc.registry",
+                name = "enabled",
+                havingValue = "true")
+        static final class DdcServiceRegistryEnabled {
+        }
     }
 
     /**
@@ -337,7 +384,9 @@ public class IdpStarterAutoConfiguration {
      */
     private JwtDecoder decoder(IdpStarterProperties properties) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(
-                properties.getJwkSetUri().trim()).build();
+                        properties.getJwkSetUri().trim())
+                .validateType(false)
+                .build();
         List<OAuth2TokenValidator<Jwt>> validators = new ArrayList<>();
         validators.add(JwtValidators.createDefaultWithIssuer(
                 properties.getIssuer().trim()));

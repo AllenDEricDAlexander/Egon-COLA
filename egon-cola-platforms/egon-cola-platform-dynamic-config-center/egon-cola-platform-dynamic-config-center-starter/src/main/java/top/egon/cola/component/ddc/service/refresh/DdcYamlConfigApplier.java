@@ -147,7 +147,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
                         .thenComparing(String::compareTo))
                 .forEach(key -> applierRegistry.resolve(key).apply(
                         key,
-                        environment.getProperty(key),
+                        consumerValue(key),
                         snapshot.version()
                 ));
     }
@@ -321,7 +321,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
         for (String key : rawDiff.changedKeys()) {
             if (Objects.equals(
                     previousResolved.get(key),
-                    environment.getProperty(key)
+                    consumerValue(key)
             )) {
                 continue;
             }
@@ -348,9 +348,28 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
         Map<String, String> values = new LinkedHashMap<>();
         keys.forEach(key -> values.put(
                 key,
-                environment.getProperty(key)
+                consumerValue(key)
         ));
         return values;
+    }
+
+    /**
+     * 返回运行时消费者应看到的值。显式叶子应用器接收属性源原始值，避免把 JSON、模板等领域数据中的
+     * Spring 占位符语法再次解释；普通配置消费者仍读取 Spring 最终解析值。
+     * Returns the value visible to a runtime consumer. Explicit leaf appliers receive the raw property-source value
+     * so Spring placeholder syntax inside JSON or templates remains domain data; regular consumers still use the
+     * final Spring-resolved value.
+     *
+     * @param key 配置键; configuration key
+     * @return 消费者值，键不存在时为 {@code null}; consumer value, or {@code null} when absent
+     */
+    @Nullable
+    private String consumerValue(String key) {
+        if (!applierRegistry.hasExplicitRegistration(key)) {
+            return environment.getProperty(key);
+        }
+        Object rawValue = propertySource.getProperty(key);
+        return rawValue == null ? null : String.valueOf(rawValue);
     }
 
     /**
@@ -379,7 +398,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
                             applierRegistry.resolve(key);
                     applier.apply(
                             key,
-                            environment.getProperty(key),
+                            consumerValue(key),
                             version
                     );
                     appliedLeaves.add(new AppliedLeaf(

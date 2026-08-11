@@ -1,22 +1,41 @@
 package top.egon.cola.platform.idp.admin.support.bootstrap;
 
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.RSAKey;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.CreateOAuthClientDTO;
+import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthClientVO;
+import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
 import top.egon.cola.platform.idp.admin.oauth.service.OAuthClientService;
+import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientJwkEntity;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientResourceGrantEntity;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityResourceServerEntity;
+import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientJwkRepository;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepository;
+import top.egon.cola.platform.idp.admin.resource.service.ResourceServerProjectionService;
+import top.egon.cola.platform.idp.admin.token.service.impl.RsaPemKeyLoader;
 
+import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 /**
@@ -31,13 +50,17 @@ import java.util.stream.Collectors;
         prefix = "egon.idp.development-bootstrap",
         name = "enabled",
         havingValue = "true")
-public class IdpDevelopmentClientBootstrap implements ApplicationRunner {
+public class IdpDevelopmentClientBootstrap
+        implements SmartInitializingSingleton {
 
     /** 开发 Client 的 Access Token 有效秒数；development access-token lifetime in seconds. */
     private static final int ACCESS_TOKEN_TTL_SECONDS = 900;
 
     /** 开发 Client 的 Refresh Token 有效秒数；development refresh-token lifetime in seconds. */
     private static final int REFRESH_TOKEN_TTL_SECONDS = 604_800;
+
+    /** 本地公开凭证的有效期；local public-credential lifetime. */
+    private static final Duration KEY_LIFETIME = Duration.ofDays(3_650);
 
     /** 开发环境中需要幂等创建的 Public Client；public Clients created idempotently for local use. */
     private static final List<ClientSpec> CLIENTS = List.of(
@@ -52,27 +75,153 @@ public class IdpDevelopmentClientBootstrap implements ApplicationRunner {
             ),
             new ClientSpec("mock-backend", "Unified Identity Mock Backend", 18161));
 
+    /** 开发环境中需要幂等创建的机器 Client；machine Clients created idempotently for local use. */
+    private static final List<MachineClientSpec> MACHINE_CLIENTS = List.of(
+            new MachineClientSpec("idp-service", "IdP Local Service"),
+            new MachineClientSpec("rbac3-service", "RBAC3 Local Service"),
+            new MachineClientSpec("ddc-service", "DDC Local Service"),
+            new MachineClientSpec(
+                    "gateway-admin-service",
+                    "Gateway Admin Local Service"
+            ),
+            new MachineClientSpec(
+                    "gateway-engine-service",
+                    "Gateway Engine Local Service"
+            ),
+            new MachineClientSpec(
+                    "mock-backend-service",
+                    "Mock Backend Local Service"
+            ),
+            new MachineClientSpec(
+                    "mcp-provider-service",
+                    "MCP Provider Local Service"
+            )
+    );
+
     /** 开发环境明确审批的应用级 Resource Server；explicitly approved local Resource Servers. */
     private static final List<ResourceSpec> RESOURCES = List.of(
             new ResourceSpec(
                     "permission-idp-local",
                     "https://api.egon.internal/local/permission/idp",
+                    "permission",
                     "idp",
                     "IdP Local",
+                    "idp-service",
+                    "idp-admin",
+                    "idp:identity:self:read",
                     "idp-admin-web",
                     "idp",
-                    "idp:access"
+                    "idp-local"
             ),
             new ResourceSpec(
                     "permission-rbac3-local",
                     "https://api.egon.internal/local/permission/rbac3",
+                    "permission",
                     "rbac3",
                     "RBAC3 Local",
+                    "rbac3-service",
+                    "rbac3-admin",
+                    "system:tenant:read",
                     "rbac3-admin-web",
                     "rbac3",
-                    "rbac3:access"
+                    "rbac3-local"
+            ),
+            new ResourceSpec(
+                    "platform-ddc-local",
+                    "https://api.egon.internal/local/platform/ddc",
+                    "platform",
+                    "ddc",
+                    "DDC Local",
+                    "ddc-service",
+                    "ddc-admin",
+                    "DDC_READ",
+                    "ddc-admin-web",
+                    "ddc",
+                    "ddc-local"
+            ),
+            new ResourceSpec(
+                    "platform-gateway-admin-local",
+                    "https://api.egon.internal/local/platform/gateway-admin",
+                    "platform",
+                    "gateway-admin",
+                    "Gateway Admin Local",
+                    "gateway-admin-service",
+                    "gateway-admin",
+                    "gateway:read",
+                    "gateway-admin-web",
+                    "gateway-admin",
+                    "gateway-admin-local"
+            ),
+            new ResourceSpec(
+                    "identity-gateway-engine-default-local",
+                    "https://api.egon.internal/local/identity/gateway-engine-default",
+                    "identity",
+                    "gateway-engine-default",
+                    "Gateway Engine Local",
+                    "gateway-engine-service",
+                    "mock-backend",
+                    "mock:read",
+                    null,
+                    "gateway-engine",
+                    "gateway-engine-local"
+            ),
+            new ResourceSpec(
+                    "identity-mock-backend-local",
+                    "https://api.egon.internal/local/identity/mock-backend",
+                    "identity",
+                    "mock-backend",
+                    "Mock Backend Local",
+                    "mock-backend-service",
+                    "mock-backend",
+                    "mock:read",
+                    "mock-backend",
+                    "mock-backend",
+                    "mock-backend-local"
+            ),
+            new ResourceSpec(
+                    "identity-gateway-test-mcp-provider-local",
+                    "https://api.egon.internal/local/identity/gateway-test-mcp-provider",
+                    "identity",
+                    "gateway-test-mcp-provider",
+                    "Gateway MCP Provider Local",
+                    "mcp-provider-service",
+                    "mock-backend",
+                    "mock:read",
+                    null,
+                    "mcp-provider",
+                    "mcp-provider-local"
             )
     );
+
+    /** 需要访问 RBAC3 USER 决策接口的本地服务 Client；local service Clients calling RBAC3 USER decisions. */
+    private static final List<String> RBAC3_SERVICE_CLIENTS = List.of(
+            "idp-service",
+            "rbac3-service",
+            "ddc-service",
+            "gateway-admin-service",
+            "gateway-engine-service",
+            "mock-backend-service",
+            "mcp-provider-service"
+    );
+
+    /** RBAC3 内部 USER 决策接口所需 Scope；scopes required by RBAC3 internal USER-decision APIs. */
+    private static final Set<String> RBAC3_SERVICE_SCOPES = Set.of(
+            "service:authorization:decide",
+            "service:authorization:snapshot",
+            "service:identity:resolve"
+    );
+
+    /** MCP Task Worker 的 Source Client；source Client used by the MCP task worker. */
+    private static final String MCP_TASK_SERVICE_CLIENT =
+            "gateway-engine-service";
+
+    /** MCP Provider 的目标 Resource；target Resource exposed by the MCP Provider. */
+    private static final String MCP_TASK_RESOURCE_SERVER =
+            "identity-gateway-test-mcp-provider-local";
+
+    /** MCP Task Worker 调用 Provider 所需 Scope；scope required to invoke the MCP Provider. */
+    private static final Set<String> MCP_TASK_SERVICE_SCOPES =
+            Set.of("mcp:operation:invoke");
 
     /** OAuth Client 管理服务；OAuth Client management service. */
     private final OAuthClientService clients;
@@ -83,6 +232,21 @@ public class IdpDevelopmentClientBootstrap implements ApplicationRunner {
     /** Client Resource Grant 仓储；Client Resource Grant repository. */
     private final IdentityClientResourceGrantRepository grants;
 
+    /** Client 公开 JWK 仓储；Client public-JWK repository. */
+    private final IdentityClientJwkRepository credentials;
+
+    /** OAuth Client 主记录仓储；OAuth Client master-record repository. */
+    private final IdentityClientRepository clientEntities;
+
+    /** Resource 运行态投影服务；Resource runtime projection service. */
+    private final ResourceServerProjectionService projections;
+
+    /** 从本地 PEM 读取只含公开材料的 JWK；loads public-only JWKs from local PEM files. */
+    private final BiFunction<String, String, String> publicJwks;
+
+    /** RBAC3 本地服务授权绑定的精确租户集合；exact tenants bound to local RBAC3 service grants. */
+    private final Set<String> rbac3ServiceTenantIds;
+
     /**
      * 创建开发拓扑初始化器。
      *
@@ -92,26 +256,89 @@ public class IdpDevelopmentClientBootstrap implements ApplicationRunner {
      * @param resources Resource Server 仓储；Resource Server repository
      * @param grants Client Resource Grant 仓储；Client Resource Grant repository
      */
+    @Autowired
     public IdpDevelopmentClientBootstrap(
             OAuthClientService clients,
             IdentityResourceServerRepository resources,
-            IdentityClientResourceGrantRepository grants
+            IdentityClientResourceGrantRepository grants,
+            IdentityClientJwkRepository credentials,
+            IdentityClientRepository clientEntities,
+            ResourceServerProjectionService projections,
+            @Value("${egon.idp.development-bootstrap.key-directory}")
+            String keyDirectory,
+            @Value("${egon.idp.development-bootstrap.rbac3-service-tenant-ids:default}")
+            String rbac3ServiceTenantIds
+    ) {
+        this(
+                clients,
+                resources,
+                grants,
+                credentials,
+                clientEntities,
+                projections,
+                pemJwkLoader(Path.of(keyDirectory)),
+                rbac3ServiceTenantIds
+        );
+    }
+
+    IdpDevelopmentClientBootstrap(
+            OAuthClientService clients,
+            IdentityResourceServerRepository resources,
+            IdentityClientResourceGrantRepository grants,
+            IdentityClientJwkRepository credentials,
+            IdentityClientRepository clientEntities,
+            ResourceServerProjectionService projections,
+            BiFunction<String, String, String> publicJwks
+    ) {
+        this(
+                clients,
+                resources,
+                grants,
+                credentials,
+                clientEntities,
+                projections,
+                publicJwks,
+                "default"
+        );
+    }
+
+    IdpDevelopmentClientBootstrap(
+            OAuthClientService clients,
+            IdentityResourceServerRepository resources,
+            IdentityClientResourceGrantRepository grants,
+            IdentityClientJwkRepository credentials,
+            IdentityClientRepository clientEntities,
+            ResourceServerProjectionService projections,
+            BiFunction<String, String, String> publicJwks,
+            String rbac3ServiceTenantIds
     ) {
         this.clients = Objects.requireNonNull(clients, "clients");
         this.resources = Objects.requireNonNull(resources, "resources");
         this.grants = Objects.requireNonNull(grants, "grants");
+        this.credentials = Objects.requireNonNull(
+                credentials,
+                "credentials"
+        );
+        this.clientEntities = Objects.requireNonNull(
+                clientEntities,
+                "clientEntities"
+        );
+        this.projections = Objects.requireNonNull(
+                projections,
+                "projections"
+        );
+        this.publicJwks = Objects.requireNonNull(publicJwks, "publicJwks");
+        this.rbac3ServiceTenantIds = tenantIds(rbac3ServiceTenantIds);
     }
 
     /**
-     * 幂等对齐开发 Client，再显式创建两个 Resource 和对应 USER_DELEGATION 授权。
+     * 在 DDC 生命周期启动前，幂等对齐本地 Client、Resource、JWK 与显式 Grant。
      *
-     * <p>Reconciles development Clients, then explicitly creates two Resources and their
-     * USER_DELEGATION grants.</p>
-     *
-     * @param arguments 启动参数；application arguments
+     * <p>Idempotently reconciles local Clients, Resources, JWKs, and explicit grants before the
+     * DDC lifecycle starts and requests its admission ticket.</p>
      */
     @Override
-    public void run(ApplicationArguments arguments) {
+    public void afterSingletonsInstantiated() {
         Map<String, OAuthClientVO> existing =
                 clients.list().stream().collect(Collectors.toUnmodifiableMap(
                         OAuthClientVO::clientId,
@@ -120,7 +347,13 @@ public class IdpDevelopmentClientBootstrap implements ApplicationRunner {
         CLIENTS.forEach(client -> reconcile(client, existing.get(
                 client.clientId()
         )));
+        MACHINE_CLIENTS.forEach(client -> reconcile(
+                client,
+                existing.get(client.clientId())
+        ));
         RESOURCES.forEach(this::reconcileResourceAndGrant);
+        reconcileRbac3ServiceGrants();
+        reconcileMcpTaskServiceGrants();
     }
 
     /**
@@ -168,6 +401,39 @@ public class IdpDevelopmentClientBootstrap implements ApplicationRunner {
     }
 
     /**
+     * 对齐一个机器 Confidential Client。
+     *
+     * <p>Reconciles one machine Confidential Client.</p>
+     *
+     * @param client 期望机器 Client；desired machine Client
+     * @param existing 已有 Client 或空；existing Client or {@code null}
+     */
+    private void reconcile(
+            MachineClientSpec client,
+            OAuthClientVO existing
+    ) {
+        if (existing == null) {
+            clients.create(new CreateOAuthClientDTO(
+                    client.clientId(),
+                    client.clientName(),
+                    IdentityClientEntity.ClientType.CONFIDENTIAL,
+                    ACCESS_TOKEN_TTL_SECONDS,
+                    REFRESH_TOKEN_TTL_SECONDS,
+                    List.of(),
+                    List.of()
+            ));
+            return;
+        }
+        if (!IdentityClientEntity.ClientType.CONFIDENTIAL.name()
+                .equals(existing.clientType())) {
+            throw new IllegalStateException(
+                    "local machine Client type does not match: "
+                            + client.clientId()
+            );
+        }
+    }
+
+    /**
      * 生成开发 Client 回调地址。
      *
      * <p>Builds a development Client redirect URI.</p>
@@ -180,9 +446,10 @@ public class IdpDevelopmentClientBootstrap implements ApplicationRunner {
     }
 
     /**
-     * 幂等创建一个 Resource Server 和对应 Public Client 的应用级授权。
+     * 幂等创建一个 Resource Server、公开 JWK 和对应 Public Client 授权。
      *
-     * <p>Idempotently creates one Resource Server and its Public Client application grant.</p>
+     * <p>Idempotently creates one Resource Server, its public JWK, and its Public Client
+     * grant.</p>
      *
      * @param spec Resource 规格；Resource specification
      */
@@ -190,18 +457,29 @@ public class IdpDevelopmentClientBootstrap implements ApplicationRunner {
         IdentityResourceServerEntity resource = resources
                 .findByResourceServerId(spec.resourceServerId())
                 .orElseGet(() -> createResource(spec));
-        if (!grants.existsByClientIdAndResourceServerIdAndGrantType(
-                spec.managementClientId(),
+        requireMatchingResource(spec, resource);
+        reconcileCredential(spec, resource);
+        if (spec.userClientId() != null
+                && !grants.existsByClientIdAndResourceServerIdAndGrantType(
+                spec.userClientId(),
                 resource.getResourceServerId(),
                 IdentityClientResourceGrantEntity.GrantType.USER_DELEGATION
         )) {
             grants.save(IdentityClientResourceGrantEntity.userDelegation(
                     "dev-user-grant-" + spec.appCode(),
-                    spec.managementClientId(),
+                    spec.userClientId(),
                     resource.getResourceServerId(),
                     Instant.now()
             ));
         }
+        projections.projectResource(
+                resource,
+                clientEntities.findById(spec.managementClientId())
+                        .orElseThrow(() -> new IllegalStateException(
+                                "local management Client is missing: "
+                                        + spec.managementClientId()
+                        ))
+        );
     }
 
     /**
@@ -218,7 +496,7 @@ public class IdpDevelopmentClientBootstrap implements ApplicationRunner {
                         "dev-resource-" + spec.appCode(),
                         spec.resourceServerId(),
                         spec.resourceUri(),
-                        "permission",
+                        spec.bizCode(),
                         spec.appCode(),
                         "local",
                         spec.displayName(),
@@ -231,6 +509,260 @@ public class IdpDevelopmentClientBootstrap implements ApplicationRunner {
                 );
         resources.save(resource);
         return resource;
+    }
+
+    /**
+     * 校验已有本地 Resource 没有漂移到另一业务三元组或管理 Client。
+     *
+     * <p>Checks that an existing local Resource has not drifted to another business triple or
+     * management Client.</p>
+     */
+    private void requireMatchingResource(
+            ResourceSpec spec,
+            IdentityResourceServerEntity resource
+    ) {
+        if (!spec.resourceUri().equals(resource.getResourceUri())
+                || !spec.bizCode().equals(resource.getBizCode())
+                || !spec.appCode().equals(resource.getAppCode())
+                || !"local".equals(resource.getEnvironment())
+                || !spec.managementClientId().equals(
+                resource.getManagementClientId()
+        )) {
+            throw new IllegalStateException(
+                    "local Resource Server definition does not match: "
+                            + spec.resourceServerId()
+            );
+        }
+    }
+
+    /**
+     * 幂等登记 Resource 管理 Client 的本地公开 JWK。
+     *
+     * <p>Idempotently registers the local public JWK for a Resource management Client.</p>
+     */
+    private void reconcileCredential(
+            ResourceSpec spec,
+            IdentityResourceServerEntity resource
+    ) {
+        if (credentials.findByClientIdAndKid(
+                spec.managementClientId(),
+                spec.keyId()
+        ).isPresent()) {
+            return;
+        }
+        Instant now = Instant.now();
+        credentials.save(IdentityClientJwkEntity.create(
+                "dev-key-" + spec.appCode(),
+                spec.managementClientId(),
+                spec.keyId(),
+                publicJwks.apply(spec.keyStem(), spec.keyId()),
+                now.minusSeconds(60),
+                now.plus(KEY_LIFETIME),
+                now
+        ));
+    }
+
+    /**
+     * 给需要查询 USER 权限的服务显式登记到 RBAC3 的 Service Grant。
+     *
+     * <p>Explicitly grants services that query USER permissions access to the RBAC3 Resource.</p>
+     */
+    private void reconcileRbac3ServiceGrants() {
+        String target = "permission-rbac3-local";
+        String allowedScopes = RBAC3_SERVICE_SCOPES.stream()
+                .sorted()
+                .map(scope -> "\"" + scope + "\"")
+                .collect(Collectors.joining(",", "[", "]"));
+        RBAC3_SERVICE_CLIENTS.forEach(clientId -> {
+            List<IdentityClientResourceGrantEntity> reusable =
+                    new ArrayList<>(grants
+                            .findByClientIdAndGrantTypeAndStatus(
+                                    clientId,
+                                    IdentityClientResourceGrantEntity.GrantType
+                                            .CLIENT_CREDENTIALS,
+                                    IdentityClientResourceGrantEntity.Status.ACTIVE
+                            ).stream()
+                            .filter(grant -> target.equals(
+                                    grant.getResourceServerId()))
+                            .filter(grant -> grant.getId().startsWith(
+                                    "dev-rbac3-grant-"))
+                            .filter(grant -> !rbac3ServiceTenantIds.contains(
+                                    grant.getTenantId()))
+                            .toList());
+            rbac3ServiceTenantIds.forEach(tenantId -> {
+                Optional<IdentityClientResourceGrantEntity> exact =
+                        grants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
+                                clientId,
+                                target,
+                                IdentityClientResourceGrantEntity.GrantType
+                                        .CLIENT_CREDENTIALS,
+                                tenantId
+                        );
+                IdentityClientResourceGrantEntity grant;
+                boolean existing;
+                if (exact.isPresent()) {
+                    grant = exact.orElseThrow();
+                    reusable.remove(grant);
+                    existing = true;
+                } else if (!reusable.isEmpty()) {
+                    grant = reusable.removeFirst();
+                    existing = true;
+                } else {
+                    grant = IdentityClientResourceGrantEntity.clientCredentials(
+                            serviceGrantId(clientId, tenantId),
+                            clientId,
+                            target,
+                            tenantId,
+                            allowedScopes,
+                            Instant.now()
+                    );
+                    existing = false;
+                }
+                if (existing
+                        && tenantId.equals(grant.getTenantId())
+                        && allowedScopes.equals(grant.getAllowedScopes())
+                        && grant.getStatus()
+                        == IdentityClientResourceGrantEntity.Status.ACTIVE) {
+                    return;
+                }
+                if (existing) {
+                    grant.update(
+                            IdentityClientResourceGrantEntity.GrantType
+                                    .CLIENT_CREDENTIALS,
+                            tenantId,
+                            allowedScopes,
+                            grant.getVersion(),
+                            Instant.now()
+                    );
+                }
+                grants.save(grant);
+                projections.projectServiceGrant(grant);
+            });
+        });
+    }
+
+    /**
+     * 给 Gateway Engine 的异步 MCP Worker 显式登记目标 Provider 的 Service Grant。
+     * Explicitly grants the Gateway Engine asynchronous MCP worker access to the target
+     * Provider Resource.
+     */
+    private void reconcileMcpTaskServiceGrants() {
+        String allowedScopes = MCP_TASK_SERVICE_SCOPES.stream()
+                .sorted()
+                .map(scope -> "\"" + scope + "\"")
+                .collect(Collectors.joining(",", "[", "]"));
+        rbac3ServiceTenantIds.forEach(tenantId -> {
+            Optional<IdentityClientResourceGrantEntity> exact =
+                    grants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
+                            MCP_TASK_SERVICE_CLIENT,
+                            MCP_TASK_RESOURCE_SERVER,
+                            IdentityClientResourceGrantEntity.GrantType
+                                    .CLIENT_CREDENTIALS,
+                            tenantId
+                    );
+            IdentityClientResourceGrantEntity grant = exact.orElseGet(() ->
+                    IdentityClientResourceGrantEntity.clientCredentials(
+                            mcpTaskServiceGrantId(tenantId),
+                            MCP_TASK_SERVICE_CLIENT,
+                            MCP_TASK_RESOURCE_SERVER,
+                            tenantId,
+                            allowedScopes,
+                            Instant.now()
+                    ));
+            if (exact.isPresent()
+                    && allowedScopes.equals(grant.getAllowedScopes())
+                    && grant.getStatus()
+                    == IdentityClientResourceGrantEntity.Status.ACTIVE) {
+                return;
+            }
+            if (exact.isPresent()) {
+                grant.update(
+                        IdentityClientResourceGrantEntity.GrantType
+                                .CLIENT_CREDENTIALS,
+                        tenantId,
+                        allowedScopes,
+                        grant.getVersion(),
+                        Instant.now()
+                );
+            }
+            grants.save(grant);
+            projections.projectServiceGrant(grant);
+        });
+    }
+
+    /**
+     * 解析逗号分隔且保持声明顺序的精确租户集合。
+     *
+     * <p>Parses a comma-delimited exact-tenant set while preserving declaration order.</p>
+     *
+     * @param value 租户配置；tenant configuration
+     * @return 非空且去重的租户集合；non-empty deduplicated tenant set
+     */
+    private static Set<String> tenantIds(String value) {
+        if (value == null || value.isBlank() || !value.equals(value.trim())) {
+            throw new IllegalArgumentException(
+                    "rbac3ServiceTenantIds is required"
+            );
+        }
+        LinkedHashSet<String> values = new LinkedHashSet<>();
+        for (String tenantId : value.split(",", -1)) {
+            if (tenantId.isBlank() || !tenantId.equals(tenantId.trim())) {
+                throw new IllegalArgumentException(
+                        "rbac3ServiceTenantId is required"
+                );
+            }
+            values.add(tenantId);
+        }
+        return Collections.unmodifiableSet(values);
+    }
+
+    /**
+     * 为一个 Client 与精确租户生成稳定的开发 Grant 标识。
+     *
+     * <p>Generates a stable development Grant identifier for one Client and exact tenant.</p>
+     *
+     * @param clientId Client 标识；Client identifier
+     * @param tenantId 精确租户；exact tenant
+     * @return 长度受控的稳定 Grant 标识；bounded stable Grant identifier
+     */
+    private static String serviceGrantId(String clientId, String tenantId) {
+        String suffix = UUID.nameUUIDFromBytes(
+                tenantId.getBytes(StandardCharsets.UTF_8)
+        ).toString().substring(0, 8);
+        return "dev-rbac3-grant-" + clientId + "-" + suffix;
+    }
+
+    /**
+     * 为精确租户生成稳定的 MCP Task Service Grant 标识。
+     * Generates a stable MCP task Service Grant identifier for an exact tenant.
+     */
+    private static String mcpTaskServiceGrantId(String tenantId) {
+        String suffix = UUID.nameUUIDFromBytes(
+                tenantId.getBytes(StandardCharsets.UTF_8)
+        ).toString().substring(0, 8);
+        return "dev-mcp-task-grant-" + suffix;
+    }
+
+    /**
+     * 构造从受保护 PEM 目录读取公开 JWK 的加载器。
+     *
+     * <p>Builds a loader that reads public JWKs from a protected PEM directory.</p>
+     */
+    private static BiFunction<String, String, String> pemJwkLoader(
+            Path keyDirectory
+    ) {
+        return (stem, keyId) -> {
+            RsaPemKeyLoader.KeyMaterial material = new RsaPemKeyLoader().load(
+                    keyDirectory.resolve(stem + "-public.pem"),
+                    keyDirectory.resolve(stem + "-private.pem")
+            );
+            return new RSAKey.Builder(material.publicKey())
+                    .keyID(keyId)
+                    .algorithm(JWSAlgorithm.RS256)
+                    .build()
+                    .toPublicJWK()
+                    .toJSONString();
+        };
     }
 
     /**
@@ -264,26 +796,49 @@ public class IdpDevelopmentClientBootstrap implements ApplicationRunner {
     }
 
     /**
+     * 开发机器 Client 规格。
+     *
+     * <p>Development machine Client specification.</p>
+     *
+     * @param clientId Client 标识；Client identifier
+     * @param clientName 展示名称；display name
+     */
+    private record MachineClientSpec(
+            String clientId,
+            String clientName
+    ) {
+    }
+
+    /**
      * 开发 Resource Server 规格。
      *
      * <p>Development Resource Server specification.</p>
      *
      * @param resourceServerId Resource Server 标识；Resource Server identifier
      * @param resourceUri Resource URI；Resource URI
+     * @param bizCode 业务域编码；business-domain code
      * @param appCode 应用编码；application code
      * @param displayName 展示名称；display name
      * @param managementClientId 管理 Client；management Client
      * @param rbacApplicationCode RBAC3 应用；RBAC3 application
      * @param entryPermissionCode 入口权限；entry permission
+     * @param userClientId 获准请求 USER Token 的 Public Client；Public Client allowed to request
+     * USER tokens
+     * @param keyStem 本地 PEM 文件名前缀；local PEM filename stem
+     * @param keyId 公开 JWK 标识；public JWK identifier
      */
     private record ResourceSpec(
             String resourceServerId,
             String resourceUri,
+            String bizCode,
             String appCode,
             String displayName,
             String managementClientId,
             String rbacApplicationCode,
-            String entryPermissionCode
+            String entryPermissionCode,
+            String userClientId,
+            String keyStem,
+            String keyId
     ) {
     }
 }

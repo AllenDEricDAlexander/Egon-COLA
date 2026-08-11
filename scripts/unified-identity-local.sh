@@ -32,6 +32,7 @@ idp_database="${UNIFIED_IDENTITY_IDP_DATABASE:-egon_identity_local}"
 rbac3_database="${UNIFIED_IDENTITY_RBAC3_DATABASE:-egon_rbac3_unified_identity_local}"
 gateway_database="${UNIFIED_IDENTITY_GATEWAY_DATABASE:-egon_gateway_local}"
 ddc_database="${UNIFIED_IDENTITY_DDC_DATABASE:-egon_ddc_local}"
+service_tenant_id="${UNIFIED_IDENTITY_SERVICE_TENANT_ID:-default}"
 
 idp_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/target/egon-cola-platform-idp-admin-exec.jar"
 rbac3_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/target/egon-cola-platform-rbac3-admin-exec.jar"
@@ -48,6 +49,7 @@ Commands:
   prepare  Check host dependencies, create named databases/secrets, and package jars
   start    Start and bootstrap DDC, IdP, RBAC3, Gateway, and the mock backend
   refresh-tokens  Refresh local OAuth tokens and rebuild both tenant snapshots
+  issue-user-token  Issue one local USER token from explicit environment inputs
   verify   Execute the host-local unified identity acceptance checks
   status   Show exact managed process and health status
   stop     Gracefully stop only processes recorded by this harness
@@ -182,29 +184,9 @@ base64url() {
   openssl base64 -A | tr '+/' '-_' | tr -d '='
 }
 
-write_service_jwt() {
-  local application_code="$1" permissions_json="$2" output="$3"
-  local now expires header payload unsigned signature
-  now="$(date +%s)"
-  expires="$((now + 86400))"
-  header="$(jq -cn '{alg:"RS256",typ:"JWT",kid:"rbac3-local"}')"
-  payload="$(jq -cn \
-    --arg issuer "${rbac3_url}" \
-    --arg audience "rbac3-local" \
-    --arg subject "${application_code}-local-service" \
-    --arg application "${application_code}" \
-    --arg credential "${application_code}-local-credential" \
-    --argjson permissions "${permissions_json}" \
-    --argjson issued "${now}" --argjson expires "${expires}" \
-    '{iss:$issuer,aud:[$audience],sub:$subject,iat:$issued,nbf:$issued,exp:$expires,
-      principal_type:"SERVICE",tid:"*",service_id:$subject,
-      application_code:$application,env:"local",namespace:"default",
-      credential_id:$credential,jti:$credential,permissions:$permissions}')"
-  unsigned="$(printf '%s' "${header}" | base64url).$(printf '%s' "${payload}" | base64url)"
-  signature="$(printf '%s' "${unsigned}" | openssl dgst -sha256 \
-    -sign "${secret_dir}/rbac3-private.pem" | base64url)"
-  printf '%s.%s' "${unsigned}" "${signature}" >"${output}"
-  chmod 600 "${output}"
+write_pending_service_credential() {
+  printf 'pending-idp-client-credentials' >"$1"
+  chmod 600 "$1"
 }
 
 write_runtime_secrets() {
@@ -219,17 +201,80 @@ write_runtime_secrets() {
   ensure_secret "${secret_dir}/rbac3-audit.secret" 32
   ensure_rsa_key_pair "${secret_dir}/idp"
   ensure_rsa_key_pair "${secret_dir}/rbac3"
-  write_service_jwt idp-admin \
-    '["service:authorization:snapshot","service:identity:resolve"]' \
+  ensure_rsa_key_pair "${secret_dir}/ddc"
+  ensure_rsa_key_pair "${secret_dir}/gateway-admin"
+  ensure_rsa_key_pair "${secret_dir}/gateway-engine"
+  ensure_rsa_key_pair "${secret_dir}/mock-backend"
+  ensure_rsa_key_pair "${secret_dir}/mcp-provider"
+  write_pending_service_credential "${secret_dir}/idp-admin.service.jwt"
+  write_pending_service_credential "${secret_dir}/rbac3-admin.service.jwt"
+  write_pending_service_credential "${secret_dir}/gateway-admin.service.jwt"
+  write_pending_service_credential "${secret_dir}/gateway-engine.service.jwt"
+  write_pending_service_credential "${secret_dir}/ddc-admin.service.jwt"
+  write_pending_service_credential "${secret_dir}/mock-backend.service.jwt"
+  write_pending_service_credential "${secret_dir}/mcp-provider.service.jwt"
+  printf 'Bearer %s' "$(<"${secret_dir}/idp-admin.service.jwt")" \
+    >"${secret_dir}/idp-rbac3.authorization"
+  chmod 600 "${secret_dir}/idp-rbac3.authorization"
+}
+
+oauth_service_token() {
+  local client_id="$1" key_id="$2" key_stem="$3" output="$4"
+  local now expires assertion_id header payload unsigned signature assertion
+  local response_file status token_endpoint
+  token_endpoint="${idp_url}/oauth2/token"
+  now="$(date +%s)"
+  expires="$((now + 60))"
+  assertion_id="$(openssl rand -hex 16)"
+  header="$(jq -cn --arg kid "${key_id}" \
+    '{alg:"RS256",typ:"JWT",kid:$kid}')"
+  payload="$(jq -cn \
+    --arg client "${client_id}" \
+    --arg audience "${token_endpoint}" \
+    --arg assertion_id "${assertion_id}" \
+    --argjson issued "${now}" --argjson expires "${expires}" \
+    '{iss:$client,sub:$client,aud:[$audience],iat:$issued,nbf:$issued,
+      exp:$expires,jti:$assertion_id}')"
+  unsigned="$(printf '%s' "${header}" | base64url).$(printf '%s' "${payload}" | base64url)"
+  signature="$(printf '%s' "${unsigned}" | openssl dgst -sha256 \
+    -sign "${secret_dir}/${key_stem}-private.pem" | base64url)"
+  assertion="${unsigned}.${signature}"
+  response_file="$(mktemp "${runtime_dir}/service-token.XXXXXX")"
+  status="$(curl -sS -o "${response_file}" -w '%{http_code}' -X POST \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    --data-urlencode grant_type=client_credentials \
+    --data-urlencode "client_id=${client_id}" \
+    --data-urlencode \
+      client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer \
+    --data-urlencode "client_assertion=${assertion}" \
+    --data-urlencode \
+      resource=https://api.egon.internal/local/permission/rbac3 \
+    --data-urlencode "tenant_id=${service_tenant_id}" \
+    --data-urlencode \
+      'scope=service:authorization:decide service:authorization:snapshot service:identity:resolve' \
+    "${token_endpoint}")"
+  [[ "${status}" == "200" ]] || fail \
+    "IdP Client Credentials failed for ${client_id} with HTTP ${status}: $(<"${response_file}")"
+  jq -er '.access_token' "${response_file}" >"${output}"
+  rm -f "${response_file}"
+  chmod 600 "${output}"
+}
+
+refresh_service_tokens() {
+  oauth_service_token idp-service idp-local idp \
     "${secret_dir}/idp-admin.service.jwt"
-  write_service_jwt rbac3-admin '["service:authorization:snapshot"]' \
+  oauth_service_token rbac3-service rbac3-local rbac3 \
     "${secret_dir}/rbac3-admin.service.jwt"
-  write_service_jwt gateway-admin '["service:authorization:snapshot"]' \
+  oauth_service_token gateway-admin-service gateway-admin-local gateway-admin \
     "${secret_dir}/gateway-admin.service.jwt"
-  write_service_jwt ddc-admin '["service:authorization:snapshot"]' \
+  oauth_service_token gateway-engine-service gateway-engine-local gateway-engine \
+    "${secret_dir}/gateway-engine.service.jwt"
+  oauth_service_token ddc-service ddc-local ddc \
     "${secret_dir}/ddc-admin.service.jwt"
-  write_service_jwt mock-backend '["service:authorization:snapshot"]' \
+  oauth_service_token mock-backend-service mock-backend-local mock-backend \
     "${secret_dir}/mock-backend.service.jwt"
+  oauth_service_token mcp-provider-service mcp-provider-local mcp-provider \
+    "${secret_dir}/mcp-provider.service.jwt"
   printf 'Bearer %s' "$(<"${secret_dir}/idp-admin.service.jwt")" \
     >"${secret_dir}/idp-rbac3.authorization"
   chmod 600 "${secret_dir}/idp-rbac3.authorization"
@@ -266,6 +311,27 @@ java_property_key() {
       ;;
     EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_NEAR_CACHE_TTL)
       printf 'egon.cola.platform.rbac3.authorization.near-cache-ttl'
+      ;;
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED)
+      printf 'egon.cola.platform.rbac3.authorization.service-token.enabled'
+      ;;
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_TOKEN_ENDPOINT)
+      printf 'egon.cola.platform.rbac3.authorization.service-token.token-endpoint'
+      ;;
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_CLIENT_ID)
+      printf 'egon.cola.platform.rbac3.authorization.service-token.client-id'
+      ;;
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_KEY_ID)
+      printf 'egon.cola.platform.rbac3.authorization.service-token.key-id'
+      ;;
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_PRIVATE_KEY_FILE)
+      printf 'egon.cola.platform.rbac3.authorization.service-token.private-key-file'
+      ;;
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_RESOURCE_URI)
+      printf 'egon.cola.platform.rbac3.authorization.service-token.resource-uri'
+      ;;
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_SCOPES)
+      printf 'egon.cola.platform.rbac3.authorization.service-token.scopes'
       ;;
     EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_HOST)
       printf 'egon.cola.component.ddc.admin.redis.host'
@@ -352,6 +418,29 @@ common_identity_env() {
   write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_NEAR_CACHE_TTL 0s
 }
 
+write_tenant_aware_rbac3_service_token_env() {
+  local file="$1" client_id="$2" key_id="$3" private_key_file="$4"
+  write_env "${file}" \
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED true
+  write_env "${file}" \
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_TOKEN_ENDPOINT \
+    "${idp_url}/oauth2/token"
+  write_env "${file}" \
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_CLIENT_ID \
+    "${client_id}"
+  write_env "${file}" \
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_KEY_ID "${key_id}"
+  write_env "${file}" \
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_PRIVATE_KEY_FILE \
+    "${private_key_file}"
+  write_env "${file}" \
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_RESOURCE_URI \
+    https://api.egon.internal/local/permission/rbac3
+  write_env "${file}" \
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_SCOPES \
+    'service:authorization:decide service:authorization:snapshot service:identity:resolve'
+}
+
 write_service_env_files() {
   local redis_password postgres_password_value file
   redis_password="$(<"${secret_dir}/redis.password")"
@@ -359,6 +448,8 @@ write_service_env_files() {
 
   file="$(new_env_file ddc)"
   common_identity_env "${file}"
+  write_tenant_aware_rbac3_service_token_env "${file}" \
+    ddc-service ddc-local "${secret_dir}/ddc-private.pem"
   write_env "${file}" SERVER_PORT 18150
   write_env "${file}" SPRING_DATASOURCE_URL "jdbc:postgresql://${postgres_host}:${postgres_port}/${ddc_database}"
   write_env "${file}" SPRING_DATASOURCE_USERNAME "${postgres_user}"
@@ -372,7 +463,11 @@ write_service_env_files() {
   write_env "${file}" DDC_AUTHORIZATION_REDIS_DATABASE 8
   write_env "${file}" DDC_RBAC3_SERVICE_CREDENTIAL_FILE "${secret_dir}/ddc-admin.service.jwt"
   write_env "${file}" DDC_ADMIN_JWT_ISSUER "${idp_url}"
-  write_env "${file}" DDC_ADMIN_JWT_AUDIENCE ddc-admin-web
+  write_env "${file}" DDC_RESOURCE_SERVER_ID platform-ddc-local
+  write_env "${file}" DDC_RESOURCE_URI \
+    https://api.egon.internal/local/platform/ddc
+  write_env "${file}" DDC_ADMIN_JWT_AUDIENCE \
+    https://api.egon.internal/local/platform/ddc
   write_env "${file}" DDC_ADMIN_JWT_JWK_SET_URI "${idp_url}/oauth2/jwks"
   write_env "${file}" DDC_RPC_PORT 19080
   write_env "${file}" DDC_RPC_DEVELOPMENT_PLAINTEXT true
@@ -385,6 +480,8 @@ write_service_env_files() {
 
   file="$(new_env_file idp)"
   common_identity_env "${file}"
+  write_tenant_aware_rbac3_service_token_env "${file}" \
+    idp-service idp-local "${secret_dir}/idp-private.pem"
   write_env "${file}" IDP_POSTGRES_URL "jdbc:postgresql://${postgres_host}:${postgres_port}/${idp_database}"
   write_env "${file}" IDP_POSTGRES_USER "${postgres_user}"
   write_env "${file}" IDP_POSTGRES_PASSWORD "${postgres_password_value}"
@@ -403,16 +500,42 @@ write_service_env_files() {
   write_env "${file}" IDP_RBAC3_BASE_URL "${rbac3_url}"
   write_env "${file}" IDP_RBAC3_AUTHORIZATION_HEADER_FILE "${secret_dir}/idp-rbac3.authorization"
   write_env "${file}" IDP_RBAC3_SERVICE_CREDENTIAL_FILE "${secret_dir}/idp-admin.service.jwt"
+  write_env "${file}" IDP_RBAC3_SERVICE_CLIENT_ID idp-service
+  write_env "${file}" IDP_RBAC3_SERVICE_KEY_ID idp-local
+  write_env "${file}" IDP_RBAC3_SERVICE_PRIVATE_KEY_FILE \
+    "${secret_dir}/idp-private.pem"
+  write_env "${file}" IDP_RBAC3_RESOURCE_URI \
+    https://api.egon.internal/local/permission/rbac3
+  write_env "${file}" IDP_RBAC3_SERVICE_TENANT_ID "${service_tenant_id}"
+  write_env "${file}" IDP_DEVELOPMENT_RBAC3_SERVICE_TENANT_ID \
+    "${service_tenant_id}"
+  write_env "${file}" IDP_DEVELOPMENT_RBAC3_SERVICE_TENANT_IDS \
+    "${service_tenant_id}"
+  write_env "${file}" IDP_RBAC3_SERVICE_SCOPES \
+    'service:authorization:decide service:authorization:snapshot service:identity:resolve'
   write_env "${file}" IDP_SNOWFLAKE_MACHINE_ID 32
   write_env "${file}" IDP_DEVELOPMENT_BOOTSTRAP_ENABLED true
+  write_env "${file}" IDP_DEVELOPMENT_BOOTSTRAP_KEY_DIRECTORY \
+    "${secret_dir}"
   write_env "${file}" IDP_BOOTSTRAP_PASSWORD_FILE "${secret_dir}/idp-admin.password"
   write_env "${file}" IDP_DDC_ENABLED true
+  write_env "${file}" EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST false
   write_env "${file}" IDP_HTTP_PROVIDER_ENABLED true
+  write_env "${file}" IDP_RESOURCE_SERVER_ID permission-idp-local
+  write_env "${file}" IDP_RESOURCE_URI \
+    https://api.egon.internal/local/permission/idp
+  write_env "${file}" IDP_RESOURCE_MANAGEMENT_CLIENT_ID idp-service
+  write_env "${file}" IDP_RESOURCE_MANAGEMENT_KEY_ID idp-local
+  write_env "${file}" IDP_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
+    "${secret_dir}/idp-private.pem"
+  write_env "${file}" IDP_RESOURCE_ADMISSION_ENDPOINT \
+    "${idp_url}/oauth2/resource-server-admission"
   write_env "${file}" \
     EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false
   write_env "${file}" IDP_INSTANCE_ID idp-local-1
   write_env "${file}" IDP_ADVERTISED_HOST 127.0.0.1
-  write_env "${file}" DDC_BIZ_CODE identity
+  write_env "${file}" DDC_BIZ_CODE permission
+  write_env "${file}" DDC_APP_CODE idp
   write_env "${file}" DEPLOYMENT_ENV local
   write_env "${file}" DEPLOYMENT_NAMESPACE default
   write_env "${file}" DDC_RPC_TARGET "${ddc_rpc_target}"
@@ -436,10 +559,21 @@ write_service_env_files() {
   write_env "${file}" RBAC3_INSTANCE_ID rbac3-local-1
   write_env "${file}" RBAC3_ARTIFACT_VERSION local
   write_env "${file}" RBAC3_DDC_ENABLED true
+  write_env "${file}" EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST false
   write_env "${file}" RBAC3_HTTP_PROVIDER_ENABLED true
+  write_env "${file}" RBAC3_RESOURCE_SERVER_ID permission-rbac3-local
+  write_env "${file}" RBAC3_RESOURCE_URI \
+    https://api.egon.internal/local/permission/rbac3
+  write_env "${file}" RBAC3_RESOURCE_MANAGEMENT_CLIENT_ID rbac3-service
+  write_env "${file}" RBAC3_RESOURCE_MANAGEMENT_KEY_ID rbac3-local
+  write_env "${file}" RBAC3_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
+    "${secret_dir}/rbac3-private.pem"
+  write_env "${file}" RBAC3_RESOURCE_ADMISSION_ENDPOINT \
+    "${idp_url}/oauth2/resource-server-admission"
   write_env "${file}" \
     EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false
-  write_env "${file}" DDC_BIZ_CODE identity
+  write_env "${file}" DDC_BIZ_CODE permission
+  write_env "${file}" DDC_APP_CODE rbac3
   write_env "${file}" DEPLOYMENT_ENV local
   write_env "${file}" DEPLOYMENT_NAMESPACE default
   write_env "${file}" DDC_RPC_TARGET "${ddc_rpc_target}"
@@ -458,6 +592,18 @@ write_service_env_files() {
   write_env "${file}" RBAC3_RUNTIME_REDIS_DATABASE 8
   write_env "${file}" RBAC3_RUNTIME_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
   write_env "${file}" RBAC3_ADMIN_SERVICE_CREDENTIAL_FILE "${secret_dir}/rbac3-admin.service.jwt"
+  write_env "${file}" RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED true
+  write_env "${file}" RBAC3_AUTHORIZATION_SERVICE_TOKEN_TOKEN_ENDPOINT \
+    "${idp_url}/oauth2/token"
+  write_env "${file}" RBAC3_AUTHORIZATION_SERVICE_TOKEN_CLIENT_ID \
+    rbac3-service
+  write_env "${file}" RBAC3_AUTHORIZATION_SERVICE_TOKEN_KEY_ID rbac3-local
+  write_env "${file}" RBAC3_AUTHORIZATION_SERVICE_TOKEN_PRIVATE_KEY_FILE \
+    "${secret_dir}/rbac3-private.pem"
+  write_env "${file}" RBAC3_AUTHORIZATION_SERVICE_TOKEN_RESOURCE_URI \
+    https://api.egon.internal/local/permission/rbac3
+  write_env "${file}" RBAC3_AUTHORIZATION_SERVICE_TOKEN_SCOPES \
+    'service:authorization:decide service:authorization:snapshot service:identity:resolve'
   write_env "${file}" RBAC3_JWT_PRIVATE_KEY_FILE "${secret_dir}/rbac3-private.pem"
   write_env "${file}" RBAC3_JWT_PUBLIC_KEY_FILE "${secret_dir}/rbac3-public.pem"
   write_env "${file}" RBAC3_JWT_PUBLIC_KEY_LOCATION "file:${secret_dir}/rbac3-public.pem"
@@ -473,6 +619,9 @@ write_service_env_files() {
 
   file="$(new_env_file gateway-admin)"
   common_identity_env "${file}"
+  write_tenant_aware_rbac3_service_token_env "${file}" \
+    gateway-admin-service gateway-admin-local \
+    "${secret_dir}/gateway-admin-private.pem"
   write_env "${file}" SERVER_PORT 18140
   write_env "${file}" SPRING_DATASOURCE_URL "jdbc:postgresql://${postgres_host}:${postgres_port}/${gateway_database}"
   write_env "${file}" SPRING_DATASOURCE_USERNAME "${postgres_user}"
@@ -481,6 +630,19 @@ write_service_env_files() {
   write_env "${file}" GATEWAY_AUTHORIZATION_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
   write_env "${file}" GATEWAY_AUTHORIZATION_REDIS_DATABASE 8
   write_env "${file}" GATEWAY_RBAC3_SERVICE_CREDENTIAL_FILE "${secret_dir}/gateway-admin.service.jwt"
+  write_env "${file}" GATEWAY_ADMIN_RESOURCE_SERVER_ID \
+    platform-gateway-admin-local
+  write_env "${file}" GATEWAY_ADMIN_RESOURCE_URI \
+    https://api.egon.internal/local/platform/gateway-admin
+  write_env "${file}" GATEWAY_ADMIN_RESOURCE_MANAGEMENT_CLIENT_ID \
+    gateway-admin-service
+  write_env "${file}" GATEWAY_ADMIN_RESOURCE_MANAGEMENT_KEY_ID \
+    gateway-admin-local
+  write_env "${file}" GATEWAY_ADMIN_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
+    "${secret_dir}/gateway-admin-private.pem"
+  write_env "${file}" GATEWAY_ADMIN_RESOURCE_ADMISSION_ENDPOINT \
+    "${idp_url}/oauth2/resource-server-admission"
+  write_env "${file}" GATEWAY_ADMIN_INSTANCE_ID gateway-admin-local-1
   write_env "${file}" GATEWAY_ADMIN_SECRETS_MASTER_KEY_BASE64 "$(<"${secret_dir}/gateway-master-key.base64")"
   write_env "${file}" GATEWAY_MCP_ARTIFACT_ROOT "${runtime_dir}/mcp-artifacts"
   write_env "${file}" GATEWAY_ADMIN_DDC_ENABLED true
@@ -494,10 +656,15 @@ write_service_env_files() {
 
   file="$(new_env_file mock-backend)"
   common_identity_env "${file}"
+  write_tenant_aware_rbac3_service_token_env "${file}" \
+    mock-backend-service mock-backend-local \
+    "${secret_dir}/mock-backend-private.pem"
   write_env "${file}" MOCK_BACKEND_PORT 18160
   write_env "${file}" MOCK_BACKEND_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
   write_env "${file}" MOCK_BACKEND_REDIS_DATABASE 8
   write_env "${file}" MOCK_BACKEND_RBAC3_SERVICE_CREDENTIAL_FILE "${secret_dir}/mock-backend.service.jwt"
+  write_env "${file}" MOCK_BACKEND_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
+    "${secret_dir}/mock-backend-private.pem"
   write_env "${file}" MOCK_BACKEND_DDC_ENABLED true
   write_env "${file}" DDC_BIZ_CODE identity
   write_env "${file}" DDC_RPC_TARGET "${ddc_rpc_target}"
@@ -515,11 +682,35 @@ write_service_env_files() {
   write_env "${file}" GATEWAY_REPORT_STATE_FILE "${runtime_dir}/mock-backend-gateway-report.json"
 
   file="$(new_env_file gateway-engine)"
+  write_tenant_aware_rbac3_service_token_env "${file}" \
+    gateway-engine-service gateway-engine-local \
+    "${secret_dir}/gateway-engine-private.pem"
   write_env "${file}" SERVER_PORT 18182
   write_env "${file}" IDP_OAUTH_ISSUER "${idp_url}"
   write_env "${file}" IDP_JWK_SET_URI "${idp_url}/oauth2/jwks"
-  write_env "${file}" IDP_GATEWAY_AUDIENCE mock-backend
-  write_env "${file}" IDP_GATEWAY_CLIENT_ID mock-backend
+  write_env "${file}" GATEWAY_ENGINE_RESOURCE_SERVER_ID \
+    identity-gateway-engine-default-local
+  write_env "${file}" GATEWAY_ENGINE_RESOURCE_URI \
+    https://api.egon.internal/local/identity/gateway-engine-default
+  write_env "${file}" GATEWAY_ENGINE_RESOURCE_MANAGEMENT_CLIENT_ID \
+    gateway-engine-service
+  write_env "${file}" GATEWAY_ENGINE_RESOURCE_MANAGEMENT_KEY_ID \
+    gateway-engine-local
+  write_env "${file}" GATEWAY_ENGINE_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
+    "${secret_dir}/gateway-engine-private.pem"
+  write_env "${file}" GATEWAY_ENGINE_RESOURCE_ADMISSION_ENDPOINT \
+    "${idp_url}/oauth2/resource-server-admission"
+  write_env "${file}" GATEWAY_MCP_TASK_SERVICE_TOKEN_ENABLED true
+  write_env "${file}" GATEWAY_MCP_TASK_SERVICE_TOKEN_ENDPOINT \
+    "${idp_url}/oauth2/token"
+  write_env "${file}" GATEWAY_MCP_TASK_SERVICE_TOKEN_CLIENT_ID \
+    gateway-engine-service
+  write_env "${file}" GATEWAY_MCP_TASK_SERVICE_TOKEN_KEY_ID \
+    gateway-engine-local
+  write_env "${file}" GATEWAY_MCP_TASK_SERVICE_TOKEN_PRIVATE_KEY_FILE \
+    "${secret_dir}/gateway-engine-private.pem"
+  write_env "${file}" GATEWAY_MCP_TASK_SERVICE_TOKEN_SCOPES \
+    mcp:operation:invoke
   write_env "${file}" IDP_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
   write_env "${file}" IDP_REDIS_DATABASE 8
   write_env "${file}" IDP_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
@@ -536,7 +727,8 @@ write_service_env_files() {
   write_env "${file}" GATEWAY_MCP_RBAC3_REDIS_DATABASE 8
   write_env "${file}" GATEWAY_MCP_RBAC3_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
   write_env "${file}" GATEWAY_MCP_RBAC3_AUTHORIZATION_ENDPOINT "${rbac3_url}"
-  write_env "${file}" GATEWAY_MCP_RBAC3_SERVICE_CREDENTIAL_FILE "${secret_dir}/mock-backend.service.jwt"
+  write_env "${file}" GATEWAY_MCP_RBAC3_SERVICE_CREDENTIAL_FILE \
+    "${secret_dir}/gateway-engine.service.jwt"
   write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_CACHE_TTL 1s
   write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_MAXIMUM_JITTER 0s
   write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_NEAR_CACHE_TTL 0s
@@ -595,6 +787,7 @@ command_prepare() {
       "${gateway_database}" "${ddc_database}"; do
     ensure_database "${database}"
   done
+  resolve_existing_service_tenant_id
   write_runtime_secrets
   write_service_env_files
   package_applications
@@ -666,6 +859,15 @@ rbac3_tenant_id() {
   printf '%s' "${tenant_id}"
 }
 
+resolve_existing_service_tenant_id() {
+  if [[ "${service_tenant_id}" =~ ^[1-9][0-9]*$ ]]; then
+    return
+  fi
+  if database_table_exists "${rbac3_database}" public.rbac3_tenant; then
+    service_tenant_id="$(rbac3_tenant_id "${service_tenant_id}")"
+  fi
+}
+
 oauth_login() {
   local cookie_jar="${runtime_dir}/browser.cookies" origin csrf status
   local csrf_headers login_headers
@@ -719,31 +921,39 @@ require_browser_cors() {
 }
 
 oauth_token() {
-  local client_id="$1" tenant="$2" output="$3"
-  local redirect_uri origin verifier challenge state headers code response status tenant_id
+  local client_id="$1" tenant="$2" output="$3" resource_override="${4:-}"
+  local redirect_uri origin resource verifier challenge state headers code response status tenant_id
   case "${client_id}" in
     idp-admin-web)
       origin=http://127.0.0.1:18121
       redirect_uri=${origin}/oauth/callback
+      resource=https://api.egon.internal/local/permission/idp
       ;;
     rbac3-admin-web)
       origin=http://127.0.0.1:18131
       redirect_uri=${origin}/oauth/callback
+      resource=https://api.egon.internal/local/permission/rbac3
       ;;
     gateway-admin-web)
       origin=http://127.0.0.1:18141
       redirect_uri=${origin}/oauth/callback
+      resource=https://api.egon.internal/local/platform/gateway-admin
       ;;
     ddc-admin-web)
       origin=http://127.0.0.1:18152
       redirect_uri=${origin}/oauth/callback
+      resource=https://api.egon.internal/local/platform/ddc
       ;;
     mock-backend)
       origin=
       redirect_uri=http://127.0.0.1:18161/oauth/callback
+      resource=https://api.egon.internal/local/identity/mock-backend
       ;;
     *) fail "unknown local OAuth client: ${client_id}" ;;
   esac
+  if [[ -n "${resource_override}" ]]; then
+    resource="${resource_override}"
+  fi
   verifier="$(openssl rand -base64 48 | tr '+/' '-_' | tr -d '=\n')"
   challenge="$(printf '%s' "${verifier}" | openssl dgst -binary -sha256 | base64url)"
   state="$(openssl rand -hex 16)"
@@ -754,7 +964,7 @@ oauth_token() {
     -b "${runtime_dir}/browser.cookies" -G "${idp_url}/oauth2/authorize" \
     --data-urlencode response_type=code --data-urlencode "client_id=${client_id}" \
     --data-urlencode "redirect_uri=${redirect_uri}" --data-urlencode "tenant_id=${tenant_id}" \
-    --data-urlencode "audience=${client_id}" \
+    --data-urlencode "resource=${resource}" \
     --data-urlencode "state=${state}" --data-urlencode "nonce=${state}" \
     --data-urlencode "code_challenge=${challenge}" \
     --data-urlencode code_challenge_method=S256)"
@@ -775,6 +985,7 @@ oauth_token() {
     --data-urlencode grant_type=authorization_code \
     --data-urlencode "client_id=${client_id}" --data-urlencode "code=${code}" \
     --data-urlencode "code_verifier=${verifier}" \
+    --data-urlencode "resource=${resource}" \
     --data-urlencode "redirect_uri=${redirect_uri}" "${idp_url}/oauth2/token")"
   [[ "${status}" == "200" ]] || fail \
     "IdP token exchange failed with HTTP ${status}: $(<"${runtime_dir}/token.response")"
@@ -786,6 +997,25 @@ oauth_token() {
   response="$(<"${runtime_dir}/token.response")"
   jq -er '.access_token' <<<"${response}" >"${output}"
   chmod 600 "${output}"
+}
+
+command_issue_user_token() {
+  local client_id="${UNIFIED_IDENTITY_OAUTH_CLIENT_ID:-}"
+  local tenant="${UNIFIED_IDENTITY_OAUTH_TENANT:-}"
+  local resource="${UNIFIED_IDENTITY_OAUTH_RESOURCE_URI:-}"
+  local output="${UNIFIED_IDENTITY_OAUTH_TOKEN_FILE:-}"
+  process_running idp || fail "idp is not running; run start first"
+  process_running rbac3 || fail "rbac3 is not running; run start first"
+  [[ -n "${client_id}" ]] || fail \
+    "UNIFIED_IDENTITY_OAUTH_CLIENT_ID is required"
+  [[ -n "${tenant}" ]] || fail \
+    "UNIFIED_IDENTITY_OAUTH_TENANT is required"
+  [[ "${resource}" =~ ^https?:// ]] || fail \
+    "UNIFIED_IDENTITY_OAUTH_RESOURCE_URI must be an absolute HTTP URI"
+  [[ -n "${output}" ]] || fail \
+    "UNIFIED_IDENTITY_OAUTH_TOKEN_FILE is required"
+  [[ -s "${runtime_dir}/browser.cookies" ]] || oauth_login
+  oauth_token "${client_id}" "${tenant}" "${output}" "${resource}"
 }
 
 activate_roles() {
@@ -805,7 +1035,11 @@ activate_roles() {
   if [[ "${include_mock}" == "true" ]]; then
     role_ids="$(jq -c '[.data.applications[].candidates[].rootRoleId] | unique' <<<"${candidates}")"
   else
-    role_ids="$(jq -c '[.data.applications[] | select(.applicationCode != "mock-backend") | .candidates[].rootRoleId] | unique' <<<"${candidates}")"
+    role_ids="$(jq -c '[.data.applications[] as $application
+      | $application.candidates[]
+      | select($application.applicationCode != "mock-backend"
+          or .rootRoleCode == "MOCK_LOCAL_ENTRY")
+      | .rootRoleId] | unique' <<<"${candidates}")"
   fi
   [[ "$(jq 'length' <<<"${role_ids}")" -gt 0 ]] || fail "RBAC3 returned no activation candidates"
   version="$(jq -er '.data.sessionVersion' <<<"${current}")"
@@ -858,23 +1092,7 @@ ddc_api() {
 }
 
 initialize_ddc_topology() {
-  local response app_code
-  response="$(ddc_api GET '/api/v1/ddc/bizs?keyword=identity')"
-  if ! jq -e '.data[] | select(.bizCode == "identity")' \
-      <<<"${response}" >/dev/null; then
-    ddc_api POST /api/v1/ddc/bizs \
-      '{"bizCode":"identity","bizName":"Unified Identity","description":"Host-local unified identity verification","enabled":true}' \
-      >/dev/null
-  fi
-
-  response="$(ddc_api GET '/api/v1/ddc/namespaces?bizCode=identity&keyword=default')"
-  if ! jq -e '.data[] | select(.bizCode == "identity" and .namespaceCode == "default")' \
-      <<<"${response}" >/dev/null; then
-    ddc_api POST /api/v1/ddc/namespaces \
-      '{"bizCode":"identity","namespaceCode":"default","namespace":"Default","description":"Host-local unified identity verification","enabled":true}' \
-      >/dev/null
-  fi
-
+  local response biz_code biz_name app_code
   response="$(ddc_api GET '/api/v1/ddc/envs?keyword=local')"
   if ! jq -e '.data[] | select(.envCode == "local")' \
       <<<"${response}" >/dev/null; then
@@ -883,41 +1101,72 @@ initialize_ddc_topology() {
       >/dev/null
   fi
 
-  for app_code in \
-      idp-admin rbac3-admin mock-backend \
-      gateway-engine-default gateway-test-mcp-provider; do
-    response="$(ddc_api GET "/api/v1/ddc/apps?bizCode=identity&keyword=${app_code}")"
-    if ! jq -e --arg app "${app_code}" \
-        '.data[] | select(.bizCode == "identity" and .appCode == $app)' \
-        <<<"${response}" >/dev/null; then
-      ddc_api POST /api/v1/ddc/apps \
-        "$(jq -cn --arg app "${app_code}" \
-          '{bizCode:"identity",appCode:$app,appName:$app,owner:"platform",description:"Host-local unified identity verification",enabled:true}')" \
+  while read -r biz_code biz_name; do
+    response="$(ddc_api GET "/api/v1/ddc/bizs?keyword=${biz_code}")"
+    if ! jq -e --arg biz "${biz_code}" \
+        '.data[] | select(.bizCode == $biz)' <<<"${response}" >/dev/null; then
+      ddc_api POST /api/v1/ddc/bizs \
+        "$(jq -cn --arg biz "${biz_code}" --arg name "${biz_name}" \
+          '{bizCode:$biz,bizName:$name,description:"Host-local OAuth2 resource topology",enabled:true}')" \
         >/dev/null
     fi
-    response="$(ddc_api GET "/api/v1/ddc/namespace-env-app-bindings?bizCode=identity&namespaceCode=default&env=local&appCode=${app_code}")"
+    response="$(ddc_api GET "/api/v1/ddc/namespaces?bizCode=${biz_code}&keyword=default")"
+    if ! jq -e --arg biz "${biz_code}" \
+        '.data[] | select(.bizCode == $biz and .namespaceCode == "default")' \
+        <<<"${response}" >/dev/null; then
+      ddc_api POST /api/v1/ddc/namespaces \
+        "$(jq -cn --arg biz "${biz_code}" \
+          '{bizCode:$biz,namespaceCode:"default",namespace:"Default",description:"Host-local OAuth2 resource topology",enabled:true}')" \
+        >/dev/null
+    fi
+  done <<'BUSINESSES'
+permission Permission
+platform Platform
+identity Identity
+BUSINESSES
+
+  while read -r biz_code app_code; do
+    response="$(ddc_api GET "/api/v1/ddc/apps?bizCode=${biz_code}&keyword=${app_code}")"
+    if ! jq -e --arg app "${app_code}" \
+        --arg biz "${biz_code}" \
+        '.data[] | select(.bizCode == $biz and .appCode == $app)' \
+        <<<"${response}" >/dev/null; then
+      ddc_api POST /api/v1/ddc/apps \
+        "$(jq -cn --arg biz "${biz_code}" --arg app "${app_code}" \
+          '{bizCode:$biz,appCode:$app,appName:$app,owner:"platform",description:"Host-local OAuth2 resource topology",enabled:true}')" \
+        >/dev/null
+    fi
+    response="$(ddc_api GET "/api/v1/ddc/namespace-env-app-bindings?bizCode=${biz_code}&namespaceCode=default&env=local&appCode=${app_code}")"
     if ! jq -e '.data[] | select(.enabled == true)' \
         <<<"${response}" >/dev/null; then
       ddc_api POST /api/v1/ddc/namespace-env-app-bindings \
-        "$(jq -cn --arg app "${app_code}" \
-          '{bizCode:"identity",namespaceCode:"default",env:"local",appCode:$app,enabled:true}')" \
+        "$(jq -cn --arg biz "${biz_code}" --arg app "${app_code}" \
+          '{bizCode:$biz,namespaceCode:"default",env:"local",appCode:$app,enabled:true}')" \
         >/dev/null
     fi
-  done
+  done <<'APPLICATIONS'
+permission idp
+permission rbac3
+platform ddc
+platform gateway-admin
+identity mock-backend
+identity gateway-engine-default
+identity gateway-test-mcp-provider
+APPLICATIONS
 }
 
 wait_ddc_provider_registration() {
-  local app_code="$1" response
+  local biz_code="$1" app_code="$2" service_name="$3" response
   for ((attempt = 1; attempt <= 30; attempt++)); do
     response="$(ddc_api GET \
-      "/api/v1/ddc/registry/services?bizCode=identity&namespaceCode=default&env=local&appCode=${app_code}&serviceKind=HTTP_PROVIDER&protocol=http&serviceName=${app_code}&group=default")"
-    if jq -e --arg app "${app_code}" '
+      "/api/v1/ddc/registry/services?bizCode=${biz_code}&namespaceCode=default&env=local&appCode=${app_code}&serviceKind=HTTP_PROVIDER&protocol=http&serviceName=${service_name}&group=default")"
+    if jq -e --arg app "${app_code}" --arg service "${service_name}" '
         .data.services[]
         | select(
             .appCode == $app
             and .serviceKind == "HTTP_PROVIDER"
             and .protocol == "http"
-            and .serviceName == $app
+            and .serviceName == $service
             and .group == "default"
           )
       ' <<<"${response}" >/dev/null; then
@@ -925,7 +1174,7 @@ wait_ddc_provider_registration() {
     fi
     sleep 1
   done
-  fail "${app_code} did not register an online DDC HTTP Provider lease"
+  fail "${biz_code}/${app_code} did not register an online DDC HTTP Provider lease"
 }
 
 initialize_gateway_control_plane() {
@@ -974,6 +1223,7 @@ wait_gateway_catalog() {
 }
 
 publish_gateway_routes() {
+  local defer_release="${1:-false}"
   local app_id group_id catalog draft revision route operation_id response validation release
   app_id="$(<"${runtime_dir}/gateway-application.id")"
   group_id="$(<"${runtime_dir}/gateway-group.id")"
@@ -1021,6 +1271,9 @@ publish_gateway_routes() {
   validation="$(gateway_api POST "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/validate" '{}')"
   jq -e '.valid == true' <<<"${validation}" >/dev/null \
     || fail "Gateway draft validation failed: ${validation}"
+  if [[ "${defer_release}" == "true" ]]; then
+    return
+  fi
   release="$(gateway_api POST "/api/v1/gateway/admin/gateway-groups/${group_id}/releases" \
     "$(jq -cn --argjson revision "${revision}" \
       '{expectedDraftRevision:$revision,changeReason:"Unified identity local release"}')")"
@@ -1045,26 +1298,55 @@ wait_gateway_route() {
 
 command_start() {
   command_prepare
-  local idp_argument subject
+  local idp_argument subject tenant_b_id
   stage "starting DDC"
   start_process ddc "${env_dir}/ddc.env" "${ddc_jar}"
   wait_http ddc "${ddc_url}/actuator/health/readiness"
 
-  stage "starting IdP"
+  stage "starting IdP bootstrap phase without DDC publication"
   idp_argument="$(bootstrap_idp_argument)"
   if [[ -n "${idp_argument}" ]]; then
-    start_process idp "${env_dir}/idp.env" "${idp_jar}" "${idp_argument}"
+    start_process idp "${env_dir}/idp.env" "${idp_jar}" \
+      --egon.cola.component.ddc.enabled=false \
+      --egon.cola.component.ddc.registry.enabled=false \
+      --egon.cola.component.ddc.registry.http.enabled=false \
+      "${idp_argument}"
   else
-    start_process idp "${env_dir}/idp.env" "${idp_jar}"
+    start_process idp "${env_dir}/idp.env" "${idp_jar}" \
+      --egon.cola.component.ddc.enabled=false \
+      --egon.cola.component.ddc.registry.enabled=false \
+      --egon.cola.component.ddc.registry.http.enabled=false
   fi
   wait_http idp "${idp_url}/actuator/health/readiness"
+  stage "issuing IdP-owned service credentials"
+  refresh_service_tokens
   subject="$(identity_subject)"
   [[ -n "${subject}" ]] || fail "IdP bootstrap subject is missing"
 
-  stage "starting RBAC3 and unified tenant topology"
+  stage "starting RBAC3 bootstrap phase without DDC publication"
   write_env "${env_dir}/rbac3.env" RBAC3_DEVELOPMENT_IDENTITY_SUB "${subject}"
-  start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}"
+  start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}" \
+    --egon.cola.component.ddc.enabled=false \
+    --egon.cola.component.ddc.registry.enabled=false \
+    --egon.cola.component.ddc.registry.http.enabled=false
   wait_http rbac3 "${rbac3_url}/actuator/health/readiness"
+
+  service_tenant_id="$(rbac3_tenant_id default)"
+  tenant_b_id="$(rbac3_tenant_id tenant-b)"
+  write_env "${env_dir}/idp.env" IDP_RBAC3_SERVICE_TENANT_ID \
+    "${service_tenant_id}"
+  write_env "${env_dir}/idp.env" IDP_DEVELOPMENT_RBAC3_SERVICE_TENANT_ID \
+    "${service_tenant_id}"
+  write_env "${env_dir}/idp.env" IDP_DEVELOPMENT_RBAC3_SERVICE_TENANT_IDS \
+    "${service_tenant_id},${tenant_b_id}"
+  stage "binding IdP service credentials to the RBAC3 tenant"
+  stop_process idp
+  start_process idp "${env_dir}/idp.env" "${idp_jar}" \
+    --egon.cola.component.ddc.enabled=false \
+    --egon.cola.component.ddc.registry.enabled=false \
+    --egon.cola.component.ddc.registry.http.enabled=false
+  wait_http idp "${idp_url}/actuator/health/readiness"
+  refresh_service_tokens
 
   stage "establishing IdP SSO session"
   oauth_login
@@ -1075,8 +1357,23 @@ command_start() {
   stage "initializing DDC unified identity topology"
   oauth_token ddc-admin-web default "${secret_dir}/ddc-admin.access.jwt"
   initialize_ddc_topology
-  wait_ddc_provider_registration idp-admin
-  wait_ddc_provider_registration rbac3-admin
+
+  stage "restarting IdP and RBAC3 with admitted DDC publication"
+  stop_process rbac3
+  stop_process idp
+  start_process idp "${env_dir}/idp.env" "${idp_jar}"
+  wait_http idp "${idp_url}/actuator/health/readiness"
+  refresh_service_tokens
+  start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}"
+  wait_http rbac3 "${rbac3_url}/actuator/health/readiness"
+
+  stage "restoring the local SSO and RBAC3 activation context"
+  oauth_login
+  oauth_token rbac3-admin-web default "${secret_dir}/rbac3-default.access.jwt"
+  activate_roles "${secret_dir}/rbac3-default.access.jwt" false
+  oauth_token ddc-admin-web default "${secret_dir}/ddc-admin.access.jwt"
+  wait_ddc_provider_registration permission idp idp-admin
+  wait_ddc_provider_registration permission rbac3 rbac3-admin
   stage "starting Gateway Engine DDC client"
   start_process gateway-engine "${env_dir}/gateway-engine.env" "${gateway_engine_jar}"
   wait_http gateway-engine http://127.0.0.1:18182/actuator/health/readiness
@@ -1093,7 +1390,8 @@ command_start() {
   wait_http mock-backend "${mock_url}/actuator/health/readiness"
   wait_gateway_catalog
   if [[ "${UNIFIED_IDENTITY_DEFER_GATEWAY_RELEASE:-false}" == "true" ]]; then
-    stage "deferring Gateway release to the unified platform publisher"
+    stage "preparing Gateway routes for the unified platform publisher"
+    publish_gateway_routes true
   else
     publish_gateway_routes
     wait_gateway_route
@@ -1104,7 +1402,10 @@ command_start() {
 command_refresh_tokens() {
   process_running idp || fail "idp is not running; run start first"
   process_running rbac3 || fail "rbac3 is not running; run start first"
+  service_tenant_id="$(rbac3_tenant_id default)"
 
+  stage "refreshing IdP-owned service credentials"
+  refresh_service_tokens
   stage "refreshing local OAuth SSO session"
   oauth_login
   oauth_token idp-admin-web default "${secret_dir}/idp-admin.access.jwt"
@@ -1137,6 +1438,8 @@ refresh_replay_check() {
     -b "${runtime_dir}/browser.cookies" -X POST \
     -H 'Content-Type: application/x-www-form-urlencoded' \
     --data-urlencode grant_type=refresh_token --data-urlencode client_id=mock-backend \
+    --data-urlencode \
+      resource=https://api.egon.internal/local/identity/mock-backend \
     "${idp_url}/oauth2/token")"
   [[ "${first_status}" == "200" ]] || fail \
     "initial refresh failed with HTTP ${first_status}: $(<"${first_response}")"
@@ -1144,6 +1447,8 @@ refresh_replay_check() {
   replay_status="$(curl -sS -o "${runtime_dir}/refresh-replay.response" -w '%{http_code}' \
     -b "${old_cookie}" -X POST -H 'Content-Type: application/x-www-form-urlencoded' \
     --data-urlencode grant_type=refresh_token --data-urlencode client_id=mock-backend \
+    --data-urlencode \
+      resource=https://api.egon.internal/local/identity/mock-backend \
     "${idp_url}/oauth2/token")"
   [[ "${replay_status}" == "400" ]] || fail "refresh replay was not rejected"
   cp "${secret_dir}/pre-replay.access.jwt" "${secret_dir}/revoked.access.jwt"
@@ -1309,6 +1614,7 @@ case "${1:---help}" in
   prepare) command_prepare ;;
   start) command_start ;;
   refresh-tokens) command_refresh_tokens ;;
+  issue-user-token) command_issue_user_token ;;
   verify) command_verify ;;
   status) command_status ;;
   stop) command_stop ;;
