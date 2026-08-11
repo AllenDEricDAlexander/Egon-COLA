@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionTestFixture.claims;
 import static org.awaitility.Awaitility.await;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -119,7 +120,7 @@ class DdcRedisClusterIT {
                 "demo", "test", "default", "switch"
         )).isEqualTo(1L);
 
-        leases.register(identity, session, NOW);
+        leases.register(identity, session, NOW, claims(NOW.plusSeconds(5)));
         assertThat(leases.activeTargets(
                 "demo", "test", "default", NOW
         )).hasSize(1);
@@ -147,7 +148,11 @@ class DdcRedisClusterIT {
         assertThat(registry.getInstances(instance.serviceKey(), NOW).instances())
                 .extracting(DdcServiceInstance::instanceId)
                 .containsExactly(instance.instanceId());
-        assertThat(registry.heartbeat(serviceLease(instance), NOW.plusSeconds(1)).status())
+        assertThat(registry.heartbeat(
+                serviceLease(instance),
+                claims(NOW.plusSeconds(60)),
+                NOW.plusSeconds(1)
+        ).status())
                 .isEqualTo(DdcLeaseOperationStatus.RENEWED);
         assertThat(registry.deregister(serviceLease(instance), NOW.plusSeconds(2)).status())
                 .isEqualTo(DdcLeaseOperationStatus.DELETED);
@@ -226,7 +231,7 @@ class DdcRedisClusterIT {
                 "provider-1", "service-lease-1", serviceKey,
                 "127.0.0.1", 19090, false, Map.of("zone", "east"),
                 30, 10, NOW, NOW, NOW.plusSeconds(30), "ONLINE", 0L,
-                null, null, null, null
+                "resource-1", 7L, "credential-1", NOW.plusSeconds(60)
         );
     }
 

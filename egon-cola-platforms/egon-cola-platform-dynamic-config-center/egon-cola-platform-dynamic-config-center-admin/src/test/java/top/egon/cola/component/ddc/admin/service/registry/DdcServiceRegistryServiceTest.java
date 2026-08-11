@@ -1,12 +1,18 @@
 package top.egon.cola.component.ddc.admin.service.registry;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import top.egon.cola.component.ddc.admin.repository.DdcServiceRegistryRedisRepository;
+import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionException;
+import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionVerifier;
 import top.egon.cola.component.ddc.admin.service.lease.DdcLeaseValidator;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
+import top.egon.cola.component.ddc.error.DdcErrorStatus;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
+import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
+import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
@@ -23,6 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionTestFixture.verifier;
 
 class DdcServiceRegistryServiceTest {
 
@@ -44,7 +51,20 @@ class DdcServiceRegistryServiceTest {
         assertThat(first.leaseId()).isEqualTo("lease-1");
         assertThat(second.leaseId()).isEqualTo("lease-2");
         assertThat(second.leaseId()).isNotEqualTo(first.leaseId());
-        verify(repository, org.mockito.Mockito.times(2)).register(any());
+        assertThat(first.leaseExpireAt()).isEqualTo(NOW.plusSeconds(20));
+        ArgumentCaptor<DdcServiceInstance> instances = ArgumentCaptor.forClass(
+                DdcServiceInstance.class
+        );
+        verify(repository, org.mockito.Mockito.times(2)).register(
+                instances.capture()
+        );
+        assertThat(instances.getAllValues()).allSatisfy(instance -> {
+            assertThat(instance.resourceServerId()).isEqualTo("resource-1");
+            assertThat(instance.resourceVersion()).isEqualTo(7L);
+            assertThat(instance.credentialId()).isEqualTo("credential-1");
+            assertThat(instance.admissionExpiresAt())
+                    .isEqualTo(NOW.plusSeconds(20));
+        });
     }
 
     @Test
@@ -63,7 +83,7 @@ class DdcServiceRegistryServiceTest {
                 mock(DdcServiceRegistryRedisRepository.class);
         DdcServiceRegistryService service = service(repository, () -> "lease-1");
         DdcLeaseSession session = service.register(registration(Map.of()));
-        when(repository.heartbeat(any(), any())).thenReturn(new DdcLeaseOperationResult(
+        when(repository.heartbeat(any(), any(), any())).thenReturn(new DdcLeaseOperationResult(
                 DdcLeaseOperationStatus.LEASE_MISMATCH,
                 null
         ));
@@ -80,12 +100,56 @@ class DdcServiceRegistryServiceTest {
                 .isEqualTo(DdcLeaseOperationStatus.NOT_DELETED);
     }
 
+    @Test
+    void admissionFailureBlocksProviderRegistrationAndHeartbeat() {
+        DdcServiceRegistryRedisRepository repository = mock(
+                DdcServiceRegistryRedisRepository.class
+        );
+        DdcAdmissionVerifier rejecting = (ticket, biz, app, env, instance) -> {
+            throw new DdcAdmissionException(
+                    DdcErrorStatus.RESOURCE_ADMISSION_INVALID
+            );
+        };
+        DdcServiceRegistryService service = service(
+                repository,
+                () -> "lease-1",
+                rejecting
+        );
+        DdcServiceRegistration registration = registration(Map.of());
+
+        assertThatThrownBy(() -> service.register(registration))
+                .isInstanceOf(DdcAdmissionException.class);
+        DdcServiceLeaseRequest request = new DdcServiceLeaseRequest();
+        request.setServiceKey(registration.serviceKey());
+        request.setInstanceId(registration.instanceId());
+        request.setLeaseId("lease-1");
+        request.setAdmissionTicket(registration.admissionTicket());
+        assertThatThrownBy(() -> service.heartbeat(request))
+                .isInstanceOf(DdcAdmissionException.class);
+        verify(repository, org.mockito.Mockito.never()).register(any());
+        verify(repository, org.mockito.Mockito.never())
+                .heartbeat(any(), any(), any());
+    }
+
     private DdcServiceRegistryService service(DdcServiceRegistryRedisRepository repository,
                                               java.util.function.Supplier<String> leaseIds) {
+        return service(
+                repository,
+                leaseIds,
+                verifier(NOW.plusSeconds(20))
+        );
+    }
+
+    private DdcServiceRegistryService service(
+            DdcServiceRegistryRedisRepository repository,
+            java.util.function.Supplier<String> leaseIds,
+            DdcAdmissionVerifier admissionVerifier
+    ) {
         return new DdcServiceRegistryService(
                 repository,
                 new DdcLeaseValidator(),
                 mock(DdcScopeGate.class),
+                admissionVerifier,
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 leaseIds
         );

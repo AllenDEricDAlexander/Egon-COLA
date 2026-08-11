@@ -2,6 +2,8 @@ package top.egon.cola.component.ddc.admin.service.lease;
 
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigLeaseRedisRepository;
+import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionClaims;
+import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionVerifier;
 import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.config.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.config.DdcPublishTarget;
@@ -21,27 +23,49 @@ public class DdcConfigLeaseService {
 
     private final DdcLeaseValidator validator;
 
+    private final DdcAdmissionVerifier admissionVerifier;
+
     private final Clock clock;
 
     private final Supplier<String> leaseIdSupplier;
 
     public DdcConfigLeaseService(DdcConfigLeaseRedisRepository repository,
-                                 DdcLeaseValidator validator) {
-        this(repository, validator, Clock.systemUTC(), UuidV7::simpleString);
+                                 DdcLeaseValidator validator,
+                                 DdcAdmissionVerifier admissionVerifier) {
+        this(
+                repository,
+                validator,
+                admissionVerifier,
+                Clock.systemUTC(),
+                UuidV7::simpleString
+        );
     }
 
     DdcConfigLeaseService(DdcConfigLeaseRedisRepository repository,
                           DdcLeaseValidator validator,
+                          DdcAdmissionVerifier admissionVerifier,
                           Clock clock,
                           Supplier<String> leaseIdSupplier) {
         this.repository = repository;
         this.validator = validator;
+        this.admissionVerifier = admissionVerifier;
         this.clock = clock;
         this.leaseIdSupplier = leaseIdSupplier;
     }
 
     public DdcLeaseSession register(DdcInstanceRegisterRequest request) {
+        return registerAdmitted(request).session();
+    }
+
+    AdmittedRegistration registerAdmitted(DdcInstanceRegisterRequest request) {
         validator.validateRegistration(request);
+        DdcAdmissionClaims admission = admissionVerifier.verify(
+                request.getAdmissionTicket(),
+                request.getBizCode(),
+                request.getAppCode(),
+                request.getEnv(),
+                request.getInstanceId()
+        );
         Instant registeredAt = clock.instant();
         DdcLeaseSession session = new DdcLeaseSession(
                 request.getInstanceId(),
@@ -50,15 +74,35 @@ public class DdcConfigLeaseService {
                 request.getLeaseSeconds(),
                 request.getHeartbeatIntervalSeconds(),
                 registeredAt,
-                registeredAt.plusSeconds(request.getLeaseSeconds())
+                validator.capLeaseExpireAt(
+                        registeredAt,
+                        request.getLeaseSeconds(),
+                        admission
+                )
         );
-        repository.register(identity(request), session, registeredAt);
-        return session;
+        repository.register(identity(request), session, registeredAt, admission);
+        return new AdmittedRegistration(session, admission);
     }
 
     public DdcLeaseOperationResult heartbeat(DdcHeartbeatRequest request) {
+        return heartbeatAdmitted(request).result();
+    }
+
+    AdmittedHeartbeat heartbeatAdmitted(DdcHeartbeatRequest request) {
         validator.validateOperation(request);
-        return repository.heartbeat(request, clock.instant());
+        DdcAdmissionClaims admission = admissionVerifier.verify(
+                request.getAdmissionTicket(),
+                request.getBizCode(),
+                request.getAppCode(),
+                request.getEnv(),
+                request.getInstanceId()
+        );
+        DdcLeaseOperationResult result = repository.heartbeat(
+                request,
+                admission,
+                clock.instant()
+        );
+        return new AdmittedHeartbeat(result, admission);
     }
 
     public DdcLeaseOperationResult deregister(DdcHeartbeatRequest request) {
@@ -98,5 +142,17 @@ public class DdcConfigLeaseService {
                 request.getPid(),
                 request.getSdkVersion()
         );
+    }
+
+    record AdmittedRegistration(
+            DdcLeaseSession session,
+            DdcAdmissionClaims admission
+    ) {
+    }
+
+    record AdmittedHeartbeat(
+            DdcLeaseOperationResult result,
+            DdcAdmissionClaims admission
+    ) {
     }
 }

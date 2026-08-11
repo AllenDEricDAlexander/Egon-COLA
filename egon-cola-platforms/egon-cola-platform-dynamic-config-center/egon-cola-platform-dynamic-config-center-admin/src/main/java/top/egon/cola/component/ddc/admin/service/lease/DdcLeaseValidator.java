@@ -2,9 +2,15 @@ package top.egon.cola.component.ddc.admin.service.lease;
 
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
+import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionClaims;
+import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionException;
+import top.egon.cola.component.ddc.error.DdcErrorStatus;
 import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.config.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
+
+import java.time.Instant;
+import java.util.Objects;
 
 public class DdcLeaseValidator {
 
@@ -72,6 +78,36 @@ public class DdcLeaseValidator {
                 || registration.heartbeatIntervalSeconds() >= registration.leaseSeconds()) {
             throw invalid("heartbeatIntervalSeconds must be positive and less than leaseSeconds");
         }
+    }
+
+    /**
+     * 将租约到期时间限制在 Admission Ticket 到期时间以内。
+     *
+     * <p>Caps the lease expiration at the Admission Ticket expiration.</p>
+     *
+     * @param now 当前时间；current time
+     * @param requestedLeaseSeconds 请求租约秒数；requested lease duration in seconds
+     * @param admission 已验证准入声明；verified admission claims
+     * @return 请求租约与票据到期时间中的较早者；earlier of the requested lease and ticket
+     * expiration
+     * @throws DdcAdmissionException 票据在租约建立前已经到期时抛出；if the ticket has already
+     * expired before the lease can be established
+     */
+    public Instant capLeaseExpireAt(
+            Instant now,
+            int requestedLeaseSeconds,
+            DdcAdmissionClaims admission
+    ) {
+        Objects.requireNonNull(now, "now");
+        Objects.requireNonNull(admission, "admission");
+        if (!admission.expiresAt().isAfter(now)) {
+            throw new DdcAdmissionException(
+                    DdcErrorStatus.RESOURCE_ADMISSION_EXPIRED
+            );
+        }
+        Instant requested = now.plusSeconds(requestedLeaseSeconds);
+        return requested.isBefore(admission.expiresAt())
+                ? requested : admission.expiresAt();
     }
 
     private void validateIdentity(

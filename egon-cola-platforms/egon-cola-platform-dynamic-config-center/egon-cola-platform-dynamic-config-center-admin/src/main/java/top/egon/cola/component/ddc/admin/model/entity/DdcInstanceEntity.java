@@ -48,6 +48,22 @@ public class DdcInstanceEntity {
     @Column(name = "lease_expire_at")
     private LocalDateTime leaseExpireAt;
 
+    /** IdP Resource Server 稳定标识；stable IdP Resource Server identifier. */
+    @Column(name = "resource_server_id", length = 128)
+    private String resourceServerId;
+
+    /** 准入时确认的 Resource 当前版本；current Resource version verified at admission. */
+    @Column(name = "resource_version")
+    private Long resourceVersion;
+
+    /** 签发准入票据所用公钥凭据标识；public credential identifier used to issue admission. */
+    @Column(name = "credential_id", length = 128)
+    private String credentialId;
+
+    /** 最近一次验票确认的 Admission Ticket 到期时间；last verified Admission Ticket expiry. */
+    @Column(name = "admission_expires_at")
+    private LocalDateTime admissionExpiresAt;
+
     private String status;
 
     @Column(name = "last_heartbeat_at")

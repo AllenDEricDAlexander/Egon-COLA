@@ -3,6 +3,9 @@ package top.egon.cola.component.ddc.admin.service.lease;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigLeaseRedisRepository;
+import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionException;
+import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionVerifier;
+import top.egon.cola.component.ddc.error.DdcErrorStatus;
 import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.config.DdcInstanceRegisterRequest;
 import top.egon.cola.component.ddc.model.config.DdcPublishTarget;
@@ -20,12 +23,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionTestFixture.verifier;
 
 class DdcConfigLeaseServiceTest {
 
@@ -39,8 +44,8 @@ class DdcConfigLeaseServiceTest {
             DdcLeaseSession session = invocation.getArgument(1);
             currentLeaseId.set(session.leaseId());
             return null;
-        }).when(repository).register(any(), any(), any());
-        when(repository.heartbeat(any(), any())).thenAnswer(invocation -> {
+        }).when(repository).register(any(), any(), any(), any());
+        when(repository.heartbeat(any(), any(), any())).thenAnswer(invocation -> {
             DdcHeartbeatRequest request = invocation.getArgument(0);
             return request.getLeaseId().equals(currentLeaseId.get())
                     ? new DdcLeaseOperationResult(DdcLeaseOperationStatus.RENEWED, NOW.plusSeconds(30))
@@ -64,16 +69,16 @@ class DdcConfigLeaseServiceTest {
         DdcHeartbeatRequest request = heartbeatRequest("lease-1");
         DdcLeaseOperationResult renewed =
                 new DdcLeaseOperationResult(DdcLeaseOperationStatus.RENEWED, NOW.plusSeconds(30));
-        when(repository.heartbeat(request, NOW)).thenReturn(renewed);
+        when(repository.heartbeat(eq(request), any(), eq(NOW))).thenReturn(renewed);
         DdcConfigLeaseService service = service(repository);
 
         assertThat(service.heartbeat(request)).isEqualTo(renewed);
 
         DdcHeartbeatRequest missing = heartbeatRequest("missing");
-        when(repository.heartbeat(missing, NOW))
+        when(repository.heartbeat(eq(missing), any(), eq(NOW)))
                 .thenReturn(new DdcLeaseOperationResult(DdcLeaseOperationStatus.NOT_FOUND, null));
         assertThat(service.heartbeat(missing).status()).isEqualTo(DdcLeaseOperationStatus.NOT_FOUND);
-        verify(repository, never()).register(any(), any(), any());
+        verify(repository, never()).register(any(), any(), any(), any());
     }
 
     @Test
@@ -107,6 +112,38 @@ class DdcConfigLeaseServiceTest {
     }
 
     @Test
+    void capsRegistrationLeaseAtAdmissionExpiry() {
+        DdcConfigLeaseRedisRepository repository = mock(
+                DdcConfigLeaseRedisRepository.class
+        );
+        DdcConfigLeaseService service = service(repository);
+
+        DdcLeaseSession session = service.register(registerRequest());
+
+        assertThat(session.leaseExpireAt()).isEqualTo(NOW.plusSeconds(25));
+        verify(repository).register(any(), eq(session), eq(NOW), any());
+    }
+
+    @Test
+    void admissionFailureBlocksRegistrationAndHeartbeatBeforeRedis() {
+        DdcConfigLeaseRedisRepository repository = mock(
+                DdcConfigLeaseRedisRepository.class
+        );
+        DdcAdmissionVerifier rejecting = (ticket, biz, app, env, instance) -> {
+            throw new DdcAdmissionException(
+                    DdcErrorStatus.RESOURCE_ADMISSION_INVALID
+            );
+        };
+        DdcConfigLeaseService service = service(repository, rejecting);
+
+        assertThatThrownBy(() -> service.register(registerRequest()))
+                .isInstanceOf(DdcAdmissionException.class);
+        assertThatThrownBy(() -> service.heartbeat(heartbeatRequest("lease-1")))
+                .isInstanceOf(DdcAdmissionException.class);
+        verifyNoInteractions(repository);
+    }
+
+    @Test
     void publishTargetsComeOnlyFromCurrentRedisLeases() {
         DdcConfigLeaseRedisRepository repository = mock(DdcConfigLeaseRedisRepository.class);
         when(repository.activeTargets("default", "dev", "demo", NOW))
@@ -120,10 +157,18 @@ class DdcConfigLeaseServiceTest {
     }
 
     private DdcConfigLeaseService service(DdcConfigLeaseRedisRepository repository) {
+        return service(repository, verifier(NOW.plusSeconds(25)));
+    }
+
+    private DdcConfigLeaseService service(
+            DdcConfigLeaseRedisRepository repository,
+            DdcAdmissionVerifier admissionVerifier
+    ) {
         AtomicInteger sequence = new AtomicInteger();
         return new DdcConfigLeaseService(
                 repository,
                 new DdcLeaseValidator(),
+                admissionVerifier,
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 () -> "lease-" + sequence.incrementAndGet()
         );
@@ -141,6 +186,7 @@ class DdcConfigLeaseServiceTest {
         request.setSdkVersion("5.2.3");
         request.setLeaseSeconds(30);
         request.setHeartbeatIntervalSeconds(10);
+        request.setAdmissionTicket("test-admission-ticket");
         return request;
     }
 
@@ -151,6 +197,7 @@ class DdcConfigLeaseServiceTest {
         request.setBizCode("default");
         request.setAppCode("demo");
         request.setEnv("dev");
+        request.setAdmissionTicket("test-admission-ticket");
         return request;
     }
 }

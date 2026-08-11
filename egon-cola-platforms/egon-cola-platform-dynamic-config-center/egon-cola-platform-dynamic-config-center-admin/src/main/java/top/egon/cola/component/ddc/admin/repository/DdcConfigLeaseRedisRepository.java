@@ -9,6 +9,9 @@ import org.redisson.api.RLock;
 import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
+import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionClaims;
+import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionException;
+import top.egon.cola.component.ddc.error.DdcErrorStatus;
 import top.egon.cola.component.ddc.redis.DdcRedisKeys;
 import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.config.DdcPublishTarget;
@@ -40,13 +43,14 @@ public class DdcConfigLeaseRedisRepository {
 
     public void register(DdcInstanceIdentity identity,
                          DdcLeaseSession session,
-                         Instant lastHeartbeatAt) {
+                         Instant lastHeartbeatAt,
+                         DdcAdmissionClaims admission) {
         RLock lock = scopeLock(identity.bizCode(), identity.env(), identity.appCode());
         lock.lock();
         try {
             lease(identity.bizCode(), identity.env(), identity.appCode(), identity.instanceId())
-                    .set(toJson(identity, session, lastHeartbeatAt),
-                            Duration.ofSeconds(session.leaseSeconds()));
+                    .set(toJson(identity, session, lastHeartbeatAt, admission),
+                            ttl(lastHeartbeatAt, session.leaseExpireAt()));
             instances(identity.bizCode(), identity.env(), identity.appCode())
                     .add(identity.instanceId());
         } finally {
@@ -54,7 +58,10 @@ public class DdcConfigLeaseRedisRepository {
         }
     }
 
-    public DdcLeaseOperationResult heartbeat(DdcHeartbeatRequest request, Instant heartbeatAt) {
+    public DdcLeaseOperationResult heartbeat(
+            DdcHeartbeatRequest request,
+            DdcAdmissionClaims admission,
+            Instant heartbeatAt) {
         RLock lock = scopeLock(request.getBizCode(), request.getEnv(), request.getAppCode());
         lock.lock();
         try {
@@ -66,14 +73,24 @@ public class DdcConfigLeaseRedisRepository {
             if (!sameIdentity(current, request.getInstanceId(), request.getLeaseId())) {
                 return new DdcLeaseOperationResult(DdcLeaseOperationStatus.LEASE_MISMATCH, null);
             }
+            if (!sameAdmissionResource(current, admission)) {
+                throw new DdcAdmissionException(
+                        DdcErrorStatus.RESOURCE_ADMISSION_BINDING_MISMATCH
+                );
+            }
             long leaseSeconds = current.path("leaseSeconds").asLong();
-            Instant leaseExpireAt = heartbeatAt.plusSeconds(leaseSeconds);
+            Instant requestedExpireAt = heartbeatAt.plusSeconds(leaseSeconds);
+            Instant leaseExpireAt = requestedExpireAt.isBefore(admission.expiresAt())
+                    ? requestedExpireAt : admission.expiresAt();
             ObjectNode renewed = (ObjectNode) current;
             renewed.put("lastHeartbeatAt", heartbeatAt.toEpochMilli());
             renewed.put("leaseExpireAt", leaseExpireAt.toEpochMilli());
+            renewed.put("resourceVersion", admission.resourceVersion());
+            renewed.put("credentialId", admission.credentialId());
+            renewed.put("admissionExpiresAt", admission.expiresAt().toEpochMilli());
             renewed.put("status", "ONLINE");
             lease(request.getBizCode(), request.getEnv(), request.getAppCode(), request.getInstanceId())
-                    .set(json(renewed), Duration.ofSeconds(leaseSeconds));
+                    .set(json(renewed), ttl(heartbeatAt, leaseExpireAt));
             instances(request.getBizCode(), request.getEnv(), request.getAppCode())
                     .add(request.getInstanceId());
             return new DdcLeaseOperationResult(DdcLeaseOperationStatus.RENEWED, leaseExpireAt);
@@ -194,7 +211,8 @@ public class DdcConfigLeaseRedisRepository {
 
     private String toJson(DdcInstanceIdentity identity,
                           DdcLeaseSession session,
-                          Instant lastHeartbeatAt) {
+                          Instant lastHeartbeatAt,
+                          DdcAdmissionClaims admission) {
         Map<String, Object> value = new LinkedHashMap<>();
         value.put("instanceId", identity.instanceId());
         value.put("leaseId", session.leaseId());
@@ -211,6 +229,10 @@ public class DdcConfigLeaseRedisRepository {
         value.put("registeredAt", session.registeredAt().toEpochMilli());
         value.put("lastHeartbeatAt", lastHeartbeatAt.toEpochMilli());
         value.put("leaseExpireAt", session.leaseExpireAt().toEpochMilli());
+        value.put("resourceServerId", admission.resourceServerId());
+        value.put("resourceVersion", admission.resourceVersion());
+        value.put("credentialId", admission.credentialId());
+        value.put("admissionExpiresAt", admission.expiresAt().toEpochMilli());
         value.put("status", "ONLINE");
         return json(value);
     }
@@ -235,6 +257,15 @@ public class DdcConfigLeaseRedisRepository {
                 && leaseId.equals(lease.path("leaseId").asText());
     }
 
+    private boolean sameAdmissionResource(
+            JsonNode lease,
+            DdcAdmissionClaims admission
+    ) {
+        return admission.resourceServerId().equals(
+                lease.path("resourceServerId").asText()
+        );
+    }
+
     private boolean isActive(JsonNode lease,
                              String bizCode,
                              String env,
@@ -249,7 +280,18 @@ public class DdcConfigLeaseRedisRepository {
                 && env.equals(lease.path("env").asText())
                 && "ONLINE".equals(lease.path("status").asText())
                 && lease.path("leaseExpireAt").canConvertToLong()
-                && lease.path("leaseExpireAt").asLong() > now.toEpochMilli();
+                && lease.path("leaseExpireAt").asLong() > now.toEpochMilli()
+                && lease.hasNonNull("resourceServerId")
+                && lease.path("resourceVersion").canConvertToLong()
+                && lease.path("resourceVersion").asLong() > 0
+                && lease.hasNonNull("credentialId")
+                && lease.path("admissionExpiresAt").canConvertToLong()
+                && lease.path("admissionExpiresAt").asLong() > now.toEpochMilli();
+    }
+
+    private Duration ttl(Instant now, Instant expiresAt) {
+        long seconds = Math.max(1L, Duration.between(now, expiresAt).toSeconds());
+        return Duration.ofSeconds(seconds);
     }
 
     private String json(Object value) {

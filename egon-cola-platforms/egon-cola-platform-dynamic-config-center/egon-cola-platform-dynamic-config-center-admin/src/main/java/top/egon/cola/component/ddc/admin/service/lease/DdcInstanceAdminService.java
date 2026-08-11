@@ -35,12 +35,15 @@ public class DdcInstanceAdminService {
 
     @Transactional
     public DdcLeaseSession register(DdcInstanceRegisterRequest request) {
-        DdcLeaseSession session = configLeaseService.register(request);
+        DdcConfigLeaseService.AdmittedRegistration admitted =
+                configLeaseService.registerAdmitted(request);
+        DdcLeaseSession session = admitted.session();
         DdcInstanceEntity instance = instanceRepository.findByInstanceId(request.getInstanceId())
                 .orElseGet(() -> newInstance(request));
         fillInstance(instance, request);
         instance.setLeaseId(session.leaseId());
         instance.setLeaseExpireAt(localTime(session.leaseExpireAt()));
+        fillAdmission(instance, admitted.admission());
         instance.setStatus(InstanceStatus.ONLINE.name());
         instance.setLastHeartbeatAt(LocalDateTime.now());
         instance.setUpdatedAt(LocalDateTime.now());
@@ -50,7 +53,9 @@ public class DdcInstanceAdminService {
 
     @Transactional
     public DdcLeaseOperationResult heartbeat(DdcHeartbeatRequest request) {
-        DdcLeaseOperationResult result = configLeaseService.heartbeat(request);
+        DdcConfigLeaseService.AdmittedHeartbeat admitted =
+                configLeaseService.heartbeatAdmitted(request);
+        DdcLeaseOperationResult result = admitted.result();
         if (result.renewed()) {
             instanceRepository.findByInstanceId(request.getInstanceId()).ifPresent(instance -> {
                 if (!request.getLeaseId().equals(instance.getLeaseId())) {
@@ -59,6 +64,7 @@ public class DdcInstanceAdminService {
                 instance.setStatus(InstanceStatus.ONLINE.name());
                 instance.setLastHeartbeatAt(LocalDateTime.now());
                 instance.setLeaseExpireAt(localTime(result.leaseExpireAt()));
+                fillAdmission(instance, admitted.admission());
                 instance.setRuntimeMetadata(request.getMetadata());
                 instance.setUpdatedAt(LocalDateTime.now());
                 instanceRepository.save(instance);
@@ -125,5 +131,15 @@ public class DdcInstanceAdminService {
         instance.setPid(request.getPid());
         instance.setSdkVersion(request.getSdkVersion());
         instance.setRuntimeMetadata(request.getMetadata());
+    }
+
+    private void fillAdmission(
+            DdcInstanceEntity instance,
+            top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionClaims admission
+    ) {
+        instance.setResourceServerId(admission.resourceServerId());
+        instance.setResourceVersion(admission.resourceVersion());
+        instance.setCredentialId(admission.credentialId());
+        instance.setAdmissionExpiresAt(localTime(admission.expiresAt()));
     }
 }

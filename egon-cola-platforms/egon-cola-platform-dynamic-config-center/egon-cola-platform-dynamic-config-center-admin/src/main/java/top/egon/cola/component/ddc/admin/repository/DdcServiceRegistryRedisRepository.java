@@ -12,6 +12,9 @@ import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
+import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionClaims;
+import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionException;
+import top.egon.cola.component.ddc.error.DdcErrorStatus;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
 import top.egon.cola.component.ddc.redis.DdcRedisKeys;
 import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
@@ -61,7 +64,7 @@ public class DdcServiceRegistryRedisRepository {
             long catalogRevision = addServiceCatalog(serviceKey);
             instanceBucket(serviceKey, instance.instanceId()).set(
                     instanceJson(instance, serviceRevision),
-                    Duration.ofSeconds(instance.leaseSeconds())
+                    ttl(instance.lastHeartbeatAt(), instance.leaseExpireAt())
             );
             serviceInstances(serviceKey).add(
                     instance.leaseExpireAt().toEpochMilli(), instance.instanceId());
@@ -73,8 +76,10 @@ public class DdcServiceRegistryRedisRepository {
         knownServiceKeys.add(serviceKey);
     }
 
-    public DdcLeaseOperationResult heartbeat(DdcServiceLeaseRequest request,
-                                             Instant heartbeatAt) {
+    public DdcLeaseOperationResult heartbeat(
+            DdcServiceLeaseRequest request,
+            DdcAdmissionClaims admission,
+            Instant heartbeatAt) {
         DdcServiceKey serviceKey = request.getServiceKey();
         RLock lock = serviceLock(serviceKey);
         lock.lock();
@@ -87,19 +92,28 @@ public class DdcServiceRegistryRedisRepository {
             if (!sameIdentity(instance, request)) {
                 return new DdcLeaseOperationResult(DdcLeaseOperationStatus.LEASE_MISMATCH, null);
             }
-            Instant leaseExpireAt = heartbeatAt.plusSeconds(instance.leaseSeconds());
+            if (!admission.resourceServerId().equals(instance.resourceServerId())) {
+                throw new DdcAdmissionException(
+                        DdcErrorStatus.RESOURCE_ADMISSION_BINDING_MISMATCH
+                );
+            }
+            Instant requestedExpireAt = heartbeatAt.plusSeconds(
+                    instance.leaseSeconds()
+            );
+            Instant leaseExpireAt = requestedExpireAt.isBefore(admission.expiresAt())
+                    ? requestedExpireAt : admission.expiresAt();
             DdcServiceInstance renewed = new DdcServiceInstance(
                     instance.instanceId(), instance.leaseId(), instance.serviceKey(),
                     instance.host(), instance.port(), instance.secure(), instance.metadata(),
                     instance.leaseSeconds(), instance.heartbeatIntervalSeconds(),
                     instance.registeredAt(), heartbeatAt, leaseExpireAt,
                     instance.status(), instance.revision(),
-                    instance.resourceServerId(), instance.resourceVersion(),
-                    instance.credentialId(), instance.admissionExpiresAt()
+                    admission.resourceServerId(), admission.resourceVersion(),
+                    admission.credentialId(), admission.expiresAt()
             );
             instanceBucket(serviceKey, request.getInstanceId()).set(
                     instanceJson(renewed, renewed.revision()),
-                    Duration.ofSeconds(renewed.leaseSeconds())
+                    ttl(heartbeatAt, leaseExpireAt)
             );
             serviceInstances(serviceKey).add(
                     leaseExpireAt.toEpochMilli(), request.getInstanceId());
@@ -155,7 +169,8 @@ public class DdcServiceRegistryRedisRepository {
             DdcServiceInstance instance = instance(value);
             if (!serviceKey.equals(instance.serviceKey())
                     || instance.leaseExpireAt() == null
-                    || !instance.leaseExpireAt().isAfter(now)) {
+                    || !instance.leaseExpireAt().isAfter(now)
+                    || !hasActiveAdmission(instance, now)) {
                 expire(serviceKey, instanceId, now);
                 continue;
             }
@@ -258,6 +273,20 @@ public class DdcServiceRegistryRedisRepository {
         return request.getInstanceId().equals(instance.instanceId())
                 && request.getLeaseId().equals(instance.leaseId())
                 && request.getServiceKey().equals(instance.serviceKey());
+    }
+
+    private boolean hasActiveAdmission(
+            DdcServiceInstance instance,
+            Instant now
+    ) {
+        return instance.resourceServerId() != null
+                && !instance.resourceServerId().isBlank()
+                && instance.resourceVersion() != null
+                && instance.resourceVersion() > 0
+                && instance.credentialId() != null
+                && !instance.credentialId().isBlank()
+                && instance.admissionExpiresAt() != null
+                && instance.admissionExpiresAt().isAfter(now);
     }
 
     private long addServiceCatalog(DdcServiceKey serviceKey) {
@@ -398,6 +427,11 @@ public class DdcServiceRegistryRedisRepository {
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("serialize DDC service registry value failed", exception);
         }
+    }
+
+    private Duration ttl(Instant now, Instant expiresAt) {
+        long seconds = Math.max(1L, Duration.between(now, expiresAt).toSeconds());
+        return Duration.ofSeconds(seconds);
     }
 
     private record CatalogUpdate(long revision, boolean changed) {

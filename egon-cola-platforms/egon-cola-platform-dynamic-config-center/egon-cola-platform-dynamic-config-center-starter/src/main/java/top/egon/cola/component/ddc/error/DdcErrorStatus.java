@@ -56,6 +56,42 @@ public enum DdcErrorStatus implements ErrorStatus {
      */
     SIGNATURE_REPLAY(56023, "DDC_SIGNATURE_REPLAY", "signature nonce replayed"),
     /**
+     * 注册或心跳缺少 IdP Resource Server 准入票据。
+     * The registration or heartbeat omitted its IdP Resource Server admission ticket.
+     */
+    RESOURCE_ADMISSION_REQUIRED(
+            56024,
+            "DDC_RESOURCE_ADMISSION_REQUIRED",
+            "resource admission ticket required"
+    ),
+    /**
+     * Resource Server 准入票据或当前 Resource 投影无效。
+     * The Resource Server admission ticket or current Resource projection is invalid.
+     */
+    RESOURCE_ADMISSION_INVALID(
+            56025,
+            "DDC_RESOURCE_ADMISSION_INVALID",
+            "resource admission is invalid"
+    ),
+    /**
+     * Resource Server 准入票据已到期。
+     * The Resource Server admission ticket has expired.
+     */
+    RESOURCE_ADMISSION_EXPIRED(
+            56026,
+            "DDC_RESOURCE_ADMISSION_EXPIRED",
+            "resource admission ticket expired"
+    ),
+    /**
+     * 准入票据中的实例身份与 DDC 请求不一致。
+     * The instance identity in the admission ticket does not match the DDC request.
+     */
+    RESOURCE_ADMISSION_BINDING_MISMATCH(
+            56027,
+            "DDC_RESOURCE_ADMISSION_BINDING_MISMATCH",
+            "resource admission binding mismatch"
+    ),
+    /**
      * 指定业务不存在。 The requested business does not exist.
      */
     BIZ_NOT_FOUND(56030, "DDC_BIZ_NOT_FOUND", "biz not found"),

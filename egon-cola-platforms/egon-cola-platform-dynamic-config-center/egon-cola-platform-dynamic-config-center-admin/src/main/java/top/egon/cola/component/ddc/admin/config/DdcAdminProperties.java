@@ -20,6 +20,9 @@ public class DdcAdminProperties {
 
     private Publish publish = new Publish();
 
+    /** Resource Server 准入验证配置；Resource Server admission verification settings. */
+    private Admission admission = new Admission();
+
     public long getMaxConfigBytes() {
         return maxConfigBytes;
     }
@@ -66,6 +69,28 @@ public class DdcAdminProperties {
 
     public void setPublish(Publish publish) {
         this.publish = publish;
+    }
+
+    /**
+     * 返回 Resource Server 准入验证配置。
+     *
+     * <p>Returns Resource Server admission verification settings.</p>
+     *
+     * @return 准入配置；admission settings
+     */
+    public Admission getAdmission() {
+        return admission;
+    }
+
+    /**
+     * 设置 Resource Server 准入验证配置。
+     *
+     * <p>Sets Resource Server admission verification settings.</p>
+     *
+     * @param admission 准入配置；admission settings
+     */
+    public void setAdmission(Admission admission) {
+        this.admission = admission;
     }
 
     public static class Redis {
@@ -383,6 +408,91 @@ public class DdcAdminProperties {
 
         public void setHmacSecretBase64(String hmacSecretBase64) {
             this.hmacSecretBase64 = hmacSecretBase64;
+        }
+    }
+
+    /**
+     * IdP Resource Server Admission Ticket 验证配置。
+     *
+     * <p>IdP Resource Server Admission Ticket verification settings.</p>
+     */
+    public static class Admission {
+
+        /** IdP Issuer；IdP issuer. */
+        private String issuer;
+
+        /** IdP JWK Set 地址；IdP JWK Set URI. */
+        private String jwkSetUri;
+
+        /** IdP Resource 主投影 Redis 键前缀；IdP Resource primary-projection Redis key prefix. */
+        private String resourceProjectionPrefix = "identity:resource-server:";
+
+        /**
+         * 返回期望 IdP Issuer。
+         *
+         * <p>Returns the expected IdP issuer.</p>
+         *
+         * @return IdP Issuer；IdP issuer
+         */
+        public String getIssuer() {
+            return issuer;
+        }
+
+        /**
+         * 设置期望 IdP Issuer。
+         *
+         * <p>Sets the expected IdP issuer.</p>
+         *
+         * @param issuer IdP Issuer；IdP issuer
+         */
+        public void setIssuer(String issuer) {
+            this.issuer = issuer;
+        }
+
+        /**
+         * 返回 IdP JWK Set 地址。
+         *
+         * <p>Returns the IdP JWK Set URI.</p>
+         *
+         * @return JWK Set 地址；JWK Set URI
+         */
+        public String getJwkSetUri() {
+            return jwkSetUri;
+        }
+
+        /**
+         * 设置 IdP JWK Set 地址。
+         *
+         * <p>Sets the IdP JWK Set URI.</p>
+         *
+         * @param jwkSetUri JWK Set 地址；JWK Set URI
+         */
+        public void setJwkSetUri(String jwkSetUri) {
+            this.jwkSetUri = jwkSetUri;
+        }
+
+        /**
+         * 返回 IdP Resource 主投影 Redis 键前缀。
+         *
+         * <p>Returns the IdP Resource primary-projection Redis key prefix.</p>
+         *
+         * @return Redis 键前缀；Redis key prefix
+         */
+        public String getResourceProjectionPrefix() {
+            return resourceProjectionPrefix;
+        }
+
+        /**
+         * 设置 IdP Resource 主投影 Redis 键前缀。
+         *
+         * <p>Sets the IdP Resource primary-projection Redis key prefix.</p>
+         *
+         * @param resourceProjectionPrefix Redis 键前缀；Redis key prefix
+         */
+        public void setResourceProjectionPrefix(
+                String resourceProjectionPrefix
+        ) {
+            this.resourceProjectionPrefix = resourceProjectionPrefix;
         }
     }
 

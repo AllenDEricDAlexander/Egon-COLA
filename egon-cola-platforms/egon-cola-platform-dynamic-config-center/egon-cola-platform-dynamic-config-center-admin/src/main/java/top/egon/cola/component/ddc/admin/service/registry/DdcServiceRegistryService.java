@@ -3,6 +3,8 @@ package top.egon.cola.component.ddc.admin.service.registry;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.repository.DdcServiceRegistryRedisRepository;
+import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionClaims;
+import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionVerifier;
 import top.egon.cola.component.ddc.admin.service.lease.DdcLeaseValidator;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
@@ -27,24 +29,36 @@ public class DdcServiceRegistryService {
 
     private final DdcScopeGate scopeGate;
 
+    private final DdcAdmissionVerifier admissionVerifier;
+
     private final Clock clock;
 
     private final Supplier<String> leaseIdSupplier;
 
     public DdcServiceRegistryService(DdcServiceRegistryRedisRepository repository,
                                      DdcLeaseValidator leaseValidator,
-                                     DdcScopeGate scopeGate) {
-        this(repository, leaseValidator, scopeGate, Clock.systemUTC(), UuidV7::simpleString);
+                                     DdcScopeGate scopeGate,
+                                     DdcAdmissionVerifier admissionVerifier) {
+        this(
+                repository,
+                leaseValidator,
+                scopeGate,
+                admissionVerifier,
+                Clock.systemUTC(),
+                UuidV7::simpleString
+        );
     }
 
     DdcServiceRegistryService(DdcServiceRegistryRedisRepository repository,
                               DdcLeaseValidator leaseValidator,
                               DdcScopeGate scopeGate,
+                              DdcAdmissionVerifier admissionVerifier,
                               Clock clock,
                               Supplier<String> leaseIdSupplier) {
         this.repository = repository;
         this.leaseValidator = leaseValidator;
         this.scopeGate = scopeGate;
+        this.admissionVerifier = admissionVerifier;
         this.clock = clock;
         this.leaseIdSupplier = leaseIdSupplier;
     }
@@ -57,6 +71,13 @@ public class DdcServiceRegistryService {
                 serviceKey.appCode(),
                 serviceKey.env()
         );
+        DdcAdmissionClaims admission = admissionVerifier.verify(
+                registration.admissionTicket(),
+                serviceKey.bizCode(),
+                serviceKey.appCode(),
+                serviceKey.env(),
+                registration.instanceId()
+        );
         Instant now = clock.instant();
         DdcLeaseSession session = new DdcLeaseSession(
                 registration.instanceId(),
@@ -65,7 +86,11 @@ public class DdcServiceRegistryService {
                 registration.leaseSeconds(),
                 registration.heartbeatIntervalSeconds(),
                 now,
-                now.plusSeconds(registration.leaseSeconds())
+                leaseValidator.capLeaseExpireAt(
+                        now,
+                        registration.leaseSeconds(),
+                        admission
+                )
         );
         repository.register(new DdcServiceInstance(
                 registration.instanceId(),
@@ -82,17 +107,25 @@ public class DdcServiceRegistryService {
                 session.leaseExpireAt(),
                 "ONLINE",
                 0L,
-                null,
-                null,
-                null,
-                null
+                admission.resourceServerId(),
+                admission.resourceVersion(),
+                admission.credentialId(),
+                admission.expiresAt()
         ));
         return session;
     }
 
     public DdcLeaseOperationResult heartbeat(DdcServiceLeaseRequest request) {
         validateOperation(request);
-        return repository.heartbeat(request, clock.instant());
+        DdcServiceKey serviceKey = request.getServiceKey();
+        DdcAdmissionClaims admission = admissionVerifier.verify(
+                request.getAdmissionTicket(),
+                serviceKey.bizCode(),
+                serviceKey.appCode(),
+                serviceKey.env(),
+                request.getInstanceId()
+        );
+        return repository.heartbeat(request, admission, clock.instant());
     }
 
     public DdcLeaseOperationResult deregister(DdcServiceLeaseRequest request) {
@@ -120,6 +153,7 @@ public class DdcServiceRegistryService {
         request.setServiceKey(registration.serviceKey());
         request.setInstanceId(registration.instanceId());
         request.setLeaseId(session.leaseId());
+        request.setAdmissionTicket(registration.admissionTicket());
         return request;
     }
 

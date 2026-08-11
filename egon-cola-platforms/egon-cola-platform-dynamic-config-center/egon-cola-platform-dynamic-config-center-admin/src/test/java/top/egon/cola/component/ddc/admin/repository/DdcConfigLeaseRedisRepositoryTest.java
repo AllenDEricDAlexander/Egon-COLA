@@ -27,13 +27,14 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionTestFixture.claims;
 
 class DdcConfigLeaseRedisRepositoryTest {
 
     private static final Instant NOW = Instant.parse("2026-07-24T12:00:00Z");
 
     @Test
-    void registerHeartbeatAndDeregisterUseRedissonLeaseObjects() {
+    void registerHeartbeatAndDeregisterUseRedissonLeaseObjects() throws Exception {
         RedissonClient redisson = mock(RedissonClient.class);
         RLock lock = mock(RLock.class);
         RBucket<String> bucket = bucket();
@@ -68,13 +69,28 @@ class DdcConfigLeaseRedisRepositoryTest {
                 "instance-1", "lease-1", DdcLeaseRole.CONFIG_CLIENT,
                 30, 10, NOW, NOW.plusSeconds(30));
 
-        repository.register(identity, session, NOW);
+        repository.register(identity, session, NOW, claims(NOW.plusSeconds(60)));
+        var registered = new ObjectMapper().readTree(stored.get());
+        assertThat(registered.path("resourceServerId").asText())
+                .isEqualTo("resource-1");
+        assertThat(registered.path("resourceVersion").asLong()).isEqualTo(7L);
+        assertThat(registered.path("credentialId").asText())
+                .isEqualTo("credential-1");
+        assertThat(registered.path("admissionExpiresAt").asLong())
+                .isEqualTo(NOW.plusSeconds(60).toEpochMilli());
+        assertThat(stored.get())
+                .doesNotContain("admissionTicket")
+                .doesNotContain("test-admission-ticket");
         DdcHeartbeatRequest request = request("lease-1");
-        var heartbeat = repository.heartbeat(request, NOW.plusSeconds(5));
+        var heartbeat = repository.heartbeat(
+                request,
+                claims(NOW.plusSeconds(20)),
+                NOW.plusSeconds(5)
+        );
         var deregister = repository.deregister(request);
 
         assertThat(heartbeat.status()).isEqualTo(DdcLeaseOperationStatus.RENEWED);
-        assertThat(heartbeat.leaseExpireAt()).isEqualTo(NOW.plusSeconds(35));
+        assertThat(heartbeat.leaseExpireAt()).isEqualTo(NOW.plusSeconds(20));
         assertThat(deregister.status()).isEqualTo(DdcLeaseOperationStatus.DELETED);
         assertThat(stored).hasNullValue();
         assertThat(members).isEmpty();
@@ -101,7 +117,11 @@ class DdcConfigLeaseRedisRepositoryTest {
         DdcConfigLeaseRedisRepository repository =
                 new DdcConfigLeaseRedisRepository(redisson, new ObjectMapper());
 
-        assertThat(repository.heartbeat(request("lease-2"), NOW).status())
+        assertThat(repository.heartbeat(
+                request("lease-2"),
+                claims(NOW.plusSeconds(60)),
+                NOW
+        ).status())
                 .isEqualTo(DdcLeaseOperationStatus.LEASE_MISMATCH);
         verify(lock).unlock();
     }

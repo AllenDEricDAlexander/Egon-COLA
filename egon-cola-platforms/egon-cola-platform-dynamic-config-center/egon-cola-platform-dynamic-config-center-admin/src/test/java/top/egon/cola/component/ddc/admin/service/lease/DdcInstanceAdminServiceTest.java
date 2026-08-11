@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionTestFixture.claims;
 
 @ResourceLock("java.util.TimeZone.default")
 class DdcInstanceAdminServiceTest {
@@ -66,8 +67,7 @@ class DdcInstanceAdminServiceTest {
             );
             DdcInstanceRegisterRequest request = request();
             Instant expiry = Instant.parse("2026-07-27T08:30:00Z");
-            when(leaseService.register(request)).thenReturn(
-                    new DdcLeaseSession(
+            DdcLeaseSession session = new DdcLeaseSession(
                             request.getInstanceId(),
                             "lease-1",
                             DdcLeaseRole.CONFIG_CLIENT,
@@ -75,6 +75,11 @@ class DdcInstanceAdminServiceTest {
                             10,
                             expiry.minusSeconds(30),
                             expiry
+                    );
+            when(leaseService.registerAdmitted(request)).thenReturn(
+                    new DdcConfigLeaseService.AdmittedRegistration(
+                            session,
+                            claims(expiry.plusSeconds(10))
                     )
             );
             when(repository.findByInstanceId(request.getInstanceId()))
@@ -95,6 +100,17 @@ class DdcInstanceAdminServiceTest {
             assertThat(entity.getValue().getLeaseExpireAt()).isEqualTo(
                     LocalDateTime.ofInstant(expiry, ZoneId.systemDefault())
             );
+            assertThat(entity.getValue().getResourceServerId())
+                    .isEqualTo("resource-1");
+            assertThat(entity.getValue().getResourceVersion()).isEqualTo(7L);
+            assertThat(entity.getValue().getCredentialId())
+                    .isEqualTo("credential-1");
+            assertThat(entity.getValue().getAdmissionExpiresAt()).isEqualTo(
+                    LocalDateTime.ofInstant(
+                            expiry.plusSeconds(10),
+                            ZoneId.systemDefault()
+                    )
+            );
         } finally {
             TimeZone.setDefault(previous);
         }
@@ -103,12 +119,16 @@ class DdcInstanceAdminServiceTest {
     private DdcInstanceRegisterRequest request() {
         DdcInstanceRegisterRequest request = new DdcInstanceRegisterRequest();
         request.setInstanceId("engine-1");
+        request.setBizCode("default");
         request.setAppCode("gateway-engine-default");
         request.setEnv("test");
         request.setNamespace("gateway-live");
         request.setHost("127.0.0.1");
         request.setPid("123");
         request.setSdkVersion("5.2.3");
+        request.setLeaseSeconds(30);
+        request.setHeartbeatIntervalSeconds(10);
+        request.setAdmissionTicket("test-admission-ticket");
         return request;
     }
 }

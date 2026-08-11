@@ -32,6 +32,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionTestFixture.claims;
 
 class DdcServiceRegistryRedisRepositoryTest {
 
@@ -138,11 +139,71 @@ class DdcServiceRegistryRedisRepositoryTest {
                 new DdcServiceRegistryRedisRepository(redisson, objectMapper);
         DdcServiceLeaseRequest request = leaseRequest("different-lease");
 
-        assertThat(repository.heartbeat(request, NOW).status())
+        assertThat(repository.heartbeat(
+                request,
+                claims(NOW.plusSeconds(60)),
+                NOW
+        ).status())
                 .isEqualTo(DdcLeaseOperationStatus.LEASE_MISMATCH);
         assertThat(repository.deregister(request, NOW).status())
                 .isEqualTo(DdcLeaseOperationStatus.NOT_DELETED);
         verify(lock, org.mockito.Mockito.times(2)).unlock();
+    }
+
+    @Test
+    void heartbeatCapsProviderLeaseAtTheNewAdmissionExpiry() throws Exception {
+        RedissonClient redisson = mock(RedissonClient.class);
+        RLock scopeLock = mock(RLock.class);
+        RLock globalLock = mock(RLock.class);
+        RBucket<String> bucket = bucket();
+        RScoredSortedSet<String> instances = scoredSet();
+        RSet<String> globalCatalog = set();
+        RAtomicLong globalRevision = mock(RAtomicLong.class);
+        when(redisson.getLock(
+                DdcRedisKeys.registryInstance(SERVICE_KEY, "scope") + ":lock"
+        )).thenReturn(scopeLock);
+        when(redisson.getLock(
+                DdcRedisKeys.globalRegistryCatalog() + ":lock"
+        )).thenReturn(globalLock);
+        when(redisson.<String>getBucket(
+                DdcRedisKeys.registryInstance(SERVICE_KEY, "provider-1"),
+                StringCodec.INSTANCE
+        )).thenReturn(bucket);
+        when(bucket.get()).thenReturn(objectMapper.writeValueAsString(instance()));
+        when(redisson.<String>getScoredSortedSet(
+                DdcRedisKeys.registryService(SERVICE_KEY),
+                StringCodec.INSTANCE
+        )).thenReturn(instances);
+        when(redisson.<String>getSet(
+                DdcRedisKeys.globalRegistryCatalog(),
+                StringCodec.INSTANCE
+        )).thenReturn(globalCatalog);
+        when(redisson.getAtomicLong(
+                DdcRedisKeys.globalRegistryCatalogRevision()
+        )).thenReturn(globalRevision);
+        DdcServiceRegistryRedisRepository repository =
+                new DdcServiceRegistryRedisRepository(redisson, objectMapper);
+
+        var result = repository.heartbeat(
+                leaseRequest("lease-1"),
+                claims(NOW.plusSeconds(12)),
+                NOW.plusSeconds(5)
+        );
+
+        assertThat(result.leaseExpireAt()).isEqualTo(NOW.plusSeconds(12));
+        ArgumentCaptor<String> storedJson = ArgumentCaptor.forClass(String.class);
+        verify(bucket).set(storedJson.capture(), eq(Duration.ofSeconds(7)));
+        JsonNode stored = objectMapper.readTree(storedJson.getValue());
+        assertThat(stored.path("resourceServerId").asText())
+                .isEqualTo("resource-1");
+        assertThat(stored.path("resourceVersion").asLong()).isEqualTo(7L);
+        assertThat(stored.path("credentialId").asText())
+                .isEqualTo("credential-1");
+        assertThat(stored.path("admissionExpiresAt").asLong())
+                .isEqualTo(NOW.plusSeconds(12).getEpochSecond());
+        assertThat(storedJson.getValue())
+                .doesNotContain("admissionTicket")
+                .doesNotContain("test-admission-ticket");
     }
 
     private DdcServiceInstance instance() {
@@ -154,7 +215,7 @@ class DdcServiceRegistryRedisRepositoryTest {
                 "provider-1", leaseId, serviceKey, "127.0.0.1", 19090, false,
                 Map.of("zone", "east"), 30, 10, NOW, NOW,
                 NOW.plusSeconds(30), "ONLINE", 0L,
-                null, null, null, null
+                "resource-1", 7L, "credential-1", NOW.plusSeconds(60)
         );
     }
 
