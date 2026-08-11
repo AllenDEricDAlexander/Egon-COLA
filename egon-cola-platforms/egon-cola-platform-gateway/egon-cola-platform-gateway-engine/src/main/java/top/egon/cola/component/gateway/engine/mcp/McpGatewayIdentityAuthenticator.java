@@ -26,13 +26,11 @@ import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeServer;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
 
 /**
@@ -100,7 +98,8 @@ public final class McpGatewayIdentityAuthenticator
                 traceId,
                 requestId,
                 deadline,
-                "mcp-runtime"
+                "mcp-runtime",
+                securityAttributes(server)
         );
         GatewayContext context = new GatewayContext(
                 requestId,
@@ -139,8 +138,6 @@ public final class McpGatewayIdentityAuthenticator
                         IDENTITY_ONLY_POLICY,
                         GatewayProtocol.HTTP
                 )
-                .filter(result -> audience(result.context().principal())
-                        .contains(server.oauthAudience()))
                 .map(result -> identity(
                         result.context().principal(),
                         result.forwardingCredential() == null
@@ -173,17 +170,8 @@ public final class McpGatewayIdentityAuthenticator
         return Map.copyOf(result);
     }
 
-    private Set<String> audience(GatewayPrincipal principal) {
-        String value = principal.attributes().get("idp.audience");
-        if (value == null || value.isBlank()) {
-            return Set.of();
-        }
-        TreeSet<String> result = new TreeSet<>();
-        Arrays.stream(value.split(","))
-                .map(String::trim)
-                .filter(item -> !item.isBlank())
-                .forEach(result::add);
-        return Set.copyOf(result);
+    static Map<String, String> securityAttributes(McpRuntimeServer server) {
+        return Map.of("idp.resource-uri", server.resourceUri());
     }
 
     private void copyHeader(

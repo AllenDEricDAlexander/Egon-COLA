@@ -327,7 +327,7 @@ class McpFederationTest {
                 "Developer tools",
                 "Use reviewed remote tools.",
                 Set.of(McpProtocolDialect.STABLE_2025_11_25),
-                "gateway-mcp",
+                "https://resource.egon.top/gateway-mcp",
                 30,
                 true
         );
@@ -360,7 +360,8 @@ class McpFederationTest {
                         Map.entry("idp.client-id", "developer-web"),
                         Map.entry("idp.token-id", "token-1"),
                         Map.entry("idp.token-version", "2"),
-                        Map.entry("idp.audience", "gateway-mcp"),
+                        Map.entry("idp.resource-uri",
+                                "https://resource.egon.top/gateway-mcp"),
                         Map.entry(
                                 "idp.issued-at",
                                 "2026-08-02T04:59:30Z"

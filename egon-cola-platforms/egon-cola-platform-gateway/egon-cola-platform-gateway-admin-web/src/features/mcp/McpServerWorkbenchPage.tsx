@@ -50,7 +50,7 @@ export const McpServerWorkbenchPage = () => {
       </Space>
       <Card style={{ marginBottom: 16 }}>
         <Descriptions size="small" column={{ xs: 1, md: 3 }}>
-          <Descriptions.Item label="OAuth Audience">{server.data.oauthAudience}</Descriptions.Item>
+          <Descriptions.Item label="Resource URI">{server.data.resourceUri}</Descriptions.Item>
           <Descriptions.Item label="Server Revision">{server.data.revision}</Descriptions.Item>
           <Descriptions.Item label="Draft Revision">{draft.data.revision}</Descriptions.Item>
           <Descriptions.Item label="协议">

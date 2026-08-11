@@ -90,7 +90,7 @@ public final class Rbac3McpAuthorizationAdapter
                 request.clientId(),
                 request.tokenId(),
                 request.tokenVersion(),
-                request.audience(),
+                java.util.Set.of(request.resourceUri()),
                 request.issuedAt(),
                 request.expiresAt()
         );

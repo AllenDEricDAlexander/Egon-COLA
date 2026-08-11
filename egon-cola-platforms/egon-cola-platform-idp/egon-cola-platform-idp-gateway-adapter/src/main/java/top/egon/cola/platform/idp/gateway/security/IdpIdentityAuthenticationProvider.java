@@ -9,7 +9,10 @@ import top.egon.cola.component.gateway.core.security.GatewayAuthContext;
 import top.egon.cola.component.gateway.core.security.GatewayAuthenticationProvider;
 import top.egon.cola.component.gateway.core.security.GatewayCredential;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
+import top.egon.cola.platform.idp.contract.IdpPrincipal;
+import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -96,8 +99,12 @@ public final class IdpIdentityAuthenticationProvider
                     "IDP_CREDENTIAL_TYPE_INVALID"));
         }
         return Mono.fromCallable(() -> decision(verifier.verify(
-                        credential.tokenReference())))
+                        context, credential.tokenReference())))
                 .subscribeOn(Schedulers.boundedElastic())
+                .onErrorResume(
+                        IdpGatewayJwtVerifier.TokenVerificationException.class,
+                        invalid -> Mono.just(AuthenticationDecision.deny(
+                                invalid.getMessage())))
                 .onErrorReturn(AuthenticationDecision.deny(
                         "IDP_AUTHENTICATION_FAILED"));
     }
@@ -113,26 +120,33 @@ public final class IdpIdentityAuthenticationProvider
      * @param principal 已验证的统一身份主体；validated unified identity principal
      * @return 允许访问认证链后续阶段的决策；decision allowing the next authentication stage
      */
-    private AuthenticationDecision decision(IdentityPrincipal principal) {
+    private AuthenticationDecision decision(IdpPrincipal principal) {
+        Map<String, String> attributes = new LinkedHashMap<>();
+        attributes.put("idp.client-id", principal.clientId());
+        attributes.put("idp.token-id", principal.tokenId());
+        attributes.put("idp.issued-at", principal.issuedAt().toString());
+        attributes.put("idp.expires-at", principal.expiresAt().toString());
+        if (principal instanceof IdentityPrincipal user) {
+            attributes.put("idp.session-id", user.sessionId());
+            attributes.put("idp.token-version", Long.toString(user.tokenVersion()));
+            attributes.put("idp.resource-uri", user.audience().iterator().next());
+        } else if (principal instanceof ServiceIdentityPrincipal service) {
+            attributes.put("idp.resource-uri", service.resourceUri().toString());
+            attributes.put("idp.resource-version", Long.toString(service.resourceVersion()));
+            attributes.put("idp.source-biz", service.sourceBizCode());
+            attributes.put("idp.source-app", service.sourceAppCode());
+            attributes.put("idp.source-env", service.sourceEnvironment());
+            attributes.put("idp.service-scopes", String.join(
+                    " ", new java.util.TreeSet<>(service.scopes())));
+            attributes.put("idp.credential-id", service.credentialId());
+        }
         return AuthenticationDecision.allow(new GatewayPrincipal(
                 principal.subject(),
-                "USER",
+                principal.principalType().name(),
                 principal.tenantId(),
                 null,
                 true,
-                Map.of(
-                        "idp.session-id", principal.sessionId(),
-                        "idp.client-id", principal.clientId(),
-                        "idp.token-id", principal.tokenId(),
-                        "idp.token-version", Long.toString(
-                                principal.tokenVersion()),
-                        "idp.audience", String.join(
-                                ",",
-                                new java.util.TreeSet<>(principal.audience())
-                        ),
-                        "idp.issued-at", principal.issuedAt().toString(),
-                        "idp.expires-at", principal.expiresAt().toString()
-                )));
+                attributes));
     }
 
     /**
@@ -149,9 +163,10 @@ public final class IdpIdentityAuthenticationProvider
          *
          * <p>Validates an access token and returns the unified identity principal.</p>
          *
+         * @param context 可信 Gateway 路由上下文；trusted Gateway route context
          * @param token 原始 Bearer 访问令牌；raw Bearer access token
          * @return 已验证的统一身份主体；validated unified identity principal
          */
-        IdentityPrincipal verify(String token);
+        IdpPrincipal verify(GatewayAuthContext context, String token);
     }
 }

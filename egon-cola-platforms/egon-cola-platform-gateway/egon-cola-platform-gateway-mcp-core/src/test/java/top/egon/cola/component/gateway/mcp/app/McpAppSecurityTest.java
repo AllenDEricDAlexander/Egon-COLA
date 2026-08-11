@@ -48,7 +48,7 @@ class McpAppSecurityTest {
                         null,
                         null,
                         Set.of(McpProtocolDialect.STABLE_2025_11_25),
-                        "gateway",
+                        "https://resource.egon.top/gateway",
                         30L,
                         true
                 )), List.of(), List.of(), List.of(), List.of(),

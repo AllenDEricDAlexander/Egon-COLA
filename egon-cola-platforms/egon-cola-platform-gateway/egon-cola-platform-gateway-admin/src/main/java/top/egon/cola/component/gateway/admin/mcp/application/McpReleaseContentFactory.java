@@ -337,7 +337,7 @@ public class McpReleaseContentFactory {
                 server.getDialects().stream()
                         .map(McpProtocolDialect::valueOf)
                         .collect(java.util.stream.Collectors.toSet()),
-                server.getOauthAudience(),
+                server.getResourceUri(),
                 server.getListCacheTtlSeconds(),
                 server.isEnabled()
         );

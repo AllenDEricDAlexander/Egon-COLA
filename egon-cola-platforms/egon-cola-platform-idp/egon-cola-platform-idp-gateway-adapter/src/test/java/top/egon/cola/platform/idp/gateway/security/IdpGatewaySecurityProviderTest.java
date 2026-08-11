@@ -19,7 +19,9 @@ import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
 import top.egon.cola.component.gateway.core.security.SecurityDecision;
 import top.egon.cola.component.gateway.core.security.SecurityFailureMode;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
+import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 
+import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -59,8 +61,12 @@ class IdpGatewaySecurityProviderTest {
 
     @Test
     void authenticatesOnlyIdentityClaimsAndMapsFixedTrustedHeaders() {
-        var provider = new IdpIdentityAuthenticationProvider(token -> {
+        var provider = new IdpIdentityAuthenticationProvider((context, token) -> {
             assertThat(token).isEqualTo("signed-token");
+            assertThat(context.attributes())
+                    .containsEntry("idp.biz-code", "permission")
+                    .containsEntry("idp.app-code", "rbac3")
+                    .containsEntry("idp.env", "prod");
             return principal();
         });
 
@@ -78,7 +84,8 @@ class IdpGatewaySecurityProviderTest {
                             .containsEntry("idp.client-id", "gateway-client")
                             .containsEntry("idp.token-id", "token-1")
                             .containsEntry("idp.token-version", "7")
-                            .containsEntry("idp.audience", "egon-api")
+                            .containsEntry("idp.resource-uri",
+                                    "https://api.example/prod/permission/rbac3")
                             .containsEntry("idp.issued-at", NOW.toString())
                             .containsEntry(
                                     "idp.expires-at",
@@ -93,20 +100,59 @@ class IdpGatewaySecurityProviderTest {
                 "idp.session-id", "session-1",
                 "idp.client-id", "gateway-client",
                 "idp.token-id", "token-1",
-                "idp.token-version", "7"));
+                "idp.token-version", "7",
+                "idp.resource-uri", "https://api.example/prod/permission/rbac3"));
         var mapped = new IdpTrustedIdentityMapper().map(context(authenticated));
         assertThat(mapped.httpHeaders()).containsExactlyInAnyOrderEntriesOf(Map.of(
+                "X-Egon-Principal-Type", "USER",
                 "X-Egon-Identity-Sub", "identity-1",
                 "X-Egon-Tenant-Id", "tenant-1",
                 "X-Egon-Session-Id", "session-1",
                 "X-Egon-Client-Id", "gateway-client",
-                "X-Egon-Token-Id", "token-1"));
+                "X-Egon-Token-Id", "token-1",
+                "X-Egon-Token-Version", "7",
+                "X-Egon-Resource-Uri", "https://api.example/prod/permission/rbac3"));
+    }
+
+    @Test
+    void mapsServiceIdentityWithIdpScopesAndSourceApplication() {
+        ServiceIdentityPrincipal service = new ServiceIdentityPrincipal(
+                "finance-service", "tenant-1", "finance-service", "service-token",
+                URI.create("https://api.example/prod/permission/rbac3"),
+                12L, Set.of("service:authorization:decide", "service:identity:resolve"),
+                "finance", "finance-web", "prod", "credential-1",
+                NOW, NOW.plusSeconds(300));
+        var provider = new IdpIdentityAuthenticationProvider(
+                (context, token) -> service);
+
+        GatewayPrincipal principal = Mono.from(provider.authenticate(
+                        context(GatewayPrincipal.anonymous()),
+                        new GatewayCredential("bearer", "signed-token", Map.of())))
+                .block().principal();
+        var mapped = new IdpTrustedIdentityMapper().map(context(principal));
+
+        assertThat(principal.principalType()).isEqualTo("SERVICE");
+        assertThat(mapped.httpHeaders()).containsExactlyInAnyOrderEntriesOf(Map.ofEntries(
+                Map.entry("X-Egon-Principal-Type", "SERVICE"),
+                Map.entry("X-Egon-Identity-Sub", "finance-service"),
+                Map.entry("X-Egon-Tenant-Id", "tenant-1"),
+                Map.entry("X-Egon-Client-Id", "finance-service"),
+                Map.entry("X-Egon-Token-Id", "service-token"),
+                Map.entry("X-Egon-Resource-Uri", "https://api.example/prod/permission/rbac3"),
+                Map.entry("X-Egon-Resource-Version", "12"),
+                Map.entry("X-Egon-Source-Biz", "finance"),
+                Map.entry("X-Egon-Source-App", "finance-web"),
+                Map.entry("X-Egon-Source-Env", "prod"),
+                Map.entry("X-Egon-Service-Scopes",
+                        "service:authorization:decide service:identity:resolve"),
+                Map.entry("X-Egon-Credential-Id", "credential-1")));
     }
 
     private IdentityPrincipal principal() {
         return new IdentityPrincipal(
                 "identity-1", "tenant-1", "session-1", "gateway-client",
-                "token-1", 7L, Set.of("egon-api"), NOW,
+                "token-1", 7L,
+                Set.of("https://api.example/prod/permission/rbac3"), NOW,
                 NOW.plusSeconds(300));
     }
 
@@ -125,7 +171,10 @@ class IdpGatewaySecurityProviderTest {
                 AccessZone.PUBLIC, GatewayProtocol.HTTP, "operation-1", "route-1",
                 "security", "/orders", "GET", Set.of("bearer"), principal,
                 "127.0.0.1", "trace-1", "request-1", NOW.plusSeconds(5),
-                "release-1");
+                "release-1", Map.of(
+                        "idp.biz-code", "permission",
+                        "idp.app-code", "rbac3",
+                        "idp.env", "prod"));
     }
 
     private GatewayExchange exchange(Map<String, List<String>> headers) {

@@ -10,6 +10,7 @@ import org.hibernate.type.SqlTypes;
 import top.egon.cola.component.gateway.admin.domain.AdminActor;
 import top.egon.cola.component.gateway.admin.domain.GatewayAdminRevisionConflictException;
 
+import java.net.URI;
 import java.time.Instant;
 import java.util.Set;
 
@@ -37,8 +38,8 @@ public class McpServerEntity {
     @Column(nullable = false, columnDefinition = "jsonb")
     private Set<String> dialects;
 
-    @Column(name = "oauth_audience", nullable = false)
-    private String oauthAudience;
+    @Column(name = "resource_uri", nullable = false)
+    private String resourceUri;
 
     @Column(name = "list_cache_ttl_seconds", nullable = false)
     private long listCacheTtlSeconds;
@@ -76,7 +77,7 @@ public class McpServerEntity {
             String description,
             String instructions,
             Set<String> dialects,
-            String oauthAudience,
+            String resourceUri,
             long listCacheTtlSeconds,
             AdminActor actor,
             Instant now) {
@@ -87,7 +88,7 @@ public class McpServerEntity {
         this.description = optional(description);
         this.instructions = optional(instructions);
         this.dialects = nonEmpty(dialects, "dialects");
-        this.oauthAudience = required(oauthAudience, "oauthAudience");
+        this.resourceUri = resourceUri(resourceUri);
         this.listCacheTtlSeconds = nonNegative(
                 listCacheTtlSeconds,
                 "listCacheTtlSeconds"
@@ -104,7 +105,7 @@ public class McpServerEntity {
             String description,
             String instructions,
             Set<String> dialects,
-            String oauthAudience,
+            String resourceUri,
             long listCacheTtlSeconds,
             boolean enabled,
             long expectedRevision,
@@ -115,7 +116,7 @@ public class McpServerEntity {
         this.description = optional(description);
         this.instructions = optional(instructions);
         this.dialects = nonEmpty(dialects, "dialects");
-        this.oauthAudience = required(oauthAudience, "oauthAudience");
+        this.resourceUri = resourceUri(resourceUri);
         this.listCacheTtlSeconds = nonNegative(
                 listCacheTtlSeconds,
                 "listCacheTtlSeconds"
@@ -170,8 +171,8 @@ public class McpServerEntity {
         return Set.copyOf(dialects);
     }
 
-    public String getOauthAudience() {
-        return oauthAudience;
+    public String getResourceUri() {
+        return resourceUri;
     }
 
     public long getListCacheTtlSeconds() {
@@ -227,6 +228,22 @@ public class McpServerEntity {
 
     private static String optional(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private static String resourceUri(String value) {
+        URI uri;
+        try {
+            uri = URI.create(required(value, "resourceUri")).normalize();
+        } catch (IllegalArgumentException invalid) {
+            throw new IllegalArgumentException(
+                    "resourceUri must be a valid URI", invalid);
+        }
+        if (!uri.isAbsolute() || uri.getFragment() != null) {
+            throw new IllegalArgumentException(
+                    "resourceUri must be absolute and must not contain a fragment"
+            );
+        }
+        return uri.toString();
     }
 
     private static String required(String value, String field) {

@@ -104,7 +104,10 @@ class McpTransportIntegrationTest {
                             + "/.well-known/oauth-protected-resource/mcp/orders")
                     .responseSingle((response, body) -> body.asString())
                     .block(Duration.ofSeconds(2)));
-            assertEquals("gateway-mcp", metadata.path("audience").asText());
+            assertEquals(
+                    "https://resource.egon.top/gateway-mcp",
+                    metadata.path("resourceUri").asText()
+            );
 
             HttpResult delegated = get(
                     server.publicPort(),
@@ -167,7 +170,7 @@ class McpTransportIntegrationTest {
                         McpProtocolDialect.RC_2026_07_28,
                         McpProtocolDialect.LEGACY_2024_SSE
                 ),
-                "gateway-mcp",
+                "https://resource.egon.top/gateway-mcp",
                 30,
                 true
         );

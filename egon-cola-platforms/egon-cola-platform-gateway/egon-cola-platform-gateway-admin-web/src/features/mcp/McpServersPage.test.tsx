@@ -114,8 +114,8 @@ describe('McpServersPage', () => {
     fireEvent.click(add)
     fireEvent.change(screen.getByLabelText('Server Code'), { target: { value: 'commerce' } })
     fireEvent.change(screen.getByLabelText('显示名称'), { target: { value: 'Commerce MCP' } })
-    fireEvent.change(screen.getByLabelText('OAuth Audience'), {
-      target: { value: 'gateway-mcp-commerce' },
+    fireEvent.change(screen.getByLabelText('Resource URI'), {
+      target: { value: 'https://resource.egon.top/gateway-mcp-commerce' },
     })
     fireEvent.change(screen.getByLabelText('变更原因'), { target: { value: 'initial server' } })
     fireEvent.click(screen.getByRole('button', { name: 'OK' }))

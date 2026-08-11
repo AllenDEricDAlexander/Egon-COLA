@@ -313,7 +313,7 @@ class McpSecurityIT {
                 "Security fixture",
                 "Use reviewed capabilities.",
                 Set.of(McpProtocolDialect.STABLE_2025_11_25),
-                "gateway-mcp",
+                "https://resource.egon.top/gateway-mcp",
                 30L,
                 true
         );
@@ -403,7 +403,7 @@ class McpSecurityIT {
                         "client-1",
                         "token-1",
                         2L,
-                        Set.of("gateway-mcp"),
+                        "https://resource.egon.top/gateway-mcp",
                         Instant.parse("2026-08-03T00:00:00Z"),
                         Instant.parse("2026-08-03T01:00:00Z"),
                         7L,

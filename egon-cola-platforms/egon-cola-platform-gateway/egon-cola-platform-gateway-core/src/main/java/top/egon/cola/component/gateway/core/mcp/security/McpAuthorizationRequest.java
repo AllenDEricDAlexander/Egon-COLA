@@ -13,7 +13,7 @@ public record McpAuthorizationRequest(
         String clientId,
         String tokenId,
         long tokenVersion,
-        Set<String> audience,
+        String resourceUri,
         Instant issuedAt,
         Instant expiresAt,
         Set<String> requiredPermissions,
@@ -30,7 +30,7 @@ public record McpAuthorizationRequest(
         clientId = required(clientId, "clientId");
         tokenId = required(tokenId, "tokenId");
         nonNegative(tokenVersion, "tokenVersion");
-        audience = sorted(audience, "audience");
+        resourceUri = required(resourceUri, "resourceUri");
         issuedAt = Objects.requireNonNull(issuedAt, "issuedAt");
         expiresAt = Objects.requireNonNull(expiresAt, "expiresAt");
         if (!expiresAt.isAfter(issuedAt)) {

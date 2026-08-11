@@ -106,7 +106,7 @@ export const McpServersPage = () => {
       description: server.description,
       instructions: server.instructions,
       dialects: server.dialects,
-      oauthAudience: server.oauthAudience,
+      resourceUri: server.resourceUri,
       listCacheTtlSeconds: server.listCacheTtlSeconds,
       enabled: server.enabled,
       changeReason: '',
@@ -114,7 +114,7 @@ export const McpServersPage = () => {
       serverCode: '',
       displayName: '',
       dialects: ['STABLE_2025_11_25'],
-      oauthAudience: '',
+      resourceUri: '',
       listCacheTtlSeconds: 30,
       enabled: true,
       changeReason: '',
@@ -160,7 +160,7 @@ export const McpServersPage = () => {
           columns={[
             { title: 'Server Code', dataIndex: 'serverCode' },
             { title: '名称', dataIndex: 'displayName' },
-            { title: 'OAuth Audience', dataIndex: 'oauthAudience' },
+            { title: 'Resource URI', dataIndex: 'resourceUri' },
             {
               title: '协议',
               render: (_, server) => (
@@ -217,7 +217,7 @@ export const McpServersPage = () => {
           <Form.Item name="dialects" label="协议版本" rules={[{ required: true }]}>
             <Select mode="multiple" options={dialectOptions} />
           </Form.Item>
-          <Form.Item name="oauthAudience" label="OAuth Audience" rules={[{ required: true }]}>
+          <Form.Item name="resourceUri" label="Resource URI" rules={[{ required: true, type: 'url' }]}>
             <Input />
           </Form.Item>
           <Form.Item name="listCacheTtlSeconds" label="List Cache TTL（秒）" rules={[{ required: true }]}>

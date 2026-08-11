@@ -352,7 +352,7 @@ export type McpServer = {
   description?: string
   instructions?: string
   dialects: McpProtocolDialect[]
-  oauthAudience: string
+  resourceUri: string
   listCacheTtlSeconds: number
   enabled: boolean
   revision: number

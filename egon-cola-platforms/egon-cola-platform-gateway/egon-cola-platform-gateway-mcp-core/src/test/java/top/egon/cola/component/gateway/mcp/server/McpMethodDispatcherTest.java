@@ -34,7 +34,7 @@ class McpMethodDispatcherTest {
                             McpProtocolDialect.STABLE_2025_11_25,
                             McpProtocolDialect.RC_2026_07_28
                     ),
-                    "gateway-mcp",
+                    "https://resource.egon.top/gateway-mcp",
                     30,
                     true
             ),

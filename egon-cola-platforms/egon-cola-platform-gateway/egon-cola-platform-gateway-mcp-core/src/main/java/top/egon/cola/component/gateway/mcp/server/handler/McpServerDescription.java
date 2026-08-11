@@ -21,7 +21,7 @@ final class McpServerDescription {
         if (server.instructions() != null) {
             description.put("instructions", server.instructions());
         }
-        description.put("oauthAudience", server.oauthAudience());
+        description.put("resourceUri", server.resourceUri());
         return Collections.unmodifiableMap(description);
     }
 

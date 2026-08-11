@@ -3,16 +3,14 @@ package top.egon.cola.platform.idp.gateway.autoconfigure;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
-import java.util.LinkedHashSet;
-import java.util.Set;
 
 /**
  * 描述 Gateway 接入统一 IdP 时使用的验证与运行时配置。
- * 验证配置限定受信任的签发方、JWK、受众和客户端；运行时配置用于建立独立的 Redis 状态连接。
+ * 验证配置限定受信任的签发方、JWK 和 Resource 投影键空间；运行时配置用于建立独立的 Redis 状态连接。
  *
  * <p>Describes verification and runtime settings for integrating the Gateway with the unified IdP.
- * Verification settings constrain the trusted issuer, JWK source, audience, and clients, while
- * runtime settings establish the dedicated Redis state connection.</p>
+ * Verification settings constrain the trusted issuer, JWK source, and Resource projection key
+ * space, while runtime settings establish the dedicated Redis state connection.</p>
  */
 @ConfigurationProperties("egon.cola.platform.idp.gateway")
 public class IdpGatewayAdapterProperties {
@@ -39,25 +37,23 @@ public class IdpGatewayAdapterProperties {
     private String jwkSetUri;
 
     /**
-     * Gateway 接受的 JWT 受众集合。
-     *
-     * <p>JWT audiences accepted by the Gateway.</p>
-     */
-    private Set<String> audiences = new LinkedHashSet<>();
-
-    /**
-     * 允许通过 Gateway 提交令牌的 OAuth 客户端标识集合。
-     *
-     * <p>OAuth client identifiers whose tokens may be submitted through the Gateway.</p>
-     */
-    private Set<String> clientIds = new LinkedHashSet<>();
-
-    /**
      * IdP 用户实时状态在 Redis 中使用的键前缀。
      *
      * <p>Redis key prefix used for current IdP user-state projections.</p>
      */
     private String userStateKeyPrefix = "identity:v1:user:";
+
+    /** Resource Server 状态键前缀；Resource Server state-key prefix. */
+    private String resourceStateKeyPrefix = "identity:resource-server:";
+
+    /** Resource 三元组索引键前缀；Resource triple-index key prefix. */
+    private String resourceScopeKeyPrefix = "identity:resource-scope:";
+
+    /** Resource URI 索引键前缀；Resource URI-index key prefix. */
+    private String resourceUriKeyPrefix = "identity:resource-uri:";
+
+    /** OAuth Client 状态键前缀；OAuth Client state-key prefix. */
+    private String clientStateKeyPrefix = "identity:oauth-client:";
 
     /**
      * Gateway 专用 Redis 运行时连接配置。
@@ -141,50 +137,6 @@ public class IdpGatewayAdapterProperties {
     }
 
     /**
-     * 返回允许的 JWT 受众集合。
-     *
-     * <p>Returns the accepted JWT audiences.</p>
-     *
-     * @return 受众集合；accepted audiences
-     */
-    public Set<String> getAudiences() {
-        return audiences;
-    }
-
-    /**
-     * 设置允许的 JWT 受众集合。
-     *
-     * <p>Sets the accepted JWT audiences.</p>
-     *
-     * @param audiences 受众集合；accepted audiences
-     */
-    public void setAudiences(Set<String> audiences) {
-        this.audiences = audiences;
-    }
-
-    /**
-     * 返回允许的 OAuth 客户端集合。
-     *
-     * <p>Returns the accepted OAuth clients.</p>
-     *
-     * @return 客户端标识集合；accepted client identifiers
-     */
-    public Set<String> getClientIds() {
-        return clientIds;
-    }
-
-    /**
-     * 设置允许的 OAuth 客户端集合。
-     *
-     * <p>Sets the accepted OAuth clients.</p>
-     *
-     * @param clientIds 客户端标识集合；accepted client identifiers
-     */
-    public void setClientIds(Set<String> clientIds) {
-        this.clientIds = clientIds;
-    }
-
-    /**
      * 返回用户实时状态 Redis 键前缀。
      *
      * <p>Returns the Redis key prefix for current user state.</p>
@@ -204,6 +156,46 @@ public class IdpGatewayAdapterProperties {
      */
     public void setUserStateKeyPrefix(String userStateKeyPrefix) {
         this.userStateKeyPrefix = userStateKeyPrefix;
+    }
+
+    /** 返回 Resource 状态键前缀；Returns the Resource state-key prefix. */
+    public String getResourceStateKeyPrefix() {
+        return resourceStateKeyPrefix;
+    }
+
+    /** 设置 Resource 状态键前缀；Sets the Resource state-key prefix. */
+    public void setResourceStateKeyPrefix(String resourceStateKeyPrefix) {
+        this.resourceStateKeyPrefix = resourceStateKeyPrefix;
+    }
+
+    /** 返回 Resource 三元组索引前缀；Returns the Resource triple-index prefix. */
+    public String getResourceScopeKeyPrefix() {
+        return resourceScopeKeyPrefix;
+    }
+
+    /** 设置 Resource 三元组索引前缀；Sets the Resource triple-index prefix. */
+    public void setResourceScopeKeyPrefix(String resourceScopeKeyPrefix) {
+        this.resourceScopeKeyPrefix = resourceScopeKeyPrefix;
+    }
+
+    /** 返回 Resource URI 索引前缀；Returns the Resource URI-index prefix. */
+    public String getResourceUriKeyPrefix() {
+        return resourceUriKeyPrefix;
+    }
+
+    /** 设置 Resource URI 索引前缀；Sets the Resource URI-index prefix. */
+    public void setResourceUriKeyPrefix(String resourceUriKeyPrefix) {
+        this.resourceUriKeyPrefix = resourceUriKeyPrefix;
+    }
+
+    /** 返回 OAuth Client 状态键前缀；Returns the OAuth Client state-key prefix. */
+    public String getClientStateKeyPrefix() {
+        return clientStateKeyPrefix;
+    }
+
+    /** 设置 OAuth Client 状态键前缀；Sets the OAuth Client state-key prefix. */
+    public void setClientStateKeyPrefix(String clientStateKeyPrefix) {
+        this.clientStateKeyPrefix = clientStateKeyPrefix;
     }
 
     /**
@@ -229,8 +221,10 @@ public class IdpGatewayAdapterProperties {
         required(issuer, "issuer");
         required(jwkSetUri, "jwkSetUri");
         required(userStateKeyPrefix, "userStateKeyPrefix");
-        requiredValues(audiences, "audiences");
-        requiredValues(clientIds, "clientIds");
+        required(resourceStateKeyPrefix, "resourceStateKeyPrefix");
+        required(resourceScopeKeyPrefix, "resourceScopeKeyPrefix");
+        required(resourceUriKeyPrefix, "resourceUriKeyPrefix");
+        required(clientStateKeyPrefix, "clientStateKeyPrefix");
     }
 
     /**
@@ -246,26 +240,6 @@ public class IdpGatewayAdapterProperties {
         if (value == null || value.isBlank()) {
             throw new IllegalStateException(
                     "egon.cola.platform.idp.gateway." + field + " is required");
-        }
-    }
-
-    /**
-     * 校验配置集合非空且不包含空白元素。
-     *
-     * <p>Validates that a configured set is non-empty and contains no blank elements.</p>
-     *
-     * @param values 配置值集合；configured values
-     * @param field 配置字段名；setting field name
-     * @throws IllegalStateException 当集合为空或包含空白元素时；when the set is empty or contains a
-     *                               blank element
-     */
-    private void requiredValues(Set<String> values, String field) {
-        if (values == null || values.isEmpty()
-                || values.stream().anyMatch(
-                        value -> value == null || value.isBlank())) {
-            throw new IllegalStateException(
-                    "egon.cola.platform.idp.gateway." + field
-                            + " must contain non-blank values");
         }
     }
 

@@ -16,6 +16,7 @@ import top.egon.cola.component.gateway.core.exchange.GatewayRequest;
 import top.egon.cola.component.gateway.core.exchange.GatewayResponse;
 import top.egon.cola.component.gateway.core.exchange.ImmutableGatewayHeaders;
 import top.egon.cola.component.gateway.core.http.NormalizedHttpRequest;
+import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
 import top.egon.cola.component.gateway.core.route.HttpRouteMatch;
 import top.egon.cola.component.gateway.core.security.GatewayAuthContext;
 import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
@@ -148,9 +149,13 @@ public final class RuleBackedHttpGatewaySecurityProcessor
                 ));
     }
 
-    private java.util.Map<String, String> securityAttributes(HttpRouteMatch route) {
+    static java.util.Map<String, String> securityAttributes(HttpRouteMatch route) {
         java.util.Map<String, String> metadata = route.route().metadata();
         java.util.Map<String, String> attributes = new java.util.LinkedHashMap<>();
+        ProviderServiceKey upstream = route.route().upstream();
+        attributes.put("idp.biz-code", upstream.bizCode());
+        attributes.put("idp.app-code", upstream.appCode());
+        attributes.put("idp.env", upstream.env());
         copy(metadata, attributes, "applicationCode", "rbac3.application-code");
         copy(metadata, attributes, "definitionSetId", "rbac3.definition-set-id");
         if (!attributes.containsKey("rbac3.definition-set-id")) {
@@ -167,7 +172,7 @@ public final class RuleBackedHttpGatewaySecurityProcessor
         return java.util.Map.copyOf(attributes);
     }
 
-    private void copy(
+    private static void copy(
             java.util.Map<String, String> source,
             java.util.Map<String, String> target,
             String sourceName,

@@ -97,7 +97,7 @@ class GatewayMcpFlywayPostgresqlIT {
         latest.migrate();
 
         assertTrue(tableNames(upgradeSchema).containsAll(MCP_TABLES));
-        assertEquals("10", latest.info().current().getVersion().getVersion());
+        assertEquals("11", latest.info().current().getVersion().getVersion());
     }
 
     @Test
@@ -167,11 +167,12 @@ class GatewayMcpFlywayPostgresqlIT {
         jdbc.update("""
                 INSERT INTO gateway_mcp_server(
                     id, gateway_group_id, server_code, display_name,
-                    dialects, oauth_audience, enabled, revision, deleted,
+                    dialects, resource_uri, enabled, revision, deleted,
                     created_at, created_by, updated_at, updated_by
                 ) VALUES (
                     'server-1', 'group-1', 'orders', 'Orders',
-                    '["STABLE_2025_11_25"]'::jsonb, 'gateway-mcp', TRUE,
+                    '["STABLE_2025_11_25"]'::jsonb,
+                    'https://resource.egon.top/gateway-mcp', TRUE,
                     0, FALSE, ?, 'admin', ?, 'admin'
                 )
                 """, timestamp, timestamp);
@@ -284,12 +285,13 @@ class GatewayMcpFlywayPostgresqlIT {
         jdbc.update("""
                 INSERT INTO gateway_mcp_server(
                     id, gateway_group_id, server_code, display_name,
-                    dialects, oauth_audience, list_cache_ttl_seconds,
+                    dialects, resource_uri, list_cache_ttl_seconds,
                     enabled, revision, deleted, created_at, created_by,
                     updated_at, updated_by
                 ) VALUES (
                     'server-1', 'group-1', 'billing', 'Billing',
-                    '["STABLE_2025_11_25"]'::jsonb, 'gateway-mcp', 30,
+                    '["STABLE_2025_11_25"]'::jsonb,
+                    'https://resource.egon.top/gateway-mcp', 30,
                     TRUE, 0, FALSE, ?, 'admin-1', ?, 'admin-1'
                 )
                 """, Timestamp.from(now), Timestamp.from(now));

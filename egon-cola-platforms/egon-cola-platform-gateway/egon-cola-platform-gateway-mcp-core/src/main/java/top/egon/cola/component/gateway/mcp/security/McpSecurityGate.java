@@ -14,7 +14,6 @@ import top.egon.cola.component.gateway.core.mcp.security.McpAuthorizationRequest
 import top.egon.cola.component.gateway.mcp.protocol.McpProtocolException;
 
 import java.time.Instant;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -238,7 +237,7 @@ public final class McpSecurityGate {
             String clientId,
             String tokenId,
             long tokenVersion,
-            Set<String> audience,
+            String resourceUri,
             Instant issuedAt,
             Instant expiresAt,
             long minimumAuthVersion,
@@ -254,15 +253,7 @@ public final class McpSecurityGate {
             clientId = required(clientId, "clientId");
             tokenId = required(tokenId, "tokenId");
             nonNegative(tokenVersion, "tokenVersion");
-            audience = Set.copyOf(Objects.requireNonNull(
-                    audience,
-                    "audience"
-            ));
-            if (audience.isEmpty()) {
-                throw new IllegalArgumentException(
-                        "audience must not be empty"
-                );
-            }
+            resourceUri = required(resourceUri, "resourceUri");
             issuedAt = Objects.requireNonNull(issuedAt, "issuedAt");
             expiresAt = Objects.requireNonNull(expiresAt, "expiresAt");
             if (!expiresAt.isAfter(issuedAt)) {
@@ -284,7 +275,7 @@ public final class McpSecurityGate {
                     clientId,
                     tokenId,
                     tokenVersion,
-                    audience,
+                    resourceUri,
                     issuedAt,
                     expiresAt,
                     permissions,
@@ -321,11 +312,7 @@ public final class McpSecurityGate {
                             "identity.token-version",
                             "idp.token-version"
                     ),
-                    strings(
-                            attributes,
-                            "identity.audience",
-                            "idp.audience"
-                    ),
+                    text(attributes, "identity.resource-uri", "idp.resource-uri"),
                     instant(
                             attributes,
                             "identity.issued-at",
@@ -394,35 +381,6 @@ public final class McpSecurityGate {
                 return Instant.parse(text.trim());
             }
             throw new IllegalArgumentException(keys[0] + " is required");
-        }
-
-        private static Set<String> strings(
-                Map<String, Object> attributes,
-                String... keys) {
-            Object value = first(attributes, keys);
-            TreeSet<String> values = new TreeSet<>();
-            if (value instanceof Collection<?> collection) {
-                collection.forEach(item -> {
-                    if (!(item instanceof String text) || text.isBlank()) {
-                        throw new IllegalArgumentException(
-                                keys[0] + " must contain strings"
-                        );
-                    }
-                    values.add(text.trim());
-                });
-            } else if (value instanceof String text && !text.isBlank()) {
-                for (String item : text.split(",")) {
-                    if (!item.isBlank()) {
-                        values.add(item.trim());
-                    }
-                }
-            }
-            if (values.isEmpty()) {
-                throw new IllegalArgumentException(
-                        keys[0] + " must not be empty"
-                );
-            }
-            return Set.copyOf(values);
         }
 
         private static Object first(

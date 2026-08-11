@@ -93,6 +93,24 @@ class McpContractTest {
         );
     }
 
+    @Test
+    void serverRequiresAnAbsoluteFragmentFreeResourceUri() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new McpRuntimeServer(
+                        "server-1", "billing", "Billing", null, null,
+                        Set.of(McpProtocolDialect.STABLE_2025_11_25),
+                        "gateway-mcp", 30, true)
+        );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> new McpRuntimeServer(
+                        "server-1", "billing", "Billing", null, null,
+                        Set.of(McpProtocolDialect.STABLE_2025_11_25),
+                        "https://resource.egon.top/mcp#fragment", 30, true)
+        );
+    }
+
     private McpRuleContent content(List<McpRuntimeTool> tools) {
         return new McpRuleContent(
                 List.of(server()),
@@ -115,7 +133,7 @@ class McpContractTest {
                 "Billing capabilities",
                 "Use billing capabilities for approved business operations.",
                 Set.of(McpProtocolDialect.STABLE_2025_11_25),
-                "gateway-mcp",
+                "https://resource.egon.top/gateway-mcp",
                 30,
                 true
         );

@@ -53,11 +53,11 @@ public final class IdpTrustedIdentityMapper implements GatewayIdentityMapper {
      *
      * <p>Returns the Gateway protocols supported by this mapper.</p>
      *
-     * @return 仅包含 HTTP 的协议集合；a protocol set containing HTTP only
+     * @return HTTP 与 RPC 协议集合；HTTP and RPC protocol set
      */
     @Override
     public Set<GatewayProtocol> supportedProtocols() {
-        return Set.of(GatewayProtocol.HTTP);
+        return Set.of(GatewayProtocol.HTTP, GatewayProtocol.RPC);
     }
 
     /**
@@ -81,15 +81,41 @@ public final class IdpTrustedIdentityMapper implements GatewayIdentityMapper {
         }
         Map<String, String> attributes = principal.attributes();
         Map<String, String> headers = new LinkedHashMap<>();
+        headers.put("X-Egon-Principal-Type", principal.principalType());
         headers.put("X-Egon-Identity-Sub", principal.principalId());
         headers.put("X-Egon-Tenant-Id", principal.tenantId());
-        headers.put("X-Egon-Session-Id", required(
-                attributes, "idp.session-id"));
         headers.put("X-Egon-Client-Id", required(
                 attributes, "idp.client-id"));
         headers.put("X-Egon-Token-Id", required(
                 attributes, "idp.token-id"));
-        return new TrustedIdentity(headers, Map.of());
+        headers.put("X-Egon-Resource-Uri", required(
+                attributes, "idp.resource-uri"));
+        if ("USER".equals(principal.principalType())) {
+            headers.put("X-Egon-Session-Id", required(
+                    attributes, "idp.session-id"));
+            headers.put("X-Egon-Token-Version", required(
+                    attributes, "idp.token-version"));
+        } else if ("SERVICE".equals(principal.principalType())) {
+            headers.put("X-Egon-Resource-Version", required(
+                    attributes, "idp.resource-version"));
+            headers.put("X-Egon-Source-Biz", required(
+                    attributes, "idp.source-biz"));
+            headers.put("X-Egon-Source-App", required(
+                    attributes, "idp.source-app"));
+            headers.put("X-Egon-Source-Env", required(
+                    attributes, "idp.source-env"));
+            headers.put("X-Egon-Service-Scopes", required(
+                    attributes, "idp.service-scopes"));
+            headers.put("X-Egon-Credential-Id", required(
+                    attributes, "idp.credential-id"));
+        } else {
+            throw new IllegalArgumentException("unsupported IdP principal type");
+        }
+        Map<String, String> rpcMetadata = new LinkedHashMap<>();
+        headers.forEach((name, value) -> rpcMetadata.put(
+                "egon-gateway-" + name.substring("X-Egon-".length())
+                        .toLowerCase(java.util.Locale.ROOT), value));
+        return new TrustedIdentity(headers, rpcMetadata);
     }
 
     /**

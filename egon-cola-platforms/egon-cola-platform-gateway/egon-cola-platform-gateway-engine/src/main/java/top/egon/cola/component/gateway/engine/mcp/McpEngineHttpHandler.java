@@ -173,7 +173,7 @@ public final class McpEngineHttpHandler {
                 200,
                 json(Map.of(
                         "resource", MCP_PATH_PREFIX + server.serverCode(),
-                        "audience", server.oauthAudience(),
+                        "resourceUri", server.resourceUri(),
                         "bearer_methods_supported", List.of("header")
                 )),
                 Map.of("cache-control", List.of("public, max-age=60"))

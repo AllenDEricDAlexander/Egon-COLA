@@ -92,7 +92,7 @@ class McpRbac3IntegrationTest {
                 "finance-web",
                 "token-1",
                 2L,
-                Set.of("gateway-mcp"),
+                "https://resource.egon.top/gateway-mcp",
                 NOW.minusSeconds(30),
                 NOW.plusSeconds(300),
                 permissions,

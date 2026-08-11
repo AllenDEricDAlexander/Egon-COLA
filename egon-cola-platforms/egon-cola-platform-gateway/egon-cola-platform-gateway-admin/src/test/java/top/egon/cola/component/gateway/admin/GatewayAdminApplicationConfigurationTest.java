@@ -11,6 +11,7 @@ import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationAutoConfiguration;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
@@ -140,6 +141,11 @@ class GatewayAdminApplicationConfigurationTest {
         @Bean
         DdcServiceRegistryClient ddcServiceRegistryClient() {
             return mock(DdcServiceRegistryClient.class);
+        }
+
+        @Bean
+        DdcAdmissionTicketSupplier ddcAdmissionTicketSupplier() {
+            return mock(DdcAdmissionTicketSupplier.class);
         }
 
         @Bean

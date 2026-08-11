@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.contract.mcp.rule;
 
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
 
+import java.net.URI;
 import java.util.Set;
 
 /**
@@ -16,7 +17,7 @@ public record McpRuntimeServer(
         String description,
         String instructions,
         Set<McpProtocolDialect> dialects,
-        String oauthAudience,
+        String resourceUri,
         long listCacheTtlSeconds,
         boolean enabled
 ) {
@@ -31,13 +32,26 @@ public record McpRuntimeServer(
         if (dialects.isEmpty()) {
             throw new IllegalArgumentException("dialects must not be empty");
         }
-        oauthAudience = McpContractSupport.required(
-                oauthAudience,
-                "oauthAudience"
-        );
+        resourceUri = normalizedResourceUri(resourceUri);
         listCacheTtlSeconds = McpContractSupport.nonNegative(
                 listCacheTtlSeconds,
                 "listCacheTtlSeconds"
         );
+    }
+
+    private static String normalizedResourceUri(String value) {
+        String required = McpContractSupport.required(value, "resourceUri");
+        URI uri;
+        try {
+            uri = URI.create(required).normalize();
+        } catch (IllegalArgumentException invalid) {
+            throw new IllegalArgumentException("resourceUri must be a valid URI", invalid);
+        }
+        if (!uri.isAbsolute() || uri.getFragment() != null) {
+            throw new IllegalArgumentException(
+                    "resourceUri must be absolute and must not contain a fragment"
+            );
+        }
+        return uri.toString();
     }
 }

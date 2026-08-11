@@ -291,7 +291,7 @@ class McpTelemetrySecurityTest {
                 "Developer capabilities",
                 "Use reviewed tools.",
                 Set.of(McpProtocolDialect.STABLE_2025_11_25),
-                "gateway-mcp",
+                "https://resource.egon.top/gateway-mcp",
                 30,
                 true
         );

@@ -17,6 +17,7 @@ import top.egon.cola.component.gateway.core.exchange.GatewayHeaders;
 import top.egon.cola.component.gateway.core.exchange.GatewayRequest;
 import top.egon.cola.component.gateway.core.exchange.GatewayResponse;
 import top.egon.cola.component.gateway.core.exchange.ImmutableGatewayHeaders;
+import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
 import top.egon.cola.component.gateway.core.security.GatewayAuthContext;
 import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
 import top.egon.cola.component.gateway.engine.rule.CompiledGatewayRules;
@@ -115,7 +116,8 @@ public final class RuleBackedRpcGatewaySecurityProcessor
                 traceId,
                 requestId,
                 deadline,
-                current.snapshot().releaseId()
+                current.snapshot().releaseId(),
+                securityAttributes(route)
         );
         GatewayExchange exchange = new RpcExchange(
                 new RpcRequest(
@@ -135,6 +137,15 @@ public final class RuleBackedRpcGatewaySecurityProcessor
                         result.trustedIdentity(),
                         result.fieldsToRemove()
                 ));
+    }
+
+    static Map<String, String> securityAttributes(RuntimeRpcRoute route) {
+        ProviderServiceKey target = route.targetService();
+        return Map.of(
+                "idp.biz-code", target.bizCode(),
+                "idp.app-code", target.appCode(),
+                "idp.env", target.env()
+        );
     }
 
     private Duration effectiveTimeout(

@@ -28,7 +28,7 @@ const server = {
   serverCode: 'commerce',
   displayName: 'Commerce MCP',
   dialects: ['STABLE_2025_11_25', 'RC_2026_07_28'],
-  oauthAudience: 'gateway-mcp-commerce',
+  resourceUri: 'https://resource.egon.top/gateway-mcp-commerce',
   listCacheTtlSeconds: 30,
   enabled: true,
   revision: 0,

@@ -10,28 +10,23 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
-import org.springframework.security.oauth2.core.OAuth2Error;
-import org.springframework.security.oauth2.core.OAuth2TokenValidator;
-import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import top.egon.cola.platform.idp.gateway.runtime.IdpGatewayRedissonConfiguration;
+import top.egon.cola.platform.idp.gateway.security.GatewayResourceServerResolver;
 import top.egon.cola.platform.idp.gateway.security.IdpBearerCredentialExtractor;
 import top.egon.cola.platform.idp.gateway.security.IdpGatewayJwtVerifier;
 import top.egon.cola.platform.idp.gateway.security.IdpIdentityAuthenticationProvider;
 import top.egon.cola.platform.idp.gateway.security.IdpReservedHeaderSanitizer;
 import top.egon.cola.platform.idp.gateway.security.IdpTrustedIdentityMapper;
-import top.egon.cola.platform.idp.starter.security.IdpJwtVerifier;
 import top.egon.cola.platform.idp.starter.security.RetryingJwtDecoder;
+import top.egon.cola.platform.idp.starter.state.IdentityOAuthClientStateReader;
+import top.egon.cola.platform.idp.starter.state.IdentityResourceServerStateReader;
 import top.egon.cola.platform.idp.starter.state.IdentityUserStateReader;
+import top.egon.cola.platform.idp.starter.state.RedisIdentityOAuthClientStateReader;
+import top.egon.cola.platform.idp.starter.state.RedisIdentityResourceServerStateReader;
 import top.egon.cola.platform.idp.starter.state.RedisIdentityUserStateReader;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 
 /**
  * 将统一 IdP 身份验证能力装配到非 Servlet 的 Gateway 安全扩展点。
@@ -133,47 +128,93 @@ public class IdpGatewayAdapterAutoConfiguration {
     }
 
     /**
-     * 组合 Gateway JWT 解码器、用户状态读取器和允许范围，创建共享验证器。
+     * 创建使用 Gateway 专用 Redis 客户端的 Resource Server 状态读取器。
      *
-     * <p>Combines the Gateway JWT decoder, user-state reader, and accepted scopes into the shared
-     * verifier.</p>
+     * <p>Creates the Resource Server state reader backed by the Gateway-specific Redis client.</p>
      *
-     * @param decoder Gateway JWT 解码器；Gateway JWT decoder
-     * @param stateReader 用户实时状态读取器；current user-state reader
+     * @param redisson Gateway 专用 Redis 客户端；Gateway-specific Redis client
+     * @param objectMapper Resource 状态 JSON 反序列化器；Resource-state JSON deserializer
      * @param properties Gateway IdP 适配器配置；Gateway IdP adapter settings
-     * @return 共享 IdP JWT 验证器；shared IdP JWT verifier
+     * @return Resource Server 状态读取器；Resource Server state reader
      */
-    @Bean(name = "idpGatewaySharedJwtVerifier")
-    @ConditionalOnBean(name = "idpGatewayIdentityUserStateReader")
-    @ConditionalOnMissingBean(name = "idpGatewaySharedJwtVerifier")
-    public IdpJwtVerifier idpGatewaySharedJwtVerifier(
-            @Qualifier("idpGatewayJwtDecoder") JwtDecoder decoder,
-            @Qualifier("idpGatewayIdentityUserStateReader")
-            IdentityUserStateReader stateReader,
+    @Bean(name = "idpGatewayResourceServerStateReader")
+    @ConditionalOnBean(name = "idpGatewayRedissonClient")
+    @ConditionalOnMissingBean(name = "idpGatewayResourceServerStateReader")
+    public IdentityResourceServerStateReader idpGatewayResourceServerStateReader(
+            @Qualifier("idpGatewayRedissonClient") RedissonClient redisson,
+            ObjectMapper objectMapper,
             IdpGatewayAdapterProperties properties
     ) {
-        return new IdpJwtVerifier(
-                decoder,
-                stateReader,
-                properties.getAudiences(),
-                properties.getClientIds());
+        properties.validate();
+        return new RedisIdentityResourceServerStateReader(
+                redisson, objectMapper, properties.getResourceStateKeyPrefix());
     }
 
     /**
-     * 创建从共享 IdP 验证器到 Gateway 验证端口的适配器。
+     * 创建使用 Gateway 专用 Redis 客户端的 OAuth Client 状态读取器。
      *
-     * <p>Creates the adapter from the shared IdP verifier to the Gateway verification port.</p>
+     * <p>Creates the OAuth Client state reader backed by the Gateway-specific Redis client.</p>
      *
-     * @param verifier 共享 IdP JWT 验证器；shared IdP JWT verifier
-     * @return Gateway JWT 验证适配器；Gateway JWT verification adapter
+     * @param redisson Gateway 专用 Redis 客户端；Gateway-specific Redis client
+     * @param objectMapper OAuth Client 状态 JSON 反序列化器；OAuth Client-state JSON deserializer
+     * @param properties Gateway IdP 适配器配置；Gateway IdP adapter settings
+     * @return OAuth Client 状态读取器；OAuth Client state reader
+     */
+    @Bean(name = "idpGatewayOAuthClientStateReader")
+    @ConditionalOnBean(name = "idpGatewayRedissonClient")
+    @ConditionalOnMissingBean(name = "idpGatewayOAuthClientStateReader")
+    public IdentityOAuthClientStateReader idpGatewayOAuthClientStateReader(
+            @Qualifier("idpGatewayRedissonClient") RedissonClient redisson,
+            ObjectMapper objectMapper,
+            IdpGatewayAdapterProperties properties
+    ) {
+        properties.validate();
+        return new RedisIdentityOAuthClientStateReader(
+                redisson, objectMapper, properties.getClientStateKeyPrefix());
+    }
+
+    /**
+     * 创建从可信路由标识解析 IdP Resource Server 的解析器。
+     *
+     * <p>Creates the resolver that maps trusted route identity to an IdP Resource Server.</p>
      */
     @Bean
-    @ConditionalOnBean(name = "idpGatewaySharedJwtVerifier")
+    @ConditionalOnBean(name = "idpGatewayRedissonClient")
+    @ConditionalOnMissingBean
+    public GatewayResourceServerResolver gatewayResourceServerResolver(
+            @Qualifier("idpGatewayRedissonClient") RedissonClient redisson,
+            @Qualifier("idpGatewayResourceServerStateReader")
+            IdentityResourceServerStateReader resourceStates,
+            IdpGatewayAdapterProperties properties
+    ) {
+        properties.validate();
+        return new GatewayResourceServerResolver(
+                redisson, resourceStates,
+                properties.getResourceScopeKeyPrefix(),
+                properties.getResourceUriKeyPrefix());
+    }
+
+    /**
+     * 创建按可信路由动态绑定 Resource 的 Gateway JWT 验证适配器。
+     *
+     * <p>Creates the Gateway JWT adapter that dynamically binds verification to the trusted
+     * route Resource.</p>
+     */
+    @Bean
+    @ConditionalOnBean({GatewayResourceServerResolver.class})
     @ConditionalOnMissingBean
     public IdpGatewayJwtVerifier idpGatewayJwtVerifier(
-            @Qualifier("idpGatewaySharedJwtVerifier") IdpJwtVerifier verifier
+            @Qualifier("idpGatewayJwtDecoder") JwtDecoder decoder,
+            @Qualifier("idpGatewayIdentityUserStateReader")
+            IdentityUserStateReader userStates,
+            @Qualifier("idpGatewayResourceServerStateReader")
+            IdentityResourceServerStateReader resourceStates,
+            @Qualifier("idpGatewayOAuthClientStateReader")
+            IdentityOAuthClientStateReader clientStates,
+            GatewayResourceServerResolver resources
     ) {
-        return new IdpGatewayJwtVerifier(verifier);
+        return new IdpGatewayJwtVerifier(
+                decoder, userStates, resourceStates, clientStates, resources);
     }
 
     /**
@@ -208,9 +249,10 @@ public class IdpGatewayAdapterAutoConfiguration {
     }
 
     /**
-     * 根据 JWK Set 地址创建 Nimbus 解码器，并校验签发方及受众。
+     * 根据 JWK Set 地址创建 Nimbus 解码器，并校验签发方。
      *
-     * <p>Creates a Nimbus decoder from the JWK Set endpoint and validates issuer and audience.</p>
+     * <p>Creates a Nimbus decoder from the JWK Set endpoint and validates the issuer. The exact
+     * audience is validated dynamically against the trusted route Resource.</p>
      *
      * @param properties 已完成校验的 Gateway IdP 配置；validated Gateway IdP settings
      * @return 配置完成的 JWT 解码器；configured JWT decoder
@@ -218,16 +260,8 @@ public class IdpGatewayAdapterAutoConfiguration {
     private JwtDecoder decoder(IdpGatewayAdapterProperties properties) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(
                 properties.getJwkSetUri().trim()).build();
-        List<OAuth2TokenValidator<Jwt>> validators = new ArrayList<>();
-        validators.add(JwtValidators.createDefaultWithIssuer(
+        decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(
                 properties.getIssuer().trim()));
-        Set<String> audiences = Set.copyOf(properties.getAudiences());
-        validators.add(jwt -> jwt.getAudience().stream().anyMatch(
-                audiences::contains)
-                ? OAuth2TokenValidatorResult.success()
-                : OAuth2TokenValidatorResult.failure(new OAuth2Error(
-                        "invalid_token", "JWT audience is invalid", null)));
-        decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(validators));
         return decoder;
     }
 }

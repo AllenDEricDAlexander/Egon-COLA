@@ -20,11 +20,20 @@ public final class IdpReservedHeaderSanitizer {
      */
     private static final Set<String> RESERVED = Set.of(
             "authorization",
+            "x-egon-principal-type",
             "x-egon-identity-sub",
             "x-egon-tenant-id",
             "x-egon-session-id",
             "x-egon-client-id",
-            "x-egon-token-id"
+            "x-egon-token-id",
+            "x-egon-token-version",
+            "x-egon-resource-uri",
+            "x-egon-resource-version",
+            "x-egon-source-biz",
+            "x-egon-source-app",
+            "x-egon-source-env",
+            "x-egon-service-scopes",
+            "x-egon-credential-id"
     );
 
     /**

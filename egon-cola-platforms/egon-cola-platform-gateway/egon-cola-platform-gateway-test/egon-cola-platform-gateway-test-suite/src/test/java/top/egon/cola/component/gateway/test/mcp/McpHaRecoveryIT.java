@@ -243,7 +243,7 @@ class McpHaRecoveryIT {
                         McpProtocolDialect.STABLE_2025_11_25,
                         McpProtocolDialect.RC_2026_07_28
                 ),
-                "gateway-mcp",
+                "https://resource.egon.top/gateway-mcp",
                 30L,
                 true
         );
@@ -425,7 +425,7 @@ class McpHaRecoveryIT {
                 "Developer capabilities",
                 "Use reviewed tools.",
                 Set.of(McpProtocolDialect.STABLE_2025_11_25),
-                "gateway-mcp",
+                "https://resource.egon.top/gateway-mcp",
                 30L,
                 true
         );

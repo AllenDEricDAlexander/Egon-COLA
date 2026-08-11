@@ -35,8 +35,6 @@ class IdpGatewayAdapterAutoConfigurationTest {
                         "egon.cola.platform.idp.gateway.enabled=true",
                         "egon.cola.platform.idp.gateway.issuer=https://idp.local",
                         "egon.cola.platform.idp.gateway.jwk-set-uri=https://idp.local/oauth2/jwks",
-                        "egon.cola.platform.idp.gateway.audiences[0]=egon-api",
-                        "egon.cola.platform.idp.gateway.client-ids[0]=gateway-client",
                         "egon.cola.platform.idp.gateway.runtime.redis-enabled=false")
                 .withBean("idpGatewayRedissonClient", RedissonClient.class,
                         () -> mock(RedissonClient.class))
