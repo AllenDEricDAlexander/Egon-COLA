@@ -5,16 +5,14 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.net.URI;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.LinkedHashSet;
-import java.util.Set;
 
 /**
  * 描述普通 Servlet 资源服务器接入统一 IdP 时使用的配置。
- * 配置决定受信任的签发方、公钥来源、受众与客户端范围，以及用户实时状态的 Redis 键空间。
+ * 配置决定受信任的签发方、公钥来源、当前唯一 Resource，以及身份运行态的 Redis 键空间。
  *
  * <p>Describes the configuration used when a regular Servlet resource server integrates with
- * the unified IdP. The settings define the trusted issuer, public-key source, accepted audiences
- * and clients, and the Redis key space containing current user state.</p>
+ * the unified IdP. The settings define the trusted issuer, public-key source, exact current
+ * Resource, and Redis key spaces containing current identity runtime state.</p>
  */
 @ConfigurationProperties("egon.cola.platform.idp")
 public class IdpStarterProperties {
@@ -48,18 +46,18 @@ public class IdpStarterProperties {
     private String jwkSetUri;
 
     /**
-     * 当前资源服务器接受的 JWT 受众集合。
+     * 当前应用唯一的 Resource Server 标识。
      *
-     * <p>JWT audiences accepted by the current resource server.</p>
+     * <p>The sole Resource Server identifier of the current application.</p>
      */
-    private Set<String> audiences = new LinkedHashSet<>();
+    private String resourceServerId;
 
     /**
-     * 允许向当前资源服务器提交令牌的 OAuth 客户端标识集合。
+     * 当前应用唯一的 RFC 8707 Resource URI。
      *
-     * <p>OAuth client identifiers whose tokens may be submitted to this resource server.</p>
+     * <p>The sole RFC 8707 Resource URI of the current application.</p>
      */
-    private Set<String> clientIds = new LinkedHashSet<>();
+    private URI resourceUri;
 
     /**
      * IdP 用户实时状态在 Redis 中使用的键前缀。
@@ -67,6 +65,20 @@ public class IdpStarterProperties {
      * <p>Redis key prefix used for current IdP user-state projections.</p>
      */
     private String userStateKeyPrefix = "identity:v1:user:";
+
+    /**
+     * Resource Server 运行态投影在 Redis 中使用的键前缀。
+     *
+     * <p>Redis key prefix used for Resource Server runtime projections.</p>
+     */
+    private String resourceStateKeyPrefix = "identity:resource-server:";
+
+    /**
+     * OAuth Client 运行态投影在 Redis 中使用的键前缀。
+     *
+     * <p>Redis key prefix used for OAuth Client runtime projections.</p>
+     */
+    private String oauthClientStateKeyPrefix = "identity:oauth-client:";
 
     /**
      * Resource Server 启动准入和机器身份配置。
@@ -172,47 +184,47 @@ public class IdpStarterProperties {
     }
 
     /**
-     * 返回允许的受众集合。
+     * 返回当前应用的 Resource Server 标识。
      *
-     * <p>Returns the accepted audience set.</p>
+     * <p>Returns the Resource Server identifier of the current application.</p>
      *
-     * @return 允许的受众；accepted audiences
+     * @return Resource Server 标识；Resource Server identifier
      */
-    public Set<String> getAudiences() {
-        return audiences;
+    public String getResourceServerId() {
+        return resourceServerId;
     }
 
     /**
-     * 设置允许的受众集合。
+     * 设置当前应用的 Resource Server 标识。
      *
-     * <p>Sets the accepted audience set.</p>
+     * <p>Sets the Resource Server identifier of the current application.</p>
      *
-     * @param audiences 允许的受众；accepted audiences
+     * @param resourceServerId Resource Server 标识；Resource Server identifier
      */
-    public void setAudiences(Set<String> audiences) {
-        this.audiences = audiences;
+    public void setResourceServerId(String resourceServerId) {
+        this.resourceServerId = resourceServerId;
     }
 
     /**
-     * 返回允许的 OAuth 客户端标识集合。
+     * 返回当前应用唯一的 Resource URI。
      *
-     * <p>Returns the accepted OAuth client identifiers.</p>
+     * <p>Returns the sole Resource URI of the current application.</p>
      *
-     * @return 客户端标识集合；accepted client identifiers
+     * @return Resource URI；Resource URI
      */
-    public Set<String> getClientIds() {
-        return clientIds;
+    public URI getResourceUri() {
+        return resourceUri;
     }
 
     /**
-     * 设置允许的 OAuth 客户端标识集合。
+     * 设置当前应用唯一的 Resource URI。
      *
-     * <p>Sets the accepted OAuth client identifiers.</p>
+     * <p>Sets the sole Resource URI of the current application.</p>
      *
-     * @param clientIds 客户端标识集合；accepted client identifiers
+     * @param resourceUri Resource URI；Resource URI
      */
-    public void setClientIds(Set<String> clientIds) {
-        this.clientIds = clientIds;
+    public void setResourceUri(URI resourceUri) {
+        this.resourceUri = resourceUri;
     }
 
     /**
@@ -235,6 +247,52 @@ public class IdpStarterProperties {
      */
     public void setUserStateKeyPrefix(String userStateKeyPrefix) {
         this.userStateKeyPrefix = userStateKeyPrefix;
+    }
+
+    /**
+     * 返回 Resource Server 投影的 Redis 键前缀。
+     *
+     * <p>Returns the Redis key prefix for Resource Server projections.</p>
+     *
+     * @return Redis 键前缀；Redis key prefix
+     */
+    public String getResourceStateKeyPrefix() {
+        return resourceStateKeyPrefix;
+    }
+
+    /**
+     * 设置 Resource Server 投影的 Redis 键前缀。
+     *
+     * <p>Sets the Redis key prefix for Resource Server projections.</p>
+     *
+     * @param resourceStateKeyPrefix Redis 键前缀；Redis key prefix
+     */
+    public void setResourceStateKeyPrefix(String resourceStateKeyPrefix) {
+        this.resourceStateKeyPrefix = resourceStateKeyPrefix;
+    }
+
+    /**
+     * 返回 OAuth Client 投影的 Redis 键前缀。
+     *
+     * <p>Returns the Redis key prefix for OAuth Client projections.</p>
+     *
+     * @return Redis 键前缀；Redis key prefix
+     */
+    public String getOauthClientStateKeyPrefix() {
+        return oauthClientStateKeyPrefix;
+    }
+
+    /**
+     * 设置 OAuth Client 投影的 Redis 键前缀。
+     *
+     * <p>Sets the Redis key prefix for OAuth Client projections.</p>
+     *
+     * @param oauthClientStateKeyPrefix Redis 键前缀；Redis key prefix
+     */
+    public void setOauthClientStateKeyPrefix(
+            String oauthClientStateKeyPrefix
+    ) {
+        this.oauthClientStateKeyPrefix = oauthClientStateKeyPrefix;
     }
 
     /**
@@ -264,15 +322,17 @@ public class IdpStarterProperties {
      *
      * <p>Validates all settings required to enable identity verification.</p>
      *
-     * @throws IllegalStateException 当必要配置缺失或集合包含空值时；when a required setting is
-     *                               missing or a configured set contains a blank value
+     * @throws IllegalStateException 当必要配置缺失或 Resource URI 无效时；when a required
+     *                               setting is missing or the Resource URI is invalid
      */
     public void validate() {
         required(issuer, "issuer");
         required(jwkSetUri, "jwkSetUri");
+        required(resourceServerId, "resourceServerId");
+        resource(resourceUri, "resourceUri");
         required(userStateKeyPrefix, "userStateKeyPrefix");
-        requiredValues(audiences, "audiences");
-        requiredValues(clientIds, "clientIds");
+        required(resourceStateKeyPrefix, "resourceStateKeyPrefix");
+        required(oauthClientStateKeyPrefix, "oauthClientStateKeyPrefix");
     }
 
     /**
@@ -290,8 +350,6 @@ public class IdpStarterProperties {
                     "egon.cola.platform.idp.admission is required"
             );
         }
-        required(admission.resourceServerId, "admission.resourceServerId");
-        resource(admission.resourceUri, "admission.resourceUri");
         required(admission.bizCode, "admission.bizCode");
         required(admission.appCode, "admission.appCode");
         required(admission.environment, "admission.environment");
@@ -330,26 +388,6 @@ public class IdpStarterProperties {
         if (value == null || value.isBlank()) {
             throw new IllegalStateException(
                     "egon.cola.platform.idp." + field + " is required");
-        }
-    }
-
-    /**
-     * 校验配置集合非空且不包含空白元素。
-     *
-     * <p>Validates that a configured set is non-empty and contains no blank elements.</p>
-     *
-     * @param values 配置值集合；configured values
-     * @param field  配置字段名；setting field name
-     * @throws IllegalStateException 当集合为空或包含空白元素时；when the set is empty or contains a
-     *                               blank element
-     */
-    private void requiredValues(Set<String> values, String field) {
-        if (values == null || values.isEmpty()
-                || values.stream().anyMatch(
-                        value -> value == null || value.isBlank())) {
-            throw new IllegalStateException(
-                    "egon.cola.platform.idp." + field
-                            + " must contain non-blank values");
         }
     }
 
@@ -415,12 +453,6 @@ public class IdpStarterProperties {
      */
     public static class Admission {
 
-        /** Resource Server 标识；Resource Server identifier. */
-        private String resourceServerId;
-
-        /** Resource URI；Resource URI. */
-        private URI resourceUri;
-
         /** 业务域编码；business-domain code. */
         private String bizCode;
 
@@ -455,26 +487,6 @@ public class IdpStarterProperties {
          * <p>Creates empty Admission settings for Spring binding.</p>
          */
         public Admission() {
-        }
-
-        /** @return Resource Server 标识；Resource Server identifier */
-        public String getResourceServerId() {
-            return resourceServerId;
-        }
-
-        /** @param resourceServerId Resource Server 标识；Resource Server identifier */
-        public void setResourceServerId(String resourceServerId) {
-            this.resourceServerId = resourceServerId;
-        }
-
-        /** @return Resource URI；Resource URI */
-        public URI getResourceUri() {
-            return resourceUri;
-        }
-
-        /** @param resourceUri Resource URI；Resource URI */
-        public void setResourceUri(URI resourceUri) {
-            this.resourceUri = resourceUri;
         }
 
         /** @return 业务域编码；business-domain code */

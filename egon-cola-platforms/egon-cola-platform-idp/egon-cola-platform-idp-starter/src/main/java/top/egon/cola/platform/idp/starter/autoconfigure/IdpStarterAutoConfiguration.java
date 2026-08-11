@@ -30,14 +30,18 @@ import top.egon.cola.platform.idp.starter.admission.PrivateKeyJwtAssertionFactor
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
 import top.egon.cola.platform.idp.starter.security.IdpJwtVerifier;
 import top.egon.cola.platform.idp.starter.security.RetryingJwtDecoder;
+import top.egon.cola.platform.idp.starter.security.ServiceScopeAuthorization;
+import top.egon.cola.platform.idp.starter.state.IdentityOAuthClientStateReader;
+import top.egon.cola.platform.idp.starter.state.IdentityResourceServerStateReader;
 import top.egon.cola.platform.idp.starter.state.IdentityUserStateReader;
+import top.egon.cola.platform.idp.starter.state.RedisIdentityOAuthClientStateReader;
+import top.egon.cola.platform.idp.starter.state.RedisIdentityResourceServerStateReader;
 import top.egon.cola.platform.idp.starter.state.RedisIdentityUserStateReader;
 
 import java.security.SecureRandom;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * 为普通 Servlet 资源服务器装配统一 IdP 身份验证能力。
@@ -106,8 +110,8 @@ public class IdpStarterAutoConfiguration {
                         assertions
                 );
         DdcAdmissionRequest expectedRequest = new DdcAdmissionRequest(
-                admission.getResourceServerId(),
-                admission.getResourceUri(),
+                properties.getResourceServerId(),
+                properties.getResourceUri(),
                 admission.getBizCode(),
                 admission.getAppCode(),
                 admission.getEnvironment(),
@@ -168,29 +172,112 @@ public class IdpStarterAutoConfiguration {
     }
 
     /**
+     * 创建从共享 Redis 键空间读取 Resource Server 运行态投影的端口实现。
+     *
+     * <p>Creates the port implementation that reads Resource Server runtime projections from the
+     * shared Redis key space.</p>
+     *
+     * @param redissonClients 容器中的 Redisson 客户端候选；Redisson client candidates
+     * @param beanFactory 用于按名称选择客户端的 Bean 工厂；bean factory used for named lookup
+     * @param objectMapper Resource 投影 JSON 反序列化器；Resource projection JSON mapper
+     * @param properties IdP Starter 配置；IdP Starter settings
+     * @return Resource Server 状态读取器；Resource Server state reader
+     */
+    @Bean
+    @ConditionalOnBean(RedissonClient.class)
+    @ConditionalOnMissingBean
+    public IdentityResourceServerStateReader
+            identityResourceServerStateReader(
+                    ObjectProvider<RedissonClient> redissonClients,
+                    ListableBeanFactory beanFactory,
+                    ObjectMapper objectMapper,
+                    IdpStarterProperties properties
+            ) {
+        properties.validate();
+        return new RedisIdentityResourceServerStateReader(
+                identityStateRedisson(redissonClients, beanFactory),
+                objectMapper,
+                properties.getResourceStateKeyPrefix()
+        );
+    }
+
+    /**
+     * 创建从共享 Redis 键空间读取 OAuth Client 运行态投影的端口实现。
+     *
+     * <p>Creates the port implementation that reads OAuth Client runtime projections from the
+     * shared Redis key space.</p>
+     *
+     * @param redissonClients 容器中的 Redisson 客户端候选；Redisson client candidates
+     * @param beanFactory 用于按名称选择客户端的 Bean 工厂；bean factory used for named lookup
+     * @param objectMapper Client 投影 JSON 反序列化器；Client projection JSON mapper
+     * @param properties IdP Starter 配置；IdP Starter settings
+     * @return OAuth Client 状态读取器；OAuth Client state reader
+     */
+    @Bean
+    @ConditionalOnBean(RedissonClient.class)
+    @ConditionalOnMissingBean
+    public IdentityOAuthClientStateReader identityOAuthClientStateReader(
+            ObjectProvider<RedissonClient> redissonClients,
+            ListableBeanFactory beanFactory,
+            ObjectMapper objectMapper,
+            IdpStarterProperties properties
+    ) {
+        properties.validate();
+        return new RedisIdentityOAuthClientStateReader(
+                identityStateRedisson(redissonClients, beanFactory),
+                objectMapper,
+                properties.getOauthClientStateKeyPrefix()
+        );
+    }
+
+    /**
      * 创建共享的 IdP 访问令牌验证器。
      *
      * <p>Creates the shared IdP access-token verifier.</p>
      *
      * @param decoder JWT 解码器；JWT decoder
-     * @param stateReader 用户实时状态读取器；current user-state reader
+     * @param userStates 用户实时状态读取器；current user-state reader
+     * @param resourceStates Resource Server 状态读取器；Resource Server state reader
+     * @param clientStates OAuth Client 状态读取器；OAuth Client state reader
      * @param properties IdP Starter 配置；IdP Starter settings
      * @return IdP JWT 验证器；IdP JWT verifier
      */
     @Bean
-    @ConditionalOnBean(IdentityUserStateReader.class)
+    @ConditionalOnBean({
+            IdentityUserStateReader.class,
+            IdentityResourceServerStateReader.class,
+            IdentityOAuthClientStateReader.class
+    })
     @ConditionalOnMissingBean
     public IdpJwtVerifier idpJwtVerifier(
             @Qualifier("idpJwtDecoder") JwtDecoder decoder,
-            IdentityUserStateReader stateReader,
+            IdentityUserStateReader userStates,
+            IdentityResourceServerStateReader resourceStates,
+            IdentityOAuthClientStateReader clientStates,
             IdpStarterProperties properties
     ) {
         properties.validate();
         return new IdpJwtVerifier(
                 decoder,
-                stateReader,
-                properties.getAudiences(),
-                properties.getClientIds());
+                userStates,
+                resourceStates,
+                clientStates,
+                properties.getResourceServerId(),
+                properties.getResourceUri());
+    }
+
+    /**
+     * 创建只读取 IdP SERVICE Token Scope 的本地授权判断器。
+     *
+     * <p>Creates the local authorization evaluator that reads only scopes from IdP SERVICE
+     * tokens.</p>
+     *
+     * @return SERVICE Scope 判断器；SERVICE scope evaluator
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public ServiceScopeAuthorization serviceScopeAuthorization() {
+        return new ServiceScopeAuthorization();
     }
 
     /**
@@ -240,10 +327,10 @@ public class IdpStarterAutoConfiguration {
     }
 
     /**
-     * 根据 JWK Set 地址构造 Nimbus 解码器，并同时校验签发方和受众。
+     * 根据 JWK Set 地址构造 Nimbus 解码器，并同时校验签发方和精确 Resource 受众。
      *
-     * <p>Builds a Nimbus decoder from the JWK Set endpoint and validates both issuer and
-     * audience.</p>
+     * <p>Builds a Nimbus decoder from the JWK Set endpoint and validates both issuer and the exact
+     * Resource audience.</p>
      *
      * @param properties 已完成校验的 IdP Starter 配置；validated IdP Starter settings
      * @return 配置完成的 JWT 解码器；configured JWT decoder
@@ -254,9 +341,9 @@ public class IdpStarterAutoConfiguration {
         List<OAuth2TokenValidator<Jwt>> validators = new ArrayList<>();
         validators.add(JwtValidators.createDefaultWithIssuer(
                 properties.getIssuer().trim()));
-        Set<String> audiences = Set.copyOf(properties.getAudiences());
-        validators.add(jwt -> jwt.getAudience().stream().anyMatch(
-                audiences::contains)
+        String resourceUri = properties.getResourceUri().toString();
+        validators.add(jwt -> jwt.getAudience().size() == 1
+                && resourceUri.equals(jwt.getAudience().getFirst())
                 ? OAuth2TokenValidatorResult.success()
                 : OAuth2TokenValidatorResult.failure(new OAuth2Error(
                         "invalid_token", "JWT audience is invalid", null)));

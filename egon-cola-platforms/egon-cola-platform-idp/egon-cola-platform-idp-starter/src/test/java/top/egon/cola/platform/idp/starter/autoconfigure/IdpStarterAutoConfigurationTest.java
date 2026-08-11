@@ -9,6 +9,9 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
 import top.egon.cola.platform.idp.starter.security.IdpJwtVerifier;
+import top.egon.cola.platform.idp.starter.security.ServiceScopeAuthorization;
+import top.egon.cola.platform.idp.starter.state.IdentityOAuthClientStateReader;
+import top.egon.cola.platform.idp.starter.state.IdentityResourceServerStateReader;
 import top.egon.cola.platform.idp.starter.state.IdentityUserStateReader;
 
 import java.nio.charset.StandardCharsets;
@@ -39,15 +42,20 @@ class IdpStarterAutoConfigurationTest {
                             "egon.cola.platform.idp.enabled=true",
                             "egon.cola.platform.idp.issuer=https://idp.local",
                             "egon.cola.platform.idp.jwk-set-uri=https://idp.local/oauth2/jwks",
-                            "egon.cola.platform.idp.audiences[0]=egon-api",
-                            "egon.cola.platform.idp.client-ids[0]=gateway-admin");
+                            "egon.cola.platform.idp.resource-server-id=resource-rbac3-prod",
+                            "egon.cola.platform.idp.resource-uri=https://api.example/prod/permission/rbac3");
 
     @Test
     void providesIdentityOnlyFilterBeforeRbac3Filter() {
         contextRunner.run(context -> {
             assertThat(context).hasSingleBean(IdentityUserStateReader.class);
+            assertThat(context).hasSingleBean(
+                    IdentityResourceServerStateReader.class);
+            assertThat(context).hasSingleBean(
+                    IdentityOAuthClientStateReader.class);
             assertThat(context).hasSingleBean(IdpJwtVerifier.class);
             assertThat(context).hasSingleBean(IdpBearerAuthenticationFilter.class);
+            assertThat(context).hasSingleBean(ServiceScopeAuthorization.class);
             FilterRegistrationBean<?> registration = context.getBean(
                     "idpBearerFilterRegistration",
                     FilterRegistrationBean.class);
@@ -79,10 +87,8 @@ class IdpStarterAutoConfigurationTest {
                         "egon.cola.platform.idp.enabled=true",
                         "egon.cola.platform.idp.issuer=https://idp.local",
                         "egon.cola.platform.idp.jwk-set-uri=https://idp.local/oauth2/jwks",
-                        "egon.cola.platform.idp.audiences[0]=https://api.example/idp",
-                        "egon.cola.platform.idp.client-ids[0]=gateway-admin",
-                        "egon.cola.platform.idp.admission.resource-server-id=rs-idp-prod",
-                        "egon.cola.platform.idp.admission.resource-uri=https://api.example/idp",
+                        "egon.cola.platform.idp.resource-server-id=rs-idp-prod",
+                        "egon.cola.platform.idp.resource-uri=https://api.example/idp",
                         "egon.cola.platform.idp.admission.biz-code=platform",
                         "egon.cola.platform.idp.admission.app-code=idp",
                         "egon.cola.platform.idp.admission.environment=prod",

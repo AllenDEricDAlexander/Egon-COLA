@@ -16,13 +16,13 @@ import java.util.Objects;
 
 /**
  * 从单个 Bearer 访问令牌建立仅包含身份的 Spring Security 上下文。
- * 缺少令牌时继续过滤链，令牌格式或身份验证失败时返回统一的 401 JSON 响应；
- * {@code /internal/} 路径由内部调用机制处理，因此本过滤器跳过该路径。
+ * 缺少令牌时继续过滤链，令牌格式或身份验证失败时返回统一的 401 JSON 响应；所有路径
+ * 包括 {@code /internal/} 都执行相同 Resource Token 身份校验。
  *
  * <p>Establishes an identity-only Spring Security context from one Bearer access token. Requests
  * without a token continue through the chain, while malformed or invalid tokens receive a uniform
- * JSON 401 response. Paths under {@code /internal/} are skipped because internal-call mechanisms
- * own their authentication.</p>
+ * JSON 401 response. Every path, including {@code /internal/}, receives the same Resource Token
+ * identity verification.</p>
  */
 public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
 
@@ -62,19 +62,6 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
     ) {
         this.jwtVerifier = Objects.requireNonNull(jwtVerifier, "jwtVerifier");
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
-    }
-
-    /**
-     * 判断请求是否属于应跳过的内部调用路径。
-     *
-     * <p>Determines whether the request belongs to an internal path that this filter must skip.</p>
-     *
-     * @param request 当前 HTTP 请求；current HTTP request
-     * @return {@code true} 表示跳过；{@code true} when filtering should be skipped
-     */
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        return request.getRequestURI().startsWith("/internal/");
     }
 
     /**
