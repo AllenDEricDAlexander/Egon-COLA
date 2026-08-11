@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.authorization.application;
 
 import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3ServicePrincipal;
+import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.AuthorizationDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.DataScopeDecision;
@@ -57,7 +57,7 @@ public final class AuthorizationDecisionService {
      * @return 函数、数据和字段判定组合 / function, data, and field decision bundle
      */
     public DecisionBundle decide(
-            CurrentRbac3ServicePrincipal caller,
+            ServiceIdentityPrincipal caller,
             DecisionRequest request) {
         requireServiceTenant(caller, request.subject().tenantId());
         requireApplication(caller, request.resource().applicationCode());
@@ -79,7 +79,7 @@ public final class AuthorizationDecisionService {
      * @return 最小资源入口判定 / minimal resource-entry decision
      */
     public ResourceAccessDecision decideResourceAccess(
-            CurrentRbac3ServicePrincipal caller,
+            ServiceIdentityPrincipal caller,
             ResourceAccessRequest request) {
         Objects.requireNonNull(request, "request");
         requireResourceDecisionTenant(caller, request.tenantId());
@@ -168,19 +168,15 @@ public final class AuthorizationDecisionService {
      * 校验资源入口判定调用服务是否允许访问目标租户。
      * Validates that the resource-entry caller may access the target tenant.
      *
-     * <p>平台级 IdP 服务使用 {@code *} 租户执行跨租户判定；普通服务只能访问自身租户。
-     * A platform IdP service uses tenant {@code *} for cross-tenant decisions, while ordinary
-     * services remain restricted to their own tenant.</p>
-     *
      * @param caller 已认证调用服务 / authenticated calling service
      * @param tenantId 目标租户 / target tenant
      */
     private void requireResourceDecisionTenant(
-            CurrentRbac3ServicePrincipal caller,
+            ServiceIdentityPrincipal caller,
             String tenantId) {
         Objects.requireNonNull(caller, "caller");
         String targetTenant = required(tenantId, "tenantId");
-        if (!(caller.tenantId().equals(targetTenant) || "*".equals(caller.tenantId()))) {
+        if (!caller.tenantId().equals(targetTenant)) {
             throw new Rbac3RuleViolation("SERVICE_IDENTITY_DENIED");
         }
     }
@@ -195,7 +191,7 @@ public final class AuthorizationDecisionService {
      * @return 应用受限的会话快照 / application-bound session snapshot
      */
     public SessionAuthorizationSnapshot snapshot(
-            CurrentRbac3ServicePrincipal caller,
+            ServiceIdentityPrincipal caller,
             String tenantId,
             String sessionId) {
         requireServiceTenant(caller, tenantId);
@@ -213,7 +209,7 @@ public final class AuthorizationDecisionService {
      * @return 单应用授权快照 / single-application authorization snapshot
      */
     private SessionAuthorizationSnapshot boundSnapshot(
-            CurrentRbac3ServicePrincipal caller,
+            ServiceIdentityPrincipal caller,
             String tenantId,
             String sessionId) {
         SnapshotRecord record = snapshotSource.load(tenantId, required(sessionId, "sessionId"));
@@ -222,7 +218,7 @@ public final class AuthorizationDecisionService {
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }
         AppAuthorizationContext application = application(
-                record.snapshot(), caller.applicationCode());
+                record.snapshot(), caller.sourceAppCode());
         return new SessionAuthorizationSnapshot(
                 record.snapshot().sessionId(), record.snapshot().authVersion(),
                 record.snapshot().sessionVersion(), record.snapshot().policyVersion(),
@@ -240,7 +236,7 @@ public final class AuthorizationDecisionService {
      * @return Fence 判定 / fence decision
      */
     public FenceVerification verifyFence(
-            CurrentRbac3ServicePrincipal caller,
+            ServiceIdentityPrincipal caller,
             String tenantId,
             String sessionId) {
         requireServiceTenant(caller, tenantId);
@@ -452,7 +448,7 @@ public final class AuthorizationDecisionService {
      * @param tenantId 目标租户 / target tenant
      */
     private void requireServiceTenant(
-            CurrentRbac3ServicePrincipal caller,
+            ServiceIdentityPrincipal caller,
             String tenantId) {
         Objects.requireNonNull(caller, "caller");
         if (!caller.tenantId().equals(required(tenantId, "tenantId"))) {
@@ -468,9 +464,9 @@ public final class AuthorizationDecisionService {
      * @param applicationCode 目标应用编码 / target application code
      */
     private void requireApplication(
-            CurrentRbac3ServicePrincipal caller,
+            ServiceIdentityPrincipal caller,
             String applicationCode) {
-        if (!caller.applicationCode().equals(required(applicationCode, "applicationCode"))) {
+        if (!caller.sourceAppCode().equals(required(applicationCode, "applicationCode"))) {
             throw new Rbac3RuleViolation("APPLICATION_BINDING_DENIED");
         }
     }

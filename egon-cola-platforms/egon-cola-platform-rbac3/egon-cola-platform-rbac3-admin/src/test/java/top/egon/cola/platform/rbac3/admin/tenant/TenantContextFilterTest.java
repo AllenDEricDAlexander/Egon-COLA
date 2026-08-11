@@ -7,9 +7,11 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3ServicePrincipal;
 
+import java.net.URI;
+import java.time.Instant;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -68,13 +70,17 @@ class TenantContextFilterTest {
 
     @Test
     void acceptsServicePrincipalOnlyForItsCredentialTenant() throws Exception {
-        CurrentRbac3ServicePrincipal principal = new CurrentRbac3ServicePrincipal(
-                "tenant-1", "finance-service", "finance-web",
-                "prod", "default", "credential-1",
-                Set.of("service:authorization:decide"));
+        Instant issuedAt = Instant.parse("2026-08-10T00:00:00Z");
+        ServiceIdentityPrincipal principal = new ServiceIdentityPrincipal(
+                "finance-service", "tenant-1", "finance-service",
+                "service-token-1",
+                URI.create("https://api.example/prod/permission/rbac3"),
+                12L, Set.of("service:authorization:decide"),
+                "finance", "finance-web", "prod", "credential-1",
+                issuedAt, issuedAt.plusSeconds(300));
         SecurityContextHolder.getContext().setAuthentication(
                 UsernamePasswordAuthenticationToken.authenticated(
-                        principal, "n/a", principal.authorities()));
+                        principal, "n/a", Set.of()));
         MockHttpServletRequest request = request(
                 "/api/rbac3/v1/internal/authorization/decisions");
         request.addHeader("X-RBAC3-Tenant", "tenant-1");

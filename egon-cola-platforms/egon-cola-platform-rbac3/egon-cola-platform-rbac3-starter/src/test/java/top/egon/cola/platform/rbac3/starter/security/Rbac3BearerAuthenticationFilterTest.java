@@ -8,11 +8,13 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
+import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.idp.starter.security.IdpAuthenticationToken;
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.starter.cache.SingleFlightSnapshotLoader;
 import top.egon.cola.platform.rbac3.starter.client.Rbac3AuthorizationClient;
 
+import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -105,6 +107,31 @@ class Rbac3BearerAuthenticationFilterTest {
         filter.doFilter(request, new MockHttpServletResponse(), chain);
 
         assertThat(chain.getRequest()).isSameAs(request);
+        verifyNoInteractions(loader);
+    }
+
+    @Test
+    void leavesServicePrincipalUnderIdpScopeAuthorizationWithoutLoadingRbac3()
+            throws Exception {
+        SingleFlightSnapshotLoader loader = mock(SingleFlightSnapshotLoader.class);
+        Rbac3BearerAuthenticationFilter filter = new Rbac3BearerAuthenticationFilter(
+                loader, new ObjectMapper());
+        ServiceIdentityPrincipal principal = new ServiceIdentityPrincipal(
+                "finance-service", "tenant-a", "finance-service", "token-1",
+                URI.create("https://api.example/prod/permission/rbac3"),
+                12L, Set.of("service:participation:write"),
+                "finance", "finance-web", "prod", "credential-1",
+                NOW.minusSeconds(30), NOW.plusSeconds(300));
+        SecurityContextHolder.getContext().setAuthentication(
+                new IdpAuthenticationToken(principal));
+        AtomicReference<Object> seenPrincipal = new AtomicReference<>();
+
+        filter.doFilter(new MockHttpServletRequest(), new MockHttpServletResponse(),
+                (request, response) -> seenPrincipal.set(
+                        SecurityContextHolder.getContext().getAuthentication()
+                                .getPrincipal()));
+
+        assertThat(seenPrincipal).hasValue(principal);
         verifyNoInteractions(loader);
     }
 

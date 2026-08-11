@@ -1,8 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.authorization;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3ServicePrincipal;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.DataScopeDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.Decision;
@@ -11,6 +11,7 @@ import top.egon.cola.platform.rbac3.contract.authorization.FieldPolicyDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
+import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -110,7 +111,7 @@ class AuthorizationDecisionServiceTest {
                 "alice-sub", "tenant-1", snapshot(true), false);
 
         var result = service.decideResourceAccess(
-                servicePrincipal("idp-admin", "*"), resourceAccessRequest("finance-web"));
+                servicePrincipal("idp-admin"), resourceAccessRequest("finance-web"));
 
         assertThat(result.decision()).isEqualTo(Decision.ALLOW);
         assertThat(result.reasonCode()).isEqualTo("ALLOW");
@@ -126,7 +127,7 @@ class AuthorizationDecisionServiceTest {
                 "alice-sub", "tenant-1", snapshot(false), false);
 
         var result = service.decideResourceAccess(
-                servicePrincipal("idp-admin", "*"), resourceAccessRequest("finance-web"));
+                servicePrincipal("idp-admin"), resourceAccessRequest("finance-web"));
 
         assertThat(result.decision()).isEqualTo(Decision.DENY);
         assertThat(result.reasonCode()).isEqualTo("ENTRY_PERMISSION_DENIED");
@@ -145,7 +146,7 @@ class AuthorizationDecisionServiceTest {
                 Clock.fixed(NOW, ZoneOffset.UTC));
 
         var inactiveResult = inactive.decideResourceAccess(
-                servicePrincipal("idp-admin", "*"), resourceAccessRequest("finance-web"));
+                servicePrincipal("idp-admin"), resourceAccessRequest("finance-web"));
 
         assertThat(inactiveResult.decision()).isEqualTo(Decision.DENY);
         assertThat(inactiveResult.reasonCode()).isEqualTo("IDENTITY_SESSION_INACTIVE");
@@ -156,19 +157,19 @@ class AuthorizationDecisionServiceTest {
         AuthorizationDecisionService wrongIdentity = resourceAccessService(
                 "another-sub", "tenant-1", snapshot(true), false);
         assertThat(wrongIdentity.decideResourceAccess(
-                servicePrincipal("idp-admin", "*"), resourceAccessRequest("finance-web"))
+                servicePrincipal("idp-admin"), resourceAccessRequest("finance-web"))
                 .reasonCode()).isEqualTo("IDENTITY_SESSION_INACTIVE");
 
         AuthorizationDecisionService wrongTenant = resourceAccessService(
                 "alice-sub", "tenant-2", snapshot(true), false);
         assertThat(wrongTenant.decideResourceAccess(
-                servicePrincipal("idp-admin", "*"), resourceAccessRequest("finance-web"))
+                servicePrincipal("idp-admin"), resourceAccessRequest("finance-web"))
                 .reasonCode()).isEqualTo("IDENTITY_SESSION_INACTIVE");
 
         AuthorizationDecisionService service = resourceAccessService(
                 "alice-sub", "tenant-1", snapshot(true), false);
         var wrongApplication = service.decideResourceAccess(
-                servicePrincipal("idp-admin", "*"), resourceAccessRequest("inventory-web"));
+                servicePrincipal("idp-admin"), resourceAccessRequest("inventory-web"));
         assertThat(wrongApplication.decision()).isEqualTo(Decision.DENY);
         assertThat(wrongApplication.reasonCode()).isEqualTo("APPLICATION_BINDING_DENIED");
     }
@@ -179,7 +180,7 @@ class AuthorizationDecisionServiceTest {
                 "alice-sub", "tenant-1", snapshot(true), true);
 
         var result = fenced.decideResourceAccess(
-                servicePrincipal("idp-admin", "*"), resourceAccessRequest("finance-web"));
+                servicePrincipal("idp-admin"), resourceAccessRequest("finance-web"));
 
         assertThat(result.decision()).isEqualTo(Decision.DENY);
         assertThat(result.reasonCode()).isEqualTo("AUTH_PROPAGATION_PENDING");
@@ -202,7 +203,7 @@ class AuthorizationDecisionServiceTest {
                 Clock.fixed(NOW, ZoneOffset.UTC));
 
         assertThatThrownBy(() -> unavailable.decideResourceAccess(
-                servicePrincipal("idp-admin", "*"), resourceAccessRequest("finance-web")))
+                servicePrincipal("idp-admin"), resourceAccessRequest("finance-web")))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("decision store unavailable");
     }
@@ -262,17 +263,29 @@ class AuthorizationDecisionServiceTest {
                 new AuthorizationDecisionService.TokenVersions(43, 2, 18));
     }
 
-    private CurrentRbac3ServicePrincipal servicePrincipal(String applicationCode) {
+    private ServiceIdentityPrincipal servicePrincipal(String applicationCode) {
         return servicePrincipal(applicationCode, "tenant-1");
     }
 
-    private CurrentRbac3ServicePrincipal servicePrincipal(
+    private ServiceIdentityPrincipal servicePrincipal(
             String applicationCode,
             String tenantId) {
-        return new CurrentRbac3ServicePrincipal(
-                tenantId, "finance-service", applicationCode,
-                "prod", "default", "credential-1",
-                Set.of("service:authorization:decide", "service:authorization:snapshot"));
+        return new ServiceIdentityPrincipal(
+                "finance-service",
+                tenantId,
+                "finance-service",
+                "service-token-1",
+                URI.create("https://api.example/prod/permission/rbac3"),
+                12L,
+                Set.of("service:authorization:decide",
+                        "service:authorization:snapshot"),
+                "business",
+                applicationCode,
+                "prod",
+                "credential-1",
+                NOW,
+                NOW.plusSeconds(300)
+        );
     }
 
     private SessionAuthorizationSnapshot snapshot(boolean includePermission) {

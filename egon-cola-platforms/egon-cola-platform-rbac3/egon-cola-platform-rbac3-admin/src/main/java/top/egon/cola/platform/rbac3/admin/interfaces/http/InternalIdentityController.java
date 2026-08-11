@@ -14,7 +14,7 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.identity.application.IdentityMappingFacade;
-import top.egon.cola.platform.rbac3.admin.security.RequiresRbac3ServicePermission;
+import top.egon.cola.platform.idp.starter.security.RequiresServiceScope;
 
 import java.util.List;
 
@@ -45,7 +45,7 @@ public class InternalIdentityController {
     }
 
     @GetMapping("/{identitySub}/tenants")
-    @RequiresRbac3ServicePermission(permission = "service:identity:resolve")
+    @RequiresServiceScope("service:identity:resolve")
     @GatewayOperation(
             name = "rbac3-internal-identity-tenants-v1",
             summary = "查询全局身份可访问的租户",
@@ -61,7 +61,7 @@ public class InternalIdentityController {
     }
 
     @PostMapping("/resolve")
-    @RequiresRbac3ServicePermission(permission = "service:identity:resolve")
+    @RequiresServiceScope("service:identity:resolve")
     @GatewayOperation(
             name = "rbac3-internal-identity-resolve-v1",
             summary = "解析全局身份的租户成员关系",
@@ -78,7 +78,7 @@ public class InternalIdentityController {
     }
 
     @PostMapping("/bindings")
-    @RequiresRbac3ServicePermission(permission = "service:identity:bind")
+    @RequiresServiceScope("service:identity:bind")
     @GatewayOperation(
             name = "rbac3-internal-identity-bind-v1",
             summary = "绑定全局身份与租户用户",

@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.idp.starter.security.IdpAuthenticationToken;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
 import top.egon.cola.platform.rbac3.starter.cache.SingleFlightSnapshotLoader;
@@ -19,7 +20,9 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Enriches an IdP-authenticated request with this system's RBAC3 snapshot.
+ * 使用本系统的 RBAC3 快照增强 IdP 已认证的用户请求，服务请求保持 IdP 身份不变。
+ * Enriches an IdP-authenticated user request with this system's RBAC3 snapshot while leaving
+ * service requests under the IdP identity.
  */
 public final class Rbac3BearerAuthenticationFilter extends OncePerRequestFilter {
 
@@ -47,15 +50,15 @@ public final class Rbac3BearerAuthenticationFilter extends OncePerRequestFilter 
     ) throws ServletException, IOException {
         Authentication authentication = SecurityContextHolder.getContext()
                 .getAuthentication();
-        if (!(authentication instanceof IdpAuthenticationToken idp)) {
+        if (!(authentication instanceof IdpAuthenticationToken idp)
+                || !(idp.getPrincipal() instanceof IdentityPrincipal user)) {
             filterChain.doFilter(request, response);
             return;
         }
         try {
             AuthorizationService.RuntimeAuthorizationContext context =
                     new AuthorizationService.RuntimeAuthorizationContext(
-                            idp.getPrincipal(),
-                            snapshotLoader.load(idp.getPrincipal()), false);
+                            user, snapshotLoader.load(user), false);
             var securityContext = SecurityContextHolder.createEmptyContext();
             securityContext.setAuthentication(new Rbac3AuthenticationToken(context));
             SecurityContextHolder.setContext(securityContext);

@@ -1,6 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.participation.application;
 
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3ServicePrincipal;
+import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.rbac3.contract.participation.BusinessParticipationCommand;
 import top.egon.cola.platform.rbac3.core.participation.OperationSodSpecification;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
@@ -37,7 +37,7 @@ public final class ParticipationFacade {
     }
 
     public RecordResult record(
-            CurrentRbac3ServicePrincipal caller,
+            ServiceIdentityPrincipal caller,
             String tenantId,
             BusinessParticipationCommand command) {
         requireBinding(caller, tenantId, command.applicationCode());
@@ -60,7 +60,7 @@ public final class ParticipationFacade {
     }
 
     public ConflictDecision conflicts(
-            CurrentRbac3ServicePrincipal caller,
+            ServiceIdentityPrincipal caller,
             String tenantId,
             ConflictQuery query) {
         requireBinding(caller, tenantId, query.applicationCode());
@@ -93,14 +93,14 @@ public final class ParticipationFacade {
     }
 
     private void requireBinding(
-            CurrentRbac3ServicePrincipal caller,
+            ServiceIdentityPrincipal caller,
             String tenantId,
             String applicationCode) {
         Objects.requireNonNull(caller, "caller");
         if (!caller.tenantId().equals(tenantId)) {
             throw new Rbac3RuleViolation("SERVICE_IDENTITY_DENIED");
         }
-        if (!caller.applicationCode().equals(applicationCode)) {
+        if (!caller.sourceAppCode().equals(applicationCode)) {
             throw new Rbac3RuleViolation("APPLICATION_BINDING_DENIED");
         }
     }

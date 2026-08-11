@@ -1,11 +1,14 @@
 package top.egon.cola.platform.rbac3.admin.participation;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
+import top.egon.cola.platform.idp.starter.security.RequiresServiceScope;
+import top.egon.cola.platform.rbac3.admin.interfaces.http.ParticipationController;
 import top.egon.cola.platform.rbac3.admin.participation.application.ParticipationFacade;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3ServicePrincipal;
 import top.egon.cola.platform.rbac3.contract.participation.BusinessParticipationCommand;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
+import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -43,6 +46,21 @@ class ParticipationConcurrencyIT {
                 .isInstanceOfSatisfying(Rbac3RuleViolation.class,
                         error -> assertThat(error.reasonCode())
                                 .isEqualTo("OPERATION_SOD_VIOLATION"));
+    }
+
+    @Test
+    void participationEndpointsDeclareIdpOwnedServiceScopes()
+            throws NoSuchMethodException {
+        assertThat(ParticipationController.class.getMethod(
+                        "record", BusinessParticipationCommand.class,
+                        ServiceIdentityPrincipal.class)
+                .getAnnotation(RequiresServiceScope.class).value())
+                .isEqualTo("service:participation:write");
+        assertThat(ParticipationController.class.getMethod(
+                        "conflicts", String.class, String.class, String.class,
+                        String.class, String.class, ServiceIdentityPrincipal.class)
+                .getAnnotation(RequiresServiceScope.class).value())
+                .isEqualTo("service:participation:read");
     }
 
     @Test
@@ -105,11 +123,23 @@ class ParticipationConcurrencyIT {
                 action, eventId, NOW.minusSeconds(10), "trace-1");
     }
 
-    private CurrentRbac3ServicePrincipal caller(String applicationCode) {
-        return new CurrentRbac3ServicePrincipal(
-                "tenant-1", "service-1", applicationCode,
-                "prod", "default", "credential-1",
-                Set.of("service:participation:write", "service:participation:read"));
+    private ServiceIdentityPrincipal caller(String applicationCode) {
+        return new ServiceIdentityPrincipal(
+                "service-1",
+                "tenant-1",
+                "service-1",
+                "service-token-1",
+                URI.create("https://api.example/prod/permission/rbac3"),
+                12L,
+                Set.of("service:participation:write",
+                        "service:participation:read"),
+                "finance",
+                applicationCode,
+                "prod",
+                "credential-1",
+                NOW,
+                NOW.plusSeconds(300)
+        );
     }
 
     private static final class InMemoryStore implements ParticipationFacade.ParticipationStore {

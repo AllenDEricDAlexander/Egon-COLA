@@ -3,18 +3,16 @@ package top.egon.cola.platform.rbac3.admin.security;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.server.resource.authentication.AbstractOAuth2TokenAuthenticationToken;
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.snapshot.infrastructure.RedisAuthorizationRuntimeStore;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
-import java.util.Collection;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 
 /**
- * Converts validated bearer claims into the principal types consumed by RBAC3 APIs.
+ * 将已验证的用户 Bearer Claim 转换为 RBAC3 用户主体。
+ * Converts validated user bearer claims into the RBAC3 user principal.
  */
 public final class Rbac3JwtAuthenticationConverter
         implements Converter<Jwt, UsernamePasswordAuthenticationToken> {
@@ -28,12 +26,9 @@ public final class Rbac3JwtAuthenticationConverter
 
     @Override
     public UsernamePasswordAuthenticationToken convert(Jwt jwt) {
-        Object principal = isService(jwt) ? service(jwt) : user(jwt);
-        var authorities = principal instanceof CurrentRbac3Principal user
-                ? user.authorities()
-                : ((CurrentRbac3ServicePrincipal) principal).authorities();
+        CurrentRbac3Principal principal = user(jwt);
         return UsernamePasswordAuthenticationToken.authenticated(
-                principal, null, authorities);
+                principal, null, principal.authorities());
     }
 
     private CurrentRbac3Principal user(Jwt jwt) {
@@ -60,50 +55,6 @@ public final class Rbac3JwtAuthenticationConverter
                 authVersion, sessionVersion,
                 policyVersion, permissions,
                 Boolean.TRUE.equals(jwt.getClaim("platform_administrator")));
-    }
-
-    private CurrentRbac3ServicePrincipal service(Jwt jwt) {
-        return new CurrentRbac3ServicePrincipal(
-                required(jwt.getClaimAsString("tid"), "tid"),
-                required(first(jwt, "service_id", "client_id"), "service_id"),
-                required(first(jwt, "application_code", "app"), "application_code"),
-                required(jwt.getClaimAsString("env"), "env"),
-                required(jwt.getClaimAsString("namespace"), "namespace"),
-                required(first(jwt, "credential_id", "jti"), "credential_id"),
-                permissions(jwt));
-    }
-
-    private boolean isService(Jwt jwt) {
-        return "SERVICE".equalsIgnoreCase(jwt.getClaimAsString("principal_type"))
-                || jwt.hasClaim("service_id")
-                || jwt.hasClaim("client_id");
-    }
-
-    private Set<String> permissions(Jwt jwt) {
-        Set<String> values = new LinkedHashSet<>();
-        Object permissions = jwt.getClaim("permissions");
-        if (permissions instanceof Collection<?> collection) {
-            collection.stream().map(String::valueOf)
-                    .filter(value -> !value.isBlank()).forEach(values::add);
-        } else if (permissions instanceof String text) {
-            split(text).forEach(values::add);
-        }
-        String scope = jwt.getClaimAsString("scope");
-        if (scope != null) {
-            split(scope).forEach(values::add);
-        }
-        return values;
-    }
-
-    private List<String> split(String value) {
-        return java.util.Arrays.stream(value.trim().split("[\\s,]+"))
-                .filter(item -> !item.isBlank()).toList();
-    }
-
-    private String first(Jwt jwt, String first, String second) {
-        String value = jwt.getClaimAsString(first);
-        return value == null || value.isBlank()
-                ? jwt.getClaimAsString(second) : value;
     }
 
     private long number(Jwt jwt, String name) {

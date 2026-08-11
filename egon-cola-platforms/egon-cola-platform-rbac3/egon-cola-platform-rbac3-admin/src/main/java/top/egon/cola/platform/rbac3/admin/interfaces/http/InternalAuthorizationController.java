@@ -13,10 +13,10 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
+import top.egon.cola.platform.idp.starter.security.RequiresServiceScope;
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3ServicePrincipal;
-import top.egon.cola.platform.rbac3.admin.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
@@ -75,7 +75,7 @@ public class InternalAuthorizationController {
      * @return 系统授权快照 / system authorization snapshot
      */
     @GetMapping("/contexts/{tenantId}/{sessionId}")
-    @RequiresRbac3Permission(permission = "service:authorization:snapshot")
+    @RequiresServiceScope("service:authorization:snapshot")
     @GatewayOperation(name = "rbac3-internal-system-snapshot-v1",
             summary = "按IdP身份和系统读取会话授权上下文",
             externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
@@ -84,10 +84,9 @@ public class InternalAuthorizationController {
             @PathVariable("sessionId") String sessionId,
             @RequestParam("systemCode") String systemCode,
             @RequestParam("identitySub") String identitySub,
-            @AuthenticationPrincipal CurrentRbac3ServicePrincipal principal) {
-        if (!(principal.tenantId().equals(tenantId)
-                || "*".equals(principal.tenantId()))
-                || !principal.applicationCode().equals(systemCode)) {
+            @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
+        if (!principal.tenantId().equals(tenantId)
+                || !principal.sourceAppCode().equals(systemCode)) {
             throw new Rbac3RuleViolation("SERVICE_IDENTITY_DENIED");
         }
         return ApiEnvelope.success(systemSnapshots.snapshot(
@@ -103,13 +102,13 @@ public class InternalAuthorizationController {
      * @return 应用受限会话快照 / application-bound session snapshot
      */
     @GetMapping("/sessions/{sessionId}/snapshot")
-    @RequiresRbac3Permission(permission = "service:authorization:snapshot")
+    @RequiresServiceScope("service:authorization:snapshot")
     @GatewayOperation(name = "rbac3-internal-session-snapshot-v1",
             summary = "按服务绑定应用冷加载会话授权快照",
             externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
     public ApiEnvelope<SessionAuthorizationSnapshot> snapshot(
             @PathVariable String sessionId,
-            @AuthenticationPrincipal CurrentRbac3ServicePrincipal principal) {
+            @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
         return ApiEnvelope.success(service.snapshot(principal, tenantId(), sessionId));
     }
 
@@ -122,13 +121,13 @@ public class InternalAuthorizationController {
      * @return 函数、数据和字段判定组合 / function, data, and field decision bundle
      */
     @PostMapping("/decisions")
-    @RequiresRbac3Permission(permission = "service:authorization:decide")
+    @RequiresServiceScope("service:authorization:decide")
     @GatewayOperation(name = "rbac3-internal-authorization-decision-v1",
             summary = "使用一致会话快照执行类型化授权决策",
             externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
     public ApiEnvelope<AuthorizationDecisionService.DecisionBundle> decide(
             @Valid @RequestBody AuthorizationDecisionService.DecisionRequest request,
-            @AuthenticationPrincipal CurrentRbac3ServicePrincipal principal) {
+            @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
         return ApiEnvelope.success(service.decide(principal, request));
     }
 
@@ -141,13 +140,13 @@ public class InternalAuthorizationController {
      * @return 仅含判定、原因和授权版本的响应 / response containing only decision, reason, and versions
      */
     @PostMapping("/resource-access-decisions")
-    @RequiresRbac3Permission(permission = "service:authorization:decide")
+    @RequiresServiceScope("service:authorization:decide")
     @GatewayOperation(name = "rbac3-internal-resource-access-decision-v1",
             summary = "判定用户是否具备Resource Server应用入口权限",
             externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
     public ApiEnvelope<ResourceAccessDecisionResponse> decideResourceAccess(
             @Valid @RequestBody ResourceAccessDecisionRequest request,
-            @AuthenticationPrincipal CurrentRbac3ServicePrincipal principal) {
+            @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
         return ApiEnvelope.success(ResourceAccessDecisionResponse.from(
                 service.decideResourceAccess(principal, request.toCommand())));
     }
@@ -161,13 +160,13 @@ public class InternalAuthorizationController {
      * @return Fence 校验结果 / fence-verification result
      */
     @PostMapping("/fences/verify")
-    @RequiresRbac3Permission(permission = "service:authorization:fence")
+    @RequiresServiceScope("service:authorization:fence")
     @GatewayOperation(name = "rbac3-internal-authorization-fence-verify-v1",
             summary = "校验会话授权传播 Fence",
             externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
     public ApiEnvelope<AuthorizationDecisionService.FenceVerification> verifyFence(
             @Valid @RequestBody FenceRequest request,
-            @AuthenticationPrincipal CurrentRbac3ServicePrincipal principal) {
+            @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
         return ApiEnvelope.success(service.verifyFence(
                 principal, tenantId(), request.sessionId()));
     }

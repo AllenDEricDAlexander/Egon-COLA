@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
+import top.egon.cola.platform.idp.starter.security.RequiresServiceScope;
 import top.egon.cola.platform.rbac3.admin.participation.application.ParticipationFacade;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3ServicePrincipal;
-import top.egon.cola.platform.rbac3.admin.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
 import top.egon.cola.platform.rbac3.contract.participation.BusinessParticipationCommand;
 
@@ -41,18 +41,18 @@ public class ParticipationController {
     }
 
     @PostMapping
-    @RequiresRbac3Permission(permission = "service:participation:write")
+    @RequiresServiceScope("service:participation:write")
     @GatewayOperation(name = "rbac3-business-participation-record-v1",
             summary = "幂等追加业务对象参与事实",
             externalAccessible = false, tags = {"rbac3", "internal", "participation"})
     public ApiEnvelope<ParticipationFacade.RecordResult> record(
             @Valid @RequestBody BusinessParticipationCommand command,
-            @AuthenticationPrincipal CurrentRbac3ServicePrincipal principal) {
+            @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
         return ApiEnvelope.success(facade.record(principal, tenantId(), command));
     }
 
     @GetMapping("/conflicts")
-    @RequiresRbac3Permission(permission = "service:participation:read")
+    @RequiresServiceScope("service:participation:read")
     @GatewayOperation(name = "rbac3-business-participation-conflicts-v1",
             summary = "查询同一业务对象的职责冲突证据",
             externalAccessible = false, tags = {"rbac3", "internal", "participation"})
@@ -62,7 +62,7 @@ public class ParticipationController {
             @RequestParam @NotBlank String businessId,
             @RequestParam @NotBlank String actorUserId,
             @RequestParam @NotBlank String actionCode,
-            @AuthenticationPrincipal CurrentRbac3ServicePrincipal principal) {
+            @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
         return ApiEnvelope.success(facade.conflicts(
                 principal, tenantId(), new ParticipationFacade.ConflictQuery(
                         applicationCode, businessResource, businessId,

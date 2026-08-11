@@ -2,8 +2,8 @@ package top.egon.cola.platform.rbac3.admin.tenant;
 
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
+import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3ServicePrincipal;
 
 public final class TenantContextResolver {
 
@@ -15,7 +15,7 @@ public final class TenantContextResolver {
         if (authentication == null) {
             throw new TenantContextResolutionException(401, "AUTHENTICATION_REQUIRED");
         }
-        if (authentication.getPrincipal() instanceof CurrentRbac3ServicePrincipal principal) {
+        if (authentication.getPrincipal() instanceof ServiceIdentityPrincipal principal) {
             return serviceContext(request, principal);
         }
         if (!(authentication.getPrincipal() instanceof CurrentRbac3Principal principal)) {
@@ -41,7 +41,7 @@ public final class TenantContextResolver {
 
     private TenantContext serviceContext(
             HttpServletRequest request,
-            CurrentRbac3ServicePrincipal principal) {
+            ServiceIdentityPrincipal principal) {
         String assertedTenant = trimToNull(request.getHeader(TENANT_HEADER));
         if (assertedTenant != null && !assertedTenant.equals(principal.tenantId())) {
             throw new TenantContextResolutionException(400, "TENANT_CONTEXT_INVALID");

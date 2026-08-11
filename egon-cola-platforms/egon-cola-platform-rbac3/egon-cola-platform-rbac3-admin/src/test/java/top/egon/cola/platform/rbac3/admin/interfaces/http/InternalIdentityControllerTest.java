@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import top.egon.cola.platform.idp.starter.security.RequiresServiceScope;
 import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.identity.application.IdentityMappingFacade;
 
@@ -12,6 +13,7 @@ import java.util.Optional;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -66,5 +68,22 @@ class InternalIdentityControllerTest {
                 .andExpect(jsonPath("$.data[0].tenantDisplayName")
                         .value("Default Tenant"))
                 .andExpect(jsonPath("$.data[0].status").value("ACTIVE"));
+    }
+
+    @Test
+    void internalIdentityOperationsDeclareIdpOwnedServiceScopes()
+            throws NoSuchMethodException {
+        assertThat(InternalIdentityController.class
+                .getMethod("tenants", String.class, String.class)
+                .getAnnotation(RequiresServiceScope.class).value())
+                .isEqualTo("service:identity:resolve");
+        assertThat(InternalIdentityController.class
+                .getMethod("resolve", InternalIdentityController.ResolveRequest.class)
+                .getAnnotation(RequiresServiceScope.class).value())
+                .isEqualTo("service:identity:resolve");
+        assertThat(InternalIdentityController.class
+                .getMethod("bind", InternalIdentityController.BindRequest.class)
+                .getAnnotation(RequiresServiceScope.class).value())
+                .isEqualTo("service:identity:bind");
     }
 }

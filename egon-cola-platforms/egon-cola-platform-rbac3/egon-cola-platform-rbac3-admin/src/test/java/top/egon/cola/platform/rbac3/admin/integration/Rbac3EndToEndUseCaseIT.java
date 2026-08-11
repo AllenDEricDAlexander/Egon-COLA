@@ -1,8 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.integration;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3ServicePrincipal;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.Decision;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
@@ -15,6 +15,7 @@ import top.egon.cola.platform.rbac3.core.hierarchy.RoleHierarchy;
 import top.egon.cola.platform.rbac3.core.hierarchy.RoleNode;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
+import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -98,10 +99,13 @@ class Rbac3EndToEndUseCaseIT {
                 new AuthorizationDecisionService.TokenVersions(3L, 6L, 7L));
     }
 
-    private static CurrentRbac3ServicePrincipal servicePrincipal(String application) {
-        return new CurrentRbac3ServicePrincipal(
-                "tenant", "service", application, "prod", "default",
-                "credential", Set.of("service:authorization:decide"));
+    private static ServiceIdentityPrincipal servicePrincipal(String application) {
+        return new ServiceIdentityPrincipal(
+                "service", "tenant", "service", "service-token",
+                URI.create("https://api.example/prod/permission/rbac3"),
+                12L, Set.of("service:authorization:decide"),
+                "permission", application, "prod", "credential",
+                NOW, NOW.plusSeconds(300));
     }
 
     private static RoleNode role(String id) {
