@@ -60,6 +60,8 @@ public final class DdcRpcOperationResolver {
         values.put(MANAGEMENT + "GetPublishTask", DdcRpcOperation.MANAGEMENT_TASK_READ);
         values.put(MANAGEMENT + "RetryPublishTask", DdcRpcOperation.MANAGEMENT_TASK_RETRY);
         values.put(MANAGEMENT + "GetConfigClients", DdcRpcOperation.MANAGEMENT_INSTANCE_READ);
+        values.put(MANAGEMENT + "RevokeResourceAdmission",
+                DdcRpcOperation.MANAGEMENT_ADMISSION_REVOKE);
         values.put(MANAGEMENT + "GetScopeBindings", DdcRpcOperation.MANAGEMENT_SCOPE_READ);
         values.put(MANAGEMENT + "GetServiceKeys", DdcRpcOperation.MANAGEMENT_REGISTRY_READ);
         values.put(MANAGEMENT + "GetInstances", DdcRpcOperation.MANAGEMENT_REGISTRY_READ);

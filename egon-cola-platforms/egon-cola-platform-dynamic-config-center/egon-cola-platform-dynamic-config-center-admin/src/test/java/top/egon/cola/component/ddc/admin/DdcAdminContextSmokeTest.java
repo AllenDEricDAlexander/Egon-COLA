@@ -29,6 +29,7 @@ import top.egon.cola.component.ddc.admin.security.rpc.DdcHmacCredentialRegistry;
 import top.egon.cola.component.ddc.admin.security.rpc.DdcRpcSecurityConfiguration;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigFacade;
 import top.egon.cola.component.ddc.admin.service.management.DdcManagementFacade;
+import top.egon.cola.component.ddc.admin.service.lease.DdcResourceAdmissionRevocationService;
 import top.egon.cola.component.ddc.admin.service.registry.DdcRegistryFacade;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
@@ -194,6 +195,11 @@ class DdcAdminContextSmokeTest {
         }
 
         @Bean
+        DdcResourceAdmissionRevocationService ddcResourceAdmissionRevocationService() {
+            return mock(DdcResourceAdmissionRevocationService.class);
+        }
+
+        @Bean
         DdcConfigRpcProvider ddcConfigRpcProvider(
                 DdcConfigFacade facade,
                 DdcProperties ddcProperties,
@@ -212,10 +218,11 @@ class DdcAdminContextSmokeTest {
         @Bean
         DdcManagementRpcProvider ddcManagementRpcProvider(
                 DdcManagementFacade facade,
+                DdcResourceAdmissionRevocationService revocations,
                 DdcProperties ddcProperties,
                 DdcRpcProperties rpcProperties) {
             return new DdcManagementRpcProvider(
-                    facade, ddcProperties, rpcProperties);
+                    facade, revocations, ddcProperties, rpcProperties);
         }
     }
 }

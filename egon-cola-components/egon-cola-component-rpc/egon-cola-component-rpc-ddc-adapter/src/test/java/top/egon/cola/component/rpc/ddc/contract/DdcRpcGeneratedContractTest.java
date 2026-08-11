@@ -47,6 +47,7 @@ class DdcRpcGeneratedContractTest {
                         "GetPublishTask",
                         "RetryPublishTask",
                         "GetConfigClients",
+                        "RevokeResourceAdmission",
                         "GetScopeBindings",
                         "GetServiceKeys",
                         "GetInstances"

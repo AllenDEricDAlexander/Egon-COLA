@@ -126,6 +126,68 @@ class DdcConfigLeaseRedisRepositoryTest {
         verify(lock).unlock();
     }
 
+    @Test
+    void revocationRemovesCoveredVersionButRetainsNewerLease() throws Exception {
+        RedissonClient redisson = mock(RedissonClient.class);
+        RLock lock = mock(RLock.class);
+        RSet<String> instances = set();
+        RBucket<String> covered = bucket();
+        RBucket<String> newer = bucket();
+        when(redisson.getLock(anyString())).thenReturn(lock);
+        when(redisson.<String>getSet(
+                DdcRedisKeys.configLeaseInstances(
+                        "permission", "prod", "idp"
+                ),
+                StringCodec.INSTANCE
+        )).thenReturn(instances);
+        when(instances.readAll()).thenReturn(Set.of("covered", "newer"));
+        when(redisson.<String>getBucket(
+                DdcRedisKeys.configLeaseInstance(
+                        "permission", "prod", "idp", "covered"
+                ),
+                StringCodec.INSTANCE
+        )).thenReturn(covered);
+        when(redisson.<String>getBucket(
+                DdcRedisKeys.configLeaseInstance(
+                        "permission", "prod", "idp", "newer"
+                ),
+                StringCodec.INSTANCE
+        )).thenReturn(newer);
+        when(covered.get()).thenReturn(leaseJson("covered", 7L));
+        when(newer.get()).thenReturn(leaseJson("newer", 8L));
+        DdcConfigLeaseRedisRepository repository =
+                new DdcConfigLeaseRedisRepository(
+                        redisson,
+                        new ObjectMapper()
+                );
+
+        int removed = repository.revokeResourceAdmission(
+                "permission-idp-prod",
+                "permission",
+                "prod",
+                "idp",
+                7L
+        );
+
+        assertThat(removed).isEqualTo(1);
+        verify(covered).delete();
+        verify(newer, org.mockito.Mockito.never()).delete();
+        verify(instances).remove("covered");
+    }
+
+    private String leaseJson(String instanceId, long version)
+            throws Exception {
+        return new ObjectMapper().writeValueAsString(java.util.Map.of(
+                "instanceId", instanceId,
+                "leaseId", "lease-" + instanceId,
+                "resourceServerId", "permission-idp-prod",
+                "resourceVersion", version,
+                "bizCode", "permission",
+                "appCode", "idp",
+                "env", "prod"
+        ));
+    }
+
     private DdcHeartbeatRequest request(String leaseId) {
         DdcHeartbeatRequest request = new DdcHeartbeatRequest();
         request.setInstanceId("instance-1");

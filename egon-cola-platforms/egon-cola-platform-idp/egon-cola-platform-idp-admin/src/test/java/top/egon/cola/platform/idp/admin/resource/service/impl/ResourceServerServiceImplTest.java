@@ -19,6 +19,7 @@ import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientJwkRepositor
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepository;
 import top.egon.cola.platform.idp.admin.resource.service.ResourceServerProjectionService;
+import top.egon.cola.platform.idp.admin.resource.support.outbox.TransactionalOutboxResourceServerEventAdapter;
 import top.egon.cola.platform.idp.core.resource.ResourceGrantType;
 
 import java.time.Clock;
@@ -52,6 +53,8 @@ class ResourceServerServiceImplTest {
             mock(IdentityClientRepository.class);
     private final ResourceServerProjectionService projections =
             mock(ResourceServerProjectionService.class);
+    private final TransactionalOutboxResourceServerEventAdapter events =
+            mock(TransactionalOutboxResourceServerEventAdapter.class);
     private final AtomicLong ids = new AtomicLong(1000L);
 
     private ResourceServerServiceImpl service;
@@ -68,7 +71,8 @@ class ResourceServerServiceImplTest {
                 projections,
                 ids::incrementAndGet,
                 objectMapper,
-                Clock.fixed(NOW, ZoneOffset.UTC)
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                events
         );
     }
 
@@ -193,6 +197,27 @@ class ResourceServerServiceImplTest {
                 0L
         )).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("last active key");
+    }
+
+    @Test
+    void disableEnqueuesExactResourceLifecycleEvent() {
+        IdentityResourceServerEntity resource = resource(
+                "permission-idp-prod",
+                "idp",
+                "idp-service"
+        );
+        when(resources.findByResourceServerId("permission-idp-prod"))
+                .thenReturn(Optional.of(resource));
+        when(clients.findById("idp-service"))
+                .thenReturn(Optional.of(client("idp-service")));
+
+        service.disable(
+                "permission-idp-prod",
+                new ResourceVersionDTO(0L)
+        );
+
+        verify(events).enqueueDisabled(resource);
+        assertThat(resource.getVersion()).isEqualTo(1L);
     }
 
     @Test

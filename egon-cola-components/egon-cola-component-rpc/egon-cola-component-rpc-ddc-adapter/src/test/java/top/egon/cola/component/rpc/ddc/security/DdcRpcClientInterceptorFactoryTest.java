@@ -74,6 +74,8 @@ class DdcRpcClientInterceptorFactoryTest {
                 Map.entry("GetPublishTask", DdcRpcOperation.MANAGEMENT_TASK_READ),
                 Map.entry("RetryPublishTask", DdcRpcOperation.MANAGEMENT_TASK_RETRY),
                 Map.entry("GetConfigClients", DdcRpcOperation.MANAGEMENT_INSTANCE_READ),
+                Map.entry("RevokeResourceAdmission",
+                        DdcRpcOperation.MANAGEMENT_ADMISSION_REVOKE),
                 Map.entry("GetScopeBindings", DdcRpcOperation.MANAGEMENT_SCOPE_READ),
                 Map.entry("GetServiceKeys", DdcRpcOperation.MANAGEMENT_REGISTRY_READ),
                 Map.entry("GetInstances", DdcRpcOperation.MANAGEMENT_REGISTRY_READ)

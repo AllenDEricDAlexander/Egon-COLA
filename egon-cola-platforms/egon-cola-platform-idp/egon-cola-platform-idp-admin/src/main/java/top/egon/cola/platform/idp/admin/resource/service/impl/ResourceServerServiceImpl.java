@@ -28,6 +28,7 @@ import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepo
 import top.egon.cola.platform.idp.admin.resource.service.ResourceServerProjectionService;
 import top.egon.cola.platform.idp.admin.resource.service.ResourceServerProjectionService.ResourceProjection;
 import top.egon.cola.platform.idp.admin.resource.service.ResourceServerService;
+import top.egon.cola.platform.idp.admin.resource.support.outbox.TransactionalOutboxResourceServerEventAdapter;
 import top.egon.cola.platform.idp.core.resource.ClientResourceGrant;
 import top.egon.cola.platform.idp.core.resource.ResourceGrantType;
 
@@ -84,6 +85,9 @@ public class ResourceServerServiceImpl implements ResourceServerService {
     /** 业务时钟；business clock. */
     private final Clock clock;
 
+    /** Resource Server 生命周期事务事件适配器；Resource Server lifecycle event adapter. */
+    private final TransactionalOutboxResourceServerEventAdapter events;
+
     /**
      * 创建生产管理服务。
      *
@@ -97,7 +101,8 @@ public class ResourceServerServiceImpl implements ResourceServerService {
             IdentityClientRepository clients,
             ResourceServerProjectionService projections,
             LongIdGenerator ids,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            TransactionalOutboxResourceServerEventAdapter events
     ) {
         this(
                 resources,
@@ -107,7 +112,8 @@ public class ResourceServerServiceImpl implements ResourceServerService {
                 projections,
                 ids,
                 objectMapper,
-                Clock.systemUTC()
+                Clock.systemUTC(),
+                events
         );
     }
 
@@ -124,7 +130,8 @@ public class ResourceServerServiceImpl implements ResourceServerService {
             ResourceServerProjectionService projections,
             LongIdGenerator ids,
             ObjectMapper objectMapper,
-            Clock clock
+            Clock clock,
+            TransactionalOutboxResourceServerEventAdapter events
     ) {
         this.resources = Objects.requireNonNull(resources, "resources");
         this.credentials = Objects.requireNonNull(
@@ -143,6 +150,7 @@ public class ResourceServerServiceImpl implements ResourceServerService {
                 "objectMapper"
         );
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.events = Objects.requireNonNull(events, "events");
     }
 
     /** {@inheritDoc} */
@@ -243,7 +251,9 @@ public class ResourceServerServiceImpl implements ResourceServerService {
                 resourceServerId
         );
         resource.disable(command.expectedVersion(), clock.instant());
-        return saveAndProject(resource);
+        ResourceServerVO result = saveAndProject(resource);
+        events.enqueueDisabled(resource);
+        return result;
     }
 
     /** {@inheritDoc} */
@@ -474,6 +484,10 @@ public class ResourceServerServiceImpl implements ResourceServerService {
                         client(resource.getManagementClientId())
                 ))
                 .toList());
+        if (command.action()
+                == BatchResourceServerActionDTO.Action.DISABLE) {
+            selected.forEach(events::enqueueDisabled);
+        }
         return selected.stream().map(this::view).toList();
     }
 

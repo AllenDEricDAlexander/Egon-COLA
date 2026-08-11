@@ -92,6 +92,17 @@ public final class RpcDdcManagementClient implements DdcManagementClient {
                         mapper.toConfigClientsRequest(query))));
     }
 
+    /** {@inheritDoc} */
+    @Override
+    public DdcResourceAdmissionRevocationResult revokeResourceAdmission(
+            DdcResourceAdmissionRevocationRequest request) {
+        return invoke(DdcRpcOperation.MANAGEMENT_ADMISSION_REVOKE, () ->
+                mapper.fromResourceAdmissionRevocationResponse(
+                        rpc.revokeResourceAdmission(
+                                mapper.toResourceAdmissionRevocationRequest(
+                                        request))));
+    }
+
     @Override
     public List<DdcManagementScopeBinding> getScopeBindings(DdcManagementScopeQuery query) {
         return invoke(DdcRpcOperation.MANAGEMENT_SCOPE_READ, () ->

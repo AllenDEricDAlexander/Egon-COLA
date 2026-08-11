@@ -18,6 +18,8 @@ import top.egon.cola.component.ddc.model.management.DdcManagementServiceInstance
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceKey;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceSnapshot;
+import top.egon.cola.component.ddc.model.management.DdcResourceAdmissionRevocationRequest;
+import top.egon.cola.component.ddc.model.management.DdcResourceAdmissionRevocationResult;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DeleteConfigRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcConfig;
@@ -38,6 +40,8 @@ import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetScopeBindingsRespons
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetServiceKeysRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetServiceKeysResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.PublishConfigRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.RevokeResourceAdmissionRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.RevokeResourceAdmissionResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.UpsertConfigRequest;
 
 import java.util.List;
@@ -378,6 +382,80 @@ public final class DdcManagementProtoMapper {
         common.checked(value);
         return value.getClientsList().stream()
                 .map(this::fromConfigClient).toList();
+    }
+
+    /**
+     * 将 Resource 准入撤销命令转换为 protobuf 请求。
+     * / Converts a Resource admission-revocation command to protobuf.
+     *
+     * @param value 共享管理命令 / shared management command
+     * @return protobuf 撤销请求 / protobuf revocation request
+     */
+    public RevokeResourceAdmissionRequest toResourceAdmissionRevocationRequest(
+            DdcResourceAdmissionRevocationRequest value) {
+        require(value, "resource admission revocation request");
+        return common.checked(RevokeResourceAdmissionRequest.newBuilder()
+                .setResourceServerId(value.resourceServerId())
+                .setScope(common.toScope(
+                        value.bizCode(), value.env(), value.appCode()))
+                .setResourceVersion(value.resourceVersion())
+                .build());
+    }
+
+    /**
+     * 将 protobuf Resource 准入撤销请求转换为共享管理命令。
+     * / Converts a protobuf Resource admission-revocation request to the shared command.
+     *
+     * @param value protobuf 撤销请求 / protobuf revocation request
+     * @return 共享管理命令 / shared management command
+     */
+    public DdcResourceAdmissionRevocationRequest
+            fromResourceAdmissionRevocationRequest(
+                    RevokeResourceAdmissionRequest value) {
+        common.checked(value);
+        scopeRequired(value.hasScope());
+        return new DdcResourceAdmissionRevocationRequest(
+                value.getResourceServerId(),
+                value.getScope().getBizCode(),
+                value.getScope().getAppCode(),
+                value.getScope().getEnv(),
+                value.getResourceVersion()
+        );
+    }
+
+    /**
+     * 将幂等撤销统计转换为 protobuf 响应。
+     * / Converts idempotent revocation counts to protobuf.
+     *
+     * @param value 共享撤销结果 / shared revocation result
+     * @return protobuf 撤销响应 / protobuf revocation response
+     */
+    public RevokeResourceAdmissionResponse toResourceAdmissionRevocationResponse(
+            DdcResourceAdmissionRevocationResult value) {
+        require(value, "resource admission revocation result");
+        return common.checked(RevokeResourceAdmissionResponse.newBuilder()
+                .setConfigLeaseCount(value.configLeaseCount())
+                .setProviderLeaseCount(value.providerLeaseCount())
+                .setPersistedInstanceCount(value.persistedInstanceCount())
+                .build());
+    }
+
+    /**
+     * 将 protobuf 撤销响应转换为共享统计。
+     * / Converts a protobuf revocation response to shared counts.
+     *
+     * @param value protobuf 撤销响应 / protobuf revocation response
+     * @return 共享撤销结果 / shared revocation result
+     */
+    public DdcResourceAdmissionRevocationResult
+            fromResourceAdmissionRevocationResponse(
+                    RevokeResourceAdmissionResponse value) {
+        common.checked(value);
+        return new DdcResourceAdmissionRevocationResult(
+                value.getConfigLeaseCount(),
+                value.getProviderLeaseCount(),
+                value.getPersistedInstanceCount()
+        );
     }
 
     public GetScopeBindingsRequest toScopeBindingsRequest(

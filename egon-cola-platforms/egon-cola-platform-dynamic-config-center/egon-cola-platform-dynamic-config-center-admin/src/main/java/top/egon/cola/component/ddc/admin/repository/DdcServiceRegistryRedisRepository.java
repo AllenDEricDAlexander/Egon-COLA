@@ -15,7 +15,6 @@ import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionClaims;
 import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionException;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
-import top.egon.cola.component.ddc.error.DdcErrorStatus;
 import top.egon.cola.component.ddc.redis.DdcRedisKeys;
 import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
@@ -149,6 +148,108 @@ public class DdcServiceRegistryRedisRepository {
             lock.unlock();
         }
         return result;
+    }
+
+    /**
+     * 撤销精确 Resource Server 三元组下不晚于停用事件版本的 Provider 租约。
+     * / Revokes provider leases for the exact Resource Server triple whose version is not newer
+     * than the disable event.
+     *
+     * @param resourceServerId Resource Server 稳定标识 / stable Resource Server identifier
+     * @param bizCode 业务域编码 / business-domain code
+     * @param env 部署环境 / deployment environment
+     * @param appCode 应用编码 / application code
+     * @param resourceVersion 停用事件版本 / disable-event version
+     * @return 实际撤销的 Provider 租约数 / provider leases actually revoked
+     */
+    public int revokeResourceAdmission(
+            String resourceServerId,
+            String bizCode,
+            String env,
+            String appCode,
+            long resourceVersion) {
+        int removed = 0;
+        Set<String> catalog = redissonClient.<String>getSet(
+                DdcRedisKeys.globalRegistryCatalog(),
+                StringCodec.INSTANCE
+        ).readAll();
+        for (String member : catalog) {
+            DdcServiceKey serviceKey = DdcServiceKey.parse(member);
+            if (bizCode.equals(serviceKey.bizCode())
+                    && env.equals(serviceKey.env())
+                    && appCode.equals(serviceKey.appCode())) {
+                removed += revokeServiceAdmission(
+                        serviceKey,
+                        resourceServerId,
+                        resourceVersion
+                );
+            }
+        }
+        return removed;
+    }
+
+    /**
+     * 在一个服务键锁内撤销匹配实例并发布现有目录变更通知。
+     * / Revokes matching instances under one service-key lock and publishes the existing catalog
+     * change notification.
+     *
+     * @param serviceKey 服务键 / service key
+     * @param resourceServerId Resource Server 标识 / Resource Server identifier
+     * @param resourceVersion 停用事件版本 / disable-event version
+     * @return 实际撤销数 / number actually revoked
+     */
+    private int revokeServiceAdmission(
+            DdcServiceKey serviceKey,
+            String resourceServerId,
+            long resourceVersion) {
+        RLock lock = serviceLock(serviceKey);
+        lock.lock();
+        try {
+            int removed = 0;
+            Collection<String> instanceIds = serviceInstances(serviceKey)
+                    .valueRange(
+                            Double.NEGATIVE_INFINITY,
+                            true,
+                            Double.POSITIVE_INFINITY,
+                            true
+                    );
+            for (String instanceId : List.copyOf(instanceIds)) {
+                String current = instanceBucket(
+                        serviceKey, instanceId
+                ).get();
+                if (current == null) {
+                    serviceInstances(serviceKey).remove(instanceId);
+                    continue;
+                }
+                DdcServiceInstance instance = instance(current);
+                Long leaseVersion = instance.resourceVersion();
+                if (!resourceServerId.equals(instance.resourceServerId())
+                        || leaseVersion == null
+                        || leaseVersion > resourceVersion) {
+                    continue;
+                }
+                instanceBucket(serviceKey, instanceId).delete();
+                serviceInstances(serviceKey).remove(instanceId);
+                removed++;
+            }
+            if (removed > 0) {
+                long serviceRevision = serviceRevision(
+                        serviceKey
+                ).incrementAndGet();
+                CatalogUpdate catalog = removeServiceCatalogIfEmpty(
+                        serviceKey
+                );
+                publishEvent(
+                        serviceKey,
+                        serviceRevision,
+                        catalog.revision()
+                );
+                removeGlobalCatalogIfEmpty(serviceKey);
+            }
+            return removed;
+        } finally {
+            lock.unlock();
+        }
     }
 
     public DdcServiceSnapshot getInstances(DdcServiceKey serviceKey, Instant now) {

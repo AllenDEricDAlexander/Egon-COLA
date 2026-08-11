@@ -7,12 +7,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.outbox.api.TransactionalOutbox;
+import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
 import top.egon.cola.platform.idp.admin.oauth.service.impl.PrivateKeyJwtAuthenticator;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepository;
 import top.egon.cola.platform.idp.admin.resource.repo.JpaResourceServerStore;
 import top.egon.cola.platform.idp.admin.resource.service.ResourceServerProjectionService;
 import top.egon.cola.platform.idp.admin.resource.service.impl.ResourceServerAdmissionServiceImpl;
+import top.egon.cola.platform.idp.admin.resource.support.outbox.DdcResourceServerLifecycleDeliveryHandler;
+import top.egon.cola.platform.idp.admin.resource.support.outbox.TransactionalOutboxResourceServerEventAdapter;
 import top.egon.cola.platform.idp.admin.token.service.impl.Rs256TokenService;
 import top.egon.cola.platform.idp.core.port.ClientAssertionReplayStore;
 import top.egon.cola.platform.idp.core.port.ClientCredentialStore;
@@ -107,6 +111,49 @@ public class ResourceServerConfig {
     @Bean
     ResourceServerAdmissionPolicy resourceServerAdmissionPolicy() {
         return new ResourceServerAdmissionPolicy();
+    }
+
+    /**
+     * 创建 Resource Server 生命周期事务事件适配器。
+     * / Creates the Resource Server lifecycle transactional-event adapter.
+     *
+     * @param outbox 标准事务发件箱 / standard transactional outbox
+     * @param clock IdP UTC 业务时钟 / IdP UTC business clock
+     * @return Resource Server 事件适配器 / Resource Server event adapter
+     */
+    @Bean
+    TransactionalOutboxResourceServerEventAdapter resourceServerEventAdapter(
+            TransactionalOutbox outbox,
+            @Qualifier("idpClock") Clock clock) {
+        return new TransactionalOutboxResourceServerEventAdapter(
+                outbox,
+                clock
+        );
+    }
+
+    /**
+     * 创建按投递临时持有 Direct RPC 客户端的 DDC 生命周期投递器。
+     * / Creates the DDC lifecycle handler that owns a Direct RPC client only for one delivery.
+     *
+     * @param factory DDC Direct RPC 客户端工厂 / DDC Direct RPC client factory
+     * @param objectMapper JSON 编解码器 / JSON codec
+     * @return Resource 停用投递器 / Resource-disabled delivery handler
+     */
+    @Bean
+    DdcResourceServerLifecycleDeliveryHandler
+            ddcResourceServerLifecycleDeliveryHandler(
+                    DdcRpcClientFactory factory,
+                    ObjectMapper objectMapper) {
+        return new DdcResourceServerLifecycleDeliveryHandler(
+                request -> {
+                    try (var handle = factory.managementClient()) {
+                        return handle.client().revokeResourceAdmission(
+                                request
+                        );
+                    }
+                },
+                objectMapper
+        );
     }
 
     /**

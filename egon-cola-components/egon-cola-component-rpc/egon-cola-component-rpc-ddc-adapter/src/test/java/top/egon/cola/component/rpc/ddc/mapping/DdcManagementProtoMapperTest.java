@@ -19,6 +19,8 @@ import top.egon.cola.component.ddc.model.management.DdcManagementServiceInstance
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceKey;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceSnapshot;
+import top.egon.cola.component.ddc.model.management.DdcResourceAdmissionRevocationRequest;
+import top.egon.cola.component.ddc.model.management.DdcResourceAdmissionRevocationResult;
 
 import java.time.Instant;
 import java.util.List;
@@ -184,5 +186,26 @@ class DdcManagementProtoMapperTest {
         assertThat(mapper.fromInstancesResponse(
                 mapper.toInstancesResponse(snapshot)))
                 .isEqualTo(snapshot);
+    }
+
+    @Test
+    void roundTripsExactResourceAdmissionRevocation() {
+        DdcResourceAdmissionRevocationRequest request =
+                new DdcResourceAdmissionRevocationRequest(
+                        "permission-idp-prod",
+                        "permission",
+                        "idp",
+                        "prod",
+                        7L
+                );
+        assertThat(mapper.fromResourceAdmissionRevocationRequest(
+                mapper.toResourceAdmissionRevocationRequest(request)))
+                .isEqualTo(request);
+
+        DdcResourceAdmissionRevocationResult result =
+                new DdcResourceAdmissionRevocationResult(2, 3, 2);
+        assertThat(mapper.fromResourceAdmissionRevocationResponse(
+                mapper.toResourceAdmissionRevocationResponse(result)))
+                .isEqualTo(result);
     }
 }

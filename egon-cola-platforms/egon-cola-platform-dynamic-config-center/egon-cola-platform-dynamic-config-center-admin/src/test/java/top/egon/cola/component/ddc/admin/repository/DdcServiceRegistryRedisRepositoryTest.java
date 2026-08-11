@@ -24,6 +24,7 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -206,16 +207,121 @@ class DdcServiceRegistryRedisRepositoryTest {
                 .doesNotContain("test-admission-ticket");
     }
 
+    @Test
+    void revocationKeepsOtherApplicationAndNewerProviderLease()
+            throws Exception {
+        RedissonClient redisson = mock(RedissonClient.class);
+        RSet<String> globalCatalog = set();
+        RLock serviceLock = mock(RLock.class);
+        RLock globalLock = mock(RLock.class);
+        RScoredSortedSet<String> instances = scoredSet();
+        RBucket<String> covered = bucket();
+        RBucket<String> newer = bucket();
+        RAtomicLong serviceRevision = mock(RAtomicLong.class);
+        RSet<String> serviceCatalog = set();
+        RAtomicLong catalogRevision = mock(RAtomicLong.class);
+        RTopic topic = mock(RTopic.class);
+        RAtomicLong globalRevision = mock(RAtomicLong.class);
+        DdcServiceKey otherApp = new DdcServiceKey(
+                "pay-biz", "dev", "billing-app",
+                DdcServiceKind.RPC_PROVIDER,
+                "billing.v1.QueryService", "default", "1.0.0", "grpc"
+        );
+        when(redisson.<String>getSet(
+                DdcRedisKeys.globalRegistryCatalog(),
+                StringCodec.INSTANCE
+        )).thenReturn(globalCatalog);
+        when(globalCatalog.readAll()).thenReturn(Set.of(
+                SERVICE_KEY.canonicalValue(),
+                otherApp.canonicalValue()
+        ));
+        when(redisson.getLock(
+                DdcRedisKeys.registryInstance(SERVICE_KEY, "scope") + ":lock"
+        )).thenReturn(serviceLock);
+        when(redisson.getLock(
+                DdcRedisKeys.globalRegistryCatalog() + ":lock"
+        )).thenReturn(globalLock);
+        when(redisson.<String>getScoredSortedSet(
+                DdcRedisKeys.registryService(SERVICE_KEY),
+                StringCodec.INSTANCE
+        )).thenReturn(instances);
+        when(instances.valueRange(
+                Double.NEGATIVE_INFINITY,
+                true,
+                Double.POSITIVE_INFINITY,
+                true
+        )).thenReturn(Set.of("covered", "newer"));
+        when(instances.isEmpty()).thenReturn(false);
+        when(redisson.<String>getBucket(
+                DdcRedisKeys.registryInstance(SERVICE_KEY, "covered"),
+                StringCodec.INSTANCE
+        )).thenReturn(covered);
+        when(redisson.<String>getBucket(
+                DdcRedisKeys.registryInstance(SERVICE_KEY, "newer"),
+                StringCodec.INSTANCE
+        )).thenReturn(newer);
+        when(covered.get()).thenReturn(objectMapper.writeValueAsString(
+                instance(SERVICE_KEY, "lease-covered")
+        ));
+        when(newer.get()).thenReturn(objectMapper.writeValueAsString(
+                instance(SERVICE_KEY, "lease-newer", 8L)
+        ));
+        when(redisson.getAtomicLong(
+                DdcRedisKeys.registryRevision(SERVICE_KEY)
+        )).thenReturn(serviceRevision);
+        when(serviceRevision.incrementAndGet()).thenReturn(8L);
+        when(redisson.<String>getSet(
+                catalogKey(),
+                StringCodec.INSTANCE
+        )).thenReturn(serviceCatalog);
+        when(redisson.getAtomicLong(
+                catalogRevisionKey()
+        )).thenReturn(catalogRevision);
+        when(catalogRevision.get()).thenReturn(3L);
+        when(redisson.getTopic(
+                topicKey(),
+                StringCodec.INSTANCE
+        )).thenReturn(topic);
+        when(redisson.getAtomicLong(
+                DdcRedisKeys.globalRegistryCatalogRevision()
+        )).thenReturn(globalRevision);
+        DdcServiceRegistryRedisRepository repository =
+                new DdcServiceRegistryRedisRepository(
+                        redisson,
+                        objectMapper
+                );
+
+        int removed = repository.revokeResourceAdmission(
+                "resource-1", "pay-biz", "dev", "orders-app", 7L
+        );
+
+        assertThat(removed).isEqualTo(1);
+        verify(covered).delete();
+        verify(newer, org.mockito.Mockito.never()).delete();
+        verify(instances).remove("covered");
+        verify(redisson, org.mockito.Mockito.never()).getBucket(
+                DdcRedisKeys.registryInstance(otherApp, "covered"),
+                StringCodec.INSTANCE
+        );
+    }
+
     private DdcServiceInstance instance() {
         return instance(SERVICE_KEY, "lease-1");
     }
 
     private DdcServiceInstance instance(DdcServiceKey serviceKey, String leaseId) {
+        return instance(serviceKey, leaseId, 7L);
+    }
+
+    private DdcServiceInstance instance(
+            DdcServiceKey serviceKey,
+            String leaseId,
+            long resourceVersion) {
         return new DdcServiceInstance(
                 "provider-1", leaseId, serviceKey, "127.0.0.1", 19090, false,
                 Map.of("zone", "east"), 30, 10, NOW, NOW,
                 NOW.plusSeconds(30), "ONLINE", 0L,
-                "resource-1", 7L, "credential-1", NOW.plusSeconds(60)
+                "resource-1", resourceVersion, "credential-1", NOW.plusSeconds(60)
         );
     }
 

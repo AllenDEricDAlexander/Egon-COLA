@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import io.grpc.Context;
 import top.egon.cola.component.ddc.admin.security.rpc.DdcServicePrincipal;
 import top.egon.cola.component.ddc.admin.service.management.DdcManagementFacade;
+import top.egon.cola.component.ddc.admin.service.lease.DdcResourceAdmissionRevocationService;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfig;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigDeleteRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigQuery;
@@ -18,6 +19,8 @@ import top.egon.cola.component.ddc.model.management.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceKey;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceSnapshot;
+import top.egon.cola.component.ddc.model.management.DdcResourceAdmissionRevocationRequest;
+import top.egon.cola.component.ddc.model.management.DdcResourceAdmissionRevocationResult;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetPublishTaskRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.RetryPublishTaskRequest;
 import top.egon.cola.component.rpc.ddc.mapping.DdcCommonProtoMapper;
@@ -35,12 +38,14 @@ import static org.mockito.Mockito.when;
 class DdcManagementRpcProviderTest {
 
     @Test
-    void mapsAndDelegatesAllTenManagementMethods() {
+    void mapsAndDelegatesAllElevenManagementMethods() {
         DdcManagementFacade facade = mock(DdcManagementFacade.class);
+        DdcResourceAdmissionRevocationService revocations =
+                mock(DdcResourceAdmissionRevocationService.class);
         DdcManagementProtoMapper mapper = new DdcManagementProtoMapper(
                 new DdcCommonProtoMapper(4 * 1024 * 1024), 1024 * 1024);
         DdcManagementRpcProvider provider = new DdcManagementRpcProvider(
-                facade, mapper);
+                facade, revocations, mapper);
         Instant now = Instant.parse("2026-08-09T00:00:00Z");
         DdcManagementConfigQuery find = new DdcManagementConfigQuery(
                 "biz", "test", "app");
@@ -100,6 +105,16 @@ class DdcManagementRpcProviderTest {
                 3L, now, List.of(serviceKey));
         DdcManagementServiceSnapshot snapshot = new DdcManagementServiceSnapshot(
                 serviceKey, 4L, now, List.of());
+        DdcResourceAdmissionRevocationRequest revocation =
+                new DdcResourceAdmissionRevocationRequest(
+                        "permission-idp-prod",
+                        "permission",
+                        "idp",
+                        "prod",
+                        7L
+                );
+        DdcResourceAdmissionRevocationResult revocationResult =
+                new DdcResourceAdmissionRevocationResult(2, 3, 2);
         when(facade.findConfig(find)).thenReturn(config);
         when(facade.upsert(trustedUpsert)).thenReturn(config);
         when(facade.publish(trustedPublish)).thenReturn(publishResult);
@@ -112,6 +127,7 @@ class DdcManagementRpcProviderTest {
         when(facade.getScopeBindings(scopes)).thenReturn(List.of());
         when(facade.getServiceKeys(services)).thenReturn(catalog);
         when(facade.getInstances(services)).thenReturn(snapshot);
+        when(revocations.revoke(revocation)).thenReturn(revocationResult);
 
         principal().bind(Context.current()).run(() -> {
             assertThat(provider.findConfig(mapper.toFindRequest(find)).getConfig())
@@ -131,6 +147,10 @@ class DdcManagementRpcProviderTest {
                     .isEqualTo(mapper.toPublishResult(publishResult));
             assertThat(provider.getConfigClients(mapper.toConfigClientsRequest(clients))
                     .getClientsCount()).isZero();
+            assertThat(provider.revokeResourceAdmission(
+                    mapper.toResourceAdmissionRevocationRequest(revocation)))
+                    .isEqualTo(mapper.toResourceAdmissionRevocationResponse(
+                            revocationResult));
             assertThat(provider.getScopeBindings(mapper.toScopeBindingsRequest(scopes))
                     .getBindingsCount()).isZero();
             assertThat(provider.getServiceKeys(mapper.toServiceKeysRequest(services)))
@@ -151,6 +171,7 @@ class DdcManagementRpcProviderTest {
         verify(facade).getScopeBindings(scopes);
         verify(facade).getServiceKeys(services);
         verify(facade).getInstances(services);
+        verify(revocations).revoke(revocation);
     }
 
     private DdcServicePrincipal principal() {

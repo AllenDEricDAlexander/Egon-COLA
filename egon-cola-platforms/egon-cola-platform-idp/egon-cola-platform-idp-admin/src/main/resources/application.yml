@@ -96,6 +96,9 @@ egon:
       id:
         enabled: true
         machine-id: ${IDP_SNOWFLAKE_MACHINE_ID}
+      transactional-outbox:
+        enabled: true
+        node-id: ${IDP_INSTANCE_ID:idp-local-1}
       ddc:
         enabled: ${IDP_DDC_ENABLED:false}
         biz-code: ${DDC_BIZ_CODE:identity}
@@ -123,6 +126,9 @@ egon:
             registry:
               access-key: ${DDC_RPC_REGISTRY_ACCESS_KEY:}
               secret-key: ${DDC_RPC_REGISTRY_SECRET_KEY:}
+            management:
+              access-key: ${DDC_RPC_MANAGEMENT_ACCESS_KEY:}
+              secret-key: ${DDC_RPC_MANAGEMENT_SECRET_KEY:}
         redis:
           enabled: ${IDP_DDC_ENABLED:false}
           mode: SINGLE

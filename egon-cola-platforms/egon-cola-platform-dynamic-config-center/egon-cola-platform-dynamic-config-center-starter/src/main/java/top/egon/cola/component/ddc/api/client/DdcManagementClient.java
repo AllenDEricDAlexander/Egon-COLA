@@ -14,6 +14,8 @@ import top.egon.cola.component.ddc.model.management.DdcManagementScopeQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceSnapshot;
+import top.egon.cola.component.ddc.model.management.DdcResourceAdmissionRevocationRequest;
+import top.egon.cola.component.ddc.model.management.DdcResourceAdmissionRevocationResult;
 
 import java.util.List;
 import java.util.Optional;
@@ -79,6 +81,20 @@ public interface DdcManagementClient {
      */
     List<DdcManagementConfigClientInstance> getConfigClients(
             DdcManagementInstanceQuery query);
+
+    /**
+     * 按 Resource Server 标识和精确应用三元组撤销准入租约。
+     * / Revokes admission leases by Resource Server identifier and exact application triple.
+     *
+     * @param request Resource 停用撤销命令 / Resource disable revocation command
+     * @return 幂等撤销统计 / idempotent revocation counts
+     */
+    default DdcResourceAdmissionRevocationResult revokeResourceAdmission(
+            DdcResourceAdmissionRevocationRequest request) {
+        throw new UnsupportedOperationException(
+                "Resource admission revocation is not supported"
+        );
+    }
 
     /**
      * 查询作用域绑定；不支持该能力的实现默认抛出异常。 /

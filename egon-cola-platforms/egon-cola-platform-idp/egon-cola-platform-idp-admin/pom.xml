@@ -31,6 +31,10 @@
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-transactional-outbox-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
             <artifactId>egon-cola-platform-dynamic-config-center-starter</artifactId>
         </dependency>
         <dependency>

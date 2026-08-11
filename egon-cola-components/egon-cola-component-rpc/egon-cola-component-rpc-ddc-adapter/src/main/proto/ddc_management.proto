@@ -17,6 +17,7 @@ service DdcManagementService {
   rpc GetPublishTask(GetPublishTaskRequest) returns (GetPublishTaskResponse);
   rpc RetryPublishTask(RetryPublishTaskRequest) returns (RetryPublishTaskResponse);
   rpc GetConfigClients(GetConfigClientsRequest) returns (GetConfigClientsResponse);
+  rpc RevokeResourceAdmission(RevokeResourceAdmissionRequest) returns (RevokeResourceAdmissionResponse);
   rpc GetScopeBindings(GetScopeBindingsRequest) returns (GetScopeBindingsResponse);
   rpc GetServiceKeys(GetServiceKeysRequest) returns (GetServiceKeysResponse);
   rpc GetInstances(GetInstancesRequest) returns (GetInstancesResponse);
@@ -142,6 +143,18 @@ message DdcConfigClientInstance {
 
 message GetConfigClientsResponse {
   repeated DdcConfigClientInstance clients = 1;
+}
+
+message RevokeResourceAdmissionRequest {
+  string resource_server_id = 1;
+  DdcScope scope = 2;
+  int64 resource_version = 3;
+}
+
+message RevokeResourceAdmissionResponse {
+  int32 config_lease_count = 1;
+  int32 provider_lease_count = 2;
+  int32 persisted_instance_count = 3;
 }
 
 message DdcScopeBindingQuery {

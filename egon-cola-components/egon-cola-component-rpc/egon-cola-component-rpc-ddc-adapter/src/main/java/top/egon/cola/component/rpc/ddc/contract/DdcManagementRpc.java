@@ -21,6 +21,8 @@ import top.egon.cola.component.rpc.ddc.contract.proto.v1.PublishConfigRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.PublishConfigResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.RetryPublishTaskRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.RetryPublishTaskResponse;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.RevokeResourceAdmissionRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.RevokeResourceAdmissionResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.UpsertConfigRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.UpsertConfigResponse;
 
@@ -98,6 +100,17 @@ public interface DdcManagementRpc {
     @EgonRpcMethod(name = "GetConfigClients", idempotent = true)
     GetConfigClientsResponse getConfigClients(
             GetConfigClientsRequest request);
+
+    /**
+     * 撤销精确 Resource Server 三元组的全部准入租约。
+     * / Revokes every admission lease for an exact Resource Server triple.
+     *
+     * @param request Resource 停用撤销请求 / Resource disable revocation request
+     * @return 幂等撤销统计 / idempotent revocation counts
+     */
+    @EgonRpcMethod(name = "RevokeResourceAdmission")
+    RevokeResourceAdmissionResponse revokeResourceAdmission(
+            RevokeResourceAdmissionRequest request);
 
     /**
      * 查询作用域绑定。 / Gets scope bindings.

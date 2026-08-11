@@ -121,6 +121,57 @@ public class DdcConfigLeaseRedisRepository {
         }
     }
 
+    /**
+     * 撤销与停用 Resource Server、精确业务应用三元组及事件版本匹配的配置客户端租约。
+     * / Revokes configuration-client leases matching the disabled Resource Server, exact business
+     * application triple, and event version.
+     *
+     * @param resourceServerId Resource Server 稳定标识 / stable Resource Server identifier
+     * @param bizCode 业务域编码 / business-domain code
+     * @param env 部署环境 / deployment environment
+     * @param appCode 应用编码 / application code
+     * @param resourceVersion 停用事件版本 / disable-event version
+     * @return 实际撤销的租约数 / number of leases actually revoked
+     */
+    public int revokeResourceAdmission(
+            String resourceServerId,
+            String bizCode,
+            String env,
+            String appCode,
+            long resourceVersion) {
+        RLock lock = scopeLock(bizCode, env, appCode);
+        lock.lock();
+        try {
+            int removed = 0;
+            for (String instanceId : List.copyOf(
+                    instances(bizCode, env, appCode).readAll())) {
+                JsonNode current = currentLease(
+                        bizCode, env, appCode, instanceId
+                );
+                if (current == null) {
+                    instances(bizCode, env, appCode).remove(instanceId);
+                    continue;
+                }
+                if (!matchesResourceAdmission(
+                        current,
+                        resourceServerId,
+                        bizCode,
+                        env,
+                        appCode,
+                        resourceVersion
+                )) {
+                    continue;
+                }
+                lease(bizCode, env, appCode, instanceId).delete();
+                instances(bizCode, env, appCode).remove(instanceId);
+                removed++;
+            }
+            return removed;
+        } finally {
+            lock.unlock();
+        }
+    }
+
     public boolean removeExpiredProjection(String bizCode,
                                            String env,
                                            String appCode,
@@ -255,6 +306,35 @@ public class DdcConfigLeaseRedisRepository {
     private boolean sameIdentity(JsonNode lease, String instanceId, String leaseId) {
         return instanceId.equals(lease.path("instanceId").asText())
                 && leaseId.equals(lease.path("leaseId").asText());
+    }
+
+    /**
+     * 判断租约是否属于该停用事件，旧事件不会移除更新版本租约。
+     * / Checks whether a lease belongs to the disable event; stale events never remove newer leases.
+     *
+     * @param lease 租约 JSON / lease JSON
+     * @param resourceServerId Resource Server 标识 / Resource Server identifier
+     * @param bizCode 业务域编码 / business-domain code
+     * @param env 环境 / environment
+     * @param appCode 应用编码 / application code
+     * @param resourceVersion 停用版本 / disable version
+     * @return 是否应撤销 / whether the lease must be revoked
+     */
+    private boolean matchesResourceAdmission(
+            JsonNode lease,
+            String resourceServerId,
+            String bizCode,
+            String env,
+            String appCode,
+            long resourceVersion) {
+        return resourceServerId.equals(
+                lease.path("resourceServerId").asText())
+                && bizCode.equals(lease.path("bizCode").asText())
+                && env.equals(lease.path("env").asText())
+                && appCode.equals(lease.path("appCode").asText())
+                && lease.path("resourceVersion").canConvertToLong()
+                && lease.path("resourceVersion").asLong()
+                <= resourceVersion;
     }
 
     private boolean sameAdmissionResource(
