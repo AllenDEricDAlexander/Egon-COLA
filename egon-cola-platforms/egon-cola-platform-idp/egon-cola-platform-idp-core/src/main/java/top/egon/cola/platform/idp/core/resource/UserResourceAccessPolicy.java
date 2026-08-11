@@ -107,13 +107,14 @@ public final class UserResourceAccessPolicy {
                         "USER Resource grant was not found"
                 ));
         TenantMembershipPort.TenantMembership membership =
-                memberships.resolve(
-                        required(identitySub, "identitySub"),
-                        required(tenantId, "tenantId"),
-                        client.clientId()
-                );
-        if (membership.status()
-                != TenantMembershipPort.MembershipStatus.ACTIVE) {
+                memberships.resolve(required(identitySub, "identitySub"),
+                        required(tenantId, "tenantId"), client.clientId());
+        if (membership == null
+                || membership.status() != TenantMembershipPort.MembershipStatus.ACTIVE
+                || !identitySub.equals(membership.identitySub())
+                || !tenantId.equals(membership.tenantId())
+                || membership.rbac3UserId() == null
+                || membership.rbac3UserId().isBlank()) {
             deny("IDP_TENANT_MEMBERSHIP_DISABLED", "Membership is disabled");
         }
         UserResourceAccessAuthorizationPort.AccessDecision decision =
@@ -126,6 +127,11 @@ public final class UserResourceAccessPolicy {
                                 resource.entryPermissionCode()
                         )
                 );
+        if (decision == null) {
+            throw new UserResourceAccessAuthorizationPort.AccessUnavailableException(
+                    "RBAC3 returned no Resource access decision"
+            );
+        }
         if (decision.decision()
                 != UserResourceAccessAuthorizationPort.Decision.ALLOW) {
             deny("IDP_RESOURCE_ACCESS_DENIED", decision.reason());

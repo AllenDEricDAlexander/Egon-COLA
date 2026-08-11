@@ -152,16 +152,9 @@ class SpringConstructorResolutionTest {
         @Bean
         OAuthClientStore oauthClientStore(
                 IdentityClientRepository clients,
-                IdentityClientRedirectUriRepository redirects,
-                IdentityResourceServerRepository resources,
-                IdentityClientResourceGrantRepository grants
+                IdentityClientRedirectUriRepository redirects
         ) {
-            return new JpaOAuthClientStore(
-                    clients,
-                    redirects,
-                    resources,
-                    grants
-            );
+            return new JpaOAuthClientStore(clients, redirects);
         }
     }
 }

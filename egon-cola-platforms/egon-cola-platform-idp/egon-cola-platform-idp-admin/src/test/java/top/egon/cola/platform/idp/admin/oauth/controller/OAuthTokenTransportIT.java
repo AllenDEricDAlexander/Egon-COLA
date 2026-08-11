@@ -23,6 +23,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,6 +47,8 @@ class OAuthTokenTransportIT {
     private static final String CLIENT_ID = "gateway-admin-web";
     private static final String COOKIE_NAME =
             "EGON_IDP_REFRESH_gateway-admin-web";
+    private static final String RESOURCE =
+            "https://api.egon.internal/local/platform/gateway";
 
     private AuthorizationFacade authorizations;
     private TokenFacade tokens;
@@ -80,7 +83,8 @@ class OAuthTokenTransportIT {
                 "one-time-code",
                 "valid-verifier",
                 "http://127.0.0.1:5173/oauth/callback",
-                CLIENT_ID
+                CLIENT_ID,
+                RESOURCE
         )).thenReturn(code);
         when(tokens.issue(
                 code,
@@ -95,7 +99,8 @@ class OAuthTokenTransportIT {
                         .param("code", "one-time-code")
                         .param("code_verifier", "valid-verifier")
                         .param("redirect_uri",
-                                "http://127.0.0.1:5173/oauth/callback"))
+                                "http://127.0.0.1:5173/oauth/callback")
+                        .param("resource", RESOURCE))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.access_token").value("access-value"))
                 .andExpect(jsonPath("$.token_type").value("Bearer"))
@@ -140,6 +145,7 @@ class OAuthTokenTransportIT {
         when(tokens.refresh(
                 "refresh-current",
                 CLIENT_ID,
+                RESOURCE,
                 Duration.ofMinutes(15)
         )).thenReturn(tokenPair());
 
@@ -148,6 +154,7 @@ class OAuthTokenTransportIT {
                         .cookie(new Cookie(COOKIE_NAME, "refresh-current"))
                         .param("grant_type", "refresh_token")
                         .param("client_id", CLIENT_ID)
+                        .param("resource", RESOURCE)
                         .param("refresh_token", "body-token-is-forbidden"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("invalid_request"));
@@ -156,7 +163,8 @@ class OAuthTokenTransportIT {
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                         .cookie(new Cookie(COOKIE_NAME, "refresh-current"))
                         .param("grant_type", "refresh_token")
-                        .param("client_id", CLIENT_ID))
+                        .param("client_id", CLIENT_ID)
+                        .param("resource", RESOURCE))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.access_token").value("access-value"))
                 .andExpect(content().string(not(containsString(
@@ -195,7 +203,8 @@ class OAuthTokenTransportIT {
                 "dynamic-code",
                 "valid-verifier",
                 "http://127.0.0.1:5173/oauth/callback",
-                CLIENT_ID
+                CLIENT_ID,
+                RESOURCE
         )).thenReturn(code);
         when(tokens.issue(
                 code,
@@ -210,7 +219,8 @@ class OAuthTokenTransportIT {
                         .param("code", "dynamic-code")
                         .param("code_verifier", "valid-verifier")
                         .param("redirect_uri",
-                                "http://127.0.0.1:5173/oauth/callback"))
+                                "http://127.0.0.1:5173/oauth/callback")
+                        .param("resource", RESOURCE))
                 .andExpect(status().isOk());
 
         verify(tokens).issue(
@@ -218,6 +228,47 @@ class OAuthTokenTransportIT {
                 Duration.ofMinutes(20),
                 Duration.ofDays(2)
         );
+    }
+
+    @Test
+    void tokenEndpointRequiresExactlyOneResourceAndRejectsAudience()
+            throws Exception {
+        mockMvc.perform(post("/oauth2/token")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("grant_type", "authorization_code")
+                        .param("client_id", CLIENT_ID)
+                        .param("code", "one-time-code")
+                        .param("code_verifier", "valid-verifier")
+                        .param("redirect_uri",
+                                "http://127.0.0.1:5173/oauth/callback"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("invalid_request"));
+
+        mockMvc.perform(post("/oauth2/token")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("grant_type", "authorization_code")
+                        .param("client_id", CLIENT_ID)
+                        .param("code", "one-time-code")
+                        .param("code_verifier", "valid-verifier")
+                        .param("redirect_uri",
+                                "http://127.0.0.1:5173/oauth/callback")
+                        .param("resource", RESOURCE,
+                                "https://api.egon.internal/local/platform/ddc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("invalid_request"));
+
+        mockMvc.perform(post("/oauth2/token")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .param("grant_type", "authorization_code")
+                        .param("client_id", CLIENT_ID)
+                        .param("code", "one-time-code")
+                        .param("code_verifier", "valid-verifier")
+                        .param("redirect_uri",
+                                "http://127.0.0.1:5173/oauth/callback")
+                        .param("resource", RESOURCE)
+                        .param("audience", "legacy-api"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("invalid_request"));
     }
 
     @Test
@@ -285,7 +336,6 @@ class OAuthTokenTransportIT {
                 OAuthClient.Status.ACTIVE,
                 true,
                 List.of("http://127.0.0.1:5173/oauth/callback"),
-                List.of("gateway-admin"),
                 Duration.ofMinutes(15),
                 Duration.ofDays(7)
         );
@@ -298,7 +348,9 @@ class OAuthTokenTransportIT {
                 "rbac3-alice",
                 "sso-session-1",
                 CLIENT_ID,
-                "gateway-admin",
+                URI.create(RESOURCE),
+                "platform-gateway-local",
+                9L,
                 "http://127.0.0.1:5173/oauth/callback",
                 "nonce-value",
                 "challenge-value",

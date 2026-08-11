@@ -19,6 +19,40 @@ public interface UserResourceAccessAuthorizationPort {
     AccessDecision decide(AccessRequest request);
 
     /**
+     * RBAC3 入口判定无法可靠完成时抛出的可重试异常。
+     * Retryable exception raised when the RBAC3 entry decision cannot be completed reliably.
+     */
+    final class AccessUnavailableException extends RuntimeException {
+
+        /** 序列化版本；serialization version. */
+        private static final long serialVersionUID = 1L;
+
+        /**
+         * 创建不包含敏感传输细节的不可用异常。
+         * Creates an unavailable exception without sensitive transport details.
+         *
+         * @param message 安全错误描述 / safe error description
+         */
+        public AccessUnavailableException(String message) {
+            super(required(message));
+        }
+
+        /**
+         * 校验异常消息。
+         * Validates the exception message.
+         *
+         * @param value 原始消息 / raw message
+         * @return 已校验消息 / validated message
+         */
+        private static String required(String value) {
+            if (value == null || value.isBlank()) {
+                throw new IllegalArgumentException("message is required");
+            }
+            return value.trim();
+        }
+    }
+
+    /**
      * USER 应用入口决策请求。
      *
      * <p>USER application-entry decision request.</p>

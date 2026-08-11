@@ -239,8 +239,7 @@ class ResourceServerPolicyTest {
                 OAuthClient.ClientType.PUBLIC,
                 OAuthClient.Status.ACTIVE,
                 true,
-                List.of("https://idp.example.test/oauth/callback"),
-                List.of(RESOURCE_URI.toString())
+                List.of("https://idp.example.test/oauth/callback")
         );
     }
 
@@ -250,8 +249,7 @@ class ResourceServerPolicyTest {
                 OAuthClient.ClientType.CONFIDENTIAL,
                 OAuthClient.Status.ACTIVE,
                 false,
-                List.of("https://idp.example.test/internal/callback"),
-                List.of(RESOURCE_URI.toString())
+                List.of("https://idp.example.test/internal/callback")
         );
     }
 

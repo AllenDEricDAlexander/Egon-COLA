@@ -15,20 +15,43 @@ import top.egon.cola.platform.idp.admin.token.service.impl.RsaPemKeyLoader;
 import top.egon.cola.platform.idp.core.audit.IdentitySecurityEventPort;
 import top.egon.cola.platform.idp.core.port.IdentityUserStatePort;
 import top.egon.cola.platform.idp.core.port.IdentityUserStore;
+import top.egon.cola.platform.idp.core.port.OAuthClientStore;
 import top.egon.cola.platform.idp.core.port.RefreshTokenStore;
+import top.egon.cola.platform.idp.core.resource.UserResourceAccessPolicy;
 import top.egon.cola.platform.idp.core.token.TokenFacade;
 
 import java.nio.file.Path;
 import java.time.Clock;
 
+/**
+ * IdP JWT 签名、Refresh Token 存储与 Token 生命周期的 Spring 装配。
+ *
+ * <p>Spring wiring for IdP JWT signing, refresh-token storage, and token lifecycle.</p>
+ */
 @Configuration(proxyBeanMethods = false)
 public class TokenConfig {
 
+    /**
+     * 暴露 IdP 公钥 JWT 验签器。
+     *
+     * <p>Exposes the IdP public-key JWT decoder.</p>
+     *
+     * @param tokens RS256 Token 服务；RS256 token service
+     * @return JWT 验签器；JWT decoder
+     */
     @Bean
     JwtDecoder idpJwtDecoder(Rs256TokenService tokens) {
         return tokens.jwtDecoder();
     }
 
+    /**
+     * 创建签名密钥运行态状态提供器。
+     *
+     * <p>Creates the signing-key runtime-state provider.</p>
+     *
+     * @param configuredKid 当前密钥标识；current key identifier
+     * @return 签名密钥运行态；signing-key runtime
+     */
     @Bean
     SigningKeyRuntime signingKeyRuntime(
             @Value("${egon.idp.oauth.signing-key.kid}") String configuredKid
@@ -36,6 +59,17 @@ public class TokenConfig {
         return new ExternalPemSigningKeyRuntime(configuredKid);
     }
 
+    /**
+     * 从外部 PEM 文件装载 RS256 Token 服务。
+     *
+     * <p>Loads the RS256 token service from external PEM files.</p>
+     *
+     * @param publicKeyFile 公钥文件；public-key file
+     * @param privateKeyFile 私钥文件；private-key file
+     * @param kid 密钥标识；key identifier
+     * @param issuer IdP Issuer；IdP issuer
+     * @return RS256 Token 服务；RS256 token service
+     */
     @Bean
     Rs256TokenService rs256TokenService(
             @Value("${egon.idp.oauth.signing-key.public-key-file}")
@@ -57,6 +91,15 @@ public class TokenConfig {
         );
     }
 
+    /**
+     * 创建支持轮换和重放检测的 Redis Refresh Token 存储。
+     *
+     * <p>Creates the Redis refresh-token store with rotation and replay detection.</p>
+     *
+     * @param redisson 身份运行态 Redis；identity-runtime Redis
+     * @param keyPrefix Redis Key 前缀；Redis key prefix
+     * @return Refresh Token 存储；refresh-token store
+     */
     @Bean
     RefreshTokenStore refreshTokenStore(
             @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
@@ -66,6 +109,22 @@ public class TokenConfig {
         return new RedisRefreshTokenStore(redisson, keyPrefix);
     }
 
+    /**
+     * 创建 USER Token 签发、刷新、撤销和退出门面。
+     *
+     * <p>Creates the USER token issuance, refresh, revocation, and logout facade.</p>
+     *
+     * @param signer Token 签名器；token signer
+     * @param refreshTokens Refresh Token 存储；refresh-token store
+     * @param users 身份用户存储；identity-user store
+     * @param userStates 用户安全状态端口；user security-state port
+     * @param securityEvents 安全事件端口；security-event port
+     * @param clients OAuth Client 查询端口；OAuth Client lookup port
+     * @param resourceAccess USER Resource 入口策略；USER Resource entry policy
+     * @param idpClock UTC 业务时钟；UTC business clock
+     * @param idGenerator 全局 ID 生成器；global ID generator
+     * @return Token 生命周期门面；token-lifecycle facade
+     */
     @Bean
     TokenFacade tokenFacade(
             Rs256TokenService signer,
@@ -73,6 +132,8 @@ public class TokenConfig {
             IdentityUserStore users,
             IdentityUserStatePort userStates,
             IdentitySecurityEventPort securityEvents,
+            OAuthClientStore clients,
+            UserResourceAccessPolicy resourceAccess,
             @Qualifier("idpClock") Clock idpClock,
             LongIdGenerator idGenerator
     ) {
@@ -82,6 +143,8 @@ public class TokenConfig {
                 users,
                 userStates,
                 securityEvents,
+                clients,
+                resourceAccess,
                 idpClock,
                 idGenerator::nextId
         );

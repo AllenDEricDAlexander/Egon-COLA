@@ -3,16 +3,28 @@ package top.egon.cola.platform.idp.core.token;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.idp.contract.IdentityUserState;
+import top.egon.cola.platform.idp.contract.PrincipalType;
 import top.egon.cola.platform.idp.core.audit.IdentitySecurityEvent;
 import top.egon.cola.platform.idp.core.audit.IdentitySecurityEventPort;
 import top.egon.cola.platform.idp.core.identity.IdentityUser;
 import top.egon.cola.platform.idp.core.identity.IdentityUserStatus;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationCode;
+import top.egon.cola.platform.idp.core.oauth.OAuthClient;
 import top.egon.cola.platform.idp.core.port.IdentityUserStatePort;
 import top.egon.cola.platform.idp.core.port.IdentityUserStore;
+import top.egon.cola.platform.idp.core.port.OAuthClientStore;
 import top.egon.cola.platform.idp.core.port.RefreshTokenStore;
+import top.egon.cola.platform.idp.core.port.ResourceServerStore;
+import top.egon.cola.platform.idp.core.port.TenantMembershipPort;
 import top.egon.cola.platform.idp.core.port.TokenSigner;
+import top.egon.cola.platform.idp.core.port.UserResourceAccessAuthorizationPort;
+import top.egon.cola.platform.idp.core.resource.ClientResourceGrant;
+import top.egon.cola.platform.idp.core.resource.ResourceGrantType;
+import top.egon.cola.platform.idp.core.resource.ResourceServer;
+import top.egon.cola.platform.idp.core.resource.ResourceServerStatus;
+import top.egon.cola.platform.idp.core.resource.UserResourceAccessPolicy;
 
+import java.net.URI;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -25,6 +37,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -37,12 +51,18 @@ class TokenFacadeTest {
     private static final Instant NOW = Instant.parse("2026-08-02T00:00:00Z");
     private static final Duration ACCESS_TTL = Duration.ofMinutes(15);
     private static final Duration REFRESH_TTL = Duration.ofDays(7);
+    private static final String RESOURCE =
+            "https://api.egon.internal/prod/platform/gateway";
 
     private FakeTokenSigner signer;
     private FakeRefreshTokenStore refreshTokens;
     private FakeIdentityUserStore users;
     private FakeIdentityUserStatePort states;
     private FakeSecurityEventPort events;
+    private FakeOAuthClientStore clients;
+    private FakeResourceServerStore resources;
+    private FakeMembershipPort memberships;
+    private FakeResourceDecisionPort decisions;
     private TokenFacade facade;
 
     @BeforeEach
@@ -53,23 +73,35 @@ class TokenFacadeTest {
         users.put(activeUser());
         states = new FakeIdentityUserStatePort();
         events = new FakeSecurityEventPort();
-        Deque<String> ids = new ArrayDeque<>(List.of(
-                "family-1",
-                "access-jti-1",
-                "refresh-jti-1",
-                "refresh-jti-2",
-                "access-jti-2",
-                "refresh-jti-3",
-                "access-jti-3"
-        ));
+        clients = new FakeOAuthClientStore();
+        clients.client = new OAuthClient(
+                "gateway-admin-web", OAuthClient.ClientType.PUBLIC,
+                OAuthClient.Status.ACTIVE, true,
+                List.of("https://gateway.example.test/oauth/callback"));
+        resources = new FakeResourceServerStore();
+        resources.resource = new ResourceServer(
+                "platform-gateway-prod", URI.create(RESOURCE), "platform",
+                "gateway", "prod", "gateway-service", "gateway",
+                "gateway:access", Duration.ofMinutes(5),
+                ResourceServerStatus.ACTIVE, 9L);
+        resources.grant = new ClientResourceGrant(
+                "gateway-admin-web", "platform-gateway-prod",
+                ResourceGrantType.USER_DELEGATION, null, Set.of(),
+                ClientResourceGrant.Status.ACTIVE, 3L);
+        memberships = new FakeMembershipPort();
+        memberships.status = TenantMembershipPort.MembershipStatus.ACTIVE;
+        decisions = new FakeResourceDecisionPort();
+        AtomicInteger ids = new AtomicInteger();
         facade = new TokenFacade(
                 signer,
                 refreshTokens,
                 users,
                 states,
                 events,
+                clients,
+                policy(),
                 Clock.fixed(NOW, ZoneOffset.UTC),
-                ids::removeFirst
+                () -> "token-id-" + ids.incrementAndGet()
         );
     }
 
@@ -82,13 +114,17 @@ class TokenFacadeTest {
         assertEquals("tenant-a", claims.tenantId());
         assertEquals("sso-session-1", claims.sessionId());
         assertEquals("gateway-admin-web", claims.clientId());
+        assertEquals(PrincipalType.USER, claims.principalType());
         assertEquals(4L, claims.tokenVersion());
-        assertEquals(List.of("gateway-admin"), claims.audience());
+        assertEquals(9L, claims.resourceVersion());
+        assertEquals(RESOURCE, claims.audience());
         assertEquals("nonce-123", claims.nonce());
         assertEquals(NOW.plus(ACCESS_TTL), claims.expiresAt());
         assertFalse(claims.asMap().containsKey("roles"));
         assertFalse(claims.asMap().containsKey("permissions"));
-        assertFalse(claims.asMap().containsKey("authVersion"));
+        assertFalse(claims.asMap().containsKey("data_scopes"));
+        assertFalse(claims.asMap().containsKey("field_policies"));
+        assertFalse(claims.asMap().containsKey("scope"));
     }
 
     @Test
@@ -118,6 +154,8 @@ class TokenFacadeTest {
                 users,
                 states,
                 events,
+                clients,
+                policy(),
                 Clock.fixed(NOW.plusMillis(321), ZoneOffset.UTC),
                 ids::removeFirst
         );
@@ -145,6 +183,7 @@ class TokenFacadeTest {
         TokenFacade.TokenPair second = facade.refresh(
                 first.refreshToken(),
                 "gateway-admin-web",
+                RESOURCE,
                 ACCESS_TTL
         );
 
@@ -163,12 +202,14 @@ class TokenFacadeTest {
         facade.refresh(
                 first.refreshToken(),
                 "gateway-admin-web",
+                RESOURCE,
                 ACCESS_TTL
         );
 
         assertThrows(RefreshReplayException.class, () -> facade.refresh(
                 first.refreshToken(),
                 "gateway-admin-web",
+                RESOURCE,
                 ACCESS_TTL
         ));
 
@@ -185,6 +226,7 @@ class TokenFacadeTest {
         assertThrows(TokenException.class, () -> facade.refresh(
                 pair.refreshToken(),
                 "ddc-admin-web",
+                RESOURCE,
                 ACCESS_TTL
         ));
         assertEquals(0L, refreshTokens.family(pair.familyId()).generation());
@@ -193,6 +235,7 @@ class TokenFacadeTest {
         assertThrows(TokenException.class, () -> facade.refresh(
                 pair.refreshToken(),
                 "gateway-admin-web",
+                RESOURCE,
                 ACCESS_TTL
         ));
         assertEquals(0L, refreshTokens.family(pair.familyId()).generation());
@@ -209,6 +252,7 @@ class TokenFacadeTest {
         assertThrows(TokenException.class, () -> facade.refresh(
                 pair.refreshToken(),
                 "gateway-admin-web",
+                RESOURCE,
                 ACCESS_TTL
         ));
     }
@@ -223,6 +267,45 @@ class TokenFacadeTest {
         assertEquals(5L, users.get("alice-sub").tokenVersion());
         assertEquals(5L, states.latest.tokenVersion());
         assertEquals("GLOBAL_LOGOUT", states.reason);
+    }
+
+    @Test
+    void refreshRechecksResourceGrantMembershipAndRbacEntry() {
+        TokenFacade.TokenPair resourceToken = issue();
+        resources.resource = resource(ResourceServerStatus.DISABLED);
+        assertInvalidGrant(resourceToken);
+
+        resources.resource = resource(ResourceServerStatus.ACTIVE);
+        resourceToken = issue();
+        resources.grant = null;
+        assertInvalidGrant(resourceToken);
+
+        resources.grant = userGrant();
+        resourceToken = issue();
+        memberships.status = TenantMembershipPort.MembershipStatus.DISABLED;
+        assertInvalidGrant(resourceToken);
+
+        memberships.status = TenantMembershipPort.MembershipStatus.ACTIVE;
+        resourceToken = issue();
+        decisions.decision = UserResourceAccessAuthorizationPort.Decision.DENY;
+        assertInvalidGrant(resourceToken);
+    }
+
+    @Test
+    void refreshRejectsDifferentResourceAndReportsRbacUnavailable() {
+        TokenFacade.TokenPair pair = issue();
+        TokenFacade.TokenPair mismatched = pair;
+        assertThrows(TokenException.class, () -> facade.refresh(
+                mismatched.refreshToken(), "gateway-admin-web",
+                "https://api.egon.internal/prod/platform/ddc", ACCESS_TTL));
+
+        pair = issue();
+        decisions.unavailable = true;
+        TokenFacade.TokenPair current = pair;
+        TokenException unavailable = assertThrows(TokenException.class,
+                () -> facade.refresh(current.refreshToken(),
+                        "gateway-admin-web", RESOURCE, ACCESS_TTL));
+        assertEquals("temporarily_unavailable", unavailable.oauthError());
     }
 
     private TokenFacade.TokenPair issue() {
@@ -240,13 +323,40 @@ class TokenFacadeTest {
                 "tenant-user-a",
                 "sso-session-1",
                 "gateway-admin-web",
-                "gateway-admin",
+                URI.create(RESOURCE),
+                "platform-gateway-prod",
+                9L,
                 "https://gateway.example.test/oauth/callback",
                 "nonce-123",
                 "challenge-123",
                 NOW.minusSeconds(10),
                 NOW.plusSeconds(50)
         );
+    }
+
+    private UserResourceAccessPolicy policy() {
+        return new UserResourceAccessPolicy(resources, memberships, decisions);
+    }
+
+    private ResourceServer resource(ResourceServerStatus status) {
+        return new ResourceServer(
+                "platform-gateway-prod", URI.create(RESOURCE), "platform",
+                "gateway", "prod", "gateway-service", "gateway",
+                "gateway:access", Duration.ofMinutes(5), status, 9L);
+    }
+
+    private ClientResourceGrant userGrant() {
+        return new ClientResourceGrant(
+                "gateway-admin-web", "platform-gateway-prod",
+                ResourceGrantType.USER_DELEGATION, null, Set.of(),
+                ClientResourceGrant.Status.ACTIVE, 3L);
+    }
+
+    private void assertInvalidGrant(TokenFacade.TokenPair pair) {
+        TokenException exception = assertThrows(TokenException.class,
+                () -> facade.refresh(pair.refreshToken(),
+                        "gateway-admin-web", RESOURCE, ACCESS_TTL));
+        assertEquals("invalid_grant", exception.oauthError());
     }
 
     private IdentityUser activeUser() {
@@ -444,6 +554,88 @@ class TokenFacadeTest {
 
         IdentitySecurityEvent single() {
             return values.getFirst();
+        }
+    }
+
+    private static final class FakeOAuthClientStore implements OAuthClientStore {
+        private OAuthClient client;
+
+        @Override
+        public Optional<OAuthClient> findById(String clientId) {
+            return client != null && client.clientId().equals(clientId)
+                    ? Optional.of(client) : Optional.empty();
+        }
+    }
+
+    private static final class FakeResourceServerStore implements ResourceServerStore {
+        private ResourceServer resource;
+        private ClientResourceGrant grant;
+
+        @Override
+        public Optional<ResourceServer> findById(String resourceServerId) {
+            return resource != null && resource.resourceServerId().equals(resourceServerId)
+                    ? Optional.of(resource) : Optional.empty();
+        }
+
+        @Override
+        public Optional<ResourceServer> findByUri(URI resourceUri) {
+            return resource != null && resource.resourceUri().equals(resourceUri)
+                    ? Optional.of(resource) : Optional.empty();
+        }
+
+        @Override
+        public Optional<ResourceServer> findByScope(
+                String bizCode, String appCode, String environment) {
+            return resource != null && resource.matches(bizCode, appCode, environment)
+                    ? Optional.of(resource) : Optional.empty();
+        }
+
+        @Override
+        public Optional<ResourceServer> findByManagementClientId(String clientId) {
+            return resource != null && resource.managementClientId().equals(clientId)
+                    ? Optional.of(resource) : Optional.empty();
+        }
+
+        @Override
+        public Optional<ClientResourceGrant> findGrant(
+                String clientId, String resourceServerId,
+                ResourceGrantType grantType, String tenantId) {
+            return grant != null
+                    && grant.clientId().equals(clientId)
+                    && grant.resourceServerId().equals(resourceServerId)
+                    && grant.grantType() == grantType
+                    ? Optional.of(grant) : Optional.empty();
+        }
+    }
+
+    private static final class FakeMembershipPort implements TenantMembershipPort {
+        private MembershipStatus status;
+
+        @Override
+        public TenantMembership resolve(String identitySub, String tenantId, String clientId) {
+            return new TenantMembership(identitySub, tenantId, "tenant-user-a",
+                    "Tenant A", status);
+        }
+
+        @Override
+        public List<TenantMembership> list(String identitySub, String clientId) {
+            return List.of(resolve(identitySub, "tenant-a", clientId));
+        }
+    }
+
+    private static final class FakeResourceDecisionPort
+            implements UserResourceAccessAuthorizationPort {
+        private Decision decision = Decision.ALLOW;
+        private boolean unavailable;
+
+        @Override
+        public AccessDecision decide(AccessRequest request) {
+            if (unavailable) {
+                throw new AccessUnavailableException("RBAC3 unavailable");
+            }
+            return new AccessDecision(decision,
+                    decision == Decision.ALLOW ? "ALLOW" : "ENTRY_PERMISSION_DENIED",
+                    43L, 2L, 18L);
         }
     }
 }

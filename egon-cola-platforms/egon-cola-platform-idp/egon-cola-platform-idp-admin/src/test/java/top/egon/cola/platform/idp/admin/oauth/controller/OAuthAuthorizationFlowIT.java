@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.client.RestClient;
 import top.egon.cola.platform.idp.admin.support.rbac3.HttpTenantMembershipAdapter;
+import top.egon.cola.platform.idp.admin.support.rbac3.HttpUserResourceAccessAuthorizationAdapter;
 import top.egon.cola.platform.idp.admin.oauth.controller.OAuthAuthorizationController;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientRedirectUriEntity;
@@ -24,20 +25,25 @@ import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientResou
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityResourceServerEntity;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepository;
+import top.egon.cola.platform.idp.admin.resource.repo.JpaResourceServerStore;
 import top.egon.cola.platform.idp.admin.support.security.IdpSsoPrincipal;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationCode;
 import top.egon.cola.platform.idp.core.oauth.AuthorizationFacade;
 import top.egon.cola.platform.idp.core.oauth.OAuthClient;
 import top.egon.cola.platform.idp.core.port.TenantMembershipPort;
+import top.egon.cola.platform.idp.core.port.UserResourceAccessAuthorizationPort;
 
+import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -74,7 +80,9 @@ class OAuthAuthorizationFlowIT {
                 "tenant-user-a",
                 "sso-session-1",
                 "gateway-admin-web",
-                "gateway-admin",
+                URI.create("https://api.egon.internal/local/platform/gateway"),
+                "platform-gateway-local",
+                4L,
                 "https://gateway.example.test/oauth/callback",
                 "nonce-123",
                 "challenge-123",
@@ -100,7 +108,7 @@ class OAuthAuthorizationFlowIT {
     }
 
     @Test
-    void jpaStoreBuildsClientFromExactRedirectsAndAudiences() {
+    void jpaStoresBuildClientRedirectsAndExplicitResourceGrantSeparately() {
         IdentityClientRepository clients = mock(IdentityClientRepository.class);
         IdentityClientRedirectUriRepository redirects = mock(
                 IdentityClientRedirectUriRepository.class
@@ -145,27 +153,28 @@ class OAuthAuthorizationFlowIT {
                         IdentityResourceServerEntity.Status.ACTIVE,
                         now
                 );
-        when(grants.findByClientIdAndGrantTypeAndStatus(
-                "gateway-admin-web",
-                IdentityClientResourceGrantEntity.GrantType.USER_DELEGATION,
-                IdentityClientResourceGrantEntity.Status.ACTIVE
-        )).thenReturn(List.of(
+        IdentityClientResourceGrantEntity userGrant =
                 IdentityClientResourceGrantEntity.userDelegation(
                         "grant-row-1",
                         "gateway-admin-web",
                         resource.getResourceServerId(),
                         now
-                )
-        ));
+                );
+        when(grants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
+                "gateway-admin-web",
+                resource.getResourceServerId(),
+                IdentityClientResourceGrantEntity.GrantType.USER_DELEGATION,
+                null
+        )).thenReturn(Optional.of(userGrant));
         when(resources.findByResourceServerId(resource.getResourceServerId()))
                 .thenReturn(Optional.of(resource));
+        when(resources.findByResourceUri(resource.getResourceUri()))
+                .thenReturn(Optional.of(resource));
 
-        OAuthClient client = new JpaOAuthClientStore(
-                clients,
-                redirects,
-                resources,
-                grants
-        ).findById("gateway-admin-web").orElseThrow();
+        OAuthClient client = new JpaOAuthClientStore(clients, redirects)
+                .findById("gateway-admin-web").orElseThrow();
+        JpaResourceServerStore resourceStore = new JpaResourceServerStore(
+                resources, grants, new ObjectMapper());
 
         assertEquals(OAuthClient.Status.ACTIVE, client.status());
         assertEquals(OAuthClient.ClientType.PUBLIC, client.clientType());
@@ -174,7 +183,15 @@ class OAuthAuthorizationFlowIT {
         assertTrue(client.acceptsRedirectUri(
                 "https://gateway.example.test/oauth/callback"
         ));
-        assertTrue(client.acceptsAudience(resource.getResourceUri()));
+        assertFalse(Arrays.stream(OAuthClient.class.getRecordComponents())
+                .anyMatch(component -> "audiences".equals(component.getName())));
+        assertEquals(resource.getResourceUri(), resourceStore.findByUri(
+                URI.create(resource.getResourceUri())).orElseThrow()
+                .resourceUri().toString());
+        assertTrue(resourceStore.findGrant(
+                "gateway-admin-web", resource.getResourceServerId(),
+                top.egon.cola.platform.idp.core.resource.ResourceGrantType.USER_DELEGATION,
+                null).orElseThrow().active());
     }
 
     @Test
@@ -217,6 +234,39 @@ class OAuthAuthorizationFlowIT {
     }
 
     @Test
+    void trustedRbac3ResourceDecisionAdapterReturnsMinimalAllowAndDeny()
+            throws Exception {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        server.expect(once(), requestTo(
+                        "http://127.0.0.1:19090/internal/v1/authorization/"
+                                + "resource-access-decisions"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(header("Authorization", "Bearer service-token"))
+                .andRespond(withSuccess("""
+                        {"data":{"decision":"ALLOW","reasonCode":"ALLOW",
+                        "authVersion":43,"sessionVersion":2,"policyVersion":18,
+                        "decidedAt":"2026-08-10T00:00:00Z"}}
+                        """, MediaType.APPLICATION_JSON));
+        HttpUserResourceAccessAuthorizationAdapter adapter =
+                new HttpUserResourceAccessAuthorizationAdapter(
+                        builder.build(), "http://127.0.0.1:19090",
+                        () -> "Bearer service-token");
+
+        UserResourceAccessAuthorizationPort.AccessDecision decision = adapter.decide(
+                new UserResourceAccessAuthorizationPort.AccessRequest(
+                        "alice-sub", "tenant-a", "sso-session-1",
+                        "gateway", "gateway:access"));
+
+        assertEquals(UserResourceAccessAuthorizationPort.Decision.ALLOW,
+                decision.decision());
+        assertEquals(43L, decision.authorizationVersion());
+        assertEquals(2L, decision.contextVersion());
+        assertEquals(18L, decision.policyVersion());
+        server.verify();
+    }
+
+    @Test
     void authorizeEndpointRedirectsOnlyToFacadeValidatedUri() throws Exception {
         AuthorizationFacade facade = mock(AuthorizationFacade.class);
         when(facade.authorize(
@@ -242,7 +292,8 @@ class OAuthAuthorizationFlowIT {
                         .param("client_id", "gateway-admin-web")
                         .param("redirect_uri",
                                 "https://gateway.example.test/oauth/callback")
-                        .param("audience", "gateway-admin")
+                        .param("resource",
+                                "https://api.egon.internal/local/platform/gateway")
                         .param("tenant_id", "tenant-a")
                         .param("state", "state-value")
                         .param("nonce", "nonce-value")
@@ -254,5 +305,60 @@ class OAuthAuthorizationFlowIT {
                         "https://gateway.example.test/oauth/callback"
                                 + "?code=code-value&state=state-value"
                 ));
+    }
+
+    @Test
+    void authorizeEndpointRequiresExactlyOneResourceAndRejectsAudience()
+            throws Exception {
+        AuthorizationFacade facade = mock(AuthorizationFacade.class);
+        MockMvc mvc = MockMvcBuilders.standaloneSetup(
+                new OAuthAuthorizationController(facade)).build();
+        UsernamePasswordAuthenticationToken principal =
+                UsernamePasswordAuthenticationToken.authenticated(
+                        new IdpSsoPrincipal("alice-sub", "sso-session-1"),
+                        "", List.of());
+
+        var base = get("/oauth2/authorize")
+                .principal(principal)
+                .param("response_type", "code")
+                .param("client_id", "gateway-admin-web")
+                .param("redirect_uri",
+                        "https://gateway.example.test/oauth/callback")
+                .param("tenant_id", "tenant-a")
+                .param("state", "state-value")
+                .param("nonce", "nonce-value")
+                .param("code_challenge", "challenge-value")
+                .param("code_challenge_method", "S256");
+        mvc.perform(base).andExpect(status().isBadRequest());
+
+        mvc.perform(get("/oauth2/authorize")
+                        .principal(principal)
+                        .param("response_type", "code")
+                        .param("client_id", "gateway-admin-web")
+                        .param("redirect_uri",
+                                "https://gateway.example.test/oauth/callback")
+                        .param("resource", "https://api.example.test/a",
+                                "https://api.example.test/b")
+                        .param("tenant_id", "tenant-a")
+                        .param("state", "state-value")
+                        .param("nonce", "nonce-value")
+                        .param("code_challenge", "challenge-value")
+                        .param("code_challenge_method", "S256"))
+                .andExpect(status().isBadRequest());
+
+        mvc.perform(get("/oauth2/authorize")
+                        .principal(principal)
+                        .param("response_type", "code")
+                        .param("client_id", "gateway-admin-web")
+                        .param("redirect_uri",
+                                "https://gateway.example.test/oauth/callback")
+                        .param("resource", "https://api.example.test/a")
+                        .param("audience", "legacy-api")
+                        .param("tenant_id", "tenant-a")
+                        .param("state", "state-value")
+                        .param("nonce", "nonce-value")
+                        .param("code_challenge", "challenge-value")
+                        .param("code_challenge_method", "S256"))
+                .andExpect(status().isBadRequest());
     }
 }

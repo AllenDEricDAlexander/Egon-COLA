@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import top.egon.cola.platform.idp.contract.PrincipalType;
 import top.egon.cola.platform.idp.core.token.AccessTokenClaims;
 import top.egon.cola.platform.idp.core.token.RefreshTokenClaims;
 import top.egon.cola.platform.idp.core.token.TokenException;
@@ -29,6 +30,8 @@ class AccessTokenClaimsIT {
             .minusSeconds(5)
             .truncatedTo(ChronoUnit.SECONDS);
     private static final String ISSUER = "https://idp.example.test";
+    private static final String RESOURCE =
+            "https://api.egon.internal/prod/platform/gateway";
 
     private RSAPublicKey publicKey;
     private RSAPrivateKey privateKey;
@@ -52,26 +55,25 @@ class AccessTokenClaimsIT {
     @Test
     void rs256AccessJwtHasExactIdentityClaimsAndNoAuthorizationFacts() {
         String token = tokens.signAccess(new AccessTokenClaims(
+                PrincipalType.USER,
                 "alice-sub",
                 "tenant-a",
                 "sid-1",
                 "gateway-admin-web",
                 "jti-1",
                 7L,
-                List.of("gateway-admin"),
+                9L,
+                RESOURCE,
                 "nonce-1",
                 NOW,
                 NOW,
                 NOW.plusSeconds(900)
         ));
-        NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(publicKey)
-                .signatureAlgorithm(SignatureAlgorithm.RS256)
-                .build();
-
-        Jwt jwt = decoder.decode(token);
+        Jwt jwt = tokens.jwtDecoder().decode(token);
 
         assertEquals("RS256", jwt.getHeaders().get("alg"));
         assertEquals("idp-key-1", jwt.getHeaders().get("kid"));
+        assertEquals("at+jwt", jwt.getHeaders().get("typ"));
         assertEquals(ISSUER, jwt.getIssuer().toString());
         assertEquals("alice-sub", jwt.getSubject());
         assertEquals("tenant-a", jwt.getClaimAsString("tid"));
@@ -79,10 +81,15 @@ class AccessTokenClaimsIT {
         assertEquals("gateway-admin-web",
                 jwt.getClaimAsString("client_id"));
         assertEquals(7L, ((Number) jwt.getClaim("token_version")).longValue());
-        assertEquals(List.of("gateway-admin"), jwt.getAudience());
+        assertEquals("USER", jwt.getClaimAsString("principal_type"));
+        assertEquals(9L,
+                ((Number) jwt.getClaim("resource_version")).longValue());
+        assertEquals(List.of(RESOURCE), jwt.getAudience());
         assertNull(jwt.getClaim("roles"));
         assertNull(jwt.getClaim("permissions"));
-        assertNull(jwt.getClaim("authVersion"));
+        assertNull(jwt.getClaim("data_scopes"));
+        assertNull(jwt.getClaim("field_policies"));
+        assertNull(jwt.getClaim("scope"));
     }
 
     @Test
@@ -96,7 +103,9 @@ class AccessTokenClaimsIT {
                 "refresh-jti-1",
                 0L,
                 7L,
-                List.of("gateway-admin"),
+                "platform-gateway-prod",
+                RESOURCE,
+                9L,
                 "nonce-1",
                 NOW,
                 NOW.plusSeconds(3_600)
@@ -110,8 +119,11 @@ class AccessTokenClaimsIT {
         assertEquals("refresh", jwt.getClaimAsString("token_use"));
         assertEquals("refresh-jti-1", jwt.getClaimAsString("token_id"));
         assertEquals(List.of("gateway-admin-web"), jwt.getAudience());
-        assertEquals(List.of("gateway-admin"),
-                jwt.getClaimAsStringList("access_aud"));
+        assertEquals("platform-gateway-prod",
+                jwt.getClaimAsString("resource_server_id"));
+        assertEquals(RESOURCE, jwt.getClaimAsString("resource"));
+        assertEquals(9L,
+                ((Number) jwt.getClaim("resource_version")).longValue());
         assertEquals(0L, ((Number) jwt.getClaim("generation")).longValue());
         assertEquals(expected, tokens.verifyRefresh(token));
         assertThrows(TokenException.class, () -> tokens.verifyRefresh(

@@ -40,8 +40,7 @@ class ClientCredentialsAccessPolicyTest {
                 OAuthClient.ClientType.CONFIDENTIAL,
                 OAuthClient.Status.ACTIVE,
                 false,
-                List.of("https://idp.example.test/internal/callback"),
-                List.of(target.resourceUri().toString())
+                List.of("https://idp.example.test/internal/callback")
         );
         resources.grants.put(
                 ResourceServerPolicyTest.FakeResourceServerStore.key(
@@ -117,8 +116,7 @@ class ClientCredentialsAccessPolicyTest {
                 OAuthClient.ClientType.PUBLIC,
                 OAuthClient.Status.ACTIVE,
                 true,
-                List.of("https://idp.example.test/oauth/callback"),
-                List.of(target.resourceUri().toString())
+                List.of("https://idp.example.test/oauth/callback")
         );
 
         assertThrows(ResourceAuthorizationException.class, () ->
