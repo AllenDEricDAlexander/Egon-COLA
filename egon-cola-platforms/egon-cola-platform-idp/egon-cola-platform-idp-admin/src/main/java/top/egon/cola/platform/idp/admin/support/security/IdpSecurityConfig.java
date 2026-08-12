@@ -39,10 +39,10 @@ public class IdpSecurityConfig {
     }
 
     /**
-     * 配置无状态身份链，并只公开必须匿名访问的 OAuth、Admission 与健康检查端点。
+     * 配置无状态身份链，并只公开必须匿名访问的 OAuth 与健康检查端点。
      *
-     * <p>Configures the stateless identity chain and exposes only OAuth, Admission, and health
-     * endpoints that require anonymous access.</p>
+     * <p>Configures the stateless identity chain and exposes only OAuth and health endpoints that
+     * require anonymous access.</p>
      *
      * @param http Spring Security HTTP 配置；Spring Security HTTP configuration
      * @param idpFilters IdP Bearer 过滤器候选；IdP Bearer filter candidate
@@ -72,7 +72,6 @@ public class IdpSecurityConfig {
                         "/api/**",
                         "/oauth2/login",
                         "/oauth2/token",
-                        "/oauth2/resource-server-admission",
                         "/oauth2/revoke",
                         "/oauth2/logout"
                 ))
@@ -86,7 +85,6 @@ public class IdpSecurityConfig {
                                 "/oauth2/jwks",
                                 "/oauth2/login/**",
                                 "/oauth2/token",
-                                "/oauth2/resource-server-admission",
                                 "/oauth2/revoke",
                                 "/actuator/health/liveness",
                                 "/actuator/health/readiness"

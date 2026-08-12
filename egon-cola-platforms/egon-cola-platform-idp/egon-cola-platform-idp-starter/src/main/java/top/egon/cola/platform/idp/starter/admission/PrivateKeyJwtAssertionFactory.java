@@ -17,10 +17,10 @@ import java.util.Date;
 import java.util.Objects;
 
 /**
- * 为单个 IdP Admission Endpoint 创建最长 60 秒的 RS256 Client Assertion。
+ * 为单个 IdP Admission RPC 能力创建最长 60 秒的 RS256 Client Assertion。
  *
  * <p>Creates RS256 Client Assertions lasting at most 60 seconds for one IdP Admission
- * Endpoint.</p>
+ * RPC capability.</p>
  */
 public final class PrivateKeyJwtAssertionFactory {
 
@@ -33,7 +33,7 @@ public final class PrivateKeyJwtAssertionFactory {
     /** Client JWK kid；Client JWK kid. */
     private final String keyId;
 
-    /** Admission Endpoint 精确 Audience；exact Admission Endpoint audience. */
+    /** Admission RPC 能力精确 Audience；exact Admission RPC capability audience. */
     private final String audience;
 
     /** Client 私钥；Client private key. */
@@ -46,13 +46,13 @@ public final class PrivateKeyJwtAssertionFactory {
     private final SecureRandom random;
 
     /**
-     * 创建端点绑定的 Client Assertion 工厂。
+     * 创建 RPC 能力 Audience 绑定的 Client Assertion 工厂。
      *
-     * <p>Creates an endpoint-bound Client Assertion factory.</p>
+     * <p>Creates an RPC-capability-audience-bound Client Assertion factory.</p>
      *
      * @param clientId Management Client 标识；Management Client identifier
      * @param keyId JWK kid；JWK kid
-     * @param audience Admission Endpoint URI；Admission Endpoint URI
+     * @param audience Admission RPC 能力 URI；Admission RPC capability URI
      * @param privateKey owner-only 文件装载的 RSA 私钥；RSA private key loaded from an owner-only
      * file
      * @param clock UTC 业务时钟；UTC business clock
@@ -68,7 +68,7 @@ public final class PrivateKeyJwtAssertionFactory {
     ) {
         this.clientId = required(clientId, "clientId");
         this.keyId = required(keyId, "keyId");
-        this.audience = endpoint(audience);
+        this.audience = audience(audience);
         this.privateKey = Objects.requireNonNull(privateKey, "privateKey");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.random = Objects.requireNonNull(random, "random");
@@ -146,21 +146,21 @@ public final class PrivateKeyJwtAssertionFactory {
     }
 
     /**
-     * 校验精确端点 URI。
+     * 校验精确 Audience URI。
      *
-     * <p>Validates an exact endpoint URI.</p>
+     * <p>Validates an exact audience URI.</p>
      *
-     * @param value 端点 URI；endpoint URI
+     * @param value Audience URI；audience URI
      * @return 精确 URI 文本；exact URI text
      */
-    private static String endpoint(URI value) {
+    private static String audience(URI value) {
         Objects.requireNonNull(value, "audience");
         if (!value.isAbsolute()
                 || value.getFragment() != null
                 || value.getQuery() != null
                 || !value.equals(value.normalize())) {
             throw new IllegalArgumentException(
-                    "audience must be an absolute normalized endpoint URI"
+                    "audience must be an absolute normalized URI"
             );
         }
         return value.toString();

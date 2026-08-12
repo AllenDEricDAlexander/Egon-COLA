@@ -25,6 +25,7 @@ import top.egon.cola.platform.idp.core.resource.ResourceGrantType;
 import top.egon.cola.platform.idp.core.resource.ResourceServer;
 import top.egon.cola.platform.idp.core.resource.ResourceServerAdmissionPolicy;
 import top.egon.cola.platform.idp.core.resource.ResourceServerStatus;
+import top.egon.cola.platform.idp.rpc.contract.ResourceServerAdmissionRpc;
 
 import java.net.URI;
 import java.security.KeyPair;
@@ -50,8 +51,7 @@ import static org.mockito.Mockito.when;
 class ResourceServerAdmissionServiceImplTest {
 
     private static final Instant NOW = Instant.parse("2026-08-10T08:00:00Z");
-    private static final URI ENDPOINT = URI.create(
-            "https://idp.example/oauth2/resource-server-admission");
+    private static final URI ENDPOINT = ResourceServerAdmissionRpc.AUDIENCE;
     private static final URI RESOURCE = URI.create("https://api.example/idp");
     private static final String CLIENT_ID = "idp-service";
     private static final String KEY_ID = "idp-service-2026-08";

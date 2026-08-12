@@ -39,7 +39,8 @@ egon:
           management-client-id: ${MCP_PROVIDER_RESOURCE_MANAGEMENT_CLIENT_ID:}
           kid: ${MCP_PROVIDER_RESOURCE_MANAGEMENT_KEY_ID:}
           private-key-path: ${MCP_PROVIDER_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE:}
-          endpoint: ${MCP_PROVIDER_RESOURCE_ADMISSION_ENDPOINT:}
+          rpc-target: ${MCP_PROVIDER_RESOURCE_ADMISSION_RPC_TARGET:}
+          rpc-timeout: ${MCP_PROVIDER_RESOURCE_ADMISSION_RPC_TIMEOUT:3s}
           renewal-skew: ${MCP_PROVIDER_RESOURCE_ADMISSION_RENEWAL_SKEW:30s}
       rbac3:
         enabled: true
@@ -55,6 +56,9 @@ egon:
     component:
       id:
         enabled: false
+      rpc:
+        tls:
+          development-plaintext: ${IDP_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT:true}
       ddc:
         enabled: ${DDC_ENABLED:false}
         biz-code: ${DDC_BIZ_CODE:test-biz}

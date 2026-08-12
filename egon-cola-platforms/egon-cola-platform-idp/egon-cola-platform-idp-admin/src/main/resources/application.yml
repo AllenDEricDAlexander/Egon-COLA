@@ -66,7 +66,8 @@ egon.cola.platform:
       management-client-id: ${IDP_RESOURCE_MANAGEMENT_CLIENT_ID}
       kid: ${IDP_RESOURCE_MANAGEMENT_KEY_ID}
       private-key-path: ${IDP_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE}
-      endpoint: ${IDP_RESOURCE_ADMISSION_ENDPOINT}
+      rpc-target: ${IDP_RESOURCE_ADMISSION_RPC_TARGET}
+      rpc-timeout: ${IDP_RESOURCE_ADMISSION_RPC_TIMEOUT:3s}
       renewal-skew: ${IDP_RESOURCE_ADMISSION_RENEWAL_SKEW:30s}
   rbac3:
     enabled: ${UNIFIED_IDENTITY_ENABLED:true}
@@ -108,6 +109,27 @@ egon:
       id:
         enabled: true
         machine-id: ${IDP_SNOWFLAKE_MACHINE_ID}
+      rpc:
+        enabled: ${IDP_RPC_ENABLED:true}
+        identity:
+          env: ${DEPLOYMENT_ENV:local}
+          host: ${IDP_ADVERTISED_HOST:127.0.0.1}
+          instance-id: ${IDP_INSTANCE_ID:idp-local-1}
+        provider:
+          enabled: ${IDP_RPC_PROVIDER_ENABLED:true}
+          bind-address: ${IDP_RPC_BIND_ADDRESS:0.0.0.0}
+          port: ${IDP_RPC_PORT:18122}
+          advertised-host: ${IDP_RPC_ADVERTISED_HOST:${IDP_ADVERTISED_HOST:127.0.0.1}}
+          advertised-port: ${IDP_RPC_ADVERTISED_PORT:${IDP_RPC_PORT:18122}}
+          registration-mode: DISABLED
+        consumer:
+          enabled: false
+        tls:
+          enabled: ${IDP_RPC_TLS_ENABLED:false}
+          development-plaintext: ${IDP_RPC_DEVELOPMENT_PLAINTEXT:false}
+          certificate-chain-path: ${IDP_RPC_CERTIFICATE_CHAIN_PATH:}
+          private-key-path: ${IDP_RPC_PRIVATE_KEY_PATH:}
+          trust-certificate-collection-path: ${IDP_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
       transactional-outbox:
         enabled: true
         node-id: ${IDP_INSTANCE_ID:idp-local-1}

@@ -45,13 +45,13 @@ public final class CachingDdcAdmissionTicketSupplier
      *
      * <p>Creates the production Admission Ticket cache.</p>
      *
-     * @param client IdP Admission HTTP 客户端；IdP Admission HTTP client
+     * @param client IdP Admission RPC 客户端；IdP Admission RPC client
      * @param expectedRequest 配置的精确 Resource 实例；configured exact Resource instance
      * @param renewalSkew 提前续签窗口；renewal-ahead window
      * @param clock UTC 业务时钟；UTC business clock
      */
     public CachingDdcAdmissionTicketSupplier(
-            HttpResourceServerAdmissionClient client,
+            RpcResourceServerAdmissionClient client,
             DdcAdmissionRequest expectedRequest,
             Duration renewalSkew,
             Clock clock

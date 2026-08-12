@@ -18,6 +18,7 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
+import top.egon.cola.platform.idp.starter.admission.RpcResourceServerAdmissionClient;
 import top.egon.cola.platform.idp.starter.security.IdpJwtVerifier;
 import top.egon.cola.platform.idp.starter.security.ServiceScopeAuthorization;
 import top.egon.cola.platform.idp.starter.state.IdentityOAuthClientStateReader;
@@ -137,10 +138,19 @@ class IdpStarterAutoConfigurationTest {
                         "egon.cola.platform.idp.admission.kid=idp-service-2026-08",
                         "egon.cola.platform.idp.admission.private-key-path="
                                 + privateKey,
-                        "egon.cola.platform.idp.admission.endpoint=https://idp.local/oauth2/resource-server-admission",
+                        "egon.cola.platform.idp.admission.rpc-target=dns:///127.0.0.1:18122",
+                        "egon.cola.platform.idp.admission.rpc-timeout=3s",
+                        "egon.cola.component.rpc.tls.development-plaintext=true",
                         "egon.cola.platform.idp.admission.renewal-skew=30s")
-                .run(context -> assertThat(context)
-                        .hasSingleBean(DdcAdmissionTicketSupplier.class));
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(
+                            RpcResourceServerAdmissionClient.class
+                    );
+                    assertThat(context).hasSingleBean(
+                            DdcAdmissionTicketSupplier.class
+                    );
+                });
     }
 
     @Test

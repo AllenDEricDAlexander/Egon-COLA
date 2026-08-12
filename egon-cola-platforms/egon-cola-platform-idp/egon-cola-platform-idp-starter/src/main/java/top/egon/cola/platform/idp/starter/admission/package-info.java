@@ -6,7 +6,8 @@
  * <p>Adapters that authenticate machine identity to IdP during Resource Server startup, acquire
  * short-lived Admission Tickets, and renew them safely. This package reads private keys only from
  * owner-only external files and never uploads, logs, or writes them to dynamic configuration; DDC
- * consumes cached tickets through its neutral SPI.</p>
+ * consumes cached tickets through its neutral SPI. Internal admission exchange uses a statically
+ * targeted Egon-RPC connection and does not expose an HTTP backend endpoint.</p>
  */
 @org.springframework.lang.NonNullApi
 package top.egon.cola.platform.idp.starter.admission;

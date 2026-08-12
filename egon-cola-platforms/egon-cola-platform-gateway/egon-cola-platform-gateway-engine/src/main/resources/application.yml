@@ -55,7 +55,8 @@ egon:
           management-client-id: ${GATEWAY_ENGINE_RESOURCE_MANAGEMENT_CLIENT_ID:}
           kid: ${GATEWAY_ENGINE_RESOURCE_MANAGEMENT_KEY_ID:}
           private-key-path: ${GATEWAY_ENGINE_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE:}
-          endpoint: ${GATEWAY_ENGINE_RESOURCE_ADMISSION_ENDPOINT:}
+          rpc-target: ${GATEWAY_ENGINE_RESOURCE_ADMISSION_RPC_TARGET:}
+          rpc-timeout: ${GATEWAY_ENGINE_RESOURCE_ADMISSION_RPC_TIMEOUT:3s}
           renewal-skew: ${GATEWAY_ENGINE_RESOURCE_ADMISSION_RENEWAL_SKEW:30s}
         gateway:
           enabled: ${IDP_GATEWAY_ENABLED:true}
@@ -81,6 +82,13 @@ egon:
           endpoint: ${GATEWAY_MCP_RBAC3_AUTHORIZATION_ENDPOINT:}
           service-credential-file: ${GATEWAY_MCP_RBAC3_SERVICE_CREDENTIAL_FILE:}
     component:
+      rpc:
+        tls:
+          enabled: ${IDP_ADMISSION_RPC_TLS_ENABLED:false}
+          development-plaintext: ${IDP_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT:${DDC_RPC_DEVELOPMENT_PLAINTEXT:false}}
+          certificate-chain-path: ${IDP_ADMISSION_RPC_CERTIFICATE_CHAIN_PATH:}
+          private-key-path: ${IDP_ADMISSION_RPC_PRIVATE_KEY_PATH:}
+          trust-certificate-collection-path: ${IDP_ADMISSION_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
       ddc:
         enabled: ${DDC_ENABLED:true}
         biz-code: ${DDC_BIZ_CODE:infra}

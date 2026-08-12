@@ -49,6 +49,7 @@ import_existing_qa_credential
 
 export UNIFIED_IDENTITY_RUNTIME_DIR="${unified_platform_runtime_dir}"
 export UNIFIED_IDENTITY_IDP_URL="${IDP_BASE_URL}"
+export UNIFIED_IDENTITY_IDP_RPC_TARGET="${IDP_RPC_TARGET}"
 export UNIFIED_IDENTITY_RBAC3_URL="${RBAC3_BASE_URL}"
 export UNIFIED_IDENTITY_GATEWAY_ADMIN_URL="${GATEWAY_ADMIN_BASE_URL}"
 export UNIFIED_IDENTITY_DDC_URL="${DDC_BASE_URL}"
@@ -189,6 +190,8 @@ write_extra_service_env_files() {
   unified_platform_write_env "${file}" MCP_TEST_PROVIDER_PORT 18161
   unified_platform_write_env "${file}" MCP_TEST_PROVIDER_HOST 127.0.0.1
   unified_platform_write_env "${file}" MCP_TEST_PROVIDER_INSTANCE_ID mcp-provider-local-1
+  unified_platform_write_env "${file}" MCP_TEST_PROVIDER_BUILD_ID \
+    "$(unified_platform_local_build_id "${mcp_provider_jar}")"
   unified_platform_write_env "${file}" IDP_OAUTH_ISSUER "${IDP_BASE_URL}"
   unified_platform_write_env "${file}" IDP_JWK_SET_URI \
     "${IDP_BASE_URL}/oauth2/jwks"
@@ -204,8 +207,9 @@ write_extra_service_env_files() {
     MCP_PROVIDER_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
     "${unified_platform_secret_dir}/mcp-provider-private.pem"
   unified_platform_write_env "${file}" \
-    MCP_PROVIDER_RESOURCE_ADMISSION_ENDPOINT \
-    "${IDP_BASE_URL}/oauth2/resource-server-admission"
+    MCP_PROVIDER_RESOURCE_ADMISSION_RPC_TARGET "${IDP_RPC_TARGET}"
+  unified_platform_write_env "${file}" \
+    IDP_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT true
   unified_platform_write_env "${file}" MCP_PROVIDER_REDIS_ADDRESS \
     redis://127.0.0.1:6379
   unified_platform_write_env "${file}" MCP_PROVIDER_REDIS_DATABASE 8

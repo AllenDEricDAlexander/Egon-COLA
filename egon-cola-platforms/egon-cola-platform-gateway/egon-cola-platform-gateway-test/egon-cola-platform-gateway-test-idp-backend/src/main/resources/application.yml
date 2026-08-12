@@ -39,7 +39,8 @@ egon:
           management-client-id: ${MOCK_BACKEND_RESOURCE_MANAGEMENT_CLIENT_ID:mock-backend-service}
           kid: ${MOCK_BACKEND_RESOURCE_MANAGEMENT_KEY_ID:mock-backend-local}
           private-key-path: ${MOCK_BACKEND_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE:/tmp/egon-cola/mock-backend-private.pem}
-          endpoint: ${MOCK_BACKEND_RESOURCE_ADMISSION_ENDPOINT:http://127.0.0.1:18120/oauth2/resource-server-admission}
+          rpc-target: ${MOCK_BACKEND_RESOURCE_ADMISSION_RPC_TARGET:dns:///127.0.0.1:18122}
+          rpc-timeout: ${MOCK_BACKEND_RESOURCE_ADMISSION_RPC_TIMEOUT:3s}
           renewal-skew: ${MOCK_BACKEND_RESOURCE_ADMISSION_RENEWAL_SKEW:30s}
       rbac3:
         enabled: true
@@ -55,6 +56,9 @@ egon:
     component:
       id:
         enabled: false
+      rpc:
+        tls:
+          development-plaintext: ${IDP_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT:true}
       ddc:
         enabled: ${MOCK_BACKEND_DDC_ENABLED:false}
         biz-code: ${MOCK_BACKEND_RESOURCE_BIZ_CODE:identity}

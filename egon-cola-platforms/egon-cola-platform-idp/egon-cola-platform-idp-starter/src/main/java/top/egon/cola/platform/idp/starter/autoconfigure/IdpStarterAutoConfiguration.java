@@ -15,6 +15,7 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.ConfigurationCondition.ConfigurationPhase;
+import org.springframework.core.env.Environment;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
@@ -23,13 +24,20 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.web.client.RestClient;
 import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.model.admission.DdcAdmissionRequest;
+import top.egon.cola.component.rpc.config.EgonRpcProperties;
+import top.egon.cola.component.rpc.config.RpcTransportSecurity;
+import top.egon.cola.component.rpc.consumer.RpcDirectClientFactory;
+import top.egon.cola.component.rpc.consumer.RpcDirectClientHandle;
+import top.egon.cola.component.rpc.consumer.RpcDirectClientSettings;
+import top.egon.cola.component.rpc.context.RpcProcessIdentity;
+import top.egon.cola.component.rpc.context.RpcProcessIdentityFactory;
+import top.egon.cola.platform.idp.rpc.contract.ResourceServerAdmissionRpc;
 import top.egon.cola.platform.idp.starter.admission.CachingDdcAdmissionTicketSupplier;
-import top.egon.cola.platform.idp.starter.admission.HttpResourceServerAdmissionClient;
 import top.egon.cola.platform.idp.starter.admission.OwnerOnlyPrivateKeyLoader;
 import top.egon.cola.platform.idp.starter.admission.PrivateKeyJwtAssertionFactory;
+import top.egon.cola.platform.idp.starter.admission.RpcResourceServerAdmissionClient;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
 import top.egon.cola.platform.idp.starter.security.IdpJwtVerifier;
 import top.egon.cola.platform.idp.starter.security.RetryingJwtDecoder;
@@ -57,7 +65,10 @@ import java.util.List;
  * authorization decisions.</p>
  */
 @AutoConfiguration
-@EnableConfigurationProperties(IdpStarterProperties.class)
+@EnableConfigurationProperties({
+        IdpStarterProperties.class,
+        EgonRpcProperties.class
+})
 @ConditionalOnProperty(
         prefix = "egon.cola.platform.idp",
         name = "enabled",
@@ -73,23 +84,32 @@ public class IdpStarterAutoConfiguration {
     }
 
     /**
-     * 创建 owner-only 私钥、端点绑定 Assertion、HTTP Client 与缓存组成的 DDC 准入票据供应器。
+     * 创建 owner-only 私钥、RPC Audience 绑定 Assertion 和静态直连 Egon-RPC 客户端。
      * 应用只能通过显式注入另一个 {@link DdcAdmissionTicketSupplier} 替换生产实现，普通配置中
      * 不提供关闭准入的开关。
      *
-     * <p>Creates the DDC admission-ticket supplier from an owner-only private key, endpoint-bound
-     * assertions, an HTTP client, and a renewal cache. Applications may replace the production
-     * implementation only by explicitly providing another {@link DdcAdmissionTicketSupplier}; no
-     * ordinary configuration switch disables admission.</p>
+     * <p>Creates the statically targeted Egon-RPC client from an owner-only private key and
+     * RPC-audience-bound assertions. Applications may replace the production implementation only
+     * by explicitly providing another {@link DdcAdmissionTicketSupplier}; no ordinary
+     * configuration switch disables admission.</p>
      *
      * @param properties IdP Starter 配置；IdP Starter settings
-     * @return DDC Admission Ticket 供应器；DDC Admission Ticket supplier
+     * @param rpcProperties Egon-RPC 进程身份和传输安全配置；Egon-RPC process identity and
+     *                      transport-security settings
+     * @param environment Spring 运行环境；Spring environment
+     * @return IdP Resource Server 准入 RPC 客户端；IdP Resource Server admission RPC client
      */
-    @Bean
-    @ConditionalOnMissingBean(DdcAdmissionTicketSupplier.class)
+    @Bean(destroyMethod = "close")
+    @ConditionalOnMissingBean({
+            DdcAdmissionTicketSupplier.class,
+            RpcResourceServerAdmissionClient.class
+    })
     @Conditional(DdcAdmissionRequiredCondition.class)
-    public DdcAdmissionTicketSupplier ddcAdmissionTicketSupplier(
-            IdpStarterProperties properties
+    public RpcResourceServerAdmissionClient
+            rpcResourceServerAdmissionClient(
+                    IdpStarterProperties properties,
+                    EgonRpcProperties rpcProperties,
+                    Environment environment
     ) {
         properties.validate();
         properties.validateAdmission();
@@ -100,19 +120,62 @@ public class IdpStarterAutoConfiguration {
                 new PrivateKeyJwtAssertionFactory(
                         admission.getManagementClientId(),
                         admission.getKid(),
-                        admission.getEndpoint(),
+                        ResourceServerAdmissionRpc.AUDIENCE,
                         new OwnerOnlyPrivateKeyLoader().load(
                                 admission.getPrivateKeyPath()),
                         clock,
                         new SecureRandom()
                 );
-        HttpResourceServerAdmissionClient client =
-                new HttpResourceServerAdmissionClient(
-                        RestClient.builder().build(),
-                        admission.getEndpoint(),
-                        properties.getIssuer(),
-                        assertions
+        EgonRpcProperties.Tls tls = rpcProperties.getTls();
+        RpcTransportSecurity security = new RpcTransportSecurity(
+                tls.isEnabled(),
+                tls.isDevelopmentPlaintext(),
+                tls.getCertificateChainPath(),
+                tls.getPrivateKeyPath(),
+                tls.getTrustCertificateCollectionPath()
+        );
+        RpcProcessIdentity processIdentity = new RpcProcessIdentityFactory(
+                environment,
+                rpcProperties
+        ).create();
+        RpcDirectClientHandle<ResourceServerAdmissionRpc> handle =
+                new RpcDirectClientFactory().create(
+                        ResourceServerAdmissionRpc.class,
+                        RpcDirectClientSettings.defaults(
+                                admission.getRpcTarget(),
+                                processIdentity,
+                                security,
+                                admission.getRpcTimeout().toMillis()
+                        ),
+                        List.of()
                 );
+        return new RpcResourceServerAdmissionClient(
+                handle,
+                properties.getIssuer(),
+                assertions
+        );
+    }
+
+    /**
+     * 创建带提前续签和未过期回退语义的 DDC 准入票据供应器。
+     *
+     * <p>Creates the DDC Admission Ticket supplier with renewal-ahead and unexpired-fallback
+     * semantics.</p>
+     *
+     * @param properties IdP Starter 配置；IdP Starter settings
+     * @param client IdP Resource Server 准入 RPC 客户端；IdP Resource Server admission RPC
+     *               client
+     * @return DDC Admission Ticket 供应器；DDC Admission Ticket supplier
+     */
+    @Bean
+    @ConditionalOnBean(RpcResourceServerAdmissionClient.class)
+    @ConditionalOnMissingBean(DdcAdmissionTicketSupplier.class)
+    @Conditional(DdcAdmissionRequiredCondition.class)
+    public DdcAdmissionTicketSupplier ddcAdmissionTicketSupplier(
+            IdpStarterProperties properties,
+            RpcResourceServerAdmissionClient client
+    ) {
+        IdpStarterProperties.Admission admission = properties.getAdmission();
         DdcAdmissionRequest expectedRequest = new DdcAdmissionRequest(
                 properties.getResourceServerId(),
                 properties.getResourceUri(),
@@ -125,7 +188,7 @@ public class IdpStarterAutoConfiguration {
                 client,
                 expectedRequest,
                 admission.getRenewalSkew(),
-                clock
+                Clock.systemUTC()
         );
     }
 

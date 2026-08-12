@@ -35,6 +35,9 @@ egon:
       refresh-cookie-secure: false
   cola:
     component:
+      rpc:
+        tls:
+          development-plaintext: ${IDP_RPC_DEVELOPMENT_PLAINTEXT:true}
       ddc:
         rpc:
           target: ${DDC_RPC_TARGET:dns:///127.0.0.1:19080}

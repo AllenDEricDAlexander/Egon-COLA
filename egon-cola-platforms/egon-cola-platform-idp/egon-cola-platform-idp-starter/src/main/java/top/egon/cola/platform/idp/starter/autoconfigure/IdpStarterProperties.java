@@ -341,8 +341,8 @@ public class IdpStarterProperties {
      * <p>Validates all machine-identity settings required by the production Admission Ticket
      * supplier.</p>
      *
-     * @throws IllegalStateException 配置缺失、URI 边界不安全或私钥路径非绝对路径时抛出；when
-     * settings are missing, a URI boundary is unsafe, or the private-key path is not absolute
+     * @throws IllegalStateException 配置缺失、RPC 超时无效或私钥路径非绝对路径时抛出；when
+     * settings are missing, the RPC timeout is invalid, or the private-key path is not absolute
      */
     public void validateAdmission() {
         if (admission == null) {
@@ -365,7 +365,14 @@ public class IdpStarterProperties {
                     "egon.cola.platform.idp.admission.privateKeyPath must be absolute"
             );
         }
-        endpoint(admission.endpoint, "admission.endpoint");
+        required(admission.rpcTarget, "admission.rpcTarget");
+        if (admission.rpcTimeout == null
+                || admission.rpcTimeout.isZero()
+                || admission.rpcTimeout.isNegative()) {
+            throw new IllegalStateException(
+                    "egon.cola.platform.idp.admission.rpcTimeout must be positive"
+            );
+        }
         if (admission.renewalSkew == null
                 || admission.renewalSkew.isZero()
                 || admission.renewalSkew.isNegative()) {
@@ -412,41 +419,6 @@ public class IdpStarterProperties {
     }
 
     /**
-     * 校验 Admission Endpoint，并仅为回环本机测试允许 HTTP。
-     *
-     * <p>Validates the Admission Endpoint, allowing HTTP only for loopback local tests.</p>
-     *
-     * @param value Endpoint URI；Endpoint URI
-     * @param field 配置字段名；setting field name
-     */
-    private void endpoint(URI value, String field) {
-        resource(value, field);
-        if (value.getQuery() != null
-                || !("https".equalsIgnoreCase(value.getScheme())
-                || "http".equalsIgnoreCase(value.getScheme())
-                && loopback(value.getHost()))) {
-            throw new IllegalStateException(
-                    "egon.cola.platform.idp." + field
-                            + " must use HTTPS except for loopback testing"
-            );
-        }
-    }
-
-    /**
-     * 判断主机是否为显式本机回环地址。
-     *
-     * <p>Determines whether a host is an explicit local loopback address.</p>
-     *
-     * @param host URI 主机；URI host
-     * @return 回环地址时为 {@code true}；{@code true} for a loopback host
-     */
-    private boolean loopback(String host) {
-        return "localhost".equalsIgnoreCase(host)
-                || "127.0.0.1".equals(host)
-                || "::1".equals(host);
-    }
-
-    /**
      * Resource Server Admission Ticket 和 Management Client 配置。
      *
      * <p>Resource Server Admission Ticket and Management Client settings.</p>
@@ -475,8 +447,11 @@ public class IdpStarterProperties {
         /** owner-only PKCS#8 RSA 私钥绝对路径；absolute owner-only PKCS#8 RSA private-key path. */
         private Path privateKeyPath;
 
-        /** IdP Admission Endpoint；IdP Admission Endpoint. */
-        private URI endpoint;
+        /** IdP Admission Egon-RPC 静态目标；static IdP Admission Egon-RPC target. */
+        private String rpcTarget;
+
+        /** 单次 Admission RPC 超时；per-call Admission RPC timeout. */
+        private Duration rpcTimeout = Duration.ofSeconds(3);
 
         /** 票据提前续签窗口；ticket renewal-ahead window. */
         private Duration renewalSkew = Duration.ofSeconds(30);
@@ -559,14 +534,24 @@ public class IdpStarterProperties {
             this.privateKeyPath = privateKeyPath;
         }
 
-        /** @return IdP Admission Endpoint；IdP Admission Endpoint */
-        public URI getEndpoint() {
-            return endpoint;
+        /** @return IdP Admission RPC 目标；IdP Admission RPC target */
+        public String getRpcTarget() {
+            return rpcTarget;
         }
 
-        /** @param endpoint IdP Admission Endpoint；IdP Admission Endpoint */
-        public void setEndpoint(URI endpoint) {
-            this.endpoint = endpoint;
+        /** @param rpcTarget IdP Admission RPC 目标；IdP Admission RPC target */
+        public void setRpcTarget(String rpcTarget) {
+            this.rpcTarget = rpcTarget;
+        }
+
+        /** @return 单次 RPC 超时；per-call RPC timeout */
+        public Duration getRpcTimeout() {
+            return rpcTimeout;
+        }
+
+        /** @param rpcTimeout 单次 RPC 超时；per-call RPC timeout */
+        public void setRpcTimeout(Duration rpcTimeout) {
+            this.rpcTimeout = rpcTimeout;
         }
 
         /** @return 提前续签窗口；renewal-ahead window */

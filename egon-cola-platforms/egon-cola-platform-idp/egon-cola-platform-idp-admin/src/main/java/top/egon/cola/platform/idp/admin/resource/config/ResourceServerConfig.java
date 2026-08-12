@@ -3,7 +3,6 @@ package top.egon.cola.platform.idp.admin.resource.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
@@ -23,8 +22,8 @@ import top.egon.cola.platform.idp.core.port.ClientCredentialStore;
 import top.egon.cola.platform.idp.core.port.OAuthClientStore;
 import top.egon.cola.platform.idp.core.port.ResourceServerStore;
 import top.egon.cola.platform.idp.core.resource.ResourceServerAdmissionPolicy;
+import top.egon.cola.platform.idp.rpc.contract.ResourceServerAdmissionRpc;
 
-import java.net.URI;
 import java.time.Clock;
 
 /**
@@ -72,31 +71,29 @@ public class ResourceServerConfig {
     }
 
     /**
-     * 创建只接受 Admission Endpoint Audience 的 Client Assertion 认证器。
+     * 创建只接受 Admission RPC Audience 的 Client Assertion 认证器。
      *
-     * <p>Creates the Client Assertion authenticator accepting only the Admission Endpoint
+     * <p>Creates the Client Assertion authenticator accepting only the Admission RPC
      * audience.</p>
      *
      * @param clients OAuth Client 查询端口；OAuth Client lookup port
      * @param credentials Client JWK 查询端口；Client JWK lookup port
      * @param replays Assertion 防重放端口；assertion replay-prevention port
-     * @param issuer IdP Issuer；IdP issuer
      * @param clock UTC 业务时钟；UTC business clock
-     * @return Admission Endpoint 专用认证器；Admission Endpoint-specific authenticator
+     * @return Admission RPC 专用认证器；Admission RPC-specific authenticator
      */
     @Bean(name = "resourceServerAdmissionAuthenticator")
     PrivateKeyJwtAuthenticator resourceServerAdmissionAuthenticator(
             OAuthClientStore clients,
             ClientCredentialStore credentials,
             ClientAssertionReplayStore replays,
-            @Value("${egon.idp.oauth.issuer}") String issuer,
             @Qualifier("idpClock") Clock clock
     ) {
         return new PrivateKeyJwtAuthenticator(
                 clients,
                 credentials,
                 replays,
-                admissionEndpoint(issuer),
+                ResourceServerAdmissionRpc.AUDIENCE,
                 clock
         );
     }
@@ -161,7 +158,7 @@ public class ResourceServerConfig {
      *
      * <p>Creates the Resource Server Admission Ticket issuance service.</p>
      *
-     * @param authenticator Admission Endpoint 专用认证器；Admission Endpoint authenticator
+     * @param authenticator Admission RPC 专用认证器；Admission RPC authenticator
      * @param clients OAuth Client 查询端口；OAuth Client lookup port
      * @param credentials Client JWK 查询端口；Client JWK lookup port
      * @param resources Resource Server 查询端口；Resource Server lookup port
@@ -195,18 +192,4 @@ public class ResourceServerConfig {
         );
     }
 
-    /**
-     * 从 Issuer 构建精确 Admission Endpoint URI。
-     *
-     * <p>Builds the exact Admission Endpoint URI from the issuer.</p>
-     *
-     * @param issuer IdP Issuer；IdP issuer
-     * @return Admission Endpoint URI；Admission Endpoint URI
-     */
-    private static URI admissionEndpoint(String issuer) {
-        String value = issuer.endsWith("/")
-                ? issuer.substring(0, issuer.length() - 1)
-                : issuer;
-        return URI.create(value + "/oauth2/resource-server-admission");
-    }
 }

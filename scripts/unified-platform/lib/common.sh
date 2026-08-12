@@ -25,6 +25,7 @@ unified_platform_env_dir="${unified_platform_runtime_dir}/env"
 unified_platform_evidence_dir="${unified_platform_runtime_dir}/evidence"
 
 IDP_BASE_URL="${IDP_BASE_URL:-http://127.0.0.1:18120}"
+IDP_RPC_TARGET="${IDP_RPC_TARGET:-dns:///127.0.0.1:18122}"
 IDP_ADMIN_WEB_URL="${IDP_ADMIN_WEB_URL:-http://127.0.0.1:18121}"
 RBAC3_BASE_URL="${RBAC3_BASE_URL:-http://127.0.0.1:18130}"
 RBAC3_ADMIN_WEB_URL="${RBAC3_ADMIN_WEB_URL:-http://127.0.0.1:18131}"
@@ -143,6 +144,16 @@ unified_platform_stop_process() {
 unified_platform_write_env() {
   local file="$1" key="$2" value="$3"
   printf '%s=%q\n' "${key}" "${value}" >>"${file}"
+}
+
+unified_platform_local_build_id() {
+  local jar="$1" digest
+  [[ -s "${jar}" ]] \
+    || unified_platform_fail "missing executable jar for build identity: ${jar}"
+  digest="$(openssl dgst -sha256 -r "${jar}" | awk '{print $1}')"
+  [[ "${digest}" =~ ^[0-9a-f]{64}$ ]] \
+    || unified_platform_fail "invalid executable jar digest: ${jar}"
+  printf 'local-%s' "${digest:0:16}"
 }
 
 unified_platform_write_frontend_login_env() {

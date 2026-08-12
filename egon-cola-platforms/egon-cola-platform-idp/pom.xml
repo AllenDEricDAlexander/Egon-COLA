@@ -18,6 +18,7 @@
 
     <modules>
         <module>egon-cola-platform-idp-core</module>
+        <module>egon-cola-platform-idp-rpc-contract</module>
         <module>egon-cola-platform-idp-starter</module>
         <module>egon-cola-platform-idp-gateway-adapter</module>
         <module>egon-cola-platform-idp-admin</module>
@@ -28,6 +29,11 @@
             <dependency>
                 <groupId>top.egon</groupId>
                 <artifactId>egon-cola-platform-idp-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-idp-rpc-contract</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

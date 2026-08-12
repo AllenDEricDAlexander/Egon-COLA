@@ -6,8 +6,8 @@ import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.platform.idp.rpc.contract.ResourceServerAdmissionRpc;
 
-import java.net.URI;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.SecureRandom;
@@ -31,8 +31,7 @@ class PrivateKeyJwtAdmissionAssertionFactoryTest {
                 new PrivateKeyJwtAssertionFactory(
                         "idp-service",
                         "idp-service-2026-08",
-                        URI.create(
-                                "https://idp.example/oauth2/resource-server-admission"),
+                        ResourceServerAdmissionRpc.AUDIENCE,
                         (RSAPrivateKey) pair.getPrivate(),
                         Clock.fixed(now, ZoneOffset.UTC),
                         new SecureRandom()
@@ -52,7 +51,7 @@ class PrivateKeyJwtAdmissionAssertionFactoryTest {
         assertThat(claims.getIssuer()).isEqualTo("idp-service");
         assertThat(claims.getSubject()).isEqualTo("idp-service");
         assertThat(claims.getAudience()).containsExactly(
-                "https://idp.example/oauth2/resource-server-admission");
+                ResourceServerAdmissionRpc.AUDIENCE.toString());
         assertThat(claims.getIssueTime().toInstant()).isEqualTo(now);
         assertThat(claims.getExpirationTime().toInstant())
                 .isEqualTo(now.plus(Duration.ofSeconds(60)));

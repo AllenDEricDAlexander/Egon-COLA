@@ -27,6 +27,10 @@
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
+            <artifactId>egon-cola-platform-idp-rpc-contract</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-common-id-starter</artifactId>
         </dependency>
         <dependency>

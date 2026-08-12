@@ -37,7 +37,7 @@ import java.util.function.Supplier;
  */
 public final class ResourceServerAdmissionServiceImpl {
 
-    /** Admission Endpoint 专用 Client Assertion 认证器；endpoint-specific assertion authenticator. */
+    /** Admission RPC 专用 Client Assertion 认证器；RPC-specific assertion authenticator. */
     private final PrivateKeyJwtAuthenticator authenticator;
 
     /** OAuth Client 查询端口；OAuth Client lookup port. */
@@ -66,7 +66,7 @@ public final class ResourceServerAdmissionServiceImpl {
      *
      * <p>Creates the Resource Server admission issuance service.</p>
      *
-     * @param authenticator Admission Endpoint 专用认证器；Admission Endpoint authenticator
+     * @param authenticator Admission RPC 专用认证器；Admission RPC authenticator
      * @param clients OAuth Client 查询端口；OAuth Client lookup port
      * @param credentials Client JWK 查询端口；Client JWK lookup port
      * @param resources Resource Server 查询端口；Resource Server lookup port
@@ -223,9 +223,9 @@ public final class ResourceServerAdmissionServiceImpl {
     }
 
     /**
-     * Admission Endpoint 返回的最小票据结果。
+     * Admission RPC 返回的最小票据结果。
      *
-     * <p>Minimal Ticket result returned by the Admission Endpoint.</p>
+     * <p>Minimal Ticket result returned by the Admission RPC.</p>
      *
      * @param ticket 紧凑 Admission JWT；compact Admission JWT
      * @param expiresAt 票据过期时间；ticket expiration instant

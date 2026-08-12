@@ -52,7 +52,8 @@ egon:
           management-client-id: ${DDC_RESOURCE_MANAGEMENT_CLIENT_ID:}
           kid: ${DDC_RESOURCE_MANAGEMENT_KEY_ID:}
           private-key-path: ${DDC_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE:}
-          endpoint: ${DDC_RESOURCE_ADMISSION_ENDPOINT:}
+          rpc-target: ${DDC_RESOURCE_ADMISSION_RPC_TARGET:}
+          rpc-timeout: ${DDC_RESOURCE_ADMISSION_RPC_TIMEOUT:3s}
           renewal-skew: ${DDC_RESOURCE_ADMISSION_RENEWAL_SKEW:30s}
       rbac3:
         enabled: ${UNIFIED_IDENTITY_ENABLED:false}

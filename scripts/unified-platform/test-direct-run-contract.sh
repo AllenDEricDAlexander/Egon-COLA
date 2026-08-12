@@ -5,6 +5,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/../.." && pwd)"
 identity_script="${repo_root}/scripts/unified-identity-local.sh"
 platform_start_script="${repo_root}/scripts/unified-platform/start-local-stack.sh"
+platform_common_script="${repo_root}/scripts/unified-platform/lib/common.sh"
 platform_verify_script="${repo_root}/scripts/unified-platform/verify-local-stack.sh"
 release_fixture="${repo_root}/scripts/unified-platform/fixtures/unified-platform-release.json"
 
@@ -38,6 +39,17 @@ extract_function() {
 
 temporary_dir="$(mktemp -d "${TMPDIR:-/tmp}/egon-direct-run-contract.XXXXXX")"
 trap 'rm -rf "${temporary_dir}"' EXIT
+
+function_file="${temporary_dir}/local-build-id.sh"
+extract_function local_build_id "${function_file}"
+# shellcheck disable=SC1090
+source "${function_file}"
+printf '%s' 'deterministic-local-build' >"${temporary_dir}/local-build.jar"
+expected_build_id="local-$(openssl dgst -sha256 -r \
+  "${temporary_dir}/local-build.jar" | awk '{print substr($1, 1, 16)}')"
+[[ "$(local_build_id "${temporary_dir}/local-build.jar")" \
+    == "${expected_build_id}" ]] \
+  || fail 'local build IDs must be derived from executable JAR content'
 
 function_file="${temporary_dir}/properties-escape.sh"
 extract_function properties_escape "${function_file}"
@@ -252,9 +264,11 @@ assert_env_equals "${idp_env}" IDP_RESOURCE_MANAGEMENT_KEY_ID \
 assert_env_equals "${idp_env}" IDP_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
   "${generated_runtime}/secrets/idp-private.pem" \
   'local IdP must sign admission assertions with its protected private key'
-assert_env_equals "${idp_env}" IDP_RESOURCE_ADMISSION_ENDPOINT \
-  http://127.0.0.1:18120/oauth2/resource-server-admission \
-  'local IdP must use the local IdP admission endpoint'
+assert_env_equals "${idp_env}" IDP_RESOURCE_ADMISSION_RPC_TARGET \
+  dns:///127.0.0.1:18122 \
+  'local IdP must use the static IdP admission RPC target'
+assert_env_equals "${idp_env}" IDP_RPC_PORT 18122 \
+  'local IdP must expose the internal admission RPC provider'
 assert_env_equals "${idp_env}" IDP_RBAC3_SERVICE_CLIENT_ID idp-service \
   'local IdP must call RBAC3 with its confidential service client'
 assert_env_equals "${idp_env}" IDP_RBAC3_SERVICE_KEY_ID idp-local \
@@ -326,6 +340,9 @@ assert_env_equals "${rbac3_env}" \
   RBAC3_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
   "${generated_runtime}/secrets/rbac3-private.pem" \
   'local RBAC3 must sign admission with its protected private key'
+assert_env_equals "${rbac3_env}" RBAC3_RESOURCE_ADMISSION_RPC_TARGET \
+  dns:///127.0.0.1:18122 \
+  'local RBAC3 must use the static IdP admission RPC target'
 
 gateway_admin_env="${generated_runtime}/env/gateway-admin.env"
 assert_env_equals "${gateway_admin_env}" DDC_RPC_TARGET \
@@ -351,9 +368,9 @@ assert_env_equals "${gateway_admin_env}" \
   "${generated_runtime}/secrets/gateway-admin-private.pem" \
   'local Gateway Admin must sign admission with its protected private key'
 assert_env_equals "${gateway_admin_env}" \
-  GATEWAY_ADMIN_RESOURCE_ADMISSION_ENDPOINT \
-  http://127.0.0.1:18120/oauth2/resource-server-admission \
-  'local Gateway Admin must use the local IdP admission endpoint'
+  GATEWAY_ADMIN_RESOURCE_ADMISSION_RPC_TARGET \
+  dns:///127.0.0.1:18122 \
+  'local Gateway Admin must use the static IdP admission RPC target'
 assert_contains \
   'egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/resources/application.yml' \
   '          id: ${GATEWAY_ENGINE_DDC_INSTANCE_ID:}' \
@@ -382,6 +399,10 @@ assert_contains "${identity_script}" \
 
 gateway_engine_env="${generated_runtime}/env/gateway-engine.env"
 assert_env_equals "${gateway_engine_env}" \
+  GATEWAY_ENGINE_RESOURCE_ADMISSION_RPC_TARGET \
+  dns:///127.0.0.1:18122 \
+  'Gateway Engine must use the static IdP admission RPC target'
+assert_env_equals "${gateway_engine_env}" \
   GATEWAY_MCP_TASK_SERVICE_TOKEN_ENABLED true \
   'Gateway Engine must use a SERVICE identity for durable MCP execution'
 assert_env_equals "${gateway_engine_env}" \
@@ -394,6 +415,14 @@ assert_env_equals "${gateway_engine_env}" \
 assert_env_equals "${gateway_engine_env}" \
   GATEWAY_MCP_TASK_SERVICE_TOKEN_SCOPES mcp:operation:invoke \
   'durable MCP execution must request only the IdP-approved Provider scope'
+
+mock_backend_env="${generated_runtime}/env/mock-backend.env"
+assert_env_equals "${mock_backend_env}" \
+  MOCK_BACKEND_RESOURCE_ADMISSION_RPC_TARGET \
+  dns:///127.0.0.1:18122 \
+  'mock backend must use the static IdP admission RPC target'
+assert_not_contains "${identity_script}" RESOURCE_ADMISSION_ENDPOINT \
+  'local environment generation must not retain HTTP admission endpoints'
 
 ddc_env="${generated_runtime}/env/ddc.env"
 assert_env_equals "${ddc_env}" DDC_RPC_PORT 19080 \
@@ -624,6 +653,26 @@ assert_not_contains "${start_script}" 'test-live-frontend-login.sh' \
   'stack startup must not execute frontend login regression tests'
 assert_contains "${identity_script}" 'publish_gateway_routes true' \
   'deferred startup must prepare HTTP routes before the unified MCP release'
+assert_contains "${identity_script}" \
+  'MOCK_BACKEND_BUILD_ID "$(local_build_id "${mock_jar}")"' \
+  'mock backend reports must use a content-derived local build ID'
+assert_contains "${platform_common_script}" 'unified_platform_local_build_id()' \
+  'unified platform fixtures must share content-derived local build IDs'
+assert_contains "${platform_start_script}" \
+  'MCP_TEST_PROVIDER_BUILD_ID' \
+  'MCP provider reports must declare a local build ID'
+assert_contains "${platform_start_script}" \
+  '"$(unified_platform_local_build_id "${mcp_provider_jar}")"' \
+  'MCP provider reports must use a content-derived local build ID'
+function_file="${temporary_dir}/publish-gateway-routes.sh"
+extract_function publish_gateway_routes "${function_file}"
+deferred_return_line="$(grep -nF 'if [[ "${defer_release}" == "true" ]]' \
+  "${function_file}" | cut -d: -f1)"
+draft_validation_line="$(grep -nF 'validation="$(gateway_api POST' \
+  "${function_file}" | cut -d: -f1)"
+[[ -n "${deferred_return_line}" && -n "${draft_validation_line}" \
+    && "${deferred_return_line}" -lt "${draft_validation_line}" ]] \
+  || fail 'deferred startup must postpone full draft validation until MCP providers are online'
 assert_contains "${live_login_test}" 'fresh Admin endpoint returned HTTP' \
   'frontend login contract must exercise fresh SSO Admin endpoints'
 for client_id in idp-admin-web rbac3-admin-web gateway-admin-web ddc-admin-web; do

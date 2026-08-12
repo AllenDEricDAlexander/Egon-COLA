@@ -10,6 +10,7 @@ pid_dir="${runtime_dir}/pids"
 env_dir="${runtime_dir}/env"
 
 idp_url="${UNIFIED_IDENTITY_IDP_URL:-http://127.0.0.1:18120}"
+idp_rpc_target="${UNIFIED_IDENTITY_IDP_RPC_TARGET:-dns:///127.0.0.1:18122}"
 rbac3_url="${UNIFIED_IDENTITY_RBAC3_URL:-http://127.0.0.1:18130}"
 gateway_admin_url="${UNIFIED_IDENTITY_GATEWAY_ADMIN_URL:-http://127.0.0.1:18140}"
 ddc_url="${UNIFIED_IDENTITY_DDC_URL:-http://127.0.0.1:18150}"
@@ -67,6 +68,15 @@ stage() {
 
 require_command() {
   command -v "$1" >/dev/null 2>&1 || fail "missing prerequisite: $1"
+}
+
+local_build_id() {
+  local jar="$1" digest
+  [[ -s "${jar}" ]] || fail "missing executable jar for build identity: ${jar}"
+  digest="$(openssl dgst -sha256 -r "${jar}" | awk '{print $1}')"
+  [[ "${digest}" =~ ^[0-9a-f]{64}$ ]] \
+    || fail "invalid executable jar digest: ${jar}"
+  printf 'local-%s' "${digest:0:16}"
 }
 
 initialize_directories() {
@@ -408,6 +418,7 @@ common_identity_env() {
   local file="$1"
   write_env "${file}" SPRING_PROFILES_ACTIVE local
   write_env "${file}" UNIFIED_IDENTITY_ENABLED true
+  write_env "${file}" IDP_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT true
   write_env "${file}" IDP_OAUTH_ISSUER "${idp_url}"
   write_env "${file}" IDP_JWK_SET_URI "${idp_url}/oauth2/jwks"
   write_env "${file}" RBAC3_AUTHORIZATION_ENDPOINT "${rbac3_url}"
@@ -466,6 +477,8 @@ write_service_env_files() {
   write_env "${file}" DDC_RESOURCE_SERVER_ID platform-ddc-local
   write_env "${file}" DDC_RESOURCE_URI \
     https://api.egon.internal/local/platform/ddc
+  write_env "${file}" DDC_RESOURCE_ADMISSION_RPC_TARGET \
+    "${idp_rpc_target}"
   write_env "${file}" DDC_ADMIN_JWT_AUDIENCE \
     https://api.egon.internal/local/platform/ddc
   write_env "${file}" DDC_ADMIN_JWT_JWK_SET_URI "${idp_url}/oauth2/jwks"
@@ -521,6 +534,8 @@ write_service_env_files() {
   write_env "${file}" IDP_DDC_ENABLED true
   write_env "${file}" EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST false
   write_env "${file}" IDP_HTTP_PROVIDER_ENABLED true
+  write_env "${file}" IDP_RPC_PORT 18122
+  write_env "${file}" IDP_RPC_DEVELOPMENT_PLAINTEXT true
   write_env "${file}" IDP_RESOURCE_SERVER_ID permission-idp-local
   write_env "${file}" IDP_RESOURCE_URI \
     https://api.egon.internal/local/permission/idp
@@ -528,8 +543,8 @@ write_service_env_files() {
   write_env "${file}" IDP_RESOURCE_MANAGEMENT_KEY_ID idp-local
   write_env "${file}" IDP_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
     "${secret_dir}/idp-private.pem"
-  write_env "${file}" IDP_RESOURCE_ADMISSION_ENDPOINT \
-    "${idp_url}/oauth2/resource-server-admission"
+  write_env "${file}" IDP_RESOURCE_ADMISSION_RPC_TARGET \
+    "${idp_rpc_target}"
   write_env "${file}" \
     EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false
   write_env "${file}" IDP_INSTANCE_ID idp-local-1
@@ -568,8 +583,8 @@ write_service_env_files() {
   write_env "${file}" RBAC3_RESOURCE_MANAGEMENT_KEY_ID rbac3-local
   write_env "${file}" RBAC3_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
     "${secret_dir}/rbac3-private.pem"
-  write_env "${file}" RBAC3_RESOURCE_ADMISSION_ENDPOINT \
-    "${idp_url}/oauth2/resource-server-admission"
+  write_env "${file}" RBAC3_RESOURCE_ADMISSION_RPC_TARGET \
+    "${idp_rpc_target}"
   write_env "${file}" \
     EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false
   write_env "${file}" DDC_BIZ_CODE permission
@@ -640,8 +655,8 @@ write_service_env_files() {
     gateway-admin-local
   write_env "${file}" GATEWAY_ADMIN_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
     "${secret_dir}/gateway-admin-private.pem"
-  write_env "${file}" GATEWAY_ADMIN_RESOURCE_ADMISSION_ENDPOINT \
-    "${idp_url}/oauth2/resource-server-admission"
+  write_env "${file}" GATEWAY_ADMIN_RESOURCE_ADMISSION_RPC_TARGET \
+    "${idp_rpc_target}"
   write_env "${file}" GATEWAY_ADMIN_INSTANCE_ID gateway-admin-local-1
   write_env "${file}" GATEWAY_ADMIN_SECRETS_MASTER_KEY_BASE64 "$(<"${secret_dir}/gateway-master-key.base64")"
   write_env "${file}" GATEWAY_MCP_ARTIFACT_ROOT "${runtime_dir}/mcp-artifacts"
@@ -665,6 +680,8 @@ write_service_env_files() {
   write_env "${file}" MOCK_BACKEND_RBAC3_SERVICE_CREDENTIAL_FILE "${secret_dir}/mock-backend.service.jwt"
   write_env "${file}" MOCK_BACKEND_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
     "${secret_dir}/mock-backend-private.pem"
+  write_env "${file}" MOCK_BACKEND_RESOURCE_ADMISSION_RPC_TARGET \
+    "${idp_rpc_target}"
   write_env "${file}" MOCK_BACKEND_DDC_ENABLED true
   write_env "${file}" DDC_BIZ_CODE identity
   write_env "${file}" DDC_RPC_TARGET "${ddc_rpc_target}"
@@ -698,8 +715,9 @@ write_service_env_files() {
     gateway-engine-local
   write_env "${file}" GATEWAY_ENGINE_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
     "${secret_dir}/gateway-engine-private.pem"
-  write_env "${file}" GATEWAY_ENGINE_RESOURCE_ADMISSION_ENDPOINT \
-    "${idp_url}/oauth2/resource-server-admission"
+  write_env "${file}" GATEWAY_ENGINE_RESOURCE_ADMISSION_RPC_TARGET \
+    "${idp_rpc_target}"
+  write_env "${file}" IDP_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT true
   write_env "${file}" GATEWAY_MCP_TASK_SERVICE_TOKEN_ENABLED true
   write_env "${file}" GATEWAY_MCP_TASK_SERVICE_TOKEN_ENDPOINT \
     "${idp_url}/oauth2/token"
@@ -775,6 +793,11 @@ package_applications() {
     -am package -DskipTests
 }
 
+write_application_build_ids() {
+  write_env "${env_dir}/mock-backend.env" \
+    MOCK_BACKEND_BUILD_ID "$(local_build_id "${mock_jar}")"
+}
+
 command_prepare() {
   for command in java curl jq openssl psql createdb redis-cli awk; do
     require_command "${command}"
@@ -791,6 +814,7 @@ command_prepare() {
   write_runtime_secrets
   write_service_env_files
   package_applications
+  write_application_build_ids
   echo "Host-local unified identity prerequisites are prepared in ${runtime_dir}."
 }
 
@@ -1268,12 +1292,12 @@ publish_gateway_routes() {
         '{operationId:$operation,content:{host:"*",httpMethod:"GET",pathPattern:("/api/mock/" + $route),accessZones:["PUBLIC"],priority:100},enabled:true,expectedRevision:$revision,idempotencyKey:("unified-identity-" + $route + "-" + ($revision | tostring)),changeReason:"Unified identity local route"}')")"
     revision="$(jq -er '.revision' <<<"${response}")"
   done
-  validation="$(gateway_api POST "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/validate" '{}')"
-  jq -e '.valid == true' <<<"${validation}" >/dev/null \
-    || fail "Gateway draft validation failed: ${validation}"
   if [[ "${defer_release}" == "true" ]]; then
     return
   fi
+  validation="$(gateway_api POST "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/validate" '{}')"
+  jq -e '.valid == true' <<<"${validation}" >/dev/null \
+    || fail "Gateway draft validation failed: ${validation}"
   release="$(gateway_api POST "/api/v1/gateway/admin/gateway-groups/${group_id}/releases" \
     "$(jq -cn --argjson revision "${revision}" \
       '{expectedDraftRevision:$revision,changeReason:"Unified identity local release"}')")"

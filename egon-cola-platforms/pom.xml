@@ -149,6 +149,11 @@
             </dependency>
             <dependency>
                 <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-idp-rpc-contract</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
                 <artifactId>egon-cola-platform-idp-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
