@@ -1,6 +1,6 @@
-import { resolve as resolvePath } from 'node:path'
+import {resolve as resolvePath} from 'node:path'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vitest/config'
+import {defineConfig} from 'vitest/config'
 
 export default defineConfig({
   plugins: [react()],
@@ -35,5 +35,11 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
     exclude: ['node_modules/**', 'dist/**'],
+      env: {
+          VITE_IDP_ISSUER: 'http://127.0.0.1:18120',
+          VITE_IDP_CLIENT_ID: 'test-client',
+          VITE_IDP_RESOURCE: 'http://127.0.0.1:18120',
+          VITE_DEFAULT_TENANT_ID: 'default',
+      },
   },
 })

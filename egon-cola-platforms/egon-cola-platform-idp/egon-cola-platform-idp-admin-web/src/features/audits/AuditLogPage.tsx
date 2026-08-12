@@ -1,9 +1,9 @@
-import { Card, Table, Tag } from 'antd'
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { httpClient } from '../../auth/AuthContext'
-import { PageState } from '@egon-cola/admin-web-shared'
-import type { AuditPage, AuditView } from '../../api/types'
+import {Card, Table, Tag} from 'antd'
+import {useState} from 'react'
+import {useQuery} from '@tanstack/react-query'
+import {httpClient} from '../../auth/AuthContext'
+import {PageState} from '@egon-cola/admin-web-shared'
+import type {AuditPageVO, AuditVO} from '../../api/types'
 
 const PAGE_SIZE = 20
 
@@ -12,13 +12,13 @@ export const AuditLogPage = () => {
 
   const query = useQuery({
     queryKey: ['idp', 'audits', page],
-    queryFn: () => httpClient.request<AuditPage>(`/api/v1/identity/audits?page=${page}&size=${PAGE_SIZE}`),
+      queryFn: () => httpClient.request<AuditPageVO>(`/api/v1/identity/audits?page=${page}&size=${PAGE_SIZE}`),
   })
 
   return (
     <Card title={`安全审计（${query.data?.totalElements ?? 0}）`}>
       <PageState loading={query.isPending} error={query.error} empty={query.data?.content.length === 0} onRetry={() => { void query.refetch() }}>
-        <Table<AuditView>
+          <Table<AuditVO>
           rowKey="id"
           dataSource={query.data?.content ?? []}
           pagination={{
