@@ -30,10 +30,27 @@ import java.util.Base64;
 import java.util.Map;
 import javax.crypto.spec.SecretKeySpec;
 
+/**
+ * 中文说明：{@code GatewayAdminSecurityConfiguration} 是配置类，位于当前 Gateway 模块的相关包中，负责网关管理端安全配置相关的职责与边界。
+ * English summary: {@code GatewayAdminSecurityConfiguration} is a gateway admin security configuration configuration in the current Gateway module; it owns the gateway admin security configuration-related responsibility and boundary.
+ *
+ * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+ */
 @Configuration(proxyBeanMethods = false)
 @EnableMethodSecurity
 public class GatewayAdminSecurityConfiguration {
 
+    /**
+     * 中文说明：执行 网关管理端安全过滤器Chain 操作；该方法是 {@code GatewayAdminSecurityConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway admin security filter chain operation; this method is the invocation entry point on {@code GatewayAdminSecurityConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayAdminSecurityConfiguration.gatewayAdminSecurityFilterChain(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param http 参数 http；parameter http。
+     * @param objectMapper 参数 object映射器；parameter object mapper。
+     * @param idpFilters 参数 idpFilters；parameter idp filters。
+     * @param rbac3Filters 参数 rbac3Filters；parameter rbac3 filters。
+     * @return 返回 网关管理端安全过滤器Chain 的处理结果；returns the result of the operation.
+     */
     @Bean
     public SecurityFilterChain gatewayAdminSecurityFilterChain(
             HttpSecurity http,
@@ -88,6 +105,16 @@ public class GatewayAdminSecurityConfiguration {
         return http.build();
     }
 
+    /**
+     * 中文说明：执行 网关管理端JwtDecoder 操作；该方法是 {@code GatewayAdminSecurityConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway admin jwt decoder operation; this method is the invocation entry point on {@code GatewayAdminSecurityConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayAdminSecurityConfiguration.gatewayAdminJwtDecoder(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param jwkSetUri 参数 jwkSetUri；parameter jwk set uri。
+     * @param issuer 参数 issuer；parameter issuer。
+     * @param hmacSecretBase64 参数 hmacSecretBase64；parameter hmac secret base64。
+     * @return 返回 网关管理端JwtDecoder 的处理结果；returns the result of the operation.
+     */
     @Bean
     @ConditionalOnMissingBean(JwtDecoder.class)
     @ConditionalOnProperty(
@@ -116,6 +143,15 @@ public class GatewayAdminSecurityConfiguration {
         return decoder;
     }
 
+    /**
+     * 中文说明：执行 hmacDecoder 操作；该方法是 {@code GatewayAdminSecurityConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the hmac decoder operation; this method is the invocation entry point on {@code GatewayAdminSecurityConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayAdminSecurityConfiguration.hmacDecoder(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param hmacSecretBase64 参数 hmacSecretBase64；parameter hmac secret base64。
+     * @param issuer 参数 issuer；parameter issuer。
+     * @return 返回 hmacDecoder 的处理结果；returns the result of the operation.
+     */
     private JwtDecoder hmacDecoder(
             String hmacSecretBase64,
             String issuer) {
@@ -152,6 +188,16 @@ public class GatewayAdminSecurityConfiguration {
         return decoder;
     }
 
+    /**
+     * 中文说明：执行 write安全Error 操作；该方法是 {@code GatewayAdminSecurityConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the write security error operation; this method is the invocation entry point on {@code GatewayAdminSecurityConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayAdminSecurityConfiguration.writeSecurityError(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param response 参数 响应；parameter response。
+     * @param objectMapper 参数 object映射器；parameter object mapper。
+     * @param status 参数 status；parameter status。
+     * @param code 参数 code；parameter code。
+     */
     private void writeSecurityError(
             HttpServletResponse response,
             ObjectMapper objectMapper,

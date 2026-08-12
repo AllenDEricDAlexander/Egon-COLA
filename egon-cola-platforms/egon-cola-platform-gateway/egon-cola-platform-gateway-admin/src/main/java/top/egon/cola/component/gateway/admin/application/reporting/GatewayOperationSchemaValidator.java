@@ -15,31 +15,94 @@ import java.util.Set;
  * <p>The report is the source of truth for both ordinary Gateway operations
  * and declarative MCP tools, so this validator deliberately rejects schema
  * shapes that cannot be interpreted by the Gateway runtime.
+ * 补充说明 / Supplementary summary: {@code GatewayOperationSchemaValidator} 是校验器，位于当前 Gateway 模块的相关包中，负责网关操作模式校验器相关的职责与边界。
+ * English supplement: {@code GatewayOperationSchemaValidator} is a gateway operation schema validator validator in the current Gateway module; it owns the gateway operation schema validator-related responsibility and boundary.
+ * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 public final class GatewayOperationSchemaValidator {
 
+    /**
+     * 中文说明：表示 请求模型 这一固定值；它属于 {@code GatewayOperationSchemaValidator} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
+     * English summary: Represents the fixed value request model; it is a state, type, or protocol value of {@code GatewayOperationSchemaValidator} and keeps callers aligned with the owning type.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayOperationSchemaValidator} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayOperationSchemaValidator}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private static final String REQUEST_MODEL =
             "gateway-operation-request/v2";
 
+    /**
+     * 中文说明：表示 响应模型 这一固定值；它属于 {@code GatewayOperationSchemaValidator} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
+     * English summary: Represents the fixed value response model; it is a state, type, or protocol value of {@code GatewayOperationSchemaValidator} and keeps callers aligned with the owning type.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayOperationSchemaValidator} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayOperationSchemaValidator}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private static final String RESPONSE_MODEL =
             "gateway-operation-response/v2";
 
+    /**
+     * 中文说明：表示 HTTPLOCATIONS 这一固定值；它属于 {@code GatewayOperationSchemaValidator} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
+     * English summary: Represents the fixed value http locations; it is a state, type, or protocol value of {@code GatewayOperationSchemaValidator} and keeps callers aligned with the owning type.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayOperationSchemaValidator} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayOperationSchemaValidator}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private static final Set<String> HTTP_LOCATIONS = Set.of(
             "path", "query", "header", "cookie", "body", "part"
     );
 
+    /**
+     * 中文说明：表示 MAXDEPTH 这一固定值；它属于 {@code GatewayOperationSchemaValidator} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
+     * English summary: Represents the fixed value max depth; it is a state, type, or protocol value of {@code GatewayOperationSchemaValidator} and keeps callers aligned with the owning type.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayOperationSchemaValidator} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayOperationSchemaValidator}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private static final int MAX_DEPTH = 32;
 
+    /**
+     * 中文说明：表示 MAXNODES 这一固定值；它属于 {@code GatewayOperationSchemaValidator} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
+     * English summary: Represents the fixed value max nodes; it is a state, type, or protocol value of {@code GatewayOperationSchemaValidator} and keeps callers aligned with the owning type.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayOperationSchemaValidator} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayOperationSchemaValidator}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private static final int MAX_NODES = 10_000;
 
+    /**
+     * 中文说明：表示 MAXSERIALIZEDBYTES 这一固定值；它属于 {@code GatewayOperationSchemaValidator} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
+     * English summary: Represents the fixed value max serialized bytes; it is a state, type, or protocol value of {@code GatewayOperationSchemaValidator} and keeps callers aligned with the owning type.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayOperationSchemaValidator} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayOperationSchemaValidator}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private static final int MAX_SERIALIZED_BYTES = 2 * 1024 * 1024;
 
+    /**
+     * 中文说明：保存 object映射器 对应的状态、依赖或配置值；字段类型为 {@code ObjectMapper}，由 {@code GatewayOperationSchemaValidator} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by object mapper; its type is {@code ObjectMapper}, and {@code GatewayOperationSchemaValidator} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayOperationSchemaValidator} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayOperationSchemaValidator}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final ObjectMapper objectMapper;
 
+    /**
+     * 中文说明：创建 {@code GatewayOperationSchemaValidator} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+     * English summary: Creates an instance of {@code GatewayOperationSchemaValidator} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+     *
+     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+     * @param objectMapper 参数 object映射器；parameter object mapper。
+     */
     public GatewayOperationSchemaValidator(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * 中文说明：执行 validate 操作；该方法是 {@code GatewayOperationSchemaValidator} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate operation; this method is the invocation entry point on {@code GatewayOperationSchemaValidator} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayOperationSchemaValidator.validate(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param operationKey 参数 操作键；parameter operation key。
+     * @param protocol 参数 protocol；parameter protocol。
+     * @param requestSchema 参数 请求模式；parameter request schema。
+     * @param responseSchema 参数 响应模式；parameter response schema。
+     * @param attributes 参数 attributes；parameter attributes。
+     */
     public void validate(
             String operationKey,
             String protocol,
@@ -69,6 +132,13 @@ public final class GatewayOperationSchemaValidator {
         }
     }
 
+    /**
+     * 中文说明：执行 validate 操作；该方法是 {@code GatewayOperationSchemaValidator} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate operation; this method is the invocation entry point on {@code GatewayOperationSchemaValidator} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayOperationSchemaValidator.validate(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param operation 参数 操作；parameter operation。
+     */
     public void validate(GatewayInterfaceDefinitionReport.Operation operation) {
         validate(
                 operation.operationKey(),
@@ -79,6 +149,15 @@ public final class GatewayOperationSchemaValidator {
         );
     }
 
+    /**
+     * 中文说明：执行 require模式 操作；该方法是 {@code GatewayOperationSchemaValidator} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the require schema operation; this method is the invocation entry point on {@code GatewayOperationSchemaValidator} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayOperationSchemaValidator.requireSchema(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param identity 参数 身份；parameter identity。
+     * @param schema 参数 模式；parameter schema。
+     * @param expectedModel 参数 expected模型；parameter expected model。
+     */
     private void requireSchema(
             String identity,
             Map<String, Object> schema,
@@ -100,6 +179,15 @@ public final class GatewayOperationSchemaValidator {
         }
     }
 
+    /**
+     * 中文说明：执行 validateHttpRoot 操作；该方法是 {@code GatewayOperationSchemaValidator} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate http root operation; this method is the invocation entry point on {@code GatewayOperationSchemaValidator} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayOperationSchemaValidator.validateHttpRoot(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param identity 参数 身份；parameter identity。
+     * @param schema 参数 模式；parameter schema。
+     * @param mcp 参数 MCP；parameter mcp。
+     */
     private void validateHttpRoot(
             String identity,
             Map<String, Object> schema,
@@ -128,6 +216,15 @@ public final class GatewayOperationSchemaValidator {
         validateRequired(identity + ".requestSchema", schema, properties.keySet());
     }
 
+    /**
+     * 中文说明：执行 validateMCPLocation 操作；该方法是 {@code GatewayOperationSchemaValidator} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate mcp location operation; this method is the invocation entry point on {@code GatewayOperationSchemaValidator} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayOperationSchemaValidator.validateMcpLocation(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param identity 参数 身份；parameter identity。
+     * @param location 参数 location；parameter location。
+     * @param schema 参数 模式；parameter schema。
+     */
     private void validateMcpLocation(
             String identity,
             String location,
@@ -153,6 +250,18 @@ public final class GatewayOperationSchemaValidator {
         }
     }
 
+    /**
+     * 中文说明：执行 validateNode 操作；该方法是 {@code GatewayOperationSchemaValidator} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate node operation; this method is the invocation entry point on {@code GatewayOperationSchemaValidator} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayOperationSchemaValidator.validateNode(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param identity 参数 身份；parameter identity。
+     * @param value 参数 值；parameter value。
+     * @param root 参数 root；parameter root。
+     * @param protocol 参数 protocol；parameter protocol。
+     * @param mcp 参数 MCP；parameter mcp。
+     * @param state 参数 state；parameter state。
+     */
     private void validateNode(
             String identity,
             Object value,
@@ -220,6 +329,19 @@ public final class GatewayOperationSchemaValidator {
         }
     }
 
+    /**
+     * 中文说明：执行 validateChild 操作；该方法是 {@code GatewayOperationSchemaValidator} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate child operation; this method is the invocation entry point on {@code GatewayOperationSchemaValidator} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayOperationSchemaValidator.validateChild(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param identity 参数 身份；parameter identity。
+     * @param keyword 参数 keyword；parameter keyword。
+     * @param child 参数 child；parameter child。
+     * @param root 参数 root；parameter root。
+     * @param protocol 参数 protocol；parameter protocol。
+     * @param mcp 参数 MCP；parameter mcp。
+     * @param state 参数 state；parameter state。
+     */
     private void validateChild(
             String identity,
             String keyword,
@@ -238,6 +360,14 @@ public final class GatewayOperationSchemaValidator {
                 state.child());
     }
 
+    /**
+     * 中文说明：执行 validateObjectRoot 操作；该方法是 {@code GatewayOperationSchemaValidator} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate object root operation; this method is the invocation entry point on {@code GatewayOperationSchemaValidator} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayOperationSchemaValidator.validateObjectRoot(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param identity 参数 身份；parameter identity。
+     * @param schema 参数 模式；parameter schema。
+     */
     private void validateObjectRoot(String identity, Map<String, Object> schema) {
         if (!"object".equals(schema.get("type"))) {
             throw invalid(identity, "schema root must be an object");
@@ -247,6 +377,16 @@ public final class GatewayOperationSchemaValidator {
         }
     }
 
+    /**
+     * 中文说明：执行 requiredNames 操作；该方法是 {@code GatewayOperationSchemaValidator} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the required names operation; this method is the invocation entry point on {@code GatewayOperationSchemaValidator} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayOperationSchemaValidator.requiredNames(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param identity 参数 身份；parameter identity。
+     * @param schema 参数 模式；parameter schema。
+     * @param propertyNames 参数 propertyNames；parameter property names。
+     * @return 返回 requiredNames 的处理结果；returns the result of the operation.
+     */
     private Set<String> requiredNames(
             String identity,
             Map<String, Object> schema,
@@ -265,6 +405,15 @@ public final class GatewayOperationSchemaValidator {
         return result;
     }
 
+    /**
+     * 中文说明：执行 validateRequired 操作；该方法是 {@code GatewayOperationSchemaValidator} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate required operation; this method is the invocation entry point on {@code GatewayOperationSchemaValidator} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayOperationSchemaValidator.validateRequired(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param identity 参数 身份；parameter identity。
+     * @param schema 参数 模式；parameter schema。
+     * @param propertyNames 参数 propertyNames；parameter property names。
+     */
     private void validateRequired(
             String identity,
             Map<String, Object> schema,
@@ -274,6 +423,14 @@ public final class GatewayOperationSchemaValidator {
         }
     }
 
+    /**
+     * 中文说明：执行 registeredForMCP 操作；该方法是 {@code GatewayOperationSchemaValidator} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the registered for mcp operation; this method is the invocation entry point on {@code GatewayOperationSchemaValidator} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayOperationSchemaValidator.registeredForMcp(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param attributes 参数 attributes；parameter attributes。
+     * @return 返回 registeredForMCP 的处理结果；returns the result of the operation.
+     */
     private boolean registeredForMcp(Map<String, Object> attributes) {
         if (attributes == null) {
             return false;
@@ -283,21 +440,56 @@ public final class GatewayOperationSchemaValidator {
                 && Boolean.TRUE.equals(exposure.get("registerMcp"));
     }
 
+    /**
+     * 中文说明：执行 map 操作；该方法是 {@code GatewayOperationSchemaValidator} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the map operation; this method is the invocation entry point on {@code GatewayOperationSchemaValidator} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayOperationSchemaValidator.map(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 map 的处理结果；returns the result of the operation.
+     */
     @SuppressWarnings("unchecked")
     private Map<String, Object> map(Object value) {
         return value instanceof Map<?, ?>
                 ? (Map<String, Object>) value : null;
     }
 
+    /**
+     * 中文说明：执行 cast 操作；该方法是 {@code GatewayOperationSchemaValidator} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the cast operation; this method is the invocation entry point on {@code GatewayOperationSchemaValidator} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayOperationSchemaValidator.cast(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 cast 的处理结果；returns the result of the operation.
+     */
     @SuppressWarnings("unchecked")
     private Map<String, Object> cast(Object value) {
         return (Map<String, Object>) value;
     }
 
+    /**
+     * 中文说明：执行 invalid 操作；该方法是 {@code GatewayOperationSchemaValidator} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the invalid operation; this method is the invocation entry point on {@code GatewayOperationSchemaValidator} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayOperationSchemaValidator.invalid(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param identity 参数 身份；parameter identity。
+     * @param message 参数 消息；parameter message。
+     * @return 返回 invalid 的处理结果；returns the result of the operation.
+     */
     private IllegalArgumentException invalid(String identity, String message) {
         return new IllegalArgumentException(identity + ": " + message);
     }
 
+    /**
+     * 中文说明：执行 invalid 操作；该方法是 {@code GatewayOperationSchemaValidator} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the invalid operation; this method is the invocation entry point on {@code GatewayOperationSchemaValidator} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayOperationSchemaValidator.invalid(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param identity 参数 身份；parameter identity。
+     * @param message 参数 消息；parameter message。
+     * @param cause 参数 cause；parameter cause。
+     * @return 返回 invalid 的处理结果；returns the result of the operation.
+     */
     private IllegalArgumentException invalid(
             String identity,
             String message,
@@ -305,18 +497,56 @@ public final class GatewayOperationSchemaValidator {
         return new IllegalArgumentException(identity + ": " + message, cause);
     }
 
+    /**
+     * 中文说明：{@code State} 是类型，位于当前 Gateway 模块的相关包中，负责State相关的职责与边界。
+     * English summary: {@code State} is a type in the current Gateway module; it owns the state-related responsibility and boundary.
+     *
+     * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+     */
     private static final class State {
+        /**
+         * 中文说明：保存 depth 对应的状态、依赖或配置值；字段类型为 {@code int}，由 {@code GatewayOperationSchemaValidator.State} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by depth; its type is {@code int}, and {@code GatewayOperationSchemaValidator.State} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code GatewayOperationSchemaValidator.State} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayOperationSchemaValidator.State}; do not couple callers to its representation when the owning type exposes an API.
+         */
         private final int depth;
+        /**
+         * 中文说明：保存 nodes 对应的状态、依赖或配置值；字段类型为 {@code int}，由 {@code GatewayOperationSchemaValidator.State} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by nodes; its type is {@code int}, and {@code GatewayOperationSchemaValidator.State} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code GatewayOperationSchemaValidator.State} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayOperationSchemaValidator.State}; do not couple callers to its representation when the owning type exposes an API.
+         */
         private int nodes;
 
+        /**
+         * 中文说明：创建 {@code GatewayOperationSchemaValidator.State} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+         * English summary: Creates an instance of {@code GatewayOperationSchemaValidator.State} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+         *
+         * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+         */
         private State() {
             this(0);
         }
 
+        /**
+         * 中文说明：创建 {@code GatewayOperationSchemaValidator.State} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+         * English summary: Creates an instance of {@code GatewayOperationSchemaValidator.State} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+         *
+         * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+         * @param depth 参数 depth；parameter depth。
+         */
         private State(int depth) {
             this.depth = depth;
         }
 
+        /**
+         * 中文说明：执行 child 操作；该方法是 {@code GatewayOperationSchemaValidator.State} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+         * English summary: Executes the child operation; this method is the invocation entry point on {@code GatewayOperationSchemaValidator.State} and performs the corresponding runtime, management, or protocol work.
+         *
+         * 用法 / Usage: 调用方式 / Usage: {@code GatewayOperationSchemaValidator.State.child(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+         * @return 返回 child 的处理结果；returns the result of the operation.
+         */
         private State child() {
             State child = new State(depth + 1);
             child.nodes = nodes;

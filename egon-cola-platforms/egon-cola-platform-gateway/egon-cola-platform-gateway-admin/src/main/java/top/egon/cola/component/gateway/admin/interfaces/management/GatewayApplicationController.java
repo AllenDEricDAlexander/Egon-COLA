@@ -21,17 +21,47 @@ import top.egon.cola.component.gateway.admin.domain.AdminActor;
 
 import java.util.List;
 
+/**
+ * 中文说明：{@code GatewayApplicationController} 是接口控制器，位于当前 Gateway 模块的相关包中，负责网关Application控制器相关的职责与边界。
+ * English summary: {@code GatewayApplicationController} is a gateway application controller controller in the current Gateway module; it owns the gateway application controller-related responsibility and boundary.
+ *
+ * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+ */
 @RestController
 @RequestMapping("/api/v1/gateway/admin/applications")
 @PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
 public class GatewayApplicationController {
 
+    /**
+     * 中文说明：保存 服务 对应的状态、依赖或配置值；字段类型为 {@code GatewayApplicationService}，由 {@code GatewayApplicationController} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by service; its type is {@code GatewayApplicationService}, and {@code GatewayApplicationController} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayApplicationController} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayApplicationController}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayApplicationService service;
 
+    /**
+     * 中文说明：创建 {@code GatewayApplicationController} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+     * English summary: Creates an instance of {@code GatewayApplicationController} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+     *
+     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+     * @param service 参数 服务；parameter service。
+     */
     public GatewayApplicationController(GatewayApplicationService service) {
         this.service = service;
     }
 
+    /**
+     * 中文说明：执行 list 操作；该方法是 {@code GatewayApplicationController} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the list operation; this method is the invocation entry point on {@code GatewayApplicationController} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayApplicationController.list(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param bizCode 参数 bizCode；parameter biz code。
+     * @param namespace 参数 命名空间；parameter namespace。
+     * @param env 参数 env；parameter env。
+     * @param appCode 参数 appCode；parameter app code。
+     * @return 返回 list 的处理结果；returns the result of the operation.
+     */
     @GetMapping
     public List<GatewayApplicationService.GatewayApplicationView> list(
             @RequestParam(required = false) String bizCode,
@@ -46,6 +76,15 @@ public class GatewayApplicationController {
         ));
     }
 
+    /**
+     * 中文说明：执行 create 操作；该方法是 {@code GatewayApplicationController} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the create operation; this method is the invocation entry point on {@code GatewayApplicationController} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayApplicationController.create(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param request 参数 请求；parameter request。
+     * @param actor 参数 actor；parameter actor。
+     * @return 返回 create 的处理结果；returns the result of the operation.
+     */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('CAP_gateway:applications:write','CAP_*')")
@@ -66,12 +105,30 @@ public class GatewayApplicationController {
         );
     }
 
+    /**
+     * 中文说明：执行 get 操作；该方法是 {@code GatewayApplicationController} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the get operation; this method is the invocation entry point on {@code GatewayApplicationController} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayApplicationController.get(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param id 参数 id；parameter id。
+     * @return 返回 get 的处理结果；returns the result of the operation.
+     */
     @GetMapping("/{id}")
     public GatewayApplicationService.GatewayApplicationView get(
             @PathVariable String id) {
         return service.get(id);
     }
 
+    /**
+     * 中文说明：执行 update 操作；该方法是 {@code GatewayApplicationController} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the update operation; this method is the invocation entry point on {@code GatewayApplicationController} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayApplicationController.update(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param id 参数 id；parameter id。
+     * @param request 参数 请求；parameter request。
+     * @param actor 参数 actor；parameter actor。
+     * @return 返回 update 的处理结果；returns the result of the operation.
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:applications:write','CAP_*')")
     public GatewayApplicationService.GatewayApplicationView update(
@@ -90,23 +147,105 @@ public class GatewayApplicationController {
         );
     }
 
+    /**
+     * 中文说明：执行 审计 操作；该方法是 {@code GatewayApplicationController} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the audit operation; this method is the invocation entry point on {@code GatewayApplicationController} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayApplicationController.audit(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @return 返回 审计 的处理结果；returns the result of the operation.
+     */
     private RequestAuditContext audit() {
         return RequestAuditContext.current();
     }
 
+    /**
+     * 中文说明：{@code CreateRequest} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责Create请求相关的职责与边界。
+     * English summary: {@code CreateRequest} is an immutable data carrier in the current Gateway module; it owns the create request-related responsibility and boundary.
+     *
+     * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+     * @param bizCode 参数 bizCode；parameter biz code。
+     * @param applicationCode 参数 applicationCode；parameter application code。
+     * @param displayName 参数 displayName；parameter display name。
+     * @param env 参数 env；parameter env。
+     * @param namespace 参数 命名空间；parameter namespace。
+     * @param description 参数 description；parameter description。
+     */
     public record CreateRequest(
+            /**
+             * 中文说明：保存 bizCode 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayApplicationController.CreateRequest} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by biz code; its type is {@code String}, and {@code GatewayApplicationController.CreateRequest} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayApplicationController.CreateRequest} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayApplicationController.CreateRequest}; do not couple callers to its representation when the owning type exposes an API.
+             */
             @NotBlank String bizCode,
+            /**
+             * 中文说明：保存 applicationCode 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayApplicationController.CreateRequest} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by application code; its type is {@code String}, and {@code GatewayApplicationController.CreateRequest} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayApplicationController.CreateRequest} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayApplicationController.CreateRequest}; do not couple callers to its representation when the owning type exposes an API.
+             */
             @NotBlank String applicationCode,
+            /**
+             * 中文说明：保存 displayName 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayApplicationController.CreateRequest} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by display name; its type is {@code String}, and {@code GatewayApplicationController.CreateRequest} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayApplicationController.CreateRequest} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayApplicationController.CreateRequest}; do not couple callers to its representation when the owning type exposes an API.
+             */
             @NotBlank String displayName,
+            /**
+             * 中文说明：保存 env 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayApplicationController.CreateRequest} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by env; its type is {@code String}, and {@code GatewayApplicationController.CreateRequest} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayApplicationController.CreateRequest} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayApplicationController.CreateRequest}; do not couple callers to its representation when the owning type exposes an API.
+             */
             @NotBlank String env,
+            /**
+             * 中文说明：保存 命名空间 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayApplicationController.CreateRequest} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by namespace; its type is {@code String}, and {@code GatewayApplicationController.CreateRequest} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayApplicationController.CreateRequest} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayApplicationController.CreateRequest}; do not couple callers to its representation when the owning type exposes an API.
+             */
             @NotBlank String namespace,
+            /**
+             * 中文说明：保存 description 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayApplicationController.CreateRequest} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by description; its type is {@code String}, and {@code GatewayApplicationController.CreateRequest} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayApplicationController.CreateRequest} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayApplicationController.CreateRequest}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String description
     ) {
     }
 
+    /**
+     * 中文说明：{@code UpdateRequest} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责Update请求相关的职责与边界。
+     * English summary: {@code UpdateRequest} is an immutable data carrier in the current Gateway module; it owns the update request-related responsibility and boundary.
+     *
+     * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+     * @param displayName 参数 displayName；parameter display name。
+     * @param description 参数 description；parameter description。
+     * @param expectedRevision 参数 expectedRevision；parameter expected revision。
+     */
     public record UpdateRequest(
+            /**
+             * 中文说明：保存 displayName 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayApplicationController.UpdateRequest} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by display name; its type is {@code String}, and {@code GatewayApplicationController.UpdateRequest} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayApplicationController.UpdateRequest} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayApplicationController.UpdateRequest}; do not couple callers to its representation when the owning type exposes an API.
+             */
             @NotBlank String displayName,
+            /**
+             * 中文说明：保存 description 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayApplicationController.UpdateRequest} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by description; its type is {@code String}, and {@code GatewayApplicationController.UpdateRequest} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayApplicationController.UpdateRequest} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayApplicationController.UpdateRequest}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String description,
+            /**
+             * 中文说明：保存 expectedRevision 对应的状态、依赖或配置值；字段类型为 {@code long}，由 {@code GatewayApplicationController.UpdateRequest} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by expected revision; its type is {@code long}, and {@code GatewayApplicationController.UpdateRequest} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayApplicationController.UpdateRequest} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayApplicationController.UpdateRequest}; do not couple callers to its representation when the owning type exposes an API.
+             */
             @PositiveOrZero long expectedRevision
     ) {
     }

@@ -14,18 +14,52 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * 中文说明：{@code JdbcGatewayObservabilityStore} 是存储组件，位于当前 Gateway 模块的相关包中，负责Jdbc网关可观测性存储相关的职责与边界。
+ * English summary: {@code JdbcGatewayObservabilityStore} is a jdbc gateway observability store store in the current Gateway module; it owns the jdbc gateway observability store-related responsibility and boundary.
+ *
+ * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+ */
 public class JdbcGatewayObservabilityStore
         implements GatewayObservabilityStore {
 
+    /**
+     * 中文说明：保存 jdbc 对应的状态、依赖或配置值；字段类型为 {@code JdbcTemplate}，由 {@code JdbcGatewayObservabilityStore} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by jdbc; its type is {@code JdbcTemplate}, and {@code JdbcGatewayObservabilityStore} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code JdbcGatewayObservabilityStore} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayObservabilityStore}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final JdbcTemplate jdbc;
 
+    /**
+     * 中文说明：保存 named 对应的状态、依赖或配置值；字段类型为 {@code NamedParameterJdbcTemplate}，由 {@code JdbcGatewayObservabilityStore} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by named; its type is {@code NamedParameterJdbcTemplate}, and {@code JdbcGatewayObservabilityStore} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code JdbcGatewayObservabilityStore} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayObservabilityStore}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final NamedParameterJdbcTemplate named;
 
+    /**
+     * 中文说明：创建 {@code JdbcGatewayObservabilityStore} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+     * English summary: Creates an instance of {@code JdbcGatewayObservabilityStore} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+     *
+     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+     * @param jdbc 参数 jdbc；parameter jdbc。
+     */
     public JdbcGatewayObservabilityStore(JdbcTemplate jdbc) {
         this.jdbc = Objects.requireNonNull(jdbc, "jdbc");
         named = new NamedParameterJdbcTemplate(jdbc);
     }
 
+    /**
+     * 中文说明：执行 project 操作；该方法是 {@code JdbcGatewayObservabilityStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the project operation; this method is the invocation entry point on {@code JdbcGatewayObservabilityStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayObservabilityStore.project(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param event 参数 事件；parameter event。
+     * @param expiresAt 参数 expiresAt；parameter expires at。
+     * @return 返回 project 的处理结果；returns the result of the operation.
+     */
     @Override
     public boolean project(GatewayCallEventV1 event, Instant expiresAt) {
         String provider = providerService(event.routing());
@@ -103,6 +137,13 @@ public class JdbcGatewayObservabilityStore
         return true;
     }
 
+    /**
+     * 中文说明：执行 recordFailure 操作；该方法是 {@code JdbcGatewayObservabilityStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the record failure operation; this method is the invocation entry point on {@code JdbcGatewayObservabilityStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayObservabilityStore.recordFailure(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param failure 参数 failure；parameter failure。
+     */
     @Override
     public void recordFailure(ConsumeFailure failure) {
         jdbc.update(
@@ -127,6 +168,14 @@ public class JdbcGatewayObservabilityStore
         );
     }
 
+    /**
+     * 中文说明：执行 traces 操作；该方法是 {@code JdbcGatewayObservabilityStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the traces operation; this method is the invocation entry point on {@code JdbcGatewayObservabilityStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayObservabilityStore.traces(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param query 参数 query；parameter query。
+     * @return 返回 traces 的处理结果；returns the result of the operation.
+     */
     @Override
     public Page<TraceSummary> traces(TraceQuery query) {
         SqlFilter filter = traceFilter(query);
@@ -167,6 +216,16 @@ public class JdbcGatewayObservabilityStore
         return new Page<>(items, query.page(), query.size(), total);
     }
 
+    /**
+     * 中文说明：执行 dashboard 操作；该方法是 {@code JdbcGatewayObservabilityStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the dashboard operation; this method is the invocation entry point on {@code JdbcGatewayObservabilityStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayObservabilityStore.dashboard(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param env 参数 env；parameter env。
+     * @param namespace 参数 命名空间；parameter namespace。
+     * @param since 参数 since；parameter since。
+     * @return 返回 dashboard 的处理结果；returns the result of the operation.
+     */
     @Override
     public DashboardSummary dashboard(
             String env,
@@ -244,6 +303,14 @@ public class JdbcGatewayObservabilityStore
         );
     }
 
+    /**
+     * 中文说明：执行 audits 操作；该方法是 {@code JdbcGatewayObservabilityStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the audits operation; this method is the invocation entry point on {@code JdbcGatewayObservabilityStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayObservabilityStore.audits(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param query 参数 query；parameter query。
+     * @return 返回 audits 的处理结果；returns the result of the operation.
+     */
     @Override
     public Page<AuditSummary> audits(AuditQuery query) {
         MapSqlParameterSource parameters = new MapSqlParameterSource()
@@ -311,6 +378,14 @@ public class JdbcGatewayObservabilityStore
         return new Page<>(items, query.page(), query.size(), total);
     }
 
+    /**
+     * 中文说明：执行 deleteExpired 操作；该方法是 {@code JdbcGatewayObservabilityStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the delete expired operation; this method is the invocation entry point on {@code JdbcGatewayObservabilityStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayObservabilityStore.deleteExpired(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param now 参数 now；parameter now。
+     * @return 返回 deleteExpired 的处理结果；returns the result of the operation.
+     */
     @Override
     public int deleteExpired(Instant now) {
         return jdbc.update(
@@ -320,6 +395,14 @@ public class JdbcGatewayObservabilityStore
         );
     }
 
+    /**
+     * 中文说明：执行 trace过滤器 操作；该方法是 {@code JdbcGatewayObservabilityStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the trace filter operation; this method is the invocation entry point on {@code JdbcGatewayObservabilityStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayObservabilityStore.traceFilter(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param query 参数 query；parameter query。
+     * @return 返回 trace过滤器 的处理结果；returns the result of the operation.
+     */
     private SqlFilter traceFilter(TraceQuery query) {
         MapSqlParameterSource parameters = new MapSqlParameterSource()
                 .addValue("env", query.env())
@@ -343,6 +426,17 @@ public class JdbcGatewayObservabilityStore
         );
     }
 
+    /**
+     * 中文说明：执行 add 操作；该方法是 {@code JdbcGatewayObservabilityStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the add operation; this method is the invocation entry point on {@code JdbcGatewayObservabilityStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayObservabilityStore.add(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param clauses 参数 clauses；parameter clauses。
+     * @param parameters 参数 parameters；parameter parameters。
+     * @param column 参数 column；parameter column。
+     * @param name 参数 name；parameter name。
+     * @param value 参数 值；parameter value。
+     */
     private void add(
             List<String> clauses,
             MapSqlParameterSource parameters,
@@ -355,11 +449,29 @@ public class JdbcGatewayObservabilityStore
         }
     }
 
+    /**
+     * 中文说明：执行 count 操作；该方法是 {@code JdbcGatewayObservabilityStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the count operation; this method is the invocation entry point on {@code JdbcGatewayObservabilityStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayObservabilityStore.count(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param sql 参数 sql；parameter sql。
+     * @param parameters 参数 parameters；parameter parameters。
+     * @return 返回 count 的处理结果；returns the result of the operation.
+     */
     private long count(String sql, Object... parameters) {
         Long value = jdbc.queryForObject(sql, Long.class, parameters);
         return value == null ? 0 : value;
     }
 
+    /**
+     * 中文说明：执行 发布SuccessRate 操作；该方法是 {@code JdbcGatewayObservabilityStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the release success rate operation; this method is the invocation entry point on {@code JdbcGatewayObservabilityStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayObservabilityStore.releaseSuccessRate(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param env 参数 env；parameter env。
+     * @param namespace 参数 命名空间；parameter namespace。
+     * @return 返回 发布SuccessRate 的处理结果；returns the result of the operation.
+     */
     private double releaseSuccessRate(String env, String namespace) {
         Map<String, Object> counts = jdbc.queryForMap(
                 """
@@ -380,21 +492,65 @@ public class JdbcGatewayObservabilityStore
                 : ((Number) counts.get("succeeded")).doubleValue() / total;
     }
 
+    /**
+     * 中文说明：执行 提供方服务 操作；该方法是 {@code JdbcGatewayObservabilityStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the provider service operation; this method is the invocation entry point on {@code JdbcGatewayObservabilityStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayObservabilityStore.providerService(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param routing 参数 routing；parameter routing。
+     * @return 返回 提供方服务 的处理结果；returns the result of the operation.
+     */
     private String providerService(GatewayCallEventV1.Routing routing) {
         Object value = routing.providerServiceIdentity().get("serviceKey");
         return value == null ? null : String.valueOf(value);
     }
 
+    /**
+     * 中文说明：执行 timestamp 操作；该方法是 {@code JdbcGatewayObservabilityStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the timestamp operation; this method is the invocation entry point on {@code JdbcGatewayObservabilityStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayObservabilityStore.timestamp(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param epochMillis 参数 epochMillis；parameter epoch millis。
+     * @return 返回 timestamp 的处理结果；returns the result of the operation.
+     */
     private Timestamp timestamp(long epochMillis) {
         return Timestamp.from(Instant.ofEpochMilli(epochMillis));
     }
 
+    /**
+     * 中文说明：执行 blankToNull 操作；该方法是 {@code JdbcGatewayObservabilityStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the blank to null operation; this method is the invocation entry point on {@code JdbcGatewayObservabilityStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayObservabilityStore.blankToNull(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 blankToNull 的处理结果；returns the result of the operation.
+     */
     private String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value;
     }
 
+    /**
+     * 中文说明：{@code SqlFilter} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责Sql过滤器相关的职责与边界。
+     * English summary: {@code SqlFilter} is an immutable data carrier in the current Gateway module; it owns the sql filter-related responsibility and boundary.
+     *
+     * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+     * @param where 参数 where；parameter where。
+     * @param parameters 参数 parameters；parameter parameters。
+     */
     private record SqlFilter(
+            /**
+             * 中文说明：保存 where 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code JdbcGatewayObservabilityStore.SqlFilter} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by where; its type is {@code String}, and {@code JdbcGatewayObservabilityStore.SqlFilter} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code JdbcGatewayObservabilityStore.SqlFilter} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayObservabilityStore.SqlFilter}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String where,
+            /**
+             * 中文说明：保存 parameters 对应的状态、依赖或配置值；字段类型为 {@code MapSqlParameterSource}，由 {@code JdbcGatewayObservabilityStore.SqlFilter} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by parameters; its type is {@code MapSqlParameterSource}, and {@code JdbcGatewayObservabilityStore.SqlFilter} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code JdbcGatewayObservabilityStore.SqlFilter} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayObservabilityStore.SqlFilter}; do not couple callers to its representation when the owning type exposes an API.
+             */
             MapSqlParameterSource parameters
     ) {
     }

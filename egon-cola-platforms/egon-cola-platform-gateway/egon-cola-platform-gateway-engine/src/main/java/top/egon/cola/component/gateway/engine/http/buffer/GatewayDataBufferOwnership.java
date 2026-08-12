@@ -13,15 +13,27 @@ import java.util.Objects;
 /**
  * Centralizes retain, release, and read-only sampling rules at the Engine
  * transport boundary.
+ * 补充说明 / Supplementary summary: {@code GatewayDataBufferOwnership} 是类型，位于当前 Gateway 模块的相关包中，负责网关Data缓冲区Ownership相关的职责与边界。
+ * English supplement: {@code GatewayDataBufferOwnership} is a type in the current Gateway module; it owns the gateway data buffer ownership-related responsibility and boundary.
+ * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 public final class GatewayDataBufferOwnership {
 
+    /**
+     * 中文说明：创建 {@code GatewayDataBufferOwnership} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+     * English summary: Creates an instance of {@code GatewayDataBufferOwnership} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+     *
+     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+     */
     private GatewayDataBufferOwnership() {
     }
 
     /**
      * Retains the native buffer exactly once before wrapping it. The returned
      * buffer owns that added reference until it is transferred or released.
+     * 补充说明 / Supplementary summary: 执行 retainAndWrap 操作；该方法是 {@code GatewayDataBufferOwnership} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English supplement: Executes the retain and wrap operation; this method is the invocation entry point on {@code GatewayDataBufferOwnership} and performs the corresponding runtime, management, or protocol work.
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayDataBufferOwnership.retainAndWrap(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      */
     public static NettyDataBuffer retainAndWrap(
             NettyDataBufferFactory bufferFactory,
@@ -37,12 +49,28 @@ public final class GatewayDataBufferOwnership {
         }
     }
 
+    /**
+     * 中文说明：执行 retain 操作；该方法是 {@code GatewayDataBufferOwnership} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the retain operation; this method is the invocation entry point on {@code GatewayDataBufferOwnership} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayDataBufferOwnership.retain(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param buffer 参数 缓冲区；parameter buffer。
+     * @return 返回 retain 的处理结果；returns the result of the operation.
+     */
     public static <T extends DataBuffer> T retain(T buffer) {
         return DataBufferUtils.retain(
                 Objects.requireNonNull(buffer, "buffer")
         );
     }
 
+    /**
+     * 中文说明：执行 发布 操作；该方法是 {@code GatewayDataBufferOwnership} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the release operation; this method is the invocation entry point on {@code GatewayDataBufferOwnership} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayDataBufferOwnership.release(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param buffer 参数 缓冲区；parameter buffer。
+     * @return 返回 发布 的处理结果；returns the result of the operation.
+     */
     public static boolean release(DataBuffer buffer) {
         return DataBufferUtils.release(
                 Objects.requireNonNull(buffer, "buffer")
@@ -54,6 +82,9 @@ public final class GatewayDataBufferOwnership {
      * are copied one chunk at a time into the target allocator and released as
      * soon as that chunk has been copied. The caller must not release the input
      * after this method returns successfully because outbound owns the result.
+     * 补充说明 / Supplementary summary: 执行 transferToNetty 操作；该方法是 {@code GatewayDataBufferOwnership} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English supplement: Executes the transfer to netty operation; this method is the invocation entry point on {@code GatewayDataBufferOwnership} and performs the corresponding runtime, management, or protocol work.
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayDataBufferOwnership.transferToNetty(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      */
     public static ByteBuf transferToNetty(
             DataBuffer buffer,
@@ -87,6 +118,9 @@ public final class GatewayDataBufferOwnership {
     /**
      * Copies at most {@code maxBytes} readable bytes without changing the
      * DataBuffer read position or retaining its pooled storage.
+     * 补充说明 / Supplementary summary: 执行 readOnlySample 操作；该方法是 {@code GatewayDataBufferOwnership} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English supplement: Executes the read only sample operation; this method is the invocation entry point on {@code GatewayDataBufferOwnership} and performs the corresponding runtime, management, or protocol work.
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayDataBufferOwnership.readOnlySample(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      */
     public static byte[] readOnlySample(DataBuffer buffer, int maxBytes) {
         Objects.requireNonNull(buffer, "buffer");

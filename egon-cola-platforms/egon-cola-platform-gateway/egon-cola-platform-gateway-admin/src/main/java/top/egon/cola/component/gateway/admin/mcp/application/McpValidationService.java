@@ -27,13 +27,31 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+/**
+ * 中文说明：{@code McpValidationService} 是服务组件，位于当前 Gateway 模块的相关包中，负责MCPValidation服务相关的职责与边界。
+ * English summary: {@code McpValidationService} is a mcp validation service service in the current Gateway module; it owns the mcp validation service-related responsibility and boundary.
+ *
+ * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+ */
 @Service
 public class McpValidationService {
 
+    /**
+     * 中文说明：表示 PERMISSION 这一固定值；它属于 {@code McpValidationService} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
+     * English summary: Represents the fixed value permission; it is a state, type, or protocol value of {@code McpValidationService} and keeps callers aligned with the owning type.
+     *
+     * 用法 / Usage: 该字段通过 {@code McpValidationService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpValidationService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private static final Pattern PERMISSION = Pattern.compile(
             "^[a-z][a-z0-9._-]*(?::[A-Za-z0-9._*-]+)+$"
     );
 
+    /**
+     * 中文说明：表示 RISKLEVELS 这一固定值；它属于 {@code McpValidationService} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
+     * English summary: Represents the fixed value risk levels; it is a state, type, or protocol value of {@code McpValidationService} and keeps callers aligned with the owning type.
+     *
+     * 用法 / Usage: 该字段通过 {@code McpValidationService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpValidationService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private static final Set<String> RISK_LEVELS = Set.of(
             "LOW",
             "MEDIUM",
@@ -41,12 +59,39 @@ public class McpValidationService {
             "CRITICAL"
     );
 
+    /**
+     * 中文说明：保存 目录 对应的状态、依赖或配置值；字段类型为 {@code GatewayCatalogStore}，由 {@code McpValidationService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by catalog; its type is {@code GatewayCatalogStore}, and {@code McpValidationService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code McpValidationService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpValidationService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayCatalogStore catalog;
 
+    /**
+     * 中文说明：保存 artifacts 对应的状态、依赖或配置值；字段类型为 {@code JdbcMcpArtifactMetadataStore}，由 {@code McpValidationService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by artifacts; its type is {@code JdbcMcpArtifactMetadataStore}, and {@code McpValidationService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code McpValidationService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpValidationService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final JdbcMcpArtifactMetadataStore artifacts;
 
+    /**
+     * 中文说明：保存 object映射器 对应的状态、依赖或配置值；字段类型为 {@code ObjectMapper}，由 {@code McpValidationService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by object mapper; its type is {@code ObjectMapper}, and {@code McpValidationService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code McpValidationService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpValidationService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final ObjectMapper objectMapper;
 
+    /**
+     * 中文说明：创建 {@code McpValidationService} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+     * English summary: Creates an instance of {@code McpValidationService} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+     *
+     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+     * @param catalog 参数 目录；parameter catalog。
+     * @param artifacts 参数 artifacts；parameter artifacts。
+     * @param objectMapper 参数 object映射器；parameter object mapper。
+     */
     public McpValidationService(
             GatewayCatalogStore catalog,
             JdbcMcpArtifactMetadataStore artifacts,
@@ -59,6 +104,14 @@ public class McpValidationService {
         ).copy();
     }
 
+    /**
+     * 中文说明：执行 validate 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.validate(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param content 参数 content；parameter content。
+     * @return 返回 validate 的处理结果；returns the result of the operation.
+     */
     public ValidationReport validate(McpRuleContent content) {
         List<ValidationFinding> findings = new ArrayList<>();
         try {
@@ -79,6 +132,13 @@ public class McpValidationService {
         return new ValidationReport(findings.isEmpty(), List.copyOf(findings));
     }
 
+    /**
+     * 中文说明：执行 requireValid 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the require valid operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.requireValid(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param content 参数 content；parameter content。
+     */
     public void requireValid(McpRuleContent content) {
         Objects.requireNonNull(content, "content").validate();
         Set<String> serverCodes = new HashSet<>();
@@ -115,6 +175,13 @@ public class McpValidationService {
         validateRemote(content.remoteProviders(), content.remoteMounts());
     }
 
+    /**
+     * 中文说明：执行 validate工具 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate tool operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.validateTool(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param tool 参数 工具；parameter tool。
+     */
     private void validateTool(McpRuntimeTool tool) {
         if (!RISK_LEVELS.contains(tool.riskLevel())) {
             invalid(
@@ -142,6 +209,13 @@ public class McpValidationService {
         );
     }
 
+    /**
+     * 中文说明：执行 validate资源 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate resource operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.validateResource(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param resource 参数 资源；parameter resource。
+     */
     private void validateResource(McpRuntimeResource resource) {
         validateUri(resource.uri(), "resources." + resource.name() + ".uri");
         validateDriverBinding(
@@ -156,6 +230,13 @@ public class McpValidationService {
         );
     }
 
+    /**
+     * 中文说明：执行 validate资源模板 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate resource template operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.validateResourceTemplate(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param template 参数 模板；parameter template。
+     */
     private void validateResourceTemplate(
             McpRuntimeResourceTemplate template) {
         String path = "resourceTemplates." + template.name();
@@ -172,6 +253,13 @@ public class McpValidationService {
         );
     }
 
+    /**
+     * 中文说明：执行 validate提示词 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate prompt operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.validatePrompt(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param prompt 参数 提示词；parameter prompt。
+     */
     private void validatePrompt(McpRuntimePrompt prompt) {
         String path = "prompts." + prompt.name();
         validateBinding(
@@ -197,6 +285,14 @@ public class McpValidationService {
                 + ".requiredPermissions");
     }
 
+    /**
+     * 中文说明：执行 validate任务策略 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate task policy operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.validateTaskPolicy(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param policy 参数 策略；parameter policy。
+     * @param tools 参数 tools；parameter tools。
+     */
     private void validateTaskPolicy(
             McpRuntimeTaskPolicy policy,
             Map<String, McpRuntimeTool> tools) {
@@ -218,6 +314,15 @@ public class McpValidationService {
         }
     }
 
+    /**
+     * 中文说明：执行 validateApps 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate apps operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.validateApps(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param apps 参数 apps；parameter apps。
+     * @param tools 参数 tools；parameter tools。
+     * @param serverCodes 参数 服务器Codes；parameter server codes。
+     */
     private void validateApps(
             List<McpRuntimeApp> apps,
             Map<String, McpRuntimeTool> tools,
@@ -254,6 +359,14 @@ public class McpValidationService {
         }
     }
 
+    /**
+     * 中文说明：执行 validate远程 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate remote operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.validateRemote(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param providers 参数 providers；parameter providers。
+     * @param mounts 参数 mounts；parameter mounts。
+     */
     private void validateRemote(
             List<McpRuntimeRemoteProvider> providers,
             List<McpRuntimeRemoteMount> mounts) {
@@ -302,6 +415,16 @@ public class McpValidationService {
         }
     }
 
+    /**
+     * 中文说明：执行 validateBinding 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate binding operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.validateBinding(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param sourceType 参数 sourceType；parameter source type。
+     * @param operationId 参数 操作Id；parameter operation id。
+     * @param remoteMountId 参数 远程MountId；parameter remote mount id。
+     * @param path 参数 path；parameter path。
+     */
     private void validateBinding(
             String sourceType,
             String operationId,
@@ -330,12 +453,30 @@ public class McpValidationService {
         }
     }
 
+    /**
+     * 中文说明：执行 isLocal提示词模板 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the is local prompt template operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.isLocalPromptTemplate(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param sourceType 参数 sourceType；parameter source type。
+     * @return 返回 isLocal提示词模板 的处理结果；returns the result of the operation.
+     */
     private boolean isLocalPromptTemplate(String sourceType) {
         return "LOCAL_TEMPLATE".equals(sourceType)
                 || "STATIC_TEMPLATE".equals(sourceType)
                 || "STRICT_TEMPLATE".equals(sourceType);
     }
 
+    /**
+     * 中文说明：执行 validate驱动器Binding 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate driver binding operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.validateDriverBinding(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param driverType 参数 驱动器Type；parameter driver type。
+     * @param operationId 参数 操作Id；parameter operation id。
+     * @param remoteMountId 参数 远程MountId；parameter remote mount id。
+     * @param path 参数 path；parameter path。
+     */
     private void validateDriverBinding(
             String driverType,
             String operationId,
@@ -355,6 +496,14 @@ public class McpValidationService {
         }
     }
 
+    /**
+     * 中文说明：执行 require操作 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the require operation operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.requireOperation(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param operationId 参数 操作Id；parameter operation id。
+     * @param path 参数 path；parameter path。
+     */
     private void requireOperation(String operationId, String path) {
         var operation = catalog.findOperation(operationId)
                 .orElseThrow(() -> error(
@@ -372,6 +521,14 @@ public class McpValidationService {
         }
     }
 
+    /**
+     * 中文说明：执行 validate模式 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate schema operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.validateSchema(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param schema 参数 模式；parameter schema。
+     * @param path 参数 path；parameter path。
+     */
     private void validateSchema(String schema, String path) {
         if (schema == null) {
             return;
@@ -404,6 +561,14 @@ public class McpValidationService {
         }
     }
 
+    /**
+     * 中文说明：执行 validateUri 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate uri operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.validateUri(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @param path 参数 path；parameter path。
+     */
     private void validateUri(String value, String path) {
         try {
             URI uri = URI.create(value);
@@ -419,6 +584,14 @@ public class McpValidationService {
         }
     }
 
+    /**
+     * 中文说明：执行 validate模板 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate template operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.validateTemplate(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @param path 参数 path；parameter path。
+     */
     private void validateTemplate(String value, String path) {
         if (value.length() > 2048 || value.contains("..")) {
             invalid(
@@ -438,6 +611,14 @@ public class McpValidationService {
         validateUri(sample, path);
     }
 
+    /**
+     * 中文说明：执行 validatePermissions 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate permissions operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.validatePermissions(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param values 参数 values；parameter values。
+     * @param path 参数 path；parameter path。
+     */
     private void validatePermissions(Set<String> values, String path) {
         values.forEach(value -> {
             if (!PERMISSION.matcher(value).matches()) {
@@ -450,6 +631,15 @@ public class McpValidationService {
         });
     }
 
+    /**
+     * 中文说明：执行 require服务器 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the require server operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.requireServer(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param serverCodes 参数 服务器Codes；parameter server codes。
+     * @param serverCode 参数 服务器Code；parameter server code。
+     * @param path 参数 path；parameter path。
+     */
     private void requireServer(
             Set<String> serverCodes,
             String serverCode,
@@ -463,10 +653,29 @@ public class McpValidationService {
         }
     }
 
+    /**
+     * 中文说明：执行 invalid 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the invalid operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.invalid(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param code 参数 code；parameter code。
+     * @param path 参数 path；parameter path。
+     * @param message 参数 消息；parameter message。
+     */
     private void invalid(String code, String path, String message) {
         throw error(code, path, message);
     }
 
+    /**
+     * 中文说明：执行 error 操作；该方法是 {@code McpValidationService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the error operation; this method is the invocation entry point on {@code McpValidationService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpValidationService.error(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param code 参数 code；parameter code。
+     * @param path 参数 path；parameter path。
+     * @param message 参数 消息；parameter message。
+     * @return 返回 error 的处理结果；returns the result of the operation.
+     */
     private McpValidationException error(
             String code,
             String path,
@@ -474,15 +683,62 @@ public class McpValidationService {
         return new McpValidationException(code, path, message);
     }
 
+    /**
+     * 中文说明：{@code ValidationReport} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责Validation报告相关的职责与边界。
+     * English summary: {@code ValidationReport} is an immutable data carrier in the current Gateway module; it owns the validation report-related responsibility and boundary.
+     *
+     * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+     * @param valid 参数 valid；parameter valid。
+     * @param findings 参数 findings；parameter findings。
+     */
     public record ValidationReport(
+            /**
+             * 中文说明：保存 valid 对应的状态、依赖或配置值；字段类型为 {@code boolean}，由 {@code McpValidationService.ValidationReport} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by valid; its type is {@code boolean}, and {@code McpValidationService.ValidationReport} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code McpValidationService.ValidationReport} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpValidationService.ValidationReport}; do not couple callers to its representation when the owning type exposes an API.
+             */
             boolean valid,
+            /**
+             * 中文说明：保存 findings 对应的状态、依赖或配置值；字段类型为 {@code List<ValidationFinding>}，由 {@code McpValidationService.ValidationReport} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by findings; its type is {@code List<ValidationFinding>}, and {@code McpValidationService.ValidationReport} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code McpValidationService.ValidationReport} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpValidationService.ValidationReport}; do not couple callers to its representation when the owning type exposes an API.
+             */
             List<ValidationFinding> findings
     ) {
     }
 
+    /**
+     * 中文说明：{@code ValidationFinding} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责ValidationFinding相关的职责与边界。
+     * English summary: {@code ValidationFinding} is an immutable data carrier in the current Gateway module; it owns the validation finding-related responsibility and boundary.
+     *
+     * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+     * @param path 参数 path；parameter path。
+     * @param code 参数 code；parameter code。
+     * @param message 参数 消息；parameter message。
+     */
     public record ValidationFinding(
+            /**
+             * 中文说明：保存 path 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code McpValidationService.ValidationFinding} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by path; its type is {@code String}, and {@code McpValidationService.ValidationFinding} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code McpValidationService.ValidationFinding} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpValidationService.ValidationFinding}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String path,
+            /**
+             * 中文说明：保存 code 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code McpValidationService.ValidationFinding} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by code; its type is {@code String}, and {@code McpValidationService.ValidationFinding} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code McpValidationService.ValidationFinding} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpValidationService.ValidationFinding}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String code,
+            /**
+             * 中文说明：保存 消息 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code McpValidationService.ValidationFinding} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by message; its type is {@code String}, and {@code McpValidationService.ValidationFinding} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code McpValidationService.ValidationFinding} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpValidationService.ValidationFinding}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String message
     ) {
     }

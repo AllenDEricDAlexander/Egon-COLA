@@ -30,12 +30,36 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
+/**
+ * 中文说明：{@code GatewayRuleCompiler} 是编译器，位于当前 Gateway 模块的相关包中，负责网关规则Compiler相关的职责与边界。
+ * English summary: {@code GatewayRuleCompiler} is a gateway rule compiler compiler in the current Gateway module; it owns the gateway rule compiler-related responsibility and boundary.
+ *
+ * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+ */
 public final class GatewayRuleCompiler {
 
+    /**
+     * 中文说明：表示 INLINELIMITBYTES 这一固定值；它属于 {@code GatewayRuleCompiler} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
+     * English summary: Represents the fixed value inline limit bytes; it is a state, type, or protocol value of {@code GatewayRuleCompiler} and keeps callers aligned with the owning type.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayRuleCompiler} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayRuleCompiler}; do not couple callers to its representation when the owning type exposes an API.
+     */
     public static final int INLINE_LIMIT_BYTES = 512 * 1024;
 
+    /**
+     * 中文说明：表示 CHUNKLIMITBYTES 这一固定值；它属于 {@code GatewayRuleCompiler} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
+     * English summary: Represents the fixed value chunk limit bytes; it is a state, type, or protocol value of {@code GatewayRuleCompiler} and keeps callers aligned with the owning type.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayRuleCompiler} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayRuleCompiler}; do not couple callers to its representation when the owning type exposes an API.
+     */
     public static final int CHUNK_LIMIT_BYTES = 256 * 1024;
 
+    /**
+     * 中文说明：表示 SUPPORTEDPOLICIES 这一固定值；它属于 {@code GatewayRuleCompiler} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
+     * English summary: Represents the fixed value supported policies; it is a state, type, or protocol value of {@code GatewayRuleCompiler} and keeps callers aligned with the owning type.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayRuleCompiler} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayRuleCompiler}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private static final Set<String> SUPPORTED_POLICIES = Set.of(
             "LOAD_BALANCE",
             "PROVIDER_OVERRIDE",
@@ -54,17 +78,52 @@ public final class GatewayRuleCompiler {
             "CORS"
     );
 
+    /**
+     * 中文说明：保存 canonicalizer 对应的状态、依赖或配置值；字段类型为 {@code GatewayRuleCanonicalizer}，由 {@code GatewayRuleCompiler} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by canonicalizer; its type is {@code GatewayRuleCanonicalizer}, and {@code GatewayRuleCompiler} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayRuleCompiler} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayRuleCompiler}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayRuleCanonicalizer canonicalizer;
 
+    /**
+     * 中文说明：保存 MCPCompiler 对应的状态、依赖或配置值；字段类型为 {@code McpRuleCompiler}，由 {@code GatewayRuleCompiler} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by mcp compiler; its type is {@code McpRuleCompiler}, and {@code GatewayRuleCompiler} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayRuleCompiler} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayRuleCompiler}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final McpRuleCompiler mcpCompiler = new McpRuleCompiler();
 
+    /**
+     * 中文说明：保存 传输校验器 对应的状态、依赖或配置值；字段类型为 {@code GatewayRouteTransportPolicyValidator}，由 {@code GatewayRuleCompiler} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by transport validator; its type is {@code GatewayRouteTransportPolicyValidator}, and {@code GatewayRuleCompiler} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayRuleCompiler} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayRuleCompiler}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayRouteTransportPolicyValidator transportValidator =
             new GatewayRouteTransportPolicyValidator();
 
+    /**
+     * 中文说明：创建 {@code GatewayRuleCompiler} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+     * English summary: Creates an instance of {@code GatewayRuleCompiler} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+     *
+     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+     * @param canonicalizer 参数 canonicalizer；parameter canonicalizer。
+     */
     public GatewayRuleCompiler(GatewayRuleCanonicalizer canonicalizer) {
         this.canonicalizer = canonicalizer;
     }
 
+    /**
+     * 中文说明：执行 compile 操作；该方法是 {@code GatewayRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the compile operation; this method is the invocation entry point on {@code GatewayRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayRuleCompiler.compile(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param releaseId 参数 发布Id；parameter release id。
+     * @param generatedAt 参数 generatedAt；parameter generated at。
+     * @param content 参数 content；parameter content。
+     * @return 返回 compile 的处理结果；returns the result of the operation.
+     */
     public CompiledGatewayRelease compile(
             String releaseId,
             Instant generatedAt,
@@ -129,6 +188,13 @@ public final class GatewayRuleCompiler {
         );
     }
 
+    /**
+     * 中文说明：执行 validate 操作；该方法是 {@code GatewayRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate operation; this method is the invocation entry point on {@code GatewayRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayRuleCompiler.validate(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param content 参数 content；parameter content。
+     */
     private void validate(GatewayRuleContent content) {
         mcpCompiler.compile(
                 content.mcp(),
@@ -224,6 +290,16 @@ public final class GatewayRuleCompiler {
         validateDescriptors(content.rpcDescriptors());
     }
 
+    /**
+     * 中文说明：执行 运行时路由 操作；该方法是 {@code GatewayRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the runtime route operation; this method is the invocation entry point on {@code GatewayRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayRuleCompiler.runtimeRoute(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param content 参数 content；parameter content。
+     * @param route 参数 路由；parameter route。
+     * @param operations 参数 operations；parameter operations。
+     * @return 返回 运行时路由 的处理结果；returns the result of the operation.
+     */
     private RuntimeHttpRoute runtimeRoute(
             GatewayRuleContent content,
             GatewayRuntimeRoute route,
@@ -270,6 +346,13 @@ public final class GatewayRuleCompiler {
         );
     }
 
+    /**
+     * 中文说明：执行 validateDescriptors 操作；该方法是 {@code GatewayRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate descriptors operation; this method is the invocation entry point on {@code GatewayRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayRuleCompiler.validateDescriptors(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param descriptors 参数 descriptors；parameter descriptors。
+     */
     private void validateDescriptors(List<GatewayRpcDescriptor> descriptors) {
         for (GatewayRpcDescriptor descriptor : descriptors) {
             byte[] value;
@@ -287,6 +370,14 @@ public final class GatewayRuleCompiler {
         }
     }
 
+    /**
+     * 中文说明：执行 allPolicies 操作；该方法是 {@code GatewayRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the all policies operation; this method is the invocation entry point on {@code GatewayRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayRuleCompiler.allPolicies(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param content 参数 content；parameter content。
+     * @return 返回 allPolicies 的处理结果；returns the result of the operation.
+     */
     private List<GatewayRuntimePolicy> allPolicies(
             GatewayRuleContent content) {
         List<GatewayRuntimePolicy> result = new ArrayList<>();
@@ -297,6 +388,14 @@ public final class GatewayRuleCompiler {
         return List.copyOf(result);
     }
 
+    /**
+     * 中文说明：执行 unique 操作；该方法是 {@code GatewayRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the unique operation; this method is the invocation entry point on {@code GatewayRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayRuleCompiler.unique(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param values 参数 values；parameter values。
+     * @param key 参数 键；parameter key。
+     */
     private <T> void unique(List<T> values, Function<T, String> key) {
         Set<String> seen = new HashSet<>();
         values.forEach(value -> {
@@ -306,6 +405,14 @@ public final class GatewayRuleCompiler {
         });
     }
 
+    /**
+     * 中文说明：执行 invalid 操作；该方法是 {@code GatewayRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the invalid operation; this method is the invocation entry point on {@code GatewayRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayRuleCompiler.invalid(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param detail 参数 detail；parameter detail。
+     * @return 返回 invalid 的处理结果；returns the result of the operation.
+     */
     private IllegalArgumentException invalid(String detail) {
         return new IllegalArgumentException(
                 "GATEWAY_RELEASE_VALIDATION_FAILED: " + detail

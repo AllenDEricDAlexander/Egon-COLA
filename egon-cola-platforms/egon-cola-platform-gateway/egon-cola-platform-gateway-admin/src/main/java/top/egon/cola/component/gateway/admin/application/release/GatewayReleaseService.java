@@ -48,44 +48,155 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * 中文说明：{@code GatewayReleaseService} 是服务组件，位于当前 Gateway 模块的相关包中，负责网关发布服务相关的职责与边界。
+ * English summary: {@code GatewayReleaseService} is a gateway release service service in the current Gateway module; it owns the gateway release service-related responsibility and boundary.
+ *
+ * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+ */
 @Service
 public class GatewayReleaseService {
 
+    /**
+     * 中文说明：保存 groups 对应的状态、依赖或配置值；字段类型为 {@code GatewayGroupRepository}，由 {@code GatewayReleaseService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by groups; its type is {@code GatewayGroupRepository}, and {@code GatewayReleaseService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayReleaseService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayGroupRepository groups;
 
+    /**
+     * 中文说明：保存 drafts 对应的状态、依赖或配置值；字段类型为 {@code GatewayDraftRepository}，由 {@code GatewayReleaseService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by drafts; its type is {@code GatewayDraftRepository}, and {@code GatewayReleaseService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayReleaseService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayDraftRepository drafts;
 
+    /**
+     * 中文说明：保存 草稿服务 对应的状态、依赖或配置值；字段类型为 {@code GatewayDraftService}，由 {@code GatewayReleaseService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by draft service; its type is {@code GatewayDraftService}, and {@code GatewayReleaseService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayReleaseService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayDraftService draftService;
 
+    /**
+     * 中文说明：保存 目录 对应的状态、依赖或配置值；字段类型为 {@code GatewayCatalogStore}，由 {@code GatewayReleaseService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by catalog; its type is {@code GatewayCatalogStore}, and {@code GatewayReleaseService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayReleaseService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayCatalogStore catalog;
 
+    /**
+     * 中文说明：保存 releases 对应的状态、依赖或配置值；字段类型为 {@code GatewayReleaseStore}，由 {@code GatewayReleaseService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by releases; its type is {@code GatewayReleaseStore}, and {@code GatewayReleaseService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayReleaseService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayReleaseStore releases;
 
+    /**
+     * 中文说明：保存 audits 对应的状态、依赖或配置值；字段类型为 {@code GatewayAuditLogRepository}，由 {@code GatewayReleaseService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by audits; its type is {@code GatewayAuditLogRepository}, and {@code GatewayReleaseService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayReleaseService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayAuditLogRepository audits;
 
+    /**
+     * 中文说明：保存 transactions 对应的状态、依赖或配置值；字段类型为 {@code TransactionTemplate}，由 {@code GatewayReleaseService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by transactions; its type is {@code TransactionTemplate}, and {@code GatewayReleaseService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayReleaseService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final TransactionTemplate transactions;
 
+    /**
+     * 中文说明：保存 publications 对应的状态、依赖或配置值；字段类型为 {@code GatewayReleasePublicationCoordinator}，由 {@code GatewayReleaseService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by publications; its type is {@code GatewayReleasePublicationCoordinator}, and {@code GatewayReleaseService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayReleaseService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayReleasePublicationCoordinator publications;
 
+    /**
+     * 中文说明：保存 MCPContent工厂 对应的状态、依赖或配置值；字段类型为 {@code McpReleaseContentFactory}，由 {@code GatewayReleaseService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by mcp content factory; its type is {@code McpReleaseContentFactory}, and {@code GatewayReleaseService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayReleaseService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final McpReleaseContentFactory mcpContentFactory;
 
+    /**
+     * 中文说明：保存 canonicalizer 对应的状态、依赖或配置值；字段类型为 {@code GatewayRuleCanonicalizer}，由 {@code GatewayReleaseService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by canonicalizer; its type is {@code GatewayRuleCanonicalizer}, and {@code GatewayReleaseService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayReleaseService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayRuleCanonicalizer canonicalizer =
             new GatewayRuleCanonicalizer();
 
+    /**
+     * 中文说明：保存 compiler 对应的状态、依赖或配置值；字段类型为 {@code GatewayRuleCompiler}，由 {@code GatewayReleaseService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by compiler; its type is {@code GatewayRuleCompiler}, and {@code GatewayReleaseService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayReleaseService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayRuleCompiler compiler =
             new GatewayRuleCompiler(canonicalizer);
 
+    /**
+     * 中文说明：保存 路由映射器 对应的状态、依赖或配置值；字段类型为 {@code GatewayRouteDraftMapper}，由 {@code GatewayReleaseService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by route mapper; its type is {@code GatewayRouteDraftMapper}, and {@code GatewayReleaseService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayReleaseService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayRouteDraftMapper routeMapper =
             new GatewayRouteDraftMapper();
 
+    /**
+     * 中文说明：保存 传输校验器 对应的状态、依赖或配置值；字段类型为 {@code GatewayRouteTransportPolicyValidator}，由 {@code GatewayReleaseService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by transport validator; its type is {@code GatewayRouteTransportPolicyValidator}, and {@code GatewayReleaseService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayReleaseService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayRouteTransportPolicyValidator transportValidator =
             new GatewayRouteTransportPolicyValidator();
 
+    /**
+     * 中文说明：保存 模式校验器 对应的状态、依赖或配置值；字段类型为 {@code GatewayOperationSchemaValidator}，由 {@code GatewayReleaseService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by schema validator; its type is {@code GatewayOperationSchemaValidator}, and {@code GatewayReleaseService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayReleaseService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayOperationSchemaValidator schemaValidator =
             new GatewayOperationSchemaValidator(new ObjectMapper());
 
+    /**
+     * 中文说明：保存 clock 对应的状态、依赖或配置值；字段类型为 {@code Clock}，由 {@code GatewayReleaseService} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by clock; its type is {@code Clock}, and {@code GatewayReleaseService} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayReleaseService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final Clock clock;
 
+    /**
+     * 中文说明：创建 {@code GatewayReleaseService} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+     * English summary: Creates an instance of {@code GatewayReleaseService} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+     *
+     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+     * @param groups 参数 groups；parameter groups。
+     * @param drafts 参数 drafts；parameter drafts。
+     * @param draftService 参数 草稿服务；parameter draft service。
+     * @param catalog 参数 目录；parameter catalog。
+     * @param releases 参数 releases；parameter releases。
+     * @param audits 参数 audits；parameter audits。
+     * @param transactions 参数 transactions；parameter transactions。
+     * @param publications 参数 publications；parameter publications。
+     * @param mcpContentFactory 参数 MCPContent工厂；parameter mcp content factory。
+     */
     @Autowired
     public GatewayReleaseService(
             GatewayGroupRepository groups,
@@ -112,6 +223,21 @@ public class GatewayReleaseService {
         );
     }
 
+    /**
+     * 中文说明：创建 {@code GatewayReleaseService} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+     * English summary: Creates an instance of {@code GatewayReleaseService} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+     *
+     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+     * @param groups 参数 groups；parameter groups。
+     * @param drafts 参数 drafts；parameter drafts。
+     * @param draftService 参数 草稿服务；parameter draft service。
+     * @param catalog 参数 目录；parameter catalog。
+     * @param releases 参数 releases；parameter releases。
+     * @param audits 参数 audits；parameter audits。
+     * @param transactions 参数 transactions；parameter transactions。
+     * @param publications 参数 publications；parameter publications。
+     * @param clock 参数 clock；parameter clock。
+     */
     GatewayReleaseService(
             GatewayGroupRepository groups,
             GatewayDraftRepository drafts,
@@ -136,6 +262,22 @@ public class GatewayReleaseService {
         );
     }
 
+    /**
+     * 中文说明：创建 {@code GatewayReleaseService} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+     * English summary: Creates an instance of {@code GatewayReleaseService} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+     *
+     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+     * @param groups 参数 groups；parameter groups。
+     * @param drafts 参数 drafts；parameter drafts。
+     * @param draftService 参数 草稿服务；parameter draft service。
+     * @param catalog 参数 目录；parameter catalog。
+     * @param releases 参数 releases；parameter releases。
+     * @param audits 参数 audits；parameter audits。
+     * @param transactions 参数 transactions；parameter transactions。
+     * @param publications 参数 publications；parameter publications。
+     * @param mcpContentFactory 参数 MCPContent工厂；parameter mcp content factory。
+     * @param clock 参数 clock；parameter clock。
+     */
     GatewayReleaseService(
             GatewayGroupRepository groups,
             GatewayDraftRepository drafts,
@@ -159,6 +301,17 @@ public class GatewayReleaseService {
         this.clock = clock;
     }
 
+    /**
+     * 中文说明：执行 create 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the create operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.create(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @param command 参数 command；parameter command。
+     * @param actor 参数 actor；parameter actor。
+     * @param request 参数 请求；parameter request。
+     * @return 返回 create 的处理结果；returns the result of the operation.
+     */
     public ReleaseView create(
             String gatewayGroupId,
             CreateRelease command,
@@ -176,6 +329,16 @@ public class GatewayReleaseService {
         return publish(prepared, actor);
     }
 
+    /**
+     * 中文说明：执行 重试 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the retry operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.retry(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param releaseId 参数 发布Id；parameter release id。
+     * @param actor 参数 actor；parameter actor。
+     * @param request 参数 请求；parameter request。
+     * @return 返回 重试 的处理结果；returns the result of the operation.
+     */
     public ReleaseView retry(
             String releaseId,
             AdminActor actor,
@@ -212,6 +375,17 @@ public class GatewayReleaseService {
         return publish(prepared, actor);
     }
 
+    /**
+     * 中文说明：执行 rollback 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the rollback operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.rollback(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @param command 参数 command；parameter command。
+     * @param actor 参数 actor；parameter actor。
+     * @param request 参数 请求；parameter request。
+     * @return 返回 rollback 的处理结果；returns the result of the operation.
+     */
     public ReleaseView rollback(
             String gatewayGroupId,
             RollbackRelease command,
@@ -241,10 +415,26 @@ public class GatewayReleaseService {
         return publish(prepared, actor);
     }
 
+    /**
+     * 中文说明：执行 get 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the get operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.get(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param releaseId 参数 发布Id；parameter release id。
+     * @return 返回 get 的处理结果；returns the result of the operation.
+     */
     public ReleaseView get(String releaseId) {
         return view(required(releaseId));
     }
 
+    /**
+     * 中文说明：执行 history 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the history operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.history(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @return 返回 history 的处理结果；returns the result of the operation.
+     */
     public List<ReleaseView> history(String gatewayGroupId) {
         return releases.history(gatewayGroupId)
                 .stream()
@@ -252,10 +442,32 @@ public class GatewayReleaseService {
                 .toList();
     }
 
+    /**
+     * 中文说明：执行 diff 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the diff operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.diff(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param releaseId 参数 发布Id；parameter release id。
+     * @return 返回 diff 的处理结果；returns the result of the operation.
+     */
     public Map<String, Object> diff(String releaseId) {
         return required(releaseId).structuredDiff();
     }
 
+    /**
+     * 中文说明：执行 prepare 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the prepare operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.prepare(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @param expectedRevision 参数 expectedRevision；parameter expected revision。
+     * @param changeReason 参数 changeReason；parameter change reason。
+     * @param rollbackOfReleaseId 参数 rollbackOf发布Id；parameter rollback of release id。
+     * @param rollbackContent 参数 rollbackContent；parameter rollback content。
+     * @param actor 参数 actor；parameter actor。
+     * @param request 参数 请求；parameter request。
+     * @return 返回 prepare 的处理结果；returns the result of the operation.
+     */
     private PreparedRelease prepare(
             String gatewayGroupId,
             long expectedRevision,
@@ -347,6 +559,15 @@ public class GatewayReleaseService {
         return new PreparedRelease(release, compiled, 1);
     }
 
+    /**
+     * 中文说明：执行 publish 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the publish operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.publish(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param prepared 参数 prepared；parameter prepared。
+     * @param actor 参数 actor；parameter actor。
+     * @return 返回 publish 的处理结果；returns the result of the operation.
+     */
     private ReleaseView publish(
             PreparedRelease prepared,
             AdminActor actor) {
@@ -431,6 +652,14 @@ public class GatewayReleaseService {
         return get(prepared.release().id());
     }
 
+    /**
+     * 中文说明：执行 发布Status 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the release status operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.releaseStatus(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param status 参数 status；parameter status。
+     * @return 返回 发布Status 的处理结果；returns the result of the operation.
+     */
     private GatewayReleaseStatus releaseStatus(
             GatewayReleasePublicationStore.PublicationStatus status) {
         return switch (status) {
@@ -442,6 +671,15 @@ public class GatewayReleaseService {
         };
     }
 
+    /**
+     * 中文说明：执行 content 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the content operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.content(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param group 参数 group；parameter group。
+     * @param draft 参数 草稿；parameter draft。
+     * @return 返回 content 的处理结果；returns the result of the operation.
+     */
     private GatewayRuleContent content(
             GatewayGroupEntity group,
             GatewayDraftService.DraftView draft) {
@@ -562,6 +800,15 @@ public class GatewayReleaseService {
         );
     }
 
+    /**
+     * 中文说明：执行 操作 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the operation operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.operation(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param operation 参数 操作；parameter operation。
+     * @param policyRefs 参数 策略Refs；parameter policy refs。
+     * @return 返回 操作 的处理结果；returns the result of the operation.
+     */
     private GatewayRuntimeOperation operation(
             GatewayCatalogStore.OperationRecord operation,
             Set<String> policyRefs) {
@@ -635,6 +882,15 @@ public class GatewayReleaseService {
         );
     }
 
+    /**
+     * 中文说明：执行 路由 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the route operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.route(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param route 参数 路由；parameter route。
+     * @param operation 参数 操作；parameter operation。
+     * @return 返回 路由 的处理结果；returns the result of the operation.
+     */
     private GatewayRuntimeRoute route(
             GatewayDraftStore.RouteDraft route,
             GatewayRuntimeOperation operation) {
@@ -676,6 +932,14 @@ public class GatewayReleaseService {
         );
     }
 
+    /**
+     * 中文说明：执行 descriptor 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the descriptor operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.descriptor(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param operation 参数 操作；parameter operation。
+     * @return 返回 descriptor 的处理结果；returns the result of the operation.
+     */
     private GatewayRpcDescriptor descriptor(
             GatewayCatalogStore.OperationRecord operation) {
         Map<String, Object> descriptor = catalog.loadDefinitions(
@@ -693,6 +957,15 @@ public class GatewayReleaseService {
         );
     }
 
+    /**
+     * 中文说明：执行 策略Refs 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the policy refs operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.policyRefs(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param operationId 参数 操作Id；parameter operation id。
+     * @param policies 参数 policies；parameter policies。
+     * @return 返回 策略Refs 的处理结果；returns the result of the operation.
+     */
     private Set<String> policyRefs(
             String operationId,
             List<GatewayRuntimePolicy> policies) {
@@ -702,6 +975,15 @@ public class GatewayReleaseService {
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 
+    /**
+     * 中文说明：执行 applies 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the applies operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.applies(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param policy 参数 策略；parameter policy。
+     * @param operationId 参数 操作Id；parameter operation id。
+     * @return 返回 applies 的处理结果；returns the result of the operation.
+     */
     private boolean applies(
             GatewayRuntimePolicy policy,
             String operationId) {
@@ -712,6 +994,15 @@ public class GatewayReleaseService {
         return values(operationIds).contains(operationId);
     }
 
+    /**
+     * 中文说明：执行 target 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the target operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.target(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param target 参数 target；parameter target。
+     * @param artifactSha256 参数 制品Sha256；parameter artifact sha256。
+     * @return 返回 target 的处理结果；returns the result of the operation.
+     */
     private GatewayReleaseStore.TargetRecord target(
             DdcManagementPublishTarget target,
             String artifactSha256) {
@@ -726,6 +1017,14 @@ public class GatewayReleaseService {
         );
     }
 
+    /**
+     * 中文说明：执行 required 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the required operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.required(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param releaseId 参数 发布Id；parameter release id。
+     * @return 返回 required 的处理结果；returns the result of the operation.
+     */
     private GatewayReleaseStore.ReleaseRecord required(String releaseId) {
         return releases.find(releaseId)
                 .orElseThrow(() -> new GatewayAdminNotFoundException(
@@ -733,6 +1032,18 @@ public class GatewayReleaseService {
                 ));
     }
 
+    /**
+     * 中文说明：执行 审计 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the audit operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.audit(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param actor 参数 actor；parameter actor。
+     * @param request 参数 请求；parameter request。
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @param releaseId 参数 发布Id；parameter release id。
+     * @param action 参数 action；parameter action。
+     * @param revision 参数 revision；parameter revision。
+     */
     private void audit(
             AdminActor actor,
             RequestAuditContext request,
@@ -760,6 +1071,14 @@ public class GatewayReleaseService {
         ));
     }
 
+    /**
+     * 中文说明：执行 view 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the view operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.view(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param release 参数 发布；parameter release。
+     * @return 返回 view 的处理结果；returns the result of the operation.
+     */
     private ReleaseView view(GatewayReleaseStore.ReleaseRecord release) {
         return new ReleaseView(
                 release.id(),
@@ -779,6 +1098,14 @@ public class GatewayReleaseService {
         );
     }
 
+    /**
+     * 中文说明：执行 策略Count 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the policy count operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.policyCount(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param content 参数 content；parameter content。
+     * @return 返回 策略Count 的处理结果；returns the result of the operation.
+     */
     private int policyCount(GatewayRuleContent content) {
         return content.providerPolicies().size()
                 + content.trafficPolicies().size()
@@ -786,6 +1113,14 @@ public class GatewayReleaseService {
                 + content.corsPolicies().size();
     }
 
+    /**
+     * 中文说明：执行 values 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the values operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.values(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 values 的处理结果；returns the result of the operation.
+     */
     private List<String> values(Object value) {
         if (value == null) {
             return List.of();
@@ -796,6 +1131,15 @@ public class GatewayReleaseService {
         return List.of(value.toString());
     }
 
+    /**
+     * 中文说明：执行 number 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the number operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.number(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @param fallback 参数 fallback；parameter fallback。
+     * @return 返回 number 的处理结果；returns the result of the operation.
+     */
     private int number(Object value, int fallback) {
         if (value == null) {
             return fallback;
@@ -805,6 +1149,15 @@ public class GatewayReleaseService {
                 : Integer.parseInt(value.toString());
     }
 
+    /**
+     * 中文说明：执行 text 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the text operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.text(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param values 参数 values；parameter values。
+     * @param key 参数 键；parameter key。
+     * @return 返回 text 的处理结果；returns the result of the operation.
+     */
     private String text(Map<String, ?> values, String key) {
         Object value = values.get(key);
         if (value == null || value.toString().isBlank()) {
@@ -813,10 +1166,27 @@ public class GatewayReleaseService {
         return value.toString().trim();
     }
 
+    /**
+     * 中文说明：执行 值 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the value operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.value(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 值 的处理结果；returns the result of the operation.
+     */
     private String value(String value) {
         return value == null ? "" : value;
     }
 
+    /**
+     * 中文说明：执行 required 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the required operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.required(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @param field 参数 field；parameter field。
+     * @return 返回 required 的处理结果；returns the result of the operation.
+     */
     private String required(String value, String field) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(field + " is required");
@@ -824,6 +1194,14 @@ public class GatewayReleaseService {
         return value.trim();
     }
 
+    /**
+     * 中文说明：执行 bounded 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the bounded operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.bounded(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 bounded 的处理结果；returns the result of the operation.
+     */
     private String bounded(String value) {
         if (value == null) {
             return "DDC publish failed";
@@ -831,40 +1209,218 @@ public class GatewayReleaseService {
         return value.length() <= 1024 ? value : value.substring(0, 1024);
     }
 
+    /**
+     * 中文说明：{@code PreparedRelease} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责Prepared发布相关的职责与边界。
+     * English summary: {@code PreparedRelease} is an immutable data carrier in the current Gateway module; it owns the prepared release-related responsibility and boundary.
+     *
+     * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+     * @param release 参数 发布；parameter release。
+     * @param compiled 参数 compiled；parameter compiled。
+     * @param attemptNo 参数 attemptNo；parameter attempt no。
+     */
     private record PreparedRelease(
+            /**
+             * 中文说明：保存 发布 对应的状态、依赖或配置值；字段类型为 {@code GatewayReleaseStore.ReleaseRecord}，由 {@code GatewayReleaseService.PreparedRelease} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by release; its type is {@code GatewayReleaseStore.ReleaseRecord}, and {@code GatewayReleaseService.PreparedRelease} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.PreparedRelease} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.PreparedRelease}; do not couple callers to its representation when the owning type exposes an API.
+             */
             GatewayReleaseStore.ReleaseRecord release,
+            /**
+             * 中文说明：保存 compiled 对应的状态、依赖或配置值；字段类型为 {@code CompiledGatewayRelease}，由 {@code GatewayReleaseService.PreparedRelease} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by compiled; its type is {@code CompiledGatewayRelease}, and {@code GatewayReleaseService.PreparedRelease} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.PreparedRelease} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.PreparedRelease}; do not couple callers to its representation when the owning type exposes an API.
+             */
             CompiledGatewayRelease compiled,
+            /**
+             * 中文说明：保存 attemptNo 对应的状态、依赖或配置值；字段类型为 {@code int}，由 {@code GatewayReleaseService.PreparedRelease} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by attempt no; its type is {@code int}, and {@code GatewayReleaseService.PreparedRelease} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.PreparedRelease} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.PreparedRelease}; do not couple callers to its representation when the owning type exposes an API.
+             */
             int attemptNo
     ) {
     }
 
+    /**
+     * 中文说明：{@code CreateRelease} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责Create发布相关的职责与边界。
+     * English summary: {@code CreateRelease} is an immutable data carrier in the current Gateway module; it owns the create release-related responsibility and boundary.
+     *
+     * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+     * @param expectedDraftRevision 参数 expected草稿Revision；parameter expected draft revision。
+     * @param changeReason 参数 changeReason；parameter change reason。
+     */
     public record CreateRelease(
+            /**
+             * 中文说明：保存 expected草稿Revision 对应的状态、依赖或配置值；字段类型为 {@code long}，由 {@code GatewayReleaseService.CreateRelease} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by expected draft revision; its type is {@code long}, and {@code GatewayReleaseService.CreateRelease} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.CreateRelease} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.CreateRelease}; do not couple callers to its representation when the owning type exposes an API.
+             */
             long expectedDraftRevision,
+            /**
+             * 中文说明：保存 changeReason 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayReleaseService.CreateRelease} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by change reason; its type is {@code String}, and {@code GatewayReleaseService.CreateRelease} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.CreateRelease} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.CreateRelease}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String changeReason
     ) {
     }
 
+    /**
+     * 中文说明：{@code RollbackRelease} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责Rollback发布相关的职责与边界。
+     * English summary: {@code RollbackRelease} is an immutable data carrier in the current Gateway module; it owns the rollback release-related responsibility and boundary.
+     *
+     * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+     * @param sourceReleaseId 参数 source发布Id；parameter source release id。
+     * @param expectedDraftRevision 参数 expected草稿Revision；parameter expected draft revision。
+     * @param changeReason 参数 changeReason；parameter change reason。
+     */
     public record RollbackRelease(
+            /**
+             * 中文说明：保存 source发布Id 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayReleaseService.RollbackRelease} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by source release id; its type is {@code String}, and {@code GatewayReleaseService.RollbackRelease} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.RollbackRelease} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.RollbackRelease}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String sourceReleaseId,
+            /**
+             * 中文说明：保存 expected草稿Revision 对应的状态、依赖或配置值；字段类型为 {@code long}，由 {@code GatewayReleaseService.RollbackRelease} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by expected draft revision; its type is {@code long}, and {@code GatewayReleaseService.RollbackRelease} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.RollbackRelease} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.RollbackRelease}; do not couple callers to its representation when the owning type exposes an API.
+             */
             long expectedDraftRevision,
+            /**
+             * 中文说明：保存 changeReason 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayReleaseService.RollbackRelease} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by change reason; its type is {@code String}, and {@code GatewayReleaseService.RollbackRelease} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.RollbackRelease} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.RollbackRelease}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String changeReason
     ) {
     }
 
+    /**
+     * 中文说明：{@code ReleaseView} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责发布View相关的职责与边界。
+     * English summary: {@code ReleaseView} is an immutable data carrier in the current Gateway module; it owns the release view-related responsibility and boundary.
+     *
+     * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+     * @param releaseId 参数 发布Id；parameter release id。
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @param draftRevision 参数 草稿Revision；parameter draft revision。
+     * @param basedOnReleaseId 参数 basedOn发布Id；parameter based on release id。
+     * @param rollbackOfReleaseId 参数 rollbackOf发布Id；parameter rollback of release id。
+     * @param status 参数 status；parameter status。
+     * @param partialApplied 参数 partialApplied；parameter partial applied。
+     * @param changeId 参数 changeId；parameter change id。
+     * @param validationReport 参数 validation报告；parameter validation report。
+     * @param structuredDiff 参数 structuredDiff；parameter structured diff。
+     * @param changeReason 参数 changeReason；parameter change reason。
+     * @param createdAt 参数 createdAt；parameter created at。
+     * @param updatedAt 参数 updatedAt；parameter updated at。
+     * @param attempts 参数 attempts；parameter attempts。
+     */
     public record ReleaseView(
+            /**
+             * 中文说明：保存 发布Id 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayReleaseService.ReleaseView} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by release id; its type is {@code String}, and {@code GatewayReleaseService.ReleaseView} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.ReleaseView} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.ReleaseView}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String releaseId,
+            /**
+             * 中文说明：保存 网关GroupId 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayReleaseService.ReleaseView} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by gateway group id; its type is {@code String}, and {@code GatewayReleaseService.ReleaseView} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.ReleaseView} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.ReleaseView}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String gatewayGroupId,
+            /**
+             * 中文说明：保存 草稿Revision 对应的状态、依赖或配置值；字段类型为 {@code long}，由 {@code GatewayReleaseService.ReleaseView} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by draft revision; its type is {@code long}, and {@code GatewayReleaseService.ReleaseView} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.ReleaseView} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.ReleaseView}; do not couple callers to its representation when the owning type exposes an API.
+             */
             long draftRevision,
+            /**
+             * 中文说明：保存 basedOn发布Id 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayReleaseService.ReleaseView} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by based on release id; its type is {@code String}, and {@code GatewayReleaseService.ReleaseView} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.ReleaseView} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.ReleaseView}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String basedOnReleaseId,
+            /**
+             * 中文说明：保存 rollbackOf发布Id 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayReleaseService.ReleaseView} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by rollback of release id; its type is {@code String}, and {@code GatewayReleaseService.ReleaseView} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.ReleaseView} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.ReleaseView}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String rollbackOfReleaseId,
+            /**
+             * 中文说明：保存 status 对应的状态、依赖或配置值；字段类型为 {@code GatewayReleaseStatus}，由 {@code GatewayReleaseService.ReleaseView} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by status; its type is {@code GatewayReleaseStatus}, and {@code GatewayReleaseService.ReleaseView} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.ReleaseView} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.ReleaseView}; do not couple callers to its representation when the owning type exposes an API.
+             */
             GatewayReleaseStatus status,
+            /**
+             * 中文说明：保存 partialApplied 对应的状态、依赖或配置值；字段类型为 {@code boolean}，由 {@code GatewayReleaseService.ReleaseView} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by partial applied; its type is {@code boolean}, and {@code GatewayReleaseService.ReleaseView} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.ReleaseView} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.ReleaseView}; do not couple callers to its representation when the owning type exposes an API.
+             */
             boolean partialApplied,
+            /**
+             * 中文说明：保存 changeId 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayReleaseService.ReleaseView} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by change id; its type is {@code String}, and {@code GatewayReleaseService.ReleaseView} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.ReleaseView} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.ReleaseView}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String changeId,
+            /**
+             * 中文说明：保存 validation报告 对应的状态、依赖或配置值；字段类型为 {@code Map<String, Object>}，由 {@code GatewayReleaseService.ReleaseView} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by validation report; its type is {@code Map<String, Object>}, and {@code GatewayReleaseService.ReleaseView} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.ReleaseView} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.ReleaseView}; do not couple callers to its representation when the owning type exposes an API.
+             */
             Map<String, Object> validationReport,
+            /**
+             * 中文说明：保存 structuredDiff 对应的状态、依赖或配置值；字段类型为 {@code Map<String, Object>}，由 {@code GatewayReleaseService.ReleaseView} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by structured diff; its type is {@code Map<String, Object>}, and {@code GatewayReleaseService.ReleaseView} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.ReleaseView} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.ReleaseView}; do not couple callers to its representation when the owning type exposes an API.
+             */
             Map<String, Object> structuredDiff,
+            /**
+             * 中文说明：保存 changeReason 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayReleaseService.ReleaseView} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by change reason; its type is {@code String}, and {@code GatewayReleaseService.ReleaseView} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.ReleaseView} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.ReleaseView}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String changeReason,
+            /**
+             * 中文说明：保存 createdAt 对应的状态、依赖或配置值；字段类型为 {@code Instant}，由 {@code GatewayReleaseService.ReleaseView} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by created at; its type is {@code Instant}, and {@code GatewayReleaseService.ReleaseView} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.ReleaseView} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.ReleaseView}; do not couple callers to its representation when the owning type exposes an API.
+             */
             Instant createdAt,
+            /**
+             * 中文说明：保存 updatedAt 对应的状态、依赖或配置值；字段类型为 {@code Instant}，由 {@code GatewayReleaseService.ReleaseView} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by updated at; its type is {@code Instant}, and {@code GatewayReleaseService.ReleaseView} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.ReleaseView} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.ReleaseView}; do not couple callers to its representation when the owning type exposes an API.
+             */
             Instant updatedAt,
+            /**
+             * 中文说明：保存 attempts 对应的状态、依赖或配置值；字段类型为 {@code List<GatewayReleaseStore.AttemptRecord>}，由 {@code GatewayReleaseService.ReleaseView} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by attempts; its type is {@code List<GatewayReleaseStore.AttemptRecord>}, and {@code GatewayReleaseService.ReleaseView} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayReleaseService.ReleaseView} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleaseService.ReleaseView}; do not couple callers to its representation when the owning type exposes an API.
+             */
             List<GatewayReleaseStore.AttemptRecord> attempts
     ) {
     }

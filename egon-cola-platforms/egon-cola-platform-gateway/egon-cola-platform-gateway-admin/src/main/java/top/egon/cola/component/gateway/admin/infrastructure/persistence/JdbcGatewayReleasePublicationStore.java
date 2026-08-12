@@ -15,16 +15,42 @@ import java.util.Optional;
 import static top.egon.cola.component.gateway.admin.infrastructure.persistence
         .JdbcGatewayParameters.timestamp;
 
+/**
+ * 中文说明：{@code JdbcGatewayReleasePublicationStore} 是存储组件，位于当前 Gateway 模块的相关包中，负责Jdbc网关发布Publication存储相关的职责与边界。
+ * English summary: {@code JdbcGatewayReleasePublicationStore} is a jdbc gateway release publication store store in the current Gateway module; it owns the jdbc gateway release publication store-related responsibility and boundary.
+ *
+ * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+ */
 @Repository
 public class JdbcGatewayReleasePublicationStore
         implements GatewayReleasePublicationStore {
 
+    /**
+     * 中文说明：保存 jdbc 对应的状态、依赖或配置值；字段类型为 {@code JdbcTemplate}，由 {@code JdbcGatewayReleasePublicationStore} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by jdbc; its type is {@code JdbcTemplate}, and {@code JdbcGatewayReleasePublicationStore} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code JdbcGatewayReleasePublicationStore} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayReleasePublicationStore}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final JdbcTemplate jdbc;
 
+    /**
+     * 中文说明：创建 {@code JdbcGatewayReleasePublicationStore} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+     * English summary: Creates an instance of {@code JdbcGatewayReleasePublicationStore} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+     *
+     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+     * @param jdbc 参数 jdbc；parameter jdbc。
+     */
     public JdbcGatewayReleasePublicationStore(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
 
+    /**
+     * 中文说明：执行 insertAll 操作；该方法是 {@code JdbcGatewayReleasePublicationStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the insert all operation; this method is the invocation entry point on {@code JdbcGatewayReleasePublicationStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleasePublicationStore.insertAll(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param operations 参数 operations；parameter operations。
+     */
     @Override
     @Transactional
     public void insertAll(List<PublicationRecord> operations) {
@@ -36,6 +62,15 @@ public class JdbcGatewayReleasePublicationStore
         operations.forEach(this::insert);
     }
 
+    /**
+     * 中文说明：执行 findAttempt 操作；该方法是 {@code JdbcGatewayReleasePublicationStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the find attempt operation; this method is the invocation entry point on {@code JdbcGatewayReleasePublicationStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleasePublicationStore.findAttempt(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param releaseId 参数 发布Id；parameter release id。
+     * @param attemptNo 参数 attemptNo；parameter attempt no。
+     * @return 返回 findAttempt 的处理结果；returns the result of the operation.
+     */
     @Override
     public List<PublicationRecord> findAttempt(
             String releaseId,
@@ -53,6 +88,15 @@ public class JdbcGatewayReleasePublicationStore
                 releaseId, attemptNo);
     }
 
+    /**
+     * 中文说明：执行 nextIncomplete 操作；该方法是 {@code JdbcGatewayReleasePublicationStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the next incomplete operation; this method is the invocation entry point on {@code JdbcGatewayReleasePublicationStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleasePublicationStore.nextIncomplete(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param releaseId 参数 发布Id；parameter release id。
+     * @param attemptNo 参数 attemptNo；parameter attempt no。
+     * @return 返回 nextIncomplete 的处理结果；returns the result of the operation.
+     */
     @Override
     public Optional<PublicationRecord> nextIncomplete(
             String releaseId,
@@ -72,6 +116,14 @@ public class JdbcGatewayReleasePublicationStore
                 releaseId, attemptNo).stream().findFirst();
     }
 
+    /**
+     * 中文说明：执行 findChunkCleanupCandidates 操作；该方法是 {@code JdbcGatewayReleasePublicationStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the find chunk cleanup candidates operation; this method is the invocation entry point on {@code JdbcGatewayReleasePublicationStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleasePublicationStore.findChunkCleanupCandidates(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param successorActivatedBefore 参数 successorActivatedBefore；parameter successor activated before。
+     * @return 返回 findChunkCleanupCandidates 的处理结果；returns the result of the operation.
+     */
     @Override
     public List<ChunkCleanupCandidate> findChunkCleanupCandidates(
             Instant successorActivatedBefore) {
@@ -128,6 +180,16 @@ public class JdbcGatewayReleasePublicationStore
         ), timestamp(successorActivatedBefore));
     }
 
+    /**
+     * 中文说明：执行 resolveDocument 操作；该方法是 {@code JdbcGatewayReleasePublicationStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the resolve document operation; this method is the invocation entry point on {@code JdbcGatewayReleasePublicationStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleasePublicationStore.resolveDocument(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param changeId 参数 changeId；parameter change id。
+     * @param expectedVersion 参数 expectedVersion；parameter expected version。
+     * @param documentContent 参数 documentContent；parameter document content。
+     * @param now 参数 now；parameter now。
+     */
     @Override
     public void resolveDocument(
             String changeId,
@@ -157,6 +219,14 @@ public class JdbcGatewayReleasePublicationStore
         );
     }
 
+    /**
+     * 中文说明：执行 markSubmitted 操作；该方法是 {@code JdbcGatewayReleasePublicationStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the mark submitted operation; this method is the invocation entry point on {@code JdbcGatewayReleasePublicationStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleasePublicationStore.markSubmitted(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param changeId 参数 changeId；parameter change id。
+     * @param now 参数 now；parameter now。
+     */
     @Override
     public void markSubmitted(String changeId, Instant now) {
         int changed = jdbc.update("""
@@ -171,6 +241,18 @@ public class JdbcGatewayReleasePublicationStore
         );
     }
 
+    /**
+     * 中文说明：执行 markResult 操作；该方法是 {@code JdbcGatewayReleasePublicationStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the mark result operation; this method is the invocation entry point on {@code JdbcGatewayReleasePublicationStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleasePublicationStore.markResult(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param changeId 参数 changeId；parameter change id。
+     * @param targetVersion 参数 targetVersion；parameter target version。
+     * @param status 参数 status；parameter status。
+     * @param errorCode 参数 errorCode；parameter error code。
+     * @param errorMessage 参数 error消息；parameter error message。
+     * @param now 参数 now；parameter now。
+     */
     @Override
     public void markResult(
             String changeId,
@@ -208,6 +290,14 @@ public class JdbcGatewayReleasePublicationStore
         requireChanged(changed, "publication result cannot be recorded");
     }
 
+    /**
+     * 中文说明：执行 markChunkCleaned 操作；该方法是 {@code JdbcGatewayReleasePublicationStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the mark chunk cleaned operation; this method is the invocation entry point on {@code JdbcGatewayReleasePublicationStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleasePublicationStore.markChunkCleaned(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param changeId 参数 changeId；parameter change id。
+     * @param now 参数 now；parameter now。
+     */
     @Override
     public void markChunkCleaned(String changeId, Instant now) {
         int changed = jdbc.update("""
@@ -221,6 +311,13 @@ public class JdbcGatewayReleasePublicationStore
         requireChanged(changed, "cleaned chunk publication was not found");
     }
 
+    /**
+     * 中文说明：执行 insert 操作；该方法是 {@code JdbcGatewayReleasePublicationStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the insert operation; this method is the invocation entry point on {@code JdbcGatewayReleasePublicationStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleasePublicationStore.insert(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param operation 参数 操作；parameter operation。
+     */
     private void insert(PublicationRecord operation) {
         if (operation == null) {
             throw new IllegalArgumentException(
@@ -254,6 +351,14 @@ public class JdbcGatewayReleasePublicationStore
         );
     }
 
+    /**
+     * 中文说明：执行 publication 操作；该方法是 {@code JdbcGatewayReleasePublicationStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the publication operation; this method is the invocation entry point on {@code JdbcGatewayReleasePublicationStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleasePublicationStore.publication(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param result 参数 result；parameter result。
+     * @return 返回 publication 的处理结果；returns the result of the operation.
+     */
     private PublicationRecord publication(ResultSet result)
             throws SQLException {
         return new PublicationRecord(
@@ -275,6 +380,14 @@ public class JdbcGatewayReleasePublicationStore
         );
     }
 
+    /**
+     * 中文说明：执行 requireChanged 操作；该方法是 {@code JdbcGatewayReleasePublicationStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the require changed operation; this method is the invocation entry point on {@code JdbcGatewayReleasePublicationStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleasePublicationStore.requireChanged(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param changed 参数 changed；parameter changed。
+     * @param message 参数 消息；parameter message。
+     */
     private void requireChanged(int changed, String message) {
         if (changed != 1) {
             throw new IllegalStateException(message);

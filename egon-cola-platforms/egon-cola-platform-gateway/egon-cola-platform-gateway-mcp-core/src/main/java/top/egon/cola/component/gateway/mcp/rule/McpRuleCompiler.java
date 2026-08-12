@@ -20,12 +20,35 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 
+/**
+ * 中文说明：{@code McpRuleCompiler} 是编译器，位于当前 Gateway 模块的相关包中，负责MCP规则Compiler相关的职责与边界。
+ * English summary: {@code McpRuleCompiler} is a mcp rule compiler compiler in the current Gateway module; it owns the mcp rule compiler-related responsibility and boundary.
+ *
+ * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+ */
 public final class McpRuleCompiler {
 
+    /**
+     * 中文说明：执行 compile 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the compile operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.compile(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param content 参数 content；parameter content。
+     * @return 返回 compile 的处理结果；returns the result of the operation.
+     */
     public CompiledMcpRules compile(McpRuleContent content) {
         return compile(content, null);
     }
 
+    /**
+     * 中文说明：执行 compile 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the compile operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.compile(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param content 参数 content；parameter content。
+     * @param operationIds 参数 操作Ids；parameter operation ids。
+     * @return 返回 compile 的处理结果；returns the result of the operation.
+     */
     public CompiledMcpRules compile(
             McpRuleContent content,
             Set<String> operationIds) {
@@ -110,6 +133,17 @@ public final class McpRuleCompiler {
         }
     }
 
+    /**
+     * 中文说明：执行 compileTools 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the compile tools operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.compileTools(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param content 参数 content；parameter content。
+     * @param servers 参数 servers；parameter servers。
+     * @param operationIds 参数 操作Ids；parameter operation ids。
+     * @param mounts 参数 mounts；parameter mounts。
+     * @return 返回 compileTools 的处理结果；returns the result of the operation.
+     */
     private Map<String, McpRuntimeTool> compileTools(
             McpRuleContent content,
             Map<String, McpRuntimeServer> servers,
@@ -136,6 +170,13 @@ public final class McpRuleCompiler {
         return tools;
     }
 
+    /**
+     * 中文说明：执行 validate工具Invocation 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate tool invocation operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.validateToolInvocation(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param tool 参数 工具；parameter tool。
+     */
     private void validateToolInvocation(McpRuntimeTool tool) {
         if (tool.operationId() == null) {
             if (tool.operationProtocol() != null) {
@@ -153,6 +194,17 @@ public final class McpRuleCompiler {
         }
     }
 
+    /**
+     * 中文说明：执行 compileResources 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the compile resources operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.compileResources(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param content 参数 content；parameter content。
+     * @param servers 参数 servers；parameter servers。
+     * @param operationIds 参数 操作Ids；parameter operation ids。
+     * @param mounts 参数 mounts；parameter mounts。
+     * @return 返回 compileResources 的处理结果；returns the result of the operation.
+     */
     private Map<String, McpRuntimeResource> compileResources(
             McpRuleContent content,
             Map<String, McpRuntimeServer> servers,
@@ -182,6 +234,17 @@ public final class McpRuleCompiler {
         return resources;
     }
 
+    /**
+     * 中文说明：执行 compileTemplates 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the compile templates operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.compileTemplates(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param content 参数 content；parameter content。
+     * @param servers 参数 servers；parameter servers。
+     * @param operationIds 参数 操作Ids；parameter operation ids。
+     * @param mounts 参数 mounts；parameter mounts。
+     * @return 返回 compileTemplates 的处理结果；returns the result of the operation.
+     */
     private Map<String, McpRuntimeResourceTemplate> compileTemplates(
             McpRuleContent content,
             Map<String, McpRuntimeServer> servers,
@@ -215,6 +278,17 @@ public final class McpRuleCompiler {
         return templates;
     }
 
+    /**
+     * 中文说明：执行 compilePrompts 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the compile prompts operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.compilePrompts(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param content 参数 content；parameter content。
+     * @param servers 参数 servers；parameter servers。
+     * @param operationIds 参数 操作Ids；parameter operation ids。
+     * @param mounts 参数 mounts；parameter mounts。
+     * @return 返回 compilePrompts 的处理结果；returns the result of the operation.
+     */
     private Map<String, McpRuntimePrompt> compilePrompts(
             McpRuleContent content,
             Map<String, McpRuntimeServer> servers,
@@ -240,6 +314,16 @@ public final class McpRuleCompiler {
         return prompts;
     }
 
+    /**
+     * 中文说明：执行 compile任务Policies 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the compile task policies operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.compileTaskPolicies(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param content 参数 content；parameter content。
+     * @param servers 参数 servers；parameter servers。
+     * @param tools 参数 tools；parameter tools。
+     * @return 返回 compile任务Policies 的处理结果；returns the result of the operation.
+     */
     private Map<String, McpRuntimeTaskPolicy> compileTaskPolicies(
             McpRuleContent content,
             Map<String, McpRuntimeServer> servers,
@@ -265,6 +349,16 @@ public final class McpRuleCompiler {
         return policies;
     }
 
+    /**
+     * 中文说明：执行 compileApps 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the compile apps operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.compileApps(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param content 参数 content；parameter content。
+     * @param servers 参数 servers；parameter servers。
+     * @param tools 参数 tools；parameter tools。
+     * @return 返回 compileApps 的处理结果；returns the result of the operation.
+     */
     private Map<String, McpRuntimeApp> compileApps(
             McpRuleContent content,
             Map<String, McpRuntimeServer> servers,
@@ -291,6 +385,15 @@ public final class McpRuleCompiler {
         return apps;
     }
 
+    /**
+     * 中文说明：执行 validateMounts 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate mounts operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.validateMounts(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param mounts 参数 mounts；parameter mounts。
+     * @param servers 参数 servers；parameter servers。
+     * @param providers 参数 providers；parameter providers。
+     */
     private void validateMounts(
             List<McpRuntimeRemoteMount> mounts,
             Map<String, McpRuntimeServer> servers,
@@ -342,6 +445,13 @@ public final class McpRuleCompiler {
         });
     }
 
+    /**
+     * 中文说明：执行 validate提供方 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate provider operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.validateProvider(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param provider 参数 提供方；parameter provider。
+     */
     private void validateProvider(McpRuntimeRemoteProvider provider) {
         String transport = provider.transportType().toUpperCase(Locale.ROOT);
         if (!Set.of(
@@ -369,6 +479,15 @@ public final class McpRuleCompiler {
         }
     }
 
+    /**
+     * 中文说明：执行 requirePrimitive 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the require primitive operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.requirePrimitive(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param mounts 参数 mounts；parameter mounts。
+     * @param mountId 参数 mountId；parameter mount id。
+     * @param primitiveType 参数 primitiveType；parameter primitive type。
+     */
     private void requirePrimitive(
             Map<String, McpRuntimeRemoteMount> mounts,
             String mountId,
@@ -385,6 +504,17 @@ public final class McpRuleCompiler {
         }
     }
 
+    /**
+     * 中文说明：执行 validateBinding 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate binding operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.validateBinding(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param capability 参数 capability；parameter capability。
+     * @param operationId 参数 操作Id；parameter operation id。
+     * @param remoteMountId 参数 远程MountId；parameter remote mount id。
+     * @param operationIds 参数 操作Ids；parameter operation ids。
+     * @param mounts 参数 mounts；parameter mounts。
+     */
     private void validateBinding(
             String capability,
             String operationId,
@@ -405,6 +535,17 @@ public final class McpRuleCompiler {
         );
     }
 
+    /**
+     * 中文说明：执行 validateOptionalBinding 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the validate optional binding operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.validateOptionalBinding(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param capability 参数 capability；parameter capability。
+     * @param operationId 参数 操作Id；parameter operation id。
+     * @param remoteMountId 参数 远程MountId；parameter remote mount id。
+     * @param operationIds 参数 操作Ids；parameter operation ids。
+     * @param mounts 参数 mounts；parameter mounts。
+     */
     private void validateOptionalBinding(
             String capability,
             String operationId,
@@ -433,6 +574,15 @@ public final class McpRuleCompiler {
         }
     }
 
+    /**
+     * 中文说明：执行 require服务器 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the require server operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.requireServer(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param servers 参数 servers；parameter servers。
+     * @param serverCode 参数 服务器Code；parameter server code。
+     * @param capability 参数 capability；parameter capability。
+     */
     private void requireServer(
             Map<String, McpRuntimeServer> servers,
             String serverCode,
@@ -445,6 +595,17 @@ public final class McpRuleCompiler {
         }
     }
 
+    /**
+     * 中文说明：执行 qualified索引 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the qualified index operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.qualifiedIndex(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param values 参数 values；parameter values。
+     * @param serverCode 参数 服务器Code；parameter server code。
+     * @param name 参数 name；parameter name。
+     * @param label 参数 label；parameter label。
+     * @return 返回 qualified索引 的处理结果；returns the result of the operation.
+     */
     private <T> Map<String, T> qualifiedIndex(
             List<T> values,
             Function<T, String> serverCode,
@@ -460,6 +621,16 @@ public final class McpRuleCompiler {
         );
     }
 
+    /**
+     * 中文说明：执行 索引 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the index operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.index(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param values 参数 values；parameter values。
+     * @param key 参数 键；parameter key。
+     * @param label 参数 label；parameter label。
+     * @return 返回 索引 的处理结果；returns the result of the operation.
+     */
     private <T> Map<String, T> index(
             List<T> values,
             Function<T, String> key,
@@ -474,6 +645,14 @@ public final class McpRuleCompiler {
         return Map.copyOf(indexed);
     }
 
+    /**
+     * 中文说明：执行 invalid 操作；该方法是 {@code McpRuleCompiler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the invalid operation; this method is the invocation entry point on {@code McpRuleCompiler} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpRuleCompiler.invalid(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param detail 参数 detail；parameter detail。
+     * @return 返回 invalid 的处理结果；returns the result of the operation.
+     */
     private IllegalArgumentException invalid(String detail) {
         String message = detail == null ? "invalid MCP rule" : detail;
         return new IllegalArgumentException(

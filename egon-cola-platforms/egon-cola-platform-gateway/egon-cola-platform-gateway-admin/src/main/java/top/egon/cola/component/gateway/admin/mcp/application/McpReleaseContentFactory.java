@@ -41,33 +41,121 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * 中文说明：{@code McpReleaseContentFactory} 是工厂，位于当前 Gateway 模块的相关包中，负责MCP发布Content工厂相关的职责与边界。
+ * English summary: {@code McpReleaseContentFactory} is a mcp release content factory factory in the current Gateway module; it owns the mcp release content factory-related responsibility and boundary.
+ *
+ * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+ */
 @Service
 public class McpReleaseContentFactory {
 
+    /**
+     * 中文说明：表示 RISKLEVELS 这一固定值；它属于 {@code McpReleaseContentFactory} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
+     * English summary: Represents the fixed value risk levels; it is a state, type, or protocol value of {@code McpReleaseContentFactory} and keeps callers aligned with the owning type.
+     *
+     * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private static final List<String> RISK_LEVELS = List.of(
             "LOW", "MEDIUM", "HIGH", "CRITICAL"
     );
 
+    /**
+     * 中文说明：保存 servers 对应的状态、依赖或配置值；字段类型为 {@code McpServerRepository}，由 {@code McpReleaseContentFactory} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by servers; its type is {@code McpServerRepository}, and {@code McpReleaseContentFactory} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final McpServerRepository servers;
 
+    /**
+     * 中文说明：保存 capabilities 对应的状态、依赖或配置值；字段类型为 {@code JdbcMcpCapabilityDraftStore}，由 {@code McpReleaseContentFactory} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by capabilities; its type is {@code JdbcMcpCapabilityDraftStore}, and {@code McpReleaseContentFactory} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final JdbcMcpCapabilityDraftStore capabilities;
 
+    /**
+     * 中文说明：保存 managedOverrides 对应的状态、依赖或配置值；字段类型为 {@code JdbcMcpManagedToolOverrideStore}，由 {@code McpReleaseContentFactory} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by managed overrides; its type is {@code JdbcMcpManagedToolOverrideStore}, and {@code McpReleaseContentFactory} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final JdbcMcpManagedToolOverrideStore managedOverrides;
 
+    /**
+     * 中文说明：保存 远程Tools 对应的状态、依赖或配置值；字段类型为 {@code JdbcMcpRemoteToolDraftStore}，由 {@code McpReleaseContentFactory} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by remote tools; its type is {@code JdbcMcpRemoteToolDraftStore}, and {@code McpReleaseContentFactory} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final JdbcMcpRemoteToolDraftStore remoteTools;
 
+    /**
+     * 中文说明：保存 远程 对应的状态、依赖或配置值；字段类型为 {@code JdbcMcpRemoteProviderStore}，由 {@code McpReleaseContentFactory} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by remote; its type is {@code JdbcMcpRemoteProviderStore}, and {@code McpReleaseContentFactory} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final JdbcMcpRemoteProviderStore remote;
 
+    /**
+     * 中文说明：保存 artifacts 对应的状态、依赖或配置值；字段类型为 {@code JdbcMcpArtifactMetadataStore}，由 {@code McpReleaseContentFactory} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by artifacts; its type is {@code JdbcMcpArtifactMetadataStore}, and {@code McpReleaseContentFactory} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final JdbcMcpArtifactMetadataStore artifacts;
 
+    /**
+     * 中文说明：保存 drafts 对应的状态、依赖或配置值；字段类型为 {@code GatewayDraftRepository}，由 {@code McpReleaseContentFactory} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by drafts; its type is {@code GatewayDraftRepository}, and {@code McpReleaseContentFactory} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayDraftRepository drafts;
 
+    /**
+     * 中文说明：保存 目录 对应的状态、依赖或配置值；字段类型为 {@code GatewayCatalogStore}，由 {@code McpReleaseContentFactory} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by catalog; its type is {@code GatewayCatalogStore}, and {@code McpReleaseContentFactory} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayCatalogStore catalog;
 
+    /**
+     * 中文说明：保存 validation 对应的状态、依赖或配置值；字段类型为 {@code McpValidationService}，由 {@code McpReleaseContentFactory} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by validation; its type is {@code McpValidationService}, and {@code McpReleaseContentFactory} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final McpValidationService validation;
 
+    /**
+     * 中文说明：保存 object映射器 对应的状态、依赖或配置值；字段类型为 {@code ObjectMapper}，由 {@code McpReleaseContentFactory} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by object mapper; its type is {@code ObjectMapper}, and {@code McpReleaseContentFactory} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final ObjectMapper objectMapper;
 
+    /**
+     * 中文说明：创建 {@code McpReleaseContentFactory} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+     * English summary: Creates an instance of {@code McpReleaseContentFactory} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+     *
+     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+     * @param servers 参数 servers；parameter servers。
+     * @param capabilities 参数 capabilities；parameter capabilities。
+     * @param managedOverrides 参数 managedOverrides；parameter managed overrides。
+     * @param remoteTools 参数 远程Tools；parameter remote tools。
+     * @param remote 参数 远程；parameter remote。
+     * @param artifacts 参数 artifacts；parameter artifacts。
+     * @param drafts 参数 drafts；parameter drafts。
+     * @param catalog 参数 目录；parameter catalog。
+     * @param validation 参数 validation；parameter validation。
+     * @param objectMapper 参数 object映射器；parameter object mapper。
+     */
     public McpReleaseContentFactory(
             McpServerRepository servers,
             JdbcMcpCapabilityDraftStore capabilities,
@@ -91,6 +179,15 @@ public class McpReleaseContentFactory {
         this.objectMapper = objectMapper.copy();
     }
 
+    /**
+     * 中文说明：执行 compileFor发布 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the compile for release operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.compileForRelease(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @param expectedDraftRevision 参数 expected草稿Revision；parameter expected draft revision。
+     * @return 返回 compileFor发布 的处理结果；returns the result of the operation.
+     */
     @Transactional(readOnly = true)
     public McpRuleContent compileForRelease(
             String gatewayGroupId,
@@ -105,11 +202,27 @@ public class McpReleaseContentFactory {
         return content;
     }
 
+    /**
+     * 中文说明：执行 preview 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the preview operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.preview(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @return 返回 preview 的处理结果；returns the result of the operation.
+     */
     @Transactional(readOnly = true)
     public McpRuleContent preview(String gatewayGroupId) {
         return create(gatewayGroupId);
     }
 
+    /**
+     * 中文说明：执行 managedTools 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the managed tools operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.managedTools(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @return 返回 managedTools 的处理结果；returns the result of the operation.
+     */
     @Transactional(readOnly = true)
     public List<ManagedToolProjection> managedTools(String gatewayGroupId) {
         List<McpServerEntity> serverEntities = servers
@@ -119,6 +232,14 @@ public class McpReleaseContentFactory {
         return managedTools(gatewayGroupId, serverEntities);
     }
 
+    /**
+     * 中文说明：执行 create 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the create operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.create(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @return 返回 create 的处理结果；returns the result of the operation.
+     */
     private McpRuleContent create(String gatewayGroupId) {
         List<McpServerEntity> serverEntities = servers
                 .findAllByGatewayGroupIdAndDeletedFalseOrderByServerCode(
@@ -170,6 +291,16 @@ public class McpReleaseContentFactory {
         );
     }
 
+    /**
+     * 中文说明：执行 tools 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the tools operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.tools(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @param serverEntities 参数 服务器Entities；parameter server entities。
+     * @param serverById 参数 服务器ById；parameter server by id。
+     * @return 返回 tools 的处理结果；returns the result of the operation.
+     */
     private List<McpRuntimeTool> tools(
             String gatewayGroupId,
             List<McpServerEntity> serverEntities,
@@ -184,6 +315,15 @@ public class McpReleaseContentFactory {
         return List.copyOf(result);
     }
 
+    /**
+     * 中文说明：执行 managedTools 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the managed tools operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.managedTools(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @param serverEntities 参数 服务器Entities；parameter server entities。
+     * @return 返回 managedTools 的处理结果；returns the result of the operation.
+     */
     private List<ManagedToolProjection> managedTools(
             String gatewayGroupId,
             List<McpServerEntity> serverEntities) {
@@ -229,6 +369,19 @@ public class McpReleaseContentFactory {
         return List.copyOf(result);
     }
 
+    /**
+     * 中文说明：执行 managed工具 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the managed tool operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.managedTool(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @param current 参数 current；parameter current。
+     * @param exposure 参数 exposure；parameter exposure。
+     * @param serverById 参数 服务器ById；parameter server by id。
+     * @param serverByCode 参数 服务器ByCode；parameter server by code。
+     * @param overrideByOperationId 参数 overrideBy操作Id；parameter override by operation id。
+     * @return 返回 managed工具 的处理结果；returns the result of the operation.
+     */
     private ManagedToolProjection managedTool(
             String gatewayGroupId,
             GatewayCatalogStore.CurrentOperationDefinition current,
@@ -327,6 +480,14 @@ public class McpReleaseContentFactory {
         );
     }
 
+    /**
+     * 中文说明：执行 服务器 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the server operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.server(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param server 参数 服务器；parameter server。
+     * @return 返回 服务器 的处理结果；returns the result of the operation.
+     */
     private McpRuntimeServer server(McpServerEntity server) {
         return new McpRuntimeServer(
                 server.getId(),
@@ -343,6 +504,15 @@ public class McpReleaseContentFactory {
         );
     }
 
+    /**
+     * 中文说明：执行 远程工具 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the remote tool operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.remoteTool(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param draft 参数 草稿；parameter draft。
+     * @param serverById 参数 服务器ById；parameter server by id。
+     * @return 返回 远程工具 的处理结果；returns the result of the operation.
+     */
     private McpRuntimeTool remoteTool(
             JdbcMcpRemoteToolDraftStore.RemoteToolDraft draft,
             Map<String, McpServerEntity> serverById) {
@@ -366,6 +536,15 @@ public class McpReleaseContentFactory {
         );
     }
 
+    /**
+     * 中文说明：执行 资源 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the resource operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.resource(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param draft 参数 草稿；parameter draft。
+     * @param serverById 参数 服务器ById；parameter server by id。
+     * @return 返回 资源 的处理结果；returns the result of the operation.
+     */
     private McpRuntimeResource resource(
             JdbcMcpCapabilityDraftStore.CapabilityDraft draft,
             Map<String, McpServerEntity> serverById) {
@@ -387,6 +566,15 @@ public class McpReleaseContentFactory {
         );
     }
 
+    /**
+     * 中文说明：执行 模板 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the template operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.template(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param draft 参数 草稿；parameter draft。
+     * @param serverById 参数 服务器ById；parameter server by id。
+     * @return 返回 模板 的处理结果；returns the result of the operation.
+     */
     private McpRuntimeResourceTemplate template(
             JdbcMcpCapabilityDraftStore.CapabilityDraft draft,
             Map<String, McpServerEntity> serverById) {
@@ -408,6 +596,15 @@ public class McpReleaseContentFactory {
         );
     }
 
+    /**
+     * 中文说明：执行 提示词 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the prompt operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.prompt(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param draft 参数 草稿；parameter draft。
+     * @param serverById 参数 服务器ById；parameter server by id。
+     * @return 返回 提示词 的处理结果；returns the result of the operation.
+     */
     private McpRuntimePrompt prompt(
             JdbcMcpCapabilityDraftStore.CapabilityDraft draft,
             Map<String, McpServerEntity> serverById) {
@@ -427,6 +624,15 @@ public class McpReleaseContentFactory {
         );
     }
 
+    /**
+     * 中文说明：执行 任务策略 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the task policy operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.taskPolicy(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param draft 参数 草稿；parameter draft。
+     * @param serverById 参数 服务器ById；parameter server by id。
+     * @return 返回 任务策略 的处理结果；returns the result of the operation.
+     */
     private McpRuntimeTaskPolicy taskPolicy(
             JdbcMcpCapabilityDraftStore.CapabilityDraft draft,
             Map<String, McpServerEntity> serverById) {
@@ -444,6 +650,15 @@ public class McpReleaseContentFactory {
         );
     }
 
+    /**
+     * 中文说明：执行 app 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the app operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.app(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param draft 参数 草稿；parameter draft。
+     * @param serverById 参数 服务器ById；parameter server by id。
+     * @return 返回 app 的处理结果；returns the result of the operation.
+     */
     private McpRuntimeApp app(
             JdbcMcpCapabilityDraftStore.CapabilityDraft draft,
             Map<String, McpServerEntity> serverById) {
@@ -475,6 +690,14 @@ public class McpReleaseContentFactory {
         );
     }
 
+    /**
+     * 中文说明：执行 提供方 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the provider operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.provider(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param draft 参数 草稿；parameter draft。
+     * @return 返回 提供方 的处理结果；returns the result of the operation.
+     */
     private McpRuntimeRemoteProvider provider(
             JdbcMcpRemoteProviderStore.RemoteProviderDraft draft) {
         Map<String, Object> value = draft.content();
@@ -492,6 +715,16 @@ public class McpReleaseContentFactory {
         );
     }
 
+    /**
+     * 中文说明：执行 mount 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the mount operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.mount(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param draft 参数 草稿；parameter draft。
+     * @param serverById 参数 服务器ById；parameter server by id。
+     * @param providerById 参数 提供方ById；parameter provider by id。
+     * @return 返回 mount 的处理结果；returns the result of the operation.
+     */
     private McpRuntimeRemoteMount mount(
             JdbcMcpRemoteProviderStore.RemoteMountDraft draft,
             Map<String, McpServerEntity> serverById,
@@ -529,6 +762,15 @@ public class McpReleaseContentFactory {
         );
     }
 
+    /**
+     * 中文说明：执行 服务器Code 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the server code operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.serverCode(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param serverId 参数 服务器Id；parameter server id。
+     * @param serverById 参数 服务器ById；parameter server by id。
+     * @return 返回 服务器Code 的处理结果；returns the result of the operation.
+     */
     private String serverCode(
             String serverId,
             Map<String, McpServerEntity> serverById) {
@@ -543,12 +785,29 @@ public class McpReleaseContentFactory {
         return server.getServerCode();
     }
 
+    /**
+     * 中文说明：执行 description 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the description operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.description(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param definition 参数 定义；parameter definition。
+     * @return 返回 description 的处理结果；returns the result of the operation.
+     */
     private String description(
             GatewayCatalogStore.OperationDefinition definition) {
         String description = optional(definition.attributes(), "description");
         return description == null ? definition.summary() : description;
     }
 
+    /**
+     * 中文说明：执行 input模式 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the input schema operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.inputSchema(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param protocol 参数 protocol；parameter protocol。
+     * @param requestSchema 参数 请求模式；parameter request schema。
+     * @return 返回 input模式 的处理结果；returns the result of the operation.
+     */
     private String inputSchema(
             String protocol,
             Map<String, Object> requestSchema) {
@@ -558,6 +817,14 @@ public class McpReleaseContentFactory {
         return schema(requestSchema);
     }
 
+    /**
+     * 中文说明：执行 httpInput模式 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the http input schema operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.httpInputSchema(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param requestSchema 参数 请求模式；parameter request schema。
+     * @return 返回 httpInput模式 的处理结果；returns the result of the operation.
+     */
     private Map<String, Object> httpInputSchema(
             Map<String, Object> requestSchema) {
         if (requestSchema == null) {
@@ -592,6 +859,15 @@ public class McpReleaseContentFactory {
         return Map.copyOf(projected);
     }
 
+    /**
+     * 中文说明：执行 managed工具Id 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the managed tool id operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.managedToolId(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param serverCode 参数 服务器Code；parameter server code。
+     * @param operationKey 参数 操作键；parameter operation key。
+     * @return 返回 managed工具Id 的处理结果；returns the result of the operation.
+     */
     static String managedToolId(String serverCode, String operationKey) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -604,6 +880,15 @@ public class McpReleaseContentFactory {
         }
     }
 
+    /**
+     * 中文说明：执行 maximumRisk 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the maximum risk operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.maximumRisk(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param codeRisk 参数 codeRisk；parameter code risk。
+     * @param minimumRisk 参数 minimumRisk；parameter minimum risk。
+     * @return 返回 maximumRisk 的处理结果；returns the result of the operation.
+     */
     private String maximumRisk(String codeRisk, String minimumRisk) {
         int code = risk(codeRisk);
         if (minimumRisk == null) {
@@ -613,6 +898,14 @@ public class McpReleaseContentFactory {
         return code >= minimum ? codeRisk : minimumRisk;
     }
 
+    /**
+     * 中文说明：执行 risk 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the risk operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.risk(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 risk 的处理结果；returns the result of the operation.
+     */
     private int risk(String value) {
         int level = RISK_LEVELS.indexOf(value);
         if (level < 0) {
@@ -625,6 +918,15 @@ public class McpReleaseContentFactory {
         return level;
     }
 
+    /**
+     * 中文说明：执行 required 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the required operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.required(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @param key 参数 键；parameter key。
+     * @return 返回 required 的处理结果；returns the result of the operation.
+     */
     private String required(Map<String, Object> value, String key) {
         String result = optional(value, key);
         if (result == null) {
@@ -633,6 +935,15 @@ public class McpReleaseContentFactory {
         return result;
     }
 
+    /**
+     * 中文说明：执行 optional 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the optional operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.optional(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @param key 参数 键；parameter key。
+     * @return 返回 optional 的处理结果；returns the result of the operation.
+     */
     private String optional(Map<String, Object> value, String key) {
         Object result = value.get(key);
         return result == null || result.toString().isBlank()
@@ -640,6 +951,16 @@ public class McpReleaseContentFactory {
                 : result.toString().trim();
     }
 
+    /**
+     * 中文说明：执行 text 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the text operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.text(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @param key 参数 键；parameter key。
+     * @param defaultValue 参数 default值；parameter default value。
+     * @return 返回 text 的处理结果；returns the result of the operation.
+     */
     private String text(
             Map<String, Object> value,
             String key,
@@ -648,6 +969,16 @@ public class McpReleaseContentFactory {
         return result == null ? defaultValue : result;
     }
 
+    /**
+     * 中文说明：执行 bool 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the bool operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.bool(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @param key 参数 键；parameter key。
+     * @param defaultValue 参数 default值；parameter default value。
+     * @return 返回 bool 的处理结果；returns the result of the operation.
+     */
     private boolean bool(
             Map<String, Object> value,
             String key,
@@ -660,6 +991,16 @@ public class McpReleaseContentFactory {
                 : Boolean.parseBoolean(result.toString());
     }
 
+    /**
+     * 中文说明：执行 number 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the number operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.number(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @param key 参数 键；parameter key。
+     * @param defaultValue 参数 default值；parameter default value。
+     * @return 返回 number 的处理结果；returns the result of the operation.
+     */
     private long number(
             Map<String, Object> value,
             String key,
@@ -673,6 +1014,14 @@ public class McpReleaseContentFactory {
                 : Long.parseLong(result.toString());
     }
 
+    /**
+     * 中文说明：执行 strings 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the strings operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.strings(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 strings 的处理结果；returns the result of the operation.
+     */
     private Set<String> strings(Object value) {
         if (value == null) {
             return Set.of();
@@ -685,6 +1034,14 @@ public class McpReleaseContentFactory {
         return Set.copyOf(result);
     }
 
+    /**
+     * 中文说明：执行 stringMap 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the string map operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.stringMap(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 stringMap 的处理结果；returns the result of the operation.
+     */
     private Map<String, String> stringMap(Object value) {
         if (value == null) {
             return Map.of();
@@ -700,6 +1057,14 @@ public class McpReleaseContentFactory {
         return Map.copyOf(result);
     }
 
+    /**
+     * 中文说明：执行 objectMap 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the object map operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.objectMap(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 objectMap 的处理结果；returns the result of the operation.
+     */
     private Map<String, Object> objectMap(Object value) {
         if (value == null) {
             return Map.of();
@@ -712,6 +1077,14 @@ public class McpReleaseContentFactory {
         return Map.copyOf(result);
     }
 
+    /**
+     * 中文说明：执行 模式 操作；该方法是 {@code McpReleaseContentFactory} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the schema operation; this method is the invocation entry point on {@code McpReleaseContentFactory} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code McpReleaseContentFactory.schema(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 模式 的处理结果；returns the result of the operation.
+     */
     private String schema(Object value) {
         if (value == null) {
             return null;
@@ -729,17 +1102,100 @@ public class McpReleaseContentFactory {
         }
     }
 
+    /**
+     * 中文说明：{@code ManagedToolProjection} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责Managed工具投影相关的职责与边界。
+     * English summary: {@code ManagedToolProjection} is an immutable data carrier in the current Gateway module; it owns the managed tool projection-related responsibility and boundary.
+     *
+     * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @param operationKey 参数 操作键；parameter operation key。
+     * @param codeServerId 参数 code服务器Id；parameter code server id。
+     * @param codeServerCode 参数 code服务器Code；parameter code server code。
+     * @param serverId 参数 服务器Id；parameter server id。
+     * @param codePermissions 参数 codePermissions；parameter code permissions。
+     * @param additionalPermissions 参数 additionalPermissions；parameter additional permissions。
+     * @param codeRiskLevel 参数 codeRiskLevel；parameter code risk level。
+     * @param minimumRiskLevel 参数 minimumRiskLevel；parameter minimum risk level。
+     * @param overrideRevision 参数 overrideRevision；parameter override revision。
+     * @param tool 参数 工具；parameter tool。
+     */
     public record ManagedToolProjection(
+            /**
+             * 中文说明：保存 网关GroupId 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code McpReleaseContentFactory.ManagedToolProjection} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by gateway group id; its type is {@code String}, and {@code McpReleaseContentFactory.ManagedToolProjection} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory.ManagedToolProjection} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory.ManagedToolProjection}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String gatewayGroupId,
+            /**
+             * 中文说明：保存 操作键 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code McpReleaseContentFactory.ManagedToolProjection} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by operation key; its type is {@code String}, and {@code McpReleaseContentFactory.ManagedToolProjection} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory.ManagedToolProjection} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory.ManagedToolProjection}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String operationKey,
+            /**
+             * 中文说明：保存 code服务器Id 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code McpReleaseContentFactory.ManagedToolProjection} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by code server id; its type is {@code String}, and {@code McpReleaseContentFactory.ManagedToolProjection} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory.ManagedToolProjection} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory.ManagedToolProjection}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String codeServerId,
+            /**
+             * 中文说明：保存 code服务器Code 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code McpReleaseContentFactory.ManagedToolProjection} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by code server code; its type is {@code String}, and {@code McpReleaseContentFactory.ManagedToolProjection} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory.ManagedToolProjection} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory.ManagedToolProjection}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String codeServerCode,
+            /**
+             * 中文说明：保存 服务器Id 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code McpReleaseContentFactory.ManagedToolProjection} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by server id; its type is {@code String}, and {@code McpReleaseContentFactory.ManagedToolProjection} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory.ManagedToolProjection} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory.ManagedToolProjection}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String serverId,
+            /**
+             * 中文说明：保存 codePermissions 对应的状态、依赖或配置值；字段类型为 {@code Set<String>}，由 {@code McpReleaseContentFactory.ManagedToolProjection} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by code permissions; its type is {@code Set<String>}, and {@code McpReleaseContentFactory.ManagedToolProjection} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory.ManagedToolProjection} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory.ManagedToolProjection}; do not couple callers to its representation when the owning type exposes an API.
+             */
             Set<String> codePermissions,
+            /**
+             * 中文说明：保存 additionalPermissions 对应的状态、依赖或配置值；字段类型为 {@code Set<String>}，由 {@code McpReleaseContentFactory.ManagedToolProjection} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by additional permissions; its type is {@code Set<String>}, and {@code McpReleaseContentFactory.ManagedToolProjection} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory.ManagedToolProjection} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory.ManagedToolProjection}; do not couple callers to its representation when the owning type exposes an API.
+             */
             Set<String> additionalPermissions,
+            /**
+             * 中文说明：保存 codeRiskLevel 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code McpReleaseContentFactory.ManagedToolProjection} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by code risk level; its type is {@code String}, and {@code McpReleaseContentFactory.ManagedToolProjection} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory.ManagedToolProjection} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory.ManagedToolProjection}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String codeRiskLevel,
+            /**
+             * 中文说明：保存 minimumRiskLevel 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code McpReleaseContentFactory.ManagedToolProjection} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by minimum risk level; its type is {@code String}, and {@code McpReleaseContentFactory.ManagedToolProjection} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory.ManagedToolProjection} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory.ManagedToolProjection}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String minimumRiskLevel,
+            /**
+             * 中文说明：保存 overrideRevision 对应的状态、依赖或配置值；字段类型为 {@code long}，由 {@code McpReleaseContentFactory.ManagedToolProjection} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by override revision; its type is {@code long}, and {@code McpReleaseContentFactory.ManagedToolProjection} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory.ManagedToolProjection} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory.ManagedToolProjection}; do not couple callers to its representation when the owning type exposes an API.
+             */
             long overrideRevision,
+            /**
+             * 中文说明：保存 工具 对应的状态、依赖或配置值；字段类型为 {@code McpRuntimeTool}，由 {@code McpReleaseContentFactory.ManagedToolProjection} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by tool; its type is {@code McpRuntimeTool}, and {@code McpReleaseContentFactory.ManagedToolProjection} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code McpReleaseContentFactory.ManagedToolProjection} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpReleaseContentFactory.ManagedToolProjection}; do not couple callers to its representation when the owning type exposes an API.
+             */
             McpRuntimeTool tool
     ) {
     }

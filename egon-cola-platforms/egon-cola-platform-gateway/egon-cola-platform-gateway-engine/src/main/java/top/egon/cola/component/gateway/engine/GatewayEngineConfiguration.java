@@ -178,6 +178,12 @@ import java.util.OptionalLong;
 import java.util.Set;
 import java.util.function.Supplier;
 
+/**
+ * 中文说明：{@code GatewayEngineConfiguration} 是配置类，位于当前 Gateway 模块的相关包中，负责网关引擎配置相关的职责与边界。
+ * English summary: {@code GatewayEngineConfiguration} is a gateway engine configuration configuration in the current Gateway module; it owns the gateway engine configuration-related responsibility and boundary.
+ *
+ * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+ */
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties({
         GatewayEngineRuntimeProperties.class,
@@ -185,15 +191,35 @@ import java.util.function.Supplier;
 })
 public class GatewayEngineConfiguration {
 
+    /**
+     * 中文说明：表示 LOGGER 这一固定值；它属于 {@code GatewayEngineConfiguration} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
+     * English summary: Represents the fixed value logger; it is a state, type, or protocol value of {@code GatewayEngineConfiguration} and keeps callers aligned with the owning type.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayEngineConfiguration} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayEngineConfiguration}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private static final Logger LOGGER = LoggerFactory.getLogger(
             "gateway.mcp.audit"
     );
 
+    /**
+     * 中文说明：执行 网关Clock 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway clock operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayClock(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @return 返回 网关Clock 的处理结果；returns the result of the operation.
+     */
     @Bean
     public Clock gatewayClock() {
         return Clock.systemUTC();
     }
 
+    /**
+     * 中文说明：执行 网关远程MCPAuthentication 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway remote mcp authentication operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayRemoteMcpAuthentication(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @return 返回 网关远程MCPAuthentication 的处理结果；returns the result of the operation.
+     */
     @Bean
     @ConditionalOnMissingBean(RemoteAuthProvider.class)
     public RemoteAuthProvider gatewayRemoteMcpAuthentication() {
@@ -215,6 +241,17 @@ public class GatewayEngineConfiguration {
         };
     }
 
+    /**
+     * 中文说明：执行 网关远程MCP客户端池 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway remote mcp client pool operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayRemoteMcpClientPool(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param authentication 参数 authentication；parameter authentication。
+     * @param objectMapper 参数 object映射器；parameter object mapper。
+     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
+     * @param properties 参数 properties；parameter properties。
+     * @return 返回 网关远程MCP客户端池 的处理结果；returns the result of the operation.
+     */
     @Bean(destroyMethod = "close")
     public McpRemoteClientPool gatewayRemoteMcpClientPool(
             RemoteAuthProvider authentication,
@@ -233,6 +270,18 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关MCP遥测 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway mcp telemetry operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpTelemetry(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param meters 参数 meters；parameter meters。
+     * @param observations 参数 observations；parameter observations。
+     * @param objectMapper 参数 object映射器；parameter object mapper。
+     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
+     * @param properties 参数 properties；parameter properties。
+     * @return 返回 网关MCP遥测 的处理结果；returns the result of the operation.
+     */
     @Bean
     @ConditionalOnMissingBean(McpTelemetry.class)
     public McpTelemetry gatewayMcpTelemetry(
@@ -254,6 +303,15 @@ public class GatewayEngineConfiguration {
         return McpTelemetry.composite(observers);
     }
 
+    /**
+     * 中文说明：执行 网关遥测 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway telemetry operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayTelemetry(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param observationRegistry 参数 观测注册表；parameter observation registry。
+     * @param samplingProbability 参数 samplingProbability；parameter sampling probability。
+     * @return 返回 网关遥测 的处理结果；returns the result of the operation.
+     */
     @Bean
     public GatewayTelemetry gatewayTelemetry(
             ObservationRegistry observationRegistry,
@@ -265,6 +323,17 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关安全Capabilities 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway security capabilities operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewaySecurityCapabilities(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param extractors 参数 extractors；parameter extractors。
+     * @param authentications 参数 authentications；parameter authentications。
+     * @param authorizations 参数 authorizations；parameter authorizations。
+     * @param identityMappers 参数 身份Mappers；parameter identity mappers。
+     * @return 返回 网关安全Capabilities 的处理结果；returns the result of the operation.
+     */
     @Bean
     public GatewaySecurityCapabilityRegistry gatewaySecurityCapabilities(
             ObjectProvider<GatewayCredentialExtractor> extractors,
@@ -279,6 +348,14 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关传输Defaults 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway transport defaults operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayTransportDefaults(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param properties 参数 properties；parameter properties。
+     * @return 返回 网关传输Defaults 的处理结果；returns the result of the operation.
+     */
     @Bean
     public GatewayTransportDefaults gatewayTransportDefaults(
             GatewayEngineRuntimeProperties properties) {
@@ -295,6 +372,14 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关传输SafetyLimits 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway transport safety limits operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayTransportSafetyLimits(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param http 参数 http；parameter http。
+     * @return 返回 网关传输SafetyLimits 的处理结果；returns the result of the operation.
+     */
     @Bean
     public GatewayTransportSafetyLimits gatewayTransportSafetyLimits(
             GatewayHttpEngineProperties http) {
@@ -309,6 +394,14 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关Http引擎Properties 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway http engine properties operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayHttpEngineProperties(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param properties 参数 properties；parameter properties。
+     * @return 返回 网关Http引擎Properties 的处理结果；returns the result of the operation.
+     */
     @Bean
     public GatewayHttpEngineProperties gatewayHttpEngineProperties(
             GatewayEngineRuntimeProperties properties) {
@@ -345,6 +438,15 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关提供方Directory 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway provider directory operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayProviderDirectory(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param registry 参数 注册表；parameter registry。
+     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
+     * @return 返回 网关提供方Directory 的处理结果；returns the result of the operation.
+     */
     @Bean
     public ProviderDirectory gatewayProviderDirectory(
             DdcServiceRegistryClient registry,
@@ -355,11 +457,26 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关规则Chunk存储 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway rule chunk store operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayRuleChunkStore(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @return 返回 网关规则Chunk存储 的处理结果；returns the result of the operation.
+     */
     @Bean
     public GatewayRuleChunkStore gatewayRuleChunkStore() {
         return new GatewayRuleChunkStore();
     }
 
+    /**
+     * 中文说明：执行 网关Passive健康Tracker 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway passive health tracker operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayPassiveHealthTracker(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
+     * @return 返回 网关Passive健康Tracker 的处理结果；returns the result of the operation.
+     */
     @Bean
     public PassiveHealthTracker gatewayPassiveHealthTracker(
             @Qualifier("gatewayClock") Clock gatewayClock) {
@@ -369,6 +486,14 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关Active健康Probe策略 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway active health probe policy operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayActiveHealthProbePolicy(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param properties 参数 properties；parameter properties。
+     * @return 返回 网关Active健康Probe策略 的处理结果；returns the result of the operation.
+     */
     @Bean
     public ActiveHealthProbePolicy gatewayActiveHealthProbePolicy(
             GatewayEngineRuntimeProperties properties) {
@@ -390,6 +515,14 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关Active健康Tracker 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway active health tracker operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayActiveHealthTracker(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param policy 参数 策略；parameter policy。
+     * @return 返回 网关Active健康Tracker 的处理结果；returns the result of the operation.
+     */
     @Bean
     public ActiveHealthTracker gatewayActiveHealthTracker(
             ActiveHealthProbePolicy policy) {
@@ -399,6 +532,22 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关规则ActivationApplier 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway rule activation applier operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayRuleActivationApplier(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param applierRegistry 参数 applier注册表；parameter applier registry。
+     * @param capabilities 参数 capabilities；parameter capabilities。
+     * @param transportDefaults 参数 传输Defaults；parameter transport defaults。
+     * @param transportSafetyLimits 参数 传输SafetyLimits；parameter transport safety limits。
+     * @param chunks 参数 chunks；parameter chunks。
+     * @param providerDirectory 参数 提供方Directory；parameter provider directory。
+     * @param properties 参数 properties；parameter properties。
+     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
+     * @param telemetry 参数 遥测；parameter telemetry。
+     * @return 返回 网关规则ActivationApplier 的处理结果；returns the result of the operation.
+     */
     @Bean
     public GatewayRuleActivationApplier gatewayRuleActivationApplier(
             DdcConfigApplierRegistry applierRegistry,
@@ -435,6 +584,18 @@ public class GatewayEngineConfiguration {
         return activation;
     }
 
+    /**
+     * 中文说明：执行 网关提供方Selector 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway provider selector operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayProviderSelector(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param providerDirectory 参数 提供方Directory；parameter provider directory。
+     * @param activation 参数 activation；parameter activation。
+     * @param passiveHealth 参数 passive健康；parameter passive health。
+     * @param activeHealth 参数 active健康；parameter active health。
+     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
+     * @return 返回 网关提供方Selector 的处理结果；returns the result of the operation.
+     */
     @Bean
     public DirectoryProviderSelector gatewayProviderSelector(
             ProviderDirectory providerDirectory,
@@ -461,6 +622,15 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关流量Governance 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway traffic governance operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayTrafficGovernance(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param activation 参数 activation；parameter activation。
+     * @param redis 参数 redis；parameter redis。
+     * @return 返回 网关流量Governance 的处理结果；returns the result of the operation.
+     */
     @Bean
     public GatewayTrafficGovernance gatewayTrafficGovernance(
             GatewayRuleActivationApplier activation,
@@ -471,6 +641,16 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关RateLimitRedisson客户端 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway rate limit redisson client operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayRateLimitRedissonClient(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param address 参数 address；parameter address。
+     * @param database 参数 数据库；parameter database。
+     * @param password 参数 password；parameter password。
+     * @return 返回 网关RateLimitRedisson客户端 的处理结果；returns the result of the operation.
+     */
     @Bean(name = "gatewayRateLimitRedissonClient", destroyMethod = "shutdown")
     @ConditionalOnMissingBean(name = "gatewayRateLimitRedissonClient")
     @ConditionalOnProperty(
@@ -500,6 +680,14 @@ public class GatewayEngineConfiguration {
         return Redisson.create(config);
     }
 
+    /**
+     * 中文说明：执行 网关RedisTokenBucketExecutor 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway redis token bucket executor operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayRedisTokenBucketExecutor(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param redisson 参数 redisson；parameter redisson。
+     * @return 返回 网关RedisTokenBucketExecutor 的处理结果；returns the result of the operation.
+     */
     @Bean
     @ConditionalOnBean(name = "gatewayRateLimitRedissonClient")
     @ConditionalOnProperty(
@@ -513,6 +701,16 @@ public class GatewayEngineConfiguration {
         return new RedissonRedisTokenBucketExecutor(redisson);
     }
 
+    /**
+     * 中文说明：执行 网关MCPRedisson客户端 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway mcp redisson client operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpRedissonClient(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param address 参数 address；parameter address。
+     * @param database 参数 数据库；parameter database。
+     * @param password 参数 password；parameter password。
+     * @return 返回 网关MCPRedisson客户端 的处理结果；returns the result of the operation.
+     */
     @Bean(name = "gatewayMcpRedissonClient", destroyMethod = "shutdown")
     @ConditionalOnMissingBean(name = "gatewayMcpRedissonClient")
     @ConditionalOnProperty(
@@ -544,6 +742,18 @@ public class GatewayEngineConfiguration {
         return Redisson.create(config);
     }
 
+    /**
+     * 中文说明：执行 网关MCP会话存储 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway mcp session store operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpSessionStore(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param redisson 参数 redisson；parameter redisson。
+     * @param objectMapper 参数 object映射器；parameter object mapper。
+     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
+     * @param keyPrefix 参数 键Prefix；parameter key prefix。
+     * @param maximumStreamLength 参数 maximumStreamLength；parameter maximum stream length。
+     * @return 返回 网关MCP会话存储 的处理结果；returns the result of the operation.
+     */
     @Bean
     @ConditionalOnBean(name = "gatewayMcpRedissonClient")
     public RedisMcpSessionStore gatewayMcpSessionStore(
@@ -567,6 +777,15 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关MCP运行时任务存储 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway mcp runtime task store operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpRuntimeTaskStore(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param dataSource 参数 dataSource；parameter data source。
+     * @param objectMapper 参数 object映射器；parameter object mapper。
+     * @return 返回 网关MCP运行时任务存储 的处理结果；returns the result of the operation.
+     */
     @Bean
     public JdbcMcpRuntimeTaskStore gatewayMcpRuntimeTaskStore(
             DataSource dataSource,
@@ -574,6 +793,17 @@ public class GatewayEngineConfiguration {
         return new JdbcMcpRuntimeTaskStore(dataSource, objectMapper);
     }
 
+    /**
+     * 中文说明：执行 网关MCP任务服务 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway mcp task service operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpTaskService(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param store 参数 存储；parameter store。
+     * @param objectMapper 参数 object映射器；parameter object mapper。
+     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
+     * @param properties 参数 properties；parameter properties。
+     * @return 返回 网关MCP任务服务 的处理结果；returns the result of the operation.
+     */
     @Bean
     @ConditionalOnBean(JdbcMcpRuntimeTaskStore.class)
     public McpTaskService gatewayMcpTaskService(
@@ -592,6 +822,9 @@ public class GatewayEngineConfiguration {
     /**
      * 创建异步 MCP 任务使用的 IdP SERVICE Token Adapter。
      * Creates the IdP SERVICE-token adapter used by asynchronous MCP tasks.
+     * 补充说明 / Supplementary summary: 执行 网关MCP任务服务TokenSupplier 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English supplement: Executes the gateway mcp task service token supplier operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpTaskServiceTokenSupplier(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      */
     @Bean
     @ConditionalOnProperty(
@@ -632,6 +865,20 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关MCP任务Worker 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway mcp task worker operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpTaskWorker(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param tasks 参数 tasks；parameter tasks。
+     * @param operationInvoker 参数 操作Invoker；parameter operation invoker。
+     * @param objectMapper 参数 object映射器；parameter object mapper。
+     * @param activation 参数 activation；parameter activation。
+     * @param tokenSupplier 参数 tokenSupplier；parameter token supplier。
+     * @param properties 参数 properties；parameter properties。
+     * @param mcpProperties 参数 MCPProperties；parameter mcp properties。
+     * @return 返回 网关MCP任务Worker 的处理结果；returns the result of the operation.
+     */
     @Bean
     @ConditionalOnBean({
             McpTaskService.class,
@@ -672,6 +919,27 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关MCPHttp处理器 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway mcp http handler operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpHttpHandler(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param activation 参数 activation；parameter activation。
+     * @param capabilities 参数 capabilities；parameter capabilities。
+     * @param operationInvoker 参数 操作Invoker；parameter operation invoker。
+     * @param sessionStore 参数 会话存储；parameter session store。
+     * @param taskServices 参数 任务Services；parameter task services。
+     * @param snapshots 参数 snapshots；parameter snapshots。
+     * @param dataSources 参数 dataSources；parameter data sources。
+     * @param remoteClients 参数 远程Clients；parameter remote clients。
+     * @param mcpTelemetry 参数 MCP遥测；parameter mcp telemetry。
+     * @param objectMapper 参数 object映射器；parameter object mapper。
+     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
+     * @param properties 参数 properties；parameter properties。
+     * @param mcpProperties 参数 MCPProperties；parameter mcp properties。
+     * @param issuer 参数 issuer；parameter issuer。
+     * @return 返回 网关MCPHttp处理器 的处理结果；returns the result of the operation.
+     */
     @Bean
     @ConditionalOnBean(RedisMcpSessionStore.class)
     @ConditionalOnProperty(
@@ -910,6 +1178,17 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 read数据库模式 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the read database schema operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.readDatabaseSchema(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param dataSource 参数 dataSource；parameter data source。
+     * @param schema 参数 模式；parameter schema。
+     * @param objectName 参数 objectName；parameter object name。
+     * @param objectMapper 参数 object映射器；parameter object mapper。
+     * @return 返回 read数据库模式 的处理结果；returns the result of the operation.
+     */
     private String readDatabaseSchema(
             DataSource dataSource,
             String schema,
@@ -944,6 +1223,14 @@ public class GatewayEngineConfiguration {
         ));
     }
 
+    /**
+     * 中文说明：执行 网关HttpUpstreamAdapter 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway http upstream adapter operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayHttpUpstreamAdapter(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param properties 参数 properties；parameter properties。
+     * @return 返回 网关HttpUpstreamAdapter 的处理结果；returns the result of the operation.
+     */
     @Bean
     public ReactorNettyHttpUpstreamAdapter gatewayHttpUpstreamAdapter(
             GatewayEngineRuntimeProperties properties) {
@@ -955,6 +1242,13 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关传输分发器 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway transport dispatcher operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayTransportDispatcher(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @return 返回 网关传输分发器 的处理结果；returns the result of the operation.
+     */
     @Bean
     public GatewayTransportDispatcher gatewayTransportDispatcher() {
         return new GatewayTransportDispatcher(
@@ -970,6 +1264,15 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关调用补全监听器 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway call completion listener operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayCallCompletionListener(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param meterRegistry 参数 meter注册表；parameter meter registry。
+     * @param dispatcher 参数 分发器；parameter dispatcher。
+     * @return 返回 网关调用补全监听器 的处理结果；returns the result of the operation.
+     */
     @Bean
     public GatewayCallCompletionListener gatewayCallCompletionListener(
             MeterRegistry meterRegistry,
@@ -981,6 +1284,15 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关调用事件分发器 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway call event dispatcher operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayCallEventDispatcher(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param properties 参数 properties；parameter properties。
+     * @param telemetry 参数 遥测；parameter telemetry。
+     * @return 返回 网关调用事件分发器 的处理结果；returns the result of the operation.
+     */
     @Bean
     @ConditionalOnProperty(
             prefix = "egon.cola.component.gateway.engine.kafka",
@@ -1009,6 +1321,26 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关Http服务器 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway http server operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayHttpServer(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param properties 参数 properties；parameter properties。
+     * @param engineProperties 参数 引擎Properties；parameter engine properties。
+     * @param activation 参数 activation；parameter activation。
+     * @param providerSelector 参数 提供方Selector；parameter provider selector。
+     * @param upstream 参数 upstream；parameter upstream。
+     * @param capabilities 参数 capabilities；parameter capabilities。
+     * @param completionListener 参数 补全监听器；parameter completion listener。
+     * @param trafficGovernance 参数 流量Governance；parameter traffic governance。
+     * @param httpRpcUpstream 参数 httpRpcUpstream；parameter http rpc upstream。
+     * @param passiveHealth 参数 passive健康；parameter passive health。
+     * @param telemetry 参数 遥测；parameter telemetry。
+     * @param transportDispatcher 参数 传输分发器；parameter transport dispatcher。
+     * @param mcpHandlers 参数 MCPHandlers；parameter mcp handlers。
+     * @return 返回 网关Http服务器 的处理结果；returns the result of the operation.
+     */
     @Bean
     public GatewayHttpServer gatewayHttpServer(
             GatewayEngineRuntimeProperties properties,
@@ -1076,6 +1408,14 @@ public class GatewayEngineConfiguration {
         ));
     }
 
+    /**
+     * 中文说明：执行 网关Rpc提供方Channels 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway rpc provider channels operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayRpcProviderChannels(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param properties 参数 properties；parameter properties。
+     * @return 返回 网关Rpc提供方Channels 的处理结果；returns the result of the operation.
+     */
     @Bean
     public RpcProviderChannelCache gatewayRpcProviderChannels(
             GatewayEngineRuntimeProperties properties) {
@@ -1085,6 +1425,17 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关提供方Active健康监控器 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway provider active health monitor operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayProviderActiveHealthMonitor(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param directory 参数 directory；parameter directory。
+     * @param channels 参数 channels；parameter channels。
+     * @param tracker 参数 tracker；parameter tracker。
+     * @param policy 参数 策略；parameter policy。
+     * @return 返回 网关提供方Active健康监控器 的处理结果；returns the result of the operation.
+     */
     @Bean(destroyMethod = "close")
     public ProviderActiveHealthMonitor gatewayProviderActiveHealthMonitor(
             ProviderDirectory directory,
@@ -1106,6 +1457,16 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关HttpRpcUpstreamAdapter 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway http rpc upstream adapter operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayHttpRpcUpstreamAdapter(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param activation 参数 activation；parameter activation。
+     * @param channels 参数 channels；parameter channels。
+     * @param objectMapper 参数 object映射器；parameter object mapper。
+     * @return 返回 网关HttpRpcUpstreamAdapter 的处理结果；returns the result of the operation.
+     */
     @Bean
     public HttpRpcUpstreamAdapter gatewayHttpRpcUpstreamAdapter(
             GatewayRuleActivationApplier activation,
@@ -1118,6 +1479,20 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关操作Invoker 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway operation invoker operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayOperationInvoker(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param activation 参数 activation；parameter activation。
+     * @param providerSelector 参数 提供方Selector；parameter provider selector。
+     * @param trafficGovernance 参数 流量Governance；parameter traffic governance。
+     * @param http 参数 http；parameter http。
+     * @param rpc 参数 rpc；parameter rpc。
+     * @param objectMapper 参数 object映射器；parameter object mapper。
+     * @param properties 参数 properties；parameter properties。
+     * @return 返回 网关操作Invoker 的处理结果；returns the result of the operation.
+     */
     @Bean
     public EngineGatewayOperationInvoker gatewayOperationInvoker(
             GatewayRuleActivationApplier activation,
@@ -1146,6 +1521,22 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关Rpc处理器注册表 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway rpc handler registry operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayRpcHandlerRegistry(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param properties 参数 properties；parameter properties。
+     * @param activation 参数 activation；parameter activation。
+     * @param providerSelector 参数 提供方Selector；parameter provider selector。
+     * @param channels 参数 channels；parameter channels。
+     * @param capabilities 参数 capabilities；parameter capabilities。
+     * @param completionListener 参数 补全监听器；parameter completion listener。
+     * @param trafficGovernance 参数 流量Governance；parameter traffic governance。
+     * @param passiveHealth 参数 passive健康；parameter passive health。
+     * @param telemetry 参数 遥测；parameter telemetry。
+     * @return 返回 网关Rpc处理器注册表 的处理结果；returns the result of the operation.
+     */
     @Bean
     public RpcGatewayHandlerRegistry gatewayRpcHandlerRegistry(
             GatewayEngineRuntimeProperties properties,
@@ -1183,6 +1574,15 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关Rpc服务器 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway rpc server operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayRpcServer(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param properties 参数 properties；parameter properties。
+     * @param registry 参数 注册表；parameter registry。
+     * @return 返回 网关Rpc服务器 的处理结果；returns the result of the operation.
+     */
     @Bean
     public RpcGatewayServer gatewayRpcServer(
             GatewayEngineRuntimeProperties properties,
@@ -1195,6 +1595,14 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关TlsCertificateMetrics 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway tls certificate metrics operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayTlsCertificateMetrics(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param properties 参数 properties；parameter properties。
+     * @return 返回 网关TlsCertificateMetrics 的处理结果；returns the result of the operation.
+     */
     @Bean
     public MeterBinder gatewayTlsCertificateMetrics(
             GatewayEngineRuntimeProperties properties) {
@@ -1227,6 +1635,9 @@ public class GatewayEngineConfiguration {
      * @param properties Gateway Engine 配置 / Gateway Engine configuration
      * @param admissionTickets 准入票据端口 / admission-ticket port
      * @return Gateway RPC Slot 运行时 / Gateway RPC-slot runtime
+     * 补充说明 / Supplementary summary: 执行 网关Rpc槽位运行时 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English supplement: Executes the gateway rpc slot runtime operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayRpcSlotRuntime(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      */
     @Bean
     public RpcGatewaySlotRuntime gatewayRpcSlotRuntime(
@@ -1259,6 +1670,19 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关引擎运行时 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway engine runtime operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayEngineRuntime(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param properties 参数 properties；parameter properties。
+     * @param httpServer 参数 http服务器；parameter http server。
+     * @param rpcServer 参数 rpc服务器；parameter rpc server。
+     * @param rpcSlot 参数 rpc槽位；parameter rpc slot。
+     * @param activation 参数 activation；parameter activation。
+     * @param providerDirectory 参数 提供方Directory；parameter provider directory。
+     * @return 返回 网关引擎运行时 的处理结果；returns the result of the operation.
+     */
     @Bean
     public GatewayEngineRuntime gatewayEngineRuntime(
             GatewayEngineRuntimeProperties properties,
@@ -1277,6 +1701,14 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关运行时元数据 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway runtime metadata operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayRuntimeMetadata(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param activation 参数 activation；parameter activation。
+     * @return 返回 网关运行时元数据 的处理结果；returns the result of the operation.
+     */
     @Bean
     public DdcInstanceMetadataContributor gatewayRuntimeMetadata(
             GatewayRuleActivationApplier activation) {
@@ -1293,6 +1725,14 @@ public class GatewayEngineConfiguration {
         };
     }
 
+    /**
+     * 中文说明：执行 传输安全 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the transport security operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.transportSecurity(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param tls 参数 tls；parameter tls。
+     * @return 返回 传输安全 的处理结果；returns the result of the operation.
+     */
     private GatewayTransportSecurity transportSecurity(
             GatewayEngineRuntimeProperties.Tls tls) {
         return new GatewayTransportSecurity(
@@ -1305,6 +1745,15 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 registerCertificateExpiry 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the register certificate expiry operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.registerCertificateExpiry(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param registry 参数 注册表；parameter registry。
+     * @param listener 参数 监听器；parameter listener。
+     * @param security 参数 安全；parameter security。
+     */
     private void registerCertificateExpiry(
             MeterRegistry registry,
             String listener,
@@ -1325,6 +1774,18 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关MCP运行时健康Indicator 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway mcp runtime health indicator operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpRuntimeHealthIndicator(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param activation 参数 activation；parameter activation。
+     * @param sessionStores 参数 会话Stores；parameter session stores。
+     * @param taskServices 参数 任务Services；parameter task services。
+     * @param properties 参数 properties；parameter properties。
+     * @param remoteClients 参数 远程Clients；parameter remote clients。
+     * @return 返回 网关MCP运行时健康Indicator 的处理结果；returns the result of the operation.
+     */
     @Bean
     @ConditionalOnProperty(
             prefix = "egon.cola.component.gateway.engine.mcp",
@@ -1347,6 +1808,16 @@ public class GatewayEngineConfiguration {
         );
     }
 
+    /**
+     * 中文说明：执行 网关引擎健康Indicator 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the gateway engine health indicator operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayEngineHealthIndicator(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param runtime 参数 运行时；parameter runtime。
+     * @param activation 参数 activation；parameter activation。
+     * @param rpcSlot 参数 rpc槽位；parameter rpc slot。
+     * @return 返回 网关引擎健康Indicator 的处理结果；returns the result of the operation.
+     */
     @Bean
     public HealthIndicator gatewayEngineHealthIndicator(
             GatewayEngineRuntime runtime,
@@ -1385,6 +1856,14 @@ public class GatewayEngineConfiguration {
         };
     }
 
+    /**
+     * 中文说明：执行 值 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the value operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.value(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 值 的处理结果；returns the result of the operation.
+     */
     private String value(String value) {
         return value == null ? "" : value;
     }

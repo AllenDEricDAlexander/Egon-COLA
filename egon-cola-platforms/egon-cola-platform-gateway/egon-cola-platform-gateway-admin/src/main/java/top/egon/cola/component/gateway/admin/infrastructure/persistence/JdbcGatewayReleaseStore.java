@@ -19,13 +19,39 @@ import java.util.Optional;
 import static top.egon.cola.component.gateway.admin.infrastructure.persistence
         .JdbcGatewayParameters.timestamp;
 
+/**
+ * 中文说明：{@code JdbcGatewayReleaseStore} 是存储组件，位于当前 Gateway 模块的相关包中，负责Jdbc网关发布存储相关的职责与边界。
+ * English summary: {@code JdbcGatewayReleaseStore} is a jdbc gateway release store store in the current Gateway module; it owns the jdbc gateway release store-related responsibility and boundary.
+ *
+ * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+ */
 @Repository
 public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
 
+    /**
+     * 中文说明：保存 jdbc 对应的状态、依赖或配置值；字段类型为 {@code JdbcTemplate}，由 {@code JdbcGatewayReleaseStore} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by jdbc; its type is {@code JdbcTemplate}, and {@code JdbcGatewayReleaseStore} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code JdbcGatewayReleaseStore} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayReleaseStore}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final JdbcTemplate jdbc;
 
+    /**
+     * 中文说明：保存 object映射器 对应的状态、依赖或配置值；字段类型为 {@code ObjectMapper}，由 {@code JdbcGatewayReleaseStore} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by object mapper; its type is {@code ObjectMapper}, and {@code JdbcGatewayReleaseStore} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code JdbcGatewayReleaseStore} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayReleaseStore}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final ObjectMapper objectMapper;
 
+    /**
+     * 中文说明：创建 {@code JdbcGatewayReleaseStore} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+     * English summary: Creates an instance of {@code JdbcGatewayReleaseStore} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+     *
+     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+     * @param jdbc 参数 jdbc；parameter jdbc。
+     * @param objectMapper 参数 object映射器；parameter object mapper。
+     */
     public JdbcGatewayReleaseStore(
             JdbcTemplate jdbc,
             ObjectMapper objectMapper) {
@@ -33,6 +59,15 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * 中文说明：执行 insert 操作；该方法是 {@code JdbcGatewayReleaseStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the insert operation; this method is the invocation entry point on {@code JdbcGatewayReleaseStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseStore.insert(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param release 参数 发布；parameter release。
+     * @param compiled 参数 compiled；parameter compiled。
+     * @param attemptNo 参数 attemptNo；parameter attempt no。
+     */
     @Override
     public void insert(
             ReleaseRecord release,
@@ -87,6 +122,14 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
         );
     }
 
+    /**
+     * 中文说明：执行 find 操作；该方法是 {@code JdbcGatewayReleaseStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the find operation; this method is the invocation entry point on {@code JdbcGatewayReleaseStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseStore.find(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param releaseId 参数 发布Id；parameter release id。
+     * @return 返回 find 的处理结果；returns the result of the operation.
+     */
     @Override
     public Optional<ReleaseRecord> find(String releaseId) {
         return jdbc.query("""
@@ -116,6 +159,14 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
         ), releaseId).stream().findFirst();
     }
 
+    /**
+     * 中文说明：执行 history 操作；该方法是 {@code JdbcGatewayReleaseStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the history operation; this method is the invocation entry point on {@code JdbcGatewayReleaseStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseStore.history(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @return 返回 history 的处理结果；returns the result of the operation.
+     */
     @Override
     public List<ReleaseRecord> history(String gatewayGroupId) {
         return jdbc.query("""
@@ -131,6 +182,13 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
                 """, (result, row) -> release(result), gatewayGroupId);
     }
 
+    /**
+     * 中文说明：执行 recoverable 操作；该方法是 {@code JdbcGatewayReleaseStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the recoverable operation; this method is the invocation entry point on {@code JdbcGatewayReleaseStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseStore.recoverable(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @return 返回 recoverable 的处理结果；returns the result of the operation.
+     */
     @Override
     public List<RecoverableAttempt> recoverable() {
         return jdbc.query("""
@@ -158,6 +216,14 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
         ));
     }
 
+    /**
+     * 中文说明：执行 attempts 操作；该方法是 {@code JdbcGatewayReleaseStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the attempts operation; this method is the invocation entry point on {@code JdbcGatewayReleaseStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseStore.attempts(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param releaseId 参数 发布Id；parameter release id。
+     * @return 返回 attempts 的处理结果；returns the result of the operation.
+     */
     @Override
     public List<AttemptRecord> attempts(String releaseId) {
         Map<Integer, List<TargetRecord>> targets =
@@ -206,6 +272,14 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
         ), releaseId);
     }
 
+    /**
+     * 中文说明：执行 latestAttempt 操作；该方法是 {@code JdbcGatewayReleaseStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the latest attempt operation; this method is the invocation entry point on {@code JdbcGatewayReleaseStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseStore.latestAttempt(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param releaseId 参数 发布Id；parameter release id。
+     * @return 返回 latestAttempt 的处理结果；returns the result of the operation.
+     */
     @Override
     public int latestAttempt(String releaseId) {
         Integer attempt = jdbc.queryForObject("""
@@ -221,6 +295,14 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
         return attempt;
     }
 
+    /**
+     * 中文说明：执行 loadCompiled 操作；该方法是 {@code JdbcGatewayReleaseStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the load compiled operation; this method is the invocation entry point on {@code JdbcGatewayReleaseStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseStore.loadCompiled(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param releaseId 参数 发布Id；parameter release id。
+     * @return 返回 loadCompiled 的处理结果；returns the result of the operation.
+     */
     @Override
     public CompiledGatewayRelease loadCompiled(String releaseId) {
         return jdbc.query("""
@@ -247,6 +329,15 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
         }, releaseId);
     }
 
+    /**
+     * 中文说明：执行 nextAttempt 操作；该方法是 {@code JdbcGatewayReleaseStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the next attempt operation; this method is the invocation entry point on {@code JdbcGatewayReleaseStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseStore.nextAttempt(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param releaseId 参数 发布Id；parameter release id。
+     * @param now 参数 now；parameter now。
+     * @return 返回 nextAttempt 的处理结果；returns the result of the operation.
+     */
     @Override
     public int nextAttempt(String releaseId, Instant now) {
         Integer maximum = jdbc.queryForObject("""
@@ -259,6 +350,15 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
         return attempt;
     }
 
+    /**
+     * 中文说明：执行 beginAttempt 操作；该方法是 {@code JdbcGatewayReleaseStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the begin attempt operation; this method is the invocation entry point on {@code JdbcGatewayReleaseStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseStore.beginAttempt(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param releaseId 参数 发布Id；parameter release id。
+     * @param attemptNo 参数 attemptNo；parameter attempt no。
+     * @param now 参数 now；parameter now。
+     */
     @Override
     public void beginAttempt(
             String releaseId,
@@ -278,6 +378,21 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
                 """, timestamp(now), releaseId);
     }
 
+    /**
+     * 中文说明：执行 completeAttempt 操作；该方法是 {@code JdbcGatewayReleaseStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the complete attempt operation; this method is the invocation entry point on {@code JdbcGatewayReleaseStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseStore.completeAttempt(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param releaseId 参数 发布Id；parameter release id。
+     * @param attemptNo 参数 attemptNo；parameter attempt no。
+     * @param status 参数 status；parameter status。
+     * @param partialApplied 参数 partialApplied；parameter partial applied。
+     * @param changeId 参数 changeId；parameter change id。
+     * @param errorCode 参数 errorCode；parameter error code。
+     * @param errorMessage 参数 error消息；parameter error message。
+     * @param targets 参数 targets；parameter targets。
+     * @param now 参数 now；parameter now。
+     */
     @Override
     public void completeAttempt(
             String releaseId,
@@ -342,6 +457,14 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
         ));
     }
 
+    /**
+     * 中文说明：执行 has发布InProgress 操作；该方法是 {@code JdbcGatewayReleaseStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the has release in progress operation; this method is the invocation entry point on {@code JdbcGatewayReleaseStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseStore.hasReleaseInProgress(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @return 返回 has发布InProgress 的处理结果；returns the result of the operation.
+     */
     @Override
     public boolean hasReleaseInProgress(String gatewayGroupId) {
         Integer count = jdbc.queryForObject("""
@@ -354,6 +477,16 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
         return count != null && count > 0;
     }
 
+    /**
+     * 中文说明：执行 insertAttempt 操作；该方法是 {@code JdbcGatewayReleaseStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the insert attempt operation; this method is the invocation entry point on {@code JdbcGatewayReleaseStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseStore.insertAttempt(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param releaseId 参数 发布Id；parameter release id。
+     * @param attemptNo 参数 attemptNo；parameter attempt no。
+     * @param status 参数 status；parameter status。
+     * @param now 参数 now；parameter now。
+     */
     private void insertAttempt(
             String releaseId,
             int attemptNo,
@@ -366,6 +499,14 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
                 """, releaseId, attemptNo, status, timestamp(now));
     }
 
+    /**
+     * 中文说明：执行 发布 操作；该方法是 {@code JdbcGatewayReleaseStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the release operation; this method is the invocation entry point on {@code JdbcGatewayReleaseStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseStore.release(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param result 参数 result；parameter result。
+     * @return 返回 发布 的处理结果；returns the result of the operation.
+     */
     private ReleaseRecord release(java.sql.ResultSet result)
             throws java.sql.SQLException {
         return new ReleaseRecord(
@@ -386,6 +527,14 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
         );
     }
 
+    /**
+     * 中文说明：执行 json 操作；该方法是 {@code JdbcGatewayReleaseStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the json operation; this method is the invocation entry point on {@code JdbcGatewayReleaseStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseStore.json(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 json 的处理结果；returns the result of the operation.
+     */
     private String json(Object value) {
         try {
             return objectMapper.writeValueAsString(value);
@@ -397,6 +546,14 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
         }
     }
 
+    /**
+     * 中文说明：执行 map 操作；该方法是 {@code JdbcGatewayReleaseStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the map operation; this method is the invocation entry point on {@code JdbcGatewayReleaseStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseStore.map(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 map 的处理结果；returns the result of the operation.
+     */
     private Map<String, Object> map(String value) {
         try {
             return objectMapper.readValue(
@@ -412,6 +569,14 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
         }
     }
 
+    /**
+     * 中文说明：执行 stringMap 操作；该方法是 {@code JdbcGatewayReleaseStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the string map operation; this method is the invocation entry point on {@code JdbcGatewayReleaseStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseStore.stringMap(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 stringMap 的处理结果；returns the result of the operation.
+     */
     private Map<String, String> stringMap(String value) {
         try {
             return objectMapper.readValue(
@@ -427,6 +592,15 @@ public class JdbcGatewayReleaseStore implements GatewayReleaseStore {
         }
     }
 
+    /**
+     * 中文说明：执行 read 操作；该方法是 {@code JdbcGatewayReleaseStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the read operation; this method is the invocation entry point on {@code JdbcGatewayReleaseStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseStore.read(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @param type 参数 type；parameter type。
+     * @return 返回 read 的处理结果；returns the result of the operation.
+     */
     private <T> T read(String value, Class<T> type) {
         try {
             return objectMapper.readValue(value, type);

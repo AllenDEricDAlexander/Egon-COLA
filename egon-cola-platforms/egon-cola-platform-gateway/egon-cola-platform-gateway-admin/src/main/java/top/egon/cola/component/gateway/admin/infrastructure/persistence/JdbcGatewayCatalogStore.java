@@ -21,13 +21,39 @@ import java.util.Optional;
 import static top.egon.cola.component.gateway.admin.infrastructure.persistence
         .JdbcGatewayParameters.timestamp;
 
+/**
+ * 中文说明：{@code JdbcGatewayCatalogStore} 是存储组件，位于当前 Gateway 模块的相关包中，负责Jdbc网关目录存储相关的职责与边界。
+ * English summary: {@code JdbcGatewayCatalogStore} is a jdbc gateway catalog store store in the current Gateway module; it owns the jdbc gateway catalog store-related responsibility and boundary.
+ *
+ * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+ */
 @Repository
 public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
 
+    /**
+     * 中文说明：保存 jdbc 对应的状态、依赖或配置值；字段类型为 {@code JdbcTemplate}，由 {@code JdbcGatewayCatalogStore} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by jdbc; its type is {@code JdbcTemplate}, and {@code JdbcGatewayCatalogStore} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code JdbcGatewayCatalogStore} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayCatalogStore}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final JdbcTemplate jdbc;
 
+    /**
+     * 中文说明：保存 object映射器 对应的状态、依赖或配置值；字段类型为 {@code ObjectMapper}，由 {@code JdbcGatewayCatalogStore} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by object mapper; its type is {@code ObjectMapper}, and {@code JdbcGatewayCatalogStore} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code JdbcGatewayCatalogStore} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayCatalogStore}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final ObjectMapper objectMapper;
 
+    /**
+     * 中文说明：创建 {@code JdbcGatewayCatalogStore} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+     * English summary: Creates an instance of {@code JdbcGatewayCatalogStore} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+     *
+     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+     * @param jdbc 参数 jdbc；parameter jdbc。
+     * @param objectMapper 参数 object映射器；parameter object mapper。
+     */
     public JdbcGatewayCatalogStore(
             JdbcTemplate jdbc,
             ObjectMapper objectMapper) {
@@ -35,6 +61,14 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * 中文说明：执行 load目录 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the load catalog operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.loadCatalog(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param applicationId 参数 applicationId；parameter application id。
+     * @return 返回 load目录 的处理结果；returns the result of the operation.
+     */
     @Override
     public CatalogTree loadCatalog(String applicationId) {
         Map<String, MutableBusiness> businesses = new LinkedHashMap<>();
@@ -79,6 +113,16 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         );
     }
 
+    /**
+     * 中文说明：执行 createManualHierarchy 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the create manual hierarchy operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.createManualHierarchy(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param applicationId 参数 applicationId；parameter application id。
+     * @param hierarchy 参数 hierarchy；parameter hierarchy。
+     * @param now 参数 now；parameter now。
+     * @return 返回 createManualHierarchy 的处理结果；returns the result of the operation.
+     */
     @Override
     public String createManualHierarchy(
             String applicationId,
@@ -114,6 +158,14 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         return interfaceGroupId;
     }
 
+    /**
+     * 中文说明：执行 find接口Group 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the find interface group operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.findInterfaceGroup(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param id 参数 id；parameter id。
+     * @return 返回 find接口Group 的处理结果；returns the result of the operation.
+     */
     @Override
     public Optional<InterfaceGroupScope> findInterfaceGroup(String id) {
         return jdbc.query("""
@@ -138,11 +190,28 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         ), id).stream().findFirst();
     }
 
+    /**
+     * 中文说明：执行 find操作 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the find operation operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.findOperation(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param operationId 参数 操作Id；parameter operation id。
+     * @return 返回 find操作 的处理结果；returns the result of the operation.
+     */
     @Override
     public Optional<OperationRecord> findOperation(String operationId) {
         return queryOperation("WHERE o.id = ?", operationId);
     }
 
+    /**
+     * 中文说明：执行 find操作 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the find operation operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.findOperation(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param applicationId 参数 applicationId；parameter application id。
+     * @param operationKey 参数 操作键；parameter operation key。
+     * @return 返回 find操作 的处理结果；returns the result of the operation.
+     */
     @Override
     public Optional<OperationRecord> findOperation(
             String applicationId,
@@ -154,6 +223,14 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         );
     }
 
+    /**
+     * 中文说明：执行 loadDefinitions 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the load definitions operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.loadDefinitions(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param operationId 参数 操作Id；parameter operation id。
+     * @return 返回 loadDefinitions 的处理结果；returns the result of the operation.
+     */
     @Override
     public List<OperationDefinition> loadDefinitions(String operationId) {
         return jdbc.query("""
@@ -188,6 +265,14 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         ), operationId);
     }
 
+    /**
+     * 中文说明：执行 loadCurrent操作Definitions 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the load current operation definitions operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.loadCurrentOperationDefinitions(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
+     * @return 返回 loadCurrent操作Definitions 的处理结果；returns the result of the operation.
+     */
     @Override
     public List<CurrentOperationDefinition> loadCurrentOperationDefinitions(
             String gatewayGroupId) {
@@ -253,6 +338,13 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         ), gatewayGroupId);
     }
 
+    /**
+     * 中文说明：执行 insert操作 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the insert operation operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.insertOperation(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param operation 参数 操作；parameter operation。
+     */
     @Override
     public void insertOperation(OperationRecord operation) {
         jdbc.update("""
@@ -278,6 +370,13 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         );
     }
 
+    /**
+     * 中文说明：执行 append定义 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the append definition operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.appendDefinition(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param definition 参数 定义；parameter definition。
+     */
     @Override
     public void appendDefinition(OperationDefinition definition) {
         jdbc.update("""
@@ -308,6 +407,16 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         );
     }
 
+    /**
+     * 中文说明：执行 pointTo定义 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the point to definition operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.pointToDefinition(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param operationId 参数 操作Id；parameter operation id。
+     * @param definitionId 参数 定义Id；parameter definition id。
+     * @param externalAccessible 参数 externalAccessible；parameter external accessible。
+     * @param now 参数 now；parameter now。
+     */
     @Override
     public void pointToDefinition(
             String operationId,
@@ -331,6 +440,14 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         }
     }
 
+    /**
+     * 中文说明：执行 deprecate 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the deprecate operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.deprecate(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param operationId 参数 操作Id；parameter operation id。
+     * @param now 参数 now；parameter now。
+     */
     @Override
     public void deprecate(String operationId, Instant now) {
         int updated = jdbc.update("""
@@ -348,6 +465,15 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         }
     }
 
+    /**
+     * 中文说明：执行 query操作 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the query operation operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.queryOperation(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param where 参数 where；parameter where。
+     * @param arguments 参数 arguments；parameter arguments。
+     * @return 返回 query操作 的处理结果；returns the result of the operation.
+     */
     private Optional<OperationRecord> queryOperation(
             String where,
             Object... arguments) {
@@ -365,6 +491,14 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
                 .findFirst();
     }
 
+    /**
+     * 中文说明：执行 操作 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the operation operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.operation(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param result 参数 result；parameter result。
+     * @return 返回 操作 的处理结果；returns the result of the operation.
+     */
     private OperationRecord operation(ResultSet result) throws SQLException {
         return new OperationRecord(
                 result.getString("id"),
@@ -384,6 +518,14 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         );
     }
 
+    /**
+     * 中文说明：执行 collect 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the collect operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.collect(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param result 参数 result；parameter result。
+     * @param businesses 参数 businesses；parameter businesses。
+     */
     private void collect(
             ResultSet result,
             Map<String, MutableBusiness> businesses) throws SQLException {
@@ -442,6 +584,16 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         }
     }
 
+    /**
+     * 中文说明：执行 findOrCreateBusiness 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the find or create business operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.findOrCreateBusiness(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param applicationId 参数 applicationId；parameter application id。
+     * @param hierarchy 参数 hierarchy；parameter hierarchy。
+     * @param now 参数 now；parameter now。
+     * @return 返回 findOrCreateBusiness 的处理结果；returns the result of the operation.
+     */
     private String findOrCreateBusiness(
             String applicationId,
             ManualHierarchy hierarchy,
@@ -464,6 +616,16 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         return id;
     }
 
+    /**
+     * 中文说明：执行 findOrCreateEntity 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the find or create entity operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.findOrCreateEntity(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param businessId 参数 businessId；parameter business id。
+     * @param hierarchy 参数 hierarchy；parameter hierarchy。
+     * @param now 参数 now；parameter now。
+     * @return 返回 findOrCreateEntity 的处理结果；returns the result of the operation.
+     */
     private String findOrCreateEntity(
             String businessId,
             ManualHierarchy hierarchy,
@@ -487,6 +649,13 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         return id;
     }
 
+    /**
+     * 中文说明：执行 requireApplication 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the require application operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.requireApplication(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param applicationId 参数 applicationId；parameter application id。
+     */
     private void requireApplication(String applicationId) {
         Integer count = jdbc.queryForObject("""
                 SELECT count(*) FROM gateway_application
@@ -499,6 +668,14 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         }
     }
 
+    /**
+     * 中文说明：执行 json 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the json operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.json(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 json 的处理结果；returns the result of the operation.
+     */
     private String json(Object value) {
         try {
             return objectMapper.writeValueAsString(value);
@@ -510,6 +687,14 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         }
     }
 
+    /**
+     * 中文说明：执行 map 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the map operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.map(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 map 的处理结果；returns the result of the operation.
+     */
     private Map<String, Object> map(String value) {
         try {
             return objectMapper.readValue(
@@ -525,6 +710,14 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         }
     }
 
+    /**
+     * 中文说明：执行 list 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the list operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.list(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 list 的处理结果；returns the result of the operation.
+     */
     private List<String> list(String value) {
         try {
             return objectMapper.readValue(
@@ -537,6 +730,14 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         }
     }
 
+    /**
+     * 中文说明：执行 mapList 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the map list operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.mapList(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @return 返回 mapList 的处理结果；returns the result of the operation.
+     */
     private List<Map<String, Object>> mapList(String value) {
         try {
             return objectMapper.readValue(
@@ -552,6 +753,15 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         }
     }
 
+    /**
+     * 中文说明：执行 get 操作；该方法是 {@code JdbcGatewayCatalogStore} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the get operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.get(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param result 参数 result；parameter result。
+     * @param column 参数 column；parameter column。
+     * @return 返回 get 的处理结果；returns the result of the operation.
+     */
     private static String get(ResultSet result, String column) {
         try {
             return result.getString(column);
@@ -560,17 +770,56 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         }
     }
 
+    /**
+     * 中文说明：{@code MutableBusiness} 是类型，位于当前 Gateway 模块的相关包中，负责MutableBusiness相关的职责与边界。
+     * English summary: {@code MutableBusiness} is a type in the current Gateway module; it owns the mutable business-related responsibility and boundary.
+     *
+     * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+     */
     private static final class MutableBusiness {
 
+        /**
+         * 中文说明：保存 id 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code JdbcGatewayCatalogStore.MutableBusiness} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by id; its type is {@code String}, and {@code JdbcGatewayCatalogStore.MutableBusiness} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code JdbcGatewayCatalogStore.MutableBusiness} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayCatalogStore.MutableBusiness}; do not couple callers to its representation when the owning type exposes an API.
+         */
         private final String id;
 
+        /**
+         * 中文说明：保存 code 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code JdbcGatewayCatalogStore.MutableBusiness} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by code; its type is {@code String}, and {@code JdbcGatewayCatalogStore.MutableBusiness} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code JdbcGatewayCatalogStore.MutableBusiness} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayCatalogStore.MutableBusiness}; do not couple callers to its representation when the owning type exposes an API.
+         */
         private final String code;
 
+        /**
+         * 中文说明：保存 displayName 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code JdbcGatewayCatalogStore.MutableBusiness} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by display name; its type is {@code String}, and {@code JdbcGatewayCatalogStore.MutableBusiness} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code JdbcGatewayCatalogStore.MutableBusiness} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayCatalogStore.MutableBusiness}; do not couple callers to its representation when the owning type exposes an API.
+         */
         private final String displayName;
 
+        /**
+         * 中文说明：保存 entities 对应的状态、依赖或配置值；字段类型为 {@code Map<String, MutableEntity>}，由 {@code JdbcGatewayCatalogStore.MutableBusiness} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by entities; its type is {@code Map<String, MutableEntity>}, and {@code JdbcGatewayCatalogStore.MutableBusiness} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code JdbcGatewayCatalogStore.MutableBusiness} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayCatalogStore.MutableBusiness}; do not couple callers to its representation when the owning type exposes an API.
+         */
         private final Map<String, MutableEntity> entities =
                 new LinkedHashMap<>();
 
+        /**
+         * 中文说明：创建 {@code JdbcGatewayCatalogStore.MutableBusiness} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+         * English summary: Creates an instance of {@code JdbcGatewayCatalogStore.MutableBusiness} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+         *
+         * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+         * @param id 参数 id；parameter id。
+         * @param code 参数 code；parameter code。
+         * @param displayName 参数 displayName；parameter display name。
+         */
         private MutableBusiness(
                 String id,
                 String code,
@@ -580,6 +829,13 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
             this.displayName = displayName;
         }
 
+        /**
+         * 中文说明：执行 freeze 操作；该方法是 {@code JdbcGatewayCatalogStore.MutableBusiness} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+         * English summary: Executes the freeze operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore.MutableBusiness} and performs the corresponding runtime, management, or protocol work.
+         *
+         * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.MutableBusiness.freeze(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+         * @return 返回 freeze 的处理结果；returns the result of the operation.
+         */
         private BusinessNode freeze() {
             return new BusinessNode(
                     id,
@@ -592,17 +848,56 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         }
     }
 
+    /**
+     * 中文说明：{@code MutableEntity} 是类型，位于当前 Gateway 模块的相关包中，负责MutableEntity相关的职责与边界。
+     * English summary: {@code MutableEntity} is a type in the current Gateway module; it owns the mutable entity-related responsibility and boundary.
+     *
+     * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+     */
     private static final class MutableEntity {
 
+        /**
+         * 中文说明：保存 id 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code JdbcGatewayCatalogStore.MutableEntity} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by id; its type is {@code String}, and {@code JdbcGatewayCatalogStore.MutableEntity} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code JdbcGatewayCatalogStore.MutableEntity} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayCatalogStore.MutableEntity}; do not couple callers to its representation when the owning type exposes an API.
+         */
         private final String id;
 
+        /**
+         * 中文说明：保存 code 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code JdbcGatewayCatalogStore.MutableEntity} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by code; its type is {@code String}, and {@code JdbcGatewayCatalogStore.MutableEntity} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code JdbcGatewayCatalogStore.MutableEntity} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayCatalogStore.MutableEntity}; do not couple callers to its representation when the owning type exposes an API.
+         */
         private final String code;
 
+        /**
+         * 中文说明：保存 displayName 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code JdbcGatewayCatalogStore.MutableEntity} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by display name; its type is {@code String}, and {@code JdbcGatewayCatalogStore.MutableEntity} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code JdbcGatewayCatalogStore.MutableEntity} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayCatalogStore.MutableEntity}; do not couple callers to its representation when the owning type exposes an API.
+         */
         private final String displayName;
 
+        /**
+         * 中文说明：保存 groups 对应的状态、依赖或配置值；字段类型为 {@code Map<String, MutableGroup>}，由 {@code JdbcGatewayCatalogStore.MutableEntity} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by groups; its type is {@code Map<String, MutableGroup>}, and {@code JdbcGatewayCatalogStore.MutableEntity} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code JdbcGatewayCatalogStore.MutableEntity} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayCatalogStore.MutableEntity}; do not couple callers to its representation when the owning type exposes an API.
+         */
         private final Map<String, MutableGroup> groups =
                 new LinkedHashMap<>();
 
+        /**
+         * 中文说明：创建 {@code JdbcGatewayCatalogStore.MutableEntity} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+         * English summary: Creates an instance of {@code JdbcGatewayCatalogStore.MutableEntity} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+         *
+         * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+         * @param id 参数 id；parameter id。
+         * @param code 参数 code；parameter code。
+         * @param displayName 参数 displayName；parameter display name。
+         */
         private MutableEntity(
                 String id,
                 String code,
@@ -612,6 +907,13 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
             this.displayName = displayName;
         }
 
+        /**
+         * 中文说明：执行 freeze 操作；该方法是 {@code JdbcGatewayCatalogStore.MutableEntity} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+         * English summary: Executes the freeze operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore.MutableEntity} and performs the corresponding runtime, management, or protocol work.
+         *
+         * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.MutableEntity.freeze(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+         * @return 返回 freeze 的处理结果；returns the result of the operation.
+         */
         private EntityNode freeze() {
             return new EntityNode(
                     id,
@@ -624,20 +926,73 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
         }
     }
 
+    /**
+     * 中文说明：{@code MutableGroup} 是类型，位于当前 Gateway 模块的相关包中，负责MutableGroup相关的职责与边界。
+     * English summary: {@code MutableGroup} is a type in the current Gateway module; it owns the mutable group-related responsibility and boundary.
+     *
+     * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+     */
     private static final class MutableGroup {
 
+        /**
+         * 中文说明：保存 id 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code JdbcGatewayCatalogStore.MutableGroup} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by id; its type is {@code String}, and {@code JdbcGatewayCatalogStore.MutableGroup} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code JdbcGatewayCatalogStore.MutableGroup} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayCatalogStore.MutableGroup}; do not couple callers to its representation when the owning type exposes an API.
+         */
         private final String id;
 
+        /**
+         * 中文说明：保存 code 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code JdbcGatewayCatalogStore.MutableGroup} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by code; its type is {@code String}, and {@code JdbcGatewayCatalogStore.MutableGroup} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code JdbcGatewayCatalogStore.MutableGroup} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayCatalogStore.MutableGroup}; do not couple callers to its representation when the owning type exposes an API.
+         */
         private final String code;
 
+        /**
+         * 中文说明：保存 displayName 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code JdbcGatewayCatalogStore.MutableGroup} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by display name; its type is {@code String}, and {@code JdbcGatewayCatalogStore.MutableGroup} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code JdbcGatewayCatalogStore.MutableGroup} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayCatalogStore.MutableGroup}; do not couple callers to its representation when the owning type exposes an API.
+         */
         private final String displayName;
 
+        /**
+         * 中文说明：保存 sourceType 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code JdbcGatewayCatalogStore.MutableGroup} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by source type; its type is {@code String}, and {@code JdbcGatewayCatalogStore.MutableGroup} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code JdbcGatewayCatalogStore.MutableGroup} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayCatalogStore.MutableGroup}; do not couple callers to its representation when the owning type exposes an API.
+         */
         private final String sourceType;
 
+        /**
+         * 中文说明：保存 className 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code JdbcGatewayCatalogStore.MutableGroup} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by class name; its type is {@code String}, and {@code JdbcGatewayCatalogStore.MutableGroup} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code JdbcGatewayCatalogStore.MutableGroup} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayCatalogStore.MutableGroup}; do not couple callers to its representation when the owning type exposes an API.
+         */
         private final String className;
 
+        /**
+         * 中文说明：保存 operations 对应的状态、依赖或配置值；字段类型为 {@code List<OperationNode>}，由 {@code JdbcGatewayCatalogStore.MutableGroup} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by operations; its type is {@code List<OperationNode>}, and {@code JdbcGatewayCatalogStore.MutableGroup} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code JdbcGatewayCatalogStore.MutableGroup} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayCatalogStore.MutableGroup}; do not couple callers to its representation when the owning type exposes an API.
+         */
         private final List<OperationNode> operations = new ArrayList<>();
 
+        /**
+         * 中文说明：创建 {@code JdbcGatewayCatalogStore.MutableGroup} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+         * English summary: Creates an instance of {@code JdbcGatewayCatalogStore.MutableGroup} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+         *
+         * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+         * @param id 参数 id；parameter id。
+         * @param code 参数 code；parameter code。
+         * @param displayName 参数 displayName；parameter display name。
+         * @param sourceType 参数 sourceType；parameter source type。
+         * @param className 参数 className；parameter class name。
+         */
         private MutableGroup(
                 String id,
                 String code,
@@ -651,6 +1006,13 @@ public class JdbcGatewayCatalogStore implements GatewayCatalogStore {
             this.className = className;
         }
 
+        /**
+         * 中文说明：执行 freeze 操作；该方法是 {@code JdbcGatewayCatalogStore.MutableGroup} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+         * English summary: Executes the freeze operation; this method is the invocation entry point on {@code JdbcGatewayCatalogStore.MutableGroup} and performs the corresponding runtime, management, or protocol work.
+         *
+         * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayCatalogStore.MutableGroup.freeze(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+         * @return 返回 freeze 的处理结果；returns the result of the operation.
+         */
         private InterfaceGroupNode freeze() {
             return new InterfaceGroupNode(
                     id,

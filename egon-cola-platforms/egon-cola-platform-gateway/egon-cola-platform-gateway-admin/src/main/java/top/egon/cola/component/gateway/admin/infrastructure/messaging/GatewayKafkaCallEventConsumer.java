@@ -26,27 +26,90 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * 中文说明：{@code GatewayKafkaCallEventConsumer} 是类型，位于当前 Gateway 模块的相关包中，负责网关Kafka调用事件消费者相关的职责与边界。
+ * English summary: {@code GatewayKafkaCallEventConsumer} is a type in the current Gateway module; it owns the gateway kafka call event consumer-related responsibility and boundary.
+ *
+ * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+ */
 public final class GatewayKafkaCallEventConsumer
         implements SmartLifecycle {
 
+    /**
+     * 中文说明：表示 LOGGER 这一固定值；它属于 {@code GatewayKafkaCallEventConsumer} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
+     * English summary: Represents the fixed value logger; it is a state, type, or protocol value of {@code GatewayKafkaCallEventConsumer} and keeps callers aligned with the owning type.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private static final Logger LOGGER = LoggerFactory.getLogger(
             GatewayKafkaCallEventConsumer.class
     );
 
+    /**
+     * 中文说明：保存 消费者 对应的状态、依赖或配置值；字段类型为 {@code Consumer<String, byte[]>}，由 {@code GatewayKafkaCallEventConsumer} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by consumer; its type is {@code Consumer<String, byte[]>}, and {@code GatewayKafkaCallEventConsumer} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final Consumer<String, byte[]> consumer;
 
+    /**
+     * 中文说明：保存 处理器 对应的状态、依赖或配置值；字段类型为 {@code GatewayCallEventConsumerHandler}，由 {@code GatewayKafkaCallEventConsumer} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by handler; its type is {@code GatewayCallEventConsumerHandler}, and {@code GatewayKafkaCallEventConsumer} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayCallEventConsumerHandler handler;
 
+    /**
+     * 中文说明：保存 metrics 对应的状态、依赖或配置值；字段类型为 {@code GatewayKafkaConsumerMetrics}，由 {@code GatewayKafkaCallEventConsumer} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by metrics; its type is {@code GatewayKafkaConsumerMetrics}, and {@code GatewayKafkaCallEventConsumer} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final GatewayKafkaConsumerMetrics metrics;
 
+    /**
+     * 中文说明：保存 settings 对应的状态、依赖或配置值；字段类型为 {@code Settings}，由 {@code GatewayKafkaCallEventConsumer} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by settings; its type is {@code Settings}, and {@code GatewayKafkaCallEventConsumer} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final Settings settings;
 
+    /**
+     * 中文说明：保存 running 对应的状态、依赖或配置值；字段类型为 {@code AtomicBoolean}，由 {@code GatewayKafkaCallEventConsumer} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by running; its type is {@code AtomicBoolean}, and {@code GatewayKafkaCallEventConsumer} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final AtomicBoolean running = new AtomicBoolean();
 
+    /**
+     * 中文说明：保存 attempts 对应的状态、依赖或配置值；字段类型为 {@code Map<RecordKey, Integer>}，由 {@code GatewayKafkaCallEventConsumer} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by attempts; its type is {@code Map<RecordKey, Integer>}, and {@code GatewayKafkaCallEventConsumer} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private final Map<RecordKey, Integer> attempts = new HashMap<>();
 
+    /**
+     * 中文说明：保存 worker 对应的状态、依赖或配置值；字段类型为 {@code Thread}，由 {@code GatewayKafkaCallEventConsumer} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by worker; its type is {@code Thread}, and {@code GatewayKafkaCallEventConsumer} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer}; do not couple callers to its representation when the owning type exposes an API.
+     */
     private Thread worker;
 
+    /**
+     * 中文说明：创建 {@code GatewayKafkaCallEventConsumer} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+     * English summary: Creates an instance of {@code GatewayKafkaCallEventConsumer} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+     *
+     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+     * @param handler 参数 处理器；parameter handler。
+     * @param metrics 参数 metrics；parameter metrics。
+     * @param settings 参数 settings；parameter settings。
+     */
     public GatewayKafkaCallEventConsumer(
             GatewayCallEventConsumerHandler handler,
             GatewayKafkaConsumerMetrics metrics,
@@ -59,6 +122,16 @@ public final class GatewayKafkaCallEventConsumer
         );
     }
 
+    /**
+     * 中文说明：创建 {@code GatewayKafkaCallEventConsumer} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+     * English summary: Creates an instance of {@code GatewayKafkaCallEventConsumer} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+     *
+     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+     * @param consumer 参数 消费者；parameter consumer。
+     * @param handler 参数 处理器；parameter handler。
+     * @param metrics 参数 metrics；parameter metrics。
+     * @param settings 参数 settings；parameter settings。
+     */
     GatewayKafkaCallEventConsumer(
             Consumer<String, byte[]> consumer,
             GatewayCallEventConsumerHandler handler,
@@ -70,6 +143,12 @@ public final class GatewayKafkaCallEventConsumer
         this.settings = Objects.requireNonNull(settings, "settings");
     }
 
+    /**
+     * 中文说明：执行 start 操作；该方法是 {@code GatewayKafkaCallEventConsumer} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the start operation; this method is the invocation entry point on {@code GatewayKafkaCallEventConsumer} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayKafkaCallEventConsumer.start(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     */
     @Override
     public void start() {
         if (!running.compareAndSet(false, true)) {
@@ -85,6 +164,12 @@ public final class GatewayKafkaCallEventConsumer
                 .start(this::consume);
     }
 
+    /**
+     * 中文说明：执行 stop 操作；该方法是 {@code GatewayKafkaCallEventConsumer} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the stop operation; this method is the invocation entry point on {@code GatewayKafkaCallEventConsumer} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayKafkaCallEventConsumer.stop(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     */
     @Override
     public void stop() {
         if (!running.getAndSet(false)) {
@@ -100,16 +185,36 @@ public final class GatewayKafkaCallEventConsumer
         }
     }
 
+    /**
+     * 中文说明：执行 isRunning 操作；该方法是 {@code GatewayKafkaCallEventConsumer} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the is running operation; this method is the invocation entry point on {@code GatewayKafkaCallEventConsumer} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayKafkaCallEventConsumer.isRunning(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @return 返回 isRunning 的处理结果；returns the result of the operation.
+     */
     @Override
     public boolean isRunning() {
         return running.get();
     }
 
+    /**
+     * 中文说明：执行 getPhase 操作；该方法是 {@code GatewayKafkaCallEventConsumer} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the get phase operation; this method is the invocation entry point on {@code GatewayKafkaCallEventConsumer} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayKafkaCallEventConsumer.getPhase(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @return 返回 getPhase 的处理结果；returns the result of the operation.
+     */
     @Override
     public int getPhase() {
         return Integer.MAX_VALUE - 100;
     }
 
+    /**
+     * 中文说明：执行 consume 操作；该方法是 {@code GatewayKafkaCallEventConsumer} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the consume operation; this method is the invocation entry point on {@code GatewayKafkaCallEventConsumer} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayKafkaCallEventConsumer.consume(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     */
     private void consume() {
         try {
             while (running.get()) {
@@ -139,6 +244,12 @@ public final class GatewayKafkaCallEventConsumer
         }
     }
 
+    /**
+     * 中文说明：执行 pollAndProject 操作；该方法是 {@code GatewayKafkaCallEventConsumer} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the poll and project operation; this method is the invocation entry point on {@code GatewayKafkaCallEventConsumer} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayKafkaCallEventConsumer.pollAndProject(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     */
     private void pollAndProject() {
         ConsumerRecords<String, byte[]> records =
                 consumer.poll(settings.pollTimeout());
@@ -190,6 +301,17 @@ public final class GatewayKafkaCallEventConsumer
         }
     }
 
+    /**
+     * 中文说明：执行 deadLetter 操作；该方法是 {@code GatewayKafkaCallEventConsumer} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the dead letter operation; this method is the invocation entry point on {@code GatewayKafkaCallEventConsumer} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayKafkaCallEventConsumer.deadLetter(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param record 参数 record；parameter record。
+     * @param partition 参数 partition；parameter partition。
+     * @param key 参数 键；parameter key。
+     * @param failure 参数 failure；parameter failure。
+     * @return 返回 deadLetter 的处理结果；returns the result of the operation.
+     */
     private boolean deadLetter(
             ConsumerRecord<String, byte[]> record,
             TopicPartition partition,
@@ -210,6 +332,13 @@ public final class GatewayKafkaCallEventConsumer
         }
     }
 
+    /**
+     * 中文说明：执行 rewind 操作；该方法是 {@code GatewayKafkaCallEventConsumer} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the rewind operation; this method is the invocation entry point on {@code GatewayKafkaCallEventConsumer} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayKafkaCallEventConsumer.rewind(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param nextOffsets 参数 nextOffsets；parameter next offsets。
+     */
     private void rewind(Map<TopicPartition, Long> nextOffsets) {
         for (Map.Entry<TopicPartition, Long> entry
                 : nextOffsets.entrySet()) {
@@ -217,6 +346,13 @@ public final class GatewayKafkaCallEventConsumer
         }
     }
 
+    /**
+     * 中文说明：执行 重试 操作；该方法是 {@code GatewayKafkaCallEventConsumer} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the retry operation; this method is the invocation entry point on {@code GatewayKafkaCallEventConsumer} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayKafkaCallEventConsumer.retry(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param nextOffsets 参数 nextOffsets；parameter next offsets。
+     */
     private void retry(Map<TopicPartition, Long> nextOffsets) {
         rewind(nextOffsets);
         consumer.pause(nextOffsets.keySet());
@@ -228,6 +364,14 @@ public final class GatewayKafkaCallEventConsumer
         }
     }
 
+    /**
+     * 中文说明：执行 commit 操作；该方法是 {@code GatewayKafkaCallEventConsumer} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the commit operation; this method is the invocation entry point on {@code GatewayKafkaCallEventConsumer} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayKafkaCallEventConsumer.commit(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param record 参数 record；parameter record。
+     * @param partition 参数 partition；parameter partition。
+     */
     private void commit(
             ConsumerRecord<String, byte[]> record,
             TopicPartition partition) {
@@ -245,6 +389,13 @@ public final class GatewayKafkaCallEventConsumer
         }
     }
 
+    /**
+     * 中文说明：执行 recover 操作；该方法是 {@code GatewayKafkaCallEventConsumer} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the recover operation; this method is the invocation entry point on {@code GatewayKafkaCallEventConsumer} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayKafkaCallEventConsumer.recover(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param failure 参数 failure；parameter failure。
+     */
     private void recover(RuntimeException failure) {
         if (!running.get()) {
             return;
@@ -257,6 +408,12 @@ public final class GatewayKafkaCallEventConsumer
         backoff();
     }
 
+    /**
+     * 中文说明：执行 backoff 操作；该方法是 {@code GatewayKafkaCallEventConsumer} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the backoff operation; this method is the invocation entry point on {@code GatewayKafkaCallEventConsumer} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayKafkaCallEventConsumer.backoff(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     */
     private void backoff() {
         try {
             Thread.sleep(settings.retryBackoff().toMillis());
@@ -266,12 +423,28 @@ public final class GatewayKafkaCallEventConsumer
         }
     }
 
+    /**
+     * 中文说明：执行 fatal 操作；该方法是 {@code GatewayKafkaCallEventConsumer} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the fatal operation; this method is the invocation entry point on {@code GatewayKafkaCallEventConsumer} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayKafkaCallEventConsumer.fatal(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param failure 参数 failure；parameter failure。
+     * @return 返回 fatal 的处理结果；returns the result of the operation.
+     */
     private boolean fatal(RuntimeException failure) {
         return failure instanceof AuthenticationException
                 || failure instanceof AuthorizationException
                 || failure instanceof FencedInstanceIdException;
     }
 
+    /**
+     * 中文说明：执行 properties 操作；该方法是 {@code GatewayKafkaCallEventConsumer} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the properties operation; this method is the invocation entry point on {@code GatewayKafkaCallEventConsumer} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayKafkaCallEventConsumer.properties(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param settings 参数 settings；parameter settings。
+     * @return 返回 properties 的处理结果；returns the result of the operation.
+     */
     private static Properties properties(Settings settings) {
         Properties properties = new Properties();
         properties.put(
@@ -297,6 +470,15 @@ public final class GatewayKafkaCallEventConsumer
         return properties;
     }
 
+    /**
+     * 中文说明：执行 required 操作；该方法是 {@code GatewayKafkaCallEventConsumer} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+     * English summary: Executes the required operation; this method is the invocation entry point on {@code GatewayKafkaCallEventConsumer} and performs the corresponding runtime, management, or protocol work.
+     *
+     * 用法 / Usage: 调用方式 / Usage: {@code GatewayKafkaCallEventConsumer.required(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @param value 参数 值；parameter value。
+     * @param field 参数 field；parameter field。
+     * @return 返回 required 的处理结果；returns the result of the operation.
+     */
     private static String required(String value, String field) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(field + " is required");
@@ -304,18 +486,100 @@ public final class GatewayKafkaCallEventConsumer
         return value;
     }
 
+    /**
+     * 中文说明：{@code Settings} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责Settings相关的职责与边界。
+     * English summary: {@code Settings} is an immutable data carrier in the current Gateway module; it owns the settings-related responsibility and boundary.
+     *
+     * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+     * @param bootstrapServers 参数 bootstrapServers；parameter bootstrap servers。
+     * @param topic 参数 topic；parameter topic。
+     * @param groupId 参数 groupId；parameter group id。
+     * @param pollTimeout 参数 poll超时；parameter poll timeout。
+     * @param commitTimeout 参数 commit超时；parameter commit timeout。
+     * @param closeTimeout 参数 close超时；parameter close timeout。
+     * @param retryBackoff 参数 重试Backoff；parameter retry backoff。
+     * @param maxRecordAttempts 参数 maxRecordAttempts；parameter max record attempts。
+     * @param additionalProperties 参数 additionalProperties；parameter additional properties。
+     */
     public record Settings(
+            /**
+             * 中文说明：保存 bootstrapServers 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayKafkaCallEventConsumer.Settings} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by bootstrap servers; its type is {@code String}, and {@code GatewayKafkaCallEventConsumer.Settings} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer.Settings} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer.Settings}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String bootstrapServers,
+            /**
+             * 中文说明：保存 topic 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayKafkaCallEventConsumer.Settings} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by topic; its type is {@code String}, and {@code GatewayKafkaCallEventConsumer.Settings} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer.Settings} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer.Settings}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String topic,
+            /**
+             * 中文说明：保存 groupId 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayKafkaCallEventConsumer.Settings} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by group id; its type is {@code String}, and {@code GatewayKafkaCallEventConsumer.Settings} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer.Settings} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer.Settings}; do not couple callers to its representation when the owning type exposes an API.
+             */
             String groupId,
+            /**
+             * 中文说明：保存 poll超时 对应的状态、依赖或配置值；字段类型为 {@code Duration}，由 {@code GatewayKafkaCallEventConsumer.Settings} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by poll timeout; its type is {@code Duration}, and {@code GatewayKafkaCallEventConsumer.Settings} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer.Settings} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer.Settings}; do not couple callers to its representation when the owning type exposes an API.
+             */
             Duration pollTimeout,
+            /**
+             * 中文说明：保存 commit超时 对应的状态、依赖或配置值；字段类型为 {@code Duration}，由 {@code GatewayKafkaCallEventConsumer.Settings} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by commit timeout; its type is {@code Duration}, and {@code GatewayKafkaCallEventConsumer.Settings} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer.Settings} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer.Settings}; do not couple callers to its representation when the owning type exposes an API.
+             */
             Duration commitTimeout,
+            /**
+             * 中文说明：保存 close超时 对应的状态、依赖或配置值；字段类型为 {@code Duration}，由 {@code GatewayKafkaCallEventConsumer.Settings} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by close timeout; its type is {@code Duration}, and {@code GatewayKafkaCallEventConsumer.Settings} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer.Settings} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer.Settings}; do not couple callers to its representation when the owning type exposes an API.
+             */
             Duration closeTimeout,
+            /**
+             * 中文说明：保存 重试Backoff 对应的状态、依赖或配置值；字段类型为 {@code Duration}，由 {@code GatewayKafkaCallEventConsumer.Settings} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by retry backoff; its type is {@code Duration}, and {@code GatewayKafkaCallEventConsumer.Settings} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer.Settings} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer.Settings}; do not couple callers to its representation when the owning type exposes an API.
+             */
             Duration retryBackoff,
+            /**
+             * 中文说明：保存 maxRecordAttempts 对应的状态、依赖或配置值；字段类型为 {@code int}，由 {@code GatewayKafkaCallEventConsumer.Settings} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by max record attempts; its type is {@code int}, and {@code GatewayKafkaCallEventConsumer.Settings} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer.Settings} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer.Settings}; do not couple callers to its representation when the owning type exposes an API.
+             */
             int maxRecordAttempts,
+            /**
+             * 中文说明：保存 additionalProperties 对应的状态、依赖或配置值；字段类型为 {@code Map<String, Object>}，由 {@code GatewayKafkaCallEventConsumer.Settings} 在其生命周期内读取或更新。
+             * English summary: Holds the state, dependency, or configuration represented by additional properties; its type is {@code Map<String, Object>}, and {@code GatewayKafkaCallEventConsumer.Settings} reads or updates it during its lifecycle.
+             *
+             * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer.Settings} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer.Settings}; do not couple callers to its representation when the owning type exposes an API.
+             */
             Map<String, Object> additionalProperties
     ) {
 
+        /**
+         * 中文说明：创建 {@code GatewayKafkaCallEventConsumer.Settings} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+         * English summary: Creates an instance of {@code GatewayKafkaCallEventConsumer.Settings} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+         *
+         * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+         * @param bootstrapServers 参数 bootstrapServers；parameter bootstrap servers。
+         * @param topic 参数 topic；parameter topic。
+         * @param groupId 参数 groupId；parameter group id。
+         * @param pollTimeout 参数 poll超时；parameter poll timeout。
+         * @param commitTimeout 参数 commit超时；parameter commit timeout。
+         * @param closeTimeout 参数 close超时；parameter close timeout。
+         * @param additionalProperties 参数 additionalProperties；parameter additional properties。
+         */
         public Settings(
                 String bootstrapServers,
                 String topic,
@@ -337,6 +601,21 @@ public final class GatewayKafkaCallEventConsumer
             );
         }
 
+        /**
+         * 中文说明：创建 {@code GatewayKafkaCallEventConsumer.Settings} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
+         * English summary: Creates an instance of {@code GatewayKafkaCallEventConsumer.Settings} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
+         *
+         * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
+         * @param bootstrapServers 参数 bootstrapServers；parameter bootstrap servers。
+         * @param topic 参数 topic；parameter topic。
+         * @param groupId 参数 groupId；parameter group id。
+         * @param pollTimeout 参数 poll超时；parameter poll timeout。
+         * @param commitTimeout 参数 commit超时；parameter commit timeout。
+         * @param closeTimeout 参数 close超时；parameter close timeout。
+         * @param retryBackoff 参数 重试Backoff；parameter retry backoff。
+         * @param maxRecordAttempts 参数 maxRecordAttempts；parameter max record attempts。
+         * @param additionalProperties 参数 additionalProperties；parameter additional properties。
+         */
         public Settings {
             pollTimeout = pollTimeout == null
                     ? Duration.ofMillis(500)
@@ -367,18 +646,68 @@ public final class GatewayKafkaCallEventConsumer
         }
     }
 
-    private record RecordKey(String topic, int partition, long offset) {
+    /**
+     * 中文说明：{@code RecordKey} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责Record键相关的职责与边界。
+     * English summary: {@code RecordKey} is an immutable data carrier in the current Gateway module; it owns the record key-related responsibility and boundary.
+     *
+     * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+     * @param topic 参数 topic；parameter topic。
+     * @param partition 参数 partition；parameter partition。
+     * @param offset 参数 offset；parameter offset。
+     */
+    private record RecordKey(
+    /**
+     * 中文说明：保存 topic 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayKafkaCallEventConsumer.RecordKey} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by topic; its type is {@code String}, and {@code GatewayKafkaCallEventConsumer.RecordKey} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer.RecordKey} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer.RecordKey}; do not couple callers to its representation when the owning type exposes an API.
+     */
+    String topic,
+    /**
+     * 中文说明：保存 partition 对应的状态、依赖或配置值；字段类型为 {@code int}，由 {@code GatewayKafkaCallEventConsumer.RecordKey} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by partition; its type is {@code int}, and {@code GatewayKafkaCallEventConsumer.RecordKey} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer.RecordKey} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer.RecordKey}; do not couple callers to its representation when the owning type exposes an API.
+     */
+    int partition,
+    /**
+     * 中文说明：保存 offset 对应的状态、依赖或配置值；字段类型为 {@code long}，由 {@code GatewayKafkaCallEventConsumer.RecordKey} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by offset; its type is {@code long}, and {@code GatewayKafkaCallEventConsumer.RecordKey} reads or updates it during its lifecycle.
+     *
+     * 用法 / Usage: 该字段通过 {@code GatewayKafkaCallEventConsumer.RecordKey} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayKafkaCallEventConsumer.RecordKey}; do not couple callers to its representation when the owning type exposes an API.
+     */
+    long offset) {
     }
 
+    /**
+     * 中文说明：{@code RebalanceListener} 是监听器，位于当前 Gateway 模块的相关包中，负责Rebalance监听器相关的职责与边界。
+     * English summary: {@code RebalanceListener} is a rebalance listener listener in the current Gateway module; it owns the rebalance listener-related responsibility and boundary.
+     *
+     * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+     */
     private final class RebalanceListener
             implements ConsumerRebalanceListener {
 
+        /**
+         * 中文说明：执行 onPartitionsRevoked 操作；该方法是 {@code GatewayKafkaCallEventConsumer.RebalanceListener} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+         * English summary: Executes the on partitions revoked operation; this method is the invocation entry point on {@code GatewayKafkaCallEventConsumer.RebalanceListener} and performs the corresponding runtime, management, or protocol work.
+         *
+         * 用法 / Usage: 调用方式 / Usage: {@code GatewayKafkaCallEventConsumer.RebalanceListener.onPartitionsRevoked(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+         * @param partitions 参数 partitions；parameter partitions。
+         */
         @Override
         public void onPartitionsRevoked(
                 java.util.Collection<TopicPartition> partitions) {
             attempts.clear();
         }
 
+        /**
+         * 中文说明：执行 onPartitionsAssigned 操作；该方法是 {@code GatewayKafkaCallEventConsumer.RebalanceListener} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
+         * English summary: Executes the on partitions assigned operation; this method is the invocation entry point on {@code GatewayKafkaCallEventConsumer.RebalanceListener} and performs the corresponding runtime, management, or protocol work.
+         *
+         * 用法 / Usage: 调用方式 / Usage: {@code GatewayKafkaCallEventConsumer.RebalanceListener.onPartitionsAssigned(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+         * @param partitions 参数 partitions；parameter partitions。
+         */
         @Override
         public void onPartitionsAssigned(
                 java.util.Collection<TopicPartition> partitions) {
