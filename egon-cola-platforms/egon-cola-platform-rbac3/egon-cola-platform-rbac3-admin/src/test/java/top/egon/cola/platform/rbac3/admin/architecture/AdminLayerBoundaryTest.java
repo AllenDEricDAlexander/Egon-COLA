@@ -29,7 +29,7 @@ class AdminLayerBoundaryTest {
 
     private static final Set<String> MIGRATED_ROOTS =
             Set.of("auth", "bootstrap", "config", "directory", "identity",
-                    "session", "shared", "tenant");
+                    "resource", "role", "session", "shared", "tenant");
     private static final Set<String> DEFERRED_NESTED_TYPE_HOSTS = Set.of(
             "config/runtime/Rbac3WorkerConfiguration.java");
 

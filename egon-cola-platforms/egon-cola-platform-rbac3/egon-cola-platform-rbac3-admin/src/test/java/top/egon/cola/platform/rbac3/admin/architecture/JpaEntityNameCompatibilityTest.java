@@ -14,6 +14,16 @@ import top.egon.cola.platform.rbac3.admin.directory.domain.po.UserPositionSnapsh
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.ExternalIdentityPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserCredentialPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
+import top.egon.cola.platform.rbac3.admin.resource.domain.po.ApplicationPO;
+import top.egon.cola.platform.rbac3.admin.resource.domain.po.FieldDefinitionPO;
+import top.egon.cola.platform.rbac3.admin.resource.domain.po.PermissionPO;
+import top.egon.cola.platform.rbac3.admin.resource.domain.po.PermissionResourcePO;
+import top.egon.cola.platform.rbac3.admin.resource.domain.po.ResourceManifestPO;
+import top.egon.cola.platform.rbac3.admin.resource.domain.po.ResourcePO;
+import top.egon.cola.platform.rbac3.admin.role.domain.po.RoleClosurePO;
+import top.egon.cola.platform.rbac3.admin.role.domain.po.RoleInheritancePO;
+import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePermissionPO;
+import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePO;
 import top.egon.cola.platform.rbac3.admin.session.domain.po.RefreshTokenPO;
 import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
@@ -41,7 +51,17 @@ class JpaEntityNameCompatibilityTest {
             Map.entry(ServicePermissionPO.class, "ServicePermissionEntity"),
             Map.entry(ServicePrincipalPO.class, "ServicePrincipalEntity"),
             Map.entry(SessionPO.class, "SessionEntity"),
-            Map.entry(RefreshTokenPO.class, "RefreshTokenEntity"));
+            Map.entry(RefreshTokenPO.class, "RefreshTokenEntity"),
+            Map.entry(ApplicationPO.class, "ApplicationEntity"),
+            Map.entry(FieldDefinitionPO.class, "FieldDefinitionEntity"),
+            Map.entry(PermissionPO.class, "PermissionEntity"),
+            Map.entry(PermissionResourcePO.class, "PermissionResourceEntity"),
+            Map.entry(ResourceManifestPO.class, "ResourceManifestEntity"),
+            Map.entry(ResourcePO.class, "ResourceEntity"),
+            Map.entry(RoleClosurePO.class, "RoleClosureEntity"),
+            Map.entry(RoleInheritancePO.class, "RoleInheritanceEntity"),
+            Map.entry(RolePermissionPO.class, "RolePermissionEntity"),
+            Map.entry(RolePO.class, "RoleEntity"));
 
     @Test
     void renamedEntitiesRetainTheirLegacyJpaNames() {

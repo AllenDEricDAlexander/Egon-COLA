@@ -4,7 +4,7 @@ import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
-import top.egon.cola.platform.rbac3.admin.role.application.RoleFacade;
+import top.egon.cola.platform.rbac3.admin.role.service.RoleFacade;
 import top.egon.cola.platform.rbac3.admin.simulation.application.AuthorizationSimulationService;
 
 import java.nio.charset.StandardCharsets;
@@ -12,6 +12,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
+import top.egon.cola.platform.rbac3.admin.role.domain.vo.RoleImpactVO;
 
 /**
  * 类型 `PostgresqlRoleImpactSource` 位于当前包内，是类型，用于承载 `Postgresql Role Impact Source` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -77,7 +78,7 @@ public class PostgresqlRoleImpactSource
         if (tenant == null) {
             throw new IllegalArgumentException("tenant is missing");
         }
-        RoleFacade.RoleImpactView impact = roleFacade.impact(tenantId, roleId);
+        RoleImpactVO impact = roleFacade.impact(tenantId, roleId);
         long policyVersion = tenant.getPolicyVersion();
         return new AuthorizationSimulationService.RoleImpactSnapshot(
                 impact, policyVersion,
@@ -99,7 +100,7 @@ public class PostgresqlRoleImpactSource
     private static String checksum(
             String tenantId,
             long policyVersion,
-            RoleFacade.RoleImpactView impact) {
+            RoleImpactVO impact) {
         String canonical = String.join("\n",
                 tenantId,
                 Long.toString(policyVersion),

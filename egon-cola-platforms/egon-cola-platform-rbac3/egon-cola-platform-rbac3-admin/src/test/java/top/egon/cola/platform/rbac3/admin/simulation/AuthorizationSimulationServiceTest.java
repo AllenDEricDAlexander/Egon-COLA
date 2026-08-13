@@ -5,7 +5,7 @@ import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.simulation.application.AuthorizationSimulationService;
-import top.egon.cola.platform.rbac3.admin.role.application.RoleFacade;
+import top.egon.cola.platform.rbac3.admin.role.service.RoleFacade;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.Decision;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import top.egon.cola.platform.rbac3.admin.role.domain.vo.RoleImpactVO;
 
 class AuthorizationSimulationServiceTest {
 
@@ -47,7 +48,7 @@ class AuthorizationSimulationServiceTest {
         AuthorizationSimulationService service = new AuthorizationSimulationService(
                 decisionService,
                 (tenantId, roleId) -> new AuthorizationSimulationService.RoleImpactSnapshot(
-                        new RoleFacade.RoleImpactView(
+                        new RoleImpactVO(
                                 roleId, List.of(roleId), List.of(roleId),
                                 "LOW", 0, List.of()),
                         18, "sha256:role-impact"),
@@ -91,7 +92,7 @@ class AuthorizationSimulationServiceTest {
         AuthorizationSimulationService service = new AuthorizationSimulationService(
                 decisionServiceNotUsed(),
                 (tenantId, roleId) -> new AuthorizationSimulationService.RoleImpactSnapshot(
-                        new RoleFacade.RoleImpactView(
+                        new RoleImpactVO(
                                 roleId, List.of("root-1"),
                                 List.of("root-1", roleId), "HIGH", 7,
                                 List.of("ROLE_ACTIVATION_ROOT_AMBIGUOUS")),

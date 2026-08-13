@@ -21,7 +21,7 @@ import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.AssignmentController;
 import top.egon.cola.platform.rbac3.admin.session.controller.SessionController;
-import top.egon.cola.platform.rbac3.admin.role.domain.RoleEntity;
+import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePO;
 import top.egon.cola.platform.rbac3.admin.session.domain.po.RefreshTokenPO;
 import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
 import top.egon.cola.platform.rbac3.admin.session.service.SessionRuntimeSynchronizer;

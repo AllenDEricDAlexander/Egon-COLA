@@ -9,7 +9,7 @@ import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.assignment.application.AssignmentFacade;
 import top.egon.cola.platform.rbac3.admin.assignment.domain.UserRoleAssignmentEntity;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
-import top.egon.cola.platform.rbac3.admin.role.domain.RoleEntity;
+import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePO;
 import top.egon.cola.platform.rbac3.core.constraint.PrerequisiteRoleSpecification;
 import top.egon.cola.platform.rbac3.core.constraint.SsdSpecification;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import top.egon.cola.platform.rbac3.admin.identity.domain.enums.UserStatusEnum;
+import top.egon.cola.platform.rbac3.admin.role.domain.enums.RoleStatusEnum;
 
 /**
  * 类型 `AssignmentRepository` 位于当前包内，是类型，用于承载 `Assignment Repository` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -104,9 +105,9 @@ public class AssignmentRepository implements
                 || user.getStatus() != UserStatusEnum.ACTIVE) {
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }
-        RoleEntity role = entityManager.find(RoleEntity.class, roleId);
+        RolePO role = entityManager.find(RolePO.class, roleId);
         if (role == null || !tenantId.equals(role.getTenantId())
-                || role.getStatus() != RoleEntity.Status.ACTIVE) {
+                || role.getStatus() != RoleStatusEnum.ACTIVE) {
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }
         String rootId = uniqueRoot(tenantId, role.getApplicationId(), roleId);
@@ -177,7 +178,7 @@ public class AssignmentRepository implements
     ) {
         UserRoleAssignmentEntity assignment = requireAssignment(
                 request.tenantId(), request.assignmentId(), null);
-        RoleEntity role = entityManager.find(RoleEntity.class, assignment.getRoleId());
+        RolePO role = entityManager.find(RolePO.class, assignment.getRoleId());
         if (role == null || !role.getTenantId().equals(assignment.getTenantId())) {
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }

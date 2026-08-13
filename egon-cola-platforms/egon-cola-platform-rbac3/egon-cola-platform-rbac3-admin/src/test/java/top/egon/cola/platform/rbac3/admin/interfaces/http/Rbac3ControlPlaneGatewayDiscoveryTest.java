@@ -13,9 +13,9 @@ import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefinitionContributor;
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.constraint.application.ConstraintFacade;
-import top.egon.cola.platform.rbac3.admin.resource.application.ApplicationResourceFacade;
-import top.egon.cola.platform.rbac3.admin.resource.application.ManifestFacade;
-import top.egon.cola.platform.rbac3.admin.role.application.RoleFacade;
+import top.egon.cola.platform.rbac3.admin.resource.service.ApplicationResourceFacade;
+import top.egon.cola.platform.rbac3.admin.resource.service.ManifestFacade;
+import top.egon.cola.platform.rbac3.admin.role.service.RoleFacade;
 
 import java.util.Map;
 import java.util.Set;
@@ -23,6 +23,9 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import top.egon.cola.platform.rbac3.admin.resource.controller.ApplicationResourceController;
+import top.egon.cola.platform.rbac3.admin.resource.controller.ManifestController;
+import top.egon.cola.platform.rbac3.admin.role.controller.RolePermissionController;
 
 @WebMvcTest(
         controllers = {

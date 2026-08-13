@@ -11,6 +11,7 @@ import java.lang.reflect.Parameter;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import top.egon.cola.platform.rbac3.admin.role.controller.RolePermissionController;
 
 class ControllerRequestParameterMetadataTest {
 

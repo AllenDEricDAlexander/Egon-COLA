@@ -10,10 +10,10 @@ import top.egon.cola.platform.rbac3.admin.bootstrap.service.Rbac3DevelopmentTopo
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.ExternalIdentityPO;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
-import top.egon.cola.platform.rbac3.admin.resource.domain.ApplicationEntity;
-import top.egon.cola.platform.rbac3.admin.resource.domain.PermissionEntity;
-import top.egon.cola.platform.rbac3.admin.role.domain.RoleEntity;
-import top.egon.cola.platform.rbac3.admin.role.domain.RolePermissionEntity;
+import top.egon.cola.platform.rbac3.admin.resource.domain.po.ApplicationPO;
+import top.egon.cola.platform.rbac3.admin.resource.domain.po.PermissionPO;
+import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePO;
+import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePermissionPO;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -23,6 +23,10 @@ import java.util.Map;
 import java.util.Objects;
 import top.egon.cola.platform.rbac3.admin.bootstrap.repository.DevelopmentBootstrapPort;
 import top.egon.cola.platform.rbac3.admin.bootstrap.domain.vo.ApplicationDefinitionVO;
+import top.egon.cola.platform.rbac3.admin.resource.domain.enums.PermissionRiskLevelEnum;
+import top.egon.cola.platform.rbac3.admin.role.domain.enums.RoleTypeEnum;
+import top.egon.cola.platform.rbac3.admin.role.domain.enums.RoleRiskLevelEnum;
+import top.egon.cola.platform.rbac3.admin.role.domain.enums.RolePermissionStatusEnum;
 
 /**
  * 类型 `JpaDevelopmentTopologyBootstrapRepository` 位于当前包内，是类型，用于承载 `Postgresql Development Topology Bootstrap Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -270,24 +274,24 @@ public class JpaDevelopmentTopologyBootstrapRepository
             Long userId,
             ApplicationDefinitionVO definition,
             Instant now) {
-        ApplicationEntity application = findApplication(
+        ApplicationPO application = findApplication(
                 tenantId, definition.applicationCode());
         boolean changed = false;
         if (application == null) {
-            application = new ApplicationEntity(
+            application = new ApplicationPO(
                     idGenerator.nextLongId(), tenantId,
                     definition.applicationCode(), definition.applicationName(),
                     definition.displayPriority(), ACTOR, now);
             entityManager.persist(application);
             changed = true;
         }
-        RoleEntity role = findRole(
+        RolePO role = findRole(
                 tenantId, application.getId(), definition.roleCode());
         if (role == null) {
-            role = new RoleEntity(
+            role = new RolePO(
                     idGenerator.nextLongId(), tenantId, application.getId(),
                     definition.roleCode(), definition.applicationName() + " Administrator",
-                    RoleEntity.RoleType.MANAGEMENT, RoleEntity.RiskLevel.MEDIUM,
+                    RoleTypeEnum.MANAGEMENT, RoleRiskLevelEnum.MEDIUM,
                     false, null, 0, null, ACTOR, now);
             entityManager.persist(role);
             entityManager.flush();
@@ -320,12 +324,12 @@ public class JpaDevelopmentTopologyBootstrapRepository
      * @param applicationCode 输入参数 `applicationCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private ApplicationEntity findApplication(Long tenantId, String applicationCode) {
+    private ApplicationPO findApplication(Long tenantId, String applicationCode) {
         return singleOrNull(entityManager.createQuery("""
                         select application from ApplicationEntity application
                          where application.tenantId = :tenantId
                            and application.applicationCode = :applicationCode
-                        """, ApplicationEntity.class)
+                        """, ApplicationPO.class)
                 .setParameter("tenantId", tenantId)
                 .setParameter("applicationCode", applicationCode)
                 .getResultList(), "application");
@@ -343,13 +347,13 @@ public class JpaDevelopmentTopologyBootstrapRepository
      * @param roleCode 输入参数 `roleCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private RoleEntity findRole(Long tenantId, Long applicationId, String roleCode) {
+    private RolePO findRole(Long tenantId, Long applicationId, String roleCode) {
         return singleOrNull(entityManager.createQuery("""
                         select role from RoleEntity role
                          where role.tenantId = :tenantId
                            and role.applicationId = :applicationId
                            and role.roleCode = :roleCode
-                        """, RoleEntity.class)
+                        """, RolePO.class)
                 .setParameter("tenantId", tenantId)
                 .setParameter("applicationId", applicationId)
                 .setParameter("roleCode", roleCode)
@@ -376,17 +380,17 @@ public class JpaDevelopmentTopologyBootstrapRepository
             Long roleId,
             String permissionCode,
             Instant now) {
-        PermissionEntity permission = singleOrNull(entityManager.createQuery("""
+        PermissionPO permission = singleOrNull(entityManager.createQuery("""
                         select permission from PermissionEntity permission
                          where permission.tenantId = :tenantId
                            and permission.permissionCode = :permissionCode
-                        """, PermissionEntity.class)
+                        """, PermissionPO.class)
                 .setParameter("tenantId", tenantId)
                 .setParameter("permissionCode", permissionCode)
                 .getResultList(), "permission");
         boolean changed = false;
         if (permission == null) {
-            permission = new PermissionEntity(
+            permission = new PermissionPO(
                     idGenerator.nextLongId(), tenantId, applicationId,
                     permissionCode, permissionCode, risk(permissionCode),
                     "Unified identity local administrative capability", ACTOR, now);
@@ -398,7 +402,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
                             + permissionCode);
         }
         if (!hasRolePermission(tenantId, roleId, permission.getId())) {
-            entityManager.persist(new RolePermissionEntity(
+            entityManager.persist(new RolePermissionPO(
                     idGenerator.nextLongId(), tenantId, applicationId,
                     roleId, permission.getId(), now, null, ACTOR, now));
             changed = true;
@@ -429,7 +433,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
                 .setParameter("tenantId", tenantId)
                 .setParameter("roleId", roleId)
                 .setParameter("permissionId", permissionId)
-                .setParameter("status", RolePermissionEntity.Status.ACTIVE)
+                .setParameter("status", RolePermissionStatusEnum.ACTIVE)
                 .getSingleResult();
         return count.longValue() > 0;
     }
@@ -499,16 +503,16 @@ public class JpaDevelopmentTopologyBootstrapRepository
      * @param permissionCode 输入参数 `permissionCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private static PermissionEntity.RiskLevel risk(String permissionCode) {
+    private static PermissionRiskLevelEnum risk(String permissionCode) {
         if (permissionCode.endsWith(":read") || permissionCode.equals("DDC_READ")) {
-            return PermissionEntity.RiskLevel.MEDIUM;
+            return PermissionRiskLevelEnum.MEDIUM;
         }
         return permissionCode.endsWith(":admin")
                 || permissionCode.endsWith(":manage")
                 || permissionCode.endsWith(":activate")
                 || permissionCode.endsWith(":revoke")
-                ? PermissionEntity.RiskLevel.CRITICAL
-                : PermissionEntity.RiskLevel.HIGH;
+                ? PermissionRiskLevelEnum.CRITICAL
+                : PermissionRiskLevelEnum.HIGH;
     }
 
     /**

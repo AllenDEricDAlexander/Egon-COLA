@@ -17,7 +17,7 @@ import top.egon.cola.platform.rbac3.admin.constraint.domain.RolePrerequisiteEnti
 import top.egon.cola.platform.rbac3.admin.constraint.domain.SodMemberEntity;
 import top.egon.cola.platform.rbac3.admin.constraint.domain.SodSetEntity;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
-import top.egon.cola.platform.rbac3.admin.role.domain.RoleEntity;
+import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePO;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;
@@ -105,7 +105,7 @@ public class ConstraintRepository implements
     @Override
     @Transactional(readOnly = true)
     public ConstraintFacade.RoleFact require(String roleId) {
-        RoleEntity role = entityManager.find(RoleEntity.class, Long.valueOf(roleId));
+        RolePO role = entityManager.find(RolePO.class, Long.valueOf(roleId));
         if (role == null) {
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }
@@ -221,8 +221,8 @@ public class ConstraintRepository implements
             ConstraintFacade.PrerequisiteGroupCommand command) {
         Instant now = databaseClock.transactionNow();
         Long tenantId = Long.valueOf(command.tenantId());
-        RoleEntity target = entityManager.find(
-                RoleEntity.class, Long.valueOf(command.targetRoleId()), LockModeType.PESSIMISTIC_WRITE);
+        RolePO target = entityManager.find(
+                RolePO.class, Long.valueOf(command.targetRoleId()), LockModeType.PESSIMISTIC_WRITE);
         requireTenant(target, tenantId);
         requireVersion(target.getVersion(), command.expectedRoleVersion());
         entityManager.createQuery("""
@@ -268,8 +268,8 @@ public class ConstraintRepository implements
             ConstraintFacade.CardinalityCommand command) {
         Instant now = databaseClock.transactionNow();
         Long tenantId = Long.valueOf(command.tenantId());
-        RoleEntity role = entityManager.find(
-                RoleEntity.class, Long.valueOf(command.roleId()), LockModeType.PESSIMISTIC_WRITE);
+        RolePO role = entityManager.find(
+                RolePO.class, Long.valueOf(command.roleId()), LockModeType.PESSIMISTIC_WRITE);
         requireTenant(role, tenantId);
         List<RoleCardinalityEntity> current = entityManager.createQuery("""
                         select c from RoleCardinalityEntity c

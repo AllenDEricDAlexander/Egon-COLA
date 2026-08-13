@@ -12,10 +12,10 @@ import top.egon.cola.platform.rbac3.admin.bootstrap.repository.PlatformAdminBoot
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserCredentialPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
-import top.egon.cola.platform.rbac3.admin.resource.domain.ApplicationEntity;
-import top.egon.cola.platform.rbac3.admin.resource.domain.PermissionEntity;
-import top.egon.cola.platform.rbac3.admin.role.domain.RoleEntity;
-import top.egon.cola.platform.rbac3.admin.role.domain.RolePermissionEntity;
+import top.egon.cola.platform.rbac3.admin.resource.domain.po.ApplicationPO;
+import top.egon.cola.platform.rbac3.admin.resource.domain.po.PermissionPO;
+import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePO;
+import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePermissionPO;
 
 import java.nio.CharBuffer;
 import java.time.Clock;
@@ -25,6 +25,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
+import top.egon.cola.platform.rbac3.admin.resource.domain.enums.PermissionRiskLevelEnum;
+import top.egon.cola.platform.rbac3.admin.role.domain.enums.RoleTypeEnum;
+import top.egon.cola.platform.rbac3.admin.role.domain.enums.RoleRiskLevelEnum;
 
 /**
  * 类型 `JpaPlatformAdminBootstrapRepository` 位于当前包内，是类型，用于承载 `Postgresql Platform Admin Bootstrap Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -235,22 +238,22 @@ public class JpaPlatformAdminBootstrapRepository
         tenant.configure(Map.of("builtInApplicationCode", APPLICATION_CODE), ACTOR, now);
         tenant.activate(ACTOR, now);
         entityManager.persist(tenant);
-        entityManager.persist(new ApplicationEntity(
+        entityManager.persist(new ApplicationPO(
                 applicationId, tenantId, APPLICATION_CODE,
                 "RBAC3 System Administration", 0, ACTOR, now));
-        RoleEntity administratorRole = new RoleEntity(
+        RolePO administratorRole = new RolePO(
                 roleId, tenantId, applicationId, ROLE_CODE,
-                "Platform Security Administrator", RoleEntity.RoleType.MANAGEMENT,
-                RoleEntity.RiskLevel.CRITICAL, true, null, 0, null, ACTOR, now);
+                "Platform Security Administrator", RoleTypeEnum.MANAGEMENT,
+                RoleRiskLevelEnum.CRITICAL, true, null, 0, null, ACTOR, now);
         entityManager.persist(administratorRole);
 
         for (String permissionCode : PLATFORM_PERMISSIONS) {
             Long permissionId = idGenerator.nextLongId();
-            entityManager.persist(new PermissionEntity(
+            entityManager.persist(new PermissionPO(
                     permissionId, tenantId, applicationId, permissionCode,
                     permissionName(permissionCode), risk(permissionCode),
                     "Built-in RBAC3 platform administration capability", ACTOR, now));
-            entityManager.persist(new RolePermissionEntity(
+            entityManager.persist(new RolePermissionPO(
                     idGenerator.nextLongId(), tenantId, applicationId, roleId,
                     permissionId, now, null, ACTOR, now));
         }
@@ -424,14 +427,14 @@ public class JpaPlatformAdminBootstrapRepository
      * @param permissionCode 输入参数 `permissionCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private static PermissionEntity.RiskLevel risk(String permissionCode) {
+    private static PermissionRiskLevelEnum risk(String permissionCode) {
         return permissionCode.endsWith(":read")
-                ? PermissionEntity.RiskLevel.MEDIUM
+                ? PermissionRiskLevelEnum.MEDIUM
                 : permissionCode.endsWith(":operate")
                 || permissionCode.endsWith(":manage")
                 || permissionCode.endsWith(":revoke")
-                ? PermissionEntity.RiskLevel.CRITICAL
-                : PermissionEntity.RiskLevel.HIGH;
+                ? PermissionRiskLevelEnum.CRITICAL
+                : PermissionRiskLevelEnum.HIGH;
     }
 
     /**

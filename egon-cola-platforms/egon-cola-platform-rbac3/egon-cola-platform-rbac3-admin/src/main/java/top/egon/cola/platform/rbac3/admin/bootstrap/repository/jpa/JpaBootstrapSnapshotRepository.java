@@ -5,7 +5,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.platform.rbac3.admin.bootstrap.repository.BootstrapSnapshotRepository;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
-import top.egon.cola.platform.rbac3.admin.role.domain.RoleEntity;
+import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePO;
 import top.egon.cola.platform.rbac3.admin.snapshot.infrastructure.RedisAuthorizationRuntimeStore;
 import top.egon.cola.platform.rbac3.contract.activation.ActivationRoot;
 import top.egon.cola.platform.rbac3.contract.auth.BootstrapView;
@@ -66,7 +66,7 @@ public class JpaBootstrapSnapshotRepository implements BootstrapSnapshotReposito
             resources.addAll(context.resources());
             fieldPolicies.putAll(context.fieldPolicies());
             for (String rootRoleId : context.activationRootRoleIds()) {
-                RoleEntity role = entityManager.find(RoleEntity.class, Long.valueOf(rootRoleId));
+                RolePO role = entityManager.find(RolePO.class, Long.valueOf(rootRoleId));
                 if (role == null || !role.getTenantId().equals(Long.valueOf(tenantId))) {
                     throw new Rbac3RuleViolation("AUTH_SNAPSHOT_NOT_READY");
                 }

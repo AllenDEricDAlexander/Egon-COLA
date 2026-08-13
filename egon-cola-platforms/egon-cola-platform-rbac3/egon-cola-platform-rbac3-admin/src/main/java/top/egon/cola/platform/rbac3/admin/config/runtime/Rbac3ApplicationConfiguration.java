@@ -41,11 +41,11 @@ import top.egon.cola.platform.rbac3.admin.management.application.ManagementPolic
 import top.egon.cola.platform.rbac3.admin.management.infrastructure.ManagementPolicyRepository;
 import top.egon.cola.platform.rbac3.admin.participation.application.ParticipationFacade;
 import top.egon.cola.platform.rbac3.admin.participation.infrastructure.PostgresqlParticipationStore;
-import top.egon.cola.platform.rbac3.admin.resource.application.ApplicationResourceFacade;
-import top.egon.cola.platform.rbac3.admin.resource.application.ManifestFacade;
-import top.egon.cola.platform.rbac3.admin.resource.infrastructure.ResourceManifestRepository;
-import top.egon.cola.platform.rbac3.admin.role.application.RoleFacade;
-import top.egon.cola.platform.rbac3.admin.role.infrastructure.RoleRepository;
+import top.egon.cola.platform.rbac3.admin.resource.service.ApplicationResourceFacade;
+import top.egon.cola.platform.rbac3.admin.resource.service.ManifestFacade;
+import top.egon.cola.platform.rbac3.admin.resource.repository.jpa.JpaResourceManifestRepository;
+import top.egon.cola.platform.rbac3.admin.role.service.RoleFacade;
+import top.egon.cola.platform.rbac3.admin.role.repository.jpa.JpaRoleRepository;
 import top.egon.cola.platform.rbac3.admin.runtime.application.AuthorizationFenceService;
 import top.egon.cola.platform.rbac3.admin.runtime.application.AuthorizationMutationCoordinator;
 import top.egon.cola.platform.rbac3.admin.runtime.application.IdempotencyService;
@@ -75,6 +75,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.Set;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.ActiveMembershipVO;
+import top.egon.cola.platform.rbac3.admin.resource.repository.ComponentKeyRegistry;
 
 /**
  * 类型 `Rbac3ApplicationConfiguration` 位于当前包内，是类型，用于承载 `Rbac3 Application Configuration` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -334,7 +335,7 @@ public class Rbac3ApplicationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Bean
-    RoleFacade roleFacade(RoleRepository repository) {
+    RoleFacade roleFacade(JpaRoleRepository repository) {
         return new RoleFacade(repository, repository);
     }
 
@@ -349,7 +350,7 @@ public class Rbac3ApplicationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Bean
-    ManifestFacade.ComponentKeyRegistry componentKeyRegistry(
+    ComponentKeyRegistry componentKeyRegistry(
             Rbac3AdminProperties properties) {
         Set<String> known = properties.getComponentKeys();
         return known::contains;
@@ -368,8 +369,8 @@ public class Rbac3ApplicationConfiguration {
      */
     @Bean
     ManifestFacade manifestFacade(
-            ResourceManifestRepository repository,
-            ManifestFacade.ComponentKeyRegistry registry) {
+            JpaResourceManifestRepository repository,
+            ComponentKeyRegistry registry) {
         return new ManifestFacade(repository, registry);
     }
 
@@ -385,7 +386,7 @@ public class Rbac3ApplicationConfiguration {
      */
     @Bean
     ApplicationResourceFacade applicationResourceFacade(
-            ResourceManifestRepository repository) {
+            JpaResourceManifestRepository repository) {
         return new ApplicationResourceFacade(repository);
     }
 

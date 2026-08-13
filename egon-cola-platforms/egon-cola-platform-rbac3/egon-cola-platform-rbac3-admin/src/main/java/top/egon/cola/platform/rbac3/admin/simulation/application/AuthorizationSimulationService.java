@@ -2,7 +2,7 @@ package top.egon.cola.platform.rbac3.admin.simulation.application;
 
 import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.role.application.RoleFacade;
+import top.egon.cola.platform.rbac3.admin.role.service.RoleFacade;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 
 import java.time.Clock;
@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import top.egon.cola.platform.rbac3.admin.role.domain.vo.RoleImpactVO;
 
 /**
  * 类型 `AuthorizationSimulationService` 位于当前包内，是类型，用于承载 `Authorization Simulation Service` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -426,13 +427,13 @@ public final class AuthorizationSimulationService {
      */
     public record RoleImpactSnapshot(
             /**
-             * 字段 `impact` 表示 `RoleImpactSnapshot` 中与 `impact` 相关的状态、依赖、配置或结果（声明类型 `RoleFacade.RoleImpactView`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-             * Field `impact` stores the `impact`-related state, dependency, configuration, or result of `RoleImpactSnapshot` (declared type `RoleFacade.RoleImpactView`); its lifecycle and value semantics are defined by its declared type and owning object.
+             * 字段 `impact` 表示 `RoleImpactSnapshot` 中与 `impact` 相关的状态、依赖、配置或结果（声明类型 `RoleImpactVO`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+             * Field `impact` stores the `impact`-related state, dependency, configuration, or result of `RoleImpactSnapshot` (declared type `RoleImpactVO`); its lifecycle and value semantics are defined by its declared type and owning object.
              *
              * 含义与用法：读取、传递或更新 `impact` 时应保持 `RoleImpactSnapshot` 的生命周期、不可变性和线程安全约束。
              * Meaning and usage: when reading, passing, or updating `impact`, preserve `RoleImpactSnapshot`'s lifecycle, immutability, and thread-safety constraints.
              */
-            RoleFacade.RoleImpactView impact,
+            RoleImpactVO impact,
             /**
              * 字段 `policyVersion` 表示 `RoleImpactSnapshot` 中与 `policy Version` 相关的状态、依赖、配置或结果（声明类型 `long`）；其生命周期和取值含义由声明类型及所属对象共同确定。
              * Field `policyVersion` stores the `policy Version`-related state, dependency, configuration, or result of `RoleImpactSnapshot` (declared type `long`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -483,13 +484,13 @@ public final class AuthorizationSimulationService {
      */
     public record RoleChangeImpactResult(
             /**
-             * 字段 `impact` 表示 `RoleChangeImpactResult` 中与 `impact` 相关的状态、依赖、配置或结果（声明类型 `RoleFacade.RoleImpactView`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-             * Field `impact` stores the `impact`-related state, dependency, configuration, or result of `RoleChangeImpactResult` (declared type `RoleFacade.RoleImpactView`); its lifecycle and value semantics are defined by its declared type and owning object.
+             * 字段 `impact` 表示 `RoleChangeImpactResult` 中与 `impact` 相关的状态、依赖、配置或结果（声明类型 `RoleImpactVO`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+             * Field `impact` stores the `impact`-related state, dependency, configuration, or result of `RoleChangeImpactResult` (declared type `RoleImpactVO`); its lifecycle and value semantics are defined by its declared type and owning object.
              *
              * 含义与用法：读取、传递或更新 `impact` 时应保持 `RoleChangeImpactResult` 的生命周期、不可变性和线程安全约束。
              * Meaning and usage: when reading, passing, or updating `impact`, preserve `RoleChangeImpactResult`'s lifecycle, immutability, and thread-safety constraints.
              */
-            RoleFacade.RoleImpactView impact,
+            RoleImpactVO impact,
             /**
              * 字段 `policyVersion` 表示 `RoleChangeImpactResult` 中与 `policy Version` 相关的状态、依赖、配置或结果（声明类型 `long`）；其生命周期和取值含义由声明类型及所属对象共同确定。
              * Field `policyVersion` stores the `policy Version`-related state, dependency, configuration, or result of `RoleChangeImpactResult` (declared type `long`); its lifecycle and value semantics are defined by its declared type and owning object.
