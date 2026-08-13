@@ -1,6 +1,6 @@
 # Gateway Admin 领域分包、Java 类型独立化与页面级 Scope 改造规格
 
-> 状态：待用户书面审查
+> 状态：已确认，进入实施计划阶段
 > 编写日期：2026-08-13
 > 代码基线：`main@e61ec1e7`
 > 适用仓库：`/Users/mario/SelfProject/Egon-COLA`
