@@ -40,14 +40,14 @@ npm run build
 Origin；留空时使用当前 Origin。Actor 与 capabilities 由已鉴权的 Session API 提供，
 浏览器不配置占位 Actor。
 
-部署环境可设置管理页首次进入时使用的作用域；该作用域也会进入页面顶部的可选列表：
+作用域是页面自己的查询条件。每个页面会把选中的 `bizCode`、`appCode`、`env`、`namespace`
+保存在本页面 URL 中，页面之间切换不会再因为共享筛选条件而隐藏其他作用域的数据。跨作用域
+页面先加载当前账号有权限的完整结果集，再在页面内筛选。`GET /api/v1/gateway/admin/scopes`
+只用于填充页面控件和创建表单，不再作为全局顶部上下文。
 
-```text
-VITE_GATEWAY_ADMIN_DEFAULT_BIZ_CODE=default
-VITE_GATEWAY_ADMIN_DEFAULT_APP_CODE=default-app
-VITE_GATEWAY_ADMIN_DEFAULT_ENV=dev
-VITE_GATEWAY_ADMIN_DEFAULT_NAMESPACE=default
-```
+Dashboard 和 Provider 页面要求四个字段完整；Trace 和 Audit 页面要求 `env`、`namespace`；
+Gateway Group、MCP Server、Remote Provider 页面使用可选的 `env`、`namespace` 筛选；接口目录、
+MCP Resource/Prompt 页面使用完整的可选作用域筛选。
 
 不要把凭据写入并提交的 `.env` 文件。身份提供方、浏览器 CORS/PKCE 配置、TLS 终止以及
 Gateway Admin 授权策略仍由部署平台负责。

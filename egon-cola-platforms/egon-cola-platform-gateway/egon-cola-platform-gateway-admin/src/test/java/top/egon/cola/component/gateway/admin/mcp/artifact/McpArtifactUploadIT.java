@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.mcp.artifact;
+package top.egon.cola.component.gateway.admin.mcp.repository.filesystem;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -29,8 +29,8 @@ class McpArtifactUploadIT {
         byte[] changed = "<html>changed</html>".getBytes(
                 StandardCharsets.UTF_8
         );
-        FileSystemMcpAppArtifactStore store =
-                new FileSystemMcpAppArtifactStore(temporaryDirectory);
+        FileSystemMcpAppArtifactRepository store =
+                new FileSystemMcpAppArtifactRepository(temporaryDirectory);
 
         var first = store.write(request(original));
         var replay = store.write(request(original));
@@ -55,8 +55,8 @@ class McpArtifactUploadIT {
     void symlinkEscapeAndWrongDigestAreRejected() throws IOException {
         Path outside = Files.createTempDirectory("mcp-app-outside-");
         Files.createSymbolicLink(temporaryDirectory.resolve("apps"), outside);
-        FileSystemMcpAppArtifactStore store =
-                new FileSystemMcpAppArtifactStore(temporaryDirectory);
+        FileSystemMcpAppArtifactRepository store =
+                new FileSystemMcpAppArtifactRepository(temporaryDirectory);
         byte[] content = "<html>safe</html>".getBytes(StandardCharsets.UTF_8);
 
         assertThrows(
@@ -65,7 +65,7 @@ class McpArtifactUploadIT {
         );
         assertThrows(
                 McpAppArtifactStore.ArtifactRejectedException.class,
-                () -> new FileSystemMcpAppArtifactStore(
+                () -> new FileSystemMcpAppArtifactRepository(
                         temporaryDirectory.resolve("clean")
                 ).write(new McpAppArtifactStore.WriteRequest(
                         "dashboard",

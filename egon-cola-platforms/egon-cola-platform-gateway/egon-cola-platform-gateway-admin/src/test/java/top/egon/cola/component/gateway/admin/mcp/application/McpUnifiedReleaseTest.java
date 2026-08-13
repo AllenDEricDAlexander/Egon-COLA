@@ -1,9 +1,10 @@
-package top.egon.cola.component.gateway.admin.mcp.application;
+package top.egon.cola.component.gateway.admin.mcp.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.gateway.admin.application.catalog.GatewayCatalogStore;
-import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpArtifactMetadataStore;
+import top.egon.cola.component.gateway.admin.mcp.domain.exception.McpValidationException;
+import top.egon.cola.component.gateway.admin.catalog.repository.GatewayCatalogRepository;
+import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpArtifactMetadataRepository;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuleContent;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeServer;
@@ -23,9 +24,9 @@ class McpUnifiedReleaseTest {
 
     @Test
     void publishingGatewayReleaseRejectsUnknownLocalOperation() {
-        GatewayCatalogStore catalog = mock(GatewayCatalogStore.class);
-        JdbcMcpArtifactMetadataStore artifacts =
-                mock(JdbcMcpArtifactMetadataStore.class);
+        GatewayCatalogRepository catalog = mock(GatewayCatalogRepository.class);
+        JdbcMcpArtifactMetadataRepository artifacts =
+                mock(JdbcMcpArtifactMetadataRepository.class);
         when(catalog.findOperation("missing-operation"))
                 .thenReturn(Optional.empty());
         McpValidationService service = new McpValidationService(
@@ -45,8 +46,8 @@ class McpUnifiedReleaseTest {
     @Test
     void rejectsDuplicateToolNameWithinOneServer() {
         McpValidationService service = new McpValidationService(
-                mock(GatewayCatalogStore.class),
-                mock(JdbcMcpArtifactMetadataStore.class),
+                mock(GatewayCatalogRepository.class),
+                mock(JdbcMcpArtifactMetadataRepository.class),
                 new ObjectMapper()
         );
         McpRuleContent original = content("operation-1");

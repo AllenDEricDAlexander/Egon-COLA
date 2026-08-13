@@ -1,6 +1,7 @@
-package top.egon.cola.component.gateway.admin.rule;
+package top.egon.cola.component.gateway.admin.rule.service;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.gateway.admin.rule.domain.dto.GatewayDdcPublicationCommand;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.api.client.DdcManagementClient;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfig;

@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.rule;
+package top.egon.cola.component.gateway.admin.rule.service;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.environment.DdcDynamicPropertySource;
@@ -41,7 +41,7 @@ class GatewayDdcYamlDocumentTest {
                   active: activation
                 """, "gateway.rules.chunk.release-1.0", "chunk-0");
 
-        GatewayDdcYamlDocument.Removal removal = document.removeLeaf(
+        top.egon.cola.component.gateway.admin.rule.service.GatewayYamlRemoval removal = document.removeLeaf(
                 withChunk,
                 "gateway.rules.chunk.release-1.0"
         );

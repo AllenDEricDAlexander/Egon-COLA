@@ -1,12 +1,12 @@
-package top.egon.cola.component.gateway.admin.application.scope;
+package top.egon.cola.component.gateway.admin.scope.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.api.client.DdcManagementClient;
 import top.egon.cola.component.ddc.error.management.DdcManagementClientException;
 import top.egon.cola.component.ddc.model.management.DdcManagementScopeBinding;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationEntity;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationRepository;
+import top.egon.cola.component.gateway.admin.application.domain.po.GatewayApplicationPO;
+import top.egon.cola.component.gateway.admin.application.repository.GatewayApplicationRepository;
 
 import java.time.Instant;
 import java.util.List;
@@ -44,8 +44,8 @@ class GatewayScopeServiceTest {
 
         assertThat(service.list())
                 .extracting(
-                        GatewayScopeService.ScopeView::namespace,
-                        GatewayScopeService.ScopeView::gatewayApplicationId
+                        top.egon.cola.component.gateway.admin.scope.domain.vo.GatewayScopeVO::namespace,
+                        top.egon.cola.component.gateway.admin.scope.domain.vo.GatewayScopeVO::gatewayApplicationId
                 )
                 .containsExactly(
                         tuple("default", "gateway-order"),
@@ -83,8 +83,8 @@ class GatewayScopeServiceTest {
         );
     }
 
-    private GatewayApplicationEntity application(String id) {
-        return new GatewayApplicationEntity(
+    private GatewayApplicationPO application(String id) {
+        return new GatewayApplicationPO(
                 id,
                 "retail",
                 "order",

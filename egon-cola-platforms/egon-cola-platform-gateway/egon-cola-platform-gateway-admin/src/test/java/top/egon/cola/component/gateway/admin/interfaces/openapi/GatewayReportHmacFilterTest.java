@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.interfaces.openapi;
+package top.egon.cola.component.gateway.admin.reporting.controller.openapi;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -8,13 +8,13 @@ import org.springframework.boot.convert.ApplicationConversionService;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import top.egon.cola.component.gateway.admin.application.credential.GatewayCredentialStore;
-import top.egon.cola.component.gateway.admin.application.credential.GatewaySecretProtector;
-import top.egon.cola.component.gateway.admin.application.reporting.GatewayHmacNonceStore;
-import top.egon.cola.component.gateway.admin.application.reporting.GatewayReportAuthentication;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationEntity;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationRepository;
-import top.egon.cola.component.gateway.admin.infrastructure.security.AesGcmGatewaySecretProtector;
+import top.egon.cola.component.gateway.admin.credential.repository.GatewayCredentialRepository;
+import top.egon.cola.component.gateway.admin.credential.service.GatewaySecretProtector;
+import top.egon.cola.component.gateway.admin.reporting.repository.GatewayHmacNonceRepository;
+import top.egon.cola.component.gateway.admin.reporting.service.GatewayReportAuthentication;
+import top.egon.cola.component.gateway.admin.application.domain.po.GatewayApplicationPO;
+import top.egon.cola.component.gateway.admin.application.repository.GatewayApplicationRepository;
+import top.egon.cola.component.gateway.admin.credential.service.AesGcmGatewaySecretProtector;
 import top.egon.cola.component.gateway.contract.reporting.GatewayCanonicalRequest;
 import top.egon.cola.component.gateway.contract.reporting.GatewayRequestSigner;
 
@@ -44,16 +44,16 @@ class GatewayReportHmacFilterTest {
                                         .getSharedInstance()
                         ))
                 .withBean(
-                        GatewayCredentialStore.class,
-                        () -> mock(GatewayCredentialStore.class)
+                        GatewayCredentialRepository.class,
+                        () -> mock(GatewayCredentialRepository.class)
                 )
                 .withBean(
                         GatewayApplicationRepository.class,
                         () -> mock(GatewayApplicationRepository.class)
                 )
                 .withBean(
-                        GatewayHmacNonceStore.class,
-                        () -> mock(GatewayHmacNonceStore.class)
+                        GatewayHmacNonceRepository.class,
+                        () -> mock(GatewayHmacNonceRepository.class)
                 )
                 .withBean(
                         ObjectMapper.class,
@@ -73,12 +73,12 @@ class GatewayReportHmacFilterTest {
         String secret = "secret-key";
         GatewaySecretProtector protector =
                 new AesGcmGatewaySecretProtector(new byte[32], "v1");
-        GatewaySecretProtector.ProtectedSecret encrypted =
+        top.egon.cola.component.gateway.admin.credential.domain.vo.GatewayProtectedSecretVO encrypted =
                 protector.protect(secret, "app-1:" + accessKey);
-        GatewayCredentialStore credentials =
-                mock(GatewayCredentialStore.class);
+        GatewayCredentialRepository credentials =
+                mock(GatewayCredentialRepository.class);
         when(credentials.findByAccessKey(accessKey)).thenReturn(
-                Optional.of(new GatewayCredentialStore.CredentialRecord(
+                Optional.of(new top.egon.cola.component.gateway.admin.credential.domain.po.GatewayCredentialPO(
                         "credential-1",
                         "app-1",
                         accessKey,
@@ -94,7 +94,7 @@ class GatewayReportHmacFilterTest {
         GatewayApplicationRepository applications =
                 mock(GatewayApplicationRepository.class);
         when(applications.findByIdAndDeletedFalse("app-1")).thenReturn(
-                Optional.of(new GatewayApplicationEntity(
+                Optional.of(new GatewayApplicationPO(
                         "app-1",
                         "test-biz",
                         "inventory",
@@ -193,7 +193,7 @@ class GatewayReportHmacFilterTest {
     }
 
     private static final class RecordingNonceStore
-            implements GatewayHmacNonceStore {
+            implements GatewayHmacNonceRepository {
 
         private final Set<String> values = new HashSet<>();
 

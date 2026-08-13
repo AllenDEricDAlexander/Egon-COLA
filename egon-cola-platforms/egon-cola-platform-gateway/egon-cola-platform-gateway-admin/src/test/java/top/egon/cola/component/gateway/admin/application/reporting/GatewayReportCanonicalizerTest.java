@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.application.reporting;
+package top.egon.cola.component.gateway.admin.reporting.service;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.MapperFeature;

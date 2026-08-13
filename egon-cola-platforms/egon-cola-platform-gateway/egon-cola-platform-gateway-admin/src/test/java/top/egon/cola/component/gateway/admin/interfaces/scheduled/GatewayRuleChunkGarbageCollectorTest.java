@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.interfaces.scheduled;
+package top.egon.cola.component.gateway.admin.release.controller.scheduled;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -7,9 +7,9 @@ import top.egon.cola.component.ddc.model.management.DdcManagementConfig;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishStatus;
-import top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationStore;
+import top.egon.cola.component.gateway.admin.release.repository.GatewayReleasePublicationRepository;
 import top.egon.cola.component.gateway.admin.config.GatewayAdminProperties;
-import top.egon.cola.component.gateway.admin.rule.GatewayDdcYamlDocument;
+import top.egon.cola.component.gateway.admin.rule.service.GatewayDdcYamlDocument;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -33,10 +33,10 @@ class GatewayRuleChunkGarbageCollectorTest {
 
     @Test
     void publishesYamlWithoutOnlyTheExpiredChunk() {
-        GatewayReleasePublicationStore journal =
-                mock(GatewayReleasePublicationStore.class);
+        GatewayReleasePublicationRepository journal =
+                mock(GatewayReleasePublicationRepository.class);
         DdcManagementClient client = mock(DdcManagementClient.class);
-        GatewayReleasePublicationStore.ChunkCleanupCandidate candidate =
+        top.egon.cola.component.gateway.admin.release.domain.po.GatewayChunkCleanupCandidatePO candidate =
                 candidate(
                         "change-1",
                         "release-old",
@@ -88,10 +88,10 @@ class GatewayRuleChunkGarbageCollectorTest {
 
     @Test
     void failedYamlPublishIsRetriedOnALaterRun() {
-        GatewayReleasePublicationStore journal =
-                mock(GatewayReleasePublicationStore.class);
+        GatewayReleasePublicationRepository journal =
+                mock(GatewayReleasePublicationRepository.class);
         DdcManagementClient client = mock(DdcManagementClient.class);
-        GatewayReleasePublicationStore.ChunkCleanupCandidate candidate =
+        top.egon.cola.component.gateway.admin.release.domain.po.GatewayChunkCleanupCandidatePO candidate =
                 candidate(
                         "change-2",
                         "release-old",
@@ -121,10 +121,10 @@ class GatewayRuleChunkGarbageCollectorTest {
 
     @Test
     void lostPublishResponseConvergesWhenTheLeafIsAlreadyAbsent() {
-        GatewayReleasePublicationStore journal =
-                mock(GatewayReleasePublicationStore.class);
+        GatewayReleasePublicationRepository journal =
+                mock(GatewayReleasePublicationRepository.class);
         DdcManagementClient client = mock(DdcManagementClient.class);
-        GatewayReleasePublicationStore.ChunkCleanupCandidate candidate =
+        top.egon.cola.component.gateway.admin.release.domain.po.GatewayChunkCleanupCandidatePO candidate =
                 candidate(
                         "change-3",
                         "release-old",
@@ -162,7 +162,7 @@ class GatewayRuleChunkGarbageCollectorTest {
     }
 
     private GatewayRuleChunkGarbageCollector collector(
-            GatewayReleasePublicationStore journal,
+            GatewayReleasePublicationRepository journal,
             DdcManagementClient client) {
         GatewayAdminProperties properties = new GatewayAdminProperties();
         properties.getRuleChunk().setRetention(Duration.ofHours(24));
@@ -223,12 +223,12 @@ class GatewayRuleChunkGarbageCollectorTest {
         );
     }
 
-    private GatewayReleasePublicationStore.ChunkCleanupCandidate candidate(
+    private top.egon.cola.component.gateway.admin.release.domain.po.GatewayChunkCleanupCandidatePO candidate(
             String changeId,
             String releaseId,
             String configKey,
             long targetVersion) {
-        return new GatewayReleasePublicationStore.ChunkCleanupCandidate(
+        return new top.egon.cola.component.gateway.admin.release.domain.po.GatewayChunkCleanupCandidatePO(
                 changeId,
                 releaseId,
                 "gateway-engine-orders",

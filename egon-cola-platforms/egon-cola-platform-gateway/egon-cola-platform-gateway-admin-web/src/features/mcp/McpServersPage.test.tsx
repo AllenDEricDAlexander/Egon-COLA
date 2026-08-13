@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { McpServersPage } from './McpServersPage'
@@ -28,9 +29,14 @@ vi.mock('../../api/gatewayApi', () => ({
   },
 }))
 
-vi.mock('../../hooks/useScope', () => ({ useScope: () => ({ scope }) }))
+vi.mock('../../hooks/useGatewayScopeBindings', () => ({
+  useGatewayScopeBindings: () => ({ data: [], isLoading: false, error: null, refetch: vi.fn() }),
+}))
 vi.mock('../../app/capabilities', () => ({ useCapability: () => true }))
-vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.navigate }))
+vi.mock('react-router-dom', async (importOriginal) => ({
+  ...await importOriginal<typeof import('react-router-dom')>(),
+  useNavigate: () => mocks.navigate,
+}))
 
 vi.mock('antd', async (importOriginal) => {
   const actual = await importOriginal<typeof import('antd')>()
@@ -56,7 +62,9 @@ const renderPage = () => render(
   <QueryClientProvider client={new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })}>
-    <McpServersPage />
+    <MemoryRouter initialEntries={['/mcp/servers']}>
+      <McpServersPage />
+    </MemoryRouter>
   </QueryClientProvider>,
 )
 

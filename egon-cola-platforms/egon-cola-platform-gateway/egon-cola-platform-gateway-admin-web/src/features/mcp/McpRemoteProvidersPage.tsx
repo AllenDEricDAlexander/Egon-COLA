@@ -13,7 +13,7 @@ import {
   Typography,
   message,
 } from 'antd'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { gatewayApi } from '../../api/gatewayApi'
 import type {
   McpProtocolDialect,
@@ -24,7 +24,9 @@ import type {
 import { useCapability } from '../../app/capabilities'
 import { JsonPanel } from '../../components/JsonPanel'
 import { LoadingBlock, QueryFailure } from '../../components/QueryState'
-import { useScope } from '../../hooks/useScope'
+import { useSearchParams } from 'react-router-dom'
+import { GatewayScopeFilter } from '../../components/GatewayScopeFilter'
+import { readScopeSearchParams, writeScopeSearchParams } from '../../hooks/scopeSearchParams'
 
 type ProviderForm = {
   providerCode: string
@@ -42,7 +44,8 @@ const value = (content: Record<string, unknown>, name: string): string =>
   typeof content[name] === 'string' ? content[name] as string : ''
 
 export const McpRemoteProvidersPage = () => {
-  const { scope } = useScope()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filters = readScopeSearchParams(searchParams, ['env', 'namespace'])
   const canWrite = useCapability('gateway:mcp:write')
   const canTest = useCapability('gateway:mcp:test')
   const queryClient = useQueryClient()
@@ -55,10 +58,15 @@ export const McpRemoteProvidersPage = () => {
   }>()
   const [form] = Form.useForm<ProviderForm>()
   const groups = useQuery({
-    queryKey: ['gateway-groups', scope],
-    queryFn: ({ signal }) => gatewayApi.groups(scope, signal),
+    queryKey: ['gateway-groups'],
+    queryFn: ({ signal }) => gatewayApi.groups(signal),
   })
-  const gatewayGroupId = selectedGroupId || groups.data?.[0]?.id || ''
+  const filteredGroups = useMemo(() => (groups.data ?? []).filter((group) =>
+    (!filters.env || group.env === filters.env)
+      && (!filters.namespace || group.namespace === filters.namespace)), [filters.env, filters.namespace, groups.data])
+  const gatewayGroupId = selectedGroupId && filteredGroups.some((group) => group.id === selectedGroupId)
+    ? selectedGroupId
+    : filteredGroups[0]?.id || ''
   const draft = useQuery({
     queryKey: ['gateway-draft', gatewayGroupId],
     queryFn: ({ signal }) => gatewayApi.draft(gatewayGroupId, signal),
@@ -159,11 +167,16 @@ export const McpRemoteProvidersPage = () => {
           aria-label="Gateway Group"
           value={gatewayGroupId || undefined}
           style={{ minWidth: 240 }}
-          options={(groups.data ?? []).map((group) => ({
+          options={filteredGroups.map((group) => ({
             value: group.id,
             label: `${group.displayName} (${group.gatewayGroupCode})`,
           }))}
           onChange={setSelectedGroupId}
+        />
+        <GatewayScopeFilter
+          fields={['env', 'namespace']}
+          value={filters}
+          onChange={(value) => setSearchParams(writeScopeSearchParams(searchParams, value, ['env', 'namespace']))}
         />
         <Button
           type="primary"

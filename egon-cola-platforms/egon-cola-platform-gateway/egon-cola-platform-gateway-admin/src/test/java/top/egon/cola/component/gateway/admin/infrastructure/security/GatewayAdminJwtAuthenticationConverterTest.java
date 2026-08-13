@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.infrastructure.security;
+package top.egon.cola.component.gateway.admin.auth.service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jwt.Jwt;

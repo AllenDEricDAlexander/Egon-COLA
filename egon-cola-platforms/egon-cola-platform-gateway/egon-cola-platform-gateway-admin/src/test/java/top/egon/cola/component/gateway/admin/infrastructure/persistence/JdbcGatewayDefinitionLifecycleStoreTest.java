@@ -1,11 +1,10 @@
-package top.egon.cola.component.gateway.admin.infrastructure.persistence;
+package top.egon.cola.component.gateway.admin.reporting.repository.jdbc;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import top.egon.cola.component.gateway.admin.application.reporting
-        .GatewayDefinitionLifecycleStore;
+import top.egon.cola.component.gateway.admin.reporting.repository.GatewayDefinitionLifecycleRepository;
 
 import java.time.Instant;
 import java.util.Set;
@@ -46,10 +45,10 @@ class JdbcGatewayDefinitionLifecycleStoreTest {
                 contains("lifecycle_status = 'OFFLINE'"),
                 any(MapSqlParameterSource.class)
         )).thenReturn(2);
-        JdbcGatewayDefinitionLifecycleStore store =
-                new JdbcGatewayDefinitionLifecycleStore(jdbc);
+        JdbcGatewayDefinitionLifecycleRepository store =
+                new JdbcGatewayDefinitionLifecycleRepository(jdbc);
 
-        GatewayDefinitionLifecycleStore.ReconcileResult result =
+        top.egon.cola.component.gateway.admin.reporting.domain.vo.GatewayReconcileResultVO result =
                 store.reconcile(
                 Set.of(),
                 Instant.parse("2026-07-25T08:00:00Z")

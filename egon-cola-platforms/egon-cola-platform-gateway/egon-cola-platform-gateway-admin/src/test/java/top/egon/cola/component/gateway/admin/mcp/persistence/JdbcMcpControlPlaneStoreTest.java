@@ -1,9 +1,9 @@
-package top.egon.cola.component.gateway.admin.mcp.persistence;
+package top.egon.cola.component.gateway.admin.mcp.repository.jdbc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
-import top.egon.cola.component.gateway.admin.domain.AdminActor;
+import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
 
 import java.time.Instant;
 import java.util.Map;
@@ -25,7 +25,7 @@ class JdbcMcpControlPlaneStoreTest {
 
     private final AdminActor actor = new AdminActor(
             "admin-1",
-            AdminActor.ActorType.USER,
+            top.egon.cola.component.gateway.admin.shared.domain.enums.AdminActorTypeEnum.USER,
             Set.of(),
             Set.of()
     );
@@ -35,15 +35,15 @@ class JdbcMcpControlPlaneStoreTest {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
         when(jdbc.update(any(String.class), any(Object[].class)))
                 .thenReturn(1);
-        JdbcMcpManagedToolOverrideStore managed =
-                new JdbcMcpManagedToolOverrideStore(jdbc, new ObjectMapper());
-        JdbcMcpRemoteToolDraftStore remoteTools =
-                new JdbcMcpRemoteToolDraftStore(jdbc, new ObjectMapper());
-        JdbcMcpRemoteProviderStore remote =
-                new JdbcMcpRemoteProviderStore(jdbc, new ObjectMapper());
+        JdbcMcpManagedToolOverrideRepository managed =
+                new JdbcMcpManagedToolOverrideRepository(jdbc, new ObjectMapper());
+        JdbcMcpRemoteToolDraftRepository remoteTools =
+                new JdbcMcpRemoteToolDraftRepository(jdbc, new ObjectMapper());
+        JdbcMcpRemoteProviderRepository remote =
+                new JdbcMcpRemoteProviderRepository(jdbc, new ObjectMapper());
 
         var mutation = managed.save(
-                new JdbcMcpManagedToolOverrideStore.ManagedToolOverride(
+                new top.egon.cola.component.gateway.admin.mcp.domain.po.McpManagedToolOverridePO(
                         "tool-1",
                         "group-1",
                         "operation-1",
@@ -58,7 +58,7 @@ class JdbcMcpControlPlaneStoreTest {
                 NOW
         );
         remoteTools.save(
-                new JdbcMcpRemoteToolDraftStore.RemoteToolDraft(
+                new top.egon.cola.component.gateway.admin.mcp.domain.po.McpRemoteToolDraftPO(
                         "remote-tool-1",
                         "group-1",
                         "server-1",
@@ -73,7 +73,7 @@ class JdbcMcpControlPlaneStoreTest {
                 NOW
         );
         remote.saveProvider(
-                new JdbcMcpRemoteProviderStore.RemoteProviderDraft(
+                new top.egon.cola.component.gateway.admin.mcp.domain.po.McpRemoteProviderDraftPO(
                         "provider-1",
                         "group-1",
                         "billing",
@@ -111,11 +111,11 @@ class JdbcMcpControlPlaneStoreTest {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
         when(jdbc.update(any(String.class), any(Object[].class)))
                 .thenReturn(1);
-        JdbcMcpArtifactMetadataStore artifacts =
-                new JdbcMcpArtifactMetadataStore(jdbc, new ObjectMapper());
-        JdbcMcpApprovalStore approvals = new JdbcMcpApprovalStore(jdbc);
+        JdbcMcpArtifactMetadataRepository artifacts =
+                new JdbcMcpArtifactMetadataRepository(jdbc, new ObjectMapper());
+        JdbcMcpApprovalRepository approvals = new JdbcMcpApprovalRepository(jdbc);
 
-        artifacts.save(new JdbcMcpArtifactMetadataStore.ArtifactMetadata(
+        artifacts.save(new top.egon.cola.component.gateway.admin.mcp.domain.po.McpArtifactMetadataPO(
                 "artifact-1",
                 "group-1",
                 "billing-ui",
@@ -159,7 +159,7 @@ class JdbcMcpControlPlaneStoreTest {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
         when(jdbc.update(any(String.class), any(Object[].class)))
                 .thenReturn(1);
-        JdbcMcpTaskStore tasks = new JdbcMcpTaskStore(
+        JdbcMcpTaskRepository tasks = new JdbcMcpTaskRepository(
                 jdbc,
                 new ObjectMapper()
         );

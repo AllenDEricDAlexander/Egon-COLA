@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.interfaces.scheduled;
+package top.egon.cola.component.gateway.admin.release.controller.scheduled;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -8,12 +8,12 @@ import org.springframework.transaction.support.SimpleTransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishStatus;
-import top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationCoordinator;
-import top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationStore;
-import top.egon.cola.component.gateway.admin.application.release.GatewayReleaseStore;
-import top.egon.cola.component.gateway.admin.domain.GatewayReleaseStatus;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftEntity;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftRepository;
+import top.egon.cola.component.gateway.admin.release.service.GatewayReleasePublicationCoordinator;
+import top.egon.cola.component.gateway.admin.release.repository.GatewayReleasePublicationRepository;
+import top.egon.cola.component.gateway.admin.release.repository.GatewayReleaseRepository;
+import top.egon.cola.component.gateway.admin.release.domain.enums.GatewayReleaseStatus;
+import top.egon.cola.component.gateway.admin.routing.domain.po.GatewayDraftPO;
+import top.egon.cola.component.gateway.admin.routing.repository.GatewayDraftJpaRepository;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -28,10 +28,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static top.egon.cola.component.gateway.admin.application.release
-        .GatewayReleasePublicationStore.PublicationStatus.FAILED;
-import static top.egon.cola.component.gateway.admin.application.release
-        .GatewayReleasePublicationStore.PublicationStatus.SUCCESS;
+import static top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum.FAILED;
+import static top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum.SUCCESS;
 
 class GatewayReleaseReconcilerTest {
 
@@ -40,17 +38,17 @@ class GatewayReleaseReconcilerTest {
 
     @Test
     void resumesAttemptByJournalAndAdvancesDraftAfterActivationSuccess() {
-        GatewayReleaseStore releases = mock(GatewayReleaseStore.class);
+        GatewayReleaseRepository releases = mock(GatewayReleaseRepository.class);
         GatewayReleasePublicationCoordinator coordinator =
                 mock(GatewayReleasePublicationCoordinator.class);
-        GatewayDraftRepository drafts = mock(GatewayDraftRepository.class);
-        GatewayDraftEntity draft = new GatewayDraftEntity(
+        GatewayDraftJpaRepository drafts = mock(GatewayDraftJpaRepository.class);
+        GatewayDraftPO draft = new GatewayDraftPO(
                 "group-1",
                 "admin",
                 NOW
         );
-        GatewayReleaseStore.RecoverableAttempt attempt =
-                new GatewayReleaseStore.RecoverableAttempt(
+        top.egon.cola.component.gateway.admin.release.domain.po.GatewayRecoverableReleaseAttemptPO attempt =
+                new top.egon.cola.component.gateway.admin.release.domain.po.GatewayRecoverableReleaseAttemptPO(
                         "release-1",
                         "group-1",
                         2
@@ -88,12 +86,12 @@ class GatewayReleaseReconcilerTest {
 
     @Test
     void failedPhaseDoesNotAdvanceDraft() {
-        GatewayReleaseStore releases = mock(GatewayReleaseStore.class);
+        GatewayReleaseRepository releases = mock(GatewayReleaseRepository.class);
         GatewayReleasePublicationCoordinator coordinator =
                 mock(GatewayReleasePublicationCoordinator.class);
-        GatewayDraftRepository drafts = mock(GatewayDraftRepository.class);
+        GatewayDraftJpaRepository drafts = mock(GatewayDraftJpaRepository.class);
         when(releases.recoverable()).thenReturn(List.of(
-                new GatewayReleaseStore.RecoverableAttempt(
+                new top.egon.cola.component.gateway.admin.release.domain.po.GatewayRecoverableReleaseAttemptPO(
                         "release-1",
                         "group-1",
                         2
@@ -125,9 +123,9 @@ class GatewayReleaseReconcilerTest {
         verify(drafts, never()).flush();
     }
 
-    private GatewayReleasePublicationCoordinator.PublicationOutcome outcome(
-            GatewayReleasePublicationStore.PublicationStatus status) {
-        return new GatewayReleasePublicationCoordinator.PublicationOutcome(
+    private top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO outcome(
+            top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum status) {
+        return new top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO(
                 status,
                 "018f22d8155d70008000000000000001",
                 new DdcManagementPublishResult(

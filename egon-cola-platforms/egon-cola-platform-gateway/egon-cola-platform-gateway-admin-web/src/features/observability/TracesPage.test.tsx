@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { gatewayApi } from '../../api/gatewayApi'
 import type { Page, TraceSummary } from '../../api/types'
@@ -8,18 +9,12 @@ import { TracesPage } from './TracesPage'
 vi.mock('../../api/gatewayApi', () => ({
   gatewayApi: {
     traces: vi.fn(),
+    scopes: vi.fn().mockResolvedValue([]),
   },
 }))
 
-vi.mock('../../hooks/useScope', () => ({
-  useScope: () => ({
-    scope: {
-      bizCode: 'retail',
-      namespace: 'default',
-      env: 'local',
-      appCode: 'order',
-    },
-  }),
+vi.mock('../../hooks/useGatewayScopeBindings', () => ({
+  useGatewayScopeBindings: () => ({ data: [], isLoading: false, error: null, refetch: vi.fn() }),
 }))
 
 const emptyPage: Page<TraceSummary> = {
@@ -82,7 +77,9 @@ it('shows a gateway call that arrives after the page was opened', async () => {
   })
   render(
     <QueryClientProvider client={queryClient}>
-      <TracesPage />
+      <MemoryRouter initialEntries={['/observability/traces?env=local&namespace=default']}>
+        <TracesPage />
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 

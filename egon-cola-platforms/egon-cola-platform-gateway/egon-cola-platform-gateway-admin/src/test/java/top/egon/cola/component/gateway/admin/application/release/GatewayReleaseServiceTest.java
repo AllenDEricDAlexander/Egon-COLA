@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.application.release;
+package top.egon.cola.component.gateway.admin.release.service;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -9,19 +9,19 @@ import org.springframework.transaction.support.SimpleTransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishStatus;
-import top.egon.cola.component.gateway.admin.application.RequestAuditContext;
-import top.egon.cola.component.gateway.admin.application.catalog.GatewayCatalogStore;
-import top.egon.cola.component.gateway.admin.application.routing.GatewayDraftService;
-import top.egon.cola.component.gateway.admin.application.routing.GatewayDraftStore;
-import top.egon.cola.component.gateway.admin.domain.AdminActor;
-import top.egon.cola.component.gateway.admin.domain.GatewayReleaseStatus;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayAuditLogRepository;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftEntity;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftRepository;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupEntity;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupRepository;
-import top.egon.cola.component.gateway.admin.mcp.application.McpReleaseContentFactory;
-import top.egon.cola.component.gateway.admin.rule.CompiledGatewayRelease;
+import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
+import top.egon.cola.component.gateway.admin.catalog.repository.GatewayCatalogRepository;
+import top.egon.cola.component.gateway.admin.routing.service.GatewayDraftService;
+import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
+import top.egon.cola.component.gateway.admin.release.domain.enums.GatewayReleaseStatus;
+import top.egon.cola.component.gateway.admin.release.repository.GatewayReleaseRepository;
+import top.egon.cola.component.gateway.admin.observability.repository.GatewayAuditLogRepository;
+import top.egon.cola.component.gateway.admin.routing.domain.po.GatewayDraftPO;
+import top.egon.cola.component.gateway.admin.routing.repository.GatewayDraftJpaRepository;
+import top.egon.cola.component.gateway.admin.group.domain.po.GatewayGroupPO;
+import top.egon.cola.component.gateway.admin.group.repository.GatewayGroupRepository;
+import top.egon.cola.component.gateway.admin.mcp.service.McpReleaseContentFactory;
+import top.egon.cola.component.gateway.admin.rule.domain.vo.CompiledGatewayRelease;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuleContent;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeServer;
@@ -50,10 +50,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static top.egon.cola.component.gateway.admin.application.release
-        .GatewayReleasePublicationStore.PublicationStatus.FAILED;
-import static top.egon.cola.component.gateway.admin.application.release
-        .GatewayReleasePublicationStore.PublicationStatus.SUCCESS;
+import static top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum.FAILED;
+import static top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum.SUCCESS;
 
 class GatewayReleaseServiceTest {
 
@@ -122,7 +120,7 @@ class GatewayReleaseServiceTest {
 
         fixture.service.create(
                 "group-1",
-                new GatewayReleaseService.CreateRelease(
+                new top.egon.cola.component.gateway.admin.release.domain.dto.GatewayReleaseCreateCommandDTO(
                         0L,
                         "publish transport route"
                 ),
@@ -133,7 +131,7 @@ class GatewayReleaseServiceTest {
         ArgumentCaptor<CompiledGatewayRelease> compiled =
                 ArgumentCaptor.forClass(CompiledGatewayRelease.class);
         verify(fixture.releases).insert(
-                any(GatewayReleaseStore.ReleaseRecord.class),
+                any(top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePO.class),
                 compiled.capture(),
                 eq(1)
         );
@@ -169,7 +167,7 @@ class GatewayReleaseServiceTest {
 
         assertThatThrownBy(() -> fixture.service.create(
                 "group-1",
-                new GatewayReleaseService.CreateRelease(
+                new top.egon.cola.component.gateway.admin.release.domain.dto.GatewayReleaseCreateCommandDTO(
                         0L,
                         "publish invalid route"
                 ),
@@ -220,7 +218,7 @@ class GatewayReleaseServiceTest {
 
         fixture.service.create(
                 "group-1",
-                new GatewayReleaseService.CreateRelease(
+                new top.egon.cola.component.gateway.admin.release.domain.dto.GatewayReleaseCreateCommandDTO(
                         0L,
                         "publish Gateway and MCP"
                 ),
@@ -231,7 +229,7 @@ class GatewayReleaseServiceTest {
         ArgumentCaptor<CompiledGatewayRelease> compiled =
                 ArgumentCaptor.forClass(CompiledGatewayRelease.class);
         verify(fixture.releases).insert(
-                any(GatewayReleaseStore.ReleaseRecord.class),
+                any(top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePO.class),
                 compiled.capture(),
                 eq(1)
         );
@@ -290,7 +288,7 @@ class GatewayReleaseServiceTest {
 
         fixture.service.create(
                 "group-1",
-                new GatewayReleaseService.CreateRelease(
+                new top.egon.cola.component.gateway.admin.release.domain.dto.GatewayReleaseCreateCommandDTO(
                         0L,
                         "publish managed Tool without Route"
                 ),
@@ -301,7 +299,7 @@ class GatewayReleaseServiceTest {
         ArgumentCaptor<CompiledGatewayRelease> compiled =
                 ArgumentCaptor.forClass(CompiledGatewayRelease.class);
         verify(fixture.releases).insert(
-                any(GatewayReleaseStore.ReleaseRecord.class),
+                any(top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePO.class),
                 compiled.capture(),
                 eq(1)
         );
@@ -326,18 +324,18 @@ class GatewayReleaseServiceTest {
             McpReleaseContentFactory mcpContentFactory,
             boolean routeEnabled) {
         GatewayGroupRepository groups = mock(GatewayGroupRepository.class);
-        GatewayDraftRepository drafts = mock(GatewayDraftRepository.class);
+        GatewayDraftJpaRepository drafts = mock(GatewayDraftJpaRepository.class);
         GatewayDraftService draftService = mock(GatewayDraftService.class);
-        GatewayCatalogStore catalog = mock(GatewayCatalogStore.class);
-        GatewayReleaseStore releases = mock(GatewayReleaseStore.class);
+        GatewayCatalogRepository catalog = mock(GatewayCatalogRepository.class);
+        GatewayReleaseRepository releases = mock(GatewayReleaseRepository.class);
         GatewayAuditLogRepository audits =
                 mock(GatewayAuditLogRepository.class);
-        GatewayDraftEntity draft = new GatewayDraftEntity(
+        GatewayDraftPO draft = new GatewayDraftPO(
                 "group-1",
                 "admin",
                 NOW
         );
-        GatewayGroupEntity group = new GatewayGroupEntity(
+        GatewayGroupPO group = new GatewayGroupPO(
                 "group-1",
                 "orders",
                 "Orders",
@@ -347,8 +345,8 @@ class GatewayReleaseServiceTest {
                 "admin",
                 NOW
         );
-        List<GatewayDraftStore.RouteDraft> routes = routeEnabled
-                ? List.of(new GatewayDraftStore.RouteDraft(
+        List<top.egon.cola.component.gateway.admin.routing.domain.po.GatewayRouteDraftPO> routes = routeEnabled
+                ? List.of(new top.egon.cola.component.gateway.admin.routing.domain.po.GatewayRouteDraftPO(
                         "group-1",
                         "route-1",
                         "operation-1",
@@ -358,8 +356,8 @@ class GatewayReleaseServiceTest {
                         "admin"
                 ))
                 : List.of();
-        GatewayDraftService.DraftView view =
-                new GatewayDraftService.DraftView(
+        top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftVO view =
+                new top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftVO(
                         "group-1",
                         0L,
                         null,
@@ -373,7 +371,7 @@ class GatewayReleaseServiceTest {
                 .thenReturn(Optional.of(group));
         when(drafts.findById("group-1")).thenReturn(Optional.of(draft));
         when(draftService.validate("group-1")).thenReturn(
-                new GatewayDraftService.ValidationReport(
+                new top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftValidationReportVO(
                         true,
                         0L,
                         List.of(),
@@ -406,23 +404,23 @@ class GatewayReleaseServiceTest {
     }
 
     private Fixture fixture(
-            GatewayReleasePublicationCoordinator.PublicationOutcome outcome) {
+            top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO outcome) {
         GatewayGroupRepository groups = mock(GatewayGroupRepository.class);
-        GatewayDraftRepository drafts = mock(GatewayDraftRepository.class);
+        GatewayDraftJpaRepository drafts = mock(GatewayDraftJpaRepository.class);
         GatewayDraftService draftService = mock(GatewayDraftService.class);
-        GatewayCatalogStore catalog = mock(GatewayCatalogStore.class);
-        GatewayReleaseStore releases = mock(GatewayReleaseStore.class);
+        GatewayCatalogRepository catalog = mock(GatewayCatalogRepository.class);
+        GatewayReleaseRepository releases = mock(GatewayReleaseRepository.class);
         GatewayAuditLogRepository audits =
                 mock(GatewayAuditLogRepository.class);
         GatewayReleasePublicationCoordinator publications =
                 mock(GatewayReleasePublicationCoordinator.class);
         CompiledGatewayRelease compiled = mock(CompiledGatewayRelease.class);
-        GatewayDraftEntity draft = new GatewayDraftEntity(
+        GatewayDraftPO draft = new GatewayDraftPO(
                 "group-1",
                 "admin",
                 NOW
         );
-        GatewayReleaseStore.ReleaseRecord release = release();
+        top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePO release = release();
         when(releases.find("release-1"))
                 .thenReturn(Optional.of(release));
         when(releases.nextAttempt("release-1", NOW)).thenReturn(2);
@@ -449,9 +447,9 @@ class GatewayReleaseServiceTest {
         return new Fixture(service, releases, drafts, draft);
     }
 
-    private GatewayReleasePublicationCoordinator.PublicationOutcome outcome(
-            GatewayReleasePublicationStore.PublicationStatus status) {
-        return new GatewayReleasePublicationCoordinator.PublicationOutcome(
+    private top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO outcome(
+            top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum status) {
+        return new top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO(
                 status,
                 "018f22d8155d70008000000000000001",
                 new DdcManagementPublishResult(
@@ -470,8 +468,8 @@ class GatewayReleaseServiceTest {
         );
     }
 
-    private GatewayReleaseStore.ReleaseRecord release() {
-        return new GatewayReleaseStore.ReleaseRecord(
+    private top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePO release() {
+        return new top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePO(
                 "release-1",
                 "group-1",
                 1L,
@@ -489,8 +487,8 @@ class GatewayReleaseServiceTest {
         );
     }
 
-    private GatewayReleaseStore.ReleaseRecord release(String releaseId) {
-        return new GatewayReleaseStore.ReleaseRecord(
+    private top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePO release(String releaseId) {
+        return new top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePO(
                 releaseId,
                 "group-1",
                 0L,
@@ -508,8 +506,8 @@ class GatewayReleaseServiceTest {
         );
     }
 
-    private GatewayCatalogStore.OperationRecord operation() {
-        return new GatewayCatalogStore.OperationRecord(
+    private top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationPO operation() {
+        return new top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationPO(
                 "operation-1",
                 "application-1",
                 "interface-1",
@@ -536,8 +534,8 @@ class GatewayReleaseServiceTest {
         );
     }
 
-    private GatewayCatalogStore.OperationDefinition definition() {
-        return new GatewayCatalogStore.OperationDefinition(
+    private top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationDefinitionPO definition() {
+        return new top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationDefinitionPO(
                 "definition-1",
                 "operation-1",
                 1L,
@@ -570,7 +568,7 @@ class GatewayReleaseServiceTest {
     private AdminActor actor() {
         return new AdminActor(
                 "admin",
-                AdminActor.ActorType.USER,
+                top.egon.cola.component.gateway.admin.shared.domain.enums.AdminActorTypeEnum.USER,
                 Set.of(),
                 Set.of()
         );
@@ -600,15 +598,15 @@ class GatewayReleaseServiceTest {
 
     private record Fixture(
             GatewayReleaseService service,
-            GatewayReleaseStore releases,
-            GatewayDraftRepository drafts,
-            GatewayDraftEntity draft
+            GatewayReleaseRepository releases,
+            GatewayDraftJpaRepository drafts,
+            GatewayDraftPO draft
     ) {
     }
 
     private record CreateFixture(
             GatewayReleaseService service,
-            GatewayReleaseStore releases
+            GatewayReleaseRepository releases
     ) {
     }
 }

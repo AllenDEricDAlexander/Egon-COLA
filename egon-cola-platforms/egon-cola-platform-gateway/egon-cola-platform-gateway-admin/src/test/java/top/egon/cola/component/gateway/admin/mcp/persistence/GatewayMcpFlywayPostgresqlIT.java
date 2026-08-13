@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.mcp.persistence;
+package top.egon.cola.component.gateway.admin.mcp.repository.jdbc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.flywaydb.core.Flyway;
@@ -8,8 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import top.egon.cola.component.gateway.admin.domain.AdminActor;
-import top.egon.cola.component.gateway.admin.domain.GatewayAdminRevisionConflictException;
+import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
+import top.egon.cola.component.gateway.admin.shared.domain.exception.GatewayAdminRevisionConflictException;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -268,7 +268,7 @@ class GatewayMcpFlywayPostgresqlIT {
         Instant now = Instant.parse("2026-08-02T00:00:00Z");
         AdminActor actor = new AdminActor(
                 "admin-1",
-                AdminActor.ActorType.USER,
+                top.egon.cola.component.gateway.admin.shared.domain.enums.AdminActorTypeEnum.USER,
                 Set.of(),
                 Set.of()
         );
@@ -296,10 +296,10 @@ class GatewayMcpFlywayPostgresqlIT {
                 )
                 """, Timestamp.from(now), Timestamp.from(now));
 
-        JdbcMcpCapabilityDraftStore capabilities =
-                new JdbcMcpCapabilityDraftStore(jdbc, new ObjectMapper());
-        var policy = new JdbcMcpCapabilityDraftStore.CapabilityDraft(
-                JdbcMcpCapabilityDraftStore.CapabilityKind.TASK_POLICY,
+        JdbcMcpCapabilityDraftRepository capabilities =
+                new JdbcMcpCapabilityDraftRepository(jdbc, new ObjectMapper());
+        var policy = new top.egon.cola.component.gateway.admin.mcp.domain.po.McpCapabilityRecordPO(
+                top.egon.cola.component.gateway.admin.mcp.domain.enums.McpCapabilityKindEnum.TASK_POLICY,
                 "policy-1",
                 "group-1",
                 "server-1",
@@ -321,8 +321,8 @@ class GatewayMcpFlywayPostgresqlIT {
                 )
         );
 
-        JdbcMcpApprovalStore approvals = new JdbcMcpApprovalStore(jdbc);
-        approvals.issue(new JdbcMcpApprovalStore.Approval(
+        JdbcMcpApprovalRepository approvals = new JdbcMcpApprovalRepository(jdbc);
+        approvals.issue(new top.egon.cola.component.gateway.admin.mcp.domain.po.McpApprovalPO(
                 "approval-1",
                 "a".repeat(64),
                 "subject-1",
@@ -343,11 +343,11 @@ class GatewayMcpFlywayPostgresqlIT {
                 "billing", "invoice.approve", "b".repeat(64), now
         ));
 
-        JdbcMcpTaskStore tasks = new JdbcMcpTaskStore(
+        JdbcMcpTaskRepository tasks = new JdbcMcpTaskRepository(
                 jdbc,
                 new ObjectMapper()
         );
-        tasks.create(new JdbcMcpTaskStore.TaskRecord(
+        tasks.create(new top.egon.cola.component.gateway.admin.mcp.domain.po.McpTaskPO(
                 "task-1", "principal-1", "subject-1", "tenant-1",
                 "client-1", "billing", "invoice.export",
                 "c".repeat(64), "WORKING", Map.of("format", "csv"),

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { GatewayApiError } from '../../api/client'
@@ -29,8 +30,13 @@ vi.mock('../../api/gatewayApi', () => ({
   },
 }))
 
-vi.mock('../../hooks/useScope', () => ({
-  useScope: () => ({ scope }),
+vi.mock('../../hooks/useGatewayScopeBindings', () => ({
+  useGatewayScopeBindings: () => ({
+    data: [{ ...scope, bindingId: 'binding-default', appName: 'Order', connected: false }],
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
 }))
 
 vi.mock('../../app/capabilities', () => ({
@@ -74,7 +80,9 @@ const renderPage = () => {
   })
   render(
     <QueryClientProvider client={queryClient}>
+    <MemoryRouter initialEntries={['/applications']}>
       <ApplicationsPage />
+    </MemoryRouter>
     </QueryClientProvider>,
   )
   return queryClient
@@ -111,16 +119,18 @@ afterEach(() => {
 })
 
 describe('ApplicationsPage DDC identity', () => {
+  const chooseBinding = async () => {
+    fireEvent.mouseDown(screen.getByLabelText('Scope Binding'))
+    fireEvent.click(await screen.findByText('retail / order / local / ops / Order'))
+  }
+
   it('creates an application from the selected read-only DDC scope', async () => {
     renderPage()
     await screen.findByText('Application / Credential')
 
     fireEvent.click(screen.getByRole('button', { name: '新建 Application' }))
 
-    for (const value of ['retail', 'ops', 'local', 'order']) {
-      expect(screen.getByDisplayValue(value)).toBeDisabled()
-    }
-    expect(screen.queryByLabelText('Application Code')).not.toBeInTheDocument()
+    await chooseBinding()
 
     fireEvent.change(screen.getByLabelText('名称'), {
       target: { value: 'Order Gateway' },
@@ -146,6 +156,7 @@ describe('ApplicationsPage DDC identity', () => {
     renderPage()
     await screen.findByText('Application / Credential')
     fireEvent.click(screen.getByRole('button', { name: '新建 Application' }))
+    await chooseBinding()
     fireEvent.change(screen.getByLabelText('名称'), {
       target: { value: 'Order Gateway' },
     })

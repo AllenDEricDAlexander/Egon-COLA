@@ -48,13 +48,33 @@ import type {
 } from './types'
 
 const admin = '/api/v1/gateway/admin'
-const query = (scope: Scope): string =>
-  new URLSearchParams({
-    bizCode: scope.bizCode,
-    appCode: scope.appCode,
-    env: scope.env,
-    namespace: scope.namespace,
-  }).toString()
+const queryString = (values: Record<string, string | undefined>): string => {
+  const params = new URLSearchParams()
+  Object.entries(values).forEach(([name, value]) => {
+    const normalized = value?.trim()
+    if (normalized) params.set(name, normalized)
+  })
+  return params.toString()
+}
+
+const withQuery = (path: string, values: Record<string, string | undefined>): string => {
+  const encoded = queryString(values)
+  return encoded ? `${path}?${encoded}` : path
+}
+
+const withFilters = (
+  path: string,
+  values: Record<string, string | undefined>,
+  filters?: URLSearchParams,
+): string => {
+  const params = new URLSearchParams(queryString(values))
+  filters?.forEach((value, key) => {
+    const normalized = value.trim()
+    if (normalized) params.set(key, normalized)
+  })
+  const encoded = params.toString()
+  return encoded ? `${path}?${encoded}` : path
+}
 
 type ProjectionEnvelope<T> = {
   value: T
@@ -115,9 +135,9 @@ export const gatewayApi = {
   scopes: (signal?: AbortSignal) =>
     apiRequest<GatewayScopeBinding[]>(`${admin}/scopes`, { signal }),
   dashboard: (scope: Scope, signal?: AbortSignal) =>
-    apiRequest<DashboardSummary>(`${admin}/dashboard?${query(scope)}`, { signal }),
-  groups: (scope: Scope, signal?: AbortSignal) =>
-    apiRequest<GatewayGroup[]>(`${admin}/gateway-groups?${query(scope)}`, { signal }),
+    apiRequest<DashboardSummary>(withQuery(`${admin}/dashboard`, scope), { signal }),
+  groups: (signal?: AbortSignal) =>
+    apiRequest<GatewayGroup[]>(`${admin}/gateway-groups`, { signal }),
   createGroup: (
     group: {
       gatewayGroupCode: string
@@ -180,8 +200,8 @@ export const gatewayApi = {
       observedAt: value.observedAt,
     } satisfies RuntimeConsistency
   },
-  applications: (scope: Scope, signal?: AbortSignal) =>
-    apiRequest<Application[]>(`${admin}/applications?${query(scope)}`, { signal }),
+  applications: (filters: Partial<Scope> = {}, signal?: AbortSignal) =>
+    apiRequest<Application[]>(withQuery(`${admin}/applications`, filters), { signal }),
   createApplication: (
     application: {
       bizCode: string
@@ -409,7 +429,7 @@ export const gatewayApi = {
     }).then(mapRelease),
   providers: async (scope: Scope, signal?: AbortSignal) => {
     const projection = await apiRequest<ProjectionEnvelope<ProviderInstanceResponse[]>>(
-      `${admin}/providers/instances?${query(scope)}`,
+      withQuery(`${admin}/providers/instances`, scope),
       { signal },
     )
     return projection.value.map((instance) => ({
@@ -417,13 +437,20 @@ export const gatewayApi = {
       stale: projection.stale,
     }))
   },
-  traces: (scope: Scope, filters: URLSearchParams, signal?: AbortSignal) =>
+  traces: (
+    scope: Pick<Scope, 'env' | 'namespace'>,
+    filters: URLSearchParams,
+    signal?: AbortSignal,
+  ) =>
     apiRequest<Page<TraceSummary>>(
-      `${admin}/observability/traces?${query(scope)}&${filters.toString()}`,
+      withFilters(`${admin}/observability/traces`, scope, filters),
       { signal },
     ),
-  audits: (scope: Scope, filters: URLSearchParams, signal?: AbortSignal) =>
-    apiRequest<Page<AuditEntry>>(`${admin}/audit?${query(scope)}&${filters.toString()}`, {
+  audits: (
+    scope: Pick<Scope, 'env' | 'namespace'>,
+    filters: URLSearchParams,
+    signal?: AbortSignal,
+  ) => apiRequest<Page<AuditEntry>>(withFilters(`${admin}/audit`, scope, filters), {
       signal,
     }),
   mcpServers: (gatewayGroupId: string, signal?: AbortSignal) =>
@@ -614,14 +641,11 @@ export const gatewayApi = {
     { method: 'POST', body: request },
   ),
   mcpOperationOptions: async (
-    scope: Scope,
+    applicationId: string,
     signal?: AbortSignal,
   ): Promise<McpOperationOption[]> => {
-    const applications = await gatewayApi.applications(scope, signal)
-    const catalogs = await Promise.all(
-      applications.map((application) => gatewayApi.catalog(application.id, signal)),
-    )
-    return catalogs.flatMap((catalog) => catalog.businessDomains.flatMap(
+    const catalog = await gatewayApi.catalog(applicationId, signal)
+    return catalog.businessDomains.flatMap(
       (business) => business.entityDomains.flatMap(
         (entity) => entity.interfaceGroups.flatMap(
           (group) => group.operations.map((operation) => ({
@@ -630,7 +654,7 @@ export const gatewayApi = {
           })),
         ),
       ),
-    )).sort((left, right) => left.label.localeCompare(right.label))
+    ).sort((left, right) => left.label.localeCompare(right.label))
   },
   mcpRemoteProviders: (gatewayGroupId: string, signal?: AbortSignal) =>
     apiRequest<McpRemoteProvider[]>(

@@ -160,7 +160,7 @@ const authenticate = async (page: Page) => {
     appName: 'Order',
     connected: true,
   }]))
-  await page.route('**/api/v1/gateway/admin/gateway-groups?**', (route) => json(route, [group]))
+  await page.route('**/api/v1/gateway/admin/gateway-groups*', (route) => json(route, [group]))
   await page.route(`**/api/v1/gateway/admin/gateway-groups/${group.id}/draft`, (route) => json(route, {
     gatewayGroupId: group.id,
     revision: 3,
@@ -288,7 +288,7 @@ const authenticate = async (page: Page) => {
     approvalToken: 'approval-token-shown-once',
     expiresAt: '2026-08-03T00:02:00Z',
   }))
-  await page.route('**/api/v1/gateway/admin/applications?**', (route) => json(route, [{
+  await page.route('**/api/v1/gateway/admin/applications*', (route) => json(route, [{
     ...scope,
     id: 'application-e2e',
     applicationCode: 'order',

@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.interfaces.management;
+package top.egon.cola.component.gateway.admin;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,10 +9,14 @@ import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
-import top.egon.cola.component.gateway.admin.application.GatewayGroupService;
-import top.egon.cola.component.gateway.admin.application.scope.GatewayScopeService;
-import top.egon.cola.component.gateway.admin.infrastructure.security.GatewayAdminSecurityConfiguration;
-import top.egon.cola.component.gateway.admin.interfaces.openapi.GatewayReportHmacFilter;
+import top.egon.cola.component.gateway.admin.group.service.GatewayGroupService;
+import top.egon.cola.component.gateway.admin.scope.service.GatewayScopeService;
+import top.egon.cola.component.gateway.admin.config.GatewayAdminSecurityConfiguration;
+import top.egon.cola.component.gateway.admin.auth.controller.GatewayAdminSessionController;
+import top.egon.cola.component.gateway.admin.group.controller.GatewayGroupController;
+import top.egon.cola.component.gateway.admin.scope.controller.GatewayScopeController;
+import top.egon.cola.component.gateway.admin.shared.controller.GatewayAdminWebMvcConfiguration;
+import top.egon.cola.component.gateway.admin.reporting.controller.openapi.GatewayReportHmacFilter;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;

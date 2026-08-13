@@ -1,6 +1,10 @@
-package top.egon.cola.component.gateway.admin.domain;
+package top.egon.cola.component.gateway.admin.shared.domain;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.gateway.admin.release.domain.GatewayReleaseStateMachine;
+import top.egon.cola.component.gateway.admin.release.domain.enums.GatewayReleaseStatus;
+import top.egon.cola.component.gateway.admin.routing.domain.GatewayDraftRevision;
+import top.egon.cola.component.gateway.admin.shared.domain.exception.GatewayAdminRevisionConflictException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;

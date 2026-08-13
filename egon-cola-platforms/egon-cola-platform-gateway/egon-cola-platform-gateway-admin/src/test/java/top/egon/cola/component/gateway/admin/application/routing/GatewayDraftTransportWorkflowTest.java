@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.application.routing;
+package top.egon.cola.component.gateway.admin.routing.service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
@@ -9,14 +9,15 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import top.egon.cola.component.gateway.admin.application.IdempotencyStore;
-import top.egon.cola.component.gateway.admin.application.catalog.GatewayCatalogStore;
-import top.egon.cola.component.gateway.admin.domain.AdminActor;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayAuditLogRepository;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftEntity;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftRepository;
-import top.egon.cola.component.gateway.admin.interfaces.management.GatewayAdminExceptionHandler;
-import top.egon.cola.component.gateway.admin.interfaces.management.GatewayDraftController;
+import top.egon.cola.component.gateway.admin.shared.repository.IdempotencyRepository;
+import top.egon.cola.component.gateway.admin.catalog.repository.GatewayCatalogRepository;
+import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
+import top.egon.cola.component.gateway.admin.observability.repository.GatewayAuditLogRepository;
+import top.egon.cola.component.gateway.admin.routing.domain.po.GatewayDraftPO;
+import top.egon.cola.component.gateway.admin.routing.repository.GatewayDraftJpaRepository;
+import top.egon.cola.component.gateway.admin.routing.repository.GatewayDraftRepository;
+import top.egon.cola.component.gateway.admin.shared.controller.GatewayAdminExceptionHandler;
+import top.egon.cola.component.gateway.admin.routing.controller.GatewayDraftController;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -161,18 +162,18 @@ class GatewayDraftTransportWorkflowTest {
     }
 
     private Fixture fixture() {
-        GatewayDraftRepository drafts = mock(GatewayDraftRepository.class);
-        GatewayDraftStore store = mock(GatewayDraftStore.class);
-        GatewayCatalogStore catalog = mock(GatewayCatalogStore.class);
-        IdempotencyStore idempotency = mock(IdempotencyStore.class);
+        GatewayDraftJpaRepository drafts = mock(GatewayDraftJpaRepository.class);
+        GatewayDraftRepository store = mock(GatewayDraftRepository.class);
+        GatewayCatalogRepository catalog = mock(GatewayCatalogRepository.class);
+        IdempotencyRepository idempotency = mock(IdempotencyRepository.class);
         GatewayAuditLogRepository audits =
                 mock(GatewayAuditLogRepository.class);
-        GatewayDraftEntity draft = new GatewayDraftEntity(
+        GatewayDraftPO draft = new GatewayDraftPO(
                 "group-1",
                 "admin",
                 NOW
         );
-        AtomicReference<GatewayDraftStore.RouteDraft> route =
+        AtomicReference<top.egon.cola.component.gateway.admin.routing.domain.po.GatewayRouteDraftPO> route =
                 new AtomicReference<>();
         when(drafts.findById("group-1")).thenReturn(Optional.of(draft));
         when(store.routes("group-1")).thenAnswer(ignored ->
@@ -205,8 +206,8 @@ class GatewayDraftTransportWorkflowTest {
         return new Fixture(mockMvc);
     }
 
-    private GatewayCatalogStore.OperationRecord operation() {
-        return new GatewayCatalogStore.OperationRecord(
+    private top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationPO operation() {
+        return new top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationPO(
                 "operation-1",
                 "application-1",
                 "interface-1",
@@ -231,8 +232,8 @@ class GatewayDraftTransportWorkflowTest {
         );
     }
 
-    private GatewayCatalogStore.OperationDefinition definition() {
-        return new GatewayCatalogStore.OperationDefinition(
+    private top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationDefinitionPO definition() {
+        return new top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationDefinitionPO(
                 "definition-1",
                 "operation-1",
                 1L,
@@ -269,7 +270,7 @@ class GatewayDraftTransportWorkflowTest {
                 WebDataBinderFactory binderFactory) {
             return new AdminActor(
                     "admin",
-                    AdminActor.ActorType.USER,
+                    top.egon.cola.component.gateway.admin.shared.domain.enums.AdminActorTypeEnum.USER,
                     Set.of("gateway:drafts:write"),
                     Set.of()
             );

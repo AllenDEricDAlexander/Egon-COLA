@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.application.release;
+package top.egon.cola.component.gateway.admin.release.service;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -21,9 +21,13 @@ import top.egon.cola.component.ddc.model.management.DdcManagementScopeQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceSnapshot;
-import top.egon.cola.component.gateway.admin.rule.CompiledGatewayRelease;
-import top.egon.cola.component.gateway.admin.rule.GatewayDdcRulePublisher;
-import top.egon.cola.component.gateway.admin.rule.GatewayDdcYamlDocument;
+import top.egon.cola.component.gateway.admin.rule.domain.vo.CompiledGatewayRelease;
+import top.egon.cola.component.gateway.admin.rule.service.GatewayDdcRulePublisher;
+import top.egon.cola.component.gateway.admin.rule.service.GatewayDdcYamlDocument;
+import top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum;
+import top.egon.cola.component.gateway.admin.release.domain.po.*;
+import top.egon.cola.component.gateway.admin.release.repository.GatewayReleasePublicationRepository;
+import top.egon.cola.component.gateway.admin.release.repository.GatewayReleaseRepository;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivation;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivationMode;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleChunkRef;
@@ -45,14 +49,10 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static top.egon.cola.component.gateway.admin.application.release
-        .GatewayReleasePublicationStore.PublicationStatus.FAILED;
-import static top.egon.cola.component.gateway.admin.application.release
-        .GatewayReleasePublicationStore.PublicationStatus.PLANNED;
-import static top.egon.cola.component.gateway.admin.application.release
-        .GatewayReleasePublicationStore.PublicationStatus.SUCCESS;
-import static top.egon.cola.component.gateway.admin.application.release
-        .GatewayReleasePublicationStore.PublicationStatus.TIMEOUT;
+import static top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum.FAILED;
+import static top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum.PLANNED;
+import static top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum.SUCCESS;
+import static top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum.TIMEOUT;
 
 class GatewayReleasePublicationCoordinatorTest {
 
@@ -70,7 +70,7 @@ class GatewayReleasePublicationCoordinatorTest {
                 client
         );
 
-        GatewayReleasePublicationCoordinator.PublicationOutcome outcome =
+        top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO outcome =
                 coordinator.execute(
                         "release-1",
                         1,
@@ -115,7 +115,7 @@ class GatewayReleasePublicationCoordinatorTest {
         assertThat(journal.findAttempt("release-1", 1))
                 .hasSize(3)
                 .extracting(
-                        GatewayReleasePublicationStore.PublicationRecord
+                        top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO
                                 ::status
                 ).containsExactly(SUCCESS, FAILED, PLANNED);
         assertThat(journal.insertCount).isEqualTo(1);
@@ -135,7 +135,7 @@ class GatewayReleasePublicationCoordinatorTest {
                 client
         );
 
-        GatewayReleasePublicationCoordinator.PublicationOutcome outcome =
+        top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO outcome =
                 coordinator.execute(
                         "release-inline",
                         1,
@@ -151,7 +151,7 @@ class GatewayReleasePublicationCoordinatorTest {
         assertThat(journal.findAttempt("release-inline", 1))
                 .singleElement()
                 .extracting(
-                        GatewayReleasePublicationStore.PublicationRecord
+                        top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO
                                 ::status
                 ).isEqualTo(SUCCESS);
     }
@@ -163,18 +163,18 @@ class GatewayReleasePublicationCoordinatorTest {
         client.statuses.put("gateway.rules.active", TIMEOUT);
         CompiledGatewayRelease compiled = compiledInline();
 
-        GatewayReleasePublicationCoordinator.PublicationOutcome first =
+        top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO first =
                 coordinator(journal, client).execute(
                         "release-inline",
                         1,
                         compiled,
                         "admin"
                 );
-        GatewayReleasePublicationStore.PublicationRecord persisted =
+        top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO persisted =
                 journal.findAttempt("release-inline", 1).getFirst();
         client.statuses.put("gateway.rules.active", SUCCESS);
 
-        GatewayReleasePublicationCoordinator.PublicationOutcome resumed =
+        top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO resumed =
                 coordinator(journal, client).execute(
                         "release-inline",
                         1,
@@ -203,7 +203,7 @@ class GatewayReleasePublicationCoordinatorTest {
         client.failBeforeTaskAt = 0;
         CompiledGatewayRelease compiled = compiledInline();
 
-        GatewayReleasePublicationCoordinator.PublicationOutcome first =
+        top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO first =
                 coordinator(journal, client).execute(
                         "release-inline",
                         1,
@@ -230,7 +230,7 @@ class GatewayReleasePublicationCoordinatorTest {
                 )
         );
 
-        GatewayReleasePublicationCoordinator.PublicationOutcome resumed =
+        top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO resumed =
                 coordinator(journal, client).execute(
                         "release-inline",
                         1,
@@ -239,8 +239,7 @@ class GatewayReleasePublicationCoordinatorTest {
                 );
 
         assertThat(first.status())
-                .isEqualTo(GatewayReleasePublicationStore
-                        .PublicationStatus.UNKNOWN);
+                .isEqualTo(GatewayPublicationStatusEnum.UNKNOWN);
         assertThat(resumed.successful()).isTrue();
         assertThat(client.publishRequests).hasSize(2)
                 .allSatisfy(request -> assertThat(request.changeId())
@@ -266,7 +265,7 @@ class GatewayReleasePublicationCoordinatorTest {
                 compiled,
                 "admin"
         );
-        GatewayReleaseStore releases = mock(GatewayReleaseStore.class);
+        GatewayReleaseRepository releases = mock(GatewayReleaseRepository.class);
         when(releases.loadCompiled("release-inline")).thenReturn(compiled);
         client.ready = false;
         GatewayReleasePublicationCoordinator resumedCoordinator =
@@ -281,7 +280,7 @@ class GatewayReleasePublicationCoordinatorTest {
                         "ge"
                 );
 
-        GatewayReleasePublicationCoordinator.PublicationOutcome outcome =
+        top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO outcome =
                 resumedCoordinator.resume("release-inline", 1);
 
         assertThat(outcome.successful()).isTrue();
@@ -297,7 +296,7 @@ class GatewayReleasePublicationCoordinatorTest {
         client.failBeforeTaskAt = crashPhase;
         CompiledGatewayRelease compiled = compiledWithChunks(3);
 
-        GatewayReleasePublicationCoordinator.PublicationOutcome first =
+        top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO first =
                 coordinator(journal, client).execute(
                         "release-1",
                         1,
@@ -306,10 +305,10 @@ class GatewayReleasePublicationCoordinatorTest {
                 );
         List<String> identities = journal.findAttempt("release-1", 1)
                 .stream()
-                .map(GatewayReleasePublicationStore.PublicationRecord
+                .map(top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO
                         ::changeId)
                 .toList();
-        GatewayReleasePublicationCoordinator.PublicationOutcome resumed =
+        top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO resumed =
                 coordinator(journal, client).execute(
                         "release-1",
                         1,
@@ -318,12 +317,11 @@ class GatewayReleasePublicationCoordinatorTest {
                 );
 
         assertThat(first.status())
-                .isEqualTo(GatewayReleasePublicationStore
-                        .PublicationStatus.UNKNOWN);
+                .isEqualTo(GatewayPublicationStatusEnum.UNKNOWN);
         assertThat(resumed.successful()).isTrue();
         assertThat(journal.insertCount).isEqualTo(1);
         assertThat(journal.findAttempt("release-1", 1))
-                .extracting(GatewayReleasePublicationStore.PublicationRecord
+                .extracting(top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO
                         ::changeId)
                 .containsExactlyElementsOf(identities);
         assertThat(client.publishRequests)
@@ -354,7 +352,7 @@ class GatewayReleasePublicationCoordinatorTest {
             RecordingClient client) {
         return new GatewayReleasePublicationCoordinator(
                 journal,
-                mock(GatewayReleaseStore.class),
+                mock(GatewayReleaseRepository.class),
                 client,
                 new GatewayDdcRulePublisher(client),
                 Clock.fixed(NOW, ZoneOffset.UTC),
@@ -467,15 +465,15 @@ class GatewayReleasePublicationCoordinatorTest {
     }
 
     private static final class InMemoryPublicationStore
-            implements GatewayReleasePublicationStore {
+            implements GatewayReleasePublicationRepository {
 
-        private final Map<String, PublicationRecord> records =
+        private final Map<String, GatewayReleasePublicationPO> records =
                 new LinkedHashMap<>();
 
         private int insertCount;
 
         @Override
-        public void insertAll(List<PublicationRecord> operations) {
+        public void insertAll(List<GatewayReleasePublicationPO> operations) {
             insertCount++;
             operations.forEach(operation -> records.put(
                     operation.changeId(),
@@ -484,20 +482,20 @@ class GatewayReleasePublicationCoordinatorTest {
         }
 
         @Override
-        public List<PublicationRecord> findAttempt(
+        public List<GatewayReleasePublicationPO> findAttempt(
                 String releaseId,
                 int attemptNo) {
             return records.values().stream()
                     .filter(record -> record.releaseId().equals(releaseId))
                     .filter(record -> record.attemptNo() == attemptNo)
                     .sorted(Comparator.comparingInt(
-                            PublicationRecord::phaseOrder
+                            GatewayReleasePublicationPO::phaseOrder
                     ))
                     .toList();
         }
 
         @Override
-        public Optional<PublicationRecord> nextIncomplete(
+        public Optional<GatewayReleasePublicationPO> nextIncomplete(
                 String releaseId,
                 int attemptNo) {
             return findAttempt(releaseId, attemptNo).stream()
@@ -506,7 +504,7 @@ class GatewayReleasePublicationCoordinatorTest {
         }
 
         @Override
-        public List<ChunkCleanupCandidate> findChunkCleanupCandidates(
+        public List<GatewayChunkCleanupCandidatePO> findChunkCleanupCandidates(
                 Instant successorActivatedBefore) {
             return List.of();
         }
@@ -522,7 +520,7 @@ class GatewayReleasePublicationCoordinatorTest {
                     documentContent,
                     expectedVersion,
                     record.ddcTargetVersion(),
-                    PublicationStatus.RESOLVED,
+                    GatewayPublicationStatusEnum.RESOLVED,
                     null,
                     null,
                     now
@@ -536,7 +534,7 @@ class GatewayReleasePublicationCoordinatorTest {
                     record.contentValue(),
                     record.expectedVersion(),
                     record.ddcTargetVersion(),
-                    PublicationStatus.SUBMITTED,
+                    GatewayPublicationStatusEnum.SUBMITTED,
                     null,
                     null,
                     now
@@ -547,7 +545,7 @@ class GatewayReleasePublicationCoordinatorTest {
         public void markResult(
                 String changeId,
                 Long targetVersion,
-                PublicationStatus status,
+                GatewayPublicationStatusEnum status,
                 String errorCode,
                 String errorMessage,
                 Instant now) {
@@ -570,20 +568,20 @@ class GatewayReleasePublicationCoordinatorTest {
 
         private void update(
                 String changeId,
-                java.util.function.UnaryOperator<PublicationRecord> change) {
+                java.util.function.UnaryOperator<GatewayReleasePublicationPO> change) {
             records.compute(changeId, (key, value) -> change.apply(value));
         }
 
-        private PublicationRecord copy(
-                PublicationRecord source,
+        private GatewayReleasePublicationPO copy(
+                GatewayReleasePublicationPO source,
                 String contentValue,
                 Long expectedVersion,
                 Long targetVersion,
-                PublicationStatus status,
+                GatewayPublicationStatusEnum status,
                 String errorCode,
                 String errorMessage,
                 Instant updatedAt) {
-            return new PublicationRecord(
+            return new GatewayReleasePublicationPO(
                     source.releaseId(),
                     source.attemptNo(),
                     source.phaseOrder(),
@@ -611,8 +609,8 @@ class GatewayReleasePublicationCoordinatorTest {
         private final Map<String, DdcManagementConfig> configs =
                 new LinkedHashMap<>();
 
-        private final Map<String, GatewayReleasePublicationStore
-                .PublicationStatus> statuses = new LinkedHashMap<>();
+        private final Map<String, GatewayPublicationStatusEnum> statuses =
+                new LinkedHashMap<>();
 
         private final Map<String, DdcManagementPublishTask> tasks =
                 new LinkedHashMap<>();
@@ -682,7 +680,7 @@ class GatewayReleasePublicationCoordinatorTest {
         @Override
         public DdcManagementPublishResult publish(
                 DdcManagementPublishRequest request) {
-            GatewayReleasePublicationStore.PublicationRecord operation =
+            top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO operation =
                     journal.records.get(request.changeId());
             assertThat(operation).isNotNull();
             publishedKeys.add(operation.configKey());
@@ -738,7 +736,7 @@ class GatewayReleasePublicationCoordinatorTest {
         public DdcManagementPublishResult retry(String changeId) {
             retryChangeIds.add(changeId);
             DdcManagementPublishTask current = tasks.get(changeId);
-            GatewayReleasePublicationStore.PublicationRecord operation =
+            top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO operation =
                     journal.records.get(changeId);
             DdcManagementPublishStatus status = ddcStatus(
                     statuses.get(operation.configKey())
@@ -841,7 +839,7 @@ class GatewayReleasePublicationCoordinatorTest {
         }
 
         private DdcManagementPublishStatus ddcStatus(
-                GatewayReleasePublicationStore.PublicationStatus status) {
+                top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum status) {
             return DdcManagementPublishStatus.valueOf(status.name());
         }
 

@@ -10,7 +10,6 @@ import { LoginPage } from '../auth/LoginPage'
 import { RequireAuth, RequireCapability } from '../auth/RouteGuards'
 import { LoadingBlock } from '../components/QueryState'
 import { AdminLayout } from '../layouts/AdminLayout'
-import { ScopeProvider } from '../hooks/useScope'
 
 const DashboardPage = lazy(() =>
   import('../features/dashboard/DashboardPage').then((module) => ({
@@ -183,11 +182,9 @@ export const App = () => (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <CapabilityProvider>
-          <ScopeProvider>
-            <Suspense fallback={<LoadingBlock />}>
-              <RouterProvider router={router} />
-            </Suspense>
-          </ScopeProvider>
+          <Suspense fallback={<LoadingBlock />}>
+            <RouterProvider router={router} />
+          </Suspense>
         </CapabilityProvider>
       </AuthProvider>
     </QueryClientProvider>

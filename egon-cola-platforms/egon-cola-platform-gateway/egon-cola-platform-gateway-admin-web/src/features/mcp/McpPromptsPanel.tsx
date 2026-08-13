@@ -12,11 +12,13 @@ import {
   Table,
 } from 'antd'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { gatewayApi } from '../../api/gatewayApi'
 import type { McpCapabilityDraft } from '../../api/types'
 import { useCapability } from '../../app/capabilities'
 import { QueryFailure } from '../../components/QueryState'
-import { useScope } from '../../hooks/useScope'
+import { GatewayScopeFilter } from '../../components/GatewayScopeFilter'
+import { readScopeSearchParams, writeScopeSearchParams } from '../../hooks/scopeSearchParams'
 import { parseStringList, renderPromptTemplate } from './mcpValidation'
 import { useMcpCapabilityCollection } from './useMcpCapabilityCollection'
 
@@ -40,12 +42,19 @@ export const McpPromptsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
   gatewayGroupId: string
   draftRevision: number
 }) => {
-  const { scope } = useScope()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const scope = readScopeSearchParams(searchParams, ['bizCode', 'namespace', 'env', 'appCode'], 'prompt')
   const canWrite = useCapability('gateway:mcp:write')
   const collection = useMcpCapabilityCollection('prompts', serverId, gatewayGroupId, draftRevision)
+  const applications = useQuery({
+    queryKey: ['mcp-applications', scope],
+    queryFn: ({ signal }) => gatewayApi.applications(scope, signal),
+  })
+  const selectedApplicationId = searchParams.get('promptApplicationId') ?? ''
   const operations = useQuery({
-    queryKey: ['mcp-operation-options', scope],
-    queryFn: ({ signal }) => gatewayApi.mcpOperationOptions(scope, signal),
+    queryKey: ['mcp-operation-options', selectedApplicationId],
+    queryFn: ({ signal }) => gatewayApi.mcpOperationOptions(selectedApplicationId, signal),
+    enabled: Boolean(selectedApplicationId),
   })
   const mounts = useQuery({
     queryKey: ['mcp-remote-mounts', gatewayGroupId],
@@ -124,6 +133,33 @@ export const McpPromptsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
 
   return (
     <section>
+      <GatewayScopeFilter
+        fields={['bizCode', 'namespace', 'env', 'appCode']}
+        value={scope}
+        onChange={(value) => {
+          const next = writeScopeSearchParams(searchParams, value, ['bizCode', 'namespace', 'env', 'appCode'], 'prompt')
+          next.delete('promptApplicationId')
+          next.delete('promptOperationId')
+          setSearchParams(next)
+        }}
+      />
+      <Select
+        aria-label="Prompt Application"
+        style={{ width: 360, marginBottom: 16 }}
+        placeholder="选择 Application 后加载 Operation"
+        value={selectedApplicationId || undefined}
+        loading={applications.isLoading}
+        options={(applications.data ?? []).map((application) => ({
+          value: application.id,
+          label: `${application.bizCode} / ${application.applicationCode} / ${application.env} / ${application.namespace} · ${application.displayName}`,
+        }))}
+        onChange={(value) => {
+          const next = new URLSearchParams(searchParams)
+          next.set('promptApplicationId', value)
+          next.delete('promptOperationId')
+          setSearchParams(next)
+        }}
+      />
       <Button type="primary" disabled={!canWrite} onClick={() => openEditor()} style={{ marginBottom: 16 }}>
         新增 Prompt
       </Button>

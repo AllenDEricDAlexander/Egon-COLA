@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.infrastructure.messaging;
+package top.egon.cola.component.gateway.admin.observability.controller.message;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.kafka.clients.consumer.Consumer;
@@ -158,7 +158,7 @@ class GatewayKafkaCallEventConsumerTest {
                         new SimpleMeterRegistry(),
                         Clock.systemUTC()
                 ),
-                new GatewayKafkaCallEventConsumer.Settings(
+                new top.egon.cola.component.gateway.admin.observability.domain.dto.GatewayKafkaConsumerSettingsDTO(
                         "localhost:9092",
                         "calls",
                         "gateway-admin",

@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.mcp.application;
+package top.egon.cola.component.gateway.admin.mcp.service;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

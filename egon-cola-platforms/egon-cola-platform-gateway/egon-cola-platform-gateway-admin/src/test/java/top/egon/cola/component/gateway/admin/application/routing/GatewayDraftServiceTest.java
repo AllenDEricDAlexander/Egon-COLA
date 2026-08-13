@@ -1,18 +1,19 @@
-package top.egon.cola.component.gateway.admin.application.routing;
+package top.egon.cola.component.gateway.admin.routing.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import top.egon.cola.component.gateway.admin.application.GatewayAdminIdempotencyConflictException;
-import top.egon.cola.component.gateway.admin.application.IdempotencyStore;
-import top.egon.cola.component.gateway.admin.application.RequestAuditContext;
-import top.egon.cola.component.gateway.admin.application.catalog.GatewayCatalogStore;
-import top.egon.cola.component.gateway.admin.domain.AdminActor;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayAuditLogRepository;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftEntity;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftRepository;
-import top.egon.cola.component.gateway.admin.rule.GatewayRuleCanonicalizer;
+import top.egon.cola.component.gateway.admin.shared.domain.exception.GatewayAdminIdempotencyConflictException;
+import top.egon.cola.component.gateway.admin.shared.repository.IdempotencyRepository;
+import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
+import top.egon.cola.component.gateway.admin.catalog.repository.GatewayCatalogRepository;
+import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
+import top.egon.cola.component.gateway.admin.observability.repository.GatewayAuditLogRepository;
+import top.egon.cola.component.gateway.admin.routing.domain.po.GatewayDraftPO;
+import top.egon.cola.component.gateway.admin.routing.repository.GatewayDraftRepository;
+import top.egon.cola.component.gateway.admin.routing.repository.GatewayDraftJpaRepository;
+import top.egon.cola.component.gateway.admin.rule.service.GatewayRuleCanonicalizer;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -41,7 +42,7 @@ class GatewayDraftServiceTest {
     @Test
     void normalizesBeforeDigestAndStorage() {
         Fixture fixture = fixture();
-        AtomicReference<IdempotencyStore.Record> saved =
+        AtomicReference<top.egon.cola.component.gateway.admin.shared.domain.po.IdempotencyPO> saved =
                 new AtomicReference<>();
         when(fixture.idempotency.find(
                 "GATEWAY_DRAFT",
@@ -66,7 +67,7 @@ class GatewayDraftServiceTest {
                 actor(),
                 request()
         );
-        GatewayDraftService.MutationResult replay = fixture.service.putRoute(
+        top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftMutationResultVO replay = fixture.service.putRoute(
                 "group-1",
                 "route-1",
                 mutation(Map.of(
@@ -81,8 +82,8 @@ class GatewayDraftServiceTest {
                 request()
         );
 
-        ArgumentCaptor<GatewayDraftStore.RouteDraft> route =
-                ArgumentCaptor.forClass(GatewayDraftStore.RouteDraft.class);
+        ArgumentCaptor<top.egon.cola.component.gateway.admin.routing.domain.po.GatewayRouteDraftPO> route =
+                ArgumentCaptor.forClass(top.egon.cola.component.gateway.admin.routing.domain.po.GatewayRouteDraftPO.class);
         verify(fixture.store).upsertRoute(route.capture());
         assertThat(route.getValue().content()).isEqualTo(Map.of(
                 "host", "ai.example.com",
@@ -99,7 +100,7 @@ class GatewayDraftServiceTest {
     void replaysARequestStoredWithThePreUpgradeRawCommandDigest() {
         Fixture fixture = fixture();
         Map<String, Object> legacy = legacyRoute("/v1/**");
-        GatewayDraftService.RouteMutation command = mutation(legacy);
+        top.egon.cola.component.gateway.admin.routing.domain.dto.GatewayRouteMutationDTO command = mutation(legacy);
         when(fixture.idempotency.find(
                 "GATEWAY_DRAFT",
                 "group-1",
@@ -108,7 +109,7 @@ class GatewayDraftServiceTest {
                 legacyDigest("route-1", command)
         )));
 
-        GatewayDraftService.MutationResult result = fixture.service.putRoute(
+        top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftMutationResultVO result = fixture.service.putRoute(
                 "group-1",
                 "route-1",
                 command,
@@ -117,7 +118,7 @@ class GatewayDraftServiceTest {
         );
 
         assertThat(result).isEqualTo(
-                new GatewayDraftService.MutationResult(4L, "route-1", true)
+                new top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftMutationResultVO(4L, "route-1", true)
         );
         verify(fixture.store, never()).upsertRoute(any());
     }
@@ -125,7 +126,7 @@ class GatewayDraftServiceTest {
     @Test
     void conflictsWhenRawCommandDiffersFromThePreUpgradeDigest() {
         Fixture fixture = fixture();
-        GatewayDraftService.RouteMutation original = mutation(
+        top.egon.cola.component.gateway.admin.routing.domain.dto.GatewayRouteMutationDTO original = mutation(
                 legacyRoute("/v1/**")
         );
         when(fixture.idempotency.find(
@@ -151,7 +152,7 @@ class GatewayDraftServiceTest {
     void reportsRouteTransportErrorsAtDraftFieldPaths() {
         Fixture fixture = fixture();
         when(fixture.store.routes("group-1")).thenReturn(List.of(
-                new GatewayDraftStore.RouteDraft(
+                new top.egon.cola.component.gateway.admin.routing.domain.po.GatewayRouteDraftPO(
                         "group-1",
                         "route-1",
                         "operation-1",
@@ -170,17 +171,17 @@ class GatewayDraftServiceTest {
         ));
         when(fixture.store.policies("group-1")).thenReturn(List.of());
 
-        GatewayDraftService.ValidationReport report =
+        top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftValidationReportVO report =
                 fixture.service.validate("group-1");
 
         assertThat(report.valid()).isFalse();
         assertThat(report.errors()).contains(
-                new GatewayDraftService.ValidationIssue(
+                new top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftValidationIssueVO(
                         "routes.route-1.host",
                         "ROUTE_HOST_REQUIRED",
                         "Host is required"
                 ),
-                new GatewayDraftService.ValidationIssue(
+                new top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftValidationIssueVO(
                         "routes.route-1.transportPolicy.connectTimeoutMs",
                         "TRANSPORT_VALUE_OUT_OF_RANGE",
                         "connectTimeoutMs must be an integer from 100 to 60000"
@@ -207,7 +208,7 @@ class GatewayDraftServiceTest {
                 }
         );
         when(fixture.store.routes("group-1")).thenReturn(List.of(
-                new GatewayDraftStore.RouteDraft(
+                new top.egon.cola.component.gateway.admin.routing.domain.po.GatewayRouteDraftPO(
                         "group-1",
                         "route-1",
                         "operation-1",
@@ -219,17 +220,17 @@ class GatewayDraftServiceTest {
         ));
         when(fixture.store.policies("group-1")).thenReturn(List.of());
 
-        GatewayDraftService.ValidationReport report =
+        top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftValidationReportVO report =
                 fixture.service.validate("group-1");
 
         assertThat(report.valid()).isFalse();
         assertThat(report.errors()).contains(
-                new GatewayDraftService.ValidationIssue(
+                new top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftValidationIssueVO(
                         "routes.route-1.host",
                         "ROUTE_HOST_INVALID",
                         "Host must be a string"
                 ),
-                new GatewayDraftService.ValidationIssue(
+                new top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftValidationIssueVO(
                         "routes.route-1.httpMethod",
                         "ROUTE_METHOD_INVALID",
                         "HTTP Method must be a string"
@@ -238,13 +239,13 @@ class GatewayDraftServiceTest {
     }
 
     private Fixture fixture() {
-        GatewayDraftRepository drafts = mock(GatewayDraftRepository.class);
-        GatewayDraftStore store = mock(GatewayDraftStore.class);
-        GatewayCatalogStore catalog = mock(GatewayCatalogStore.class);
-        IdempotencyStore idempotency = mock(IdempotencyStore.class);
+        GatewayDraftJpaRepository drafts = mock(GatewayDraftJpaRepository.class);
+        GatewayDraftRepository store = mock(GatewayDraftRepository.class);
+        GatewayCatalogRepository catalog = mock(GatewayCatalogRepository.class);
+        IdempotencyRepository idempotency = mock(IdempotencyRepository.class);
         GatewayAuditLogRepository audits =
                 mock(GatewayAuditLogRepository.class);
-        GatewayDraftEntity draft = new GatewayDraftEntity(
+        GatewayDraftPO draft = new GatewayDraftPO(
                 "group-1",
                 "admin",
                 NOW
@@ -265,9 +266,9 @@ class GatewayDraftServiceTest {
         return new Fixture(service, store, idempotency);
     }
 
-    private GatewayDraftService.RouteMutation mutation(
+    private top.egon.cola.component.gateway.admin.routing.domain.dto.GatewayRouteMutationDTO mutation(
             Map<String, Object> content) {
-        return new GatewayDraftService.RouteMutation(
+        return new top.egon.cola.component.gateway.admin.routing.domain.dto.GatewayRouteMutationDTO(
                 "operation-1",
                 content,
                 true,
@@ -288,7 +289,7 @@ class GatewayDraftServiceTest {
 
     private String legacyDigest(
             String routeId,
-            GatewayDraftService.RouteMutation command) {
+            top.egon.cola.component.gateway.admin.routing.domain.dto.GatewayRouteMutationDTO command) {
         GatewayRuleCanonicalizer canonicalizer =
                 new GatewayRuleCanonicalizer();
         return GatewayRuleCanonicalizer.sha256(
@@ -300,8 +301,8 @@ class GatewayDraftServiceTest {
         );
     }
 
-    private IdempotencyStore.Record legacyRecord(String digest) {
-        return new IdempotencyStore.Record(
+    private top.egon.cola.component.gateway.admin.shared.domain.po.IdempotencyPO legacyRecord(String digest) {
+        return new top.egon.cola.component.gateway.admin.shared.domain.po.IdempotencyPO(
                 "GATEWAY_DRAFT",
                 "group-1",
                 "idem-1",
@@ -313,8 +314,8 @@ class GatewayDraftServiceTest {
         );
     }
 
-    private GatewayCatalogStore.OperationRecord operation() {
-        return new GatewayCatalogStore.OperationRecord(
+    private top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationPO operation() {
+        return new top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationPO(
                 "operation-1",
                 "application-1",
                 "interface-1",
@@ -339,8 +340,8 @@ class GatewayDraftServiceTest {
         );
     }
 
-    private GatewayCatalogStore.OperationDefinition definition() {
-        return new GatewayCatalogStore.OperationDefinition(
+    private top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationDefinitionPO definition() {
+        return new top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationDefinitionPO(
                 "definition-1",
                 "operation-1",
                 1L,
@@ -361,7 +362,7 @@ class GatewayDraftServiceTest {
     private AdminActor actor() {
         return new AdminActor(
                 "admin",
-                AdminActor.ActorType.USER,
+                top.egon.cola.component.gateway.admin.shared.domain.enums.AdminActorTypeEnum.USER,
                 Set.of(),
                 Set.of()
         );
@@ -373,8 +374,8 @@ class GatewayDraftServiceTest {
 
     private record Fixture(
             GatewayDraftService service,
-            GatewayDraftStore store,
-            IdempotencyStore idempotency
+            GatewayDraftRepository store,
+            IdempotencyRepository idempotency
     ) {
     }
 }

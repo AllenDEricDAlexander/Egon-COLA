@@ -1,10 +1,10 @@
-package top.egon.cola.component.gateway.admin.mcp.interfaces;
+package top.egon.cola.component.gateway.admin.mcp.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.core.Authentication;
-import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpApprovalStore;
+import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpApprovalRepository;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityDigests;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 
@@ -29,7 +29,7 @@ class McpApprovalControllerTest {
 
     @Test
     void returnsPlaintextOnceAndPersistsOnlyBoundDigests() {
-        JdbcMcpApprovalStore store = mock(JdbcMcpApprovalStore.class);
+        JdbcMcpApprovalRepository store = mock(JdbcMcpApprovalRepository.class);
         SecureRandom random = mock(SecureRandom.class);
         doAnswer(invocation -> {
             byte[] value = invocation.getArgument(0);
@@ -50,8 +50,8 @@ class McpApprovalControllerTest {
         arguments.put("invoiceId", "invoice-7");
         arguments.put("amount", 42);
 
-        McpApprovalController.ApprovalResponse response = controller.issue(
-                new McpApprovalController.ApprovalRequest(
+        top.egon.cola.component.gateway.admin.mcp.domain.vo.McpApprovalVO response = controller.issue(
+                new top.egon.cola.component.gateway.admin.mcp.domain.dto.McpApprovalRequestDTO(
                         "billing",
                         "pay_invoice",
                         arguments,
@@ -60,10 +60,10 @@ class McpApprovalControllerTest {
                 authentication
         );
 
-        ArgumentCaptor<JdbcMcpApprovalStore.Approval> captured =
-                ArgumentCaptor.forClass(JdbcMcpApprovalStore.Approval.class);
+        ArgumentCaptor<top.egon.cola.component.gateway.admin.mcp.domain.po.McpApprovalPO> captured =
+                ArgumentCaptor.forClass(top.egon.cola.component.gateway.admin.mcp.domain.po.McpApprovalPO.class);
         verify(store).issue(captured.capture());
-        JdbcMcpApprovalStore.Approval approval = captured.getValue();
+        top.egon.cola.component.gateway.admin.mcp.domain.po.McpApprovalPO approval = captured.getValue();
         assertThat(approval.subjectId()).isEqualTo("alice-sub");
         assertThat(approval.tenantId()).isEqualTo("tenant-a");
         assertThat(approval.clientId()).isEqualTo("finance-web");
