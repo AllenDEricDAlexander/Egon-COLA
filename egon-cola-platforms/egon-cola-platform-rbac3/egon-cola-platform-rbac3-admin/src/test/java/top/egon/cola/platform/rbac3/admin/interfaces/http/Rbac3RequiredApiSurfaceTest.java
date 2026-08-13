@@ -15,6 +15,8 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import top.egon.cola.platform.rbac3.admin.auth.controller.AuthController;
+import top.egon.cola.platform.rbac3.admin.session.controller.SessionController;
 
 class Rbac3RequiredApiSurfaceTest {
 

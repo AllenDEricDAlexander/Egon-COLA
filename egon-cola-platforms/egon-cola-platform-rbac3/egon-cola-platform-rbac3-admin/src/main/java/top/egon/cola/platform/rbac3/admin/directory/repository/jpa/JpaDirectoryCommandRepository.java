@@ -7,9 +7,9 @@ import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.auth.application.AuthenticationFacade;
-import top.egon.cola.platform.rbac3.admin.auth.application.RefreshFacade;
-import top.egon.cola.platform.rbac3.admin.auth.application.StepUpFacade;
+import top.egon.cola.platform.rbac3.admin.auth.service.AuthenticationFacade;
+import top.egon.cola.platform.rbac3.admin.auth.service.RefreshFacade;
+import top.egon.cola.platform.rbac3.admin.auth.service.StepUpFacade;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
 import top.egon.cola.platform.rbac3.admin.directory.domain.po.DirectorySnapshotPO;
 import top.egon.cola.platform.rbac3.admin.directory.service.DirectorySnapshotProcessor;
@@ -20,12 +20,12 @@ import top.egon.cola.platform.rbac3.admin.directory.repository.jpa.JpaDirectoryS
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.AssignmentController;
-import top.egon.cola.platform.rbac3.admin.interfaces.http.SessionController;
+import top.egon.cola.platform.rbac3.admin.session.controller.SessionController;
 import top.egon.cola.platform.rbac3.admin.role.domain.RoleEntity;
-import top.egon.cola.platform.rbac3.admin.session.domain.RefreshTokenEntity;
-import top.egon.cola.platform.rbac3.admin.session.domain.SessionEntity;
-import top.egon.cola.platform.rbac3.admin.session.application.SessionRuntimeSynchronizer;
-import top.egon.cola.platform.rbac3.admin.session.application.SessionSecurityEventRecorder;
+import top.egon.cola.platform.rbac3.admin.session.domain.po.RefreshTokenPO;
+import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
+import top.egon.cola.platform.rbac3.admin.session.service.SessionRuntimeSynchronizer;
+import top.egon.cola.platform.rbac3.admin.session.service.SessionSecurityEventRecorder;
 import top.egon.cola.platform.rbac3.admin.snapshot.infrastructure.RedisAuthorizationRuntimeStore;
 import top.egon.cola.platform.rbac3.contract.activation.ActivationRoot;
 import top.egon.cola.platform.rbac3.contract.auth.BootstrapView;
@@ -66,6 +66,7 @@ import top.egon.cola.platform.rbac3.admin.directory.domain.vo.OrgUnitVO;
 import top.egon.cola.platform.rbac3.admin.directory.domain.vo.PositionVO;
 import top.egon.cola.platform.rbac3.admin.directory.domain.vo.DirectorySnapshotVO;
 import top.egon.cola.platform.rbac3.admin.directory.domain.vo.DirectoryPageVO;
+import top.egon.cola.platform.rbac3.admin.session.domain.vo.TerminationVO;
 
 /**
  * 目录写模型的 JPA 仓储，保留原 Store 的事务、锁和会话撤销语义。
@@ -267,16 +268,16 @@ public class JpaDirectoryCommandRepository implements DirectoryCommandRepository
      */
     @Transactional
     public int revokeAll(String tenantId, String userId, Instant now) {
-        List<SessionEntity> sessions = entityManager.createQuery("""
+        List<SessionPO> sessions = entityManager.createQuery("""
                         select s from SessionEntity s
                          where s.tenantId = :tenantId and s.userId = :userId
-                        """, SessionEntity.class)
+                        """, SessionPO.class)
                 .setParameter("tenantId", Long.valueOf(tenantId))
                 .setParameter("userId", Long.valueOf(userId))
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                 .getResultList();
         List<Long> changedSessionIds = new ArrayList<>();
-        for (SessionEntity session : sessions) {
+        for (SessionPO session : sessions) {
             if (session.revoke("ADMIN_REVOKE_ALL", "session-administration", now)) {
                 changedSessionIds.add(session.getSessionId());
             }
@@ -358,14 +359,14 @@ public class JpaDirectoryCommandRepository implements DirectoryCommandRepository
      * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     private void revokeTenantSessions(Long tenantId, String actorId, Instant now) {
-        List<SessionEntity> sessions = entityManager.createQuery("""
+        List<SessionPO> sessions = entityManager.createQuery("""
                         select s from SessionEntity s where s.tenantId = :tenantId
-                        """, SessionEntity.class)
+                        """, SessionPO.class)
                 .setParameter("tenantId", tenantId)
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                 .getResultList();
         List<Long> changedSessionIds = new ArrayList<>();
-        for (SessionEntity session : sessions) {
+        for (SessionPO session : sessions) {
             if (session.revoke("TENANT_STATUS_CHANGED", actorId, now)) {
                 changedSessionIds.add(session.getSessionId());
             }
@@ -434,10 +435,10 @@ public class JpaDirectoryCommandRepository implements DirectoryCommandRepository
         if (sessionIds.isEmpty()) {
             return;
         }
-        List<RefreshTokenEntity> tokens = entityManager.createQuery("""
+        List<RefreshTokenPO> tokens = entityManager.createQuery("""
                         select t from RefreshTokenEntity t
                          where t.tenantId = :tenantId and t.sessionId in :sessionIds
-                        """, RefreshTokenEntity.class)
+                        """, RefreshTokenPO.class)
                 .setParameter("tenantId", tenantId)
                 .setParameter("sessionIds", sessionIds)
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE)
@@ -457,10 +458,10 @@ public class JpaDirectoryCommandRepository implements DirectoryCommandRepository
      * @param occurredAt 输入参数 `occurredAt`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     private void recordTermination(
-            SessionEntity session,
+            SessionPO session,
             String actorId,
             Instant occurredAt) {
-        securityEventRecorder.record(new SessionSecurityEventRecorder.Termination(
+        securityEventRecorder.record(new TerminationVO(
                 session.getTenantId().toString(), session.getUserId().toString(),
                 session.getSessionId().toString(), session.getSessionVersion(),
                 session.getStatus().name(), session.getRevokeReason(), actorId, occurredAt));

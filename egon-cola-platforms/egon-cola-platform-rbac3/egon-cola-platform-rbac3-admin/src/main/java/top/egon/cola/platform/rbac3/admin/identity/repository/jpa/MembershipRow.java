@@ -5,7 +5,7 @@ import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.auth.application.PasswordIdentityAuthenticator;
+import top.egon.cola.platform.rbac3.admin.auth.service.PasswordIdentityAuthenticator;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.ExternalIdentityPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserCredentialPO;

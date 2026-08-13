@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.config.runtime;
 
 import top.egon.cola.platform.rbac3.admin.integration.runtime.Rbac3AuthorizationFenceStore;
-import top.egon.cola.platform.rbac3.admin.integration.runtime.Rbac3IdentitySessionQueryStore;
+import top.egon.cola.platform.rbac3.admin.bootstrap.repository.BootstrapSnapshotRepository;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -52,11 +52,11 @@ import top.egon.cola.platform.rbac3.admin.runtime.application.IdempotencyService
 import top.egon.cola.platform.rbac3.admin.runtime.application.RuntimeQueryService;
 import top.egon.cola.platform.rbac3.admin.runtime.infrastructure.AuthorizationMutationRepository;
 import top.egon.cola.platform.rbac3.admin.runtime.infrastructure.IdempotencyRepository;
-import top.egon.cola.platform.rbac3.admin.session.application.SessionFacade;
-import top.egon.cola.platform.rbac3.admin.session.application.AuthorizationContextFacade;
-import top.egon.cola.platform.rbac3.admin.session.application.SessionSecurityEventRecorder;
-import top.egon.cola.platform.rbac3.admin.session.infrastructure.JpaSessionStore;
-import top.egon.cola.platform.rbac3.admin.session.infrastructure.AuthorizationContextRepository;
+import top.egon.cola.platform.rbac3.admin.session.service.SessionFacade;
+import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFacade;
+import top.egon.cola.platform.rbac3.admin.session.service.SessionSecurityEventRecorder;
+import top.egon.cola.platform.rbac3.admin.session.repository.jpa.JpaSessionRepository;
+import top.egon.cola.platform.rbac3.admin.session.repository.jpa.JpaAuthorizationContextRepository;
 import top.egon.cola.platform.rbac3.admin.simulation.application.AuthorizationSimulationService;
 import top.egon.cola.platform.rbac3.admin.simulation.infrastructure.PostgresqlRoleImpactSource;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
@@ -74,6 +74,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Set;
+import top.egon.cola.platform.rbac3.admin.session.domain.vo.ActiveMembershipVO;
 
 /**
  * 类型 `Rbac3ApplicationConfiguration` 位于当前包内，是类型，用于承载 `Rbac3 Application Configuration` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -421,12 +422,12 @@ public class Rbac3ApplicationConfiguration {
     @Bean
     AuthorizationContextFacade authorizationContextFacade(
             IdentityMappingFacade identities,
-            AuthorizationContextRepository contexts,
+            JpaAuthorizationContextRepository contexts,
             LongIdGenerator idGenerator) {
         return new AuthorizationContextFacade(
                 (tenantId, identitySub) -> identities.resolve(
                                 identitySub, tenantId, "rbac3-authorization")
-                        .map(membership -> new AuthorizationContextFacade.ActiveMembership(
+                        .map(membership -> new ActiveMembershipVO(
                                 membership.tenantId(), membership.identitySub(),
                                 membership.rbac3UserId(), membership.authVersion(),
                                 membership.policyVersion())),
@@ -502,7 +503,7 @@ public class Rbac3ApplicationConfiguration {
     @Bean
     SessionFacade sessionFacade(
             LongIdGenerator idGenerator,
-            JpaSessionStore store,
+            JpaSessionRepository store,
             Rbac3RuntimePolicy runtimePolicy) {
         return new SessionFacade(idGenerator, store, runtimePolicy);
     }
@@ -537,7 +538,7 @@ public class Rbac3ApplicationConfiguration {
      */
     @Bean
     BootstrapQueryService bootstrapQueryService(
-            Rbac3IdentitySessionQueryStore source) {
+            BootstrapSnapshotRepository source) {
         return new BootstrapQueryService(source);
     }
 

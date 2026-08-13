@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.snapshot.application;
 
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.session.application.AuthorizationContextFacade;
+import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFacade;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextOpener;
+import top.egon.cola.platform.rbac3.admin.session.domain.vo.AuthorizationContextVO;
 
 /**
  * 类型 `SystemAuthorizationSnapshotService` 位于当前包内，是类型，用于承载 `System Authorization Snapshot Service` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -78,13 +80,13 @@ public final class SystemAuthorizationSnapshotService {
             "system:role-activation:use");
 
     /**
-     * 字段 `contexts` 表示 `SystemAuthorizationSnapshotService` 中与 `contexts` 相关的状态、依赖、配置或结果（声明类型 `AuthorizationContextFacade.ContextOpener`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `contexts` stores the `contexts`-related state, dependency, configuration, or result of `SystemAuthorizationSnapshotService` (declared type `AuthorizationContextFacade.ContextOpener`); its lifecycle and value semantics are defined by its declared type and owning object.
+     * 字段 `contexts` 表示 `SystemAuthorizationSnapshotService` 中与 `contexts` 相关的状态、依赖、配置或结果（声明类型 `AuthorizationContextOpener`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `contexts` stores the `contexts`-related state, dependency, configuration, or result of `SystemAuthorizationSnapshotService` (declared type `AuthorizationContextOpener`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
      * 含义与用法：读取、传递或更新 `contexts` 时应保持 `SystemAuthorizationSnapshotService` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `contexts`, preserve `SystemAuthorizationSnapshotService`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final AuthorizationContextFacade.ContextOpener contexts;
+    private final AuthorizationContextOpener contexts;
     /**
      * 字段 `snapshots` 表示 `SystemAuthorizationSnapshotService` 中与 `snapshots` 相关的状态、依赖、配置或结果（声明类型 `AuthorizationDecisionService.SnapshotSource`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `snapshots` stores the `snapshots`-related state, dependency, configuration, or result of `SystemAuthorizationSnapshotService` (declared type `AuthorizationDecisionService.SnapshotSource`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -130,7 +132,7 @@ public final class SystemAuthorizationSnapshotService {
      * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public SystemAuthorizationSnapshotService(
-            AuthorizationContextFacade.ContextOpener contexts,
+            AuthorizationContextOpener contexts,
             AuthorizationDecisionService.SnapshotSource snapshots,
             Clock clock) {
         this(contexts, snapshots, clock,
@@ -150,7 +152,7 @@ public final class SystemAuthorizationSnapshotService {
      * @param contextInitializer 输入参数 `contextInitializer`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public SystemAuthorizationSnapshotService(
-            AuthorizationContextFacade.ContextOpener contexts,
+            AuthorizationContextOpener contexts,
             AuthorizationDecisionService.SnapshotSource snapshots,
             Clock clock,
             ContextInitializer contextInitializer) {
@@ -172,7 +174,7 @@ public final class SystemAuthorizationSnapshotService {
      * @param retryPause 输入参数 `retryPause`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     SystemAuthorizationSnapshotService(
-            AuthorizationContextFacade.ContextOpener contexts,
+            AuthorizationContextOpener contexts,
             AuthorizationDecisionService.SnapshotSource snapshots,
             Clock clock,
             ContextInitializer contextInitializer,
@@ -204,7 +206,7 @@ public final class SystemAuthorizationSnapshotService {
             String systemCode,
             String identitySub) {
         Instant now = clock.instant();
-        AuthorizationContextFacade.AuthorizationContext context = contexts.open(
+        AuthorizationContextVO context = contexts.open(
                 tenantId, sessionId, identitySub, now, now.plus(DEFAULT_CONTEXT_TTL));
         ContextInitialization initialization = ContextInitialization.UNCHANGED;
         if (context.activationRequired()) {
@@ -250,7 +252,7 @@ public final class SystemAuthorizationSnapshotService {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     private AuthorizationDecisionService.SnapshotRecord loadSnapshot(
-            AuthorizationContextFacade.AuthorizationContext context,
+            AuthorizationContextVO context,
             ContextInitialization initialization) {
         for (int attempt = 1; attempt <= INITIALIZED_SNAPSHOT_READ_ATTEMPTS; attempt++) {
             try {
@@ -282,7 +284,7 @@ public final class SystemAuthorizationSnapshotService {
      * @param snapshot 输入参数 `snapshot`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     private static void requireCurrentVersions(
-            AuthorizationContextFacade.AuthorizationContext context,
+            AuthorizationContextVO context,
             SessionAuthorizationSnapshot snapshot) {
         if (snapshot.authVersion() != context.authVersion()
                 || snapshot.sessionVersion() != context.contextVersion()
@@ -322,7 +324,7 @@ public final class SystemAuthorizationSnapshotService {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     private SystemAuthorizationSnapshot empty(
-            AuthorizationContextFacade.AuthorizationContext context,
+            AuthorizationContextVO context,
             String systemCode,
             Instant now) {
         Set<String> permissions = RBAC3_ADMIN_SYSTEM.equals(systemCode)
@@ -357,7 +359,7 @@ public final class SystemAuthorizationSnapshotService {
          * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
          */
         ContextInitialization initialize(
-                AuthorizationContextFacade.AuthorizationContext context,
+                AuthorizationContextVO context,
                 Instant now);
     }
 

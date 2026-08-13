@@ -2,7 +2,7 @@ package top.egon.cola.platform.rbac3.admin.bootstrap.service;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.session.application.AuthorizationContextFacade;
+import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFacade;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.contract.activation.RoleActivationCandidate;
 import top.egon.cola.platform.rbac3.contract.activation.RoleActivationCandidateView;
@@ -15,6 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import top.egon.cola.platform.rbac3.admin.session.domain.vo.AuthorizationContextVO;
 
 class Rbac3DevelopmentAuthorizationContextInitializerTest {
 
@@ -143,12 +144,12 @@ class Rbac3DevelopmentAuthorizationContextInitializerTest {
                 SystemAuthorizationSnapshotService.ContextInitialization.CONCURRENT);
     }
 
-    private AuthorizationContextFacade.AuthorizationContext context() {
+    private AuthorizationContextVO context() {
         return context("1");
     }
 
-    private AuthorizationContextFacade.AuthorizationContext context(String tenantId) {
-        return new AuthorizationContextFacade.AuthorizationContext(
+    private AuthorizationContextVO context(String tenantId) {
+        return new AuthorizationContextVO(
                 "9001", tenantId, "5001", "alice-sub", "101",
                 7, 0, 11, true, "ACTIVE", NOW.minusSeconds(10),
                 NOW.plusSeconds(3600));

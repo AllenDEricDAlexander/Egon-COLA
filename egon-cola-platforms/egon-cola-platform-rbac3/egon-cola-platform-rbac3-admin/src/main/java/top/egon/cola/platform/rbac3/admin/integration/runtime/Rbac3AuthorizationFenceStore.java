@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import top.egon.cola.platform.rbac3.admin.session.domain.enums.SessionStatusEnum;
 
 /**
  * 类型 `Rbac3AuthorizationFenceStore` 位于当前包内，是类型，用于承载 `Rbac3 Authorization Fence Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -144,7 +145,7 @@ public class Rbac3AuthorizationFenceStore implements AuthorizationFenceService.F
                 """ + userPredicate, Long.class)
                 .setParameter("tenantId", Long.valueOf(required(tenantId)))
                 .setParameter("status",
-                        top.egon.cola.platform.rbac3.admin.session.domain.SessionEntity.Status.ACTIVE);
+                        top.egon.cola.platform.rbac3.admin.session.domain.enums.SessionStatusEnum.ACTIVE);
         if (userId != null) {
             query.setParameter("userId", userId);
         }

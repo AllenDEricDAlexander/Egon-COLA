@@ -3,10 +3,11 @@ package top.egon.cola.platform.rbac3.admin.interfaces.http;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
-import top.egon.cola.platform.rbac3.admin.session.application.SessionFacade;
+import top.egon.cola.platform.rbac3.admin.session.service.SessionFacade;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import top.egon.cola.platform.rbac3.admin.auth.controller.AuthController;
 
 class AuthControllerTransportContractTest {
 

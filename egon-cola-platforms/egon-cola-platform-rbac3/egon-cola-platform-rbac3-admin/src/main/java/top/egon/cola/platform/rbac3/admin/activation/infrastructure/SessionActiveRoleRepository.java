@@ -11,8 +11,8 @@ import top.egon.cola.platform.rbac3.admin.activation.domain.SessionActiveRoleEnt
 import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.AuthorizationMutationEntity;
-import top.egon.cola.platform.rbac3.admin.session.domain.SessionEntity;
-import top.egon.cola.platform.rbac3.admin.session.infrastructure.SessionRepository;
+import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
+import top.egon.cola.platform.rbac3.admin.session.repository.jpa.JpaSessionEntityRepository;
 import top.egon.cola.platform.rbac3.core.activation.RoleActivationCandidateResolver;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
@@ -37,13 +37,13 @@ public class SessionActiveRoleRepository
         ActiveRoleSetRevalidator.ReselectionStore {
 
     /**
-     * 字段 `sessionRepository` 表示 `SessionActiveRoleRepository` 中与 `session Repository` 相关的状态、依赖、配置或结果（声明类型 `SessionRepository`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `sessionRepository` stores the `session Repository`-related state, dependency, configuration, or result of `SessionActiveRoleRepository` (declared type `SessionRepository`); its lifecycle and value semantics are defined by its declared type and owning object.
+     * 字段 `sessionRepository` 表示 `SessionActiveRoleRepository` 中与 `session Repository` 相关的状态、依赖、配置或结果（声明类型 `JpaSessionEntityRepository`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `sessionRepository` stores the `session Repository`-related state, dependency, configuration, or result of `SessionActiveRoleRepository` (declared type `JpaSessionEntityRepository`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
      * 含义与用法：读取、传递或更新 `sessionRepository` 时应保持 `SessionActiveRoleRepository` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `sessionRepository`, preserve `SessionActiveRoleRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final SessionRepository sessionRepository;
+    private final JpaSessionEntityRepository sessionRepository;
     /**
      * 字段 `entityManager` 表示 `SessionActiveRoleRepository` 中与 `entity Manager` 相关的状态、依赖、配置或结果（声明类型 `EntityManager`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `entityManager` stores the `entity Manager`-related state, dependency, configuration, or result of `SessionActiveRoleRepository` (declared type `EntityManager`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -91,7 +91,7 @@ public class SessionActiveRoleRepository
      * @param eventPort 输入参数 `eventPort`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public SessionActiveRoleRepository(
-            SessionRepository sessionRepository,
+            JpaSessionEntityRepository sessionRepository,
             EntityManager entityManager,
             LongIdGenerator idGenerator,
             AuditPort auditPort,
@@ -124,7 +124,7 @@ public class SessionActiveRoleRepository
             Function<RoleActivationFacade.SessionState,
                     RoleActivationFacade.ResolvedActivation> resolutionFactory
     ) {
-        SessionEntity session = locked(command.tenantId(), command.identitySub(),
+        SessionPO session = locked(command.tenantId(), command.identitySub(),
                 command.userId(), command.sessionId(), now);
         if (session.getContextVersion() != command.expectedContextVersion()) {
             throw new Rbac3RuleViolation("ROLE_ACTIVATION_VERSION_CONFLICT");
@@ -241,7 +241,7 @@ public class SessionActiveRoleRepository
             String sessionId,
             Instant now
     ) {
-        SessionEntity session = sessionRepository.findByTenantIdAndSessionId(
+        SessionPO session = sessionRepository.findByTenantIdAndSessionId(
                         Long.valueOf(tenantId), Long.valueOf(sessionId))
                 .orElseThrow(() -> new Rbac3RuleViolation("RESOURCE_NOT_FOUND"));
         if (!session.getIdentitySub().equals(identitySub)
@@ -277,7 +277,7 @@ public class SessionActiveRoleRepository
             boolean changed,
             String mutationId,
             Map<String, Set<String>> roots,
-            SessionEntity session
+            SessionPO session
     ) {
         return new RoleActivationFacade.TransactionResult(
                 resolved, changed, mutationId, immutable(roots),
@@ -364,7 +364,7 @@ public class SessionActiveRoleRepository
             Instant now,
             String actorId
     ) {
-        SessionEntity session = sessionRepository.lockByTenantIdAndSessionId(
+        SessionPO session = sessionRepository.lockByTenantIdAndSessionId(
                         Long.valueOf(tenantId), Long.valueOf(sessionId))
                 .orElseThrow(() -> new Rbac3RuleViolation("RESOURCE_NOT_FOUND"));
         if (session.getSessionVersion() != expectedSessionVersion) {
@@ -410,14 +410,14 @@ public class SessionActiveRoleRepository
      * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private SessionEntity locked(
+    private SessionPO locked(
             String tenantId,
             String identitySub,
             String userId,
             String sessionId,
             Instant now
     ) {
-        SessionEntity session = sessionRepository.lockByTenantIdAndSessionId(
+        SessionPO session = sessionRepository.lockByTenantIdAndSessionId(
                         Long.valueOf(tenantId), Long.valueOf(sessionId))
                 .orElseThrow(() -> new Rbac3RuleViolation("RESOURCE_NOT_FOUND"));
         if (!session.getIdentitySub().equals(identitySub)

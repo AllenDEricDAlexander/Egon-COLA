@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import top.egon.cola.platform.rbac3.admin.auth.controller.AuthController;
 
 class Rbac3LegacyAuthenticationRemovedIT {
 

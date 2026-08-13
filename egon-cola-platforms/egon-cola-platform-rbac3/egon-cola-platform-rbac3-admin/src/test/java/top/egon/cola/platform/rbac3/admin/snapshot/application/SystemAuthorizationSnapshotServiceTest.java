@@ -2,7 +2,7 @@ package top.egon.cola.platform.rbac3.admin.snapshot.application;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.session.application.AuthorizationContextFacade;
+import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFacade;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import top.egon.cola.platform.rbac3.admin.session.domain.vo.AuthorizationContextVO;
 
 class SystemAuthorizationSnapshotServiceTest {
 
@@ -24,8 +25,8 @@ class SystemAuthorizationSnapshotServiceTest {
 
     @Test
     void snapshotContainsOnlyTheRequestedSystemAndIdentityBinding() {
-        AuthorizationContextFacade.AuthorizationContext context =
-                new AuthorizationContextFacade.AuthorizationContext(
+        AuthorizationContextVO context =
+                new AuthorizationContextVO(
                         "9001", "1", "5001", "alice-sub", "101",
                         7, 3, 11, false, "ACTIVE", NOW.minusSeconds(10),
                         NOW.plusSeconds(3600));
@@ -46,8 +47,8 @@ class SystemAuthorizationSnapshotServiceTest {
 
     @Test
     void snapshotRejectsAStoredIdentityFromAnotherIdpSubject() {
-        AuthorizationContextFacade.AuthorizationContext context =
-                new AuthorizationContextFacade.AuthorizationContext(
+        AuthorizationContextVO context =
+                new AuthorizationContextVO(
                         "9001", "1", "5001", "alice-sub", "101",
                         7, 3, 11, false, "ACTIVE", NOW.minusSeconds(10),
                         NOW.plusSeconds(3600));
@@ -65,8 +66,8 @@ class SystemAuthorizationSnapshotServiceTest {
 
     @Test
     void unactivatedContextCanOnlyUseRbac3RoleActivationEndpoints() {
-        AuthorizationContextFacade.AuthorizationContext context =
-                new AuthorizationContextFacade.AuthorizationContext(
+        AuthorizationContextVO context =
+                new AuthorizationContextVO(
                         "9001", "1", "5001", "alice-sub", "101",
                         7, 0, 11, true, "ACTIVE", NOW.minusSeconds(10),
                         NOW.plusSeconds(3600));
@@ -87,13 +88,13 @@ class SystemAuthorizationSnapshotServiceTest {
 
     @Test
     void developmentInitializerReopensTheActivatedContextBeforeLoadingPermissions() {
-        AuthorizationContextFacade.AuthorizationContext unactivated =
-                new AuthorizationContextFacade.AuthorizationContext(
+        AuthorizationContextVO unactivated =
+                new AuthorizationContextVO(
                         "9001", "1", "5001", "alice-sub", "101",
                         7, 0, 11, true, "ACTIVE", NOW.minusSeconds(10),
                         NOW.plusSeconds(3600));
-        AuthorizationContextFacade.AuthorizationContext activated =
-                new AuthorizationContextFacade.AuthorizationContext(
+        AuthorizationContextVO activated =
+                new AuthorizationContextVO(
                         "9001", "1", "5001", "alice-sub", "101",
                         7, 1, 11, false, "ACTIVE", NOW.minusSeconds(10),
                         NOW.plusSeconds(3600));
@@ -115,9 +116,9 @@ class SystemAuthorizationSnapshotServiceTest {
 
     @Test
     void completedDevelopmentInitializationWaitsForItsSnapshotPublication() {
-        AuthorizationContextFacade.AuthorizationContext unactivated =
+        AuthorizationContextVO unactivated =
                 context(0, true);
-        AuthorizationContextFacade.AuthorizationContext activated =
+        AuthorizationContextVO activated =
                 context(1, false);
         AtomicInteger openings = new AtomicInteger();
         AtomicInteger snapshotReads = new AtomicInteger();
@@ -147,13 +148,13 @@ class SystemAuthorizationSnapshotServiceTest {
 
     @Test
     void concurrentDevelopmentInitializationWaitsForTheWinningSnapshotPublication() {
-        AuthorizationContextFacade.AuthorizationContext unactivated =
-                new AuthorizationContextFacade.AuthorizationContext(
+        AuthorizationContextVO unactivated =
+                new AuthorizationContextVO(
                         "9001", "1", "5001", "alice-sub", "101",
                         7, 0, 11, true, "ACTIVE", NOW.minusSeconds(10),
                         NOW.plusSeconds(3600));
-        AuthorizationContextFacade.AuthorizationContext activated =
-                new AuthorizationContextFacade.AuthorizationContext(
+        AuthorizationContextVO activated =
+                new AuthorizationContextVO(
                         "9001", "1", "5001", "alice-sub", "101",
                         7, 1, 11, false, "ACTIVE", NOW.minusSeconds(10),
                         NOW.plusSeconds(3600));
@@ -187,9 +188,9 @@ class SystemAuthorizationSnapshotServiceTest {
 
     @Test
     void concurrentDevelopmentInitializationFailsClosedWhenSnapshotStaysStale() {
-        AuthorizationContextFacade.AuthorizationContext unactivated =
+        AuthorizationContextVO unactivated =
                 context(0, true);
-        AuthorizationContextFacade.AuthorizationContext activated =
+        AuthorizationContextVO activated =
                 context(1, false);
         AtomicInteger openings = new AtomicInteger();
         AtomicInteger snapshotReads = new AtomicInteger();
@@ -243,10 +244,10 @@ class SystemAuthorizationSnapshotServiceTest {
         assertThat(pauses).hasValue(0);
     }
 
-    private AuthorizationContextFacade.AuthorizationContext context(
+    private AuthorizationContextVO context(
             long contextVersion,
             boolean activationRequired) {
-        return new AuthorizationContextFacade.AuthorizationContext(
+        return new AuthorizationContextVO(
                 "9001", "1", "5001", "alice-sub", "101",
                 7, contextVersion, 11, activationRequired, "ACTIVE",
                 NOW.minusSeconds(10), NOW.plusSeconds(3600));

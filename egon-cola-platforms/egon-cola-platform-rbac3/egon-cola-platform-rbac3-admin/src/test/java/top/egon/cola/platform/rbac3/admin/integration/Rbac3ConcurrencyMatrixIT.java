@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.integration;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.session.application.RefreshTokenService;
+import top.egon.cola.platform.rbac3.admin.session.service.RefreshTokenService;
 import top.egon.cola.platform.rbac3.core.activation.AuthorizationRuleFacts;
 import top.egon.cola.platform.rbac3.core.activation.DefaultRoleActivationResolver;
 import top.egon.cola.platform.rbac3.core.activation.EligibleAssignmentFact;
@@ -18,6 +18,10 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import top.egon.cola.platform.rbac3.admin.session.repository.RefreshTokenRepository;
+import top.egon.cola.platform.rbac3.admin.session.domain.vo.TokenRecordVO;
+import top.egon.cola.platform.rbac3.admin.session.domain.enums.RefreshTokenOutcomeEnum;
+import top.egon.cola.platform.rbac3.admin.session.domain.enums.RefreshTokenFamilyStatusEnum;
 
 class Rbac3ConcurrencyMatrixIT {
 
@@ -51,7 +55,7 @@ class Rbac3ConcurrencyMatrixIT {
         InMemoryRefreshStore store = new InMemoryRefreshStore();
         String raw = "refresh-token";
         store.tokens.put(RefreshTokenService.hash(raw),
-                RefreshTokenService.TokenRecord.active(
+                TokenRecordVO.active(
                         "token", "tenant", "session", "family", 0,
                         RefreshTokenService.hash(raw), NOW.plusSeconds(3600)));
         RefreshTokenService service = new RefreshTokenService(store);
@@ -59,13 +63,13 @@ class Rbac3ConcurrencyMatrixIT {
         try (var executor = Executors.newFixedThreadPool(2)) {
             var left = executor.submit(() -> service.rotate(raw, NOW).outcome());
             var right = executor.submit(() -> service.rotate(raw, NOW).outcome());
-            List<RefreshTokenService.Outcome> outcomes = List.of(left.get(), right.get());
+            List<RefreshTokenOutcomeEnum> outcomes = List.of(left.get(), right.get());
             assertEquals(1, outcomes.stream()
-                    .filter(RefreshTokenService.Outcome.ROTATED::equals).count());
+                    .filter(RefreshTokenOutcomeEnum.ROTATED::equals).count());
             assertEquals(1, outcomes.stream()
-                    .filter(RefreshTokenService.Outcome.REPLAY_DETECTED::equals).count());
+                    .filter(RefreshTokenOutcomeEnum.REPLAY_DETECTED::equals).count());
         }
-        assertEquals(RefreshTokenService.FamilyStatus.COMPROMISED,
+        assertEquals(RefreshTokenFamilyStatusEnum.COMPROMISED,
                 store.families.get("family"));
     }
 
@@ -93,30 +97,30 @@ class Rbac3ConcurrencyMatrixIT {
     }
 
     private static final class InMemoryRefreshStore
-            implements RefreshTokenService.RefreshTokenStore {
-        private final Map<String, RefreshTokenService.TokenRecord> tokens =
+            implements RefreshTokenRepository {
+        private final Map<String, TokenRecordVO> tokens =
                 new HashMap<>();
-        private final Map<String, RefreshTokenService.FamilyStatus> families =
+        private final Map<String, RefreshTokenFamilyStatusEnum> families =
                 new HashMap<>();
 
         @Override
         public synchronized <T> T withLockedToken(
                 String tokenHash,
-                java.util.function.Function<RefreshTokenService.TokenRecord, T> action) {
+                java.util.function.Function<TokenRecordVO, T> action) {
             return action.apply(tokens.get(tokenHash));
         }
 
         @Override
         public synchronized void rotate(
-                RefreshTokenService.TokenRecord oldToken,
-                RefreshTokenService.TokenRecord newToken) {
+                TokenRecordVO oldToken,
+                TokenRecordVO newToken) {
             tokens.put(oldToken.tokenHash(), oldToken);
             tokens.put(newToken.tokenHash(), newToken);
         }
 
         @Override
         public synchronized void compromiseFamily(String familyId, Instant detectedAt) {
-            families.put(familyId, RefreshTokenService.FamilyStatus.COMPROMISED);
+            families.put(familyId, RefreshTokenFamilyStatusEnum.COMPROMISED);
         }
     }
 }

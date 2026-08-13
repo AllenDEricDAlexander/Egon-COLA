@@ -5,7 +5,7 @@ import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.auth.application.PasswordIdentityAuthenticator;
+import top.egon.cola.platform.rbac3.admin.auth.service.PasswordIdentityAuthenticator;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.ExternalIdentityPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserCredentialPO;
@@ -18,7 +18,7 @@ import java.util.function.Function;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.enums.TenantStatusEnum;
 import top.egon.cola.platform.rbac3.admin.identity.domain.enums.UserCredentialStatusEnum;
 import top.egon.cola.platform.rbac3.admin.identity.domain.enums.UserStatusEnum;
-import top.egon.cola.platform.rbac3.admin.auth.application.PasswordIdentityAuthenticator.PasswordCredential;
+import top.egon.cola.platform.rbac3.admin.auth.domain.vo.PasswordCredentialVO;
 
 /**
      * 类型 `CredentialRow` 位于 `IdentityRepositories` 内，是记录类型，用于承载 `Credential Row` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -67,12 +67,12 @@ import top.egon.cola.platform.rbac3.admin.auth.application.PasswordIdentityAuthe
          *
          * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
          */
-        PasswordCredential toPasswordCredential() {
+        PasswordCredentialVO toPasswordCredential() {
             boolean active = tenant.getStatus() == TenantStatusEnum.ACTIVE
                     && user.getStatus() == UserStatusEnum.ACTIVE
                     && credential.getStatus() != UserCredentialStatusEnum.DISABLED
                     && credential.getStatus() != UserCredentialStatusEnum.EXPIRED;
-            return new PasswordCredential(
+            return new PasswordCredentialVO(
                     tenant.getCode(),
                     user.getNormalizedUsername(),
                     user.getId().toString(),

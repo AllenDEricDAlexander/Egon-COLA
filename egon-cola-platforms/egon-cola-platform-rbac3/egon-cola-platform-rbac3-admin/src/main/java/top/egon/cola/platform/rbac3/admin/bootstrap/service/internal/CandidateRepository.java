@@ -2,7 +2,7 @@ package top.egon.cola.platform.rbac3.admin.bootstrap.service.internal;
 
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.session.application.AuthorizationContextFacade;
+import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFacade;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.contract.activation.RoleActivationCandidateView;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;

@@ -1,6 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.snapshot.application;
 
-import top.egon.cola.platform.rbac3.admin.session.application.SessionFacade;
+import top.egon.cola.platform.rbac3.admin.session.service.SessionFacade;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
 
@@ -12,6 +12,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import top.egon.cola.platform.rbac3.admin.session.domain.vo.SessionRecordVO;
 
 /**
  * 类型 `LoginRuntimeProjectionFactory` 位于当前包内，是类型，用于承载 `Login Runtime Projection Factory` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -53,7 +54,7 @@ public final class LoginRuntimeProjectionFactory {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     public SessionSnapshotProjector.Projection create(
-            SessionFacade.SessionRecord session,
+            SessionRecordVO session,
             Instant generatedAt) {
         return create(new RuntimeState(
                 session.tenantId(), session.userId(), session.sessionId(),

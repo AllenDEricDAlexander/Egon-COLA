@@ -12,7 +12,7 @@ import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefinitionContributor;
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
-import top.egon.cola.platform.rbac3.admin.session.application.SessionFacade;
+import top.egon.cola.platform.rbac3.admin.session.service.SessionFacade;
 import top.egon.cola.platform.rbac3.admin.directory.controller.DirectoryController;
 import top.egon.cola.platform.rbac3.admin.identity.controller.UserDirectoryController;
 import top.egon.cola.platform.rbac3.admin.tenant.controller.TenantController;
@@ -25,6 +25,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import top.egon.cola.platform.rbac3.admin.directory.service.DirectoryCommandService;
 import top.egon.cola.platform.rbac3.admin.directory.service.DirectoryQueryService;
+import top.egon.cola.platform.rbac3.admin.session.service.SessionManagementService;
+import top.egon.cola.platform.rbac3.admin.auth.controller.AuthController;
+import top.egon.cola.platform.rbac3.admin.session.controller.SessionController;
 
 @WebMvcTest(
         controllers = {
@@ -62,7 +65,7 @@ class Rbac3GatewayDefinitionDiscoveryTest {
     private DirectoryQueryService directoryQueryPort;
 
     @MockitoBean
-    private SessionController.SessionManagementPort sessionManagementPort;
+    private SessionManagementService sessionManagementPort;
 
     @Test
     void gatewayScannerDiscoversEveryTaskSevenControllerAndStableOperationPath() {

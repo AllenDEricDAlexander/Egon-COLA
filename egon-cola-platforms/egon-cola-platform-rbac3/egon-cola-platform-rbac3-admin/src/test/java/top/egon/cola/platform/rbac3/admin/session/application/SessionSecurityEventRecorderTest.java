@@ -8,6 +8,8 @@ import java.time.Instant;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import top.egon.cola.platform.rbac3.admin.session.domain.vo.TerminationVO;
+import top.egon.cola.platform.rbac3.admin.session.service.SessionSecurityEventRecorder;
 
 class SessionSecurityEventRecorderTest {
 
@@ -24,7 +26,7 @@ class SessionSecurityEventRecorderTest {
                 });
         Instant now = Instant.parse("2026-08-01T08:00:00Z");
 
-        recorder.record(new SessionSecurityEventRecorder.Termination(
+        recorder.record(new TerminationVO(
                 "10", "20", "30", 7, "COMPROMISED",
                 "REFRESH_TOKEN_REUSED", "refresh-replay", now));
 

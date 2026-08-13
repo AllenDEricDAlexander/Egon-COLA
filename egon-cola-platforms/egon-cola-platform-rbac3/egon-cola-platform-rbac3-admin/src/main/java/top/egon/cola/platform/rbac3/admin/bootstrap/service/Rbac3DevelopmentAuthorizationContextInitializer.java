@@ -2,7 +2,7 @@ package top.egon.cola.platform.rbac3.admin.bootstrap.service;
 
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.session.application.AuthorizationContextFacade;
+import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFacade;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.contract.activation.RoleActivationCandidateView;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.internal.CandidateRepository;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.internal.RoleActivator;
 import top.egon.cola.platform.rbac3.admin.bootstrap.domain.vo.ApplicationDefinitionVO;
+import top.egon.cola.platform.rbac3.admin.session.domain.vo.AuthorizationContextVO;
 
 /**
  * 类型 `Rbac3DevelopmentAuthorizationContextInitializer` 位于当前包内，是类型，用于承载 `Rbac3 Development Authorization Context Initializer` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -124,7 +125,7 @@ public final class Rbac3DevelopmentAuthorizationContextInitializer
      */
     @Override
     public SystemAuthorizationSnapshotService.ContextInitialization initialize(
-            AuthorizationContextFacade.AuthorizationContext context,
+            AuthorizationContextVO context,
             Instant now) {
         Objects.requireNonNull(context, "context");
         Objects.requireNonNull(now, "now");

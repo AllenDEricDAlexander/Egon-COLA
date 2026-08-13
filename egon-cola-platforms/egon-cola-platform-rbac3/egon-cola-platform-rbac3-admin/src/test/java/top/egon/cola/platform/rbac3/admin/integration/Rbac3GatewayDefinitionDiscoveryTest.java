@@ -8,7 +8,7 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.ApplicationResourceController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.AssignmentController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.AuditSimulationController;
-import top.egon.cola.platform.rbac3.admin.interfaces.http.AuthController;
+import top.egon.cola.platform.rbac3.admin.auth.controller.AuthController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.ConstraintController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.InternalAuthorizationController;
 import top.egon.cola.platform.rbac3.admin.identity.controller.InternalIdentityController;
@@ -18,7 +18,7 @@ import top.egon.cola.platform.rbac3.admin.interfaces.http.ParticipationControlle
 import top.egon.cola.platform.rbac3.admin.interfaces.http.RoleActivationController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.RolePermissionController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.RuntimeController;
-import top.egon.cola.platform.rbac3.admin.interfaces.http.SessionController;
+import top.egon.cola.platform.rbac3.admin.session.controller.SessionController;
 import top.egon.cola.platform.rbac3.admin.directory.controller.DirectoryController;
 import top.egon.cola.platform.rbac3.admin.identity.controller.UserDirectoryController;
 import top.egon.cola.platform.rbac3.admin.tenant.controller.TenantController;

@@ -2,7 +2,7 @@ package top.egon.cola.platform.rbac3.admin.infrastructure.persistence;
 
 import jakarta.persistence.Column;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.session.domain.SessionEntity;
+import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -119,7 +119,7 @@ class Rbac3MigrationContractTest {
     @Test
     void sessionEntityDoesNotReintroduceGlobalSessionIdUniqueness()
             throws NoSuchFieldException {
-        Column sessionId = SessionEntity.class
+        Column sessionId = SessionPO.class
                 .getDeclaredField("sessionId")
                 .getAnnotation(Column.class);
 

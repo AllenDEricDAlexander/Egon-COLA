@@ -4,8 +4,8 @@ import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.session.application.RefreshTokenService;
-import top.egon.cola.platform.rbac3.admin.session.application.SessionFacade;
+import top.egon.cola.platform.rbac3.admin.session.service.RefreshTokenService;
+import top.egon.cola.platform.rbac3.admin.session.service.SessionFacade;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -16,6 +16,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import top.egon.cola.platform.rbac3.admin.session.domain.vo.TokenRecordVO;
+import top.egon.cola.platform.rbac3.admin.session.repository.SessionRepository;
+import top.egon.cola.platform.rbac3.admin.session.domain.vo.SessionRecordVO;
+import top.egon.cola.platform.rbac3.admin.session.domain.enums.SessionLifecycleStatusEnum;
 
 class SessionFacadeTest {
 
@@ -31,7 +35,7 @@ class SessionFacadeTest {
 
         var result = facade.create("200", "100", 7, 9, "device-raw", now);
 
-        assertEquals(SessionFacade.SessionStatus.ACTIVE, result.session().status());
+        assertEquals(SessionLifecycleStatusEnum.ACTIVE, result.session().status());
         assertTrue(result.session().activationRequired());
         assertEquals(0, result.session().sessionVersion());
         assertEquals(7, result.session().authVersion());
@@ -69,15 +73,15 @@ class SessionFacadeTest {
         assertEquals(second.session(), store.sessions.get(1));
     }
 
-    private static final class CapturingStore implements SessionFacade.SessionStore {
-        private SessionFacade.SessionRecord session;
-        private RefreshTokenService.TokenRecord refreshToken;
-        private final List<SessionFacade.SessionRecord> sessions = new ArrayList<>();
+    private static final class CapturingStore implements SessionRepository {
+        private SessionRecordVO session;
+        private TokenRecordVO refreshToken;
+        private final List<SessionRecordVO> sessions = new ArrayList<>();
 
         @Override
         public void create(
-                SessionFacade.SessionRecord session,
-                RefreshTokenService.TokenRecord refreshToken,
+                SessionRecordVO session,
+                TokenRecordVO refreshToken,
                 Instant now) {
             this.session = session;
             this.refreshToken = refreshToken;

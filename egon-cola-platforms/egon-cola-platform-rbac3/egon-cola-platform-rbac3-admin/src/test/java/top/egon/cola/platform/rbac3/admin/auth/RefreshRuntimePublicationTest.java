@@ -1,9 +1,9 @@
 package top.egon.cola.platform.rbac3.admin.auth;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.auth.application.JwtTokenService;
-import top.egon.cola.platform.rbac3.admin.auth.application.RefreshFacade;
-import top.egon.cola.platform.rbac3.admin.session.application.RefreshTokenService;
+import top.egon.cola.platform.rbac3.admin.auth.service.JwtTokenService;
+import top.egon.cola.platform.rbac3.admin.auth.service.RefreshFacade;
+import top.egon.cola.platform.rbac3.admin.session.service.RefreshTokenService;
 import top.egon.cola.platform.rbac3.contract.auth.Rbac3TokenClaims;
 
 import java.time.Instant;
@@ -14,6 +14,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import top.egon.cola.platform.rbac3.admin.auth.domain.vo.IssuedAccessTokenVO;
+import top.egon.cola.platform.rbac3.admin.auth.domain.vo.RefreshAuditVO;
+import top.egon.cola.platform.rbac3.admin.auth.domain.vo.RefreshStateVO;
+import top.egon.cola.platform.rbac3.admin.session.domain.vo.RotationResultVO;
+import top.egon.cola.platform.rbac3.admin.session.domain.enums.RefreshTokenOutcomeEnum;
 
 class RefreshRuntimePublicationTest {
 
@@ -24,17 +29,17 @@ class RefreshRuntimePublicationTest {
         RefreshTokenService refreshTokens = mock(RefreshTokenService.class);
         JwtTokenService accessTokens = mock(JwtTokenService.class);
         when(refreshTokens.rotate("opaque", NOW)).thenReturn(
-                new RefreshTokenService.RotationResult(
-                        RefreshTokenService.Outcome.ROTATED, "next", "family"));
+                new RotationResultVO(
+                        RefreshTokenOutcomeEnum.ROTATED, "next", "family"));
         when(accessTokens.issue(org.mockito.ArgumentMatchers.any(),
                         org.mockito.ArgumentMatchers.eq(NOW)))
-                .thenReturn(new JwtTokenService.IssuedAccessToken(
+                .thenReturn(new IssuedAccessTokenVO(
                         "access", NOW.plusSeconds(300), claims()));
-        RefreshFacade.RefreshState state = new RefreshFacade.RefreshState(
+        RefreshStateVO state = new RefreshStateVO(
                 "10", "20", "30", 4, 8, 6,
                 NOW.plusSeconds(7200), false, null);
         List<String> order = new ArrayList<>();
-        List<RefreshFacade.RefreshAudit> audits = new ArrayList<>();
+        List<RefreshAuditVO> audits = new ArrayList<>();
         RefreshFacade facade = new RefreshFacade(
                 refreshTokens,
                 familyId -> {
@@ -68,8 +73,8 @@ class RefreshRuntimePublicationTest {
     void commitsReplayCompromiseBeforeReturningTheStableRejection() {
         RefreshTokenService refreshTokens = mock(RefreshTokenService.class);
         when(refreshTokens.rotate("replayed", NOW)).thenReturn(
-                new RefreshTokenService.RotationResult(
-                        RefreshTokenService.Outcome.REPLAY_DETECTED, null, "family"));
+                new RotationResultVO(
+                        RefreshTokenOutcomeEnum.REPLAY_DETECTED, null, "family"));
         List<String> order = new ArrayList<>();
         RefreshFacade facade = new RefreshFacade(
                 refreshTokens,

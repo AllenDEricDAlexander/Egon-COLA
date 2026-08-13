@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.session;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.session.application.RefreshTokenService;
+import top.egon.cola.platform.rbac3.admin.session.service.RefreshTokenService;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -9,6 +9,10 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import top.egon.cola.platform.rbac3.admin.session.repository.RefreshTokenRepository;
+import top.egon.cola.platform.rbac3.admin.session.domain.vo.TokenRecordVO;
+import top.egon.cola.platform.rbac3.admin.session.domain.enums.RefreshTokenOutcomeEnum;
+import top.egon.cola.platform.rbac3.admin.session.domain.enums.RefreshTokenFamilyStatusEnum;
 
 class RefreshTokenConcurrencyIT {
 
@@ -16,7 +20,7 @@ class RefreshTokenConcurrencyIT {
     void rotatesExactlyOnceAndCompromisesFamilyOnReplay() throws Exception {
         var store = new InMemoryTokenStore();
         String raw = "refresh-token-1";
-        store.add(RefreshTokenService.TokenRecord.active(
+        store.add(TokenRecordVO.active(
                 "token-1", "tenant", "session", "family", 0,
                 RefreshTokenService.hash(raw), Instant.parse("2026-08-01T00:00:00Z")));
         RefreshTokenService service = new RefreshTokenService(store);
@@ -27,42 +31,42 @@ class RefreshTokenConcurrencyIT {
             var second = executor.submit(() -> service.rotate(raw, now));
             var results = java.util.List.of(first.get().outcome(), second.get().outcome());
             assertEquals(1, results.stream()
-                    .filter(value -> value == RefreshTokenService.Outcome.ROTATED).count());
+                    .filter(value -> value == RefreshTokenOutcomeEnum.ROTATED).count());
             assertEquals(1, results.stream()
-                    .filter(value -> value == RefreshTokenService.Outcome.REPLAY_DETECTED).count());
+                    .filter(value -> value == RefreshTokenOutcomeEnum.REPLAY_DETECTED).count());
         }
-        assertEquals(RefreshTokenService.FamilyStatus.COMPROMISED,
+        assertEquals(RefreshTokenFamilyStatusEnum.COMPROMISED,
                 store.familyStatus.get("family"));
     }
 
     private static final class InMemoryTokenStore
-            implements RefreshTokenService.RefreshTokenStore {
-        private final Map<String, RefreshTokenService.TokenRecord> tokens = new HashMap<>();
-        private final Map<String, RefreshTokenService.FamilyStatus> familyStatus =
+            implements RefreshTokenRepository {
+        private final Map<String, TokenRecordVO> tokens = new HashMap<>();
+        private final Map<String, RefreshTokenFamilyStatusEnum> familyStatus =
                 new HashMap<>();
 
-        void add(RefreshTokenService.TokenRecord token) {
+        void add(TokenRecordVO token) {
             tokens.put(token.tokenHash(), token);
         }
 
         @Override
         public synchronized <T> T withLockedToken(
                 String tokenHash,
-                java.util.function.Function<RefreshTokenService.TokenRecord, T> action) {
+                java.util.function.Function<TokenRecordVO, T> action) {
             return action.apply(tokens.get(tokenHash));
         }
 
         @Override
         public synchronized void rotate(
-                RefreshTokenService.TokenRecord oldToken,
-                RefreshTokenService.TokenRecord newToken) {
+                TokenRecordVO oldToken,
+                TokenRecordVO newToken) {
             tokens.put(oldToken.tokenHash(), oldToken);
             tokens.put(newToken.tokenHash(), newToken);
         }
 
         @Override
         public synchronized void compromiseFamily(String familyId, Instant detectedAt) {
-            familyStatus.put(familyId, RefreshTokenService.FamilyStatus.COMPROMISED);
+            familyStatus.put(familyId, RefreshTokenFamilyStatusEnum.COMPROMISED);
         }
     }
 }

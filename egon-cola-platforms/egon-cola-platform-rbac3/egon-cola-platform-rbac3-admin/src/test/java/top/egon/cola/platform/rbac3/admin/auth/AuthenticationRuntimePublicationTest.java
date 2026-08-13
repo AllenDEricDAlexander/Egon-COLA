@@ -1,10 +1,10 @@
 package top.egon.cola.platform.rbac3.admin.auth;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.auth.application.AuthenticationFacade;
-import top.egon.cola.platform.rbac3.admin.auth.application.IdentityAuthenticatorStrategy;
-import top.egon.cola.platform.rbac3.admin.auth.application.JwtTokenService;
-import top.egon.cola.platform.rbac3.admin.session.application.SessionFacade;
+import top.egon.cola.platform.rbac3.admin.auth.service.AuthenticationFacade;
+import top.egon.cola.platform.rbac3.admin.auth.service.IdentityAuthenticatorStrategy;
+import top.egon.cola.platform.rbac3.admin.auth.service.JwtTokenService;
+import top.egon.cola.platform.rbac3.admin.session.service.SessionFacade;
 import top.egon.cola.platform.rbac3.contract.auth.LoginRequest;
 import top.egon.cola.platform.rbac3.contract.auth.Rbac3TokenClaims;
 
@@ -16,6 +16,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import top.egon.cola.platform.rbac3.admin.auth.repository.LoginStateRepository;
+import top.egon.cola.platform.rbac3.admin.auth.repository.LoginRuntimePublisher;
+import top.egon.cola.platform.rbac3.admin.auth.repository.LoginAuditRecorder;
+import top.egon.cola.platform.rbac3.admin.auth.domain.vo.LoginAuditVO;
+import top.egon.cola.platform.rbac3.admin.auth.domain.vo.LoginStateVO;
+import top.egon.cola.platform.rbac3.admin.auth.domain.vo.AuthenticatedIdentityVO;
+import top.egon.cola.platform.rbac3.admin.auth.domain.vo.IssuedAccessTokenVO;
+import top.egon.cola.platform.rbac3.admin.session.domain.vo.SessionRecordVO;
+import top.egon.cola.platform.rbac3.admin.session.domain.vo.IssuedSessionVO;
+import top.egon.cola.platform.rbac3.admin.session.domain.enums.SessionLifecycleStatusEnum;
 
 class AuthenticationRuntimePublicationTest {
 
@@ -25,13 +35,13 @@ class AuthenticationRuntimePublicationTest {
     void publishesTheEmptyActivationRuntimeBeforeReturningLogin() {
         SessionFacade sessions = mock(SessionFacade.class);
         JwtTokenService tokens = mock(JwtTokenService.class);
-        SessionFacade.IssuedSession issued = issuedSession();
+        IssuedSessionVO issued = issuedSession();
         when(sessions.create("10", "20", 3, 4, "device", NOW)).thenReturn(issued);
         when(tokens.issue(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(NOW)))
-                .thenReturn(new JwtTokenService.IssuedAccessToken(
+                .thenReturn(new IssuedAccessTokenVO(
                         "access", NOW.plusSeconds(300), claims()));
-        AtomicReference<SessionFacade.SessionRecord> published = new AtomicReference<>();
-        AtomicReference<AuthenticationFacade.LoginAudit> audit = new AtomicReference<>();
+        AtomicReference<SessionRecordVO> published = new AtomicReference<>();
+        AtomicReference<LoginAuditVO> audit = new AtomicReference<>();
         AuthenticationFacade facade = facade(
                 sessions, tokens, (session, generatedAt) -> published.set(session), audit::set);
 
@@ -49,10 +59,10 @@ class AuthenticationRuntimePublicationTest {
     void revokesTheDatabaseSessionWhenInitialRuntimePublicationFails() {
         SessionFacade sessions = mock(SessionFacade.class);
         JwtTokenService tokens = mock(JwtTokenService.class);
-        SessionFacade.IssuedSession issued = issuedSession();
+        IssuedSessionVO issued = issuedSession();
         when(sessions.create("10", "20", 3, 4, "device", NOW)).thenReturn(issued);
         when(tokens.issue(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.eq(NOW)))
-                .thenReturn(new JwtTokenService.IssuedAccessToken(
+                .thenReturn(new IssuedAccessTokenVO(
                         "access", NOW.plusSeconds(300), claims()));
         AuthenticationFacade facade = facade(
                 sessions, tokens,
@@ -71,21 +81,21 @@ class AuthenticationRuntimePublicationTest {
     private AuthenticationFacade facade(
             SessionFacade sessions,
             JwtTokenService tokens,
-            AuthenticationFacade.LoginRuntimePublisher publisher,
-            AuthenticationFacade.LoginAuditRecorder auditRecorder) {
+            LoginRuntimePublisher publisher,
+            LoginAuditRecorder auditRecorder) {
         IdentityAuthenticatorStrategy authenticator = (request, now) ->
-                new IdentityAuthenticatorStrategy.AuthenticatedIdentity(
+                new AuthenticatedIdentityVO(
                         "10", "20", "PASSWORD", 1);
-        AuthenticationFacade.LoginStateSource state = (tenantId, userId, now) ->
-                new AuthenticationFacade.LoginState("10", 3, 4, 2);
+        LoginStateRepository state = (tenantId, userId, now) ->
+                new LoginStateVO("10", 3, 4, 2);
         return new AuthenticationFacade(
                 authenticator, state, sessions, tokens, publisher, auditRecorder);
     }
 
-    private SessionFacade.IssuedSession issuedSession() {
-        return new SessionFacade.IssuedSession(
-                new SessionFacade.SessionRecord(
-                        "29", "10", "20", "30", SessionFacade.SessionStatus.ACTIVE,
+    private IssuedSessionVO issuedSession() {
+        return new IssuedSessionVO(
+                new SessionRecordVO(
+                        "29", "10", "20", "30", SessionLifecycleStatusEnum.ACTIVE,
                         0, 3, 4, true, "family", "device-hash", NOW,
                         NOW.plusSeconds(600), NOW.plusSeconds(3600)),
                 "refresh", NOW.plusSeconds(7200));

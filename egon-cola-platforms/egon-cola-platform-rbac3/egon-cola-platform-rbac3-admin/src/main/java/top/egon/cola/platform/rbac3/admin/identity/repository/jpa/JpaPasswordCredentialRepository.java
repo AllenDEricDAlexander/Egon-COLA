@@ -4,7 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.rbac3.admin.auth.application.PasswordIdentityAuthenticator;
+import top.egon.cola.platform.rbac3.admin.auth.service.PasswordIdentityAuthenticator;
 import top.egon.cola.platform.rbac3.admin.identity.domain.enums.ExternalIdentityStatusEnum;
 import top.egon.cola.platform.rbac3.admin.identity.domain.enums.UserCredentialTypeEnum;
 import top.egon.cola.platform.rbac3.admin.identity.domain.enums.UserStatusEnum;
@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
+import top.egon.cola.platform.rbac3.admin.auth.repository.CredentialRepository;
+import top.egon.cola.platform.rbac3.admin.auth.domain.vo.PasswordCredentialVO;
 
 /**
  * 基于 JPA 的密码凭据仓储；凭据读取继续使用悲观写锁。
@@ -30,7 +32,7 @@ import java.util.function.Function;
  */
 @Repository
 public class JpaPasswordCredentialRepository
-        implements PasswordIdentityAuthenticator.CredentialStore {
+        implements CredentialRepository {
     private final EntityManager entityManager;
     private final DatabaseClock databaseClock;
 
@@ -57,7 +59,7 @@ public class JpaPasswordCredentialRepository
     public <T> T withCredential(
             String tenantCode,
             String normalizedUsername,
-            Function<PasswordIdentityAuthenticator.PasswordCredential, T> action) {
+            Function<PasswordCredentialVO, T> action) {
         Objects.requireNonNull(action, "action");
         CredentialRow row = findCredential(tenantCode, normalizedUsername, LockModeType.PESSIMISTIC_WRITE)
                 .orElse(null);
@@ -75,7 +77,7 @@ public class JpaPasswordCredentialRepository
      */
     @Override
     @Transactional
-    public void save(PasswordIdentityAuthenticator.PasswordCredential credential) {
+    public void save(PasswordCredentialVO credential) {
         CredentialRow row = findCredential(
                 credential.tenantCode(),
                 credential.normalizedUsername(),
@@ -106,7 +108,7 @@ public class JpaPasswordCredentialRepository
     @Override
     @Transactional
     public void updatePasswordHash(
-            PasswordIdentityAuthenticator.PasswordCredential credential,
+            PasswordCredentialVO credential,
             String passwordHash,
             java.time.Instant changedAt) {
         CredentialRow row = findCredential(

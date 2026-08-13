@@ -6,8 +6,8 @@ import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationF
 import top.egon.cola.platform.rbac3.admin.activation.infrastructure.SessionActiveRoleRepository;
 import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
-import top.egon.cola.platform.rbac3.admin.session.domain.SessionEntity;
-import top.egon.cola.platform.rbac3.admin.session.infrastructure.SessionRepository;
+import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
+import top.egon.cola.platform.rbac3.admin.session.repository.jpa.JpaSessionEntityRepository;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;
@@ -17,6 +17,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import top.egon.cola.platform.rbac3.admin.session.domain.enums.AuthenticationStrengthEnum;
 
 class SessionActiveRoleRepositoryTest {
 
@@ -24,7 +25,7 @@ class SessionActiveRoleRepositoryTest {
 
     @Test
     void staleReplacementUsesThePublicRoleActivationConflictCode() {
-        SessionRepository sessions = mock(SessionRepository.class);
+        JpaSessionEntityRepository sessions = mock(JpaSessionEntityRepository.class);
         when(sessions.lockByTenantIdAndSessionId(2L, 4L))
                 .thenReturn(Optional.of(session()));
         SessionActiveRoleRepository repository = new SessionActiveRoleRepository(
@@ -41,10 +42,10 @@ class SessionActiveRoleRepositoryTest {
                 .hasMessageContaining("ROLE_ACTIVATION_VERSION_CONFLICT");
     }
 
-    private SessionEntity session() {
-        return new SessionEntity(
+    private SessionPO session() {
+        return new SessionPO(
                 1L, 2L, 3L, 4L, 0L, 0L, "family", "device",
-                SessionEntity.AuthenticationStrength.PASSWORD,
+                AuthenticationStrengthEnum.PASSWORD,
                 NOW.minusSeconds(60), NOW.plusSeconds(1_800),
                 NOW.plusSeconds(3_600), "3");
     }

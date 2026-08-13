@@ -9,11 +9,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import top.egon.cola.platform.rbac3.contract.error.Rbac3ErrorCode;
 import top.egon.cola.platform.rbac3.contract.error.Rbac3ErrorResponse;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
-import top.egon.cola.platform.rbac3.admin.auth.application.PasswordIdentityAuthenticator;
+import top.egon.cola.platform.rbac3.admin.auth.service.PasswordIdentityAuthenticator;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import top.egon.cola.platform.rbac3.admin.auth.domain.exception.AuthenticationFailedException;
 
 /**
  * 类型 `Rbac3ApiExceptionHandler` 位于当前包内，是类型，用于承载 `Rbac3 Api Exception Handler` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -36,9 +37,9 @@ public class Rbac3ApiExceptionHandler {
      * @param request 输入参数 `request`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    @ExceptionHandler(PasswordIdentityAuthenticator.AuthenticationFailed.class)
+    @ExceptionHandler(AuthenticationFailedException.class)
     public ResponseEntity<Rbac3ErrorResponse> handleAuthenticationFailure(
-            PasswordIdentityAuthenticator.AuthenticationFailed error,
+            AuthenticationFailedException error,
             HttpServletRequest request) {
         return response(
                 Rbac3ErrorCode.AUTHENTICATION_FAILED,

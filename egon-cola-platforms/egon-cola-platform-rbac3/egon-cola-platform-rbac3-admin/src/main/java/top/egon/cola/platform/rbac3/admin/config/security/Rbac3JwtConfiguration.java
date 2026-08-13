@@ -19,7 +19,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
-import top.egon.cola.platform.rbac3.admin.auth.application.JwtKeyRingService;
+import top.egon.cola.platform.rbac3.admin.auth.service.JwtKeyRingService;
 import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3SecurityProperties;
 import top.egon.cola.platform.rbac3.admin.snapshot.infrastructure.RedisAuthorizationRuntimeStore;
 
@@ -32,6 +32,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import top.egon.cola.platform.rbac3.admin.config.security.Rbac3RsaKeyMaterial;
+import top.egon.cola.platform.rbac3.admin.auth.domain.vo.KeyDescriptorVO;
+import top.egon.cola.platform.rbac3.admin.auth.domain.enums.JwtKeyRingKeyStateEnum;
 
 /**
  * 类型 `Rbac3JwtConfiguration` 位于当前包内，是类型，用于承载 `Rbac3 Jwt Configuration` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -131,9 +133,9 @@ public class Rbac3JwtConfiguration {
             Rbac3SecurityProperties properties,
             Clock clock) {
         Map<String, Object> publicJwk = material.rsaKey().toPublicJWK().toJSONObject();
-        return new JwtKeyRingService(List.of(new JwtKeyRingService.KeyDescriptor(
+        return new JwtKeyRingService(List.of(new KeyDescriptorVO(
                 material.kid(), "RS256", publicJwk,
-                JwtKeyRingService.KeyState.SIGNING, clock.instant(), null)),
+                JwtKeyRingKeyStateEnum.SIGNING, clock.instant(), null)),
                 properties.requireVerificationKeyRetention());
     }
 

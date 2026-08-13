@@ -7,8 +7,8 @@ import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationF
 import top.egon.cola.platform.rbac3.admin.activation.infrastructure.RoleActivationFactStore;
 import top.egon.cola.platform.rbac3.admin.activation.infrastructure.SessionActiveRoleRepository;
 import top.egon.cola.platform.rbac3.admin.integration.outbox.Rbac3RuntimeProjectionDeliveryHandler;
-import top.egon.cola.platform.rbac3.admin.session.domain.SessionEntity;
-import top.egon.cola.platform.rbac3.admin.session.application.SessionRuntimeSynchronizer;
+import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
+import top.egon.cola.platform.rbac3.admin.session.service.SessionRuntimeSynchronizer;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.LoginRuntimeProjectionFactory;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
 import top.egon.cola.platform.rbac3.admin.snapshot.infrastructure.RedisAuthorizationRuntimeStore;
@@ -19,6 +19,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import top.egon.cola.platform.rbac3.admin.session.domain.enums.SessionStatusEnum;
 
 /**
  * 类型 `Rbac3RuntimeProjectionRecovery` 位于当前包内，是类型，用于承载 `Rbac3 Runtime Projection Recovery` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -171,7 +172,7 @@ public class Rbac3RuntimeProjectionRecovery implements
      */
     private void rebuildSessions(String tenantId, String scopeType, String scopeId) {
         Instant now = clock.instant();
-        for (SessionEntity session : sessions(tenantId, scopeType, scopeId)) {
+        for (SessionPO session : sessions(tenantId, scopeType, scopeId)) {
             synchronize(session, now);
         }
     }
@@ -195,12 +196,12 @@ public class Rbac3RuntimeProjectionRecovery implements
             String userId,
             String sessionId,
             Instant generatedAt) {
-        SessionEntity session = entityManager.createQuery("""
+        SessionPO session = entityManager.createQuery("""
                         select s from SessionEntity s
                          where s.tenantId = :tenantId
                            and s.userId = :userId
                            and s.sessionId = :sessionId
-                        """, SessionEntity.class)
+                        """, SessionPO.class)
                 .setParameter("tenantId", Long.valueOf(tenantId))
                 .setParameter("userId", Long.valueOf(userId))
                 .setParameter("sessionId", Long.valueOf(sessionId))
@@ -220,8 +221,8 @@ public class Rbac3RuntimeProjectionRecovery implements
      * @param session 输入参数 `session`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param generatedAt 输入参数 `generatedAt`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
-    private void synchronize(SessionEntity session, Instant generatedAt) {
-        if (session.getStatus() == SessionEntity.Status.ACTIVE
+    private void synchronize(SessionPO session, Instant generatedAt) {
+        if (session.getStatus() == SessionStatusEnum.ACTIVE
                 && session.getIdleExpiresAt().isAfter(generatedAt)
                 && session.getAbsoluteExpiresAt().isAfter(generatedAt)
                 && !session.isActivationRequired()) {
@@ -241,7 +242,7 @@ public class Rbac3RuntimeProjectionRecovery implements
      * @param session 输入参数 `session`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param generatedAt 输入参数 `generatedAt`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
-    private void publishMinimum(SessionEntity session, Instant generatedAt) {
+    private void publishMinimum(SessionPO session, Instant generatedAt) {
         var state = new LoginRuntimeProjectionFactory.RuntimeState(
                 session.getTenantId().toString(), session.getUserId().toString(),
                 session.getSessionId().toString(), runtimeStatus(session, generatedAt),
@@ -264,11 +265,11 @@ public class Rbac3RuntimeProjectionRecovery implements
      * @param generatedAt 输入参数 `generatedAt`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private String runtimeStatus(SessionEntity session, Instant generatedAt) {
-        if (session.getStatus() == SessionEntity.Status.ACTIVE
+    private String runtimeStatus(SessionPO session, Instant generatedAt) {
+        if (session.getStatus() == SessionStatusEnum.ACTIVE
                 && (!session.getIdleExpiresAt().isAfter(generatedAt)
                 || !session.getAbsoluteExpiresAt().isAfter(generatedAt))) {
-            return SessionEntity.Status.EXPIRED.name();
+            return SessionStatusEnum.EXPIRED.name();
         }
         return session.getStatus().name();
     }
@@ -283,7 +284,7 @@ public class Rbac3RuntimeProjectionRecovery implements
      * @param session 输入参数 `session`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
-    private void rebuild(SessionEntity session, Instant now) {
+    private void rebuild(SessionPO session, Instant now) {
         String tenantId = session.getTenantId().toString();
         String userId = session.getUserId().toString();
         String sessionId = session.getSessionId().toString();
@@ -327,7 +328,7 @@ public class Rbac3RuntimeProjectionRecovery implements
      * @param scopeId 输入参数 `scopeId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private List<SessionEntity> sessions(
+    private List<SessionPO> sessions(
             String tenantId,
             String scopeType,
             String scopeId) {
@@ -343,7 +344,7 @@ public class Rbac3RuntimeProjectionRecovery implements
             throw new IllegalArgumentException(
                     "unsupported authorization mutation scope: " + scopeType);
         }
-        var query = entityManager.createQuery(hql.toString(), SessionEntity.class)
+        var query = entityManager.createQuery(hql.toString(), SessionPO.class)
                 .setParameter("tenantId", Long.valueOf(tenantId));
         if (!"TENANT".equals(scopeType)) {
             query.setParameter("scopeId", Long.valueOf(scopeId));
