@@ -3,11 +3,12 @@ package top.egon.cola.platform.rbac3.admin.authorization.infrastructure;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.rbac3.admin.constraint.domain.OperationSodRuleEntity;
+import top.egon.cola.platform.rbac3.admin.constraint.domain.po.OperationSodRulePO;
 import top.egon.cola.platform.rbac3.admin.participation.application.ParticipationFacade;
 
 import java.time.Instant;
 import java.util.List;
+import top.egon.cola.platform.rbac3.admin.constraint.domain.enums.OperationSodRuleStatusEnum;
 
 /**
  * 类型 `AuthorizationRuleRepository` 位于当前包内，是类型，用于承载 `Authorization Rule Repository` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -78,7 +79,7 @@ public class AuthorizationRuleRepository
                 .setParameter("applicationCode", applicationCode)
                 .setParameter("businessResource", businessResource)
                 .setParameter("laterAction", laterAction)
-                .setParameter("status", OperationSodRuleEntity.Status.ACTIVE)
+                .setParameter("status", OperationSodRuleStatusEnum.ACTIVE)
                 .setParameter("at", at)
                 .getResultList().stream()
                 .map(row -> new ParticipationFacade.PriorActionRule(

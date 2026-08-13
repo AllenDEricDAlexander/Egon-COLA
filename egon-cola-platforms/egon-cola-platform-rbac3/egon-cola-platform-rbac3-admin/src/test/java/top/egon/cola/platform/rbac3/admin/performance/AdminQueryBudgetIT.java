@@ -2,7 +2,7 @@ package top.egon.cola.platform.rbac3.admin.performance;
 
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.audit.application.AuditQueryService;
 import top.egon.cola.platform.rbac3.core.activation.AuthorizationRuleFacts;
 import top.egon.cola.platform.rbac3.core.activation.EligibleAssignmentFact;
@@ -19,6 +19,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ActivationFactsVO;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ApplicationFactVO;
 
 class AdminQueryBudgetIT {
 
@@ -62,11 +64,11 @@ class AdminQueryBudgetIT {
                 .compareTo(Duration.ofSeconds(2)) < 0);
     }
 
-    private static RoleActivationCandidateService.ActivationFacts candidateFacts() {
+    private static ActivationFactsVO candidateFacts() {
         RoleNode root = new RoleNode(
                 "root", "application", "ROOT", true,
                 RoleNode.RiskLevel.LOW, false, null, 100);
-        return new RoleActivationCandidateService.ActivationFacts(
+        return new ActivationFactsVO(
                 "tenant", "user", new RoleHierarchy(List.of(root), List.of()),
                 List.of(new EligibleAssignmentFact(
                         "assignment", "user", "root",
@@ -76,7 +78,7 @@ class AdminQueryBudgetIT {
                 new AuthorizationRuleFacts(
                         List.of(), List.of(), List.of(), List.of(), List.of()),
                 3L, 7L, "directory:1",
-                Map.of("application", new RoleActivationCandidateService.ApplicationFact(
+                Map.of("application", new ApplicationFactVO(
                         "application", "finance", "Finance")),
                 Map.of("root", "Finance root"));
     }

@@ -11,17 +11,17 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.activation.infrastructure.RoleActivationFactStore;
-import top.egon.cola.platform.rbac3.admin.activation.infrastructure.SessionActiveRoleRepository;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
+import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaRoleActivationFactRepository;
+import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaSessionActiveRoleRepository;
 import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
 import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.assignment.application.AssignmentFacade;
-import top.egon.cola.platform.rbac3.admin.assignment.infrastructure.AssignmentRepository;
-import top.egon.cola.platform.rbac3.admin.assignment.infrastructure.PostgresqlAssignmentLockStore;
+import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentFacade;
+import top.egon.cola.platform.rbac3.admin.assignment.repository.jpa.JpaAssignmentRepository;
+import top.egon.cola.platform.rbac3.admin.assignment.repository.jdbc.PostgresqlAssignmentLockRepository;
 import top.egon.cola.platform.rbac3.admin.audit.application.AuditQueryService;
 import top.egon.cola.platform.rbac3.admin.audit.infrastructure.AuditCursorCodec;
 import top.egon.cola.platform.rbac3.admin.audit.infrastructure.PostgresqlAuditStore;
@@ -33,12 +33,12 @@ import top.egon.cola.platform.rbac3.admin.bootstrap.controller.cli.Rbac3Platform
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.PlatformAdminBootstrapService;
 import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
 import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3SecurityProperties;
-import top.egon.cola.platform.rbac3.admin.constraint.application.ConstraintFacade;
-import top.egon.cola.platform.rbac3.admin.constraint.infrastructure.ConstraintRepository;
+import top.egon.cola.platform.rbac3.admin.constraint.service.ConstraintFacade;
+import top.egon.cola.platform.rbac3.admin.constraint.repository.jpa.JpaConstraintRepository;
 import top.egon.cola.platform.rbac3.admin.identity.repository.IdentityMappingRepository;
 import top.egon.cola.platform.rbac3.admin.identity.service.IdentityMappingFacade;
-import top.egon.cola.platform.rbac3.admin.management.application.ManagementPolicyFacade;
-import top.egon.cola.platform.rbac3.admin.management.infrastructure.ManagementPolicyRepository;
+import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
+import top.egon.cola.platform.rbac3.admin.management.repository.jpa.JpaManagementPolicyRepository;
 import top.egon.cola.platform.rbac3.admin.participation.application.ParticipationFacade;
 import top.egon.cola.platform.rbac3.admin.participation.infrastructure.PostgresqlParticipationStore;
 import top.egon.cola.platform.rbac3.admin.resource.service.ApplicationResourceFacade;
@@ -168,7 +168,7 @@ public class Rbac3ApplicationConfiguration {
      */
     @Bean
     RoleActivationCandidateService roleActivationCandidateService(
-            RoleActivationFactStore factStore) {
+            JpaRoleActivationFactRepository factStore) {
         return new RoleActivationCandidateService(factStore);
     }
 
@@ -189,8 +189,8 @@ public class Rbac3ApplicationConfiguration {
      */
     @Bean
     RoleActivationFacade roleActivationFacade(
-            RoleActivationFactStore factStore,
-            SessionActiveRoleRepository transaction,
+            JpaRoleActivationFactRepository factStore,
+            JpaSessionActiveRoleRepository transaction,
             SessionSnapshotProjector projector,
             RedisAuthorizationRuntimeStore runtimeStore,
             Rbac3RuntimePolicy runtimePolicy,
@@ -228,7 +228,7 @@ public class Rbac3ApplicationConfiguration {
     @Bean
     ManagementPolicyFacade managementPolicyFacade(
             ManagementPolicyDecisionService decisionService,
-            ManagementPolicyRepository repository) {
+            JpaManagementPolicyRepository repository) {
         return new ManagementPolicyFacade(decisionService, repository);
     }
 
@@ -302,8 +302,8 @@ public class Rbac3ApplicationConfiguration {
     @Bean
     AssignmentFacade assignmentFacade(
             ManagementPolicyFacade policyFacade,
-            AssignmentRepository repository,
-            PostgresqlAssignmentLockStore lockStore,
+            JpaAssignmentRepository repository,
+            PostgresqlAssignmentLockRepository lockStore,
             AuthorizationMutationCoordinator mutationCoordinator) {
         return new AssignmentFacade(
                 policyFacade, repository, lockStore, repository, mutationCoordinator);
@@ -320,7 +320,7 @@ public class Rbac3ApplicationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Bean
-    ConstraintFacade constraintFacade(ConstraintRepository repository) {
+    ConstraintFacade constraintFacade(JpaConstraintRepository repository) {
         return new ConstraintFacade(repository, repository);
     }
 

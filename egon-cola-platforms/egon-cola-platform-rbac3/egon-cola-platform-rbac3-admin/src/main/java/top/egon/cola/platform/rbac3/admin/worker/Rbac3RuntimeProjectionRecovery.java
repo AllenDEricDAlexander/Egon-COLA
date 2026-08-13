@@ -3,9 +3,9 @@ package top.egon.cola.platform.rbac3.admin.worker;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.activation.infrastructure.RoleActivationFactStore;
-import top.egon.cola.platform.rbac3.admin.activation.infrastructure.SessionActiveRoleRepository;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
+import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaRoleActivationFactRepository;
+import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaSessionActiveRoleRepository;
 import top.egon.cola.platform.rbac3.admin.integration.outbox.Rbac3RuntimeProjectionDeliveryHandler;
 import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
 import top.egon.cola.platform.rbac3.admin.session.service.SessionRuntimeSynchronizer;
@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import top.egon.cola.platform.rbac3.admin.session.domain.enums.SessionStatusEnum;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.RuntimePublicationVO;
 
 /**
  * 类型 `Rbac3RuntimeProjectionRecovery` 位于当前包内，是类型，用于承载 `Rbac3 Runtime Projection Recovery` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -41,21 +42,21 @@ public class Rbac3RuntimeProjectionRecovery implements
      */
     private final EntityManager entityManager;
     /**
-     * 字段 `factStore` 表示 `Rbac3RuntimeProjectionRecovery` 中与 `fact Store` 相关的状态、依赖、配置或结果（声明类型 `RoleActivationFactStore`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `factStore` stores the `fact Store`-related state, dependency, configuration, or result of `Rbac3RuntimeProjectionRecovery` (declared type `RoleActivationFactStore`); its lifecycle and value semantics are defined by its declared type and owning object.
+     * 字段 `factStore` 表示 `Rbac3RuntimeProjectionRecovery` 中与 `fact Store` 相关的状态、依赖、配置或结果（声明类型 `JpaRoleActivationFactRepository`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `factStore` stores the `fact Store`-related state, dependency, configuration, or result of `Rbac3RuntimeProjectionRecovery` (declared type `JpaRoleActivationFactRepository`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
      * 含义与用法：读取、传递或更新 `factStore` 时应保持 `Rbac3RuntimeProjectionRecovery` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `factStore`, preserve `Rbac3RuntimeProjectionRecovery`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final RoleActivationFactStore factStore;
+    private final JpaRoleActivationFactRepository factStore;
     /**
-     * 字段 `activeRoleRepository` 表示 `Rbac3RuntimeProjectionRecovery` 中与 `active Role Repository` 相关的状态、依赖、配置或结果（声明类型 `SessionActiveRoleRepository`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `activeRoleRepository` stores the `active Role Repository`-related state, dependency, configuration, or result of `Rbac3RuntimeProjectionRecovery` (declared type `SessionActiveRoleRepository`); its lifecycle and value semantics are defined by its declared type and owning object.
+     * 字段 `activeRoleRepository` 表示 `Rbac3RuntimeProjectionRecovery` 中与 `active Role Repository` 相关的状态、依赖、配置或结果（声明类型 `JpaSessionActiveRoleRepository`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `activeRoleRepository` stores the `active Role Repository`-related state, dependency, configuration, or result of `Rbac3RuntimeProjectionRecovery` (declared type `JpaSessionActiveRoleRepository`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
      * 含义与用法：读取、传递或更新 `activeRoleRepository` 时应保持 `Rbac3RuntimeProjectionRecovery` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `activeRoleRepository`, preserve `Rbac3RuntimeProjectionRecovery`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final SessionActiveRoleRepository activeRoleRepository;
+    private final JpaSessionActiveRoleRepository activeRoleRepository;
     /**
      * 字段 `snapshotProjector` 表示 `Rbac3RuntimeProjectionRecovery` 中与 `snapshot Projector` 相关的状态、依赖、配置或结果（声明类型 `SessionSnapshotProjector`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `snapshotProjector` stores the `snapshot Projector`-related state, dependency, configuration, or result of `Rbac3RuntimeProjectionRecovery` (declared type `SessionSnapshotProjector`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -106,8 +107,8 @@ public class Rbac3RuntimeProjectionRecovery implements
      */
     public Rbac3RuntimeProjectionRecovery(
             EntityManager entityManager,
-            RoleActivationFactStore factStore,
-            SessionActiveRoleRepository activeRoleRepository,
+            JpaRoleActivationFactRepository factStore,
+            JpaSessionActiveRoleRepository activeRoleRepository,
             SessionSnapshotProjector snapshotProjector,
             LoginRuntimeProjectionFactory loginProjectionFactory,
             RedisAuthorizationRuntimeStore runtimeStore,
@@ -311,7 +312,7 @@ public class Rbac3RuntimeProjectionRecovery implements
                         current.authVersion(),
                         current.sessionVersion(), current.policyVersion(),
                         session.getAbsoluteExpiresAt(), resolution, facts, now));
-        runtimeStore.publish(new RoleActivationFacade.RuntimePublication(
+        runtimeStore.publish(new RuntimePublicationVO(
                 tenantId, userId, sessionId, current.authVersion(),
                 current.sessionVersion(), current.policyVersion(), projection));
     }

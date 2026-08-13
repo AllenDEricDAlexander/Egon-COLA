@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Repository;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
@@ -23,6 +23,8 @@ import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
+import top.egon.cola.platform.rbac3.admin.activation.repository.RoleActivationRuntimeRepository;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.RuntimePublicationVO;
 
 /**
  * 类型 `RedisAuthorizationRuntimeStore` 位于当前包内，是类型，用于承载 `Redis Authorization Runtime Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -31,7 +33,7 @@ import java.util.Objects;
  */
 @Repository
 public class RedisAuthorizationRuntimeStore implements
-        RoleActivationFacade.RuntimeStore,
+        RoleActivationRuntimeRepository,
         AuthorizationDecisionService.SnapshotSource,
         AuthorizationDecisionService.FenceVerifier {
 
@@ -178,7 +180,7 @@ public class RedisAuthorizationRuntimeStore implements
      * @param publication 输入参数 `publication`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     @Override
-    public void publish(RoleActivationFacade.RuntimePublication publication) {
+    public void publish(RuntimePublicationVO publication) {
         publish(new PublishCommand(
                 publication.tenantId(), publication.userId(), publication.sessionId(),
                 publication.authVersion(), publication.sessionVersion(),

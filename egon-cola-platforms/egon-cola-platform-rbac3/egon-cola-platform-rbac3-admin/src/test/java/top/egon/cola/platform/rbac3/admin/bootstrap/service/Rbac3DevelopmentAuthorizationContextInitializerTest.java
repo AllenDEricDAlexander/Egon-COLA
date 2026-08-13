@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.bootstrap.service;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
 import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFacade;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.contract.activation.RoleActivationCandidate;
@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.AuthorizationContextVO;
+import top.egon.cola.platform.rbac3.admin.activation.domain.dto.ReplaceCommandDTO;
 
 class Rbac3DevelopmentAuthorizationContextInitializerTest {
 
@@ -23,7 +24,7 @@ class Rbac3DevelopmentAuthorizationContextInitializerTest {
 
     @Test
     void activatesAllFiveDevelopmentRolesByApplicationAndRoleCode() {
-        AtomicReference<RoleActivationFacade.ReplaceCommand> captured =
+        AtomicReference<ReplaceCommandDTO> captured =
                 new AtomicReference<>();
         var initializer = new Rbac3DevelopmentAuthorizationContextInitializer(
                 true,
@@ -49,7 +50,7 @@ class Rbac3DevelopmentAuthorizationContextInitializerTest {
 
     @Test
     void activatesOnlyPasswordStrengthRolesFromTheDevelopmentTopology() {
-        AtomicReference<RoleActivationFacade.ReplaceCommand> captured =
+        AtomicReference<ReplaceCommandDTO> captured =
                 new AtomicReference<>();
         var initializer = new Rbac3DevelopmentAuthorizationContextInitializer(
                 true,
@@ -76,7 +77,7 @@ class Rbac3DevelopmentAuthorizationContextInitializerTest {
 
     @Test
     void sameDevelopmentRoleCodeInAnotherApplicationIsNotActivated() {
-        AtomicReference<RoleActivationFacade.ReplaceCommand> captured =
+        AtomicReference<ReplaceCommandDTO> captured =
                 new AtomicReference<>();
         var initializer = new Rbac3DevelopmentAuthorizationContextInitializer(
                 true,

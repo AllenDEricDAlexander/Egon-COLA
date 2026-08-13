@@ -5,7 +5,7 @@ import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.auth.service.AuthenticationFacade;
 import top.egon.cola.platform.rbac3.admin.auth.service.RefreshFacade;
@@ -19,7 +19,7 @@ import top.egon.cola.platform.rbac3.admin.directory.repository.jpa.DirectorySnap
 import top.egon.cola.platform.rbac3.admin.directory.repository.jpa.JpaDirectorySnapshotRepository;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
-import top.egon.cola.platform.rbac3.admin.interfaces.http.AssignmentController;
+import top.egon.cola.platform.rbac3.admin.assignment.controller.AssignmentController;
 import top.egon.cola.platform.rbac3.admin.session.controller.SessionController;
 import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePO;
 import top.egon.cola.platform.rbac3.admin.session.domain.po.RefreshTokenPO;

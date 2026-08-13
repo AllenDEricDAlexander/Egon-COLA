@@ -11,8 +11,8 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefinitionContributor;
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.assignment.application.AssignmentFacade;
-import top.egon.cola.platform.rbac3.admin.management.application.ManagementPolicyFacade;
+import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentFacade;
+import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
 import top.egon.cola.platform.rbac3.admin.runtime.application.IdempotencyService;
 
 import java.util.Map;
@@ -21,6 +21,9 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentSessionStrengthService;
+import top.egon.cola.platform.rbac3.admin.assignment.controller.AssignmentController;
+import top.egon.cola.platform.rbac3.admin.management.controller.ManagementPolicyController;
 
 @WebMvcTest(
         controllers = {AssignmentController.class, ManagementPolicyController.class},
@@ -46,7 +49,7 @@ class Rbac3AssignmentManagementGatewayDiscoveryTest {
     private IdempotencyService idempotencyService;
 
     @MockitoBean
-    private AssignmentController.SessionStrengthPort sessionStrengthPort;
+    private AssignmentSessionStrengthService sessionStrengthPort;
 
     @MockitoBean
     private DatabaseClock databaseClock;

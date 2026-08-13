@@ -19,22 +19,22 @@ import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefinitionContributor;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.assignment.application.AssignmentFacade;
+import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentFacade;
 import top.egon.cola.platform.rbac3.admin.audit.application.AuditQueryService;
 import top.egon.cola.platform.rbac3.admin.auth.service.AuthenticationFacade;
 import top.egon.cola.platform.rbac3.admin.auth.service.JwtKeyRingService;
 import top.egon.cola.platform.rbac3.admin.auth.service.RefreshFacade;
 import top.egon.cola.platform.rbac3.admin.auth.service.StepUpFacade;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
-import top.egon.cola.platform.rbac3.admin.constraint.application.ConstraintFacade;
+import top.egon.cola.platform.rbac3.admin.constraint.service.ConstraintFacade;
 import top.egon.cola.platform.rbac3.admin.identity.service.IdentityMappingFacade;
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.interfaces.http.AssignmentController;
+import top.egon.cola.platform.rbac3.admin.assignment.controller.AssignmentController;
 import top.egon.cola.platform.rbac3.admin.session.controller.SessionController;
-import top.egon.cola.platform.rbac3.admin.management.application.ManagementPolicyFacade;
+import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
 import top.egon.cola.platform.rbac3.admin.participation.application.ParticipationFacade;
 import top.egon.cola.platform.rbac3.admin.resource.service.ApplicationResourceFacade;
 import top.egon.cola.platform.rbac3.admin.resource.service.ManifestFacade;
@@ -65,6 +65,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import top.egon.cola.platform.rbac3.admin.directory.service.DirectoryCommandService;
 import top.egon.cola.platform.rbac3.admin.directory.service.DirectoryQueryService;
 import top.egon.cola.platform.rbac3.admin.session.service.SessionManagementService;
+import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentSessionStrengthService;
 
 @WebMvcTest(excludeAutoConfiguration = {
         SecurityAutoConfiguration.class,
@@ -165,7 +166,7 @@ class Rbac3GatewayDocumentCatalogContractTest {
     private AuthorizationBootstrapService authorizationBootstrapService;
 
     @MockitoBean
-    private AssignmentController.SessionStrengthPort sessionStrengthPort;
+    private AssignmentSessionStrengthService sessionStrengthPort;
 
     @MockitoBean
     private SessionManagementService sessionManagementPort;

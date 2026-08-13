@@ -3,7 +3,7 @@ package top.egon.cola.platform.rbac3.admin.auth.repository.jpa;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.auth.domain.vo.LoginStateVO;
 import top.egon.cola.platform.rbac3.admin.auth.repository.LoginStateRepository;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;

@@ -1,6 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.snapshot.application;
 
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.DataScopeDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.Decision;
@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ActivationFactsVO;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ApplicationFactVO;
 
 /**
  * 类型 `SessionSnapshotProjector` 位于当前包内，是类型，用于承载 `Session Snapshot Projector` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -119,7 +121,7 @@ public final class SessionSnapshotProjector {
                         null, null, resource.requiredPermissionCode(), null,
                         null, null, null, null, null, null, null, Map.of()))
                 .toList();
-        RoleActivationCandidateService.ApplicationFact application =
+        ApplicationFactVO application =
                 facts.applications().get(applicationId);
         if (application == null) {
             throw new IllegalArgumentException("missing application fact: " + applicationId);
@@ -354,13 +356,13 @@ public final class SessionSnapshotProjector {
              */
             RoleActivationResolution resolution,
             /**
-             * 字段 `facts` 表示 `ProjectionCommand` 中与 `facts` 相关的状态、依赖、配置或结果（声明类型 `RoleActivationCandidateService.ActivationFacts`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-             * Field `facts` stores the `facts`-related state, dependency, configuration, or result of `ProjectionCommand` (declared type `RoleActivationCandidateService.ActivationFacts`); its lifecycle and value semantics are defined by its declared type and owning object.
+             * 字段 `facts` 表示 `ProjectionCommand` 中与 `facts` 相关的状态、依赖、配置或结果（声明类型 `ActivationFactsVO`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+             * Field `facts` stores the `facts`-related state, dependency, configuration, or result of `ProjectionCommand` (declared type `ActivationFactsVO`); its lifecycle and value semantics are defined by its declared type and owning object.
              *
              * 含义与用法：读取、传递或更新 `facts` 时应保持 `ProjectionCommand` 的生命周期、不可变性和线程安全约束。
              * Meaning and usage: when reading, passing, or updating `facts`, preserve `ProjectionCommand`'s lifecycle, immutability, and thread-safety constraints.
              */
-            RoleActivationCandidateService.ActivationFacts facts,
+            ActivationFactsVO facts,
             /**
              * 字段 `generatedAt` 表示 `ProjectionCommand` 中与 `generated At` 相关的状态、依赖、配置或结果（声明类型 `Instant`）；其生命周期和取值含义由声明类型及所属对象共同确定。
              * Field `generatedAt` stores the `generated At`-related state, dependency, configuration, or result of `ProjectionCommand` (declared type `Instant`); its lifecycle and value semantics are defined by its declared type and owning object.

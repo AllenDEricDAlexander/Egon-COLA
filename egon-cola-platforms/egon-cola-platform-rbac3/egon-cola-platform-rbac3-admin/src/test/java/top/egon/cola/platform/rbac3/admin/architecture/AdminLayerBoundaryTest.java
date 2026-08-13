@@ -28,7 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AdminLayerBoundaryTest {
 
     private static final Set<String> MIGRATED_ROOTS =
-            Set.of("auth", "bootstrap", "config", "directory", "identity",
+            Set.of("activation", "assignment", "auth", "bootstrap", "config",
+                    "constraint", "directory", "identity", "management",
                     "resource", "role", "session", "shared", "tenant");
     private static final Set<String> DEFERRED_NESTED_TYPE_HOSTS = Set.of(
             "config/runtime/Rbac3WorkerConfiguration.java");

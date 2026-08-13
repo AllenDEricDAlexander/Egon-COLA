@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.bootstrap.service;
 
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
 import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFacade;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.contract.activation.RoleActivationCandidateView;
@@ -17,6 +17,7 @@ import top.egon.cola.platform.rbac3.admin.bootstrap.service.internal.CandidateRe
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.internal.RoleActivator;
 import top.egon.cola.platform.rbac3.admin.bootstrap.domain.vo.ApplicationDefinitionVO;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.AuthorizationContextVO;
+import top.egon.cola.platform.rbac3.admin.activation.domain.dto.ReplaceCommandDTO;
 
 /**
  * 类型 `Rbac3DevelopmentAuthorizationContextInitializer` 位于当前包内，是类型，用于承载 `Rbac3 Development Authorization Context Initializer` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -150,7 +151,7 @@ public final class Rbac3DevelopmentAuthorizationContextInitializer
             return SystemAuthorizationSnapshotService.ContextInitialization.UNCHANGED;
         }
         try {
-            activator.replace(new RoleActivationFacade.ReplaceCommand(
+            activator.replace(new ReplaceCommandDTO(
                     context.tenantId(), context.identitySub(),
                     context.rbac3UserId(), context.sessionId(), roleIds,
                     context.contextVersion(), DEVELOPMENT_ACTOR,

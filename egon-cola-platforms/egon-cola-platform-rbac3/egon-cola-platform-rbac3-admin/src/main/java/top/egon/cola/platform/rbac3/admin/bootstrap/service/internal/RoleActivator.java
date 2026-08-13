@@ -1,8 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.bootstrap.service.internal;
 
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade.ReplaceCommand;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
 import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFacade;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.contract.activation.RoleActivationCandidateView;
@@ -14,6 +13,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.Rbac3DevelopmentAuthorizationContextInitializer;
+import top.egon.cola.platform.rbac3.admin.activation.domain.dto.ReplaceCommandDTO;
 
 /**
      * 类型 `RoleActivator` 位于 `Rbac3DevelopmentAuthorizationContextInitializer` 内，是接口，用于承载 `Role Activator` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -34,5 +34,5 @@ import top.egon.cola.platform.rbac3.admin.bootstrap.service.Rbac3DevelopmentAuth
          *
          * @param command 输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
          */
-        void replace(ReplaceCommand command);
+        void replace(ReplaceCommandDTO command);
     }

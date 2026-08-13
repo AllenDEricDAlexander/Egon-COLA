@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.management;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.management.application.ManagementPolicyFacade;
+import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
 import top.egon.cola.platform.rbac3.core.delegation.ManagementPolicyDecisionService;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import top.egon.cola.platform.rbac3.admin.management.domain.dto.ManagementPolicyRequestDTO;
 
 class ManagementPolicyFacadeTest {
 
@@ -23,7 +24,7 @@ class ManagementPolicyFacadeTest {
                 (tenantId, subjectId, targetUserId, databaseNow) ->
                         List.of(subjectOnly, operationOnly));
 
-        assertThatThrownBy(() -> facade.authorize(new ManagementPolicyFacade.Request(
+        assertThatThrownBy(() -> facade.authorize(new ManagementPolicyRequestDTO(
                 "10001", "operator", "target", "root", "ASSIGN_ROLE",
                 "MFA", "MEDIUM", 3, true, true, now)))
                 .isInstanceOf(Rbac3RuleViolation.class)

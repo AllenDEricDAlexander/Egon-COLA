@@ -1,12 +1,14 @@
 package top.egon.cola.platform.rbac3.admin.activation;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.activation.application.ActiveRoleSetRevalidator;
+import top.egon.cola.platform.rbac3.admin.activation.service.ActiveRoleSetRevalidator;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import top.egon.cola.platform.rbac3.admin.activation.domain.dto.RevalidationCommandDTO;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.CurrentActivationVO;
 
 class ActiveRoleSetRevalidatorTest {
 
@@ -17,7 +19,7 @@ class ActiveRoleSetRevalidatorTest {
                 (tenantId, userId, now) -> RoleActivationFacadeIT.facts(
                         List.of(), List.of()),
                 (tenantId, userId, sessionId) ->
-                        new ActiveRoleSetRevalidator.CurrentActivation(
+                        new CurrentActivationVO(
                                 List.of("10"), 8),
                 (tenantId, sessionId, expectedVersion, now, actorId) -> {
                     assertThat(expectedVersion).isEqualTo(8);
@@ -25,7 +27,7 @@ class ActiveRoleSetRevalidatorTest {
                 });
 
         var result = service.revalidate(
-                new ActiveRoleSetRevalidator.RevalidationCommand(
+                new RevalidationCommandDTO(
                         "7", "9", "99", RoleActivationFacadeIT.NOW, "system"));
 
         assertThat(result.valid()).isFalse();

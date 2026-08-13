@@ -4,7 +4,7 @@ import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.UserRoleAssignmentEntity;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.po.UserRoleAssignmentPO;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.Rbac3DevelopmentBootstrap;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.Rbac3DevelopmentTopology;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.ExternalIdentityPO;
@@ -27,6 +27,8 @@ import top.egon.cola.platform.rbac3.admin.resource.domain.enums.PermissionRiskLe
 import top.egon.cola.platform.rbac3.admin.role.domain.enums.RoleTypeEnum;
 import top.egon.cola.platform.rbac3.admin.role.domain.enums.RoleRiskLevelEnum;
 import top.egon.cola.platform.rbac3.admin.role.domain.enums.RolePermissionStatusEnum;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.enums.UserRoleAssignmentTypeEnum;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.enums.UserRoleAssignmentStatusEnum;
 
 /**
  * 类型 `JpaDevelopmentTopologyBootstrapRepository` 位于当前包内，是类型，用于承载 `Postgresql Development Topology Bootstrap Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -303,9 +305,9 @@ public class JpaDevelopmentTopologyBootstrapRepository
                     tenantId, application.getId(), role.getId(), permissionCode, now);
         }
         if (!hasAssignment(tenantId, userId, role.getId())) {
-            entityManager.persist(new UserRoleAssignmentEntity(
+            entityManager.persist(new UserRoleAssignmentPO(
                     idGenerator.nextLongId(), tenantId, userId, role.getId(),
-                    UserRoleAssignmentEntity.AssignmentType.DIRECT, now, null,
+                    UserRoleAssignmentTypeEnum.DIRECT, now, null,
                     "DEVELOPMENT", definition.applicationCode(),
                     "Unified identity local administrator", null, ACTOR, now));
             changed = true;
@@ -462,8 +464,8 @@ public class JpaDevelopmentTopologyBootstrapRepository
                 .setParameter("userId", userId)
                 .setParameter("roleId", roleId)
                 .setParameter("statuses", List.of(
-                        UserRoleAssignmentEntity.Status.ACTIVE,
-                        UserRoleAssignmentEntity.Status.PENDING))
+                        UserRoleAssignmentStatusEnum.ACTIVE,
+                        UserRoleAssignmentStatusEnum.PENDING))
                 .getSingleResult();
         return count.longValue() > 0;
     }
