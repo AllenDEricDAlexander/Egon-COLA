@@ -1,10 +1,12 @@
 # 统一身份无 Session JWT 与 Gateway 自动刷新改造规格
 
-> 状态：待用户再次书面审查
+> 状态：已确认，implementation plan 已完成，待用户启动实施
 > 编写日期：2026-08-13
 > 复审日期：2026-08-14
-> 代码基线：`main@34547c56`
+> 用户确认日期：2026-08-14
+> 代码基线：`main@b90f0c95`
 > 适用仓库：`/Users/mario/SelfProject/Egon-COLA`
+> 实施计划：[`../plans/2026-08-14-unified-identity-stateless-jwt-session-removal.md`](../plans/2026-08-14-unified-identity-stateless-jwt-session-removal.md)
 
 主要涉及模块：
 
@@ -27,8 +29,9 @@ IdP 作为人员身份与凭据权威，当前只完成本改造所需的既有�
 用户中台。JWT 的身份协议、签发和验签能力归 IdP 模块体系，Gateway Adapter 复用 Starter
 的验证能力；RPC Contract 不承载密码学实现，本期也不新建通用 `component-jwt`。
 
-本文是设计规格，不是实施计划。本文经用户审查后，下一阶段才编写逐文件、逐提交、
-逐验证命令的 implementation plan；本阶段不修改生产代码、不修改数据库、不启动项目。
+本文是已确认的设计规格，不是实施计划。逐文件、逐提交、逐验证命令的
+implementation plan 已单独编写并在上方链接；Spec 与 Plan 编写阶段均不修改生产代码、
+不修改数据库、不启动项目。
 
 ---
 
@@ -313,7 +316,7 @@ flowchart LR
 - 不保留旧 Session、旧授权码或旧 USER Token 的双栈兼容；
 - 不迁移旧 Session Active Role、旧 Refresh Family 或 IdP `tokenVersion` 数据；
 - 不把 JWT实现放进 RPC Contract，不新建 `component-jwt`，不引入 JWE或 Payload加密；
-- 不在本规格阶段修改生产代码、数据库或编写 implementation plan；
+- 不在本规格文档中修改生产代码或数据库；implementation plan 单独维护；
 - 不启动项目，不执行浏览器或运行态联调。
 
 ---
@@ -1476,7 +1479,7 @@ Outbox表。实施时新增一个 IdP下一版本 migration删除 `identity_user
    所有用户重新登录并按需重新选择激活角色；
 10. 完成全链验收并确认生产代码、配置和存储结构没有旧兼容分支。
 
-具体文件顺序、提交边界和每波 Maven/前端验证命令在用户批准本 Spec 后进入
+具体文件顺序、提交边界和每波 Maven/前端验证命令已进入上方链接的
 implementation plan。每个实施任务单独提交；不得启动项目，运行态联调由用户自行发起。
 
 ### 18.1 失败恢复原则
@@ -1794,5 +1797,5 @@ USER/SERVICE验证差异由明确安全 Policy和已有 Adapter边界隔离，�
 - JWT职责固定为 IdP Admin签发、IdP Starter统一验签、Gateway Adapter适配复用，RPC
   Contract不放实现；本期不下沉 `component-jwt`，不引入 JWE。
 
-请用户审查本文是否准确表达已确认方案。只有本文再次获批后，才进入
-`docs/superpowers/plans/` 下的详细 implementation plan；在此之前不修改生产代码。
+本文已获用户确认，已进入 `docs/superpowers/plans/` 下的详细 implementation
+plan。本次仅交付 Spec 与 Plan 文档，生产代码实施需用户另行启动。
