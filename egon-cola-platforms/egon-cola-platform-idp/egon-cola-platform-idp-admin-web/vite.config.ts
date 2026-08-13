@@ -1,11 +1,13 @@
 import {resolve as resolvePath} from 'node:path'
 import react from '@vitejs/plugin-react'
 import {defineConfig} from 'vitest/config'
+import {egonFaviconPlugin} from '@egon-cola/admin-web-shared/vite-plugin'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), egonFaviconPlugin()],
   resolve: {
     alias: {
+      '@ant-design/icons': resolvePath(import.meta.dirname, 'node_modules/@ant-design/icons'),
       '@tanstack/react-query': resolvePath(import.meta.dirname, 'node_modules/@tanstack/react-query'),
       antd: resolvePath(import.meta.dirname, 'node_modules/antd'),
       i18next: resolvePath(import.meta.dirname, 'node_modules/i18next'),
@@ -14,7 +16,7 @@ export default defineConfig({
       'react-i18next': resolvePath(import.meta.dirname, 'node_modules/react-i18next'),
       'react-router-dom': resolvePath(import.meta.dirname, 'node_modules/react-router-dom'),
     },
-    dedupe: ['react', 'react-dom', 'react-i18next', 'i18next', 'antd', '@tanstack/react-query'],
+    dedupe: ['react', 'react-dom', 'react-i18next', 'i18next', 'antd', '@tanstack/react-query', 'react-router-dom', '@ant-design/icons'],
   },
   optimizeDeps: {
     force: true,

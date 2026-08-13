@@ -1,7 +1,13 @@
 import { useRbac3Session } from '@egon-cola/rbac3-react-sdk'
-import { Button, Layout, Menu, Result, Space, Typography } from 'antd'
-import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
+import { LogoutOutlined } from '@ant-design/icons'
+import { Result } from 'antd'
+import {
+  EnterpriseLayout,
+  type EnterpriseLayoutConfig,
+} from '@egon-cola/admin-web-shared'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import type { PropsWithChildren } from 'react'
+import { version } from '../../package.json'
 import { applicationRouteDescriptors, isRouteAllowed, resolveApplicationLanding, visibleNavigation } from './navigation'
 import type { FeatureRouteDescriptor } from '../features/shared/RouteDescriptor'
 
@@ -32,29 +38,29 @@ const RouteAccessGuard = ({ route, children }: PropsWithChildren<{ readonly rout
 
 const AdminLayout = ({ children }: PropsWithChildren) => {
   const { bootstrap, logout } = useRbac3Session()
-  const navigate = useNavigate()
-  const location = useLocation()
   if (!bootstrap) return null
-  const navigation = visibleNavigation(bootstrap)
-  return (
-    <Layout className="rbac3-app-layout">
-      <Layout.Sider width={248} theme="light" className="rbac3-sidebar">
-        <Typography.Title level={4} className="rbac3-brand">RBAC3 权限平台</Typography.Title>
-        <Menu
-          mode="inline"
-          selectedKeys={[navigation.find((item) => location.pathname === item.path)?.key ?? '']}
-          items={navigation.map((item) => ({ key: item.key, label: item.title, onClick: () => navigate(item.path) }))}
-        />
-      </Layout.Sider>
-      <Layout>
-        <Layout.Header className="rbac3-header">
-          <Space>
-            <Typography.Text>{bootstrap.user.displayName || bootstrap.user.username}</Typography.Text>
-            <Button onClick={() => void logout()}>退出登录</Button>
-          </Space>
-        </Layout.Header>
-        <Layout.Content className="rbac3-content">{children}</Layout.Content>
-      </Layout>
-    </Layout>
-  )
+  // 导航由 SDK 的 visibleNavigation 提供（含权限过滤），shared 只负责渲染与高亮。
+  const config: EnterpriseLayoutConfig = {
+    platformName: 'RBAC3 权限平台',
+    navigation: visibleNavigation(bootstrap).map((item) => ({
+      key: item.key,
+      label: item.title,
+      path: item.path,
+    })),
+    user: {
+      name: bootstrap.user.displayName || bootstrap.user.username,
+      menu: [
+        {
+          key: 'logout',
+          label: '退出登录',
+          icon: <LogoutOutlined />,
+          onClick: () => {
+            void logout()
+          },
+        },
+      ],
+    },
+    footer: { version },
+  }
+  return <EnterpriseLayout config={config}>{children}</EnterpriseLayout>
 }

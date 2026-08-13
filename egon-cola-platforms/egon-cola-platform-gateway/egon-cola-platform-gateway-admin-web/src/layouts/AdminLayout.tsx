@@ -7,21 +7,22 @@ import {
   EyeOutlined,
   KeyOutlined,
   LogoutOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
   RobotOutlined,
   ShareAltOutlined,
 } from '@ant-design/icons'
-import { Badge, Button, Layout, Menu, Select, Space, Typography } from 'antd'
-import { useState } from 'react'
-import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Badge, Select, Space } from 'antd'
 import { useQueryClient } from '@tanstack/react-query'
+import {
+  EnterpriseLayout,
+  type EnterpriseLayoutConfig,
+  type EnterpriseNavigationItem,
+} from '@egon-cola/admin-web-shared'
+import { Outlet, useNavigate } from 'react-router-dom'
+import { version } from '../../package.json'
 import { useScope } from '../hooks/useScope'
 import { optionsFor, type ScopeField } from '../hooks/scopeDefaults'
 import { useAuth } from '../auth/AuthContext'
 import { useCapability, type Capability } from '../app/capabilities'
-
-const { Header, Sider, Content } = Layout
 
 const selectors: Array<[ScopeField, string]> = [
   ['bizCode', '业务域'],
@@ -30,6 +31,7 @@ const selectors: Array<[ScopeField, string]> = [
   ['appCode', '应用'],
 ]
 
+// 平台自己的导航数据，由 capability 过滤后交给统一 Header。
 const navigation: Array<{
   key: string
   icon: React.ReactNode
@@ -78,21 +80,21 @@ const navigation: Array<{
 ]
 
 export const AdminLayout = () => {
-  const [collapsed, setCollapsed] = useState(false)
-  const location = useLocation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { scope, bindings, changeScope: selectScope } = useScope()
   const auth = useAuth()
   const canRead = useCapability('gateway:read')
   const canReadMcp = useCapability('gateway:mcp:read')
-  const items = navigation
+
+  const items: EnterpriseNavigationItem[] = navigation
     .filter((item) => item.capability === 'gateway:mcp:read' ? canReadMcp : canRead)
     .map((item) => ({
-        key: item.key,
-        icon: item.icon,
-        label: <Link to={item.key}>{item.label}</Link>,
-      }))
+      key: item.key,
+      path: item.key,
+      icon: item.icon,
+      label: item.label,
+    }))
 
   const changeScope = (
     field: ScopeField,
@@ -108,57 +110,47 @@ export const AdminLayout = () => {
     navigate('/dashboard')
   }
 
-  return (
-    <Layout className="app-shell">
-      <Sider collapsible collapsed={collapsed} trigger={null} width={236}>
-        <div className="brand">{collapsed ? 'GW' : 'Egon Gateway'}</div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[items.find((item) => location.pathname.startsWith(item.key))?.key ?? '']}
-          items={items}
-        />
-      </Sider>
-      <Layout>
-        <Header className="app-header">
-          <Space size="middle">
-            <Button
-              type="text"
-              aria-label={collapsed ? '展开导航' : '收起导航'}
-              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={() => setCollapsed((value) => !value)}
-            />
-            {selectors.map(([field, label]) => (
-              <Select
-                key={field}
-                aria-label={label}
-                value={scope[field]}
-                options={optionsFor(bindings, scope, field)}
-                onChange={(value) => changeScope(field, value)}
-              />
-            ))}
-          </Space>
-          <Space>
-            <Badge status="processing" text="Admin API" />
-            <Typography.Text type="secondary">
-              {auth.session?.displayName}
-            </Typography.Text>
-            <Button
-              icon={<LogoutOutlined />}
-              onClick={() => {
+  const config: EnterpriseLayoutConfig = {
+    platformName: 'Gateway Admin',
+    navigation: items,
+    actions: (
+      <Space size="middle" wrap>
+        <Badge status="processing" text="Admin API" />
+        {selectors.map(([field, label]) => (
+          <Select
+            key={field}
+            role="combobox"
+            aria-label={label}
+            value={scope[field]}
+            options={optionsFor(bindings, scope, field)}
+            onChange={(value) => changeScope(field, value)}
+          />
+        ))}
+      </Space>
+    ),
+    user: auth.session
+      ? {
+          name: auth.session.displayName,
+          menu: [
+            {
+              key: 'logout',
+              label: '退出登录',
+              icon: <LogoutOutlined />,
+              onClick: () => {
                 void auth.logout()
                 queryClient.clear()
                 navigate('/login', { replace: true })
-              }}
-            >
-              退出
-            </Button>
-          </Space>
-        </Header>
-        <Content className="app-content">
-          <Outlet />
-        </Content>
-      </Layout>
-    </Layout>
+              },
+            },
+          ],
+        }
+      : undefined,
+    footer: { version },
+  }
+
+  return (
+    <EnterpriseLayout config={config}>
+      <Outlet />
+    </EnterpriseLayout>
   )
 }

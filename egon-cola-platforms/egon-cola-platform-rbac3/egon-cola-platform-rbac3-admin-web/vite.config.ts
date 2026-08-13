@@ -1,10 +1,11 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
+import { egonFaviconPlugin } from '@egon-cola/admin-web-shared/vite-plugin'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), egonFaviconPlugin()],
   resolve: {
-    dedupe: ["react", "react-dom", "react-i18next", "i18next", "antd", "@tanstack/react-query"],
+    dedupe: ["react", "react-dom", "react-i18next", "i18next", "antd", "@tanstack/react-query", "react-router-dom", "@ant-design/icons"],
   },
   server: {
     host: '127.0.0.1',

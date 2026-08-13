@@ -1,9 +1,10 @@
 {
   "name": "@egon-cola/admin-web-shared",
-  "version": "0.1.0",
+  "version": "0.1.3",
   "type": "module",
   "files": [
-    "dist"
+    "dist",
+    "favicon.png"
   ],
   "main": "./dist/admin-web-shared.js",
   "types": "./dist/index.d.ts",
@@ -11,16 +12,24 @@
     ".": {
       "import": "./dist/admin-web-shared.js",
       "types": "./dist/index.d.ts"
+    },
+    "./vite-plugin": {
+      "import": "./dist/vite-plugin.js",
+      "types": "./dist/vite/faviconPlugin.d.ts"
     }
   },
   "scripts": {
+    "prebuild": "node scripts/copy-favicon.mjs",
     "build": "tsc -b --emitDeclarationOnly && vite build",
     "postbuild": "rm -rf node_modules",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "release:patch": "npm version patch --no-git-tag-version && npm install --legacy-peer-deps && npm run build && npm publish",
+    "release:minor": "npm version minor --no-git-tag-version && npm install --legacy-peer-deps && npm run build && npm publish"
   },
   "peerDependencies": {
+    "@ant-design/icons": "^6.3.2",
     "@tanstack/react-query": "^5.101.4",
     "antd": "^6.5.2",
     "i18next": "^24.0.0",
@@ -30,6 +39,7 @@
     "react-router-dom": "^7.18.0"
   },
   "devDependencies": {
+    "@ant-design/icons": "^6.3.2",
     "@eslint/js": "^10.0.1",
     "@tanstack/react-query": "^5.101.4",
     "@testing-library/dom": "^10.4.1",

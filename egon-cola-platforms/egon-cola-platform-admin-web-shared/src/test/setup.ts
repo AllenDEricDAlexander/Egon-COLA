@@ -9,3 +9,15 @@ Object.defineProperty(window, 'matchMedia', {
     removeEventListener: () => {},
   }),
 })
+
+// antd 的 Menu/Grid 等组件依赖 ResizeObserver，jsdom 未提供。
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+Object.defineProperty(window, 'ResizeObserver', {
+  writable: true,
+  value: ResizeObserverStub,
+})

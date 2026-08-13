@@ -1,10 +1,16 @@
-import {Breadcrumb, Button, Layout as AntLayout, Menu, Space, Tag, Typography} from 'antd'
-import type {ItemType} from 'antd/es/breadcrumb/Breadcrumb'
-import {HomeOutlined} from '@ant-design/icons'
-import {type PropsWithChildren, useMemo} from 'react'
-import {useLocation, useNavigate} from 'react-router-dom'
-import {useAuth} from '../auth/AuthContext'
-import {usePermission} from '@egon-cola/admin-web-shared'
+import { Breadcrumb, Tag } from 'antd'
+import type { ItemType } from 'antd/es/breadcrumb/Breadcrumb'
+import { HomeOutlined, LogoutOutlined } from '@ant-design/icons'
+import {
+    EnterpriseLayout,
+    usePermission,
+    type EnterpriseLayoutConfig,
+    type EnterpriseNavigationItem,
+} from '@egon-cola/admin-web-shared'
+import { type PropsWithChildren, useMemo } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
+import { version } from '../../package.json'
 
 interface NavItem {
     key: string
@@ -13,6 +19,7 @@ interface NavItem {
     permission: string
 }
 
+// 平台自己的导航数据，按 bootstrap 权限过滤后交给统一 Header。
 const ALL_NAV_ITEMS: NavItem[] = [
     {key: 'overview', label: '身份概览', path: '/overview', permission: ''},
     {key: 'users', label: '全局用户', path: '/users', permission: 'idp:identity-user:read'},
@@ -37,21 +44,19 @@ const PATH_LABELS: Record<string, string> = {
 }
 
 export const AdminLayout = ({ children }: PropsWithChildren) => {
-  const auth = useAuth()
-  const navigate = useNavigate()
-  const location = useLocation()
-  const { has } = usePermission(auth.bootstrap?.permissions ?? [])
+    const auth = useAuth()
+    const navigate = useNavigate()
+    const location = useLocation()
+    const { has } = usePermission(auth.bootstrap?.permissions ?? [])
 
-    const navItems = useMemo(
-        () => ALL_NAV_ITEMS.filter((item) => !item.permission || has(item.permission)),
+    const navigation: EnterpriseNavigationItem[] = useMemo(
+        () => ALL_NAV_ITEMS
+            .filter((item) => !item.permission || has(item.permission))
+            .map((item) => ({ key: item.key, label: item.label, path: item.path })),
         [has],
     )
 
-  const currentPath = location.pathname
-    const selectedKey = navItems.find((item) => currentPath.startsWith(item.path) && item.path !== '/overview')
-        ? navItems.find((item) => currentPath.startsWith(item.path) && item.path !== '/overview')!.key
-        : (navItems.find((item) => item.path === currentPath)?.key ?? 'overview')
-
+    const currentPath = location.pathname
     const breadcrumbItems = useMemo((): ItemType[] => {
         const items: ItemType[] = [{title: <><HomeOutlined/> 首页</>}]
         const label = PATH_LABELS[currentPath]
@@ -64,47 +69,36 @@ export const AdminLayout = ({ children }: PropsWithChildren) => {
         return items
     }, [currentPath])
 
-  return (
-      <AntLayout style={{minHeight: '100vh'}}>
-          <AntLayout.Sider width={240} theme="light" style={{borderRight: '1px solid #f0f0f0'}}>
-              <div style={{padding: '20px 22px 12px'}}>
-                  <Typography.Title level={4} style={{margin: 0}}>统一身份平台</Typography.Title>
-              </div>
-        <Menu
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          items={navItems.map((item) => ({key: item.key, label: item.label}))}
-          onClick={({ key }) => {
-              const target = navItems.find((i) => i.key === key)
-            if (target) navigate(target.path)
-          }}
-          style={{borderInlineEnd: 'none'}}
-        />
-          </AntLayout.Sider>
-          <AntLayout>
-              <AntLayout.Header style={{
-                  background: '#fff',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  borderBottom: '1px solid #f0f0f0',
-                  padding: '0 24px',
-                  height: 48,
-              }}>
-                  <Breadcrumb items={breadcrumbItems}/>
-                  <Space size="middle">
-                      <Typography.Text type="secondary"
-                                       style={{fontSize: 13}}>{auth.bootstrap?.identitySub}</Typography.Text>
-                      <Tag color="blue">{auth.bootstrap?.tenantId}</Tag>
-                      <Button size="small" onClick={() => {
-                          void auth.logout()
-                      }}>退出</Button>
-          </Space>
-              </AntLayout.Header>
-              <AntLayout.Content style={{padding: 24, background: '#f5f5f5'}}>
-          {children}
-              </AntLayout.Content>
-          </AntLayout>
-      </AntLayout>
-  )
+    const config: EnterpriseLayoutConfig = {
+        platformName: '统一身份平台',
+        navigation,
+        actions: auth.bootstrap
+            ? <Tag color="blue">{auth.bootstrap.tenantId}</Tag>
+            : undefined,
+        user: auth.bootstrap
+            ? {
+                name: auth.bootstrap.identitySub,
+                description: `Tenant: ${auth.bootstrap.tenantId}`,
+                menu: [
+                    {
+                        key: 'logout',
+                        label: '退出登录',
+                        icon: <LogoutOutlined/>,
+                        onClick: () => {
+                            void auth.logout()
+                            navigate('/login', { replace: true })
+                        },
+                    },
+                ],
+            }
+            : undefined,
+        footer: { version },
+    }
+
+    return (
+        <EnterpriseLayout config={config}>
+            <Breadcrumb items={breadcrumbItems} style={{ marginBottom: 16 }} />
+            {children}
+        </EnterpriseLayout>
+    )
 }

@@ -19,6 +19,18 @@ export { PageState, type PageStateProps } from './components/PageState'
 export { AppErrorBoundary, type AppErrorBoundaryProps } from './components/AppErrorBoundary'
 export { PageTemplate, type PageTemplateProps, type BreadcrumbItem } from './components/PageTemplate'
 
+// Layout
+export { EnterpriseHeader, type EnterpriseHeaderProps } from './layout/EnterpriseHeader'
+export { EnterpriseFooter, type EnterpriseFooterProps } from './layout/EnterpriseFooter'
+export { EnterpriseLayout, type EnterpriseLayoutProps } from './layout/EnterpriseLayout'
+export type {
+  EnterpriseNavigationItem,
+  EnterpriseUser,
+  EnterpriseHeaderConfig,
+  EnterpriseFooterConfig,
+  EnterpriseLayoutConfig,
+} from './layout/types'
+
 // Hooks
 export { usePermission } from './hooks/usePermission'
 export { useFeatureQuery, type FeatureQueryDeps } from './hooks/useFeatureQuery'

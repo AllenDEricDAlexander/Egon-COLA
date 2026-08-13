@@ -104,7 +104,7 @@ beforeEach(() => {
   mocks.changeScope.mockReset()
   vi.stubGlobal('confirm', vi.fn(() => true))
   vi.stubGlobal('matchMedia', vi.fn().mockImplementation(() => ({
-    matches: false,
+    matches: true,
     addListener: vi.fn(),
     removeListener: vi.fn(),
     addEventListener: vi.fn(),
@@ -118,7 +118,18 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('AdminLayout DDC selectors', () => {
+describe('AdminLayout', () => {
+  it('renders the unified header with brand, navigation, selectors and user', () => {
+    renderLayout()
+
+    expect(screen.getByText('Gateway Admin')).toBeInTheDocument()
+    expect(screen.getByText('总览')).toBeInTheDocument()
+    expect(screen.getByText('Admin API')).toBeInTheDocument()
+    expect(screen.getByText('Admin')).toBeInTheDocument()
+    expect(screen.getByText('版本 v5.2.3')).toBeInTheDocument()
+    expect(screen.getByText('Dashboard')).toBeInTheDocument()
+  })
+
   it('renders biz namespace env app in DDC hierarchy order', () => {
     renderLayout()
 
