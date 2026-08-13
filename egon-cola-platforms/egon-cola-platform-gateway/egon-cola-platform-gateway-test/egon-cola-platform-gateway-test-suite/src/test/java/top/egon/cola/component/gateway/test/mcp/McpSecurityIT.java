@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.admin.catalog.repository.GatewayCatalogRepository;
+import top.egon.cola.component.gateway.admin.mcp.domain.vo.McpValidationReportVO;
 import top.egon.cola.component.gateway.admin.mcp.service.McpValidationService;
 import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpArtifactMetadataRepository;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpErrorCode;
@@ -119,7 +120,7 @@ class McpSecurityIT {
                 objectMapper
         );
 
-        McpValidationService.ValidationReport report = validator.validate(
+        McpValidationReportVO report = validator.validate(
                 remoteContent(tool)
         );
 
