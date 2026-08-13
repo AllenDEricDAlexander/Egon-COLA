@@ -1,13 +1,14 @@
 package top.egon.cola.platform.rbac3.admin.session.service;
 
 import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
-import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
 
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.TerminationVO;
 import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditEventVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.AuthorizationEventVO;
 
 /**
  * 类型 `SessionSecurityEventRecorder` 位于当前包内，是类型，用于承载 `Session Security Event Recorder` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -25,13 +26,13 @@ public final class SessionSecurityEventRecorder {
      */
     private final AuditPort auditPort;
     /**
-     * 字段 `eventPort` 表示 `SessionSecurityEventRecorder` 中与 `event Port` 相关的状态、依赖、配置或结果（声明类型 `AuthorizationEventPort`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `eventPort` stores the `event Port`-related state, dependency, configuration, or result of `SessionSecurityEventRecorder` (declared type `AuthorizationEventPort`); its lifecycle and value semantics are defined by its declared type and owning object.
+     * 字段 `eventPort` 表示 `SessionSecurityEventRecorder` 中与 `event Port` 相关的状态、依赖、配置或结果（声明类型 `AuthorizationEventPublisher`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `eventPort` stores the `event Port`-related state, dependency, configuration, or result of `SessionSecurityEventRecorder` (declared type `AuthorizationEventPublisher`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
      * 含义与用法：读取、传递或更新 `eventPort` 时应保持 `SessionSecurityEventRecorder` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `eventPort`, preserve `SessionSecurityEventRecorder`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final AuthorizationEventPort eventPort;
+    private final AuthorizationEventPublisher eventPort;
 
     /**
      * 构造器 `SessionSecurityEventRecorder` 用于创建并初始化 `SessionSecurityEventRecorder` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -45,7 +46,7 @@ public final class SessionSecurityEventRecorder {
      */
     public SessionSecurityEventRecorder(
             AuditPort auditPort,
-            AuthorizationEventPort eventPort) {
+            AuthorizationEventPublisher eventPort) {
         this.auditPort = Objects.requireNonNull(auditPort, "auditPort");
         this.eventPort = Objects.requireNonNull(eventPort, "eventPort");
     }
@@ -76,7 +77,7 @@ public final class SessionSecurityEventRecorder {
                 replayDetected ? "DENIED" : "SUCCESS",
                 replayDetected ? "CRITICAL" : "INFO",
                 termination.reason()));
-        eventPort.enqueue(new AuthorizationEventPort.AuthorizationEvent(
+        eventPort.enqueue(new AuthorizationEventVO(
                 termination.tenantId(), "SESSION", termination.sessionId(),
                 "SESSION_REVOKED", evidence, correlationId));
     }

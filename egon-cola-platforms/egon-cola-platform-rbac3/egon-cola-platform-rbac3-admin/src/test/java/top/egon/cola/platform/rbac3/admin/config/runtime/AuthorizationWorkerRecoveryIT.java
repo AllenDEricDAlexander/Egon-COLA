@@ -5,11 +5,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import top.egon.cola.component.outbox.delivery.DeliveryContext;
 import top.egon.cola.component.outbox.delivery.DeliveryResult;
-import top.egon.cola.platform.rbac3.admin.integration.outbox.Rbac3RuntimeProjectionDeliveryHandler;
-import top.egon.cola.platform.rbac3.admin.runtime.application.RuntimeQueryService;
-import top.egon.cola.platform.rbac3.admin.worker.AssignmentLifecycleWorker;
-import top.egon.cola.platform.rbac3.admin.worker.AuthorizationMutationRecoveryWorker;
-import top.egon.cola.platform.rbac3.admin.worker.RuntimeSnapshotRebuildWorker;
+import top.egon.cola.platform.rbac3.admin.runtime.controller.message.Rbac3RuntimeProjectionDeliveryHandler;
+import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeQueryService;
+import top.egon.cola.platform.rbac3.admin.runtime.controller.scheduled.AssignmentLifecycleWorker;
+import top.egon.cola.platform.rbac3.admin.runtime.controller.scheduled.AuthorizationMutationRecoveryWorker;
+import top.egon.cola.platform.rbac3.admin.runtime.controller.scheduled.RuntimeSnapshotRebuildWorker;
+import top.egon.cola.platform.rbac3.admin.runtime.service.AssignmentLifecycleService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationMutationRecoveryService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeProjectionService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeSnapshotProjectionService;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -23,6 +27,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.Rbac3RuntimeProjectionDeliveryHandlerProjectionOutcomeEnum;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.EventEnvelopeVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.RetryResultVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.LifecycleChangeVO;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationMutationRecoveryRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.MutationWorkDTO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.RuntimeSnapshotRebuildClaimEnum;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ProjectionCheckpointRepository;
 
 class AuthorizationWorkerRecoveryIT {
 
@@ -41,15 +53,15 @@ class AuthorizationWorkerRecoveryIT {
                         ObjectMapper.class);
 
         AtomicInteger resolutions = new AtomicInteger();
-        var worker = new RuntimeSnapshotRebuildWorker(
+        RuntimeProjectionService projectionService = new RuntimeSnapshotProjectionService(
                 new InMemoryCheckpointStore(), event -> {
                 });
         @SuppressWarnings("unchecked")
-        ObjectProvider<RuntimeSnapshotRebuildWorker> provider =
+        ObjectProvider<RuntimeProjectionService> provider =
                 mock(ObjectProvider.class);
         when(provider.getObject()).thenAnswer(invocation -> {
             resolutions.incrementAndGet();
-            return worker;
+            return projectionService;
         });
         var handler = new Rbac3WorkerConfiguration()
                 .rbac3RuntimeProjectionDeliveryHandler(
@@ -79,12 +91,12 @@ class AuthorizationWorkerRecoveryIT {
     void mutationRecoveryIsAddressedByIdAndIsIdempotent() {
         InMemoryRecoveryStore store = new InMemoryRecoveryStore();
         AtomicInteger projections = new AtomicInteger();
-        var worker = new AuthorizationMutationRecoveryWorker(
+        var service = new AuthorizationMutationRecoveryService(
                 store, mutation -> projections.incrementAndGet(),
                 Clock.fixed(NOW, ZoneOffset.UTC), 20);
 
-        RuntimeQueryService.RetryResult first = worker.retry("7", "900", "operator");
-        RuntimeQueryService.RetryResult duplicate = worker.retry("7", "900", "operator");
+        RetryResultVO first = service.retry("7", "900", "operator");
+        RetryResultVO duplicate = service.retry("7", "900", "operator");
 
         assertThat(first.status()).isEqualTo("COMPLETED");
         assertThat(duplicate.status()).isEqualTo("COMPLETED");
@@ -95,15 +107,16 @@ class AuthorizationWorkerRecoveryIT {
     @Test
     void scheduledRecoveryClaimsOnlyItsSkipLockedBatchAndRetriesFailures() {
         InMemoryRecoveryStore store = new InMemoryRecoveryStore();
-        store.pending.add(new AuthorizationMutationRecoveryWorker.MutationWork(
+        store.pending.add(new MutationWorkDTO(
                 "901", "7", "SESSION", "99", "RECOVERY_REQUIRED"));
         AtomicInteger attempts = new AtomicInteger();
-        var worker = new AuthorizationMutationRecoveryWorker(
+        var service = new AuthorizationMutationRecoveryService(
                 store, mutation -> {
             if (attempts.getAndIncrement() == 0) {
                 throw new IllegalStateException("redis unavailable");
             }
         }, Clock.fixed(NOW, ZoneOffset.UTC), 1);
+        var worker = new AuthorizationMutationRecoveryWorker(service);
 
         assertThat(worker.runOnce()).isZero();
         assertThat(store.failureCodes).containsExactly("AUTH_PROPAGATION_PENDING");
@@ -115,55 +128,57 @@ class AuthorizationWorkerRecoveryIT {
         InMemoryCheckpointStore checkpoints = new InMemoryCheckpointStore();
         AtomicInteger rebuilds = new AtomicInteger();
         var worker = new RuntimeSnapshotRebuildWorker(
-                checkpoints, event -> rebuilds.incrementAndGet());
+                new RuntimeSnapshotProjectionService(
+                        checkpoints, event -> rebuilds.incrementAndGet()));
         var event = event("event-1", 4L);
 
         assertThat(worker.project(event)).isEqualTo(
-                Rbac3RuntimeProjectionDeliveryHandler.ProjectionOutcome.APPLIED);
+                Rbac3RuntimeProjectionDeliveryHandlerProjectionOutcomeEnum.APPLIED);
         assertThat(worker.project(event)).isEqualTo(
-                Rbac3RuntimeProjectionDeliveryHandler.ProjectionOutcome.ALREADY_APPLIED);
+                Rbac3RuntimeProjectionDeliveryHandlerProjectionOutcomeEnum.ALREADY_APPLIED);
         assertThat(rebuilds).hasValue(1);
     }
 
     @Test
     void assignmentWorkerPublishesOnlyCommittedLifecycleChanges() {
-        List<AssignmentLifecycleWorker.LifecycleChange> published = new ArrayList<>();
-        AssignmentLifecycleWorker worker = new AssignmentLifecycleWorker(
+        List<LifecycleChangeVO> published = new ArrayList<>();
+        AssignmentLifecycleService service = new AssignmentLifecycleService(
                 (now, batchSize, publisher) -> {
-                    publisher.publish(new AssignmentLifecycleWorker.LifecycleChange(
+                    publisher.publish(new LifecycleChangeVO(
                             "7", "assignment-1", "user-1", "ACTIVATED", 5));
                     return 1;
                 }, published::add, Clock.fixed(NOW, ZoneOffset.UTC), 10);
+        AssignmentLifecycleWorker worker = new AssignmentLifecycleWorker(service);
 
         assertThat(worker.runOnce()).isEqualTo(1);
         assertThat(published).singleElement()
-                .extracting(AssignmentLifecycleWorker.LifecycleChange::changeType)
+                .extracting(LifecycleChangeVO::changeType)
                 .isEqualTo("ACTIVATED");
     }
 
-    private Rbac3RuntimeProjectionDeliveryHandler.EventEnvelope event(
+    private EventEnvelopeVO event(
             String eventId,
             long version) {
-        return new Rbac3RuntimeProjectionDeliveryHandler.EventEnvelope(
+        return new EventEnvelopeVO(
                 eventId, "rbac3.role-activation.changed.v1", 1, NOW,
                 "7", "SESSION", "99", version, "trace-1",
                 Map.of("mutationId", "900"));
     }
 
     private static final class InMemoryRecoveryStore
-            implements AuthorizationMutationRecoveryWorker.RecoveryStore {
+            implements AuthorizationMutationRecoveryRepository {
 
-        private final List<AuthorizationMutationRecoveryWorker.MutationWork> pending =
-                new ArrayList<>(List.of(new AuthorizationMutationRecoveryWorker.MutationWork(
+        private final List<MutationWorkDTO> pending =
+                new ArrayList<>(List.of(new MutationWorkDTO(
                         "900", "7", "SESSION", "99", "RECOVERY_REQUIRED")));
         private final List<String> completed = new ArrayList<>();
         private final List<String> failureCodes = new ArrayList<>();
 
         @Override
-        public Optional<AuthorizationMutationRecoveryWorker.MutationWork> claimById(
+        public Optional<MutationWorkDTO> claimById(
                 String tenantId, String mutationId) {
             if (completed.contains(mutationId)) {
-                return Optional.of(new AuthorizationMutationRecoveryWorker.MutationWork(
+                return Optional.of(new MutationWorkDTO(
                         mutationId, tenantId, "SESSION", "99", "COMPLETED"));
             }
             return pending.stream()
@@ -173,7 +188,7 @@ class AuthorizationWorkerRecoveryIT {
         }
 
         @Override
-        public List<AuthorizationMutationRecoveryWorker.MutationWork> claimRecoverable(
+        public List<MutationWorkDTO> claimRecoverable(
                 int batchSize) {
             return pending.stream()
                     .filter(value -> !completed.contains(value.mutationId()))
@@ -195,12 +210,12 @@ class AuthorizationWorkerRecoveryIT {
     }
 
     private static final class InMemoryCheckpointStore
-            implements RuntimeSnapshotRebuildWorker.ProjectionCheckpointStore {
+            implements ProjectionCheckpointRepository {
 
         private final Map<String, Long> versions = new java.util.HashMap<>();
 
         @Override
-        public RuntimeSnapshotRebuildWorker.Claim claim(
+        public RuntimeSnapshotRebuildClaimEnum claim(
                 String tenantId,
                 String eventId,
                 String aggregateType,
@@ -208,8 +223,8 @@ class AuthorizationWorkerRecoveryIT {
                 long aggregateVersion) {
             Long previous = versions.putIfAbsent(eventId, aggregateVersion);
             return previous == null
-                    ? RuntimeSnapshotRebuildWorker.Claim.ACQUIRED
-                    : RuntimeSnapshotRebuildWorker.Claim.ALREADY_APPLIED;
+                    ? RuntimeSnapshotRebuildClaimEnum.ACQUIRED
+                    : RuntimeSnapshotRebuildClaimEnum.ALREADY_APPLIED;
         }
 
         @Override

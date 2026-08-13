@@ -11,7 +11,7 @@ import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
-import top.egon.cola.platform.rbac3.admin.integration.runtime.Rbac3HttpProviderPublicationGate;
+import top.egon.cola.platform.rbac3.admin.runtime.service.Rbac3HttpProviderPublicationGate;
 
 import java.time.Instant;
 import java.util.Optional;

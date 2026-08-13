@@ -34,12 +34,12 @@ import top.egon.cola.component.ddc.service.refresh.DefaultDdcConfigApplierRegist
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationState;
 import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.DdcConfigClientStatusService;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.DdcProviderLeaseStatusService;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.DdcConfigClientStatusRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.DdcProviderLeaseStatusRepository;
 import top.egon.cola.platform.rbac3.admin.config.ddc.Rbac3DdcPolicyConfiguration;
 import top.egon.cola.platform.rbac3.admin.config.ddc.Rbac3IntegrationMetrics;
-import top.egon.cola.platform.rbac3.admin.integration.runtime.GatewayDdcRuntimeStatusService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.GatewayDdcRuntimeStatusService;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -58,6 +58,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ServiceIdentityVO;
 
 class Rbac3DdcRefreshIntegrationTest {
 
@@ -245,7 +246,7 @@ class Rbac3DdcRefreshIntegrationTest {
         DdcRuntimeCoordinator coordinator = mock(DdcRuntimeCoordinator.class);
         when(coordinator.state()).thenReturn(DdcRuntimeState.READY);
         when(coordinator.currentSession()).thenReturn(java.util.Optional.of(configSession));
-        var configStatus = new DdcConfigClientStatusService(coordinator, policy).status();
+        var configStatus = new DdcConfigClientStatusRepository(coordinator, policy).status();
 
         DdcLeaseSession providerSession = new DdcLeaseSession(
                 "rbac3-1", PROVIDER_LEASE_ID, DdcLeaseRole.HTTP_PROVIDER,
@@ -254,7 +255,7 @@ class Rbac3DdcRefreshIntegrationTest {
         when(providerRuntime.state()).thenReturn(DdcHttpRegistrationState.REGISTERED);
         when(providerRuntime.instanceId()).thenReturn("rbac3-1");
         when(providerRuntime.lease()).thenReturn(java.util.Optional.of(providerSession));
-        var providerStatus = new DdcProviderLeaseStatusService(
+        var providerStatus = new DdcProviderLeaseStatusRepository(
                 providerRuntime, serviceIdentity()).status();
 
         assertThat(configSession.leaseId()).isNotEqualTo(providerSession.leaseId());
@@ -285,8 +286,8 @@ class Rbac3DdcRefreshIntegrationTest {
                 30, 10, NOW, NOW.plusSeconds(30));
     }
 
-    private GatewayDdcRuntimeStatusService.ServiceIdentity serviceIdentity() {
-        return new GatewayDdcRuntimeStatusService.ServiceIdentity(
+    private ServiceIdentityVO serviceIdentity() {
+        return new ServiceIdentityVO(
                 "rbac3", "rbac3-admin", "prod", "default",
                 "HTTP_PROVIDER", "http", "rbac3-admin", "default", "1.0.0");
     }

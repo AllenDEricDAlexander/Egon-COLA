@@ -6,7 +6,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.contract.auth.Rbac3TokenClaims;
 
 import java.time.Instant;
@@ -15,6 +15,7 @@ import java.util.Objects;
 import top.egon.cola.platform.rbac3.admin.auth.domain.vo.AccessTokenSubjectVO;
 import top.egon.cola.platform.rbac3.admin.auth.domain.vo.IssuedAccessTokenVO;
 import top.egon.cola.platform.rbac3.admin.auth.domain.vo.KeyDescriptorVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.Rbac3RuntimePolicySnapshotVO;
 
 /**
  * 类型 `JwtTokenService` 位于当前包内，是类型，用于承载 `Jwt Token Service` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -118,7 +119,7 @@ public final class JwtTokenService {
     public IssuedAccessTokenVO issue(AccessTokenSubjectVO subject, Instant now) {
         Objects.requireNonNull(subject, "subject");
         Objects.requireNonNull(now, "now");
-        Rbac3RuntimePolicy.Snapshot policySnapshot = runtimePolicy.current();
+        Rbac3RuntimePolicySnapshotVO policySnapshot = runtimePolicy.current();
         KeyDescriptorVO signingKey = keyRing.signingKey();
         Instant expiresAt = now.plus(policySnapshot.accessTokenTtl());
         Rbac3TokenClaims claims = new Rbac3TokenClaims(

@@ -16,10 +16,10 @@ import top.egon.cola.component.outbox.api.TransactionalOutbox;
 import top.egon.cola.component.outbox.autoconfigure.TransactionalOutboxAutoConfiguration;
 import top.egon.cola.component.outbox.delivery.DeliveryContext;
 import top.egon.cola.component.outbox.delivery.DeliveryResult;
-import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
 import top.egon.cola.platform.rbac3.admin.config.flyway.Rbac3FlywayConfiguration;
-import top.egon.cola.platform.rbac3.admin.integration.outbox.Rbac3RuntimeProjectionDeliveryHandler;
-import top.egon.cola.platform.rbac3.admin.integration.outbox.TransactionalOutboxAuthorizationEventAdapter;
+import top.egon.cola.platform.rbac3.admin.runtime.controller.message.Rbac3RuntimeProjectionDeliveryHandler;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.outbox.TransactionalOutboxAuthorizationEventPublisher;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -34,6 +34,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.AuthorizationEventVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.Rbac3RuntimeProjectionDeliveryHandlerProjectionOutcomeEnum;
 
 class OutboxTransactionRollbackIT {
 
@@ -46,7 +48,7 @@ class OutboxTransactionRollbackIT {
             captured.set(message);
             return new OutboxReceipt("persisted-event", message.idempotencyKey(), false);
         };
-        var adapter = new TransactionalOutboxAuthorizationEventAdapter(
+        var adapter = new TransactionalOutboxAuthorizationEventPublisher(
                 outbox, Clock.fixed(NOW, ZoneOffset.UTC));
 
         String messageId = adapter.enqueue(event());
@@ -65,13 +67,13 @@ class OutboxTransactionRollbackIT {
     @Test
     void mapsSessionRevocationToTheStableRuntimeDestination() {
         AtomicReference<OutboxMessage> captured = new AtomicReference<>();
-        var adapter = new TransactionalOutboxAuthorizationEventAdapter(
+        var adapter = new TransactionalOutboxAuthorizationEventPublisher(
                 message -> {
                     captured.set(message);
                     return new OutboxReceipt(message.messageId(), message.idempotencyKey(), true);
                 }, Clock.fixed(NOW, ZoneOffset.UTC));
 
-        adapter.enqueue(new AuthorizationEventPort.AuthorizationEvent(
+        adapter.enqueue(new AuthorizationEventVO(
                 "7", "SESSION", "99", "SESSION_REVOKED",
                 Map.of("sessionVersion", "5", "reason", "ADMIN_REVOKE"),
                 "session:99:5"));
@@ -84,14 +86,14 @@ class OutboxTransactionRollbackIT {
     @Test
     void roleActivationUsesTheChangingContextVersionBeforeStaticPolicyVersions() {
         AtomicReference<OutboxMessage> captured = new AtomicReference<>();
-        var adapter = new TransactionalOutboxAuthorizationEventAdapter(
+        var adapter = new TransactionalOutboxAuthorizationEventPublisher(
                 message -> {
                     captured.set(message);
                     return new OutboxReceipt(
                             message.messageId(), message.idempotencyKey(), true);
                 }, Clock.fixed(NOW, ZoneOffset.UTC));
 
-        adapter.enqueue(new AuthorizationEventPort.AuthorizationEvent(
+        adapter.enqueue(new AuthorizationEventVO(
                 "7", "SESSION", "99", "RBAC3_SESSION_ACTIVE_ROLES_REPLACED",
                 Map.of(
                         "contextVersion", "6",
@@ -109,7 +111,7 @@ class OutboxTransactionRollbackIT {
         AtomicReference<String> applied = new AtomicReference<>();
         var handler = new Rbac3RuntimeProjectionDeliveryHandler(envelope -> {
             applied.set(envelope.eventId() + ':' + envelope.aggregateVersion());
-            return Rbac3RuntimeProjectionDeliveryHandler.ProjectionOutcome.ALREADY_APPLIED;
+            return Rbac3RuntimeProjectionDeliveryHandlerProjectionOutcomeEnum.ALREADY_APPLIED;
         });
 
         assertThatThrownBy(() -> handler.validateDestination("rbac3.unknown.v1"))
@@ -160,7 +162,7 @@ class OutboxTransactionRollbackIT {
                     dataSource, transactionManager)) {
                 TransactionalOutbox transactionalOutbox = context.getBean(
                         TransactionalOutbox.class);
-                var adapter = new TransactionalOutboxAuthorizationEventAdapter(
+                var adapter = new TransactionalOutboxAuthorizationEventPublisher(
                         transactionalOutbox, Clock.fixed(NOW, ZoneOffset.UTC));
                 TransactionTemplate transaction = new TransactionTemplate(transactionManager);
 
@@ -208,8 +210,7 @@ class OutboxTransactionRollbackIT {
                 () -> new ObjectMapper().findAndRegisterModules());
         context.registerBean(Rbac3RuntimeProjectionDeliveryHandler.class,
                 () -> new Rbac3RuntimeProjectionDeliveryHandler(
-                        envelope -> Rbac3RuntimeProjectionDeliveryHandler
-                                .ProjectionOutcome.APPLIED));
+                        envelope -> Rbac3RuntimeProjectionDeliveryHandlerProjectionOutcomeEnum.APPLIED));
         context.register(TransactionalOutboxAutoConfiguration.class);
         context.refresh();
         return context;
@@ -236,8 +237,8 @@ class OutboxTransactionRollbackIT {
         return value.trim();
     }
 
-    private AuthorizationEventPort.AuthorizationEvent event() {
-        return new AuthorizationEventPort.AuthorizationEvent(
+    private AuthorizationEventVO event() {
+        return new AuthorizationEventVO(
                 "7", "SESSION", "99", "RBAC3_SESSION_ACTIVE_ROLES_REPLACED",
                 Map.of("mutationId", "700", "sessionVersion", "4"), "trace-1");
     }

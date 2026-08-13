@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.activation.domain.vo;
 
-import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.service.SessionSnapshotProjector;
 import top.egon.cola.platform.rbac3.contract.activation.ActiveRoleSetView;
 import top.egon.cola.platform.rbac3.contract.activation.ReplaceActiveRolesResult;
 import top.egon.cola.platform.rbac3.core.activation.DefaultRoleActivationResolver;
@@ -21,6 +21,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.SessionSnapshotProjectionVO;
 
 /**
      * 类型 `RuntimePublicationVO` 位于 `RoleActivationFacade` 内，是记录类型，用于承载 `Runtime Publication` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -93,6 +94,6 @@ import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacad
              * 含义与用法：读取、传递或更新 `projection` 时应保持 `RuntimePublicationVO` 的生命周期、不可变性和线程安全约束。
              * Meaning and usage: when reading, passing, or updating `projection`, preserve `RuntimePublicationVO`'s lifecycle, immutability, and thread-safety constraints.
              */
-            SessionSnapshotProjector.Projection projection
+            SessionSnapshotProjectionVO projection
     ) {
     }

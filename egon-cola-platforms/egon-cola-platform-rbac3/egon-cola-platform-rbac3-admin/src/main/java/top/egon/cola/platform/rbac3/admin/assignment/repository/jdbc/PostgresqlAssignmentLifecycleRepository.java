@@ -11,7 +11,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import top.egon.cola.platform.rbac3.admin.assignment.repository.internal.DueAssignment;
-import top.egon.cola.platform.rbac3.admin.worker.AssignmentLifecycleWorker;
+import top.egon.cola.platform.rbac3.admin.runtime.controller.scheduled.AssignmentLifecycleWorker;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AssignmentLifecycleRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ChangePublisher;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.LifecycleChangeVO;
 
 /**
  * 类型 `PostgresqlAssignmentLifecycleRepository` 位于当前包内，是类型，用于承载 `Postgresql Assignment Lifecycle Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -20,7 +23,7 @@ import top.egon.cola.platform.rbac3.admin.worker.AssignmentLifecycleWorker;
  */
 @Repository
 public class PostgresqlAssignmentLifecycleRepository
-        implements AssignmentLifecycleWorker.LifecycleStore {
+        implements AssignmentLifecycleRepository {
 
     /**
      * 字段 `ACTOR` 表示 `PostgresqlAssignmentLifecycleRepository` 中与 `ACTOR` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -70,7 +73,7 @@ public class PostgresqlAssignmentLifecycleRepository
     public int processDue(
             Instant now,
             int batchSize,
-            AssignmentLifecycleWorker.ChangePublisher publisher) {
+            ChangePublisher publisher) {
         List<DueAssignment> due = new ArrayList<>(batchSize);
         due.addAll(lockDue("PENDING", "valid_from <= :now", "ACTIVATED",
                 now, batchSize));
@@ -96,7 +99,7 @@ public class PostgresqlAssignmentLifecycleRepository
             } else {
                 assignment.expire(ACTOR, now);
             }
-            publisher.publish(new AssignmentLifecycleWorker.LifecycleChange(
+            publisher.publish(new LifecycleChangeVO(
                     assignment.getTenantId().toString(),
                     assignment.getId().toString(),
                     assignment.getUserId().toString(),

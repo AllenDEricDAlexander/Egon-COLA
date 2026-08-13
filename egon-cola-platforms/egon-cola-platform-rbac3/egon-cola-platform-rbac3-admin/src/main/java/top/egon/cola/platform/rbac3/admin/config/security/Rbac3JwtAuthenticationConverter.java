@@ -4,7 +4,7 @@ import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.oauth2.jwt.Jwt;
 import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.snapshot.infrastructure.RedisAuthorizationRuntimeStore;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.redis.RedisAuthorizationRuntimeRepository;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.util.LinkedHashSet;
@@ -21,13 +21,13 @@ public final class Rbac3JwtAuthenticationConverter
         implements Converter<Jwt, UsernamePasswordAuthenticationToken> {
 
     /**
-     * 字段 `runtimeStore` 表示 `Rbac3JwtAuthenticationConverter` 中与 `runtime Store` 相关的状态、依赖、配置或结果（声明类型 `RedisAuthorizationRuntimeStore`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `runtimeStore` stores the `runtime Store`-related state, dependency, configuration, or result of `Rbac3JwtAuthenticationConverter` (declared type `RedisAuthorizationRuntimeStore`); its lifecycle and value semantics are defined by its declared type and owning object.
+     * 字段 `runtimeStore` 表示 `Rbac3JwtAuthenticationConverter` 中与 `runtime Store` 相关的状态、依赖、配置或结果（声明类型 `RedisAuthorizationRuntimeRepository`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `runtimeStore` stores the `runtime Store`-related state, dependency, configuration, or result of `Rbac3JwtAuthenticationConverter` (declared type `RedisAuthorizationRuntimeRepository`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
      * 含义与用法：读取、传递或更新 `runtimeStore` 时应保持 `Rbac3JwtAuthenticationConverter` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `runtimeStore`, preserve `Rbac3JwtAuthenticationConverter`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final RedisAuthorizationRuntimeStore runtimeStore;
+    private final RedisAuthorizationRuntimeRepository runtimeStore;
 
     /**
      * 构造器 `Rbac3JwtAuthenticationConverter` 用于创建并初始化 `Rbac3JwtAuthenticationConverter` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -39,7 +39,7 @@ public final class Rbac3JwtAuthenticationConverter
      * @param runtimeStore 输入参数 `runtimeStore`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public Rbac3JwtAuthenticationConverter(
-            RedisAuthorizationRuntimeStore runtimeStore) {
+            RedisAuthorizationRuntimeRepository runtimeStore) {
         this.runtimeStore = runtimeStore;
     }
 

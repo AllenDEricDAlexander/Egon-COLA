@@ -17,7 +17,7 @@ import top.egon.cola.platform.rbac3.admin.resource.controller.ManifestController
 import top.egon.cola.platform.rbac3.admin.participation.controller.ParticipationController;
 import top.egon.cola.platform.rbac3.admin.activation.controller.RoleActivationController;
 import top.egon.cola.platform.rbac3.admin.role.controller.RolePermissionController;
-import top.egon.cola.platform.rbac3.admin.interfaces.http.RuntimeController;
+import top.egon.cola.platform.rbac3.admin.runtime.controller.RuntimeController;
 import top.egon.cola.platform.rbac3.admin.session.controller.SessionController;
 import top.egon.cola.platform.rbac3.admin.simulation.controller.AuthorizationSimulationController;
 import top.egon.cola.platform.rbac3.admin.directory.controller.DirectoryController;

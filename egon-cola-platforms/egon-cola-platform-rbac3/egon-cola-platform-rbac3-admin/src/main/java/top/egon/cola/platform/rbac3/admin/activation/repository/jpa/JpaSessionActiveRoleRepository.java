@@ -9,8 +9,8 @@ import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacad
 import top.egon.cola.platform.rbac3.admin.activation.service.ActiveRoleSetRevalidator;
 import top.egon.cola.platform.rbac3.admin.activation.domain.po.SessionActiveRolePO;
 import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
-import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.AuthorizationMutationEntity;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.po.AuthorizationMutationPO;
 import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
 import top.egon.cola.platform.rbac3.admin.session.repository.jpa.JpaSessionEntityRepository;
 import top.egon.cola.platform.rbac3.core.activation.RoleActivationCandidateResolver;
@@ -33,6 +33,8 @@ import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ResolvedActivatio
 import top.egon.cola.platform.rbac3.admin.activation.domain.vo.TransactionResultVO;
 import top.egon.cola.platform.rbac3.admin.activation.domain.vo.CurrentStateVO;
 import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditEventVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.AuthorizationEventVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.AuthorizationMutationScopeTypeEnum;
 
 /**
  * 类型 `JpaSessionActiveRoleRepository` 位于当前包内，是类型，用于承载 `Session Active Role Repository` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -77,13 +79,13 @@ public class JpaSessionActiveRoleRepository
      */
     private final AuditPort auditPort;
     /**
-     * 字段 `eventPort` 表示 `JpaSessionActiveRoleRepository` 中与 `event Port` 相关的状态、依赖、配置或结果（声明类型 `AuthorizationEventPort`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `eventPort` stores the `event Port`-related state, dependency, configuration, or result of `JpaSessionActiveRoleRepository` (declared type `AuthorizationEventPort`); its lifecycle and value semantics are defined by its declared type and owning object.
+     * 字段 `eventPort` 表示 `JpaSessionActiveRoleRepository` 中与 `event Port` 相关的状态、依赖、配置或结果（声明类型 `AuthorizationEventPublisher`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `eventPort` stores the `event Port`-related state, dependency, configuration, or result of `JpaSessionActiveRoleRepository` (declared type `AuthorizationEventPublisher`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
      * 含义与用法：读取、传递或更新 `eventPort` 时应保持 `JpaSessionActiveRoleRepository` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `eventPort`, preserve `JpaSessionActiveRoleRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final AuthorizationEventPort eventPort;
+    private final AuthorizationEventPublisher eventPort;
 
     /**
      * 构造器 `JpaSessionActiveRoleRepository` 用于创建并初始化 `JpaSessionActiveRoleRepository` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -103,7 +105,7 @@ public class JpaSessionActiveRoleRepository
             EntityManager entityManager,
             LongIdGenerator idGenerator,
             AuditPort auditPort,
-            AuthorizationEventPort eventPort
+            AuthorizationEventPublisher eventPort
     ) {
         this.sessionRepository = sessionRepository;
         this.entityManager = entityManager;
@@ -159,12 +161,12 @@ public class JpaSessionActiveRoleRepository
         }
 
         String mutationId = Long.toString(idGenerator.nextLongId());
-        var mutation = new AuthorizationMutationEntity(
+        var mutation = new AuthorizationMutationPO(
                 Long.valueOf(mutationId),
                 Long.valueOf(command.tenantId()),
                 Long.valueOf(command.userId()),
                 Long.valueOf(command.sessionId()),
-                AuthorizationMutationEntity.ScopeType.SESSION,
+                AuthorizationMutationScopeTypeEnum.SESSION,
                 command.commandId(),
                 session.getSessionVersion(),
                 Math.incrementExact(session.getSessionVersion()),
@@ -213,7 +215,7 @@ public class JpaSessionActiveRoleRepository
                         "newContextVersion", Long.toString(session.getContextVersion()),
                         "snapshotChecksum", session.getActiveRootChecksum()),
                 now));
-        eventPort.enqueue(new AuthorizationEventPort.AuthorizationEvent(
+        eventPort.enqueue(new AuthorizationEventVO(
                 command.tenantId(), "SESSION", command.sessionId(),
                 "RBAC3_SESSION_ACTIVE_ROLES_REPLACED",
                 Map.of(
@@ -323,7 +325,7 @@ public class JpaSessionActiveRoleRepository
     @Override
     @Transactional
     public void markCompleted(String mutationId, Instant now) {
-        AuthorizationMutationEntity mutation = mutation(mutationId);
+        AuthorizationMutationPO mutation = mutation(mutationId);
         mutation.projected(now, "role-activation");
         mutation.completed(now, "role-activation");
     }
@@ -393,9 +395,9 @@ public class JpaSessionActiveRoleRepository
      * @param mutationId 输入参数 `mutationId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private AuthorizationMutationEntity mutation(String mutationId) {
-        AuthorizationMutationEntity mutation = entityManager.find(
-                AuthorizationMutationEntity.class,
+    private AuthorizationMutationPO mutation(String mutationId) {
+        AuthorizationMutationPO mutation = entityManager.find(
+                AuthorizationMutationPO.class,
                 Long.valueOf(mutationId),
                 LockModeType.PESSIMISTIC_WRITE);
         if (mutation == null) {

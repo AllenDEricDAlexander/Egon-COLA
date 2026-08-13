@@ -3,7 +3,7 @@ package top.egon.cola.platform.rbac3.admin.bootstrap.service;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
 import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFacade;
-import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.contract.activation.RoleActivationCandidate;
 import top.egon.cola.platform.rbac3.contract.activation.RoleActivationCandidateView;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
@@ -17,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.AuthorizationContextVO;
 import top.egon.cola.platform.rbac3.admin.activation.domain.dto.ReplaceCommandDTO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.SystemAuthorizationSnapshotContextInitializationEnum;
 
 class Rbac3DevelopmentAuthorizationContextInitializerTest {
 
@@ -65,7 +66,7 @@ class Rbac3DevelopmentAuthorizationContextInitializerTest {
         var initialized = initializer.initialize(context(), NOW);
 
         assertThat(initialized).isEqualTo(
-                SystemAuthorizationSnapshotService.ContextInitialization.COMPLETED);
+                SystemAuthorizationSnapshotContextInitializationEnum.COMPLETED);
         assertThat(captured.get().tenantId()).isEqualTo("1");
         assertThat(captured.get().identitySub()).isEqualTo("alice-sub");
         assertThat(captured.get().userId()).isEqualTo("101");
@@ -126,7 +127,7 @@ class Rbac3DevelopmentAuthorizationContextInitializerTest {
                 });
 
         assertThat(initializer.initialize(context(), NOW)).isEqualTo(
-                SystemAuthorizationSnapshotService.ContextInitialization.UNCHANGED);
+                SystemAuthorizationSnapshotContextInitializationEnum.UNCHANGED);
         assertThat(queried).isFalse();
     }
 
@@ -142,7 +143,7 @@ class Rbac3DevelopmentAuthorizationContextInitializerTest {
                 });
 
         assertThat(initializer.initialize(context(), NOW)).isEqualTo(
-                SystemAuthorizationSnapshotService.ContextInitialization.CONCURRENT);
+                SystemAuthorizationSnapshotContextInitializationEnum.CONCURRENT);
     }
 
     private AuthorizationContextVO context() {

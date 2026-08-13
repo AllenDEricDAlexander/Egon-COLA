@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.config.ddc;
 
-import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcPolicyApplier;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.Rbac3DdcPolicyApplier;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
@@ -14,6 +14,7 @@ import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
 
 import java.util.Objects;
 import java.util.Set;
+import top.egon.cola.platform.rbac3.admin.runtime.service.internal.ApplyObserver;
 
 /**
  * 类型 `Rbac3IntegrationMetrics` 位于当前包内，是类型，用于承载 `Rbac3 Integration Metrics` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -21,7 +22,7 @@ import java.util.Set;
  * Registers the bounded RBAC3 DDC and Gateway integration metrics.
  */
 public final class Rbac3IntegrationMetrics
-        implements Rbac3DdcPolicyApplier.ApplyObserver {
+        implements ApplyObserver {
 
     /**
      * 字段 `APPLY_STATUSES` 表示 `Rbac3IntegrationMetrics` 中与 `APPLY STATUSES` 相关的状态、依赖、配置或结果（声明类型 `Set&lt;String&gt;`）；其生命周期和取值含义由声明类型及所属对象共同确定。

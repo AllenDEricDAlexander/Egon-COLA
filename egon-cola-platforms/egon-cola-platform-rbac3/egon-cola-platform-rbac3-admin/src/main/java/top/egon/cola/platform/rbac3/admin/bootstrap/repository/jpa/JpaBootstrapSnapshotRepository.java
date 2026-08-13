@@ -6,7 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.platform.rbac3.admin.bootstrap.repository.BootstrapSnapshotRepository;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
 import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePO;
-import top.egon.cola.platform.rbac3.admin.snapshot.infrastructure.RedisAuthorizationRuntimeStore;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.redis.RedisAuthorizationRuntimeRepository;
 import top.egon.cola.platform.rbac3.contract.activation.ActivationRoot;
 import top.egon.cola.platform.rbac3.contract.auth.BootstrapView;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
@@ -29,7 +29,7 @@ public class JpaBootstrapSnapshotRepository implements BootstrapSnapshotReposito
     /** JPA 实体管理器。 JPA entity manager. */
     private final EntityManager entityManager;
     /** Redis 授权运行时存储。 Redis authorization runtime store. */
-    private final RedisAuthorizationRuntimeStore runtimeStore;
+    private final RedisAuthorizationRuntimeRepository runtimeStore;
 
     /**
      * 创建启动快照查询适配器。 Creates the bootstrap snapshot query adapter.
@@ -39,7 +39,7 @@ public class JpaBootstrapSnapshotRepository implements BootstrapSnapshotReposito
      */
     public JpaBootstrapSnapshotRepository(
             EntityManager entityManager,
-            RedisAuthorizationRuntimeStore runtimeStore) {
+            RedisAuthorizationRuntimeRepository runtimeStore) {
         this.entityManager = entityManager;
         this.runtimeStore = runtimeStore;
     }

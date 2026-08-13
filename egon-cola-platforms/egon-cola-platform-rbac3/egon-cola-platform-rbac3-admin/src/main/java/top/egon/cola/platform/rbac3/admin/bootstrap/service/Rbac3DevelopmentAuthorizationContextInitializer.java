@@ -3,7 +3,7 @@ package top.egon.cola.platform.rbac3.admin.bootstrap.service;
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
 import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFacade;
-import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.contract.activation.RoleActivationCandidateView;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
@@ -18,6 +18,8 @@ import top.egon.cola.platform.rbac3.admin.bootstrap.service.internal.RoleActivat
 import top.egon.cola.platform.rbac3.admin.bootstrap.domain.vo.ApplicationDefinitionVO;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.AuthorizationContextVO;
 import top.egon.cola.platform.rbac3.admin.activation.domain.dto.ReplaceCommandDTO;
+import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationContextInitializer;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.SystemAuthorizationSnapshotContextInitializationEnum;
 
 /**
  * 类型 `Rbac3DevelopmentAuthorizationContextInitializer` 位于当前包内，是类型，用于承载 `Rbac3 Development Authorization Context Initializer` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -26,7 +28,7 @@ import top.egon.cola.platform.rbac3.admin.activation.domain.dto.ReplaceCommandDT
  * Activates the generated local administrator roles for an opted-in development stack.
  */
 public final class Rbac3DevelopmentAuthorizationContextInitializer
-        implements SystemAuthorizationSnapshotService.ContextInitializer {
+        implements AuthorizationContextInitializer {
 
     /**
      * 字段 `DEVELOPMENT_ACTOR` 表示 `Rbac3DevelopmentAuthorizationContextInitializer` 中与 `DEVELOPMENT ACTOR` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -125,13 +127,13 @@ public final class Rbac3DevelopmentAuthorizationContextInitializer
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Override
-    public SystemAuthorizationSnapshotService.ContextInitialization initialize(
+    public SystemAuthorizationSnapshotContextInitializationEnum initialize(
             AuthorizationContextVO context,
             Instant now) {
         Objects.requireNonNull(context, "context");
         Objects.requireNonNull(now, "now");
         if (!enabled || !context.activationRequired()) {
-            return SystemAuthorizationSnapshotService.ContextInitialization.UNCHANGED;
+            return SystemAuthorizationSnapshotContextInitializationEnum.UNCHANGED;
         }
         RoleActivationCandidateView view = candidates.load(
                 context.tenantId(), context.rbac3UserId(), now);
@@ -148,7 +150,7 @@ public final class Rbac3DevelopmentAuthorizationContextInitializer
                 .sorted()
                 .toList();
         if (roleIds.isEmpty()) {
-            return SystemAuthorizationSnapshotService.ContextInitialization.UNCHANGED;
+            return SystemAuthorizationSnapshotContextInitializationEnum.UNCHANGED;
         }
         try {
             activator.replace(new ReplaceCommandDTO(
@@ -163,8 +165,8 @@ public final class Rbac3DevelopmentAuthorizationContextInitializer
                     violation.reasonCode())) {
                 throw violation;
             }
-            return SystemAuthorizationSnapshotService.ContextInitialization.CONCURRENT;
+            return SystemAuthorizationSnapshotContextInitializationEnum.CONCURRENT;
         }
-        return SystemAuthorizationSnapshotService.ContextInitialization.COMPLETED;
+        return SystemAuthorizationSnapshotContextInitializationEnum.COMPLETED;
     }
 }

@@ -17,7 +17,7 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentFacade;
-import top.egon.cola.platform.rbac3.admin.runtime.application.IdempotencyService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.IdempotencyService;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;
@@ -35,6 +35,9 @@ import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.RoleAssignmentDT
 import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentResultVO;
 import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentVO;
 import top.egon.cola.platform.rbac3.admin.assignment.domain.enums.AssignmentChangeOperationEnum;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.IdempotencyCommandDTO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.IdempotencyClaimVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.IdempotencyOutcomeEnum;
 
 /**
  * 类型 `AssignmentController` 位于当前包内，是类型，用于承载 `Assignment Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -182,10 +185,10 @@ public class AssignmentController {
     ) {
         Instant now = databaseClock.transactionNow();
         String operation = "POST:/users/{userId}/role-assignments";
-        IdempotencyService.Claim claim = claim(
+        IdempotencyClaimVO claim = claim(
                 principal, operation, idempotencyKey,
                 userId + '|' + request, now);
-        if (claim.outcome() == IdempotencyService.Outcome.REPLAY) {
+        if (claim.outcome() == IdempotencyOutcomeEnum.REPLAY) {
             return ApiEnvelopeVO.success(new AssignmentResultVO(
                     claim.resourceId(), null, true, "IDEMPOTENT_REPLAY", null));
         }
@@ -323,10 +326,10 @@ public class AssignmentController {
         Instant now = databaseClock.transactionNow();
         String operationCode = "POST:/users/{userId}/role-assignments/{assignmentId}/"
                 + operation.name().toLowerCase(java.util.Locale.ROOT);
-        IdempotencyService.Claim claim = claim(
+        IdempotencyClaimVO claim = claim(
                 principal, operationCode, idempotencyKey,
                 userId + '|' + assignmentId + '|' + operation + '|' + request, now);
-        if (claim.outcome() == IdempotencyService.Outcome.REPLAY) {
+        if (claim.outcome() == IdempotencyOutcomeEnum.REPLAY) {
             return ApiEnvelopeVO.success(new AssignmentResultVO(
                     claim.resourceId(), null, true, "IDEMPOTENT_REPLAY", null));
         }
@@ -356,7 +359,7 @@ public class AssignmentController {
      * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private IdempotencyService.Claim claim(
+    private IdempotencyClaimVO claim(
             CurrentRbac3Principal principal,
             String operation,
             String idempotencyKey,
@@ -364,7 +367,7 @@ public class AssignmentController {
             Instant now
     ) {
         requireIdempotencyKey(idempotencyKey);
-        return idempotencyService.claim(new IdempotencyService.Command(
+        return idempotencyService.claim(new IdempotencyCommandDTO(
                 tenantId(), "USER", principal.userId(), operation,
                 idempotencyKey, canonicalRequest, now.plus(IDEMPOTENCY_TTL), now));
     }
@@ -382,7 +385,7 @@ public class AssignmentController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     private ApiEnvelopeVO<AssignmentResultVO> complete(
-            IdempotencyService.Claim claim,
+            IdempotencyClaimVO claim,
             AssignmentResultVO result,
             Instant now
     ) {

@@ -1,9 +1,10 @@
 package top.egon.cola.platform.rbac3.admin.session;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.Rbac3RuntimePolicySnapshotVO;
 import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.session.service.RefreshTokenService;
 import top.egon.cola.platform.rbac3.admin.session.service.SessionFacade;
 
@@ -104,7 +105,7 @@ class SessionFacadeTest {
         }
 
         @Override
-        public Snapshot current() {
+        public Rbac3RuntimePolicySnapshotVO current() {
             currentCalls++;
             return delegate.current();
         }

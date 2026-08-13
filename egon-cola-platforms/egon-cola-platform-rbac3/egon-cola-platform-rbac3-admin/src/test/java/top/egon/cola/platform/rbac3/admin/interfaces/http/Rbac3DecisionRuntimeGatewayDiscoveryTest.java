@@ -14,10 +14,10 @@ import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
 import top.egon.cola.platform.rbac3.admin.audit.controller.AuditController;
 import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.participation.service.ParticipationFacade;
-import top.egon.cola.platform.rbac3.admin.runtime.application.RuntimeQueryService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeQueryService;
 import top.egon.cola.platform.rbac3.admin.simulation.service.AuthorizationSimulationService;
 import top.egon.cola.platform.rbac3.admin.simulation.controller.AuthorizationSimulationController;
-import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.SystemAuthorizationSnapshotService;
 
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.Assertions.assertThat;
 import top.egon.cola.platform.rbac3.admin.authorization.controller.InternalAuthorizationController;
 import top.egon.cola.platform.rbac3.admin.participation.controller.ParticipationController;
+import top.egon.cola.platform.rbac3.admin.runtime.controller.RuntimeController;
 
 @WebMvcTest(
         controllers = {

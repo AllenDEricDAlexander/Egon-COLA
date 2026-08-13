@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.activation.service;
 
-import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.service.SessionSnapshotProjector;
 import top.egon.cola.platform.rbac3.contract.activation.ActiveRoleSetView;
 import top.egon.cola.platform.rbac3.contract.activation.ReplaceActiveRolesResult;
 import top.egon.cola.platform.rbac3.core.activation.DefaultRoleActivationResolver;
@@ -32,6 +32,8 @@ import top.egon.cola.platform.rbac3.admin.activation.domain.vo.RuntimePublicatio
 import top.egon.cola.platform.rbac3.admin.activation.repository.RoleActivationFactRepository;
 import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ActivationFactsVO;
 import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ApplicationFactVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.ProjectionCommandDTO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.SessionSnapshotProjectionVO;
 
 /**
  * 类型 `RoleActivationFacade` 位于当前包内，是类型，用于承载 `Role Activation Facade` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -212,8 +214,8 @@ public final class RoleActivationFacade {
                         command.tenantId(), command.sessionId(),
                         result.mutationId(), FENCE_TTL);
                 transaction.markFenced(result.mutationId(), now);
-                SessionSnapshotProjector.Projection projection = snapshotProjector.project(
-                        new SessionSnapshotProjector.ProjectionCommand(
+                SessionSnapshotProjectionVO projection = snapshotProjector.project(
+                        new ProjectionCommandDTO(
                                 command.tenantId(), command.identitySub(), command.userId(),
                                 command.sessionId(),
                                 result.authVersion(), result.sessionVersion(),

@@ -5,7 +5,7 @@ import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 import top.egon.cola.platform.rbac3.admin.resource.domain.po.PermissionPO;
@@ -39,6 +39,7 @@ import top.egon.cola.platform.rbac3.admin.role.domain.enums.RoleTypeEnum;
 import top.egon.cola.platform.rbac3.admin.role.domain.enums.RoleRiskLevelEnum;
 import top.egon.cola.platform.rbac3.admin.role.domain.enums.RoleStatusEnum;
 import top.egon.cola.platform.rbac3.admin.role.domain.enums.RolePermissionStatusEnum;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.AuthorizationEventVO;
 
 /**
  * 类型 `JpaRoleRepository` 位于当前包内，是类型，用于承载 `Role Repository` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -83,13 +84,13 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
      */
     private final DatabaseClock databaseClock;
     /**
-     * 字段 `eventPort` 表示 `JpaRoleRepository` 中与 `event Port` 相关的状态、依赖、配置或结果（声明类型 `AuthorizationEventPort`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `eventPort` stores the `event Port`-related state, dependency, configuration, or result of `JpaRoleRepository` (declared type `AuthorizationEventPort`); its lifecycle and value semantics are defined by its declared type and owning object.
+     * 字段 `eventPort` 表示 `JpaRoleRepository` 中与 `event Port` 相关的状态、依赖、配置或结果（声明类型 `AuthorizationEventPublisher`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `eventPort` stores the `event Port`-related state, dependency, configuration, or result of `JpaRoleRepository` (declared type `AuthorizationEventPublisher`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
      * 含义与用法：读取、传递或更新 `eventPort` 时应保持 `JpaRoleRepository` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `eventPort`, preserve `JpaRoleRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final AuthorizationEventPort eventPort;
+    private final AuthorizationEventPublisher eventPort;
 
     /**
      * 构造器 `JpaRoleRepository` 用于创建并初始化 `JpaRoleRepository` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -109,7 +110,7 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
             PostgresqlRoleClosureRepository closureStore,
             LongIdGenerator idGenerator,
             DatabaseClock databaseClock,
-            AuthorizationEventPort eventPort) {
+            AuthorizationEventPublisher eventPort) {
         this.entityManager = entityManager;
         this.closureStore = closureStore;
         this.idGenerator = idGenerator;
@@ -729,7 +730,7 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }
         tenant.incrementPolicyVersion(actorId, now);
-        String propagationId = eventPort.enqueue(new AuthorizationEventPort.AuthorizationEvent(
+        String propagationId = eventPort.enqueue(new AuthorizationEventVO(
                 tenantId,
                 aggregateType,
                 aggregateId,

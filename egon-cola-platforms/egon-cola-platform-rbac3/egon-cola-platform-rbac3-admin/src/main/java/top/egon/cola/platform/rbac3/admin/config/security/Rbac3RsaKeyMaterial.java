@@ -21,7 +21,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import top.egon.cola.platform.rbac3.admin.auth.service.JwtKeyRingService;
 import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3SecurityProperties;
-import top.egon.cola.platform.rbac3.admin.snapshot.infrastructure.RedisAuthorizationRuntimeStore;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.redis.RedisAuthorizationRuntimeRepository;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.interfaces.RSAPrivateKey;

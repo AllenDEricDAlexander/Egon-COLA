@@ -1,8 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.runtime;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.runtime.application.AuthorizationFenceService;
-import top.egon.cola.platform.rbac3.admin.runtime.application.AuthorizationMutationCoordinator;
+import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationFenceService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationMutationCoordinator;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -13,6 +13,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationFenceRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.AuthorizationFenceVO;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationMutationRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.MutationScopeVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ExpectedVersionsVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.MutationRecordVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.AuthorizationMutationResultStatusEnum;
 
 class MutationFenceRollbackIT {
 
@@ -54,14 +61,14 @@ class MutationFenceRollbackIT {
             boolean projectionSucceeds
     ) {
         List<String> states = new ArrayList<>();
-        var store = new AuthorizationMutationCoordinator.MutationStore() {
-            public void prepare(AuthorizationMutationCoordinator.MutationRecord record) {
+        var store = new AuthorizationMutationRepository() {
+            public void prepare(MutationRecordVO record) {
                 states.add("PREPARING");
             }
 
             public void transition(
                     String mutationId,
-                    AuthorizationMutationCoordinator.MutationStatus status,
+                    AuthorizationMutationResultStatusEnum status,
                     String errorCode,
                     Instant now
             ) {
@@ -69,8 +76,8 @@ class MutationFenceRollbackIT {
             }
         };
         AuthorizationFenceService fence = new AuthorizationFenceService(
-                new AuthorizationFenceService.FenceStore() {
-                    public void put(AuthorizationFenceService.Fence fence) {
+                new AuthorizationFenceRepository() {
+                    public void put(AuthorizationFenceVO fence) {
                         fenced.set(true);
                     }
 
@@ -92,13 +99,13 @@ class MutationFenceRollbackIT {
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
-    private AuthorizationMutationCoordinator.MutationScope scope() {
-        return new AuthorizationMutationCoordinator.MutationScope(
+    private MutationScopeVO scope() {
+        return new MutationScopeVO(
                 "10001", "USER", "20001", "command-1", "operator");
     }
 
-    private AuthorizationMutationCoordinator.ExpectedVersions versions() {
-        return new AuthorizationMutationCoordinator.ExpectedVersions(
+    private ExpectedVersionsVO versions() {
+        return new ExpectedVersionsVO(
                 null, null, 3L, 4L, 7L, 7L);
     }
 }

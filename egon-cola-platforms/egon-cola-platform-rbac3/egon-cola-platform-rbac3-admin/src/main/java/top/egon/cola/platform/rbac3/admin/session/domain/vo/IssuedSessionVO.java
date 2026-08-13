@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.session.domain.vo;
 
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;

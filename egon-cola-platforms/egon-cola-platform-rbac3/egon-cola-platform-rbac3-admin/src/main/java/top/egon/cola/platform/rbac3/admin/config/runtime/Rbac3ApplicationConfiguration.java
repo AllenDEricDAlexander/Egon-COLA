@@ -1,6 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.config.runtime;
 
-import top.egon.cola.platform.rbac3.admin.integration.runtime.Rbac3AuthorizationFenceStore;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.jpa.JpaAuthorizationFenceRepository;
 import top.egon.cola.platform.rbac3.admin.bootstrap.repository.BootstrapSnapshotRepository;
 
 import org.springframework.context.annotation.Bean;
@@ -16,9 +16,9 @@ import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacad
 import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaRoleActivationFactRepository;
 import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaSessionActiveRoleRepository;
 import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
-import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
-import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentFacade;
 import top.egon.cola.platform.rbac3.admin.assignment.repository.jpa.JpaAssignmentRepository;
 import top.egon.cola.platform.rbac3.admin.assignment.repository.jdbc.PostgresqlAssignmentLockRepository;
@@ -46,12 +46,12 @@ import top.egon.cola.platform.rbac3.admin.resource.service.ManifestFacade;
 import top.egon.cola.platform.rbac3.admin.resource.repository.jpa.JpaResourceManifestRepository;
 import top.egon.cola.platform.rbac3.admin.role.service.RoleFacade;
 import top.egon.cola.platform.rbac3.admin.role.repository.jpa.JpaRoleRepository;
-import top.egon.cola.platform.rbac3.admin.runtime.application.AuthorizationFenceService;
-import top.egon.cola.platform.rbac3.admin.runtime.application.AuthorizationMutationCoordinator;
-import top.egon.cola.platform.rbac3.admin.runtime.application.IdempotencyService;
-import top.egon.cola.platform.rbac3.admin.runtime.application.RuntimeQueryService;
-import top.egon.cola.platform.rbac3.admin.runtime.infrastructure.AuthorizationMutationRepository;
-import top.egon.cola.platform.rbac3.admin.runtime.infrastructure.IdempotencyRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationFenceService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationMutationCoordinator;
+import top.egon.cola.platform.rbac3.admin.runtime.service.IdempotencyService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeQueryService;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.jpa.JpaAuthorizationMutationRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.jpa.JpaIdempotencyRepository;
 import top.egon.cola.platform.rbac3.admin.session.service.SessionFacade;
 import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFacade;
 import top.egon.cola.platform.rbac3.admin.session.service.SessionSecurityEventRecorder;
@@ -59,12 +59,12 @@ import top.egon.cola.platform.rbac3.admin.session.repository.jpa.JpaSessionRepos
 import top.egon.cola.platform.rbac3.admin.session.repository.jpa.JpaAuthorizationContextRepository;
 import top.egon.cola.platform.rbac3.admin.simulation.service.AuthorizationSimulationService;
 import top.egon.cola.platform.rbac3.admin.simulation.repository.jdbc.PostgresqlRoleImpactRepository;
-import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
-import top.egon.cola.platform.rbac3.admin.snapshot.application.LoginRuntimeProjectionFactory;
-import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
-import top.egon.cola.platform.rbac3.admin.snapshot.infrastructure.RedisAuthorizationRuntimeStore;
-import top.egon.cola.platform.rbac3.admin.worker.AuthorizationMutationRecoveryWorker;
-import top.egon.cola.platform.rbac3.admin.worker.Rbac3RuntimeProjectionRecovery;
+import top.egon.cola.platform.rbac3.admin.runtime.service.SessionSnapshotProjector;
+import top.egon.cola.platform.rbac3.admin.runtime.service.LoginRuntimeProjectionFactory;
+import top.egon.cola.platform.rbac3.admin.runtime.service.SystemAuthorizationSnapshotService;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.redis.RedisAuthorizationRuntimeRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationMutationRecoveryService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.Rbac3RuntimeProjectionRecovery;
 import top.egon.cola.platform.rbac3.core.delegation.ManagementPolicyDecisionService;
 import top.egon.cola.platform.rbac3.core.runtime.Rbac3RuntimeKeyFactory;
 
@@ -76,6 +76,7 @@ import java.time.Duration;
 import java.util.Set;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.ActiveMembershipVO;
 import top.egon.cola.platform.rbac3.admin.resource.repository.ComponentKeyRegistry;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.MutationWorkDTO;
 
 /**
  * 类型 `Rbac3ApplicationConfiguration` 位于当前包内，是类型，用于承载 `Rbac3 Application Configuration` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -192,7 +193,7 @@ public class Rbac3ApplicationConfiguration {
             JpaRoleActivationFactRepository factStore,
             JpaSessionActiveRoleRepository transaction,
             SessionSnapshotProjector projector,
-            RedisAuthorizationRuntimeStore runtimeStore,
+            RedisAuthorizationRuntimeRepository runtimeStore,
             Rbac3RuntimePolicy runtimePolicy,
             Clock clock) {
         return new RoleActivationFacade(
@@ -245,7 +246,7 @@ public class Rbac3ApplicationConfiguration {
      */
     @Bean
     AuthorizationFenceService authorizationFenceService(
-            Rbac3AuthorizationFenceStore store,
+            JpaAuthorizationFenceRepository store,
             Clock clock) {
         return new AuthorizationFenceService(store, clock);
     }
@@ -267,7 +268,7 @@ public class Rbac3ApplicationConfiguration {
      */
     @Bean
     AuthorizationMutationCoordinator authorizationMutationCoordinator(
-            AuthorizationMutationRepository repository,
+            JpaAuthorizationMutationRepository repository,
             AuthorizationFenceService fenceService,
             Rbac3RuntimeProjectionRecovery projectionRecovery,
             TransactionTemplate transactionTemplate,
@@ -277,7 +278,7 @@ public class Rbac3ApplicationConfiguration {
                 repository,
                 fenceService,
                 mutation -> projectionRecovery.project(
-                        new AuthorizationMutationRecoveryWorker.MutationWork(
+                        new MutationWorkDTO(
                                 mutation.mutationId(), mutation.scope().tenantId(),
                                 mutation.scope().scopeType(), mutation.scope().scopeId(),
                                 "COMMITTED")),
@@ -453,7 +454,7 @@ public class Rbac3ApplicationConfiguration {
     @Bean
     SystemAuthorizationSnapshotService systemAuthorizationSnapshotService(
             AuthorizationContextFacade contexts,
-            RedisAuthorizationRuntimeStore snapshots,
+            RedisAuthorizationRuntimeRepository snapshots,
             RoleActivationCandidateService candidates,
             RoleActivationFacade activator,
             Clock clock,
@@ -523,7 +524,7 @@ public class Rbac3ApplicationConfiguration {
     @Bean
     SessionSecurityEventRecorder sessionSecurityEventRecorder(
             AuditPort auditPort,
-            AuthorizationEventPort eventPort) {
+            AuthorizationEventPublisher eventPort) {
         return new SessionSecurityEventRecorder(auditPort, eventPort);
     }
 
@@ -572,7 +573,7 @@ public class Rbac3ApplicationConfiguration {
      */
     @Bean
     AuthorizationDecisionService authorizationDecisionService(
-            RedisAuthorizationRuntimeStore runtimeStore,
+            RedisAuthorizationRuntimeRepository runtimeStore,
             Clock clock) {
         return new AuthorizationDecisionService(runtimeStore, runtimeStore, clock);
     }
@@ -588,7 +589,7 @@ public class Rbac3ApplicationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Bean
-    IdempotencyService idempotencyService(IdempotencyRepository repository) {
+    IdempotencyService idempotencyService(JpaIdempotencyRepository repository) {
         return new IdempotencyService(repository);
     }
 
@@ -686,9 +687,9 @@ public class Rbac3ApplicationConfiguration {
      */
     @Bean
     RuntimeQueryService runtimeQueryService(
-            top.egon.cola.platform.rbac3.admin.runtime.application.ControlPlaneRuntimeStatusPort status,
-            AuthorizationMutationRepository mutations,
-            AuthorizationMutationRecoveryWorker recovery) {
+            top.egon.cola.platform.rbac3.admin.runtime.service.ControlPlaneRuntimeStatusPort status,
+            JpaAuthorizationMutationRepository mutations,
+            AuthorizationMutationRecoveryService recovery) {
         return new RuntimeQueryService(status, mutations, recovery);
     }
 

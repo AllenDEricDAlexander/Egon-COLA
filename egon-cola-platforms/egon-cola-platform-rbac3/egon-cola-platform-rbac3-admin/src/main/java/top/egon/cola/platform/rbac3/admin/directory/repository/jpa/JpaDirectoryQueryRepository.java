@@ -26,7 +26,7 @@ import top.egon.cola.platform.rbac3.admin.session.domain.po.RefreshTokenPO;
 import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
 import top.egon.cola.platform.rbac3.admin.session.service.SessionRuntimeSynchronizer;
 import top.egon.cola.platform.rbac3.admin.session.service.SessionSecurityEventRecorder;
-import top.egon.cola.platform.rbac3.admin.snapshot.infrastructure.RedisAuthorizationRuntimeStore;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.redis.RedisAuthorizationRuntimeRepository;
 import top.egon.cola.platform.rbac3.contract.activation.ActivationRoot;
 import top.egon.cola.platform.rbac3.contract.auth.BootstrapView;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;

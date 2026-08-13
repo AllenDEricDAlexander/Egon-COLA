@@ -10,10 +10,10 @@ import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefini
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntimeProperties;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationState;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.DdcProviderLeaseStatusService;
-import top.egon.cola.platform.rbac3.admin.integration.gateway.GatewayAdminControlPlaneStatusClient;
-import top.egon.cola.platform.rbac3.admin.integration.gateway.GatewayDefinitionStatusService;
-import top.egon.cola.platform.rbac3.admin.integration.runtime.GatewayDdcRuntimeStatusService;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.DdcProviderLeaseStatusRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayAdminControlPlaneStatusClient;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayDefinitionStatusRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.service.GatewayDdcRuntimeStatusService;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,12 +29,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.DdcProviderLeaseStatusVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayAdminSnapshotVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayReleaseObservationVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayProviderObservationVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayProviderInstanceVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.GatewayServiceKey;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayConsistencyObservationVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayDefinitionStatusVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ServiceIdentityVO;
 
 class GatewayDdcConfigurationTest {
 
     private static final Instant NOW = Instant.parse("2026-07-30T12:00:00Z");
-    private static final GatewayDdcRuntimeStatusService.ServiceIdentity IDENTITY =
-            new GatewayDdcRuntimeStatusService.ServiceIdentity(
+    private static final ServiceIdentityVO IDENTITY =
+            new ServiceIdentityVO(
                     "rbac3", "rbac3-admin", "prod", "default",
                     "HTTP_PROVIDER", "http",
                     "rbac3-admin", "default", "1.0.0");
@@ -128,7 +137,7 @@ class GatewayDdcConfigurationTest {
         when(runtime.instanceId()).thenReturn("instance-1");
         when(runtime.state()).thenReturn(DdcHttpRegistrationState.RECOVERING);
         when(runtime.lease()).thenReturn(Optional.empty());
-        var service = new DdcProviderLeaseStatusService(runtime, IDENTITY);
+        var service = new DdcProviderLeaseStatusRepository(runtime, IDENTITY);
 
         assertThat(service.status().state()).isEqualTo("RECOVERING");
         when(runtime.state()).thenReturn(DdcHttpRegistrationState.REGISTERED);
@@ -144,7 +153,7 @@ class GatewayDdcConfigurationTest {
     void routeabilityRequiresExactDefinitionLeaseProviderAndReleaseIdentity() {
         var definition = definition("definition-1");
         var lease = new AtomicReference<>(
-                new DdcProviderLeaseStatusService.ProviderLeaseStatus(
+                new DdcProviderLeaseStatusVO(
                         "REGISTERED", "instance-1", NOW.plusSeconds(30), IDENTITY));
         var client = mock(GatewayAdminControlPlaneStatusClient.class);
         when(client.snapshot()).thenReturn(snapshot("definition-1", "1.0.0", IDENTITY));
@@ -158,13 +167,13 @@ class GatewayDdcConfigurationTest {
         assertThat(status.status().gatewayRelease().status()).isEqualTo("NOT_ROUTABLE");
 
         when(client.snapshot()).thenReturn(snapshot("definition-1", "1.0.0", IDENTITY));
-        lease.set(new DdcProviderLeaseStatusService.ProviderLeaseStatus(
+        lease.set(new DdcProviderLeaseStatusVO(
                 "REGISTERED", "instance-1", NOW.minusSeconds(1), IDENTITY));
         assertThat(status.status().gatewayRelease().status()).isEqualTo("NOT_ROUTABLE");
-        lease.set(new DdcProviderLeaseStatusService.ProviderLeaseStatus(
+        lease.set(new DdcProviderLeaseStatusVO(
                 "REGISTERED", "instance-1", NOW.plusSeconds(30), IDENTITY));
 
-        var wrongIdentity = new GatewayDdcRuntimeStatusService.ServiceIdentity(
+        var wrongIdentity = new ServiceIdentityVO(
                 "other-biz", "rbac3-admin", "prod", "default",
                 "HTTP_PROVIDER", "http",
                 "rbac3-admin", "default", "1.0.0");
@@ -172,53 +181,50 @@ class GatewayDdcConfigurationTest {
                 "definition-1", "1.0.0", wrongIdentity));
         assertThat(status.status().gatewayRelease().status()).isEqualTo("NOT_ROUTABLE");
 
-        when(client.snapshot()).thenReturn(GatewayAdminControlPlaneStatusClient
-                .GatewayAdminSnapshot.class.cast(new GatewayAdminControlPlaneStatusClient
-                .GatewayAdminSnapshot(
-                        new GatewayAdminControlPlaneStatusClient.ReleaseObservation(
+        when(client.snapshot()).thenReturn(GatewayAdminSnapshotVO.class.cast(new GatewayAdminSnapshotVO(
+                        new GatewayReleaseObservationVO(
                                 "UNKNOWN", "release-1", null, null, null,
                                 "GATEWAY_STATUS_UNAVAILABLE"),
-                        new GatewayAdminControlPlaneStatusClient.ProviderObservation(
+                        new GatewayProviderObservationVO(
                                 "UNKNOWN", List.of(), "GATEWAY_STATUS_UNAVAILABLE"),
-                        new GatewayAdminControlPlaneStatusClient.ConsistencyObservation(
+                        new GatewayConsistencyObservationVO(
                                 "UNKNOWN", null, null, false, null,
                                 "GATEWAY_STATUS_UNAVAILABLE"), NOW)));
         assertThat(status.status().gatewayRelease().status()).isEqualTo("UNKNOWN");
     }
 
-    private GatewayAdminControlPlaneStatusClient.GatewayAdminSnapshot
+    private GatewayAdminSnapshotVO
     snapshotWithReleaseStatus(String releaseStatus) {
-        GatewayAdminControlPlaneStatusClient.GatewayAdminSnapshot routable =
+        GatewayAdminSnapshotVO routable =
                 snapshot("definition-1", "1.0.0", IDENTITY);
-        return new GatewayAdminControlPlaneStatusClient.GatewayAdminSnapshot(
-                new GatewayAdminControlPlaneStatusClient.ReleaseObservation(
+        return new GatewayAdminSnapshotVO(
+                new GatewayReleaseObservationVO(
                         "SUCCESS", "release-1", releaseStatus,
                         "definition-1", "1.0.0", null),
                 routable.providers(), routable.consistency(), NOW);
     }
 
-    private GatewayDefinitionStatusService.DefinitionStatus definition(String id) {
-        return new GatewayDefinitionStatusService.DefinitionStatus(
+    private GatewayDefinitionStatusVO definition(String id) {
+        return new GatewayDefinitionStatusVO(
                 "ACCEPTED", id, List.of(), IDENTITY);
     }
 
-    private GatewayAdminControlPlaneStatusClient.GatewayAdminSnapshot snapshot(
+    private GatewayAdminSnapshotVO snapshot(
             String definitionSetId,
             String publishedVersion,
-            GatewayDdcRuntimeStatusService.ServiceIdentity identity) {
-        var key = new GatewayAdminControlPlaneStatusClient.ServiceKey(
+            ServiceIdentityVO identity) {
+        var key = new GatewayServiceKey(
                 identity.bizCode(), identity.appCode(),
                 identity.env(), identity.namespace(), identity.serviceKind(),
                 identity.protocol(), identity.serviceName(), identity.group(),
                 identity.version());
-        return new GatewayAdminControlPlaneStatusClient.GatewayAdminSnapshot(
-                new GatewayAdminControlPlaneStatusClient.ReleaseObservation(
+        return new GatewayAdminSnapshotVO(
+                new GatewayReleaseObservationVO(
                         "SUCCESS", "release-1", "SUCCESS", definitionSetId,
                         publishedVersion, null),
-                new GatewayAdminControlPlaneStatusClient.ProviderObservation(
-                        "SUCCESS", List.of(new GatewayAdminControlPlaneStatusClient
-                        .ProviderInstance("instance-1", "UP", key, definitionSetId)), null),
-                new GatewayAdminControlPlaneStatusClient.ConsistencyObservation(
+                new GatewayProviderObservationVO(
+                        "SUCCESS", List.of(new GatewayProviderInstanceVO("instance-1", "UP", key, definitionSetId)), null),
+                new GatewayConsistencyObservationVO(
                         "SUCCESS", "release-1", "SUCCESS", true, "1", null), NOW);
     }
 

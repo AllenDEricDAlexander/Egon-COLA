@@ -17,7 +17,7 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentFacade;
-import top.egon.cola.platform.rbac3.admin.runtime.application.IdempotencyService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.IdempotencyService;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;

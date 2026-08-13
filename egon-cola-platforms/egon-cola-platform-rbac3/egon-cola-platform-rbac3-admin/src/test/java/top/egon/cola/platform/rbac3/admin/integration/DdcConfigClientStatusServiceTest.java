@@ -6,8 +6,8 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.DdcConfigClientStatusService;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.DdcConfigClientStatusRepository;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -37,7 +37,7 @@ class DdcConfigClientStatusServiceTest {
         } catch (IllegalArgumentException ignored) {
         }
 
-        var status = new DdcConfigClientStatusService(coordinator, policy).status();
+        var status = new DdcConfigClientStatusRepository(coordinator, policy).status();
 
         assertThat(status.state()).isEqualTo("READY");
         assertThat(status.instanceId()).isEqualTo("rbac3-1");
@@ -62,7 +62,7 @@ class DdcConfigClientStatusServiceTest {
         when(coordinator.state()).thenReturn(DdcRuntimeState.RECOVERING);
         when(coordinator.currentSession()).thenReturn(Optional.empty());
 
-        var status = new DdcConfigClientStatusService(
+        var status = new DdcConfigClientStatusRepository(
                 coordinator,
                 new AtomicRbac3RuntimePolicy(new Rbac3AdminProperties())).status();
 

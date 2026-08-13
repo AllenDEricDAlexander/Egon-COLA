@@ -42,6 +42,8 @@ import top.egon.cola.platform.rbac3.admin.role.domain.po.RoleClosurePO;
 import top.egon.cola.platform.rbac3.admin.role.domain.po.RoleInheritancePO;
 import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePermissionPO;
 import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.po.AuthorizationMutationPO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.po.IdempotencyRecordPO;
 import top.egon.cola.platform.rbac3.admin.session.domain.po.RefreshTokenPO;
 import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
@@ -97,7 +99,9 @@ class JpaEntityNameCompatibilityTest {
             Map.entry(ManagementScopePO.class, "ManagementScopeEntity"),
             Map.entry(ManagementSubjectPO.class, "ManagementSubjectEntity"),
             Map.entry(AuditLogPO.class, "AuditLogEntity"),
-            Map.entry(BusinessParticipationPO.class, "BusinessParticipationEntity"));
+            Map.entry(BusinessParticipationPO.class, "BusinessParticipationEntity"),
+            Map.entry(AuthorizationMutationPO.class, "AuthorizationMutationEntity"),
+            Map.entry(IdempotencyRecordPO.class, "IdempotencyRecordEntity"));
 
     @Test
     void renamedEntitiesRetainTheirLegacyJpaNames() {

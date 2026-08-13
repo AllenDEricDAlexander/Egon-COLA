@@ -16,20 +16,22 @@ import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcAutoConfiguration;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
 import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcPolicyApplier;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.Rbac3DdcPolicyApplier;
 import top.egon.cola.platform.rbac3.admin.config.ddc.Rbac3DdcPolicyConfiguration;
 import top.egon.cola.platform.rbac3.admin.config.ddc.Rbac3DdcValueDeclarations;
 import top.egon.cola.platform.rbac3.admin.config.flyway.Rbac3FlywayConfiguration;
-import top.egon.cola.platform.rbac3.admin.integration.runtime.GatewayDdcRuntimeStatusService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.GatewayDdcRuntimeStatusService;
 import top.egon.cola.platform.rbac3.admin.config.runtime.Rbac3PlatformIntegrationConfiguration;
-import top.egon.cola.platform.rbac3.admin.integration.runtime.Rbac3ReadinessIndicator;
+import top.egon.cola.platform.rbac3.admin.runtime.controller.Rbac3ReadinessIndicator;
 
 import javax.sql.DataSource;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ServiceIdentityVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ReadinessCheckVO;
 
 class Rbac3AdminApplicationContextTest {
 
@@ -60,9 +62,9 @@ class Rbac3AdminApplicationContextTest {
     void readinessFailsClosedWhenAnyApplicationPrerequisiteFails() {
         var indicator = new Rbac3ReadinessIndicator(
                 List.of(
-                        new Rbac3ReadinessIndicator.ReadinessCheck(
+                        new ReadinessCheckVO(
                                 "rbac3Flyway", () -> true),
-                        new Rbac3ReadinessIndicator.ReadinessCheck(
+                        new ReadinessCheckVO(
                                 "outboxFlyway", () -> false)),
                 () -> "UNKNOWN");
 
@@ -75,7 +77,7 @@ class Rbac3AdminApplicationContextTest {
     @Test
     void routeabilityIsReportedButDoesNotCreateAStartupDeadlock() {
         var indicator = new Rbac3ReadinessIndicator(
-                List.of(new Rbac3ReadinessIndicator.ReadinessCheck(
+                List.of(new ReadinessCheckVO(
                         "application", () -> true)),
                 () -> "NOT_ROUTABLE");
 
@@ -161,7 +163,7 @@ class Rbac3AdminApplicationContextTest {
                 .getDeclaredMethod(
                         "ddcProviderLeaseStatusService",
                         DdcHttpRegistrationRuntime.class,
-                        GatewayDdcRuntimeStatusService.ServiceIdentity.class
+                        ServiceIdentityVO.class
                 );
 
         ConditionalOnBean condition = method.getAnnotation(
@@ -169,6 +171,6 @@ class Rbac3AdminApplicationContextTest {
 
         assertThat(condition).isNotNull();
         assertThat(condition.value()).containsExactly(
-                GatewayDdcRuntimeStatusService.ServiceIdentity.class);
+                ServiceIdentityVO.class);
     }
 }

@@ -6,7 +6,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.contract.auth.Rbac3TokenClaims;
 import java.time.Instant;
 import java.util.List;

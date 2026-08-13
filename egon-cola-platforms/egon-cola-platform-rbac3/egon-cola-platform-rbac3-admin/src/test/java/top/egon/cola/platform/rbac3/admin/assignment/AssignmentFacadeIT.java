@@ -3,7 +3,7 @@ package top.egon.cola.platform.rbac3.admin.assignment;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentFacade;
 import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
-import top.egon.cola.platform.rbac3.admin.runtime.application.AuthorizationMutationCoordinator;
+import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationMutationCoordinator;
 
 import java.time.Instant;
 import java.util.List;
@@ -17,6 +17,11 @@ import static org.mockito.Mockito.when;
 import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.RoleAssignmentDTO;
 import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentFactsVO;
 import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.CardinalityVO;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationFenceRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.AuthorizationFenceVO;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationMutationRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.MutationRecordVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.AuthorizationMutationResultStatusEnum;
 
 class AssignmentFacadeIT {
 
@@ -80,20 +85,20 @@ class AssignmentFacadeIT {
 
     private AuthorizationMutationCoordinator coordinator() {
         return new AuthorizationMutationCoordinator(
-                new AuthorizationMutationCoordinator.MutationStore() {
-                    public void prepare(AuthorizationMutationCoordinator.MutationRecord record) {
+                new AuthorizationMutationRepository() {
+                    public void prepare(MutationRecordVO record) {
                     }
 
                     public void transition(
                             String mutationId,
-                            AuthorizationMutationCoordinator.MutationStatus status,
+                            AuthorizationMutationResultStatusEnum status,
                             String errorCode,
                             Instant now) {
                     }
                 },
-                new top.egon.cola.platform.rbac3.admin.runtime.application.AuthorizationFenceService(
-                        new top.egon.cola.platform.rbac3.admin.runtime.application.AuthorizationFenceService.FenceStore() {
-                            public void put(top.egon.cola.platform.rbac3.admin.runtime.application.AuthorizationFenceService.Fence fence) {
+                new top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationFenceService(
+                        new AuthorizationFenceRepository() {
+                            public void put(AuthorizationFenceVO fence) {
                             }
 
                             public void remove(String tenantId, String scopeType, String scopeId) {

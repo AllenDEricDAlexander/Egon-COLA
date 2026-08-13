@@ -2,8 +2,8 @@ package top.egon.cola.platform.rbac3.admin.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.integration.gateway.GatewayAdminControlPlaneStatusClient;
-import top.egon.cola.platform.rbac3.admin.integration.gateway.GatewayAdminStatusCredentialProvider;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayAdminControlPlaneStatusClient;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayAdminStatusCredentialProvider;
 
 import java.io.IOException;
 import java.net.URI;
@@ -16,6 +16,9 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayAdminControlPlaneTransport;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayAdminControlPlaneHttpResponseVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.BearerCredentialVO;
 
 class GatewayAdminControlPlaneStatusClientTest {
 
@@ -27,8 +30,7 @@ class GatewayAdminControlPlaneStatusClientTest {
         var transport = transport(calls, 200, "{}");
 
         var missing = client(Optional::empty, transport).snapshot();
-        var expired = client(() -> Optional.of(new GatewayAdminStatusCredentialProvider
-                .BearerCredential("secret-token", NOW.minusSeconds(1))), transport).snapshot();
+        var expired = client(() -> Optional.of(new BearerCredentialVO("secret-token", NOW.minusSeconds(1))), transport).snapshot();
 
         assertThat(missing.release().state()).isEqualTo("UNKNOWN");
         assertThat(missing.release().reasonCode()).isEqualTo("CREDENTIAL_MISSING");
@@ -40,9 +42,9 @@ class GatewayAdminControlPlaneStatusClientTest {
     @Test
     void readsAllThreeTypedStatusesWithOneReadOnlyBearerCredential() {
         List<URI> calls = new ArrayList<>();
-        var transport = new GatewayAdminControlPlaneStatusClient.Transport() {
+        var transport = new GatewayAdminControlPlaneTransport() {
             @Override
-            public GatewayAdminControlPlaneStatusClient.HttpResponse get(
+            public GatewayAdminControlPlaneHttpResponseVO get(
                     URI uri, String bearerToken, Duration timeout) {
                 assertThat(bearerToken).isEqualTo("secret-token");
                 calls.add(uri);
@@ -111,7 +113,7 @@ class GatewayAdminControlPlaneStatusClientTest {
 
     private GatewayAdminControlPlaneStatusClient client(
             GatewayAdminStatusCredentialProvider credentials,
-            GatewayAdminControlPlaneStatusClient.Transport transport) {
+            GatewayAdminControlPlaneTransport transport) {
         return new GatewayAdminControlPlaneStatusClient(
                 URI.create("https://gateway-admin.example.test"),
                 "gateway-group-1", "release-1", credentials, transport,
@@ -120,11 +122,11 @@ class GatewayAdminControlPlaneStatusClientTest {
     }
 
     private GatewayAdminStatusCredentialProvider credential() {
-        return () -> Optional.of(new GatewayAdminStatusCredentialProvider.BearerCredential(
+        return () -> Optional.of(new BearerCredentialVO(
                 "secret-token", NOW.plusSeconds(60)));
     }
 
-    private GatewayAdminControlPlaneStatusClient.Transport transport(
+    private GatewayAdminControlPlaneTransport transport(
             List<URI> calls,
             int status,
             String body) {
@@ -134,9 +136,9 @@ class GatewayAdminControlPlaneStatusClientTest {
         };
     }
 
-    private GatewayAdminControlPlaneStatusClient.HttpResponse response(
+    private GatewayAdminControlPlaneHttpResponseVO response(
             int status,
             String body) {
-        return new GatewayAdminControlPlaneStatusClient.HttpResponse(status, body);
+        return new GatewayAdminControlPlaneHttpResponseVO(status, body);
     }
 }

@@ -7,7 +7,7 @@ import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 import top.egon.cola.platform.rbac3.admin.resource.service.ApplicationResourceFacade;
@@ -46,6 +46,7 @@ import top.egon.cola.platform.rbac3.admin.resource.domain.enums.PermissionStatus
 import top.egon.cola.platform.rbac3.admin.resource.domain.enums.ResourceTypeEnum;
 import top.egon.cola.platform.rbac3.admin.resource.domain.enums.ResourceStatusEnum;
 import top.egon.cola.platform.rbac3.admin.resource.domain.enums.ResourceManifestStatusEnum;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.AuthorizationEventVO;
 
 /**
  * 类型 `JpaResourceManifestRepository` 位于当前包内，是类型，用于承载 `Resource Manifest Repository` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -92,13 +93,13 @@ public class JpaResourceManifestRepository implements
      */
     private final DatabaseClock databaseClock;
     /**
-     * 字段 `eventPort` 表示 `JpaResourceManifestRepository` 中与 `event Port` 相关的状态、依赖、配置或结果（声明类型 `AuthorizationEventPort`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `eventPort` stores the `event Port`-related state, dependency, configuration, or result of `JpaResourceManifestRepository` (declared type `AuthorizationEventPort`); its lifecycle and value semantics are defined by its declared type and owning object.
+     * 字段 `eventPort` 表示 `JpaResourceManifestRepository` 中与 `event Port` 相关的状态、依赖、配置或结果（声明类型 `AuthorizationEventPublisher`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `eventPort` stores the `event Port`-related state, dependency, configuration, or result of `JpaResourceManifestRepository` (declared type `AuthorizationEventPublisher`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
      * 含义与用法：读取、传递或更新 `eventPort` 时应保持 `JpaResourceManifestRepository` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `eventPort`, preserve `JpaResourceManifestRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final AuthorizationEventPort eventPort;
+    private final AuthorizationEventPublisher eventPort;
 
     /**
      * 构造器 `JpaResourceManifestRepository` 用于创建并初始化 `JpaResourceManifestRepository` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -118,7 +119,7 @@ public class JpaResourceManifestRepository implements
             ObjectMapper objectMapper,
             LongIdGenerator idGenerator,
             DatabaseClock databaseClock,
-            AuthorizationEventPort eventPort) {
+            AuthorizationEventPublisher eventPort) {
         this.entityManager = entityManager;
         this.objectMapper = objectMapper;
         this.idGenerator = idGenerator;
@@ -274,7 +275,7 @@ public class JpaResourceManifestRepository implements
         tenant.incrementPolicyVersion(actorId, now);
         activateResourceProjection(
                 Long.valueOf(tenantId), Long.valueOf(applicationId), manifest.getId(), actorId, now);
-        String propagationId = eventPort.enqueue(new AuthorizationEventPort.AuthorizationEvent(
+        String propagationId = eventPort.enqueue(new AuthorizationEventVO(
                 tenantId,
                 "RESOURCE_MANIFEST",
                 manifestId,
@@ -473,7 +474,7 @@ public class JpaResourceManifestRepository implements
         }
         resource.archive(actorId, now);
         tenant.incrementPolicyVersion(actorId, now);
-        eventPort.enqueue(new AuthorizationEventPort.AuthorizationEvent(
+        eventPort.enqueue(new AuthorizationEventVO(
                 tenantId,
                 "RESOURCE",
                 resourceId,

@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.assignment.service;
 
 import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
-import top.egon.cola.platform.rbac3.admin.runtime.application.AuthorizationMutationCoordinator;
+import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationMutationCoordinator;
 import top.egon.cola.platform.rbac3.core.constraint.PrerequisiteRoleSpecification;
 import top.egon.cola.platform.rbac3.core.constraint.RoleCardinalitySpecification;
 import top.egon.cola.platform.rbac3.core.constraint.SsdSpecification;
@@ -29,6 +29,9 @@ import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentResultV
 import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentVO;
 import top.egon.cola.platform.rbac3.admin.assignment.domain.enums.AssignmentChangeOperationEnum;
 import top.egon.cola.platform.rbac3.admin.management.domain.dto.ManagementPolicyRequestDTO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.MutationScopeVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ExpectedVersionsVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.MutationResultVO;
 
 /**
  * 类型 `AssignmentFacade` 位于当前包内，是类型，用于承载 `Assignment Facade` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -166,20 +169,20 @@ public final class AssignmentFacade {
 
         CardinalityVO cardinality = initial.cardinality();
         @SuppressWarnings("unchecked")
-        AuthorizationMutationCoordinator.MutationResult<String> mutation =
-                (AuthorizationMutationCoordinator.MutationResult<String>)
+        MutationResultVO<String> mutation =
+                (MutationResultVO<String>)
                         assignmentLock.withLock(new LockExecutionVO(
                                 request.tenantId(), initial.activationRootRoleId(),
                                 cardinality.scopeType(), cardinality.scopeId(), () -> {
                                     AssignmentFactsVO locked = factSource.load(request);
                                     validateRules(locked, request.roleId());
                                     return mutationCoordinator.execute(
-                                            new AuthorizationMutationCoordinator.MutationScope(
+                                            new MutationScopeVO(
                                                     request.tenantId(), "USER",
                                                     request.targetUserId(), request.commandId(),
                                                     request.actorId()),
                                             request.targetUserId(),
-                                            new AuthorizationMutationCoordinator.ExpectedVersions(
+                                            new ExpectedVersionsVO(
                                                     null, null,
                                                     request.expectedUserAuthVersion(),
                                                     request.validFrom().isAfter(
@@ -251,18 +254,18 @@ public final class AssignmentFacade {
             throw new Rbac3RuleViolation("SELF_PRIVILEGE_ESCALATION_DENIED");
         }
         @SuppressWarnings("unchecked")
-        AuthorizationMutationCoordinator.MutationResult<String> mutation =
-                (AuthorizationMutationCoordinator.MutationResult<String>)
+        MutationResultVO<String> mutation =
+                (MutationResultVO<String>)
                         assignmentLock.withLock(new LockExecutionVO(
                                 request.tenantId(), facts.activationRootRoleId(),
                                 "TENANT", request.tenantId(),
                                 () -> mutationCoordinator.execute(
-                                        new AuthorizationMutationCoordinator.MutationScope(
+                                        new MutationScopeVO(
                                                 request.tenantId(), "USER",
                                                 request.targetUserId(), request.commandId(),
                                                 request.actorId()),
                                         request.targetUserId(),
-                                        new AuthorizationMutationCoordinator.ExpectedVersions(
+                                        new ExpectedVersionsVO(
                                                 null, null,
                                                 request.expectedUserAuthVersion(),
                                                 Math.incrementExact(

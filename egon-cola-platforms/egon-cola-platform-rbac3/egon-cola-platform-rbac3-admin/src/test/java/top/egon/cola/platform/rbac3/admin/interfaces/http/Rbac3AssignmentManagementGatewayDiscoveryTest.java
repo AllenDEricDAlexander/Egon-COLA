@@ -13,7 +13,7 @@ import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefiniti
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentFacade;
 import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
-import top.egon.cola.platform.rbac3.admin.runtime.application.IdempotencyService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.IdempotencyService;
 
 import java.util.Map;
 import java.util.Set;

@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.integration.ddc;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
 
 import java.time.Duration;
@@ -10,6 +10,9 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.Rbac3RuntimePolicySnapshotVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ApplyFailureVO;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
 
 class AtomicRbac3RuntimePolicyTest {
 
@@ -17,7 +20,7 @@ class AtomicRbac3RuntimePolicyTest {
     void startsWithCompleteImmutableAdministrativeDefaults() {
         AtomicRbac3RuntimePolicy policy = policyWithDefaults();
 
-        Rbac3RuntimePolicy.Snapshot snapshot = policy.current();
+        Rbac3RuntimePolicySnapshotVO snapshot = policy.current();
 
         assertThat(snapshot.accessTokenTtl()).isEqualTo(Duration.ofSeconds(900));
         assertThat(snapshot.refreshTokenTtl()).isEqualTo(Duration.ofSeconds(604_800));
@@ -37,7 +40,7 @@ class AtomicRbac3RuntimePolicyTest {
     @Test
     void publishesOneNewSnapshotAfterAValidUpdate() {
         AtomicRbac3RuntimePolicy policy = policyWithDefaults();
-        Rbac3RuntimePolicy.Snapshot before = policy.current();
+        Rbac3RuntimePolicySnapshotVO before = policy.current();
 
         policy.apply(AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY, "1200", 7L);
 
@@ -55,7 +58,7 @@ class AtomicRbac3RuntimePolicyTest {
         for (String rawValue : new String[]{null, "", " 900", "900 ", "1.5", "+900",
                 "900s", "999999999999999999999999"}) {
             AtomicRbac3RuntimePolicy policy = policyWithDefaults();
-            Rbac3RuntimePolicy.Snapshot before = policy.current();
+            Rbac3RuntimePolicySnapshotVO before = policy.current();
 
             var failure = assertThatThrownBy(() -> policy.apply(
                     AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY, rawValue, 3L))
@@ -66,12 +69,12 @@ class AtomicRbac3RuntimePolicyTest {
             }
             assertThat(policy.current()).isSameAs(before);
             assertThat(policy.lastApplyFailure()).get()
-                    .extracting(AtomicRbac3RuntimePolicy.ApplyFailure::errorCode)
+                    .extracting(ApplyFailureVO::errorCode)
                     .isEqualTo("INVALID_INTEGER");
         }
 
         AtomicRbac3RuntimePolicy policy = policyWithDefaults();
-        Rbac3RuntimePolicy.Snapshot before = policy.current();
+        Rbac3RuntimePolicySnapshotVO before = policy.current();
         assertThatThrownBy(() -> policy.apply("rbac3.unknown", "1", 4L))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("UNKNOWN_KEY");
@@ -112,7 +115,7 @@ class AtomicRbac3RuntimePolicyTest {
                 .isInstanceOf(IllegalArgumentException.class);
         policy.apply(AtomicRbac3RuntimePolicy.MAXIMUM_ACTIVE_ROOTS_KEY, "8", 3L);
         assertThat(policy.lastApplyFailure()).get()
-                .extracting(AtomicRbac3RuntimePolicy.ApplyFailure::key)
+                .extracting(ApplyFailureVO::key)
                 .isEqualTo(AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY);
 
         policy.apply(AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY, "1200", 4L);
@@ -123,7 +126,7 @@ class AtomicRbac3RuntimePolicyTest {
     void snapshotValidationCannotBeBypassedByAnotherPolicyImplementation() {
         Map<String, Long> versions = new HashMap<>();
 
-        assertThatThrownBy(() -> new Rbac3RuntimePolicy.Snapshot(
+        assertThatThrownBy(() -> new Rbac3RuntimePolicySnapshotVO(
                 Duration.ofSeconds(299),
                 Duration.ofDays(7),
                 Duration.ofMinutes(30),
@@ -136,7 +139,7 @@ class AtomicRbac3RuntimePolicyTest {
 
     private void assertRejected(String key, String rawValue) {
         AtomicRbac3RuntimePolicy policy = policyWithDefaults();
-        Rbac3RuntimePolicy.Snapshot before = policy.current();
+        Rbac3RuntimePolicySnapshotVO before = policy.current();
 
         assertThatThrownBy(() -> policy.apply(key, rawValue, 1L))
                 .isInstanceOf(IllegalArgumentException.class);

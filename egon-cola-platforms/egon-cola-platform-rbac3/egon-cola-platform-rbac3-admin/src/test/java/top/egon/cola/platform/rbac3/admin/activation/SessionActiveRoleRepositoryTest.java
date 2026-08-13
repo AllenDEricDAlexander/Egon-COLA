@@ -5,7 +5,7 @@ import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
 import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaSessionActiveRoleRepository;
 import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
-import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
 import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
 import top.egon.cola.platform.rbac3.admin.session.repository.jpa.JpaSessionEntityRepository;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
@@ -34,7 +34,7 @@ class SessionActiveRoleRepositoryTest {
                 mock(jakarta.persistence.EntityManager.class),
                 mock(LongIdGenerator.class),
                 mock(AuditPort.class),
-                mock(AuthorizationEventPort.class));
+                mock(AuthorizationEventPublisher.class));
         var command = new ReplaceCommandDTO(
                 "2", "3", "3", "4", List.of("5"), 1L, "3", "command-1");
 

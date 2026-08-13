@@ -31,10 +31,8 @@ class AdminLayerBoundaryTest {
             Set.of("activation", "assignment", "audit", "auth",
                     "authorization", "bootstrap", "config", "constraint",
                     "directory", "identity", "management", "participation",
-                    "resource", "role", "session", "shared", "simulation",
-                    "tenant");
-    private static final Set<String> DEFERRED_NESTED_TYPE_HOSTS = Set.of(
-            "config/runtime/Rbac3WorkerConfiguration.java");
+                    "resource", "role", "runtime", "session", "shared",
+                    "simulation", "tenant");
 
     @Test
     void controllersDoNotInjectRepositoriesAndAdminUsesUnifiedSecurityStarter()
@@ -61,10 +59,6 @@ class AdminLayerBoundaryTest {
             assertThat(topLevelTypes)
                     .as("one top-level type in %s", source)
                     .hasSize(1);
-            if (DEFERRED_NESTED_TYPE_HOSTS.contains(
-                    normalize(adminSourceRoot().relativize(source)))) {
-                continue;
-            }
             assertThat(topLevelTypes.getFirst().getMembers())
                     .as("no nested type in %s", source)
                     .noneMatch(ClassTree.class::isInstance);

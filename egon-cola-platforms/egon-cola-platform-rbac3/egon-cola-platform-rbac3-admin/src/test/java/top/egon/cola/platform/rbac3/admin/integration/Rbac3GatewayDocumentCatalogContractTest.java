@@ -39,11 +39,11 @@ import top.egon.cola.platform.rbac3.admin.participation.service.ParticipationFac
 import top.egon.cola.platform.rbac3.admin.resource.service.ApplicationResourceFacade;
 import top.egon.cola.platform.rbac3.admin.resource.service.ManifestFacade;
 import top.egon.cola.platform.rbac3.admin.role.service.RoleFacade;
-import top.egon.cola.platform.rbac3.admin.runtime.application.IdempotencyService;
-import top.egon.cola.platform.rbac3.admin.runtime.application.RuntimeQueryService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.IdempotencyService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeQueryService;
 import top.egon.cola.platform.rbac3.admin.session.service.SessionFacade;
 import top.egon.cola.platform.rbac3.admin.simulation.service.AuthorizationSimulationService;
-import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationBootstrapService;
 
 import java.nio.file.Files;

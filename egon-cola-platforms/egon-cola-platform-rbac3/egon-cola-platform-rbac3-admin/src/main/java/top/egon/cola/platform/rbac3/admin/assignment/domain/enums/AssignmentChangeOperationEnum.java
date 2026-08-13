@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.assignment.domain.enums;
 
 import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
-import top.egon.cola.platform.rbac3.admin.runtime.application.AuthorizationMutationCoordinator;
+import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationMutationCoordinator;
 import top.egon.cola.platform.rbac3.core.constraint.PrerequisiteRoleSpecification;
 import top.egon.cola.platform.rbac3.core.constraint.RoleCardinalitySpecification;
 import top.egon.cola.platform.rbac3.core.constraint.SsdSpecification;

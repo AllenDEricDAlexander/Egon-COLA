@@ -21,23 +21,31 @@ import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
 import top.egon.cola.component.outbox.api.TransactionalOutbox;
-import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.DdcProviderLeaseStatusService;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.DdcConfigClientStatusService;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.DdcProviderLeaseStatusRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.DdcConfigClientStatusRepository;
 import top.egon.cola.platform.rbac3.admin.config.flyway.Rbac3FlywayConfiguration;
-import top.egon.cola.platform.rbac3.admin.integration.gateway.GatewayAdminControlPlaneStatusClient;
-import top.egon.cola.platform.rbac3.admin.integration.gateway.GatewayAdminStatusCredentialProvider;
-import top.egon.cola.platform.rbac3.admin.integration.gateway.GatewayDefinitionStatusService;
-import top.egon.cola.platform.rbac3.admin.integration.outbox.TransactionalOutboxAuthorizationEventAdapter;
-import top.egon.cola.platform.rbac3.admin.integration.runtime.GatewayDdcRuntimeStatusService;
-import top.egon.cola.platform.rbac3.admin.integration.runtime.Rbac3HttpProviderPublicationGate;
-import top.egon.cola.platform.rbac3.admin.integration.runtime.Rbac3OperationalRuntimeStatusService;
-import top.egon.cola.platform.rbac3.admin.integration.runtime.Rbac3ReadinessIndicator;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayAdminControlPlaneStatusClient;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayAdminStatusCredentialProvider;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayDefinitionStatusRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.outbox.TransactionalOutboxAuthorizationEventPublisher;
+import top.egon.cola.platform.rbac3.admin.runtime.service.GatewayDdcRuntimeStatusService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.Rbac3HttpProviderPublicationGate;
+import top.egon.cola.platform.rbac3.admin.runtime.service.Rbac3OperationalRuntimeStatusService;
+import top.egon.cola.platform.rbac3.admin.runtime.controller.Rbac3ReadinessIndicator;
 import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3GatewayStatusProperties;
-import top.egon.cola.platform.rbac3.admin.runtime.application.ControlPlaneRuntimeStatusPort;
+import top.egon.cola.platform.rbac3.admin.runtime.service.ControlPlaneRuntimeStatusPort;
 
 import java.time.Clock;
 import java.util.List;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.GatewayServiceKey;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ServiceIdentityVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ReadinessCheckVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.RuntimeStatusVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.DdcConfigClientStatusVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.DefinitionStatusVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ProviderLeaseStatusVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayReleaseStatusVO;
 
 /**
  * 类型 `Rbac3PlatformIntegrationConfiguration` 位于当前包内，是类型，用于承载 `Rbac3 Platform Integration Configuration` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -74,11 +82,11 @@ public class Rbac3PlatformIntegrationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Bean
-    @ConditionalOnMissingBean(AuthorizationEventPort.class)
-    AuthorizationEventPort authorizationEventPort(
+    @ConditionalOnMissingBean(AuthorizationEventPublisher.class)
+    AuthorizationEventPublisher authorizationEventPort(
             TransactionalOutbox outbox,
             Clock clock) {
-        return new TransactionalOutboxAuthorizationEventAdapter(outbox, clock);
+        return new TransactionalOutboxAuthorizationEventPublisher(outbox, clock);
     }
 
     /**
@@ -94,9 +102,9 @@ public class Rbac3PlatformIntegrationConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "egon.cola.component.gateway.reporting",
             name = "enabled", havingValue = "true")
-    GatewayDdcRuntimeStatusService.ServiceIdentity rbac3ServiceIdentity(
+    ServiceIdentityVO rbac3ServiceIdentity(
             GatewayReportingProperties properties) {
-        return new GatewayDdcRuntimeStatusService.ServiceIdentity(
+        return new ServiceIdentityVO(
                 properties.getBizCode(), properties.getApplicationCode(),
                 properties.getEnv(), properties.getNamespace(),
                 "HTTP_PROVIDER", "http", properties.getApplicationCode(),
@@ -145,7 +153,7 @@ public class Rbac3PlatformIntegrationConfiguration {
             name = "enabled", havingValue = "true")
     GatewayAdminControlPlaneStatusClient gatewayAdminControlPlaneStatusClient(
             Rbac3GatewayStatusProperties properties,
-            GatewayDdcRuntimeStatusService.ServiceIdentity identity,
+            ServiceIdentityVO identity,
             GatewayAdminStatusCredentialProvider credentials,
             ObjectMapper objectMapper,
             Clock clock) {
@@ -153,7 +161,7 @@ public class Rbac3PlatformIntegrationConfiguration {
                 properties.requireAdminBaseUrl(),
                 properties.requireGatewayGroupId(),
                 properties.requireReleaseId(),
-                new GatewayAdminControlPlaneStatusClient.ServiceKey(
+                new GatewayServiceKey(
                         identity.bizCode(), identity.appCode(),
                         identity.env(), identity.namespace(), identity.serviceKind(),
                         identity.protocol(), identity.serviceName(), identity.group(),
@@ -175,10 +183,10 @@ public class Rbac3PlatformIntegrationConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "egon.cola.component.gateway.reporting",
             name = "enabled", havingValue = "true")
-    GatewayDefinitionStatusService gatewayDefinitionStatusService(
+    GatewayDefinitionStatusRepository gatewayDefinitionStatusService(
             GatewayReportingState state,
             GatewayReportingProperties properties) {
-        return new GatewayDefinitionStatusService(state, properties);
+        return new GatewayDefinitionStatusRepository(state, properties);
     }
 
     /**
@@ -193,13 +201,13 @@ public class Rbac3PlatformIntegrationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Bean
-    @ConditionalOnBean(GatewayDdcRuntimeStatusService.ServiceIdentity.class)
+    @ConditionalOnBean(ServiceIdentityVO.class)
     @ConditionalOnProperty(prefix = "egon.cola.component.ddc.registry.http",
             name = "enabled", havingValue = "true")
-    DdcProviderLeaseStatusService ddcProviderLeaseStatusService(
+    DdcProviderLeaseStatusRepository ddcProviderLeaseStatusService(
             DdcHttpRegistrationRuntime runtime,
-            GatewayDdcRuntimeStatusService.ServiceIdentity identity) {
-        return new DdcProviderLeaseStatusService(runtime, identity);
+            ServiceIdentityVO identity) {
+        return new DdcProviderLeaseStatusRepository(runtime, identity);
     }
 
     /**
@@ -243,10 +251,10 @@ public class Rbac3PlatformIntegrationConfiguration {
     @ConditionalOnProperty(prefix = "egon.cola.component.gateway.reporting",
             name = "enabled", havingValue = "true")
     GatewayDdcRuntimeStatusService gatewayDdcRuntimeStatusService(
-            GatewayDefinitionStatusService definition,
-            DdcProviderLeaseStatusService lease,
+            GatewayDefinitionStatusRepository definition,
+            DdcProviderLeaseStatusRepository lease,
             GatewayAdminControlPlaneStatusClient gatewayAdmin,
-            GatewayDdcRuntimeStatusService.ServiceIdentity identity,
+            ServiceIdentityVO identity,
             Clock clock) {
         return new GatewayDdcRuntimeStatusService(
                 definition, lease, gatewayAdmin, identity, clock);
@@ -269,27 +277,27 @@ public class Rbac3PlatformIntegrationConfiguration {
     @Primary
     ControlPlaneRuntimeStatusPort rbac3ControlPlaneRuntimeStatusPort(
             ObjectProvider<GatewayDdcRuntimeStatusService> runtimeStatus,
-            ObjectProvider<DdcConfigClientStatusService> ddcConfigStatus,
+            ObjectProvider<DdcConfigClientStatusRepository> ddcConfigStatus,
             Rbac3OperationalRuntimeStatusService operationalStatus,
             Clock clock) {
         return () -> {
             GatewayDdcRuntimeStatusService available = runtimeStatus.getIfAvailable();
-            ControlPlaneRuntimeStatusPort.RuntimeStatus controlPlane = available != null
+            RuntimeStatusVO controlPlane = available != null
                     ? available.status()
-                    : new ControlPlaneRuntimeStatusPort.RuntimeStatus(
-                    new ControlPlaneRuntimeStatusPort.DefinitionStatus(
+                    : new RuntimeStatusVO(
+                    new DefinitionStatusVO(
                             "UNKNOWN", null, List.of("CONTROL_PLANE_DISABLED")),
-                    new ControlPlaneRuntimeStatusPort.ProviderLeaseStatus(
+                    new ProviderLeaseStatusVO(
                             "STOPPED", null, null),
-                    new ControlPlaneRuntimeStatusPort.GatewayReleaseStatus(
+                    new GatewayReleaseStatusVO(
                             null, "UNKNOWN", null),
                     clock.instant());
             var operational = operationalStatus.status();
-            DdcConfigClientStatusService availableDdcConfig =
+            DdcConfigClientStatusRepository availableDdcConfig =
                     ddcConfigStatus.getIfAvailable();
-            return new ControlPlaneRuntimeStatusPort.RuntimeStatus(
+            return new RuntimeStatusVO(
                     availableDdcConfig == null
-                            ? ControlPlaneRuntimeStatusPort.DdcConfigClientStatus.unknown()
+                            ? DdcConfigClientStatusVO.unknown()
                             : availableDdcConfig.status(),
                     controlPlane.definition(), controlPlane.providerLease(),
                     controlPlane.gatewayRelease(), operational.flyway(),
@@ -326,30 +334,30 @@ public class Rbac3PlatformIntegrationConfiguration {
             EntityManagerFactory entityManagerFactory,
             TransactionalOutbox outbox,
             @Qualifier("rbac3RuntimeRedissonClient") RedissonClient runtimeRedis,
-            GatewayDefinitionStatusService definition,
-            DdcProviderLeaseStatusService lease,
-            ObjectProvider<DdcConfigClientStatusService> ddcConfigStatus,
+            GatewayDefinitionStatusRepository definition,
+            DdcProviderLeaseStatusRepository lease,
+            ObjectProvider<DdcConfigClientStatusRepository> ddcConfigStatus,
             GatewayDdcRuntimeStatusService runtimeStatus,
             GatewayReportingProperties reportingProperties) {
         boolean production = !List.of("local", "test").contains(
                 reportingProperties.getEnv().toLowerCase(java.util.Locale.ROOT));
         return new Rbac3ReadinessIndicator(List.of(
-                new Rbac3ReadinessIndicator.ReadinessCheck(
+                new ReadinessCheckVO(
                         "rbac3Flyway", () -> migrated(rbac3Flyway)),
-                new Rbac3ReadinessIndicator.ReadinessCheck(
+                new ReadinessCheckVO(
                         "outboxFlyway", () -> migrated(outboxFlyway)),
-                new Rbac3ReadinessIndicator.ReadinessCheck(
+                new ReadinessCheckVO(
                         "jpa", entityManagerFactory::isOpen),
-                new Rbac3ReadinessIndicator.ReadinessCheck(
+                new ReadinessCheckVO(
                         "outboxSchema", () -> outbox != null),
-                new Rbac3ReadinessIndicator.ReadinessCheck(
+                new ReadinessCheckVO(
                         "rbac3RuntimeRedis", () -> redisAvailable(runtimeRedis)),
-                new Rbac3ReadinessIndicator.ReadinessCheck(
+                new ReadinessCheckVO(
                         "gatewayDefinition", () -> definition.status().accepted()),
-                new Rbac3ReadinessIndicator.ReadinessCheck(
+                new ReadinessCheckVO(
                         "ddcProviderLease", () -> !production
                                 || "REGISTERED".equals(lease.status().state())),
-                new Rbac3ReadinessIndicator.ReadinessCheck(
+                new ReadinessCheckVO(
                         "ddcConfigClient", () -> !production
                                 || ddcConfigReady(ddcConfigStatus))),
                 () -> runtimeStatus.status().gatewayRelease().status());
@@ -413,8 +421,8 @@ public class Rbac3PlatformIntegrationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     private static boolean ddcConfigReady(
-            ObjectProvider<DdcConfigClientStatusService> status) {
-        DdcConfigClientStatusService available = status.getIfAvailable();
+            ObjectProvider<DdcConfigClientStatusRepository> status) {
+        DdcConfigClientStatusRepository available = status.getIfAvailable();
         return available != null && available.ready();
     }
 }

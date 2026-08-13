@@ -6,7 +6,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
-import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
 import top.egon.cola.platform.rbac3.admin.assignment.domain.po.UserRoleAssignmentPO;
 import top.egon.cola.platform.rbac3.admin.bootstrap.repository.PlatformAdminBootstrapRepository;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
@@ -30,6 +30,7 @@ import top.egon.cola.platform.rbac3.admin.role.domain.enums.RoleTypeEnum;
 import top.egon.cola.platform.rbac3.admin.role.domain.enums.RoleRiskLevelEnum;
 import top.egon.cola.platform.rbac3.admin.assignment.domain.enums.UserRoleAssignmentTypeEnum;
 import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditEventVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.AuthorizationEventVO;
 
 /**
  * 类型 `JpaPlatformAdminBootstrapRepository` 位于当前包内，是类型，用于承载 `Postgresql Platform Admin Bootstrap Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -163,13 +164,13 @@ public class JpaPlatformAdminBootstrapRepository
      */
     private final AuditPort auditPort;
     /**
-     * 字段 `eventPort` 表示 `JpaPlatformAdminBootstrapRepository` 中与 `event Port` 相关的状态、依赖、配置或结果（声明类型 `AuthorizationEventPort`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `eventPort` stores the `event Port`-related state, dependency, configuration, or result of `JpaPlatformAdminBootstrapRepository` (declared type `AuthorizationEventPort`); its lifecycle and value semantics are defined by its declared type and owning object.
+     * 字段 `eventPort` 表示 `JpaPlatformAdminBootstrapRepository` 中与 `event Port` 相关的状态、依赖、配置或结果（声明类型 `AuthorizationEventPublisher`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `eventPort` stores the `event Port`-related state, dependency, configuration, or result of `JpaPlatformAdminBootstrapRepository` (declared type `AuthorizationEventPublisher`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
      * 含义与用法：读取、传递或更新 `eventPort` 时应保持 `JpaPlatformAdminBootstrapRepository` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `eventPort`, preserve `JpaPlatformAdminBootstrapRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final AuthorizationEventPort eventPort;
+    private final AuthorizationEventPublisher eventPort;
     /**
      * 字段 `clock` 表示 `JpaPlatformAdminBootstrapRepository` 中与 `clock` 相关的状态、依赖、配置或结果（声明类型 `Clock`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `clock` stores the `clock`-related state, dependency, configuration, or result of `JpaPlatformAdminBootstrapRepository` (declared type `Clock`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -198,7 +199,7 @@ public class JpaPlatformAdminBootstrapRepository
             LongIdGenerator idGenerator,
             PasswordEncoder passwordEncoder,
             AuditPort auditPort,
-            AuthorizationEventPort eventPort,
+            AuthorizationEventPublisher eventPort,
             Clock clock) {
         this.entityManager = Objects.requireNonNull(entityManager, "entityManager");
         this.idGenerator = Objects.requireNonNull(idGenerator, "idGenerator");
@@ -284,7 +285,7 @@ public class JpaPlatformAdminBootstrapRepository
                 Map.of("tenantCode", normalizedTenantCode,
                         "username", normalizedUsername,
                         "roleCode", ROLE_CODE), now));
-        eventPort.enqueue(new AuthorizationEventPort.AuthorizationEvent(
+        eventPort.enqueue(new AuthorizationEventVO(
                 tenantId.toString(), "USER", userId.toString(),
                 "ASSIGNMENT_CHANGED",
                 Map.of("assignmentId", assignment.getId().toString(),

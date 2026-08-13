@@ -10,9 +10,10 @@ import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.DdcConfigClientStatusService;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcPolicyApplier;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.DdcConfigClientStatusRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.Rbac3DdcPolicyApplier;
+import top.egon.cola.platform.rbac3.admin.runtime.service.internal.ApplyObserver;
 
 /**
  * 类型 `Rbac3DdcPolicyConfiguration` 位于当前包内，是类型，用于承载 `Rbac3 Ddc Policy Configuration` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -58,8 +59,8 @@ public class Rbac3DdcPolicyConfiguration {
             AtomicRbac3RuntimePolicy policy,
             ObjectProvider<Rbac3IntegrationMetrics> metrics) {
         Rbac3IntegrationMetrics available = metrics.getIfAvailable();
-        Rbac3DdcPolicyApplier.ApplyObserver observer = available == null
-                ? Rbac3DdcPolicyApplier.ApplyObserver.noop()
+        ApplyObserver observer = available == null
+                ? ApplyObserver.noop()
                 : available;
         return registrar(registry, policy, observer);
     }
@@ -78,7 +79,7 @@ public class Rbac3DdcPolicyConfiguration {
     InitializingBean rbac3DdcPolicyRegistrar(
             DdcConfigApplierRegistry registry,
             AtomicRbac3RuntimePolicy policy) {
-        return registrar(registry, policy, Rbac3DdcPolicyApplier.ApplyObserver.noop());
+        return registrar(registry, policy, ApplyObserver.noop());
     }
 
     /**
@@ -93,10 +94,10 @@ public class Rbac3DdcPolicyConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Bean
-    DdcConfigClientStatusService ddcConfigClientStatusService(
+    DdcConfigClientStatusRepository ddcConfigClientStatusService(
             ObjectProvider<DdcRuntimeCoordinator> coordinator,
             AtomicRbac3RuntimePolicy policy) {
-        return new DdcConfigClientStatusService(coordinator, policy);
+        return new DdcConfigClientStatusRepository(coordinator, policy);
     }
 
     /**
@@ -138,7 +139,7 @@ public class Rbac3DdcPolicyConfiguration {
     private InitializingBean registrar(
             DdcConfigApplierRegistry registry,
             AtomicRbac3RuntimePolicy policy,
-            Rbac3DdcPolicyApplier.ApplyObserver observer) {
+            ApplyObserver observer) {
         return () -> {
             register(registry, policy, observer,
                     AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY, 0);
@@ -169,7 +170,7 @@ public class Rbac3DdcPolicyConfiguration {
     private void register(
             DdcConfigApplierRegistry registry,
             AtomicRbac3RuntimePolicy policy,
-            Rbac3DdcPolicyApplier.ApplyObserver observer,
+            ApplyObserver observer,
             String key,
             int priority) {
         registry.registerExact(
