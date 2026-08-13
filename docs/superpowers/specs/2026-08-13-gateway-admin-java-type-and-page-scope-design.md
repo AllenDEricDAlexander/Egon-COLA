@@ -1,4 +1,4 @@
-# Gateway Admin Java 类型独立化与页面级 Scope 改造规格
+# Gateway Admin 领域分包、Java 类型独立化与页面级 Scope 改造规格
 
 > 状态：待用户书面审查
 > 编写日期：2026-08-13
@@ -10,10 +10,11 @@
 - `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin`
 - `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web`
 
-本文固化已经确认的两项改造：
+本文固化已经确认的三项改造：
 
-1. Gateway Admin 的 Controller、Service 和统一异常处理器不再内嵌声明业务/API/Application 数据类型，现有嵌套 `record`、`enum` 全部独立为顶层 Java 文件；
-2. Gateway Admin Web 不再把 `bizCode / namespace / env / appCode` 作为贯穿全站的全局查询上下文，改为各页面独立筛选和独立查询。
+1. Gateway Admin Java 包改为领域优先的垂直结构，每个领域内部按 `controller / domain / repository / service` 展开；
+2. Gateway Admin 生产源码不再包含任何嵌套 `record`、`class`、`enum` 或 `interface`，现有 165 个嵌套类型全部独立为顶层 Java 文件；
+3. Gateway Admin Web 不再把 `bizCode / namespace / env / appCode` 作为贯穿全站的全局查询上下文，改为各页面独立筛选和独立查询。
 
 本次不删除或修改认证接口，不让前端解析 JWT，也不修改任何既有 HTTP 接口契约。
 
@@ -27,7 +28,7 @@
 | GA-02 | Gateway Admin Web 继续通过现有 Session API 获取身份和 capabilities，不解析 JWT |
 | GA-03 | Spring Security、IdP、RBAC3、`AdminActor` 和后端权限校验不在本次改造范围 |
 | GA-04 | 外部 HTTP 契约冻结；Java 内部类型名称、包位置和方法签名允许因类型独立化而调整 |
-| GA-05 | Controller、Service、`GatewayAdminExceptionHandler` 中不得继续声明嵌套 `record`、`class`、`enum` 或 `interface` |
+| GA-05 | Gateway Admin 全部生产 Java 类中不得继续声明嵌套 `record`、`class`、`enum` 或 `interface` |
 | GA-06 | 独立数据载体允许继续使用顶层 `record`；本次不把不可变数据载体机械改写为可变 JavaBean |
 | GA-07 | 不建立通用 `pojo`、巨型 `dto` 或跨功能 `model` 垃圾包；类型放回其所属接口或业务功能包 |
 | GA-08 | Gateway Web 删除全局选中 Scope、Header Scope 选择器、Scope LocalStorage 和切换 Scope 时的全局缓存清理/跳转 |
@@ -35,6 +36,13 @@
 | GA-10 | 能用现有接口查询全量数据的页面默认展示跨 Scope 数据；仍要求 Scope 参数的接口由对应页面独立选择后查询 |
 | GA-11 | 页面级筛选写入本页面 URL Query，不跨页面共享，不写入 LocalStorage |
 | GA-12 | 本次不以浏览器遍历全部 Scope、并发请求后再合并的方式伪造全局聚合或全局分页 |
+| GA-13 | Java 包采用领域优先结构：`admin.<领域>.controller/domain/repository/service` |
+| GA-14 | `domain` 下按实际需要建立 `dto / vo / po / enums / exception`，不创建空包 |
+| GA-15 | 不再保留承载全部业务的 `interfaces / infrastructure / persistence` 技术根包；`admin.application` 仅表示 Gateway Application 领域，不再作为全局 Application Layer |
+| GA-16 | DTO、VO、PO 和 Enum 使用明确后缀；真实领域对象可直接位于本领域 `domain` 包 |
+| GA-17 | Repository 实现按 `jdbc / jpa / filesystem` 继续细分，仓储接口和实现不得散落在 Service 包 |
+| GA-18 | `src/main/java` 中 165 个嵌套类型全部清零；私有辅助类型也必须成为消费者同包下的包级顶层类型 |
+| GA-19 | MCP 保持为一个完整领域，本次不为目录整齐而强拆 `McpControlPlaneService` |
 
 ---
 
@@ -42,14 +50,15 @@
 
 ### 2.1 Java 类型与宿主职责混杂
 
-当前 `gateway-admin` 中，Controller、Service 和异常处理器除了自己的接口编排或业务流程职责，还在文件尾部声明 Request、Response、Command、Query、View、Result、校验结果和内部计算状态。
+当前 `gateway-admin` 中，Controller、Service、Store、Repository 实现、配置、消息消费者、规则工具和异常处理器除了自己的主要职责，还在文件尾部声明 Request、Response、Command、Query、View、Result、PO、枚举、校验结果和内部计算状态。
 
 基线扫描结果为：
 
-- 28 个宿主 Java 文件存在嵌套类型；
-- 共 87 个嵌套类型；
-- 其中 86 个为 `record`，1 个为 `enum`；
-- 覆盖 Management、Application、Projection、Routing、Release、Scope 和 MCP 等主要功能面。
+- 59 个生产 Java 文件存在嵌套类型；
+- 共 165 个嵌套类型；
+- 其中 149 个为 `record`，10 个为 `class`，6 个为 `enum`；
+- 原 Controller、Service、ExceptionHandler 范围是其中 87 个；
+- 其余 78 个分布在 Store、JDBC 实现、配置、领域对象、规则、消息消费和定时任务中。
 
 这产生以下问题：
 
@@ -58,11 +67,31 @@
 3. 单个 Service 文件同时承担流程、协议和大量数据结构定义，类文件过长且变更噪声大；
 4. 同名的 `CreateRequest`、`MutationRequest`、`MutationControl` 只能依赖嵌套作用域区分，难以表达真实语义；
 5. 类型不能被单独检索、评审和编写有意义的 JavaDoc；
-6. 后续继续向 Controller/Service 塞类型时缺少自动化阻断。
+6. 后续继续向任意生产类塞嵌套数据类型时缺少自动化阻断。
 
 本次解决的是类型归属和源码组织问题，不借机改变业务模型。
 
-### 2.2 全局 Scope 把查询条件错误提升为应用上下文
+### 2.2 当前包结构以技术层为中心
+
+当前源码同时存在：
+
+```text
+application
+domain
+infrastructure
+interfaces
+mcp/application
+mcp/interfaces
+mcp/persistence
+rule
+security
+```
+
+同一业务领域被拆散在多棵技术目录中。例如 Gateway Catalog 的 Controller 位于 `interfaces.management`，Service/Store 位于 `application.catalog`，JDBC 实现位于 `infrastructure.persistence`；查看一次完整调用链必须跨三个根包。
+
+新结构以业务领域作为第一层边界，技术职责作为领域内部第二层。`bootstrap` 和 `config` 是模块装配例外，不承担业务对象归属。
+
+### 2.3 全局 Scope 把查询条件错误提升为应用上下文
 
 当前 Gateway Web 的数据流为：
 
@@ -86,7 +115,7 @@ ScopeProvider
 - DDC Binding 加载失败或没有 Binding 时，`ScopeProvider` 会阻断整个已登录应用；
 - 默认 Scope 环境变量和 LocalStorage 把一次查询偏好变成了全站状态。
 
-### 2.3 现有接口对“跨 Scope”的支持能力不同
+### 2.4 现有接口对“跨 Scope”的支持能力不同
 
 本次冻结后端 HTTP 接口后，必须忠实现有能力：
 
@@ -109,18 +138,20 @@ ScopeProvider
 
 ### 3.1 目标
 
-1. 清除 Gateway Admin Controller、Service 和统一异常处理器中的所有嵌套类型声明；
-2. 为每个 Request、Response、Command、Query、View、Result、内部计算对象建立独立 Java 文件；
-3. 保持字段、校验注解、不可变性、构造校验、JSON 名称和现有业务行为；
-4. 让 Controller 只负责 HTTP 适配、校验、鉴权声明和 Application 调用；
-5. 让 Service 只负责业务流程编排，不在文件尾部兼任类型容器；
-6. 增加结构回归测试，防止新的嵌套业务/API 类型回流；
-7. 删除 Gateway Web 全局 Scope Context 和 Header Scope 选择器；
-8. 让 Gateway Group、Application、Catalog 和 MCP 默认能看到跨 Scope 候选数据；
-9. 让 Dashboard、Provider、Trace 和 Audit 在各自页面独立选择现有接口所要求的 Scope；
-10. 让查询键、筛选状态、缓存失效和页面跳转都局限在所属页面；
-11. 让前端 DDC Binding 查询失败不再阻断应用壳和与该查询无关的页面；
-12. 更新单元测试、前端说明和相关 E2E 测试夹具源码，使其与新页面结构一致。
+1. 将 Gateway Admin Java 源码改为领域优先、领域内部技术分层的包结构；
+2. 清除 Gateway Admin `src/main/java` 中全部 165 个嵌套类型声明；
+3. 为每个 Request、Response、Command、Query、View、Result、PO、枚举和内部计算对象建立独立 Java 文件；
+4. 保持字段、校验注解、不可变性、构造校验、JSON 名称和现有业务行为；
+5. 让 Controller 只负责协议适配、校验、鉴权声明和 Service 调用；
+6. 让 Service 只负责业务流程编排，不在文件尾部兼任类型容器；
+7. 让 Repository 契约、持久化实现和 PO 位于所属领域的明确目录；
+8. 增加结构回归测试，阻止嵌套类型和旧技术根包回流；
+9. 删除 Gateway Web 全局 Scope Context 和 Header Scope 选择器；
+10. 让 Gateway Group、Application、Catalog 和 MCP 默认能看到跨 Scope 候选数据；
+11. 让 Dashboard、Provider、Trace 和 Audit 在各自页面独立选择现有接口所要求的 Scope；
+12. 让查询键、筛选状态、缓存失效和页面跳转都局限在所属页面；
+13. 让前端 DDC Binding 查询失败不再阻断应用壳和与该查询无关的页面；
+14. 更新单元测试、前端说明和相关 E2E 测试夹具源码，使其与新页面结构一致。
 
 ### 3.2 非目标
 
@@ -136,20 +167,18 @@ ScopeProvider
 - 不为 Dashboard、Provider、Trace、Audit 新增跨 Scope 后端查询；
 - 不在前端并发遍历多个 Scope 后合并分页、排序或聚合数据；
 - 不引入 ArchUnit、ClassGraph、新状态管理框架或新 UI 框架；
-- 不进行与本需求无关的 Service 拆分、领域重构或命名清洗；
+- 不进行与本次分包、类型归位和 DTO/VO/PO/Enum 规范无关的 Service 拆分、领域重构或命名清洗；
+- 不为了满足目录形式而新增空接口、Facade、Factory 或无业务价值的抽象；
+- 不在本期拆分 `McpControlPlaneService`、改变跨领域工作流或新增模块；
 - 不启动项目，不执行浏览器或运行态联调。
 
 ---
 
-## 4. Java 类型独立化规范
+## 4. 领域分包与 Java 类型独立化规范
 
 ### 4.1 强制规则
 
-实施完成后，下列宿主类型必须满足 `getDeclaredClasses().length == 0`：
-
-- 类名以 `Controller` 结尾的 Gateway Admin Controller；
-- 类名以 `Service` 结尾的 Gateway Admin Application Service；
-- `GatewayAdminExceptionHandler`。
+实施完成后，Gateway Admin 的整个 `src/main/java` 必须不存在嵌套类型。所有生产类都必须满足 `getDeclaredClasses().length == 0`，编译产物目录中不得出现业务源码生成的 `$` 内部类文件。
 
 禁止的嵌套声明包括：
 
@@ -157,173 +186,481 @@ ScopeProvider
 record / class / enum / interface
 ```
 
-无论其可见性是 `public`、包级、`protected` 或 `private`，只要它表达 Request、Response、Command、Query、View、Result、业务状态、校验结果或计算上下文，都必须独立。
+无论其可见性是 `public`、包级、`protected` 或 `private`，只要源码声明了上述类型，都必须独立。包括：
+
+- Request、Response、Command、Query、Mutation、View、Result；
+- JPA Entity、数据库 Record、持久化快照和状态枚举；
+- 配置属性、消息消费状态、规则编译状态和定时任务上下文；
+- JDBC Row、Filter、Mutable Assembler 等实现辅助类型。
+
+私有实现辅助类型迁移后保持包级可见性，不因为独立文件而扩大公共 API。
 
 ### 4.2 类型形式
 
 - 现有不可变 `record` 迁移为顶层 `record`，不改变 component 顺序和类型；
 - 现有 `enum` 迁移为顶层 `enum`；
-- 原私有辅助 `record` 迁移为独立的包级类型，只有真实消费者需要跨包时才提升为 `public`；
+- 现有嵌套 `class` 迁移为独立顶层 `class`；配置属性和 JPA PO 保留框架所需的可变性、构造器和访问器；
+- 原私有辅助类型迁移为消费者所在 `service`、`repository.jdbc` 或 Controller 子包中的包级类型，只有真实消费者需要跨包时才提升为 `public`；
 - 不为满足“POJO”字面形式而添加 setter、无参构造器或 Lombok；
 - 构造器中的 `List.copyOf`、`Set.copyOf`、必填校验和归一化逻辑原样保留；
 - Jakarta Validation 注解继续放在 HTTP Request record component 上；
 - Jackson 可见字段名不得因 Java 类型重命名而变化。
 
-### 4.3 包放置规则
+### 4.3 领域优先包模板
 
-本次采用“与所属功能同包、类型名称完整表达语义”的最小方案：
+业务领域作为第一层，技术职责作为领域内部第二层：
 
-- Management HTTP 类型继续位于 `interfaces.management`，使用 `Gateway...Request/Response` 前缀避免同名冲突；
-- Application 类型与其 Service 位于同一个现有功能包，例如 `application.catalog`、`application.routing`；
-- MCP HTTP 类型继续位于 `mcp.interfaces`；
-- MCP Application 类型继续位于 `mcp.application`；
-- 不新建跨功能的 `pojo`、`dto`、`model` 总包；
-- 一个顶层类型对应一个 `.java` 文件。
+```text
+admin.<领域>
+├── controller
+├── domain
+│   ├── dto
+│   ├── vo
+│   ├── po
+│   ├── enums
+│   └── exception
+├── repository
+│   ├── jdbc
+│   ├── jpa
+│   └── filesystem
+└── service
+```
 
-这种布局既实现独立文件，又避免为了分类而增加多层空洞包结构。
+规则：
 
-### 4.4 命名规则
+- 只创建实际有类型的目录，不建立空的 `dto / vo / po / enums / exception`；
+- 不新建模块级通用 `pojo / dto / vo / po / model` 总包；
+- `bootstrap` 和 `config` 是模块装配例外，不承载业务数据模型；
+- 一个顶层类型对应一个 `.java` 文件；
+- 第一层不再保留 `interfaces / infrastructure / persistence` 技术分层目录；`application` 只作为 Gateway Application 业务领域存在。
 
-当嵌套作用域原本用于消除重名时，独立后必须补充业务前缀：
+### 4.4 类型分类与命名
+
+| 目录 | 放置内容 | 命名要求 |
+|---|---|---|
+| `domain/dto` | HTTP 请求、Command、Query、Mutation、Control、跨层输入 | `DTO` 后缀 |
+| `domain/vo` | HTTP 响应、View、Projection、Result、Report、Page | `VO` 后缀 |
+| `domain/po` | JPA Entity、数据库记录、持久化快照 | `PO` 后缀 |
+| `domain/enums` | 业务、协议和持久化状态枚举 | `Enum` 后缀 |
+| `domain/exception` | 当前领域异常 | `Exception` 后缀 |
+| `domain` | 有行为的领域对象、状态机、Revision、业务 Key | 使用真实业务名称，不强加 DTO/VO 后缀 |
+| `repository/jdbc` | JDBC 实现及其 Row、SQL Filter、Mutable Assembler | 辅助类型使用完整语义名并保持包级可见 |
+| `service` | Service 及只服务于该包编排/算法的计算状态 | 辅助类型使用完整语义名并保持包级可见 |
+
+示例：
 
 ```text
 GatewayApplicationController.CreateRequest
-  -> GatewayApplicationCreateRequest
+  -> application.domain.dto.GatewayApplicationCreateRequestDTO
 
-GatewayGroupController.CreateRequest
-  -> GatewayGroupCreateRequest
+GatewayApplicationService.GatewayApplicationView
+  -> application.domain.vo.GatewayApplicationVO
 
-McpServerController.MutationRequest
-  -> McpServerMutationRequest
+GatewayApplicationEntity
+  -> application.domain.po.GatewayApplicationPO
 
-McpToolAdminService.MutationControl
-  -> McpToolMutationControl
+GatewayCatalogService.Protocol
+  -> catalog.domain.enums.GatewayCatalogProtocolEnum
+
+JdbcGatewayCatalogStore.MutableBusiness
+  -> catalog.repository.jdbc.GatewayCatalogMutableBusiness
 ```
 
-本次只重命名 Java 类型，不重命名 JSON 字段或业务动作。
+本次只改变 Java 类型名和 FQCN，不改变 JSON 字段、业务动作、表名或列名。
 
-### 4.5 JavaDoc 和注释
+### 4.5 分层依赖规则
+
+- `controller` 可以依赖本领域 `service` 和 `domain/dto|vo`，不得直接依赖 Repository 实现；
+- `service` 可以依赖本领域 `domain`、Repository 契约和现有跨领域公开契约；
+- `repository` 可以依赖本领域 `domain/po`、持久化框架和基础设施客户端；
+- `domain` 不得依赖本领域的 `controller / service / repository`；
+- `repository/jdbc|jpa|filesystem` 是实现目录，不反向成为 Service 的类型容器；辅助类型与消费者同包，避免为跨子包访问扩大可见性；
+- 本次以行为兼容为先，不为消除既有跨领域查询而新增 Facade、Factory 或空接口。
+
+采用的是领域垂直分包和单一职责原则，不引入 Strategy、Factory、Template Method 等 GoF 模式。目录重组和类型归位已经能够解决当前问题，增加模式会扩大变更面。
+
+### 4.6 目标 package tree
+
+```text
+top.egon.cola.component.gateway.admin
+├── bootstrap
+│   ├── GatewayAdminApplication
+│   └── GatewayAdminConfiguration
+├── config
+│   ├── GatewayAdminProperties
+│   ├── GatewayAdminSecurityConfiguration
+│   ├── GatewayAdminTransportSecurityValidator
+│   └── properties
+├── shared
+│   ├── controller
+│   ├── domain
+│   │   ├── vo
+│   │   ├── po
+│   │   ├── enums
+│   │   └── exception
+│   └── repository
+│       └── jdbc
+├── auth
+│   ├── controller
+│   ├── domain
+│   │   └── vo
+│   └── service
+├── application
+│   ├── controller
+│   ├── domain
+│   │   ├── dto
+│   │   ├── vo
+│   │   ├── po
+│   │   └── exception
+│   ├── repository
+│   └── service
+├── group
+│   ├── controller
+│   ├── domain
+│   │   ├── dto
+│   │   ├── vo
+│   │   └── po
+│   ├── repository
+│   └── service
+├── catalog
+│   ├── controller
+│   ├── domain
+│   │   ├── dto
+│   │   ├── vo
+│   │   ├── po
+│   │   └── enums
+│   ├── repository
+│   │   └── jdbc
+│   └── service
+├── credential
+│   ├── controller
+│   ├── domain
+│   │   ├── dto
+│   │   ├── vo
+│   │   └── po
+│   ├── repository
+│   │   └── jdbc
+│   └── service
+├── scope
+│   ├── controller
+│   ├── domain
+│   │   ├── dto
+│   │   └── vo
+│   └── service
+├── routing
+│   ├── controller
+│   ├── domain
+│   │   ├── dto
+│   │   ├── vo
+│   │   └── po
+│   ├── repository
+│   │   └── jdbc
+│   └── service
+├── release
+│   ├── controller
+│   │   └── scheduled
+│   ├── domain
+│   │   ├── dto
+│   │   ├── vo
+│   │   ├── po
+│   │   └── enums
+│   ├── repository
+│   │   └── jdbc
+│   └── service
+├── rule
+│   ├── domain
+│   │   ├── dto
+│   │   └── vo
+│   └── service
+├── runtime
+│   ├── controller
+│   ├── domain
+│   │   ├── dto
+│   │   └── vo
+│   └── service
+├── observability
+│   ├── controller
+│   │   ├── message
+│   │   └── scheduled
+│   ├── domain
+│   │   ├── dto
+│   │   ├── vo
+│   │   ├── po
+│   │   └── enums
+│   ├── repository
+│   │   └── jdbc
+│   └── service
+├── reporting
+│   ├── controller
+│   │   ├── openapi
+│   │   └── scheduled
+│   ├── domain
+│   │   ├── dto
+│   │   ├── vo
+│   │   └── po
+│   ├── repository
+│   │   └── jdbc
+│   └── service
+└── mcp
+    ├── controller
+    ├── domain
+    │   ├── dto
+    │   ├── vo
+    │   ├── po
+    │   ├── enums
+    │   └── exception
+    ├── repository
+    │   ├── jdbc
+    │   └── filesystem
+    └── service
+```
+
+`runtime` 取代原 `application.projection`，因为 Provider、Engine Node 和 Runtime Consistency 是业务职责，Projection 只是实现形式。MCP 暂时作为一个完整领域，避免在没有业务边界的情况下拆散现有控制面编排。
+
+### 4.7 JavaDoc 和注释
 
 - 被迁移的顶层类型保留并修正现有中英双语 JavaDoc；
 - JavaDoc 必须说明类型职责、使用边界和每个 component 的真实业务语义；
 - 不保留“保存某字段对应的状态、依赖或配置值”这类无信息量模板描述；
-- Controller/Service 上因嵌套类型产生的旧链接改为新顶层类型链接；
+- 所有宿主类上因嵌套类型产生的旧链接改为新顶层类型链接；
 - 不借本次任务批量改写未触及类的注释。
 
 ---
 
-## 5. Java 类型迁移清单
+## 5. 165 个嵌套类型迁移清单
 
-下表中的目标类型均为独立顶层 Java 文件；未特别标注时，目标包与宿主类当前包一致。
+下表中的目标类型均为独立顶层 Java 文件，目标包使用从 `admin` 根包开始的相对路径。5.1 至 5.4 是原 Controller、Service、ExceptionHandler 范围内的 87 个类型；5.5 是扩展扫描发现并已经确认一并清理的 78 个类型。
 
-### 5.1 Management HTTP 层
-
-| 当前宿主 | 当前嵌套类型 | 目标顶层类型 |
-|---|---|---|
-| `GatewayAdminSessionController` | `SessionView` | `GatewayAdminSessionView` |
-| `GatewayAdminExceptionHandler` | `ErrorResponse` | `GatewayAdminErrorResponse` |
-| `GatewayAdminExceptionHandler` | `FieldError` | `GatewayAdminFieldError` |
-| `GatewayApplicationController` | `CreateRequest` | `GatewayApplicationCreateRequest` |
-| `GatewayApplicationController` | `UpdateRequest` | `GatewayApplicationUpdateRequest` |
-| `GatewayGroupController` | `CreateRequest` | `GatewayGroupCreateRequest` |
-| `GatewayGroupController` | `UpdateRequest` | `GatewayGroupUpdateRequest` |
-| `GatewayCredentialController` | `RotateRequest` | `GatewayCredentialRotateRequest` |
-| `GatewayReleaseController` | `CreateRequest` | `GatewayReleaseCreateRequest` |
-| `GatewayReleaseController` | `RollbackRequest` | `GatewayReleaseRollbackRequest` |
-| `GatewayDraftController` | `RouteRequest` | `GatewayDraftRouteRequest` |
-| `GatewayDraftController` | `PolicyRequest` | `GatewayDraftPolicyRequest` |
-| `GatewayDraftController` | `MutationRequest` | `GatewayDraftMutationRequest` |
-| `GatewayCatalogController` | `ResourceCreated` | `GatewayCatalogResourceCreatedResponse` |
-| `GatewayCatalogController` | `ManualInterfaceGroupRequest` | `GatewayCatalogManualInterfaceGroupRequest` |
-| `GatewayCatalogController` | `ManualOperationRequest` | `GatewayCatalogManualOperationRequest` |
-| `GatewayCatalogController` | `ManualDefinitionRequest` | `GatewayCatalogManualDefinitionRequest` |
-| `GatewayCatalogController` | `ManualMetadataRequest` | `GatewayCatalogManualMetadataRequest` |
-
-### 5.2 Gateway Application 层
+### 5.1 原 Management HTTP 范围
 
 | 当前宿主 | 当前嵌套类型 | 目标顶层类型 |
 |---|---|---|
-| `GatewayApplicationService` | `CreateGatewayApplication` | `CreateGatewayApplication` |
-| `GatewayApplicationService` | `UpdateGatewayApplication` | `UpdateGatewayApplication` |
-| `GatewayApplicationService` | `GatewayApplicationView` | `GatewayApplicationView` |
-| `GatewayGroupService` | `CreateGatewayGroup` | `CreateGatewayGroup` |
-| `GatewayGroupService` | `UpdateGatewayGroup` | `UpdateGatewayGroup` |
-| `GatewayGroupService` | `GatewayGroupView` | `GatewayGroupView` |
-| `GatewayCatalogService` | `Protocol` | `GatewayCatalogProtocol` |
-| `GatewayCatalogService` | `ManualOperation` | `GatewayManualOperation` |
-| `GatewayCatalogService` | `ManualDefinition` | `GatewayManualDefinition` |
-| `GatewayCatalogService` | `ManualMetadata` | `GatewayManualMetadata` |
-| `GatewayCatalogService` | `OperationDetail` | `GatewayOperationDetail` |
-| `GatewayCredentialService` | `IssuedCredential` | `IssuedGatewayCredential` |
-| `GatewayCredentialService` | `CredentialView` | `GatewayCredentialView` |
-| `GatewayProjectionService` | `ProjectionEnvelope<T>` | `GatewayProjectionEnvelope<T>` |
-| `GatewayProjectionService` | `ProviderQuery` | `GatewayProviderQuery` |
-| `GatewayProjectionService` | `ProviderInstanceProjection` | `GatewayProviderInstanceProjection` |
-| `GatewayProjectionService` | `RuntimeConsistency` | `GatewayRuntimeConsistency` |
-| `GatewayProjectionService` | `EngineNodeConsistency` | `GatewayEngineNodeConsistency` |
-| `GatewayProjectionService` | `RuleExpectation` | `GatewayRuleExpectation`（包级） |
-| `GatewayProjectionService` | `ProjectionCounts` | `GatewayProjectionCounts` |
-| `GatewayReleaseService` | `PreparedRelease` | `PreparedGatewayRelease`（包级） |
-| `GatewayReleaseService` | `CreateRelease` | `CreateGatewayRelease` |
-| `GatewayReleaseService` | `RollbackRelease` | `RollbackGatewayRelease` |
-| `GatewayReleaseService` | `ReleaseView` | `GatewayReleaseView` |
-| `GatewayDefinitionReportService` | `DefinitionCounts` | `GatewayDefinitionCounts`（包级） |
-| `GatewayDraftService` | `DraftView` | `GatewayDraftView` |
-| `GatewayDraftService` | `MutationControl` | `GatewayDraftMutationControl` |
-| `GatewayDraftService` | `RouteMutation` | `GatewayRouteMutation` |
-| `GatewayDraftService` | `PolicyMutation` | `GatewayPolicyMutation` |
-| `GatewayDraftService` | `MutationResult` | `GatewayDraftMutationResult` |
-| `GatewayDraftService` | `ValidationIssue` | `GatewayDraftValidationIssue` |
-| `GatewayDraftService` | `ValidationReport` | `GatewayDraftValidationReport` |
-| `GatewayDraftService` | `DraftDiff` | `GatewayDraftDiff` |
-| `GatewayScopeService` | `ScopeQuery` | `GatewayScopeQuery` |
-| `GatewayScopeService` | `PhysicalApplicationKey` | `GatewayPhysicalApplicationKey` |
-| `GatewayScopeService` | `ScopeView` | `GatewayScopeView` |
+| `GatewayAdminSessionController` | `SessionView` | `auth.domain.vo.GatewayAdminSessionVO` |
+| `GatewayAdminExceptionHandler` | `ErrorResponse` | `shared.domain.vo.GatewayAdminErrorVO` |
+| `GatewayAdminExceptionHandler` | `FieldError` | `shared.domain.vo.GatewayAdminFieldErrorVO` |
+| `GatewayApplicationController` | `CreateRequest` | `application.domain.dto.GatewayApplicationCreateRequestDTO` |
+| `GatewayApplicationController` | `UpdateRequest` | `application.domain.dto.GatewayApplicationUpdateRequestDTO` |
+| `GatewayGroupController` | `CreateRequest` | `group.domain.dto.GatewayGroupCreateRequestDTO` |
+| `GatewayGroupController` | `UpdateRequest` | `group.domain.dto.GatewayGroupUpdateRequestDTO` |
+| `GatewayCredentialController` | `RotateRequest` | `credential.domain.dto.GatewayCredentialRotateRequestDTO` |
+| `GatewayReleaseController` | `CreateRequest` | `release.domain.dto.GatewayReleaseCreateRequestDTO` |
+| `GatewayReleaseController` | `RollbackRequest` | `release.domain.dto.GatewayReleaseRollbackRequestDTO` |
+| `GatewayDraftController` | `RouteRequest` | `routing.domain.dto.GatewayDraftRouteRequestDTO` |
+| `GatewayDraftController` | `PolicyRequest` | `routing.domain.dto.GatewayDraftPolicyRequestDTO` |
+| `GatewayDraftController` | `MutationRequest` | `routing.domain.dto.GatewayDraftMutationRequestDTO` |
+| `GatewayCatalogController` | `ResourceCreated` | `catalog.domain.vo.GatewayCatalogResourceCreatedVO` |
+| `GatewayCatalogController` | `ManualInterfaceGroupRequest` | `catalog.domain.dto.GatewayManualInterfaceGroupRequestDTO` |
+| `GatewayCatalogController` | `ManualOperationRequest` | `catalog.domain.dto.GatewayManualOperationRequestDTO` |
+| `GatewayCatalogController` | `ManualDefinitionRequest` | `catalog.domain.dto.GatewayManualDefinitionRequestDTO` |
+| `GatewayCatalogController` | `ManualMetadataRequest` | `catalog.domain.dto.GatewayManualMetadataRequestDTO` |
 
-### 5.3 MCP HTTP 层
+### 5.2 原 Gateway Application Service 范围
 
 | 当前宿主 | 当前嵌套类型 | 目标顶层类型 |
 |---|---|---|
-| `McpAppAdminController` | `ArtifactRequest` | `McpArtifactRequest` |
-| `McpApprovalController` | `ApprovalRequest` | `McpApprovalRequest` |
-| `McpApprovalController` | `ApprovalResponse` | `McpApprovalResponse` |
-| `McpApprovalController` | `ApprovalOwner` | `McpApprovalOwner`（包级） |
-| `McpCapabilityController` | `CapabilityRequest` | `McpCapabilityRequest` |
-| `McpProtocolInspectorController` | `InspectRequest` | `McpProtocolInspectRequest` |
-| `McpProtocolInspectorController` | `Inspection` | `McpProtocolInspection` |
-| `McpRemoteProviderController` | `ProviderRequest` | `McpRemoteProviderRequest` |
-| `McpRemoteProviderController` | `MountRequest` | `McpRemoteMountRequest` |
-| `McpServerController` | `ServerRequest` | `McpServerRequest` |
-| `McpServerController` | `MutationRequest` | `McpServerMutationRequest` |
-| `McpTaskAdminController` | `CancelRequest` | `McpTaskCancelRequest` |
-| `McpTaskAdminController` | `CancelResult` | `McpTaskCancelResult` |
-| `McpToolAdminController` | `ManagedToolOverrideRequest` | `McpManagedToolOverrideRequest` |
-| `McpToolAdminController` | `RemoteToolRequest` | `McpRemoteToolRequest` |
-| `McpToolAdminController` | `MutationRequest` | `McpToolMutationRequest` |
+| `GatewayApplicationService` | `CreateGatewayApplication` | `application.domain.dto.GatewayApplicationCreateCommandDTO` |
+| `GatewayApplicationService` | `UpdateGatewayApplication` | `application.domain.dto.GatewayApplicationUpdateCommandDTO` |
+| `GatewayApplicationService` | `GatewayApplicationView` | `application.domain.vo.GatewayApplicationVO` |
+| `GatewayGroupService` | `CreateGatewayGroup` | `group.domain.dto.GatewayGroupCreateCommandDTO` |
+| `GatewayGroupService` | `UpdateGatewayGroup` | `group.domain.dto.GatewayGroupUpdateCommandDTO` |
+| `GatewayGroupService` | `GatewayGroupView` | `group.domain.vo.GatewayGroupVO` |
+| `GatewayCatalogService` | `Protocol` | `catalog.domain.enums.GatewayCatalogProtocolEnum` |
+| `GatewayCatalogService` | `ManualOperation` | `catalog.domain.dto.GatewayManualOperationDTO` |
+| `GatewayCatalogService` | `ManualDefinition` | `catalog.domain.dto.GatewayManualDefinitionDTO` |
+| `GatewayCatalogService` | `ManualMetadata` | `catalog.domain.dto.GatewayManualMetadataDTO` |
+| `GatewayCatalogService` | `OperationDetail` | `catalog.domain.vo.GatewayOperationDetailVO` |
+| `GatewayCredentialService` | `IssuedCredential` | `credential.domain.vo.IssuedGatewayCredentialVO` |
+| `GatewayCredentialService` | `CredentialView` | `credential.domain.vo.GatewayCredentialVO` |
+| `GatewayProjectionService` | `ProjectionEnvelope<T>` | `runtime.domain.vo.GatewayProjectionEnvelopeVO<T>` |
+| `GatewayProjectionService` | `ProviderQuery` | `runtime.domain.dto.GatewayProviderQueryDTO` |
+| `GatewayProjectionService` | `ProviderInstanceProjection` | `runtime.domain.vo.GatewayProviderInstanceVO` |
+| `GatewayProjectionService` | `RuntimeConsistency` | `runtime.domain.vo.GatewayRuntimeConsistencyVO` |
+| `GatewayProjectionService` | `EngineNodeConsistency` | `runtime.domain.vo.GatewayEngineNodeConsistencyVO` |
+| `GatewayProjectionService` | `RuleExpectation` | `runtime.service.GatewayRuleExpectation`（包级） |
+| `GatewayProjectionService` | `ProjectionCounts` | `runtime.service.GatewayProjectionCounts`（包级） |
+| `GatewayReleaseService` | `PreparedRelease` | `release.service.PreparedGatewayRelease`（包级） |
+| `GatewayReleaseService` | `CreateRelease` | `release.domain.dto.GatewayReleaseCreateCommandDTO` |
+| `GatewayReleaseService` | `RollbackRelease` | `release.domain.dto.GatewayReleaseRollbackCommandDTO` |
+| `GatewayReleaseService` | `ReleaseView` | `release.domain.vo.GatewayReleaseVO` |
+| `GatewayDefinitionReportService` | `DefinitionCounts` | `reporting.service.GatewayDefinitionCounts`（包级） |
+| `GatewayDraftService` | `DraftView` | `routing.domain.vo.GatewayDraftVO` |
+| `GatewayDraftService` | `MutationControl` | `routing.domain.dto.GatewayDraftMutationControlDTO` |
+| `GatewayDraftService` | `RouteMutation` | `routing.domain.dto.GatewayRouteMutationDTO` |
+| `GatewayDraftService` | `PolicyMutation` | `routing.domain.dto.GatewayPolicyMutationDTO` |
+| `GatewayDraftService` | `MutationResult` | `routing.domain.vo.GatewayDraftMutationResultVO` |
+| `GatewayDraftService` | `ValidationIssue` | `routing.domain.vo.GatewayDraftValidationIssueVO` |
+| `GatewayDraftService` | `ValidationReport` | `routing.domain.vo.GatewayDraftValidationReportVO` |
+| `GatewayDraftService` | `DraftDiff` | `routing.domain.vo.GatewayDraftDiffVO` |
+| `GatewayScopeService` | `ScopeQuery` | `scope.domain.dto.GatewayScopeQueryDTO` |
+| `GatewayScopeService` | `PhysicalApplicationKey` | `scope.domain.GatewayPhysicalApplicationKey` |
+| `GatewayScopeService` | `ScopeView` | `scope.domain.vo.GatewayScopeVO` |
 
-### 5.4 MCP Application 层
+### 5.3 原 MCP HTTP 范围
 
 | 当前宿主 | 当前嵌套类型 | 目标顶层类型 |
 |---|---|---|
-| `McpControlPlaneService` | `ServerMutation` | `McpServerMutation` |
-| `McpControlPlaneService` | `CapabilityMutation` | `McpCapabilityMutation` |
-| `McpControlPlaneService` | `RemoteProviderMutation` | `McpRemoteProviderMutation` |
-| `McpControlPlaneService` | `RemoteMountMutation` | `McpRemoteMountMutation` |
-| `McpControlPlaneService` | `ArtifactMutation` | `McpArtifactMutation` |
-| `McpControlPlaneService` | `ArtifactUpload` | `McpArtifactUpload` |
-| `McpControlPlaneService` | `MutationControl` | `McpMutationControl` |
-| `McpControlPlaneService` | `ServerView` | `McpServerView` |
-| `McpControlPlaneService` | `MutationResult` | `McpMutationResult` |
-| `McpControlPlaneService` | `Preview` | `McpCapabilityPreview` |
-| `McpToolAdminService` | `ManagedToolOverrideMutation` | `McpManagedToolOverrideMutation` |
-| `McpToolAdminService` | `RemoteToolMutation` | `McpRemoteToolMutation` |
-| `McpToolAdminService` | `MutationControl` | `McpToolMutationControl` |
-| `McpToolAdminService` | `ManagedToolView` | `McpManagedToolView` |
-| `McpToolAdminService` | `RemoteToolView` | `McpRemoteToolView` |
-| `McpValidationService` | `ValidationReport` | `McpValidationReport` |
-| `McpValidationService` | `ValidationFinding` | `McpValidationFinding` |
+| `McpAppAdminController` | `ArtifactRequest` | `mcp.domain.dto.McpArtifactRequestDTO` |
+| `McpApprovalController` | `ApprovalRequest` | `mcp.domain.dto.McpApprovalRequestDTO` |
+| `McpApprovalController` | `ApprovalResponse` | `mcp.domain.vo.McpApprovalVO` |
+| `McpApprovalController` | `ApprovalOwner` | `mcp.domain.vo.McpApprovalOwnerVO`（包级） |
+| `McpCapabilityController` | `CapabilityRequest` | `mcp.domain.dto.McpCapabilityRequestDTO` |
+| `McpProtocolInspectorController` | `InspectRequest` | `mcp.domain.dto.McpProtocolInspectRequestDTO` |
+| `McpProtocolInspectorController` | `Inspection` | `mcp.domain.vo.McpProtocolInspectionVO` |
+| `McpRemoteProviderController` | `ProviderRequest` | `mcp.domain.dto.McpRemoteProviderRequestDTO` |
+| `McpRemoteProviderController` | `MountRequest` | `mcp.domain.dto.McpRemoteMountRequestDTO` |
+| `McpServerController` | `ServerRequest` | `mcp.domain.dto.McpServerRequestDTO` |
+| `McpServerController` | `MutationRequest` | `mcp.domain.dto.McpServerMutationRequestDTO` |
+| `McpTaskAdminController` | `CancelRequest` | `mcp.domain.dto.McpTaskCancelRequestDTO` |
+| `McpTaskAdminController` | `CancelResult` | `mcp.domain.vo.McpTaskCancelResultVO` |
+| `McpToolAdminController` | `ManagedToolOverrideRequest` | `mcp.domain.dto.McpManagedToolOverrideRequestDTO` |
+| `McpToolAdminController` | `RemoteToolRequest` | `mcp.domain.dto.McpRemoteToolRequestDTO` |
+| `McpToolAdminController` | `MutationRequest` | `mcp.domain.dto.McpToolMutationRequestDTO` |
 
-迁移总数必须保持 87。实施时若当前基线新增了 Controller/Service 嵌套类型，必须一并纳入，不能只机械处理本表后忽略新增项。
+### 5.4 原 MCP Application Service 范围
+
+| 当前宿主 | 当前嵌套类型 | 目标顶层类型 |
+|---|---|---|
+| `McpControlPlaneService` | `ServerMutation` | `mcp.domain.dto.McpServerMutationDTO` |
+| `McpControlPlaneService` | `CapabilityMutation` | `mcp.domain.dto.McpCapabilityMutationDTO` |
+| `McpControlPlaneService` | `RemoteProviderMutation` | `mcp.domain.dto.McpRemoteProviderMutationDTO` |
+| `McpControlPlaneService` | `RemoteMountMutation` | `mcp.domain.dto.McpRemoteMountMutationDTO` |
+| `McpControlPlaneService` | `ArtifactMutation` | `mcp.domain.dto.McpArtifactMutationDTO` |
+| `McpControlPlaneService` | `ArtifactUpload` | `mcp.domain.dto.McpArtifactUploadDTO` |
+| `McpControlPlaneService` | `MutationControl` | `mcp.domain.dto.McpMutationControlDTO` |
+| `McpControlPlaneService` | `ServerView` | `mcp.domain.vo.McpServerVO` |
+| `McpControlPlaneService` | `MutationResult` | `mcp.domain.vo.McpMutationResultVO` |
+| `McpControlPlaneService` | `Preview` | `mcp.domain.vo.McpCapabilityPreviewVO` |
+| `McpToolAdminService` | `ManagedToolOverrideMutation` | `mcp.domain.dto.McpManagedToolOverrideMutationDTO` |
+| `McpToolAdminService` | `RemoteToolMutation` | `mcp.domain.dto.McpRemoteToolMutationDTO` |
+| `McpToolAdminService` | `MutationControl` | `mcp.domain.dto.McpToolMutationControlDTO` |
+| `McpToolAdminService` | `ManagedToolView` | `mcp.domain.vo.McpManagedToolVO` |
+| `McpToolAdminService` | `RemoteToolView` | `mcp.domain.vo.McpRemoteToolVO` |
+| `McpValidationService` | `ValidationReport` | `mcp.domain.vo.McpValidationReportVO` |
+| `McpValidationService` | `ValidationFinding` | `mcp.domain.vo.McpValidationFindingVO` |
+
+### 5.5 其他生产代码嵌套类型
+
+| 当前宿主 | 当前嵌套类型 | 目标顶层类型 |
+|---|---|---|
+| `AdminActor` | `ActorType` | `shared.domain.enums.AdminActorTypeEnum` |
+| `GatewayAdminProperties` | `Ddc` | `config.properties.GatewayAdminDdcProperties` |
+| `GatewayAdminProperties` | `RuleChunk` | `config.properties.GatewayRuleChunkProperties` |
+| `GatewayCallEventConsumerHandler` | `Result` | `observability.domain.enums.GatewayCallEventConsumeResultEnum` |
+| `GatewayCatalogStore` | `ManualHierarchy` | `catalog.domain.dto.GatewayManualHierarchyDTO` |
+| `GatewayCatalogStore` | `InterfaceGroupScope` | `catalog.domain.vo.GatewayInterfaceGroupScopeVO` |
+| `GatewayCatalogStore` | `OperationRecord` | `catalog.domain.po.GatewayOperationPO` |
+| `GatewayCatalogStore` | `OperationDefinition` | `catalog.domain.po.GatewayOperationDefinitionPO` |
+| `GatewayCatalogStore` | `CurrentOperationDefinition` | `catalog.domain.vo.GatewayCurrentOperationDefinitionVO` |
+| `GatewayCatalogStore` | `CatalogTree` | `catalog.domain.vo.GatewayCatalogTreeVO` |
+| `GatewayCatalogStore` | `BusinessNode` | `catalog.domain.vo.GatewayBusinessNodeVO` |
+| `GatewayCatalogStore` | `EntityNode` | `catalog.domain.vo.GatewayEntityNodeVO` |
+| `GatewayCatalogStore` | `InterfaceGroupNode` | `catalog.domain.vo.GatewayInterfaceGroupNodeVO` |
+| `GatewayCatalogStore` | `OperationNode` | `catalog.domain.vo.GatewayOperationNodeVO` |
+| `GatewayCredentialStore` | `CredentialRecord` | `credential.domain.po.GatewayCredentialPO` |
+| `GatewayDdcYamlDocument` | `Removal` | `rule.service.GatewayYamlRemoval`（包级） |
+| `GatewayDdcYamlDocument` | `LeafLocation` | `rule.service.GatewayYamlLeafLocation`（包级） |
+| `GatewayDdcYamlDocument` | `ParentLink` | `rule.service.GatewayYamlParentLink`（包级） |
+| `GatewayDdcYamlDocument` | `PrefixMatch` | `rule.service.GatewayYamlPrefixMatch`（包级） |
+| `GatewayDefinitionLifecycleReconciler` | `Scope` | `reporting.domain.dto.GatewayDefinitionLifecycleScopeDTO` |
+| `GatewayDefinitionLifecycleStore` | `ReconcileResult` | `reporting.domain.vo.GatewayReconcileResultVO` |
+| `GatewayDefinitionReportStore` | `StoredReport` | `reporting.domain.po.GatewayStoredReportPO` |
+| `GatewayDraftStore` | `RouteDraft` | `routing.domain.po.GatewayRouteDraftPO` |
+| `GatewayDraftStore` | `PolicyDraft` | `routing.domain.po.GatewayPolicyDraftPO` |
+| `GatewayKafkaCallEventConsumer` | `Settings` | `observability.domain.dto.GatewayKafkaConsumerSettingsDTO` |
+| `GatewayKafkaCallEventConsumer` | `RecordKey` | `observability.controller.message.GatewayKafkaRecordKey`（包级） |
+| `GatewayKafkaCallEventConsumer` | `RebalanceListener` | `observability.controller.message.GatewayKafkaRebalanceListener`（包级） |
+| `GatewayObservabilityStore` | `ConsumeFailure` | `observability.domain.po.GatewayConsumeFailurePO` |
+| `GatewayObservabilityStore` | `TraceQuery` | `observability.domain.dto.GatewayTraceQueryDTO` |
+| `GatewayObservabilityStore` | `AuditQuery` | `observability.domain.dto.GatewayAuditQueryDTO` |
+| `GatewayObservabilityStore` | `TraceSummary` | `observability.domain.vo.GatewayTraceVO` |
+| `GatewayObservabilityStore` | `AuditSummary` | `observability.domain.vo.GatewayAuditVO` |
+| `GatewayObservabilityStore` | `RequestPoint` | `observability.domain.dto.GatewayRequestPointDTO` |
+| `GatewayObservabilityStore` | `ProtocolCall` | `observability.domain.dto.GatewayProtocolCallDTO` |
+| `GatewayObservabilityStore` | `DashboardSummary` | `observability.domain.vo.GatewayDashboardVO` |
+| `GatewayObservabilityStore` | `Page<T>` | `observability.domain.vo.GatewayPageVO<T>` |
+| `GatewayOperationSchemaValidator` | `State` | `reporting.service.GatewaySchemaValidationState`（包级） |
+| `GatewayReleasePublicationCoordinator` | `PublicationOutcome` | `release.domain.vo.GatewayPublicationOutcomeVO` |
+| `GatewayReleasePublicationCoordinator` | `Scope` | `release.domain.dto.GatewayPublicationScopeDTO` |
+| `GatewayReleasePublicationCoordinator` | `Artifact` | `release.domain.vo.GatewayReleaseArtifactVO` |
+| `GatewayReleasePublicationStore` | `PublicationRecord` | `release.domain.po.GatewayReleasePublicationPO` |
+| `GatewayReleasePublicationStore` | `PhaseType` | `release.domain.enums.GatewayPublicationPhaseEnum` |
+| `GatewayReleasePublicationStore` | `PublicationStatus` | `release.domain.enums.GatewayPublicationStatusEnum` |
+| `GatewayReleasePublicationStore` | `ChunkCleanupCandidate` | `release.domain.po.GatewayChunkCleanupCandidatePO` |
+| `GatewayReleaseStore` | `ReleaseRecord` | `release.domain.po.GatewayReleasePO` |
+| `GatewayReleaseStore` | `TargetRecord` | `release.domain.po.GatewayReleaseTargetPO` |
+| `GatewayReleaseStore` | `AttemptRecord` | `release.domain.po.GatewayReleaseAttemptPO` |
+| `GatewayReleaseStore` | `RecoverableAttempt` | `release.domain.po.GatewayRecoverableReleaseAttemptPO` |
+| `GatewayReportHmacFilter` | `AuthenticationFailure` | `reporting.controller.openapi.GatewayReportAuthenticationFailure`（包级） |
+| `GatewayReportHmacFilter` | `CachedBodyRequest` | `reporting.controller.openapi.GatewayCachedBodyRequest`（包级） |
+| `GatewayRouteTransportPolicyValidator` | `Range` | `routing.service.GatewayTransportRange`（包级） |
+| `GatewayRouteTransportPolicyValidator` | `ValidationIssue` | `routing.service.GatewayTransportValidationIssue`（包级） |
+| `GatewaySecretProtector` | `ProtectedSecret` | `credential.domain.vo.GatewayProtectedSecretVO` |
+| `IdempotencyStore` | `Record` | `shared.domain.po.IdempotencyPO` |
+| `JdbcGatewayCatalogStore` | `MutableBusiness` | `catalog.repository.jdbc.GatewayCatalogMutableBusiness`（包级） |
+| `JdbcGatewayCatalogStore` | `MutableEntity` | `catalog.repository.jdbc.GatewayCatalogMutableEntity`（包级） |
+| `JdbcGatewayCatalogStore` | `MutableGroup` | `catalog.repository.jdbc.GatewayCatalogMutableGroup`（包级） |
+| `JdbcGatewayDefinitionReportStore` | `GroupRow` | `reporting.repository.jdbc.GatewayDefinitionGroupRow`（包级） |
+| `JdbcGatewayDefinitionReportStore` | `OperationRow` | `reporting.repository.jdbc.GatewayDefinitionOperationRow`（包级） |
+| `JdbcGatewayDefinitionReportStore` | `MutableStored` | `reporting.repository.jdbc.GatewayMutableStoredReport`（包级） |
+| `JdbcGatewayObservabilityStore` | `SqlFilter` | `observability.repository.jdbc.GatewayObservabilitySqlFilter`（包级） |
+| `JdbcMcpApprovalStore` | `Approval` | `mcp.domain.po.McpApprovalPO` |
+| `JdbcMcpArtifactMetadataStore` | `ArtifactMetadata` | `mcp.domain.po.McpArtifactMetadataPO` |
+| `JdbcMcpCapabilityDraftStore` | `CapabilityKind` | `mcp.domain.enums.McpCapabilityKindEnum` |
+| `JdbcMcpCapabilityDraftStore` | `CapabilityDraft` | `mcp.domain.po.McpCapabilityRecordPO` |
+| `JdbcMcpCapabilityDraftStore` | `McpCapabilityDraft` | `mcp.domain.po.McpCapabilityDraftPO` |
+| `JdbcMcpCapabilityDraftStore` | `DraftMutation` | `mcp.domain.dto.McpCapabilityDraftMutationDTO` |
+| `JdbcMcpCapabilityDraftStore` | `Binding` | `mcp.repository.jdbc.McpCapabilityBinding`（包级） |
+| `JdbcMcpManagedToolOverrideStore` | `ManagedToolOverride` | `mcp.domain.po.McpManagedToolOverridePO` |
+| `JdbcMcpManagedToolOverrideStore` | `DraftMutation` | `mcp.domain.dto.McpManagedToolDraftMutationDTO` |
+| `JdbcMcpRemoteProviderStore` | `RemoteProviderDraft` | `mcp.domain.po.McpRemoteProviderDraftPO` |
+| `JdbcMcpRemoteProviderStore` | `RemoteCapability` | `mcp.domain.po.McpRemoteCapabilityPO` |
+| `JdbcMcpRemoteProviderStore` | `RemoteMountDraft` | `mcp.domain.po.McpRemoteMountDraftPO` |
+| `JdbcMcpRemoteProviderStore` | `Mutation` | `mcp.domain.dto.McpRemoteProviderDraftMutationDTO` |
+| `JdbcMcpRemoteToolDraftStore` | `RemoteToolDraft` | `mcp.domain.po.McpRemoteToolDraftPO` |
+| `JdbcMcpRemoteToolDraftStore` | `DraftMutation` | `mcp.domain.dto.McpRemoteToolDraftMutationDTO` |
+| `JdbcMcpTaskStore` | `TaskRecord` | `mcp.domain.po.McpTaskPO` |
+| `McpReleaseContentFactory` | `ManagedToolProjection` | `mcp.domain.vo.McpManagedToolProjectionVO` |
+
+### 5.6 现有顶层类型的领域归属
+
+嵌套类型独立化之外，现有顶层类型也必须移动到目标领域。以下映射是强制边界：
+
+| 当前包 | 目标领域/目录 |
+|---|---|
+| `admin` 根包 | 应用入口进入 `bootstrap`，装配类进入 `bootstrap` 或 `config` |
+| `application` | Application、Group 分别进入 `application`、`group`；审计上下文和幂等能力进入 `shared` |
+| `application.catalog` | `catalog.service` 或 `catalog.repository` |
+| `application.credential` | `credential.service` 或 `credential.repository` |
+| `application.observability` | `observability.service` 或 `observability.repository` |
+| `application.projection` | `runtime.service` |
+| `application.release` | `release.service` 或 `release.repository` |
+| `application.reporting` | `reporting.service` 或 `reporting.repository` |
+| `application.routing` | `routing.service` 或 `routing.repository` |
+| `application.scope` | `scope.service` |
+| `domain` | 按职责进入 `shared.domain`、`routing.domain`、`release.domain` |
+| `infrastructure.messaging` | `observability.controller.message` |
+| `infrastructure.persistence` | 按表/仓储所属领域进入 `<领域>.repository`、`<领域>.repository.jdbc` 或 `<领域>.domain.po` |
+| `infrastructure.security` | JWT 转换进入 `auth.service`，安全装配进入 `config`，密钥保护进入 `credential.service` |
+| `interfaces.management` | 按资源进入对应领域 `controller`；公共 Resolver/Advice 进入 `shared.controller`；认证接口进入 `auth.controller` |
+| `interfaces.openapi` | `reporting.controller.openapi` |
+| `interfaces.scheduled` | 按任务进入 `reporting.controller.scheduled`、`release.controller.scheduled` 或 `observability.controller.scheduled` |
+| `mcp.application` | `mcp.service`、`mcp.domain.vo` 或 `mcp.domain.exception` |
+| `mcp.artifact` | `mcp.repository.filesystem` |
+| `mcp.interfaces` | `mcp.controller` |
+| `mcp.persistence` | `mcp.repository`、`mcp.repository.jdbc` 或 `mcp.domain.po` |
+| `rule` | 编译/发布能力进入 `rule.service`，传输对象进入 `rule.domain.dto/vo`；Route 专属 Mapper/Validator 进入 `routing.service` |
+| `security` | `config` |
+
+顶层类型命名同步规范化：
+
+- `GatewayApplicationEntity`、`GatewayGroupEntity`、`GatewayDraftEntity`、`GatewayAuditLogEntity`、`McpServerEntity` 分别改为所属领域的 `...PO`；
+- 仓储契约的 `Store` 后缀改为 `Repository`，例如 `GatewayCatalogStore -> GatewayCatalogRepository`；
+- JDBC 实现的 `Jdbc...Store` 改为 `Jdbc...Repository`；
+- `FileSystemMcpAppArtifactStore` 改为 `FileSystemMcpAppArtifactRepository`；
+- 已经准确使用 `Repository` 后缀的 Spring Data 接口保留类名，只移动包；
+- 类名/FQCN 变化只属于 Java 内部兼容面，不能改变数据库表、列、SQL、HTTP 或消息契约。
+
+迁移总数必须保持 165。实施时若基线新增嵌套类型，必须按同一规则一并独立，不能只机械处理本表后忽略新增项。
 
 ---
 
@@ -347,7 +684,7 @@ GET /api/v1/gateway/admin/session
 - Spring Security JWT 验签和后端权限校验；
 - `GatewayAdminActorArgumentResolver` 与 `AdminActor` 审计身份链路。
 
-`GatewayAdminSessionController.SessionView` 只做独立文件迁移，不删除接口或改由前端解析 JWT。
+`GatewayAdminSessionController.SessionView` 只迁移并重命名为 `auth.domain.vo.GatewayAdminSessionVO`，不删除接口或改由前端解析 JWT。
 
 ### 6.2 HTTP 契约冻结规则
 
@@ -662,21 +999,30 @@ Dashboard、Provider、Trace、Audit 在筛选不完整时：
 
 ### 12.1 Java 结构测试
 
-新增不依赖第三方扫描库的 JUnit 测试，显式枚举本次宿主类并断言：
+新增不依赖第三方扫描库的 JUnit 测试，从当前测试运行时的 `target/classes/top/egon/cola/component/gateway/admin` 动态加载全部顶层生产类，并断言：
 
 ```java
 assertThat(type.getDeclaredClasses()).isEmpty();
 ```
 
-覆盖：
+测试必须：
 
-- Management Controller；
-- MCP Controller；
-- Gateway Application Service；
-- MCP Application Service；
-- `GatewayAdminExceptionHandler`。
+- 覆盖整个 Gateway Admin `src/main/java`，不能只枚举 Controller/Service；
+- 证明基线 59 个宿主中的 165 个嵌套类型已经全部清零；
+- 对迁移后新增的顶层类型同样执行检查；
+- 输出仍存在嵌套声明的宿主 FQCN，便于定位；
+- 不引入 ArchUnit、ClassGraph 或反射扫描依赖。
 
-同时用源码检查保证上述文件中不再出现嵌套类型声明。
+同时增加源码/构建脚本检查，保证生产 Java 文件中不再出现缩进后的 `record / class / enum / interface` 声明。
+
+新增包结构测试，验证：
+
+- 不再存在 `admin.interfaces`、`admin.infrastructure` 和旧 `admin.mcp.application/interfaces/persistence/artifact`；
+- 不再存在旧 `admin.application.catalog/credential/observability/projection/release/reporting/routing/scope`；
+- Controller 不直接依赖 `repository.jdbc/jpa/filesystem`；
+- `domain` 不依赖本领域 `controller/service/repository`；
+- DTO/VO/PO/Enum 的目录与后缀一致；
+- 每个非空新包包含符合现有中英双语规范的 `package-info.java`。
 
 ### 12.2 Java 行为兼容测试
 
@@ -686,7 +1032,9 @@ assertThat(type.getDeclaredClasses()).isEmpty();
 - Request Validation 行为保持；
 - Session View 和 Error Response JSON 字段保持；
 - 代表性 Command/View 构造校验和集合不可变性保持；
-- 编译期更新全部 `OwningService.NestedType` 引用，仓库中不遗留旧 FQCN。
+- 编译期更新全部 `OwningType.NestedType` 和旧技术包引用，仓库中不遗留旧 FQCN；
+- JPA Entity 移动/重命名后表名、列名、Version、查询方法和持久化行为保持；
+- Store/Repository 重命名后方法签名、事务边界和 JDBC SQL 保持。
 
 建议针对迁移前易回归的外部响应增加 JSON Characterization Test，至少覆盖：
 
@@ -737,8 +1085,23 @@ npm run build
 仓库检查：
 
 ```bash
-rg "Gateway[A-Za-z]+(Controller|Service)\\.[A-Z][A-Za-z0-9_]+" \
-  egon-cola-platforms/egon-cola-platform-gateway
+java_root=egon-cola-platforms/egon-cola-platform-gateway/\
+egon-cola-platform-gateway-admin/src/main/java
+
+rg -n --glob '*.java' \
+  '^[[:space:]]+(public[[:space:]]+|protected[[:space:]]+|private[[:space:]]+|static[[:space:]]+|final[[:space:]]+)*(record|class|enum|interface)[[:space:]]+[A-Z]' \
+  "$java_root"
+
+rg -n '^package .*gateway\.admin\.(interfaces|infrastructure)(\.|;)' \
+  "$java_root"
+
+rg -n '^package .*gateway\.admin\.mcp\.(application|interfaces|persistence|artifact)(\.|;)' \
+  "$java_root"
+
+rg -n '^package .*gateway\.admin\.application\.(catalog|credential|observability|projection|release|reporting|routing|scope)(\.|;)' \
+  "$java_root"
+
+rg --files "$java_root" | rg '/[^/]*(Entity|Store)\.java$'
 
 rg "ScopeProvider|useScope\\(|VITE_GATEWAY_ADMIN_DEFAULT_" \
   egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web
@@ -746,7 +1109,7 @@ rg "ScopeProvider|useScope\\(|VITE_GATEWAY_ADMIN_DEFAULT_" \
 git diff --check
 ```
 
-预期：旧嵌套类型引用、全局 Scope Provider 和默认 Scope 环境变量均无活动源码命中；历史设计文档不作为失败依据。
+预期：上述嵌套声明、旧技术根包、旧 `Entity/Store` 文件名、全局 Scope Provider 和默认 Scope 环境变量均无活动源码命中；历史设计文档不作为失败依据。
 
 ### 12.5 不执行的运行态验证
 
@@ -756,15 +1119,19 @@ git diff --check
 
 ## 13. 实施任务与提交边界
 
-实施阶段采用以下独立任务和独立提交，避免 Java 大规模类型迁移与前端行为改造混在一起：
+实施阶段采用以下独立任务和独立提交，避免 Java 大规模包迁移与前端行为改造混在一起：
 
-1. Management Controller/Exception Handler 类型独立化及契约测试；
-2. Gateway Application Service 类型独立化及结构测试；
-3. MCP Controller/Application Service 类型独立化及结构测试；
-4. Gateway Web 移除全局 Scope 基础设施并建立页面级 Binding/Filter 能力；
-5. Gateway Group/Application/Catalog/MCP 迁移到默认全量与页面筛选；
-6. Dashboard/Provider/Trace/Audit 迁移到页面级必填 Scope；
-7. 前端测试、E2E 夹具源码和 README 收口。
+1. 建立 package 结构守卫，并迁移 `bootstrap/config/shared/auth`；
+2. 迁移 `application/group/scope` 的 Controller、Domain、Repository、Service 和相关测试；
+3. 迁移 `catalog/credential`，独立 Store/JDBC 内部类型并完成 Repository/PO 命名规范化；
+4. 迁移 `routing/release/rule`，保持发布、规则编译和 DDC 交互行为；
+5. 迁移 `runtime/observability/reporting`，同步消息、OpenAPI、定时任务和持久化测试；
+6. 迁移完整 `mcp` 领域，清理 Controller/Service/JDBC/FileSystem 中全部嵌套类型；
+7. 执行全模块旧包/FQCN/嵌套类型收口和 Java 契约回归；
+8. Gateway Web 移除全局 Scope 基础设施并建立页面级 Binding/Filter 能力；
+9. Gateway Group/Application/Catalog/MCP 迁移到默认全量与页面筛选；
+10. Dashboard/Provider/Trace/Audit 迁移到页面级必填 Scope；
+11. 前端测试、E2E 夹具源码和 README 收口。
 
 每个任务只提交自身路径，提交前检查工作树，不能夹带其他 agent 或用户的并行修改。
 
@@ -774,8 +1141,11 @@ git diff --check
 
 只有同时满足以下条件，才可声明本规格实施完成：
 
-- 87 个基线嵌套类型均已迁移，且新增嵌套类型为 0；
-- Controller、Service、Exception Handler 结构测试通过；
+- 165 个基线嵌套类型均已迁移，整个生产源码新增嵌套类型为 0；
+- 领域优先 package tree 已落地，不再存在旧技术根包和旧 MCP 技术子包；
+- DTO、VO、PO、Enum、Exception 和内部辅助类型均位于规定目录并使用规定命名；
+- 全生产类嵌套类型守卫和 package 结构测试通过；
+- Controller 不直接依赖 Repository 实现，Domain 不反向依赖 Controller/Service/Repository；
 - 所有既有 Gateway Admin HTTP 路径与 JSON 契约保持；
 - 两个认证接口、Gateway Web Session API 和 capability 行为未改变；
 - Gateway Web Header 不再存在全局 Scope 选择器；
