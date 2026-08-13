@@ -262,5 +262,5 @@ public class ManifestController {
         return TenantContext.requireCurrent().effectiveTenantId();
     }
 
-    
+
     }

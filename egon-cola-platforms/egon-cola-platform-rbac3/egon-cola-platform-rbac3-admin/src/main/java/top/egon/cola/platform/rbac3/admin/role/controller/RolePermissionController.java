@@ -363,7 +363,7 @@ public class RolePermissionController {
         return TenantContext.requireCurrent().effectiveTenantId();
     }
 
-    
-    
-    
+
+
+
     }

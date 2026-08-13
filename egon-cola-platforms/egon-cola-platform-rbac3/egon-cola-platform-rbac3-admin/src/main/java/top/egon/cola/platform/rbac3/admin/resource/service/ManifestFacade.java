@@ -337,4 +337,3 @@ public final class ManifestFacade {
     }
 
 }
-    

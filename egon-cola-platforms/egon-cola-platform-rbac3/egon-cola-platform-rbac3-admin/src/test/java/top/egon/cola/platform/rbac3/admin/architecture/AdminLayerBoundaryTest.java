@@ -68,7 +68,7 @@ class AdminLayerBoundaryTest {
 
     @Test
     void productionPackagesDoNotUseLegacyLayerNames() throws Exception {
-        for (Path source : productionSources()) {
+        for (Path source : productionJavaSources()) {
             Path relative = adminSourceRoot().relativize(source);
             boolean legacyLayer = StreamSupport.stream(
                             relative.spliterator(), false)
@@ -162,10 +162,15 @@ class AdminLayerBoundaryTest {
     }
 
     private List<Path> productionSources() throws Exception {
+        return productionJavaSources().stream()
+                .filter(path -> !path.getFileName().toString()
+                        .equals("package-info.java"))
+                .toList();
+    }
+
+    private List<Path> productionJavaSources() throws Exception {
         try (Stream<Path> files = Files.walk(adminSourceRoot())) {
             return files.filter(path -> path.toString().endsWith(".java"))
-                    .filter(path -> !path.getFileName().toString()
-                            .equals("package-info.java"))
                     .sorted()
                     .toList();
         }
