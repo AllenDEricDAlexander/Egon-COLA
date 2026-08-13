@@ -15,7 +15,7 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.idp.starter.security.RequiresServiceScope;
 import top.egon.cola.platform.rbac3.admin.participation.application.ParticipationFacade;
-import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.contract.participation.BusinessParticipationCommand;
 import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 

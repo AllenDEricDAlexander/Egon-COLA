@@ -4,6 +4,14 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.MappedSuperclass;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.admin.shared.domain.po.TenantScopedPO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.po.DirectorySnapshotPO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.po.OrgUnitPO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.po.PositionPO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.po.UserPositionSnapshotPO;
+import top.egon.cola.platform.rbac3.admin.identity.domain.po.ExternalIdentityPO;
+import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserCredentialPO;
+import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 
 import java.util.Map;
 
@@ -15,7 +23,15 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class JpaEntityNameCompatibilityTest {
 
-    private static final Map<Class<?>, String> RENAMED_ENTITIES = Map.of();
+    private static final Map<Class<?>, String> RENAMED_ENTITIES = Map.of(
+            TenantPO.class, "TenantEntity",
+            ExternalIdentityPO.class, "ExternalIdentityEntity",
+            UserCredentialPO.class, "UserCredentialEntity",
+            UserPO.class, "UserEntity",
+            DirectorySnapshotPO.class, "DirectorySnapshotEntity",
+            OrgUnitPO.class, "OrgUnitEntity",
+            PositionPO.class, "PositionEntity",
+            UserPositionSnapshotPO.class, "UserPositionSnapshotEntity");
 
     @Test
     void renamedEntitiesRetainTheirLegacyJpaNames() {

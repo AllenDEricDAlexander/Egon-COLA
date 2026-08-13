@@ -2,6 +2,9 @@ package top.egon.cola.platform.rbac3.admin.interfaces.http;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.web.bind.annotation.RequestParam;
+import top.egon.cola.platform.rbac3.admin.directory.controller.DirectoryController;
+import top.egon.cola.platform.rbac3.admin.identity.controller.UserDirectoryController;
+import top.egon.cola.platform.rbac3.admin.tenant.controller.TenantController;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -14,7 +17,9 @@ class ControllerRequestParameterMetadataTest {
     @Test
     void preservesNamesForImplicitRequestParametersInPackagedClasses() {
         List<String> missingNames = List.of(
-                        TenantUserDirectoryController.class,
+                        TenantController.class,
+                        UserDirectoryController.class,
+                        DirectoryController.class,
                         RolePermissionController.class,
                         AuditSimulationController.class)
                 .stream()

@@ -6,6 +6,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import top.egon.cola.platform.rbac3.admin.directory.controller.DirectoryController;
+import top.egon.cola.platform.rbac3.admin.identity.controller.UserDirectoryController;
+import top.egon.cola.platform.rbac3.admin.tenant.controller.TenantController;
 
 import java.lang.reflect.Method;
 import java.util.LinkedHashSet;
@@ -20,7 +23,9 @@ class Rbac3RequiredApiSurfaceTest {
         Set<String> routes = routes(
                 AuthController.class,
                 RoleActivationController.class,
-                TenantUserDirectoryController.class,
+                TenantController.class,
+                UserDirectoryController.class,
+                DirectoryController.class,
                 SessionController.class);
 
         assertEquals(Set.of(

@@ -11,7 +11,7 @@ import top.egon.cola.platform.rbac3.admin.interfaces.http.AuditSimulationControl
 import top.egon.cola.platform.rbac3.admin.interfaces.http.AuthController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.ConstraintController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.InternalAuthorizationController;
-import top.egon.cola.platform.rbac3.admin.interfaces.http.InternalIdentityController;
+import top.egon.cola.platform.rbac3.admin.identity.controller.InternalIdentityController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.ManagementPolicyController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.ManifestController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.ParticipationController;
@@ -19,7 +19,9 @@ import top.egon.cola.platform.rbac3.admin.interfaces.http.RoleActivationControll
 import top.egon.cola.platform.rbac3.admin.interfaces.http.RolePermissionController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.RuntimeController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.SessionController;
-import top.egon.cola.platform.rbac3.admin.interfaces.http.TenantUserDirectoryController;
+import top.egon.cola.platform.rbac3.admin.directory.controller.DirectoryController;
+import top.egon.cola.platform.rbac3.admin.identity.controller.UserDirectoryController;
+import top.egon.cola.platform.rbac3.admin.tenant.controller.TenantController;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -49,7 +51,9 @@ class Rbac3GatewayDefinitionDiscoveryTest {
                 RolePermissionController.class,
                 RuntimeController.class,
                 SessionController.class,
-                TenantUserDirectoryController.class);
+                TenantController.class,
+                UserDirectoryController.class,
+                DirectoryController.class);
         Set<String> operationNames = new HashSet<>();
 
         for (Class<?> controller : controllers) {

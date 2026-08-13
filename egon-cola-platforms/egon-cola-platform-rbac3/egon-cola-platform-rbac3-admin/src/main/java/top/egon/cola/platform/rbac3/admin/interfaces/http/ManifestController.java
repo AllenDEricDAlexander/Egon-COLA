@@ -23,7 +23,7 @@ import top.egon.cola.platform.rbac3.admin.resource.application.ApplicationResour
 import top.egon.cola.platform.rbac3.admin.resource.application.ManifestFacade;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
-import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.contract.manifest.ResourceManifest;
 import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 

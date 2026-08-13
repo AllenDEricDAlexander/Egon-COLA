@@ -30,11 +30,10 @@ import top.egon.cola.platform.rbac3.admin.auth.application.RefreshFacade;
 import top.egon.cola.platform.rbac3.admin.auth.application.StepUpFacade;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
 import top.egon.cola.platform.rbac3.admin.constraint.application.ConstraintFacade;
-import top.egon.cola.platform.rbac3.admin.identity.application.IdentityMappingFacade;
+import top.egon.cola.platform.rbac3.admin.identity.service.IdentityMappingFacade;
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.AssignmentController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.SessionController;
-import top.egon.cola.platform.rbac3.admin.interfaces.http.TenantUserDirectoryController;
 import top.egon.cola.platform.rbac3.admin.management.application.ManagementPolicyFacade;
 import top.egon.cola.platform.rbac3.admin.participation.application.ParticipationFacade;
 import top.egon.cola.platform.rbac3.admin.resource.application.ApplicationResourceFacade;
@@ -63,6 +62,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import top.egon.cola.platform.rbac3.admin.directory.service.DirectoryCommandService;
+import top.egon.cola.platform.rbac3.admin.directory.service.DirectoryQueryService;
 
 @WebMvcTest(excludeAutoConfiguration = {
         SecurityAutoConfiguration.class,
@@ -169,10 +170,10 @@ class Rbac3GatewayDocumentCatalogContractTest {
     private SessionController.SessionManagementPort sessionManagementPort;
 
     @MockitoBean
-    private TenantUserDirectoryController.DirectoryCommandPort directoryCommandPort;
+    private DirectoryCommandService directoryCommandPort;
 
     @MockitoBean
-    private TenantUserDirectoryController.DirectoryQueryPort directoryQueryPort;
+    private DirectoryQueryService directoryQueryPort;
 
     @Test
     void catalogExactlyDescribesEveryRbac3MvcOperationWithoutSensitiveExamples()

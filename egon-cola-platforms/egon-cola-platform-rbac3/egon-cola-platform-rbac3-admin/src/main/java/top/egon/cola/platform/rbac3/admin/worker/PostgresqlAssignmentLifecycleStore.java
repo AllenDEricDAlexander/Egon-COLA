@@ -5,7 +5,7 @@ import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.platform.rbac3.admin.assignment.domain.UserRoleAssignmentEntity;
-import top.egon.cola.platform.rbac3.admin.identity.domain.UserEntity;
+import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -84,8 +84,8 @@ public class PostgresqlAssignmentLifecycleStore
             UserRoleAssignmentEntity assignment = entityManager.find(
                     UserRoleAssignmentEntity.class, candidate.assignmentId(),
                     LockModeType.PESSIMISTIC_WRITE);
-            UserEntity user = entityManager.find(
-                    UserEntity.class, assignment.getUserId(),
+            UserPO user = entityManager.find(
+                    UserPO.class, assignment.getUserId(),
                     LockModeType.PESSIMISTIC_WRITE);
             long authVersion = user.advanceAuthorizationVersion(
                     user.getAuthVersion(), ACTOR, now);

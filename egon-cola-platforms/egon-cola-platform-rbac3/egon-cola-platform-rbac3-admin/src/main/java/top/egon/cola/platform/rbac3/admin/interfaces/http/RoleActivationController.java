@@ -15,7 +15,7 @@ import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationF
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
-import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.contract.activation.ActiveRoleSetView;
 import top.egon.cola.platform.rbac3.contract.activation.ReplaceActiveRolesRequest;
 import top.egon.cola.platform.rbac3.contract.activation.ReplaceActiveRolesResult;

@@ -13,6 +13,9 @@ import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefiniti
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
 import top.egon.cola.platform.rbac3.admin.session.application.SessionFacade;
+import top.egon.cola.platform.rbac3.admin.directory.controller.DirectoryController;
+import top.egon.cola.platform.rbac3.admin.identity.controller.UserDirectoryController;
+import top.egon.cola.platform.rbac3.admin.tenant.controller.TenantController;
 
 import java.util.Map;
 import java.util.Set;
@@ -20,11 +23,15 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import top.egon.cola.platform.rbac3.admin.directory.service.DirectoryCommandService;
+import top.egon.cola.platform.rbac3.admin.directory.service.DirectoryQueryService;
 
 @WebMvcTest(
         controllers = {
                 AuthController.class,
-                TenantUserDirectoryController.class,
+                TenantController.class,
+                UserDirectoryController.class,
+                DirectoryController.class,
                 SessionController.class
         },
         excludeAutoConfiguration = {
@@ -49,10 +56,10 @@ class Rbac3GatewayDefinitionDiscoveryTest {
     private DatabaseClock databaseClock;
 
     @MockitoBean
-    private TenantUserDirectoryController.DirectoryCommandPort directoryCommandPort;
+    private DirectoryCommandService directoryCommandPort;
 
     @MockitoBean
-    private TenantUserDirectoryController.DirectoryQueryPort directoryQueryPort;
+    private DirectoryQueryService directoryQueryPort;
 
     @MockitoBean
     private SessionController.SessionManagementPort sessionManagementPort;
@@ -77,14 +84,16 @@ class Rbac3GatewayDefinitionDiscoveryTest {
 
         assertEquals(Set.of(
                         AuthController.class.getName(),
-                        TenantUserDirectoryController.class.getName(),
+                        TenantController.class.getName(),
+                        UserDirectoryController.class.getName(),
+                        DirectoryController.class.getName(),
                         SessionController.class.getName()),
                 methodsByController.keySet());
         assertTrue(methodsByController.get(AuthController.class.getName())
                 .contains("POST /api/rbac3/v1/auth/logout"));
         assertTrue(methodsByController.get(AuthController.class.getName())
                 .contains("GET /api/rbac3/v1/auth/bootstrap"));
-        assertTrue(methodsByController.get(TenantUserDirectoryController.class.getName())
+        assertTrue(methodsByController.get(DirectoryController.class.getName())
                 .contains("POST /api/rbac3/v1/internal/directory-snapshots"));
         assertTrue(methodsByController.get(SessionController.class.getName())
                 .contains("POST /api/rbac3/v1/sessions/{sessionId}/revoke"));

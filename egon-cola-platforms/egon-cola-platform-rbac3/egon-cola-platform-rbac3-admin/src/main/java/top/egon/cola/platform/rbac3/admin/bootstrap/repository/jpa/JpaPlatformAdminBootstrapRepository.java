@@ -9,9 +9,9 @@ import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
 import top.egon.cola.platform.rbac3.admin.assignment.domain.UserRoleAssignmentEntity;
 import top.egon.cola.platform.rbac3.admin.bootstrap.repository.PlatformAdminBootstrapRepository;
-import top.egon.cola.platform.rbac3.admin.identity.domain.TenantEntity;
-import top.egon.cola.platform.rbac3.admin.identity.domain.UserCredentialEntity;
-import top.egon.cola.platform.rbac3.admin.identity.domain.UserEntity;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
+import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserCredentialPO;
+import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
 import top.egon.cola.platform.rbac3.admin.resource.domain.ApplicationEntity;
 import top.egon.cola.platform.rbac3.admin.resource.domain.PermissionEntity;
 import top.egon.cola.platform.rbac3.admin.role.domain.RoleEntity;
@@ -218,7 +218,7 @@ public class JpaPlatformAdminBootstrapRepository
     @Transactional
     public void bootstrap(String tenantCode, String username, char[] password) {
         String normalizedTenantCode = normalizeTenantCode(tenantCode);
-        String normalizedUsername = UserEntity.normalize(username);
+        String normalizedUsername = UserPO.normalize(username);
         requirePassword(password);
         acquireLock();
         rejectExistingAdministrator(normalizedTenantCode);
@@ -230,7 +230,7 @@ public class JpaPlatformAdminBootstrapRepository
         Long roleId = idGenerator.nextLongId();
         Long userId = idGenerator.nextLongId();
 
-        TenantEntity tenant = new TenantEntity(
+        TenantPO tenant = new TenantPO(
                 tenantId, normalizedTenantCode, "Platform", ACTOR, now);
         tenant.configure(Map.of("builtInApplicationCode", APPLICATION_CODE), ACTOR, now);
         tenant.activate(ACTOR, now);
@@ -255,11 +255,11 @@ public class JpaPlatformAdminBootstrapRepository
                     permissionId, now, null, ACTOR, now));
         }
 
-        UserEntity administrator = new UserEntity(
+        UserPO administrator = new UserPO(
                 userId, tenantId, normalizedUsername, username.trim(), ACTOR, now);
         administrator.advanceAuthorizationVersion(0, ACTOR, now);
         entityManager.persist(administrator);
-        entityManager.persist(new UserCredentialEntity(
+        entityManager.persist(new UserCredentialPO(
                 idGenerator.nextLongId(), tenantId, userId,
                 passwordEncoder.encode(CharBuffer.wrap(password)), true, ACTOR, now));
         UserRoleAssignmentEntity assignment = new UserRoleAssignmentEntity(

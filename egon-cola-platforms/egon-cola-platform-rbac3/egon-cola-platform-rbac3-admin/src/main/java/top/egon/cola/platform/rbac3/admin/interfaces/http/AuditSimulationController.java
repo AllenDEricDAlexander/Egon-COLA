@@ -20,7 +20,7 @@ import top.egon.cola.platform.rbac3.admin.authorization.application.Authorizatio
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.simulation.application.AuthorizationSimulationService;
-import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;
 
 import java.time.Instant;
 import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;

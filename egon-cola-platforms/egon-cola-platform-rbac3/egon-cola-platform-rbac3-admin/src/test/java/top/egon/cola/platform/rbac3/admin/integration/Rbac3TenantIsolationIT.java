@@ -4,9 +4,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.GetMapping;
-import top.egon.cola.platform.rbac3.admin.interfaces.http.TenantUserDirectoryController;
+import top.egon.cola.platform.rbac3.admin.tenant.controller.TenantController;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.tenant.TenantContextResolver;
+import top.egon.cola.platform.rbac3.admin.tenant.service.TenantContextResolver;
 
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -46,7 +46,7 @@ class Rbac3TenantIsolationIT {
 
     @Test
     void tenantDetailEndpointIsExplicitlyPlatformScoped() {
-        boolean found = Arrays.stream(TenantUserDirectoryController.class
+        boolean found = Arrays.stream(TenantController.class
                         .getDeclaredMethods())
                 .filter(method -> method.isAnnotationPresent(GetMapping.class))
                 .map(method -> method.getAnnotation(GetMapping.class))

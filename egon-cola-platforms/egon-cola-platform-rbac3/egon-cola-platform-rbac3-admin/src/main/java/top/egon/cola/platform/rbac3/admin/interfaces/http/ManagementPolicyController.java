@@ -22,7 +22,7 @@ import top.egon.cola.platform.rbac3.admin.management.application.ManagementPolic
 import top.egon.cola.platform.rbac3.admin.runtime.application.IdempotencyService;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
-import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;
 
 import java.time.Duration;
 import java.time.Instant;

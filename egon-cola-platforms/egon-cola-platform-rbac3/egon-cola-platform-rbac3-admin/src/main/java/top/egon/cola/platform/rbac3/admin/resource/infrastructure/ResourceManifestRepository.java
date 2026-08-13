@@ -9,7 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.identity.domain.TenantEntity;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 import top.egon.cola.platform.rbac3.admin.resource.application.ApplicationResourceFacade;
 import top.egon.cola.platform.rbac3.admin.resource.application.ManifestFacade;
 import top.egon.cola.platform.rbac3.admin.resource.domain.ApplicationEntity;
@@ -217,8 +217,8 @@ public class ResourceManifestRepository implements
                 ResourceManifestEntity.class,
                 Long.valueOf(manifestId),
                 LockModeType.PESSIMISTIC_WRITE);
-        TenantEntity tenant = entityManager.find(
-                TenantEntity.class,
+        TenantPO tenant = entityManager.find(
+                TenantPO.class,
                 Long.valueOf(tenantId),
                 LockModeType.PESSIMISTIC_WRITE);
         if (application == null || manifest == null || tenant == null
@@ -444,8 +444,8 @@ public class ResourceManifestRepository implements
         Instant now = databaseClock.transactionNow();
         ResourceEntity resource = entityManager.find(
                 ResourceEntity.class, Long.valueOf(resourceId), LockModeType.PESSIMISTIC_WRITE);
-        TenantEntity tenant = entityManager.find(
-                TenantEntity.class, Long.valueOf(tenantId), LockModeType.PESSIMISTIC_WRITE);
+        TenantPO tenant = entityManager.find(
+                TenantPO.class, Long.valueOf(tenantId), LockModeType.PESSIMISTIC_WRITE);
         if (resource == null || tenant == null
                 || !resource.getTenantId().equals(Long.valueOf(tenantId))) {
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");

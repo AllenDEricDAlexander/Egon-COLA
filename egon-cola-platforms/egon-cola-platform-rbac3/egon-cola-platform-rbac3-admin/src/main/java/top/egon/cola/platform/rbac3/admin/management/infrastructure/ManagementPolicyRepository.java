@@ -20,6 +20,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import top.egon.cola.platform.rbac3.admin.directory.domain.enums.UserPositionSnapshotStatusEnum;
 
 /**
  * 类型 `ManagementPolicyRepository` 位于当前包内，是类型，用于承载 `Management Policy Repository` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -143,8 +144,8 @@ public class ManagementPolicyRepository implements
                         top.egon.cola.platform.rbac3.admin.assignment.domain
                                 .UserRoleAssignmentEntity.Status.ACTIVE)
                 .setParameter("positionStatus",
-                        top.egon.cola.platform.rbac3.admin.directory.domain
-                                .UserPositionSnapshotEntity.Status.ACTIVE)
+                        top.egon.cola.platform.rbac3.admin.directory.domain.enums
+                                .UserPositionSnapshotStatusEnum.ACTIVE)
                 .setParameter("subjectId", Long.valueOf(subjectId))
                 .getResultList();
         return candidates.stream()

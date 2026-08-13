@@ -9,11 +9,12 @@ import top.egon.cola.platform.rbac3.admin.session.application.RefreshTokenServic
 import top.egon.cola.platform.rbac3.admin.session.application.SessionRuntimeSynchronizer;
 import top.egon.cola.platform.rbac3.admin.session.application.SessionSecurityEventRecorder;
 import top.egon.cola.platform.rbac3.admin.session.domain.RefreshTokenEntity;
-import top.egon.cola.platform.rbac3.admin.identity.domain.TenantEntity;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.function.Function;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.enums.TenantStatusEnum;
 
 /**
  * 类型 `RefreshTokenRepository` 位于当前包内，是类型，用于承载 `Refresh Token Repository` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -132,9 +133,9 @@ public class RefreshTokenRepository implements RefreshTokenService.RefreshTokenS
         var session = sessionRepository.lockByTenantIdAndSessionId(
                         current.getTenantId(), current.getSessionId())
                 .orElseThrow(() -> new IllegalStateException("refresh session is missing"));
-        TenantEntity tenant = entityManager.find(
-                TenantEntity.class, current.getTenantId(), LockModeType.PESSIMISTIC_READ);
-        if (tenant == null || tenant.getStatus() != TenantEntity.Status.ACTIVE) {
+        TenantPO tenant = entityManager.find(
+                TenantPO.class, current.getTenantId(), LockModeType.PESSIMISTIC_READ);
+        if (tenant == null || tenant.getStatus() != TenantStatusEnum.ACTIVE) {
             throw new IllegalStateException("refresh tenant is unavailable");
         }
         session.refresh(

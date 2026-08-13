@@ -16,7 +16,7 @@ import top.egon.cola.platform.rbac3.admin.runtime.application.ControlPlaneRuntim
 import top.egon.cola.platform.rbac3.admin.runtime.application.RuntimeQueryService;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
-import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 /**

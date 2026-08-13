@@ -6,7 +6,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import top.egon.cola.platform.idp.starter.security.RequiresServiceScope;
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.identity.application.IdentityMappingFacade;
+import top.egon.cola.platform.rbac3.admin.identity.service.IdentityMappingFacade;
 
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +18,11 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import top.egon.cola.platform.rbac3.admin.identity.domain.vo.ResolvedMembershipVO;
+import top.egon.cola.platform.rbac3.admin.identity.domain.vo.TenantMembershipVO;
+import top.egon.cola.platform.rbac3.admin.identity.domain.dto.IdentityResolveRequestDTO;
+import top.egon.cola.platform.rbac3.admin.identity.domain.dto.IdentityBindRequestDTO;
+import top.egon.cola.platform.rbac3.admin.identity.controller.InternalIdentityController;
 
 class InternalIdentityControllerTest {
 
@@ -29,7 +34,7 @@ class InternalIdentityControllerTest {
     @Test
     void resolveReturnsTheStableIdpMembershipContract() throws Exception {
         when(facade.resolve("alice-sub", "7", "rbac3-admin-web"))
-                .thenReturn(Optional.of(new IdentityMappingFacade.ResolvedMembership(
+                .thenReturn(Optional.of(new ResolvedMembershipVO(
                         "7", "default", "Default Tenant", "alice-sub", "9",
                         "Alice", true, 3L, 5L)));
 
@@ -57,7 +62,7 @@ class InternalIdentityControllerTest {
     void tenantsReturnIdentityAndActiveStatusForEveryMembership()
             throws Exception {
         when(facade.tenants("alice-sub", "mock-backend")).thenReturn(List.of(
-                new IdentityMappingFacade.TenantMembership(
+                new TenantMembershipVO(
                         "7", "default", "Default Tenant", "9", "Alice")));
 
         mockMvc.perform(get("/internal/v1/identity/alice-sub/tenants")
@@ -78,11 +83,11 @@ class InternalIdentityControllerTest {
                 .getAnnotation(RequiresServiceScope.class).value())
                 .isEqualTo("service:identity:resolve");
         assertThat(InternalIdentityController.class
-                .getMethod("resolve", InternalIdentityController.ResolveRequest.class)
+                .getMethod("resolve", IdentityResolveRequestDTO.class)
                 .getAnnotation(RequiresServiceScope.class).value())
                 .isEqualTo("service:identity:resolve");
         assertThat(InternalIdentityController.class
-                .getMethod("bind", InternalIdentityController.BindRequest.class)
+                .getMethod("bind", IdentityBindRequestDTO.class)
                 .getAnnotation(RequiresServiceScope.class).value())
                 .isEqualTo("service:identity:bind");
     }

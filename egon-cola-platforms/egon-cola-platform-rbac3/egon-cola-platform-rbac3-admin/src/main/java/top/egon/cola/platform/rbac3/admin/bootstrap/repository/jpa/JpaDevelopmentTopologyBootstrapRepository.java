@@ -7,9 +7,9 @@ import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.assignment.domain.UserRoleAssignmentEntity;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.Rbac3DevelopmentBootstrap;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.Rbac3DevelopmentTopology;
-import top.egon.cola.platform.rbac3.admin.identity.domain.ExternalIdentityEntity;
-import top.egon.cola.platform.rbac3.admin.identity.domain.TenantEntity;
-import top.egon.cola.platform.rbac3.admin.identity.domain.UserEntity;
+import top.egon.cola.platform.rbac3.admin.identity.domain.po.ExternalIdentityPO;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
+import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
 import top.egon.cola.platform.rbac3.admin.resource.domain.ApplicationEntity;
 import top.egon.cola.platform.rbac3.admin.resource.domain.PermissionEntity;
 import top.egon.cola.platform.rbac3.admin.role.domain.RoleEntity;
@@ -113,10 +113,10 @@ public class JpaDevelopmentTopologyBootstrapRepository
         acquireLock();
         Instant now = clock.instant();
         String normalizedTenantCode = normalize(tenantCode);
-        TenantEntity tenant = findTenant(normalizedTenantCode);
+        TenantPO tenant = findTenant(normalizedTenantCode);
         boolean changed = false;
         if (tenant == null) {
-            tenant = new TenantEntity(
+            tenant = new TenantPO(
                     idGenerator.nextLongId(),
                     normalizedTenantCode,
                     "Development " + normalizedTenantCode,
@@ -132,10 +132,10 @@ public class JpaDevelopmentTopologyBootstrapRepository
             entityManager.persist(tenant);
             changed = true;
         }
-        String normalizedUsername = UserEntity.normalize(username);
-        UserEntity user = findUser(tenant.getId(), normalizedUsername);
+        String normalizedUsername = UserPO.normalize(username);
+        UserPO user = findUser(tenant.getId(), normalizedUsername);
         if (user == null) {
-            user = new UserEntity(
+            user = new UserPO(
                     idGenerator.nextLongId(),
                     tenant.getId(),
                     username.trim(),
@@ -182,11 +182,11 @@ public class JpaDevelopmentTopologyBootstrapRepository
      * @param tenantCode 输入参数 `tenantCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private TenantEntity findTenant(String tenantCode) {
+    private TenantPO findTenant(String tenantCode) {
         return singleOrNull(entityManager.createQuery("""
                         select tenant from TenantEntity tenant
                          where lower(tenant.code) = :tenantCode
-                        """, TenantEntity.class)
+                        """, TenantPO.class)
                 .setParameter("tenantCode", tenantCode)
                 .getResultList(), "tenant");
     }
@@ -202,12 +202,12 @@ public class JpaDevelopmentTopologyBootstrapRepository
      * @param normalizedUsername 输入参数 `normalizedUsername`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private UserEntity findUser(Long tenantId, String normalizedUsername) {
+    private UserPO findUser(Long tenantId, String normalizedUsername) {
         return singleOrNull(entityManager.createQuery("""
                         select user from UserEntity user
                          where user.tenantId = :tenantId
                            and user.normalizedUsername = :username
-                        """, UserEntity.class)
+                        """, UserPO.class)
                 .setParameter("tenantId", tenantId)
                 .setParameter("username", normalizedUsername)
                 .getResultList(), "user");
@@ -231,12 +231,12 @@ public class JpaDevelopmentTopologyBootstrapRepository
             Long userId,
             String identitySub,
             Instant now) {
-        List<ExternalIdentityEntity> mappings = entityManager.createQuery("""
+        List<ExternalIdentityPO> mappings = entityManager.createQuery("""
                         select identity from ExternalIdentityEntity identity
                          where identity.tenantId = :tenantId
                            and identity.providerCode = 'IDP'
                            and identity.externalSubjectId = :identitySub
-                        """, ExternalIdentityEntity.class)
+                        """, ExternalIdentityPO.class)
                 .setParameter("tenantId", tenantId)
                 .setParameter("identitySub", identitySub)
                 .getResultList();
@@ -247,7 +247,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
             }
             return false;
         }
-        entityManager.persist(ExternalIdentityEntity.idpMapping(
+        entityManager.persist(ExternalIdentityPO.idpMapping(
                 idGenerator.nextLongId(), tenantId, identitySub, userId, ACTOR, now));
         return true;
     }

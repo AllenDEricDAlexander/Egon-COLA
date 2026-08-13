@@ -11,17 +11,16 @@ import top.egon.cola.platform.rbac3.admin.auth.application.AuthenticationFacade;
 import top.egon.cola.platform.rbac3.admin.auth.application.RefreshFacade;
 import top.egon.cola.platform.rbac3.admin.auth.application.StepUpFacade;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
-import top.egon.cola.platform.rbac3.admin.directory.domain.DirectorySnapshotEntity;
-import top.egon.cola.platform.rbac3.admin.directory.application.DirectorySnapshotProcessor;
-import top.egon.cola.platform.rbac3.admin.directory.domain.OrgUnitEntity;
-import top.egon.cola.platform.rbac3.admin.directory.domain.PositionEntity;
-import top.egon.cola.platform.rbac3.admin.directory.infrastructure.DirectorySnapshotMaterializer;
-import top.egon.cola.platform.rbac3.admin.directory.infrastructure.DirectorySnapshotStore;
-import top.egon.cola.platform.rbac3.admin.identity.domain.TenantEntity;
-import top.egon.cola.platform.rbac3.admin.identity.domain.UserEntity;
+import top.egon.cola.platform.rbac3.admin.directory.domain.po.DirectorySnapshotPO;
+import top.egon.cola.platform.rbac3.admin.directory.service.DirectorySnapshotProcessor;
+import top.egon.cola.platform.rbac3.admin.directory.domain.po.OrgUnitPO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.po.PositionPO;
+import top.egon.cola.platform.rbac3.admin.directory.repository.jpa.DirectorySnapshotMaterializer;
+import top.egon.cola.platform.rbac3.admin.directory.repository.jpa.JpaDirectorySnapshotRepository;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
+import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.AssignmentController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.SessionController;
-import top.egon.cola.platform.rbac3.admin.interfaces.http.TenantUserDirectoryController;
 import top.egon.cola.platform.rbac3.admin.role.domain.RoleEntity;
 import top.egon.cola.platform.rbac3.admin.session.domain.RefreshTokenEntity;
 import top.egon.cola.platform.rbac3.admin.session.domain.SessionEntity;
@@ -44,6 +43,27 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Locale;
 import top.egon.cola.platform.rbac3.admin.bootstrap.repository.BootstrapSnapshotRepository;
+import top.egon.cola.platform.rbac3.admin.directory.domain.vo.SnapshotModelVO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.enums.DirectorySnapshotStatusEnum;
+import top.egon.cola.platform.rbac3.admin.directory.domain.enums.OrgUnitUnitTypeEnum;
+import top.egon.cola.platform.rbac3.admin.directory.domain.enums.OrgUnitStatusEnum;
+import top.egon.cola.platform.rbac3.admin.directory.domain.enums.PositionStatusEnum;
+import top.egon.cola.platform.rbac3.admin.directory.domain.vo.MaterializationResultVO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.vo.IngestionResultVO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.enums.DirectorySnapshotOutcomeEnum;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.enums.TenantStatusEnum;
+import top.egon.cola.platform.rbac3.admin.identity.domain.enums.UserStatusEnum;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.dto.CreateTenantCommandDTO;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.dto.TenantStatusCommandDTO;
+import top.egon.cola.platform.rbac3.admin.identity.domain.dto.UserStatusCommandDTO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.dto.DirectorySnapshotCommandDTO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.vo.DirectorySyncVO;
+import top.egon.cola.platform.rbac3.admin.identity.domain.vo.UserDirectoryVO;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.vo.TenantVO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.vo.OrgUnitVO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.vo.PositionVO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.vo.DirectorySnapshotVO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.vo.DirectoryPageVO;
 
 /**
  * 类型 `Rbac3IdentitySessionQueryStore` 位于当前包内，是类型，用于承载 `Rbac3 Identity Session Query Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -58,91 +78,14 @@ public class Rbac3IdentitySessionQueryStore implements
         SessionController.SessionManagementPort,
         AssignmentController.SessionStrengthPort,
         StepUpFacade.IdentitySource,
-        StepUpFacade.SessionStrengthStore,
-        TenantUserDirectoryController.DirectoryCommandPort,
-        TenantUserDirectoryController.DirectoryQueryPort {
+        StepUpFacade.SessionStrengthStore {
 
-    /**
-     * 字段 `entityManager` 表示 `Rbac3IdentitySessionQueryStore` 中与 `entity Manager` 相关的状态、依赖、配置或结果（声明类型 `EntityManager`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `entityManager` stores the `entity Manager`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `EntityManager`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `entityManager` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `entityManager`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
-     */
     private final EntityManager entityManager;
-    /**
-     * 字段 `idGenerator` 表示 `Rbac3IdentitySessionQueryStore` 中与 `id Generator` 相关的状态、依赖、配置或结果（声明类型 `LongIdGenerator`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `idGenerator` stores the `id Generator`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `LongIdGenerator`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `idGenerator` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `idGenerator`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
-     */
-    private final LongIdGenerator idGenerator;
-    /**
-     * 字段 `databaseClock` 表示 `Rbac3IdentitySessionQueryStore` 中与 `database Clock` 相关的状态、依赖、配置或结果（声明类型 `DatabaseClock`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `databaseClock` stores the `database Clock`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `DatabaseClock`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `databaseClock` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `databaseClock`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
-     */
-    private final DatabaseClock databaseClock;
-    /**
-     * 字段 `candidateService` 表示 `Rbac3IdentitySessionQueryStore` 中与 `candidate Service` 相关的状态、依赖、配置或结果（声明类型 `RoleActivationCandidateService`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `candidateService` stores the `candidate Service`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `RoleActivationCandidateService`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `candidateService` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `candidateService`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
-     */
     private final RoleActivationCandidateService candidateService;
-    /**
-     * 字段 `runtimeStore` 表示 `Rbac3IdentitySessionQueryStore` 中与 `runtime Store` 相关的状态、依赖、配置或结果（声明类型 `RedisAuthorizationRuntimeStore`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `runtimeStore` stores the `runtime Store`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `RedisAuthorizationRuntimeStore`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `runtimeStore` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `runtimeStore`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
-     */
     private final RedisAuthorizationRuntimeStore runtimeStore;
-    /**
-     * 字段 `directorySnapshotStore` 表示 `Rbac3IdentitySessionQueryStore` 中与 `directory Snapshot Store` 相关的状态、依赖、配置或结果（声明类型 `DirectorySnapshotStore`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `directorySnapshotStore` stores the `directory Snapshot Store`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `DirectorySnapshotStore`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `directorySnapshotStore` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `directorySnapshotStore`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
-     */
-    private final DirectorySnapshotStore directorySnapshotStore;
-    /**
-     * 字段 `directorySnapshotMaterializer` 表示 `Rbac3IdentitySessionQueryStore` 中与 `directory Snapshot Materializer` 相关的状态、依赖、配置或结果（声明类型 `DirectorySnapshotMaterializer`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `directorySnapshotMaterializer` stores the `directory Snapshot Materializer`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `DirectorySnapshotMaterializer`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `directorySnapshotMaterializer` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `directorySnapshotMaterializer`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
-     */
-    private final DirectorySnapshotMaterializer directorySnapshotMaterializer;
-    /**
-     * 字段 `runtimeSynchronizer` 表示 `Rbac3IdentitySessionQueryStore` 中与 `runtime Synchronizer` 相关的状态、依赖、配置或结果（声明类型 `SessionRuntimeSynchronizer`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `runtimeSynchronizer` stores the `runtime Synchronizer`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `SessionRuntimeSynchronizer`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `runtimeSynchronizer` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `runtimeSynchronizer`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
-     */
     private final SessionRuntimeSynchronizer runtimeSynchronizer;
-    /**
-     * 字段 `securityEventRecorder` 表示 `Rbac3IdentitySessionQueryStore` 中与 `security Event Recorder` 相关的状态、依赖、配置或结果（声明类型 `SessionSecurityEventRecorder`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `securityEventRecorder` stores the `security Event Recorder`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `SessionSecurityEventRecorder`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `securityEventRecorder` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `securityEventRecorder`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
-     */
     private final SessionSecurityEventRecorder securityEventRecorder;
-    /**
-     * 字段 `directorySnapshotProcessor` 表示 `Rbac3IdentitySessionQueryStore` 中与 `directory Snapshot Processor` 相关的状态、依赖、配置或结果（声明类型 `DirectorySnapshotProcessor`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `directorySnapshotProcessor` stores the `directory Snapshot Processor`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `DirectorySnapshotProcessor`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `directorySnapshotProcessor` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `directorySnapshotProcessor`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
-     */
-    private final DirectorySnapshotProcessor directorySnapshotProcessor =
-            new DirectorySnapshotProcessor();
+
 
     /**
      * 构造器 `Rbac3IdentitySessionQueryStore` 用于创建并初始化 `Rbac3IdentitySessionQueryStore` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -152,32 +95,20 @@ public class Rbac3IdentitySessionQueryStore implements
      * Usage: create the instance through `Rbac3IdentitySessionQueryStore`'s constructor entry point and do not bypass the validation and initialization constraints established there.
      *
      * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param databaseClock 输入参数 `databaseClock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param candidateService 输入参数 `candidateService`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param runtimeStore 输入参数 `runtimeStore`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param directorySnapshotStore 输入参数 `directorySnapshotStore`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param directorySnapshotMaterializer 输入参数 `directorySnapshotMaterializer`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param runtimeSynchronizer 输入参数 `runtimeSynchronizer`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param securityEventRecorder 输入参数 `securityEventRecorder`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public Rbac3IdentitySessionQueryStore(
             EntityManager entityManager,
-            LongIdGenerator idGenerator,
-            DatabaseClock databaseClock,
             RoleActivationCandidateService candidateService,
             RedisAuthorizationRuntimeStore runtimeStore,
-            DirectorySnapshotStore directorySnapshotStore,
-            DirectorySnapshotMaterializer directorySnapshotMaterializer,
             SessionRuntimeSynchronizer runtimeSynchronizer,
             SessionSecurityEventRecorder securityEventRecorder) {
         this.entityManager = entityManager;
-        this.idGenerator = idGenerator;
-        this.databaseClock = databaseClock;
         this.candidateService = candidateService;
         this.runtimeStore = runtimeStore;
-        this.directorySnapshotStore = directorySnapshotStore;
-        this.directorySnapshotMaterializer = directorySnapshotMaterializer;
         this.runtimeSynchronizer = runtimeSynchronizer;
         this.securityEventRecorder = securityEventRecorder;
     }
@@ -200,14 +131,14 @@ public class Rbac3IdentitySessionQueryStore implements
             String tenantCode,
             String userId,
             Instant now) {
-        TenantEntity tenant = entityManager.createQuery("""
+        TenantPO tenant = entityManager.createQuery("""
                         select t from TenantEntity t where lower(t.code) = :code
-                        """, TenantEntity.class)
+                        """, TenantPO.class)
                 .setParameter("code", tenantCode.toLowerCase(java.util.Locale.ROOT))
                 .getResultStream()
                 .findFirst()
                 .orElseThrow(() -> new Rbac3RuleViolation("AUTHENTICATION_FAILED"));
-        UserEntity user = requireUser(tenant.getId(), Long.valueOf(userId));
+        UserPO user = requireUser(tenant.getId(), Long.valueOf(userId));
         int candidates = candidateService.candidates(
                         tenant.getId().toString(), userId, now)
                 .applications().stream()
@@ -273,7 +204,7 @@ public class Rbac3IdentitySessionQueryStore implements
             String tenantId,
             String userId,
             String sessionId) {
-        UserEntity user = requireUser(Long.valueOf(tenantId), Long.valueOf(userId));
+        UserPO user = requireUser(Long.valueOf(tenantId), Long.valueOf(userId));
         var record = runtimeStore.load(tenantId, sessionId);
         if (!userId.equals(record.userId())) {
             return Optional.empty();
@@ -480,8 +411,8 @@ public class Rbac3IdentitySessionQueryStore implements
     @Override
     @Transactional(readOnly = true)
     public StepUpFacade.Identity load(String tenantId, String userId) {
-        TenantEntity tenant = entityManager.find(TenantEntity.class, Long.valueOf(tenantId));
-        UserEntity user = requireUser(Long.valueOf(tenantId), Long.valueOf(userId));
+        TenantPO tenant = entityManager.find(TenantPO.class, Long.valueOf(tenantId));
+        UserPO user = requireUser(Long.valueOf(tenantId), Long.valueOf(userId));
         if (tenant == null) {
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }
@@ -529,435 +460,27 @@ public class Rbac3IdentitySessionQueryStore implements
                 session.getStrongAuthenticatedAt());
     }
 
-    /**
-     * 方法 `submit` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `submit` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `submit` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `submit` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `submit` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `submit`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param command 输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Override
-    @Transactional
-    public TenantUserDirectoryController.DirectorySyncView submit(
-            String tenantId,
-            TenantUserDirectoryController.DirectorySnapshotCommand command) {
-        Instant now = databaseClock.transactionNow();
-        DirectorySnapshotProcessor.SnapshotModel model =
-                directorySnapshotProcessor.validate(command.payload(), command.generatedAt());
-        DirectorySnapshotEntity entity = new DirectorySnapshotEntity(
-                idGenerator.nextLongId(), Long.valueOf(tenantId), command.providerCode(),
-                command.snapshotVersion(), command.checksum(), command.generatedAt(),
-                command.payload(), "directory-sync", now);
-        DirectorySnapshotStore.IngestionResult result = directorySnapshotStore.accept(entity);
-        Map<String, Object> counts;
-        long affectedUsers;
-        if (result.outcome() == DirectorySnapshotStore.Outcome.ACCEPTED) {
-            DirectorySnapshotMaterializer.MaterializationResult materialization =
-                    directorySnapshotMaterializer.apply(
-                            Long.valueOf(tenantId), entity.getId(), command.snapshotVersion(),
-                            model, "directory-sync", now);
-            counts = new LinkedHashMap<>(model.counts());
-            counts.putAll(materialization.counts());
-            entity.validate(counts, "directory-sync", now);
-            archiveCurrentSnapshot(
-                    Long.valueOf(tenantId), command.providerCode(), entity.getId(), now);
-            entity.activate("directory-sync", now);
-            affectedUsers = materialization.affectedUserCount();
-        } else {
-            DirectorySnapshotEntity existing = entityManager.find(
-                    DirectorySnapshotEntity.class, result.snapshotId());
-            counts = existing == null ? Map.of() : existing.getCounts();
-            affectedUsers = numericCount(counts, "affectedUsers");
-        }
-        return new TenantUserDirectoryController.DirectorySyncView(
-                result.snapshotId().toString(), result.outcome().name(),
-                longCounts(counts), affectedUsers);
-    }
 
-    /**
-     * 方法 `createTenant` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `create Tenant` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `createTenant` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `create Tenant` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `createTenant` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `createTenant`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param command 输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param actorId 输入参数 `actorId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Override
-    @Transactional
-    public TenantUserDirectoryController.TenantView createTenant(
-            TenantUserDirectoryController.CreateTenantCommand command,
-            String actorId) {
-        String normalizedCode = command.code().trim().toLowerCase(Locale.ROOT);
-        boolean exists = !entityManager.createQuery("""
-                        select t.id from TenantEntity t where lower(t.code) = :code
-                        """, Long.class)
-                .setParameter("code", normalizedCode)
-                .setMaxResults(1)
-                .getResultList().isEmpty();
-        if (exists) {
-            throw new Rbac3RuleViolation("TENANT_CODE_CONFLICT");
-        }
-        Instant now = databaseClock.transactionNow();
-        TenantEntity tenant = new TenantEntity(
-                idGenerator.nextLongId(), normalizedCode, command.name(), actorId, now);
-        tenant.configure(command.settings(), actorId, now);
-        entityManager.persist(tenant);
-        return tenantView(tenant);
-    }
 
-    /**
-     * 方法 `changeTenantStatus` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `change Tenant Status` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `changeTenantStatus` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `change Tenant Status` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `changeTenantStatus` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `changeTenantStatus`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param command 输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param actorId 输入参数 `actorId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Override
-    @Transactional
-    public TenantUserDirectoryController.TenantView changeTenantStatus(
-            String tenantId,
-            TenantUserDirectoryController.TenantStatusCommand command,
-            String actorId) {
-        TenantEntity tenant = entityManager.find(
-                TenantEntity.class, Long.valueOf(tenantId), LockModeType.PESSIMISTIC_WRITE);
-        if (tenant == null) {
-            throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
-        }
-        TenantEntity.Status nextStatus = enumValue(
-                TenantEntity.Status.class, command.status(), "TENANT_STATUS_INVALID");
-        Instant now = databaseClock.transactionNow();
-        tenant.changeStatus(nextStatus, command.expectedVersion(), command.reason(), actorId, now);
-        if (nextStatus == TenantEntity.Status.SUSPENDED
-                || nextStatus == TenantEntity.Status.CLOSED) {
-            revokeTenantSessions(tenant.getId(), actorId, now);
-        }
-        return tenantView(tenant);
-    }
 
-    /**
-     * 方法 `changeUserStatus` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `change User Status` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `changeUserStatus` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `change User Status` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `changeUserStatus` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `changeUserStatus`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param command 输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param actorId 输入参数 `actorId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Override
-    @Transactional
-    public TenantUserDirectoryController.UserDirectoryView changeUserStatus(
-            String tenantId,
-            String userId,
-            TenantUserDirectoryController.UserStatusCommand command,
-            String actorId) {
-        UserEntity user = entityManager.find(
-                UserEntity.class, Long.valueOf(userId), LockModeType.PESSIMISTIC_WRITE);
-        if (user == null || !Long.valueOf(tenantId).equals(user.getTenantId())) {
-            throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
-        }
-        UserEntity.Status nextStatus = enumValue(
-                UserEntity.Status.class, command.status(), "USER_STATUS_INVALID");
-        Instant now = databaseClock.transactionNow();
-        user.changeStatus(nextStatus, command.reason(), command.expectedAuthVersion(),
-                actorId, now);
-        if (nextStatus != UserEntity.Status.ACTIVE) {
-            revokeAll(tenantId, userId, now);
-        }
-        return userView(user);
-    }
 
-    /**
-     * 方法 `findUser` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `find User` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `findUser` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `find User` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `findUser` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `findUser`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public TenantUserDirectoryController.UserDirectoryView findUser(
-            String tenantId,
-            String userId) {
-        UserEntity user = requireUser(Long.valueOf(tenantId), Long.valueOf(userId));
-        return userView(user);
-    }
 
-    /**
-     * 方法 `findTenant` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `find Tenant` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `findTenant` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `find Tenant` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `findTenant` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `findTenant`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public TenantUserDirectoryController.TenantView findTenant(String tenantId) {
-        TenantEntity tenant = entityManager.find(
-                TenantEntity.class, Long.valueOf(tenantId));
-        if (tenant == null) {
-            throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
-        }
-        return tenantView(tenant);
-    }
 
-    /**
-     * 方法 `findTenants` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `find Tenants` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `findTenants` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `find Tenants` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `findTenants` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `findTenants`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param query 输入参数 `query`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param status 输入参数 `status`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param page 输入参数 `page`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param size 输入参数 `size`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public TenantUserDirectoryController.PageView<TenantUserDirectoryController.TenantView>
-            findTenants(String query, String status, int page, int size) {
-        String normalizedQuery = nullableText(query);
-        TenantEntity.Status requiredStatus = nullableEnum(
-                TenantEntity.Status.class, status, "TENANT_STATUS_INVALID");
-        String predicates = "";
-        if (normalizedQuery != null) {
-            predicates += " and (lower(t.code) like :query or lower(t.name) like :query)";
-        }
-        if (requiredStatus != null) {
-            predicates += " and t.status = :status";
-        }
-        var dataQuery = entityManager.createQuery(
-                "select t from TenantEntity t where 1 = 1" + predicates
-                        + " order by t.code, t.id", TenantEntity.class);
-        var countQuery = entityManager.createQuery(
-                "select count(t) from TenantEntity t where 1 = 1" + predicates,
-                Long.class);
-        if (normalizedQuery != null) {
-            dataQuery.setParameter("query", '%' + normalizedQuery.toLowerCase(Locale.ROOT) + '%');
-            countQuery.setParameter("query", '%' + normalizedQuery.toLowerCase(Locale.ROOT) + '%');
-        }
-        if (requiredStatus != null) {
-            dataQuery.setParameter("status", requiredStatus);
-            countQuery.setParameter("status", requiredStatus);
-        }
-        List<TenantUserDirectoryController.TenantView> items = dataQuery
-                .setFirstResult(Math.multiplyExact(page, size))
-                .setMaxResults(size)
-                .getResultList().stream().map(this::tenantView).toList();
-        return new TenantUserDirectoryController.PageView<>(
-                items, page, size, countQuery.getSingleResult());
-    }
 
-    /**
-     * 方法 `findUsers` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `find Users` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `findUsers` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `find Users` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `findUsers` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `findUsers`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param query 输入参数 `query`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param status 输入参数 `status`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param orgUnitId 输入参数 `orgUnitId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param positionId 输入参数 `positionId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param page 输入参数 `page`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param size 输入参数 `size`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public TenantUserDirectoryController.PageView<TenantUserDirectoryController.UserDirectoryView>
-            findUsers(
-                    String tenantId, String query, String status, String orgUnitId,
-                    String positionId, int page, int size) {
-        String normalizedQuery = nullableText(query);
-        UserEntity.Status requiredStatus = nullableEnum(
-                UserEntity.Status.class, status, "USER_STATUS_INVALID");
-        Long requiredOrgUnit = nullableLong(orgUnitId, "ORG_UNIT_ID_INVALID");
-        Long requiredPosition = nullableLong(positionId, "POSITION_ID_INVALID");
-        String predicates = " where u.tenantId = :tenantId";
-        if (normalizedQuery != null) {
-            predicates += " and (lower(u.username) like :query or lower(u.displayName) like :query)";
-        }
-        if (requiredStatus != null) {
-            predicates += " and u.status = :status";
-        }
-        if (requiredOrgUnit != null) {
-            predicates += " and u.primaryOrgUnitId = :orgUnitId";
-        }
-        if (requiredPosition != null) {
-            predicates += " and u.primaryPositionId = :positionId";
-        }
-        var dataQuery = entityManager.createQuery(
-                "select u from UserEntity u" + predicates
-                        + " order by u.normalizedUsername, u.id", UserEntity.class);
-        var countQuery = entityManager.createQuery(
-                "select count(u) from UserEntity u" + predicates, Long.class);
-        dataQuery.setParameter("tenantId", Long.valueOf(tenantId));
-        countQuery.setParameter("tenantId", Long.valueOf(tenantId));
-        if (normalizedQuery != null) {
-            String pattern = '%' + normalizedQuery.toLowerCase(Locale.ROOT) + '%';
-            dataQuery.setParameter("query", pattern);
-            countQuery.setParameter("query", pattern);
-        }
-        if (requiredStatus != null) {
-            dataQuery.setParameter("status", requiredStatus);
-            countQuery.setParameter("status", requiredStatus);
-        }
-        if (requiredOrgUnit != null) {
-            dataQuery.setParameter("orgUnitId", requiredOrgUnit);
-            countQuery.setParameter("orgUnitId", requiredOrgUnit);
-        }
-        if (requiredPosition != null) {
-            dataQuery.setParameter("positionId", requiredPosition);
-            countQuery.setParameter("positionId", requiredPosition);
-        }
-        List<TenantUserDirectoryController.UserDirectoryView> items = dataQuery
-                .setFirstResult(Math.multiplyExact(page, size))
-                .setMaxResults(size)
-                .getResultList().stream().map(this::userView).toList();
-        return new TenantUserDirectoryController.PageView<>(
-                items, page, size, countQuery.getSingleResult());
-    }
 
-    /**
-     * 方法 `findOrgUnits` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `find Org Units` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `findOrgUnits` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `find Org Units` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `findOrgUnits` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `findOrgUnits`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param parentId 输入参数 `parentId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param type 输入参数 `type`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param status 输入参数 `status`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public List<TenantUserDirectoryController.OrgUnitView> findOrgUnits(
-            String tenantId, String parentId, String type, String status) {
-        Long requiredParent = nullableLong(parentId, "ORG_UNIT_ID_INVALID");
-        OrgUnitEntity.UnitType requiredType = nullableEnum(
-                OrgUnitEntity.UnitType.class, type, "ORG_UNIT_TYPE_INVALID");
-        OrgUnitEntity.Status requiredStatus = nullableEnum(
-                OrgUnitEntity.Status.class, status, "ORG_UNIT_STATUS_INVALID");
-        String predicates = " where o.tenantId = :tenantId";
-        if (requiredParent != null) {
-            predicates += " and o.parentId = :parentId";
-        }
-        if (requiredType != null) {
-            predicates += " and o.unitType = :type";
-        }
-        if (requiredStatus != null) {
-            predicates += " and o.status = :status";
-        }
-        var query = entityManager.createQuery(
-                "select o from OrgUnitEntity o" + predicates
-                        + " order by o.path, o.id", OrgUnitEntity.class)
-                .setParameter("tenantId", Long.valueOf(tenantId));
-        if (requiredParent != null) {
-            query.setParameter("parentId", requiredParent);
-        }
-        if (requiredType != null) {
-            query.setParameter("type", requiredType);
-        }
-        if (requiredStatus != null) {
-            query.setParameter("status", requiredStatus);
-        }
-        return query.getResultList().stream().map(this::orgUnitView).toList();
-    }
 
-    /**
-     * 方法 `findPositions` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `find Positions` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `findPositions` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `find Positions` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `findPositions` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `findPositions`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param orgUnitId 输入参数 `orgUnitId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param status 输入参数 `status`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public List<TenantUserDirectoryController.PositionView> findPositions(
-            String tenantId, String orgUnitId, String status) {
-        Long requiredOrgUnit = nullableLong(orgUnitId, "ORG_UNIT_ID_INVALID");
-        PositionEntity.Status requiredStatus = nullableEnum(
-                PositionEntity.Status.class, status, "POSITION_STATUS_INVALID");
-        String predicates = " where p.tenantId = :tenantId";
-        if (requiredOrgUnit != null) {
-            predicates += " and p.orgUnitId = :orgUnitId";
-        }
-        if (requiredStatus != null) {
-            predicates += " and p.status = :status";
-        }
-        var query = entityManager.createQuery(
-                "select p from PositionEntity p" + predicates
-                        + " order by p.code, p.id", PositionEntity.class)
-                .setParameter("tenantId", Long.valueOf(tenantId));
-        if (requiredOrgUnit != null) {
-            query.setParameter("orgUnitId", requiredOrgUnit);
-        }
-        if (requiredStatus != null) {
-            query.setParameter("status", requiredStatus);
-        }
-        return query.getResultList().stream().map(this::positionView).toList();
-    }
 
-    /**
-     * 方法 `findSnapshot` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `find Snapshot` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `findSnapshot` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `find Snapshot` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `findSnapshot` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `findSnapshot`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param snapshotId 输入参数 `snapshotId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Override
-    @Transactional(readOnly = true)
-    public TenantUserDirectoryController.DirectorySnapshotView findSnapshot(
-            String tenantId, String snapshotId) {
-        DirectorySnapshotEntity snapshot = entityManager.find(
-                DirectorySnapshotEntity.class, Long.valueOf(snapshotId));
-        if (snapshot == null || !Long.valueOf(tenantId).equals(snapshot.getTenantId())) {
-            throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
-        }
-        return new TenantUserDirectoryController.DirectorySnapshotView(
-                snapshot.getId().toString(), snapshot.getProviderCode(),
-                snapshot.getSnapshotVersion(), snapshot.getChecksum(),
-                snapshot.getStatus().name(), snapshot.getGeneratedAt(),
-                snapshot.getReceivedAt(), snapshot.getActivatedAt(),
-                snapshot.getCounts());
-    }
+
+
+
+
+
+
+
+
+
+
+
 
     /**
      * 方法 `requireUser` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `require User` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
@@ -970,8 +493,8 @@ public class Rbac3IdentitySessionQueryStore implements
      * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private UserEntity requireUser(Long tenantId, Long userId) {
-        UserEntity user = entityManager.find(UserEntity.class, userId);
+    private UserPO requireUser(Long tenantId, Long userId) {
+        UserPO user = entityManager.find(UserPO.class, userId);
         if (user == null || !tenantId.equals(user.getTenantId())) {
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }
@@ -988,8 +511,8 @@ public class Rbac3IdentitySessionQueryStore implements
      * @param tenant 输入参数 `tenant`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private TenantUserDirectoryController.TenantView tenantView(TenantEntity tenant) {
-        return new TenantUserDirectoryController.TenantView(
+    private TenantVO tenantView(TenantPO tenant) {
+        return new TenantVO(
                 tenant.getId().toString(), tenant.getCode(), tenant.getName(),
                 tenant.getStatus().name(), tenant.getSettings(), tenant.getVersion());
     }
@@ -1004,8 +527,8 @@ public class Rbac3IdentitySessionQueryStore implements
      * @param user 输入参数 `user`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private TenantUserDirectoryController.UserDirectoryView userView(UserEntity user) {
-        return new TenantUserDirectoryController.UserDirectoryView(
+    private UserDirectoryVO userView(UserPO user) {
+        return new UserDirectoryVO(
                 user.getId().toString(), user.getUsername(), user.getDisplayName(),
                 user.getStatus().name(), user.getAuthVersion(),
                 stringId(user.getPrimaryOrgUnitId()), stringId(user.getPrimaryPositionId()),
@@ -1022,8 +545,8 @@ public class Rbac3IdentitySessionQueryStore implements
      * @param unit 输入参数 `unit`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private TenantUserDirectoryController.OrgUnitView orgUnitView(OrgUnitEntity unit) {
-        return new TenantUserDirectoryController.OrgUnitView(
+    private OrgUnitVO orgUnitView(OrgUnitPO unit) {
+        return new OrgUnitVO(
                 unit.getId().toString(), unit.getSnapshotId().toString(),
                 unit.getUnitType().name(), unit.getCode(), unit.getName(),
                 stringId(unit.getParentId()), unit.getPath(), unit.getDepth(),
@@ -1040,8 +563,8 @@ public class Rbac3IdentitySessionQueryStore implements
      * @param position 输入参数 `position`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private TenantUserDirectoryController.PositionView positionView(PositionEntity position) {
-        return new TenantUserDirectoryController.PositionView(
+    private PositionVO positionView(PositionPO position) {
+        return new PositionVO(
                 position.getId().toString(), position.getSnapshotId().toString(),
                 position.getCode(), position.getName(), position.getOrgUnitId().toString(),
                 position.getStatus().name());
@@ -1099,16 +622,16 @@ public class Rbac3IdentitySessionQueryStore implements
             String providerCode,
             Long incomingSnapshotId,
             Instant now) {
-        List<DirectorySnapshotEntity> active = entityManager.createQuery("""
+        List<DirectorySnapshotPO> active = entityManager.createQuery("""
                         select s from DirectorySnapshotEntity s
                          where s.tenantId = :tenantId
                            and s.providerCode = :providerCode
                            and s.status = :status
                            and s.id <> :incomingSnapshotId
-                        """, DirectorySnapshotEntity.class)
+                        """, DirectorySnapshotPO.class)
                 .setParameter("tenantId", tenantId)
                 .setParameter("providerCode", providerCode)
-                .setParameter("status", DirectorySnapshotEntity.Status.ACTIVE)
+                .setParameter("status", DirectorySnapshotStatusEnum.ACTIVE)
                 .setParameter("incomingSnapshotId", incomingSnapshotId)
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                 .getResultList();

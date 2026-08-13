@@ -116,7 +116,7 @@ public class SessionController {
             tags = {"rbac3", "session"})
     public ApiEnvelopeVO<RevocationView> revoke(@PathVariable String sessionId) {
         boolean changed = managementPort.revoke(
-                top.egon.cola.platform.rbac3.admin.tenant.TenantContext
+                top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext
                         .requireCurrent().effectiveTenantId(),
                 sessionId,
                 databaseClock.transactionNow());
@@ -142,7 +142,7 @@ public class SessionController {
             tags = {"rbac3", "session"})
     public ApiEnvelopeVO<RevokeAllView> revokeAll(@PathVariable String userId) {
         int changed = managementPort.revokeAll(
-                top.egon.cola.platform.rbac3.admin.tenant.TenantContext
+                top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext
                         .requireCurrent().effectiveTenantId(),
                 userId,
                 databaseClock.transactionNow());

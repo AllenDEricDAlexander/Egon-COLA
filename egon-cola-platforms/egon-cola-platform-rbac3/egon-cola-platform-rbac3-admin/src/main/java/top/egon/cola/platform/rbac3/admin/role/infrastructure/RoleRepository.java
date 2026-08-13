@@ -7,7 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
 import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.identity.domain.TenantEntity;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 import top.egon.cola.platform.rbac3.admin.resource.domain.PermissionEntity;
 import top.egon.cola.platform.rbac3.admin.role.application.RoleFacade;
 import top.egon.cola.platform.rbac3.admin.role.domain.RoleEntity;
@@ -707,8 +707,8 @@ public class RoleRepository implements RoleFacade.HierarchyStore, RoleFacade.Rol
             String eventType,
             String actorId,
             Instant now) {
-        TenantEntity tenant = entityManager.find(
-                TenantEntity.class, Long.valueOf(tenantId), LockModeType.PESSIMISTIC_WRITE);
+        TenantPO tenant = entityManager.find(
+                TenantPO.class, Long.valueOf(tenantId), LockModeType.PESSIMISTIC_WRITE);
         if (tenant == null) {
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }

@@ -35,8 +35,8 @@ import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties
 import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3SecurityProperties;
 import top.egon.cola.platform.rbac3.admin.constraint.application.ConstraintFacade;
 import top.egon.cola.platform.rbac3.admin.constraint.infrastructure.ConstraintRepository;
-import top.egon.cola.platform.rbac3.admin.identity.infrastructure.IdentityRepositories;
-import top.egon.cola.platform.rbac3.admin.identity.application.IdentityMappingFacade;
+import top.egon.cola.platform.rbac3.admin.identity.repository.IdentityMappingRepository;
+import top.egon.cola.platform.rbac3.admin.identity.service.IdentityMappingFacade;
 import top.egon.cola.platform.rbac3.admin.management.application.ManagementPolicyFacade;
 import top.egon.cola.platform.rbac3.admin.management.infrastructure.ManagementPolicyRepository;
 import top.egon.cola.platform.rbac3.admin.participation.application.ParticipationFacade;
@@ -401,7 +401,7 @@ public class Rbac3ApplicationConfiguration {
      */
     @Bean
     IdentityMappingFacade identityMappingFacade(
-            IdentityRepositories identities,
+            IdentityMappingRepository identities,
             LongIdGenerator idGenerator) {
         return new IdentityMappingFacade(identities, idGenerator::nextLongId);
     }

@@ -16,7 +16,7 @@ import top.egon.cola.platform.rbac3.admin.constraint.domain.RoleCardinalityEntit
 import top.egon.cola.platform.rbac3.admin.constraint.domain.RolePrerequisiteEntity;
 import top.egon.cola.platform.rbac3.admin.constraint.domain.SodMemberEntity;
 import top.egon.cola.platform.rbac3.admin.constraint.domain.SodSetEntity;
-import top.egon.cola.platform.rbac3.admin.identity.domain.TenantEntity;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 import top.egon.cola.platform.rbac3.admin.role.domain.RoleEntity;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
@@ -637,8 +637,8 @@ public class ConstraintRepository implements
             String aggregateId,
             String actorId,
             Instant now) {
-        TenantEntity tenant = entityManager.find(
-                TenantEntity.class, Long.valueOf(tenantId), LockModeType.PESSIMISTIC_WRITE);
+        TenantPO tenant = entityManager.find(
+                TenantPO.class, Long.valueOf(tenantId), LockModeType.PESSIMISTIC_WRITE);
         if (tenant == null) {
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }

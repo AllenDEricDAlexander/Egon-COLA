@@ -3,7 +3,7 @@ package top.egon.cola.platform.rbac3.admin.simulation.infrastructure;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.rbac3.admin.identity.domain.TenantEntity;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 import top.egon.cola.platform.rbac3.admin.role.application.RoleFacade;
 import top.egon.cola.platform.rbac3.admin.simulation.application.AuthorizationSimulationService;
 
@@ -72,8 +72,8 @@ public class PostgresqlRoleImpactSource
     public AuthorizationSimulationService.RoleImpactSnapshot load(
             String tenantId,
             String roleId) {
-        TenantEntity tenant = entityManager.find(
-                TenantEntity.class, Long.valueOf(tenantId));
+        TenantPO tenant = entityManager.find(
+                TenantPO.class, Long.valueOf(tenantId));
         if (tenant == null) {
             throw new IllegalArgumentException("tenant is missing");
         }
