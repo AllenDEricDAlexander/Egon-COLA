@@ -1,13 +1,13 @@
 package top.egon.cola.component.common.desensitize.strategy;
 
-final class MaskingSupport {
+public final class MaskingSupport {
 
     private static final String MASK = "*";
 
     private MaskingSupport() {
     }
 
-    static String keepAround(String value, int keepStart, int keepEnd) {
+    public static String keepAround(String value, int keepStart, int keepEnd) {
         if (value == null || value.isEmpty()) {
             return value;
         }
@@ -20,11 +20,11 @@ final class MaskingSupport {
                 + new String(codePoints, codePoints.length - keepEnd, keepEnd);
     }
 
-    static String keepStart(String value, int keepStart) {
+    public static String keepStart(String value, int keepStart) {
         return keepAround(value, keepStart, 0);
     }
 
-    static String full(String value) {
+    public static String full(String value) {
         return keepAround(value, 0, 0);
     }
 }
