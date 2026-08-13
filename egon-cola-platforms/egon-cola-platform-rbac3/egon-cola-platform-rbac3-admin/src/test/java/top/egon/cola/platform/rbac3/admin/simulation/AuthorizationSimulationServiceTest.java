@@ -1,11 +1,11 @@
 package top.egon.cola.platform.rbac3.admin.simulation;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
-import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.simulation.application.AuthorizationSimulationService;
-import top.egon.cola.platform.rbac3.admin.role.application.RoleFacade;
+import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
+import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.simulation.service.AuthorizationSimulationService;
+import top.egon.cola.platform.rbac3.admin.role.service.RoleFacade;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.Decision;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
@@ -21,6 +21,18 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import top.egon.cola.platform.rbac3.admin.role.domain.vo.RoleImpactVO;
+import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditEventVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.SnapshotRecordVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.AuthorizationDecisionSubjectVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.AuthorizationDecisionResourceVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.TokenVersionsVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.dto.DecisionRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.enums.AuthorizationDecisionDecisionTypeEnum;
+import top.egon.cola.platform.rbac3.admin.simulation.domain.dto.SimulationRequestDTO;
+import top.egon.cola.platform.rbac3.admin.simulation.domain.dto.HypothesisDTO;
+import top.egon.cola.platform.rbac3.admin.simulation.domain.dto.RoleChangeImpactRequestDTO;
+import top.egon.cola.platform.rbac3.admin.simulation.domain.vo.RoleImpactSnapshotVO;
 
 class AuthorizationSimulationServiceTest {
 
@@ -38,35 +50,35 @@ class AuthorizationSimulationServiceTest {
         AuthorizationDecisionService decisionService = new AuthorizationDecisionService(
                 (tenantId, sessionId) -> {
                     snapshotReads.incrementAndGet();
-                    return new AuthorizationDecisionService.SnapshotRecord(
+                    return new SnapshotRecordVO(
                             tenantId, "user-1", snapshot);
                 },
                 (tenantId, sessionId) -> false,
                 Clock.fixed(NOW, ZoneOffset.UTC));
-        List<AuditPort.AuditEvent> audits = new ArrayList<>();
+        List<AuditEventVO> audits = new ArrayList<>();
         AuthorizationSimulationService service = new AuthorizationSimulationService(
                 decisionService,
-                (tenantId, roleId) -> new AuthorizationSimulationService.RoleImpactSnapshot(
-                        new RoleFacade.RoleImpactView(
+                (tenantId, roleId) -> new RoleImpactSnapshotVO(
+                        new RoleImpactVO(
                                 roleId, List.of(roleId), List.of(roleId),
                                 "LOW", 0, List.of()),
                         18, "sha256:role-impact"),
                 audits::add,
                 Clock.fixed(NOW, ZoneOffset.UTC));
-        var request = new AuthorizationDecisionService.DecisionRequest(
-                new AuthorizationDecisionService.Subject(
+        var request = new DecisionRequestDTO(
+                new AuthorizationDecisionSubjectVO(
                         "tenant-1", "user-1", "session-1"),
                 "finance:payment:approve",
-                new AuthorizationDecisionService.Resource(
+                new AuthorizationDecisionResourceVO(
                         "finance-web", "payment-approvals"),
-                EnumSet.of(AuthorizationDecisionService.DecisionType.FUNCTION),
-                new AuthorizationDecisionService.TokenVersions(43, 2, 18));
+                EnumSet.of(AuthorizationDecisionDecisionTypeEnum.FUNCTION),
+                new TokenVersionsVO(43, 2, 18));
 
         var result = service.simulate(
                 principal(),
-                new AuthorizationSimulationService.SimulationRequest(
+                new SimulationRequestDTO(
                         request,
-                        new AuthorizationSimulationService.Hypothesis(
+                        new HypothesisDTO(
                                 Set.of("finance:payment:approve"), Set.of()),
                         NOW,
                         "simulation-request",
@@ -87,11 +99,11 @@ class AuthorizationSimulationServiceTest {
 
     @Test
     void returnsVersionedRoleChangeImpactAndOnlyAppendsSimulationAudit() {
-        List<AuditPort.AuditEvent> audits = new ArrayList<>();
+        List<AuditEventVO> audits = new ArrayList<>();
         AuthorizationSimulationService service = new AuthorizationSimulationService(
                 decisionServiceNotUsed(),
-                (tenantId, roleId) -> new AuthorizationSimulationService.RoleImpactSnapshot(
-                        new RoleFacade.RoleImpactView(
+                (tenantId, roleId) -> new RoleImpactSnapshotVO(
+                        new RoleImpactVO(
                                 roleId, List.of("root-1"),
                                 List.of("root-1", roleId), "HIGH", 7,
                                 List.of("ROLE_ACTIVATION_ROOT_AMBIGUOUS")),
@@ -101,7 +113,7 @@ class AuthorizationSimulationServiceTest {
 
         var result = service.simulateRoleChangeImpact(
                 principal(),
-                new AuthorizationSimulationService.RoleChangeImpactRequest(
+                new RoleChangeImpactRequestDTO(
                         "role-7", NOW, "impact-request", "impact-trace"));
 
         assertThat(result.impact().roleId()).isEqualTo("role-7");

@@ -2,8 +2,8 @@ package top.egon.cola.platform.rbac3.admin.performance;
 
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
-import top.egon.cola.platform.rbac3.admin.audit.application.AuditQueryService;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
+import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
 import top.egon.cola.platform.rbac3.core.activation.AuthorizationRuleFacts;
 import top.egon.cola.platform.rbac3.core.activation.EligibleAssignmentFact;
 import top.egon.cola.platform.rbac3.core.hierarchy.RoleHierarchy;
@@ -19,6 +19,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ActivationFactsVO;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ApplicationFactVO;
+import top.egon.cola.platform.rbac3.admin.audit.repository.AuditRepository;
+import top.egon.cola.platform.rbac3.admin.audit.domain.dto.QueryDTO;
+import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditVO;
+import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditQueryPageVO;
 
 class AdminQueryBudgetIT {
 
@@ -38,7 +44,7 @@ class AdminQueryBudgetIT {
         CountingAuditStore auditStore = new CountingAuditStore();
         AuditQueryService audit = new AuditQueryService(
                 auditStore, Clock.fixed(NOW, ZoneOffset.UTC));
-        audit.query(new AuditQueryService.Query(
+        audit.query(new QueryDTO(
                         "tenant", NOW.minusSeconds(60), NOW,
                         null, null, null, null, null, null, null, null,
                         100, null),
@@ -62,11 +68,11 @@ class AdminQueryBudgetIT {
                 .compareTo(Duration.ofSeconds(2)) < 0);
     }
 
-    private static RoleActivationCandidateService.ActivationFacts candidateFacts() {
+    private static ActivationFactsVO candidateFacts() {
         RoleNode root = new RoleNode(
                 "root", "application", "ROOT", true,
                 RoleNode.RiskLevel.LOW, false, null, 100);
-        return new RoleActivationCandidateService.ActivationFacts(
+        return new ActivationFactsVO(
                 "tenant", "user", new RoleHierarchy(List.of(root), List.of()),
                 List.of(new EligibleAssignmentFact(
                         "assignment", "user", "root",
@@ -76,27 +82,27 @@ class AdminQueryBudgetIT {
                 new AuthorizationRuleFacts(
                         List.of(), List.of(), List.of(), List.of(), List.of()),
                 3L, 7L, "directory:1",
-                Map.of("application", new RoleActivationCandidateService.ApplicationFact(
+                Map.of("application", new ApplicationFactVO(
                         "application", "finance", "Finance")),
                 Map.of("root", "Finance root"));
     }
 
     private static final class CountingAuditStore
-            implements AuditQueryService.AuditStore {
+            implements AuditRepository {
         private final AtomicInteger queries = new AtomicInteger();
         private final AtomicInteger appends = new AtomicInteger();
 
         @Override
-        public AuditQueryService.AuditView append(
-                AuditQueryService.AuditView record) {
+        public AuditVO append(
+                AuditVO record) {
             appends.incrementAndGet();
             return record;
         }
 
         @Override
-        public AuditQueryService.Page query(AuditQueryService.Query query) {
+        public AuditQueryPageVO query(QueryDTO query) {
             queries.incrementAndGet();
-            return new AuditQueryService.Page(List.of(), null);
+            return new AuditQueryPageVO(List.of(), null);
         }
     }
 }

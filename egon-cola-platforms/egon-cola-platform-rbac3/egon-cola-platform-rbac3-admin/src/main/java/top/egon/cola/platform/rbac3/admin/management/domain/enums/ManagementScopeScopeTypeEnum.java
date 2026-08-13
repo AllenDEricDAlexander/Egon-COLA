@@ -1,0 +1,76 @@
+package top.egon.cola.platform.rbac3.admin.management.domain.enums;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.IdClass;
+import jakarta.persistence.Table;
+import java.io.Serializable;
+
+/**
+     * 类型 `ManagementScopeScopeTypeEnum` 位于 `ManagementScopeEntity` 内，是枚举，用于承载 `Scope Type` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
+     * Type `ManagementScopeScopeTypeEnum` is an enum inside `ManagementScopeEntity` and carries the responsibility, state, or contract for `Scope Type`; callers normally use it through its public API, Spring assembly, or implementation relationship.
+     *
+     * 语义与用法：将 `ManagementScopeScopeTypeEnum` 作为 `ManagementScopeEntity` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
+     * Semantics and usage: use `ManagementScopeScopeTypeEnum` as the responsibility boundary of `ManagementScopeEntity`, following its existing construction, interface, or Spring-assembly mechanism.
+     */
+    public enum ManagementScopeScopeTypeEnum {
+        /**
+         * 字段 `SELF_DEPT` 表示 `ManagementScopeScopeTypeEnum` 中与 `SELF DEPT` 相关的状态、依赖、配置或结果（声明类型 `ManagementScopeScopeTypeEnum`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+         * Field `SELF_DEPT` stores the `SELF DEPT`-related state, dependency, configuration, or result of `ManagementScopeScopeTypeEnum` (declared type `ManagementScopeScopeTypeEnum`); its lifecycle and value semantics are defined by its declared type and owning object.
+         *
+         * 含义与用法：读取、传递或更新 `SELF_DEPT` 时应保持 `ManagementScopeScopeTypeEnum` 的生命周期、不可变性和线程安全约束。
+         * Meaning and usage: when reading, passing, or updating `SELF_DEPT`, preserve `ManagementScopeScopeTypeEnum`'s lifecycle, immutability, and thread-safety constraints.
+         */
+        SELF_DEPT,
+        /**
+         * 字段 `DEPT` 表示 `ManagementScopeScopeTypeEnum` 中与 `DEPT` 相关的状态、依赖、配置或结果（声明类型 `ManagementScopeScopeTypeEnum`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+         * Field `DEPT` stores the `DEPT`-related state, dependency, configuration, or result of `ManagementScopeScopeTypeEnum` (declared type `ManagementScopeScopeTypeEnum`); its lifecycle and value semantics are defined by its declared type and owning object.
+         *
+         * 含义与用法：读取、传递或更新 `DEPT` 时应保持 `ManagementScopeScopeTypeEnum` 的生命周期、不可变性和线程安全约束。
+         * Meaning and usage: when reading, passing, or updating `DEPT`, preserve `ManagementScopeScopeTypeEnum`'s lifecycle, immutability, and thread-safety constraints.
+         */
+        DEPT,
+        /**
+         * 字段 `DEPT_TREE` 表示 `ManagementScopeScopeTypeEnum` 中与 `DEPT TREE` 相关的状态、依赖、配置或结果（声明类型 `ManagementScopeScopeTypeEnum`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+         * Field `DEPT_TREE` stores the `DEPT TREE`-related state, dependency, configuration, or result of `ManagementScopeScopeTypeEnum` (declared type `ManagementScopeScopeTypeEnum`); its lifecycle and value semantics are defined by its declared type and owning object.
+         *
+         * 含义与用法：读取、传递或更新 `DEPT_TREE` 时应保持 `ManagementScopeScopeTypeEnum` 的生命周期、不可变性和线程安全约束。
+         * Meaning and usage: when reading, passing, or updating `DEPT_TREE`, preserve `ManagementScopeScopeTypeEnum`'s lifecycle, immutability, and thread-safety constraints.
+         */
+        DEPT_TREE,
+        /**
+         * 字段 `ORG` 表示 `ManagementScopeScopeTypeEnum` 中与 `ORG` 相关的状态、依赖、配置或结果（声明类型 `ManagementScopeScopeTypeEnum`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+         * Field `ORG` stores the `ORG`-related state, dependency, configuration, or result of `ManagementScopeScopeTypeEnum` (declared type `ManagementScopeScopeTypeEnum`); its lifecycle and value semantics are defined by its declared type and owning object.
+         *
+         * 含义与用法：读取、传递或更新 `ORG` 时应保持 `ManagementScopeScopeTypeEnum` 的生命周期、不可变性和线程安全约束。
+         * Meaning and usage: when reading, passing, or updating `ORG`, preserve `ManagementScopeScopeTypeEnum`'s lifecycle, immutability, and thread-safety constraints.
+         */
+        ORG,
+        /**
+         * 字段 `ORG_TREE` 表示 `ManagementScopeScopeTypeEnum` 中与 `ORG TREE` 相关的状态、依赖、配置或结果（声明类型 `ManagementScopeScopeTypeEnum`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+         * Field `ORG_TREE` stores the `ORG TREE`-related state, dependency, configuration, or result of `ManagementScopeScopeTypeEnum` (declared type `ManagementScopeScopeTypeEnum`); its lifecycle and value semantics are defined by its declared type and owning object.
+         *
+         * 含义与用法：读取、传递或更新 `ORG_TREE` 时应保持 `ManagementScopeScopeTypeEnum` 的生命周期、不可变性和线程安全约束。
+         * Meaning and usage: when reading, passing, or updating `ORG_TREE`, preserve `ManagementScopeScopeTypeEnum`'s lifecycle, immutability, and thread-safety constraints.
+         */
+        ORG_TREE,
+        /**
+         * 字段 `CUSTOM_DEPT` 表示 `ManagementScopeScopeTypeEnum` 中与 `CUSTOM DEPT` 相关的状态、依赖、配置或结果（声明类型 `ManagementScopeScopeTypeEnum`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+         * Field `CUSTOM_DEPT` stores the `CUSTOM DEPT`-related state, dependency, configuration, or result of `ManagementScopeScopeTypeEnum` (declared type `ManagementScopeScopeTypeEnum`); its lifecycle and value semantics are defined by its declared type and owning object.
+         *
+         * 含义与用法：读取、传递或更新 `CUSTOM_DEPT` 时应保持 `ManagementScopeScopeTypeEnum` 的生命周期、不可变性和线程安全约束。
+         * Meaning and usage: when reading, passing, or updating `CUSTOM_DEPT`, preserve `ManagementScopeScopeTypeEnum`'s lifecycle, immutability, and thread-safety constraints.
+         */
+        CUSTOM_DEPT,
+        /**
+         * 字段 `CUSTOM_USER` 表示 `ManagementScopeScopeTypeEnum` 中与 `CUSTOM USER` 相关的状态、依赖、配置或结果（声明类型 `ManagementScopeScopeTypeEnum`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+         * Field `CUSTOM_USER` stores the `CUSTOM USER`-related state, dependency, configuration, or result of `ManagementScopeScopeTypeEnum` (declared type `ManagementScopeScopeTypeEnum`); its lifecycle and value semantics are defined by its declared type and owning object.
+         *
+         * 含义与用法：读取、传递或更新 `CUSTOM_USER` 时应保持 `ManagementScopeScopeTypeEnum` 的生命周期、不可变性和线程安全约束。
+         * Meaning and usage: when reading, passing, or updating `CUSTOM_USER`, preserve `ManagementScopeScopeTypeEnum`'s lifecycle, immutability, and thread-safety constraints.
+         */
+        CUSTOM_USER
+    }

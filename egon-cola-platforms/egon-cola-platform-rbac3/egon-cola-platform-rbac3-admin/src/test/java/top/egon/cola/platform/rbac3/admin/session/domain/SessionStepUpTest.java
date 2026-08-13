@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import top.egon.cola.platform.rbac3.admin.session.domain.enums.AuthenticationStrengthEnum;
+import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
 
 class SessionStepUpTest {
 
@@ -12,13 +14,13 @@ class SessionStepUpTest {
 
     @Test
     void recordsRecentStrongAuthenticationWithoutChangingAuthorizationVersion() {
-        SessionEntity session = session();
+        SessionPO session = session();
         Instant steppedUpAt = AUTHENTICATED_AT.plusSeconds(300);
 
         session.stepUp("7", steppedUpAt);
 
         assertThat(session.getAuthenticationStrength())
-                .isEqualTo(SessionEntity.AuthenticationStrength.STRONG);
+                .isEqualTo(AuthenticationStrengthEnum.STRONG);
         assertThat(session.getStrongAuthenticatedAt()).isEqualTo(steppedUpAt);
         assertThat(session.getSessionVersion()).isZero();
         assertThat(session.isStrongAuthenticationRecent(
@@ -29,10 +31,10 @@ class SessionStepUpTest {
                 .isFalse();
     }
 
-    private SessionEntity session() {
-        return new SessionEntity(
+    private SessionPO session() {
+        return new SessionPO(
                 1L, 2L, 3L, 4L, 0L, 0L, "family", "device",
-                SessionEntity.AuthenticationStrength.PASSWORD,
+                AuthenticationStrengthEnum.PASSWORD,
                 AUTHENTICATED_AT, AUTHENTICATED_AT.plusSeconds(1_800),
                 AUTHENTICATED_AT.plusSeconds(3_600), "3");
     }

@@ -1,11 +1,11 @@
 package top.egon.cola.platform.rbac3.admin.activation;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
+import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.service.SessionSnapshotProjector;
 import top.egon.cola.platform.rbac3.core.activation.AuthorizationRuleFacts;
 import top.egon.cola.platform.rbac3.core.activation.DsdSetFact;
 import top.egon.cola.platform.rbac3.core.activation.EligibleAssignmentFact;
@@ -25,6 +25,16 @@ import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ActivationFactsVO;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ApplicationFactVO;
+import top.egon.cola.platform.rbac3.admin.activation.repository.ActivationTransaction;
+import top.egon.cola.platform.rbac3.admin.activation.repository.RoleActivationRuntimeRepository;
+import top.egon.cola.platform.rbac3.admin.activation.domain.dto.ReplaceCommandDTO;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.SessionStateVO;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ResolvedActivationVO;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.TransactionResultVO;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.CurrentStateVO;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.RuntimePublicationVO;
 
 class RoleActivationFacadeIT {
 
@@ -81,7 +91,7 @@ class RoleActivationFacadeIT {
                 hierarchy,
                 List.of(assignment("101", "11")),
                 List.of(),
-                Map.of("1", new RoleActivationCandidateService.ApplicationFact(
+                Map.of("1", new ApplicationFactVO(
                         "1", "finance", "Finance")));
         var transaction = new InMemoryTransaction();
         var runtime = new RecordingRuntimeStore();
@@ -162,7 +172,7 @@ class RoleActivationFacadeIT {
     }
 
     private RoleActivationFacade facade(
-            RoleActivationCandidateService.ActivationFacts facts,
+            ActivationFactsVO facts,
             InMemoryTransaction transaction,
             RecordingRuntimeStore runtime
     ) {
@@ -170,7 +180,7 @@ class RoleActivationFacadeIT {
     }
 
     private RoleActivationFacade facade(
-            RoleActivationCandidateService.ActivationFacts facts,
+            ActivationFactsVO facts,
             InMemoryTransaction transaction,
             RecordingRuntimeStore runtime,
             AtomicRbac3RuntimePolicy policy
@@ -184,16 +194,16 @@ class RoleActivationFacadeIT {
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
-    private RoleActivationFacade.ReplaceCommand command(
+    private ReplaceCommandDTO command(
             List<String> roots,
             long expectedVersion,
             String commandId
     ) {
-        return new RoleActivationFacade.ReplaceCommand(
+        return new ReplaceCommandDTO(
                 "7", "9", "9", "99", roots, expectedVersion, "9", commandId);
     }
 
-    static RoleActivationCandidateService.ActivationFacts facts(
+    static ActivationFactsVO facts(
             List<EligibleAssignmentFact> assignments,
             List<DsdSetFact> dsdSets
     ) {
@@ -202,33 +212,33 @@ class RoleActivationFacadeIT {
                         role("10", "ROOT_A"),
                         role("20", "ROOT_B")),
                 List.of());
-        return new RoleActivationCandidateService.ActivationFacts(
+        return new ActivationFactsVO(
                 "7", "9", hierarchy, assignments, dsdSets,
                 new AuthorizationRuleFacts(
                         List.of(), List.of(), List.of(), List.of(), List.of()),
                 3, 4, "directory:2",
-                Map.of("1", new RoleActivationCandidateService.ApplicationFact(
+                Map.of("1", new ApplicationFactVO(
                         "1", "finance", "Finance")),
                 Map.of("10", "Root A", "20", "Root B"));
     }
 
-    private static RoleActivationCandidateService.ActivationFacts facts(
+    private static ActivationFactsVO facts(
             RoleHierarchy hierarchy,
             List<EligibleAssignmentFact> assignments,
             List<DsdSetFact> dsdSets,
-            Map<String, RoleActivationCandidateService.ApplicationFact> applications
+            Map<String, ApplicationFactVO> applications
     ) {
         Map<String, String> roleNames = hierarchy.nodes().keySet().stream()
                 .collect(java.util.stream.Collectors.toMap(
                         Function.identity(), Function.identity()));
-        return new RoleActivationCandidateService.ActivationFacts(
+        return new ActivationFactsVO(
                 "7", "9", hierarchy, assignments, dsdSets,
                 new AuthorizationRuleFacts(
                         List.of(), List.of(), List.of(), List.of(), List.of()),
                 3, 4, "directory:2", applications, roleNames);
     }
 
-    private static RoleActivationCandidateService.ActivationFacts factsAcrossApplications() {
+    private static ActivationFactsVO factsAcrossApplications() {
         RoleHierarchy hierarchy = new RoleHierarchy(
                 List.of(role("10", "1", "ROOT_A"), role("20", "2", "ROOT_B")),
                 List.of());
@@ -237,9 +247,9 @@ class RoleActivationFacadeIT {
                 List.of(assignment("101", "10"), assignment("102", "20")),
                 List.of(),
                 Map.of(
-                        "1", new RoleActivationCandidateService.ApplicationFact(
+                        "1", new ApplicationFactVO(
                                 "1", "finance", "Finance"),
-                        "2", new RoleActivationCandidateService.ApplicationFact(
+                        "2", new ApplicationFactVO(
                                 "2", "reporting", "Reporting")));
     }
 
@@ -249,17 +259,17 @@ class RoleActivationFacadeIT {
                 NOW.minusSeconds(60), null);
     }
 
-    private static RoleActivationCandidateService.ActivationFacts factsWithRisk(
+    private static ActivationFactsVO factsWithRisk(
             RoleNode.RiskLevel risk) {
         RoleHierarchy hierarchy = new RoleHierarchy(
                 List.of(new RoleNode("10", "1", "ROOT_A", true,
                         risk, false, null, 10)), List.of());
-        return new RoleActivationCandidateService.ActivationFacts(
+        return new ActivationFactsVO(
                 "7", "9", hierarchy, List.of(assignment("101", "10")), List.of(),
                 new AuthorizationRuleFacts(
                         List.of(), List.of(), List.of(), List.of(), List.of()),
                 3, 4, "directory:2",
-                Map.of("1", new RoleActivationCandidateService.ApplicationFact(
+                Map.of("1", new ApplicationFactVO(
                         "1", "finance", "Finance")),
                 Map.of("10", "Root A"));
     }
@@ -278,7 +288,7 @@ class RoleActivationFacadeIT {
     }
 
     static final class InMemoryTransaction
-            implements RoleActivationFacade.ActivationTransaction {
+            implements ActivationTransaction {
         private long sessionVersion;
         private Map<String, Set<String>> roots = Map.of();
         private String checksum;
@@ -287,16 +297,16 @@ class RoleActivationFacadeIT {
         private final AtomicInteger recoveries = new AtomicInteger();
 
         @Override
-        public synchronized RoleActivationFacade.TransactionResult replace(
-                RoleActivationFacade.ReplaceCommand command,
+        public synchronized TransactionResultVO replace(
+                ReplaceCommandDTO command,
                 Instant now,
-                Function<RoleActivationFacade.SessionState,
-                        RoleActivationFacade.ResolvedActivation> factory
+                Function<SessionStateVO,
+                        ResolvedActivationVO> factory
         ) {
             if (command.expectedContextVersion() != sessionVersion) {
                 throw new Rbac3RuleViolation("ROLE_ACTIVATION_VERSION_CONFLICT");
             }
-            var resolved = factory.apply(new RoleActivationFacade.SessionState(
+            var resolved = factory.apply(new SessionStateVO(
                     "7", "9", "99", roots, 3, sessionVersion, 4,
                     checksum, roots.isEmpty(), NOW.plusSeconds(3600),
                     authenticationStrength, strongAuthenticatedAt));
@@ -308,17 +318,17 @@ class RoleActivationFacadeIT {
                 sessionVersion++;
                 checksum = resolved.resolution().snapshot().checksum();
             }
-            return new RoleActivationFacade.TransactionResult(
+            return new TransactionResultVO(
                     resolved, changed, changed ? command.commandId() : null,
                     roots, 3, sessionVersion, 4,
                     checksum, NOW.plusSeconds(3600));
         }
 
         @Override
-        public RoleActivationFacade.CurrentState current(
+        public CurrentStateVO current(
                 String tenantId, String identitySub, String userId,
                 String sessionId, Instant now) {
-            return new RoleActivationFacade.CurrentState(
+            return new CurrentStateVO(
                     roots, 3, sessionVersion, 4, checksum, roots.isEmpty());
         }
 
@@ -329,7 +339,7 @@ class RoleActivationFacadeIT {
         }
     }
 
-    static final class RecordingRuntimeStore implements RoleActivationFacade.RuntimeStore {
+    static final class RecordingRuntimeStore implements RoleActivationRuntimeRepository {
         private final AtomicInteger fences = new AtomicInteger();
         private final AtomicInteger publications = new AtomicInteger();
         private final boolean failPublication;
@@ -350,7 +360,7 @@ class RoleActivationFacadeIT {
         }
 
         @Override
-        public void publish(RoleActivationFacade.RuntimePublication publication) {
+        public void publish(RuntimePublicationVO publication) {
             publications.incrementAndGet();
             if (failPublication) {
                 throw new IllegalStateException("redis unavailable");

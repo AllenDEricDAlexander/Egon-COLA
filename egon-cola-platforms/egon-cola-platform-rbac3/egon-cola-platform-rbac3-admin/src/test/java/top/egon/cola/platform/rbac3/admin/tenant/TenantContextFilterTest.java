@@ -8,13 +8,16 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 
 import java.net.URI;
 import java.time.Instant;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;
+import top.egon.cola.platform.rbac3.admin.tenant.controller.filter.TenantContextFilter;
+import top.egon.cola.platform.rbac3.admin.tenant.service.TenantContextResolver;
 
 class TenantContextFilterTest {
 

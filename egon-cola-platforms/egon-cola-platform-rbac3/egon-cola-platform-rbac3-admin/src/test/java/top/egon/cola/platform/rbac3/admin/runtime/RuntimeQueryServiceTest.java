@@ -1,8 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.runtime;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.runtime.application.ControlPlaneRuntimeStatusPort;
-import top.egon.cola.platform.rbac3.admin.runtime.application.RuntimeQueryService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.ControlPlaneRuntimeStatusPort;
+import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeQueryService;
 
 import java.time.Instant;
 import java.util.List;
@@ -11,6 +11,13 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.RuntimeStatusVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.DdcConfigClientStatusVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.DefinitionStatusVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ProviderLeaseStatusVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayReleaseStatusVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.AuthorizationMutationPageVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.RetryResultVO;
 
 class RuntimeQueryServiceTest {
 
@@ -18,24 +25,24 @@ class RuntimeQueryServiceTest {
 
     @Test
     void exposesDefinitionLeaseAndReleaseAsThreeIndependentStates() {
-        var expected = new ControlPlaneRuntimeStatusPort.RuntimeStatus(
-                new ControlPlaneRuntimeStatusPort.DdcConfigClientStatus(
+        var expected = new RuntimeStatusVO(
+                new DdcConfigClientStatusVO(
                         "READY", "instance-config", "a1b2c3d4e5f6",
                         NOW.plusSeconds(30), Map.of("rbac3.maximum-active-roots", 3L),
                         null, null, null),
-                new ControlPlaneRuntimeStatusPort.DefinitionStatus(
+                new DefinitionStatusVO(
                         "ACCEPTED_WITH_WARNINGS", "definition-7", List.of("deprecated field")),
-                new ControlPlaneRuntimeStatusPort.ProviderLeaseStatus(
+                new ProviderLeaseStatusVO(
                         "RECOVERING", "instance-9", NOW.plusSeconds(30)),
-                new ControlPlaneRuntimeStatusPort.GatewayReleaseStatus(
+                new GatewayReleaseStatusVO(
                         "release-3", "ACTIVATING", "engine-5"),
                 NOW);
         RuntimeQueryService service = new RuntimeQueryService(
                 () -> expected,
                 (tenantId, status, cursor, pageSize) ->
-                        new RuntimeQueryService.MutationPage(List.of(), null),
+                        new AuthorizationMutationPageVO(List.of(), null),
                 (tenantId, mutationId, actorId) ->
-                        new RuntimeQueryService.RetryResult(mutationId, "RECOVERY_REQUESTED"));
+                        new RetryResultVO(mutationId, "RECOVERY_REQUESTED"));
 
         assertThat(service.status()).isEqualTo(expected);
         assertThat(service.gatewayDdcStatus().ddcConfigClient())
@@ -54,18 +61,18 @@ class RuntimeQueryServiceTest {
     void retryAcceptsOnlyMutationIdentityAndActorContext() {
         AtomicReference<String> retried = new AtomicReference<>();
         RuntimeQueryService service = new RuntimeQueryService(
-                () -> new ControlPlaneRuntimeStatusPort.RuntimeStatus(
-                        new ControlPlaneRuntimeStatusPort.DefinitionStatus(
+                () -> new RuntimeStatusVO(
+                        new DefinitionStatusVO(
                                 "UNKNOWN", null, List.of()),
-                        new ControlPlaneRuntimeStatusPort.ProviderLeaseStatus(
+                        new ProviderLeaseStatusVO(
                                 "UNKNOWN", null, null),
-                        new ControlPlaneRuntimeStatusPort.GatewayReleaseStatus(
+                        new GatewayReleaseStatusVO(
                                 null, "UNKNOWN", null), NOW),
                 (tenantId, status, cursor, pageSize) ->
-                        new RuntimeQueryService.MutationPage(List.of(), null),
+                        new AuthorizationMutationPageVO(List.of(), null),
                 (tenantId, mutationId, actorId) -> {
                     retried.set(tenantId + ':' + mutationId + ':' + actorId);
-                    return new RuntimeQueryService.RetryResult(
+                    return new RetryResultVO(
                             mutationId, "RECOVERY_REQUESTED");
                 });
 

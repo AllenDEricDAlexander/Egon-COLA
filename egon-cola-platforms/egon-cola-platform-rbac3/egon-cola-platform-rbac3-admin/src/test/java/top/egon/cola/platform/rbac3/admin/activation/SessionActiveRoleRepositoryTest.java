@@ -2,12 +2,12 @@ package top.egon.cola.platform.rbac3.admin.activation;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.activation.infrastructure.SessionActiveRoleRepository;
-import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
-import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
-import top.egon.cola.platform.rbac3.admin.session.domain.SessionEntity;
-import top.egon.cola.platform.rbac3.admin.session.infrastructure.SessionRepository;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
+import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaSessionActiveRoleRepository;
+import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
+import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
+import top.egon.cola.platform.rbac3.admin.session.repository.jpa.JpaSessionEntityRepository;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;
@@ -17,6 +17,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import top.egon.cola.platform.rbac3.admin.session.domain.enums.AuthenticationStrengthEnum;
+import top.egon.cola.platform.rbac3.admin.activation.domain.dto.ReplaceCommandDTO;
 
 class SessionActiveRoleRepositoryTest {
 
@@ -24,16 +26,16 @@ class SessionActiveRoleRepositoryTest {
 
     @Test
     void staleReplacementUsesThePublicRoleActivationConflictCode() {
-        SessionRepository sessions = mock(SessionRepository.class);
+        JpaSessionEntityRepository sessions = mock(JpaSessionEntityRepository.class);
         when(sessions.lockByTenantIdAndSessionId(2L, 4L))
                 .thenReturn(Optional.of(session()));
-        SessionActiveRoleRepository repository = new SessionActiveRoleRepository(
+        JpaSessionActiveRoleRepository repository = new JpaSessionActiveRoleRepository(
                 sessions,
                 mock(jakarta.persistence.EntityManager.class),
                 mock(LongIdGenerator.class),
                 mock(AuditPort.class),
-                mock(AuthorizationEventPort.class));
-        var command = new RoleActivationFacade.ReplaceCommand(
+                mock(AuthorizationEventPublisher.class));
+        var command = new ReplaceCommandDTO(
                 "2", "3", "3", "4", List.of("5"), 1L, "3", "command-1");
 
         assertThatThrownBy(() -> repository.replace(command, NOW, state -> null))
@@ -41,10 +43,10 @@ class SessionActiveRoleRepositoryTest {
                 .hasMessageContaining("ROLE_ACTIVATION_VERSION_CONFLICT");
     }
 
-    private SessionEntity session() {
-        return new SessionEntity(
+    private SessionPO session() {
+        return new SessionPO(
                 1L, 2L, 3L, 4L, 0L, 0L, "family", "device",
-                SessionEntity.AuthenticationStrength.PASSWORD,
+                AuthenticationStrengthEnum.PASSWORD,
                 NOW.minusSeconds(60), NOW.plusSeconds(1_800),
                 NOW.plusSeconds(3_600), "3");
     }

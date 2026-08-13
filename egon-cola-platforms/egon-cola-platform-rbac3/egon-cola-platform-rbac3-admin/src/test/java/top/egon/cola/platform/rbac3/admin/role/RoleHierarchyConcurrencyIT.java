@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.role;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.role.application.RoleFacade;
+import top.egon.cola.platform.rbac3.admin.role.service.RoleFacade;
 import top.egon.cola.platform.rbac3.core.hierarchy.RoleEdge;
 import top.egon.cola.platform.rbac3.core.hierarchy.RoleHierarchy;
 import top.egon.cola.platform.rbac3.core.hierarchy.RoleNode;
@@ -12,6 +12,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import top.egon.cola.platform.rbac3.admin.role.repository.RoleHierarchyRepository;
 
 class RoleHierarchyConcurrencyIT {
 
@@ -29,7 +30,7 @@ class RoleHierarchyConcurrencyIT {
         assertEquals(1, store.rebuildCount);
     }
 
-    private static final class InMemoryHierarchyStore implements RoleFacade.HierarchyStore {
+    private static final class InMemoryHierarchyStore implements RoleHierarchyRepository {
         private final List<RoleNode> nodes = List.of(
                 node("root"), node("child"));
         private final List<RoleEdge> edges = new ArrayList<>();

@@ -1,9 +1,9 @@
 package top.egon.cola.platform.rbac3.admin.assignment;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.assignment.application.AssignmentFacade;
-import top.egon.cola.platform.rbac3.admin.management.application.ManagementPolicyFacade;
-import top.egon.cola.platform.rbac3.admin.runtime.application.AuthorizationMutationCoordinator;
+import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentFacade;
+import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
+import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationMutationCoordinator;
 
 import java.time.Instant;
 import java.util.List;
@@ -14,6 +14,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.RoleAssignmentDTO;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentFactsVO;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.CardinalityVO;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationFenceRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.AuthorizationFenceVO;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationMutationRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.MutationRecordVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.AuthorizationMutationResultStatusEnum;
 
 class AssignmentFacadeIT {
 
@@ -49,7 +57,7 @@ class AssignmentFacadeIT {
                 management, request -> facts(), scope -> scope.action().get(),
                 command -> "unexpected", coordinator());
         Instant now = Instant.parse("2026-07-30T08:00:00Z");
-        var request = new AssignmentFacade.AssignRequest(
+        var request = new RoleAssignmentDTO(
                 "10001", "same-user", "same-user", "role-1", "DIRECT",
                 now, now.plusSeconds(86400), "reason", "ticket", "MFA",
                 false, 3L, "command-1", now);
@@ -60,16 +68,16 @@ class AssignmentFacadeIT {
                 org.mockito.ArgumentMatchers.any());
     }
 
-    private AssignmentFacade.AssignmentFacts facts() {
-        return new AssignmentFacade.AssignmentFacts(
+    private AssignmentFactsVO facts() {
+        return new AssignmentFactsVO(
                 "root-1", "MEDIUM", false, "PUBLIC", 30,
                 Set.of(), List.of(), List.of(),
-                new AssignmentFacade.Cardinality("TENANT", "10001", 10, 0));
+                new CardinalityVO("TENANT", "10001", 10, 0));
     }
 
-    private AssignmentFacade.AssignRequest request() {
+    private RoleAssignmentDTO request() {
         Instant now = Instant.parse("2026-07-30T08:00:00Z");
-        return new AssignmentFacade.AssignRequest(
+        return new RoleAssignmentDTO(
                 "10001", "operator", "target", "role-1", "DIRECT",
                 now, now.plusSeconds(86400), "reason", "ticket", "MFA",
                 false, 3L, "command-1", now);
@@ -77,20 +85,20 @@ class AssignmentFacadeIT {
 
     private AuthorizationMutationCoordinator coordinator() {
         return new AuthorizationMutationCoordinator(
-                new AuthorizationMutationCoordinator.MutationStore() {
-                    public void prepare(AuthorizationMutationCoordinator.MutationRecord record) {
+                new AuthorizationMutationRepository() {
+                    public void prepare(MutationRecordVO record) {
                     }
 
                     public void transition(
                             String mutationId,
-                            AuthorizationMutationCoordinator.MutationStatus status,
+                            AuthorizationMutationResultStatusEnum status,
                             String errorCode,
                             Instant now) {
                     }
                 },
-                new top.egon.cola.platform.rbac3.admin.runtime.application.AuthorizationFenceService(
-                        new top.egon.cola.platform.rbac3.admin.runtime.application.AuthorizationFenceService.FenceStore() {
-                            public void put(top.egon.cola.platform.rbac3.admin.runtime.application.AuthorizationFenceService.Fence fence) {
+                new top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationFenceService(
+                        new AuthorizationFenceRepository() {
+                            public void put(AuthorizationFenceVO fence) {
                             }
 
                             public void remove(String tenantId, String scopeType, String scopeId) {

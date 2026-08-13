@@ -2,7 +2,7 @@ package top.egon.cola.platform.rbac3.admin;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import top.egon.cola.platform.rbac3.admin.security.Rbac3AdminSecurityConfiguration;
+import top.egon.cola.platform.rbac3.admin.config.security.Rbac3AdminSecurityConfiguration;
 
 import java.util.Arrays;
 

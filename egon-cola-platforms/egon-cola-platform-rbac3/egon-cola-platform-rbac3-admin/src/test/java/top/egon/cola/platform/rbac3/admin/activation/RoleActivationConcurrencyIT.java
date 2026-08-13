@@ -1,8 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.activation;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
+import top.egon.cola.platform.rbac3.admin.runtime.service.SessionSnapshotProjector;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Clock;
@@ -13,6 +13,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import top.egon.cola.platform.rbac3.admin.activation.domain.dto.ReplaceCommandDTO;
 
 class RoleActivationConcurrencyIT {
 
@@ -50,7 +51,7 @@ class RoleActivationConcurrencyIT {
 
     private boolean replace(RoleActivationFacade facade, String roleId, String commandId) {
         try {
-            facade.replace(new RoleActivationFacade.ReplaceCommand(
+            facade.replace(new ReplaceCommandDTO(
                     "7", "9", "9", "99", List.of(roleId), 0, "9", commandId));
             return true;
         } catch (Rbac3RuleViolation violation) {

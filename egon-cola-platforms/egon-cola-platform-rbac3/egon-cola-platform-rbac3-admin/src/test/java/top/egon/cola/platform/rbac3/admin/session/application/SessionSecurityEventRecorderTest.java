@@ -1,20 +1,24 @@
 package top.egon.cola.platform.rbac3.admin.session.application;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
-import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
+import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
 
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import top.egon.cola.platform.rbac3.admin.session.domain.vo.TerminationVO;
+import top.egon.cola.platform.rbac3.admin.session.service.SessionSecurityEventRecorder;
+import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditEventVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.AuthorizationEventVO;
 
 class SessionSecurityEventRecorderTest {
 
     @Test
     void recordsTheAuditAndReliableRevocationEventFromOneCommittedFact() {
-        AtomicReference<AuditPort.AuditEvent> audit = new AtomicReference<>();
-        AtomicReference<AuthorizationEventPort.AuthorizationEvent> event =
+        AtomicReference<AuditEventVO> audit = new AtomicReference<>();
+        AtomicReference<AuthorizationEventVO> event =
                 new AtomicReference<>();
         var recorder = new SessionSecurityEventRecorder(
                 audit::set,
@@ -24,7 +28,7 @@ class SessionSecurityEventRecorderTest {
                 });
         Instant now = Instant.parse("2026-08-01T08:00:00Z");
 
-        recorder.record(new SessionSecurityEventRecorder.Termination(
+        recorder.record(new TerminationVO(
                 "10", "20", "30", 7, "COMPROMISED",
                 "REFRESH_TOKEN_REUSED", "refresh-replay", now));
 

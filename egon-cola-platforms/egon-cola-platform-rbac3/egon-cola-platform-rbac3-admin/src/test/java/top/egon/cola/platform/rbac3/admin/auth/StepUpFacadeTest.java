@@ -1,8 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.auth;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.auth.application.IdentityAuthenticatorStrategy;
-import top.egon.cola.platform.rbac3.admin.auth.application.StepUpFacade;
+import top.egon.cola.platform.rbac3.admin.auth.service.IdentityAuthenticatorStrategy;
+import top.egon.cola.platform.rbac3.admin.auth.service.StepUpFacade;
 import top.egon.cola.platform.rbac3.contract.auth.LoginRequest;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
@@ -11,6 +11,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import top.egon.cola.platform.rbac3.admin.auth.domain.vo.AuthenticatedIdentityVO;
+import top.egon.cola.platform.rbac3.admin.auth.domain.vo.StepUpIdentityVO;
+import top.egon.cola.platform.rbac3.admin.auth.domain.vo.StepUpResultVO;
 
 class StepUpFacadeTest {
 
@@ -23,16 +26,16 @@ class StepUpFacadeTest {
         StepUpFacade facade = new StepUpFacade(
                 (login, now) -> {
                     request.set(login);
-                    return new IdentityAuthenticatorStrategy.AuthenticatedIdentity(
+                    return new AuthenticatedIdentityVO(
                             "10", "20", "PASSWORD", 1);
                 },
-                (tenantId, userId) -> new StepUpFacade.Identity("tenant", "mario"),
+                (tenantId, userId) -> new StepUpIdentityVO("tenant", "mario"),
                 (tenantId, userId, sessionId, now) -> {
                     strengthenedSession.set(sessionId);
-                    return new StepUpFacade.StepUpResult(sessionId, "STRONG", now);
+                    return new StepUpResultVO(sessionId, "STRONG", now);
                 });
 
-        StepUpFacade.StepUpResult result = facade.stepUp(
+        StepUpResultVO result = facade.stepUp(
                 "10", "20", "30", " password ", "never-log", NOW);
 
         assertThat(result.sessionId()).isEqualTo("30");
@@ -47,7 +50,7 @@ class StepUpFacadeTest {
     void rejectsUnsupportedMethodAndMismatchedAuthenticatedIdentity() {
         StepUpFacade unsupported = new StepUpFacade(
                 (request, now) -> null,
-                (tenantId, userId) -> new StepUpFacade.Identity("tenant", "mario"),
+                (tenantId, userId) -> new StepUpIdentityVO("tenant", "mario"),
                 (tenantId, userId, sessionId, now) -> null);
         assertThatThrownBy(() -> unsupported.stepUp(
                 "10", "20", "30", "TOTP", "secret", NOW))
@@ -55,9 +58,9 @@ class StepUpFacadeTest {
                 .hasMessageContaining("STEP_UP_METHOD_UNSUPPORTED");
 
         StepUpFacade mismatch = new StepUpFacade(
-                (request, now) -> new IdentityAuthenticatorStrategy.AuthenticatedIdentity(
+                (request, now) -> new AuthenticatedIdentityVO(
                         "other-tenant", "20", "PASSWORD", 1),
-                (tenantId, userId) -> new StepUpFacade.Identity("tenant", "mario"),
+                (tenantId, userId) -> new StepUpIdentityVO("tenant", "mario"),
                 (tenantId, userId, sessionId, now) -> null);
         assertThatThrownBy(() -> mismatch.stepUp(
                 "10", "20", "30", "PASSWORD", "secret", NOW))

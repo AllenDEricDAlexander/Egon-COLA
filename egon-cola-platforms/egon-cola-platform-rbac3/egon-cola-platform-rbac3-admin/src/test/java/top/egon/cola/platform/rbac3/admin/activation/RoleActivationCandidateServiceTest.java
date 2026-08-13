@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.activation;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
+import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.core.activation.AuthorizationRuleFacts;
 import top.egon.cola.platform.rbac3.core.activation.DsdSetFact;
 import top.egon.cola.platform.rbac3.core.activation.EligibleAssignmentFact;
@@ -15,6 +15,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ActivationFactsVO;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ApplicationFactVO;
 
 class RoleActivationCandidateServiceTest {
 
@@ -27,7 +29,7 @@ class RoleActivationCandidateServiceTest {
                         role("10", "1", "FINANCE_ROOT", RoleNode.RiskLevel.MEDIUM),
                         role("11", "1", "FINANCE_AP", RoleNode.RiskLevel.HIGH)),
                 List.of(new RoleEdge("10", "11")));
-        var facts = new RoleActivationCandidateService.ActivationFacts(
+        var facts = new ActivationFactsVO(
                 "7",
                 "9",
                 hierarchy,
@@ -40,7 +42,7 @@ class RoleActivationCandidateServiceTest {
                 3,
                 8,
                 "directory:12",
-                Map.of("1", new RoleActivationCandidateService.ApplicationFact(
+                Map.of("1", new ApplicationFactVO(
                         "1", "finance", "Finance")),
                 Map.of("10", "Finance", "11", "Accounts payable"));
         RoleActivationCandidateService service = new RoleActivationCandidateService(

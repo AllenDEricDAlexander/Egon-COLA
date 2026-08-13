@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.directory;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.directory.application.DirectorySnapshotProcessor;
+import top.egon.cola.platform.rbac3.admin.directory.domain.DirectorySnapshotProcessor;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;
@@ -10,6 +10,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import top.egon.cola.platform.rbac3.admin.directory.domain.vo.ResolvedUnitVO;
 
 class DirectorySnapshotProcessorTest {
 
@@ -27,7 +28,7 @@ class DirectorySnapshotProcessorTest {
                 "userPositions", List.of(Map.of(
                         "userId", "9", "positionId", "position", "primary", true))), NOW);
 
-        assertThat(model.units()).extracting(DirectorySnapshotProcessor.ResolvedUnit::path)
+        assertThat(model.units()).extracting(ResolvedUnitVO::path)
                 .containsExactly("/company", "/company/finance");
         assertThat(model.userPositions()).singleElement()
                 .satisfies(mapping -> assertThat(mapping.orgUnitId()).isEqualTo("dept"));

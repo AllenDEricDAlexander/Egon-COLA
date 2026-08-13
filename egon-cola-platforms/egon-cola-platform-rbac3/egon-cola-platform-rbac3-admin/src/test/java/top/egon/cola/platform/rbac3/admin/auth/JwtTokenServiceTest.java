@@ -5,11 +5,12 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
-import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.auth.application.JwtKeyRingService;
-import top.egon.cola.platform.rbac3.admin.auth.application.JwtTokenService;
-import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.Rbac3RuntimePolicySnapshotVO;
+import top.egon.cola.platform.rbac3.admin.auth.service.JwtKeyRingService;
+import top.egon.cola.platform.rbac3.admin.auth.service.JwtTokenService;
+import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -22,6 +23,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import top.egon.cola.platform.rbac3.admin.auth.domain.vo.KeyDescriptorVO;
+import top.egon.cola.platform.rbac3.admin.auth.domain.enums.JwtKeyRingKeyStateEnum;
+import top.egon.cola.platform.rbac3.admin.auth.domain.vo.AccessTokenSubjectVO;
 
 class JwtTokenServiceTest {
 
@@ -38,9 +42,9 @@ class JwtTokenServiceTest {
                     parameters.getJwsHeader().getHeaders(),
                     parameters.getClaims().getClaims());
         });
-        var key = new JwtKeyRingService.KeyDescriptor(
+        var key = new KeyDescriptorVO(
                 "key-1", "RS256", Map.of("kty", "RSA", "n", "n", "e", "AQAB"),
-                JwtKeyRingService.KeyState.SIGNING, now.minusSeconds(60), null);
+                JwtKeyRingKeyStateEnum.SIGNING, now.minusSeconds(60), null);
         var keyRing = new JwtKeyRingService(List.of(key), Duration.ofMinutes(32));
         AtomicRbac3RuntimePolicy policy = new AtomicRbac3RuntimePolicy(
                 new Rbac3AdminProperties());
@@ -48,7 +52,7 @@ class JwtTokenServiceTest {
                 encoder, keyRing, () -> 9001L, "https://rbac3.example",
                 List.of("internal-gateway"), policy);
 
-        var result = service.issue(new JwtTokenService.AccessTokenSubject(
+        var result = service.issue(new AccessTokenSubjectVO(
                 "200", "100", "300", 4, 5, 6), now);
 
         assertEquals("encoded-access-token", result.token());
@@ -80,9 +84,9 @@ class JwtTokenServiceTest {
                     parameters.getJwsHeader().getHeaders(),
                     parameters.getClaims().getClaims());
         });
-        var key = new JwtKeyRingService.KeyDescriptor(
+        var key = new KeyDescriptorVO(
                 "key-1", "RS256", Map.of("kty", "RSA", "n", "n", "e", "AQAB"),
-                JwtKeyRingService.KeyState.SIGNING, now.minusSeconds(60), null);
+                JwtKeyRingKeyStateEnum.SIGNING, now.minusSeconds(60), null);
         var keyRing = new JwtKeyRingService(List.of(key), Duration.ofMinutes(32));
         AtomicRbac3RuntimePolicy mutablePolicy = new AtomicRbac3RuntimePolicy(
                 new Rbac3AdminProperties());
@@ -90,7 +94,7 @@ class JwtTokenServiceTest {
         var service = new JwtTokenService(
                 encoder, keyRing, () -> 9001L, "https://rbac3.example",
                 List.of("internal-gateway"), policy);
-        var subject = new JwtTokenService.AccessTokenSubject(
+        var subject = new AccessTokenSubjectVO(
                 "200", "100", "300", 4, 5, 6);
 
         var first = service.issue(subject, now);
@@ -114,7 +118,7 @@ class JwtTokenServiceTest {
         }
 
         @Override
-        public Snapshot current() {
+        public Rbac3RuntimePolicySnapshotVO current() {
             currentCalls++;
             return delegate.current();
         }

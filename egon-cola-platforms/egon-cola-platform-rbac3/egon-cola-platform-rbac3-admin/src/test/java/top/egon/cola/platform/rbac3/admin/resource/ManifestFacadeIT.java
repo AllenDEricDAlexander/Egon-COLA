@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.resource;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.resource.application.ManifestFacade;
+import top.egon.cola.platform.rbac3.admin.resource.service.ManifestFacade;
 import top.egon.cola.platform.rbac3.contract.manifest.ManifestResource;
 import top.egon.cola.platform.rbac3.contract.manifest.ResourceManifest;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
@@ -14,6 +14,10 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import top.egon.cola.platform.rbac3.admin.resource.repository.ResourceManifestRepository;
+import top.egon.cola.platform.rbac3.admin.resource.domain.dto.SubmitCommandDTO;
+import top.egon.cola.platform.rbac3.admin.resource.domain.vo.StoredManifestVO;
+import top.egon.cola.platform.rbac3.admin.resource.domain.enums.ManifestSubmissionOutcomeEnum;
 
 class ManifestFacadeIT {
 
@@ -23,9 +27,9 @@ class ManifestFacadeIT {
         var facade = new ManifestFacade(store, componentKey -> true);
         var command = command("checksum-1");
 
-        assertEquals(ManifestFacade.SubmissionOutcome.ACCEPTED,
+        assertEquals(ManifestSubmissionOutcomeEnum.ACCEPTED,
                 facade.submit(command).outcome());
-        assertEquals(ManifestFacade.SubmissionOutcome.IDEMPOTENT,
+        assertEquals(ManifestSubmissionOutcomeEnum.IDEMPOTENT,
                 facade.submit(command).outcome());
 
         Rbac3RuleViolation conflict = assertThrows(Rbac3RuleViolation.class,
@@ -58,17 +62,17 @@ class ManifestFacadeIT {
                 () -> facade.submit(command(unknownFieldResource)));
     }
 
-    private ManifestFacade.SubmitCommand command(String checksum) {
+    private SubmitCommandDTO command(String checksum) {
         ResourceManifest manifest = new ResourceManifest(
                 "1", "finance", "Finance", "5.3.2", "build-1", 3,
                 Instant.parse("2026-07-30T10:00:00Z"), checksum,
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
-        return new ManifestFacade.SubmitCommand(
+        return new SubmitCommandDTO(
                 "tenant-1", "application-1", "manifest-1", "definition-set-1", manifest);
     }
 
-    private ManifestFacade.SubmitCommand command(ResourceManifest manifest) {
-        return new ManifestFacade.SubmitCommand(
+    private SubmitCommandDTO command(ResourceManifest manifest) {
+        return new SubmitCommandDTO(
                 "tenant-1", "application-1", "manifest-2", "definition-set-1", manifest);
     }
 
@@ -104,11 +108,11 @@ class ManifestFacadeIT {
         assertEquals(reason, violation.reasonCode());
     }
 
-    private static final class InMemoryStore implements ManifestFacade.ManifestStore {
-        private final Map<String, ManifestFacade.StoredManifest> values = new HashMap<>();
+    private static final class InMemoryStore implements ResourceManifestRepository {
+        private final Map<String, StoredManifestVO> values = new HashMap<>();
 
         @Override
-        public Optional<ManifestFacade.StoredManifest> findByBuild(
+        public Optional<StoredManifestVO> findByBuild(
                 String tenantId,
                 String applicationId,
                 String artifactVersion,
@@ -118,7 +122,7 @@ class ManifestFacadeIT {
         }
 
         @Override
-        public void insert(ManifestFacade.StoredManifest manifest) {
+        public void insert(StoredManifestVO manifest) {
             values.put(String.join("/", manifest.tenantId(), manifest.applicationId(),
                     manifest.artifactVersion(), manifest.buildId()), manifest);
         }

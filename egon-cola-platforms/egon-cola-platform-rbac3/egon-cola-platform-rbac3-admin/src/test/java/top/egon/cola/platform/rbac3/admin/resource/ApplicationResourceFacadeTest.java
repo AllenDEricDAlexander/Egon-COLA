@@ -1,13 +1,20 @@
 package top.egon.cola.platform.rbac3.admin.resource;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.resource.application.ApplicationResourceFacade;
+import top.egon.cola.platform.rbac3.admin.resource.service.ApplicationResourceFacade;
 
 import java.time.Instant;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import top.egon.cola.platform.rbac3.admin.resource.repository.ApplicationResourceRepository;
+import top.egon.cola.platform.rbac3.admin.resource.domain.vo.ApplicationVO;
+import top.egon.cola.platform.rbac3.admin.resource.domain.vo.ResourceVO;
+import top.egon.cola.platform.rbac3.admin.resource.domain.vo.ManifestVO;
+import top.egon.cola.platform.rbac3.admin.resource.domain.vo.ManifestValidationVO;
+import top.egon.cola.platform.rbac3.admin.resource.domain.vo.ManifestImpactVO;
+import top.egon.cola.platform.rbac3.admin.resource.domain.vo.ArchiveResultVO;
 
 class ApplicationResourceFacadeTest {
 
@@ -16,7 +23,7 @@ class ApplicationResourceFacadeTest {
         RecordingStore store = new RecordingStore();
         ApplicationResourceFacade facade = new ApplicationResourceFacade(store);
 
-        assertEquals(List.of(new ApplicationResourceFacade.ApplicationView(
+        assertEquals(List.of(new ApplicationVO(
                         "71001", "finance", "Finance", "ACTIVE", 2L)),
                 facade.applications("10001"));
         assertEquals("81001", facade.manifest("10001", "81001").manifestId());
@@ -35,20 +42,20 @@ class ApplicationResourceFacadeTest {
         assertEquals(0, store.archiveCalls);
     }
 
-    private static final class RecordingStore implements ApplicationResourceFacade.Store {
+    private static final class RecordingStore implements ApplicationResourceRepository {
 
         private String lastTenantId;
         private int archiveCalls;
 
         @Override
-        public List<ApplicationResourceFacade.ApplicationView> applications(String tenantId) {
+        public List<ApplicationVO> applications(String tenantId) {
             lastTenantId = tenantId;
-            return List.of(new ApplicationResourceFacade.ApplicationView(
+            return List.of(new ApplicationVO(
                     "71001", "finance", "Finance", "ACTIVE", 2L));
         }
 
         @Override
-        public List<ApplicationResourceFacade.ResourceView> resources(
+        public List<ResourceVO> resources(
                 String tenantId,
                 String applicationId) {
             lastTenantId = tenantId;
@@ -56,34 +63,34 @@ class ApplicationResourceFacadeTest {
         }
 
         @Override
-        public ApplicationResourceFacade.ManifestView manifest(
+        public ManifestVO manifest(
                 String tenantId,
                 String manifestId) {
             lastTenantId = tenantId;
-            return new ApplicationResourceFacade.ManifestView(
+            return new ManifestVO(
                     "81001", "71001", "PENDING_VALIDATION", "sha256:test", 1L);
         }
 
         @Override
-        public ApplicationResourceFacade.ManifestValidationView validation(
+        public ManifestValidationVO validation(
                 String tenantId,
                 String manifestId) {
             lastTenantId = tenantId;
-            return new ApplicationResourceFacade.ManifestValidationView(
+            return new ManifestValidationVO(
                     manifestId, true, List.of(), List.of());
         }
 
         @Override
-        public ApplicationResourceFacade.ManifestImpactView impact(
+        public ManifestImpactVO impact(
                 String tenantId,
                 String manifestId) {
             lastTenantId = tenantId;
-            return new ApplicationResourceFacade.ManifestImpactView(
+            return new ManifestImpactVO(
                     manifestId, 0L, 0L, 0L, 0L, List.of());
         }
 
         @Override
-        public ApplicationResourceFacade.ArchiveResult archive(
+        public ArchiveResultVO archive(
                 String tenantId,
                 String resourceId,
                 long expectedVersion,
@@ -91,7 +98,7 @@ class ApplicationResourceFacadeTest {
                 Instant now) {
             lastTenantId = tenantId;
             archiveCalls++;
-            return new ApplicationResourceFacade.ArchiveResult(resourceId, "ARCHIVED", 4L);
+            return new ArchiveResultVO(resourceId, "ARCHIVED", 4L);
         }
     }
 }
