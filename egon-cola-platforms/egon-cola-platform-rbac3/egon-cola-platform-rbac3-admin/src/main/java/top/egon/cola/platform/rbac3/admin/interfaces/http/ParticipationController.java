@@ -17,6 +17,7 @@ import top.egon.cola.platform.idp.starter.security.RequiresServiceScope;
 import top.egon.cola.platform.rbac3.admin.participation.application.ParticipationFacade;
 import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
 import top.egon.cola.platform.rbac3.contract.participation.BusinessParticipationCommand;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 /**
  * 类型 `ParticipationController` 位于当前包内，是类型，用于承载 `Participation Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -79,10 +80,10 @@ public class ParticipationController {
     @GatewayOperation(name = "rbac3-business-participation-record-v1",
             summary = "幂等追加业务对象参与事实",
             externalAccessible = false, tags = {"rbac3", "internal", "participation"})
-    public ApiEnvelope<ParticipationFacade.RecordResult> record(
+    public ApiEnvelopeVO<ParticipationFacade.RecordResult> record(
             @Valid @RequestBody BusinessParticipationCommand command,
             @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
-        return ApiEnvelope.success(facade.record(principal, tenantId(), command));
+        return ApiEnvelopeVO.success(facade.record(principal, tenantId(), command));
     }
 
     /**
@@ -105,14 +106,14 @@ public class ParticipationController {
     @GatewayOperation(name = "rbac3-business-participation-conflicts-v1",
             summary = "查询同一业务对象的职责冲突证据",
             externalAccessible = false, tags = {"rbac3", "internal", "participation"})
-    public ApiEnvelope<ParticipationFacade.ConflictDecision> conflicts(
+    public ApiEnvelopeVO<ParticipationFacade.ConflictDecision> conflicts(
             @RequestParam @NotBlank String applicationCode,
             @RequestParam @NotBlank String businessResource,
             @RequestParam @NotBlank String businessId,
             @RequestParam @NotBlank String actorUserId,
             @RequestParam @NotBlank String actionCode,
             @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
-        return ApiEnvelope.success(facade.conflicts(
+        return ApiEnvelopeVO.success(facade.conflicts(
                 principal, tenantId(), new ParticipationFacade.ConflictQuery(
                         applicationCode, businessResource, businessId,
                         actorUserId, actionCode)));

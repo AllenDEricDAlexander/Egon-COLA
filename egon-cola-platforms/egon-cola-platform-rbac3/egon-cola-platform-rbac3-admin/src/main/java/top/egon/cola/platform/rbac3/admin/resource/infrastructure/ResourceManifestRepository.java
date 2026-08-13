@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
-import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.identity.domain.TenantEntity;
 import top.egon.cola.platform.rbac3.admin.resource.application.ApplicationResourceFacade;
 import top.egon.cola.platform.rbac3.admin.resource.application.ManifestFacade;

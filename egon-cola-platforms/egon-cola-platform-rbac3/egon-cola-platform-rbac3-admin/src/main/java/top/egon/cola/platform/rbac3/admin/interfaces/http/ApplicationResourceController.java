@@ -12,13 +12,14 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.resource.application.ApplicationResourceFacade;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
 
 import java.util.List;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 /**
  * 类型 `ApplicationResourceController` 位于当前包内，是类型，用于承载 `Application Resource Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -93,8 +94,8 @@ public class ApplicationResourceController {
             summary = "查询租户应用",
             externalAccessible = true,
             tags = {"rbac3", "application"})
-    public ApiEnvelope<List<ApplicationResourceFacade.ApplicationView>> applications() {
-        return ApiEnvelope.success(facade.applications(tenantId()));
+    public ApiEnvelopeVO<List<ApplicationResourceFacade.ApplicationView>> applications() {
+        return ApiEnvelopeVO.success(facade.applications(tenantId()));
     }
 
     /**
@@ -114,9 +115,9 @@ public class ApplicationResourceController {
             summary = "查询应用资源",
             externalAccessible = true,
             tags = {"rbac3", "resource"})
-    public ApiEnvelope<List<ApplicationResourceFacade.ResourceView>> resources(
+    public ApiEnvelopeVO<List<ApplicationResourceFacade.ResourceView>> resources(
             @PathVariable String applicationId) {
-        return ApiEnvelope.success(facade.resources(tenantId(), applicationId));
+        return ApiEnvelopeVO.success(facade.resources(tenantId(), applicationId));
     }
 
     /**
@@ -138,11 +139,11 @@ public class ApplicationResourceController {
             summary = "归档已失效资源",
             externalAccessible = true,
             tags = {"rbac3", "resource"})
-    public ApiEnvelope<ApplicationResourceFacade.ArchiveResult> archive(
+    public ApiEnvelopeVO<ApplicationResourceFacade.ArchiveResult> archive(
             @PathVariable String resourceId,
             @Valid @RequestBody ArchiveResourceRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(facade.archive(
+        return ApiEnvelopeVO.success(facade.archive(
                 tenantId(),
                 resourceId,
                 request.expectedVersion(),

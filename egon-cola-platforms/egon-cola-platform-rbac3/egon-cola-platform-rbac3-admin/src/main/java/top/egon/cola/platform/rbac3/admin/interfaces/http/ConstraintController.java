@@ -18,12 +18,13 @@ import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.constraint.application.ConstraintFacade;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
 
 import java.time.Instant;
 import java.util.List;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 /**
  * 类型 `ConstraintController` 位于当前包内，是类型，用于承载 `Constraint Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -83,8 +84,8 @@ public class ConstraintController {
     @RequiresRbac3Permission(permission = "system:authorization-constraint:read")
     @GatewayOperation(name = "rbac3-sod-set-list-v1", summary = "查询SSD和DSD集合",
             externalAccessible = true, tags = {"rbac3", "constraint"})
-    public ApiEnvelope<List<ConstraintFacade.SodView>> sodSets() {
-        return ApiEnvelope.success(facade.sodSets(tenantId()));
+    public ApiEnvelopeVO<List<ConstraintFacade.SodView>> sodSets() {
+        return ApiEnvelopeVO.success(facade.sodSets(tenantId()));
     }
 
     /**
@@ -102,10 +103,10 @@ public class ConstraintController {
     @RequiresRbac3Permission(permission = "system:authorization-constraint:manage")
     @GatewayOperation(name = "rbac3-sod-set-create-v1", summary = "创建SSD或DSD集合",
             externalAccessible = true, tags = {"rbac3", "constraint"})
-    public ApiEnvelope<ConstraintFacade.MutationResult> createSodSet(
+    public ApiEnvelopeVO<ConstraintFacade.MutationResult> createSodSet(
             @Valid @RequestBody SodSetRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(facade.saveSod(sodCommand(null, request, principal)));
+        return ApiEnvelopeVO.success(facade.saveSod(sodCommand(null, request, principal)));
     }
 
     /**
@@ -124,11 +125,11 @@ public class ConstraintController {
     @RequiresRbac3Permission(permission = "system:authorization-constraint:manage")
     @GatewayOperation(name = "rbac3-sod-set-update-v1", summary = "更新SSD或DSD集合",
             externalAccessible = true, tags = {"rbac3", "constraint"})
-    public ApiEnvelope<ConstraintFacade.MutationResult> updateSodSet(
+    public ApiEnvelopeVO<ConstraintFacade.MutationResult> updateSodSet(
             @PathVariable String setId,
             @Valid @RequestBody SodSetRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(facade.saveSod(sodCommand(setId, request, principal)));
+        return ApiEnvelopeVO.success(facade.saveSod(sodCommand(setId, request, principal)));
     }
 
     /**
@@ -148,11 +149,11 @@ public class ConstraintController {
     @GatewayOperation(name = "rbac3-role-prerequisite-save-v1",
             summary = "替换角色前置条件组", externalAccessible = true,
             tags = {"rbac3", "constraint"})
-    public ApiEnvelope<ConstraintFacade.MutationResult> prerequisites(
+    public ApiEnvelopeVO<ConstraintFacade.MutationResult> prerequisites(
             @PathVariable String roleId,
             @Valid @RequestBody PrerequisiteGroupRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(facade.savePrerequisites(
+        return ApiEnvelopeVO.success(facade.savePrerequisites(
                 new ConstraintFacade.PrerequisiteGroupCommand(
                         tenantId(),
                         roleId,
@@ -180,11 +181,11 @@ public class ConstraintController {
     @GatewayOperation(name = "rbac3-role-cardinality-save-v1",
             summary = "配置角色容量", externalAccessible = true,
             tags = {"rbac3", "constraint"})
-    public ApiEnvelope<ConstraintFacade.MutationResult> cardinality(
+    public ApiEnvelopeVO<ConstraintFacade.MutationResult> cardinality(
             @PathVariable String roleId,
             @Valid @RequestBody CardinalityRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(facade.saveCardinality(
+        return ApiEnvelopeVO.success(facade.saveCardinality(
                 new ConstraintFacade.CardinalityCommand(
                         tenantId(),
                         roleId,
@@ -209,8 +210,8 @@ public class ConstraintController {
     @RequiresRbac3Permission(permission = "system:data-rule:read")
     @GatewayOperation(name = "rbac3-data-rule-list-v1", summary = "查询数据规则",
             externalAccessible = true, tags = {"rbac3", "data-rule"})
-    public ApiEnvelope<List<ConstraintFacade.DataRuleView>> dataRules() {
-        return ApiEnvelope.success(facade.dataRules(tenantId()));
+    public ApiEnvelopeVO<List<ConstraintFacade.DataRuleView>> dataRules() {
+        return ApiEnvelopeVO.success(facade.dataRules(tenantId()));
     }
 
     /**
@@ -228,10 +229,10 @@ public class ConstraintController {
     @RequiresRbac3Permission(permission = "system:data-rule:manage")
     @GatewayOperation(name = "rbac3-data-rule-create-v1", summary = "创建类型化数据规则",
             externalAccessible = true, tags = {"rbac3", "data-rule"})
-    public ApiEnvelope<ConstraintFacade.MutationResult> createDataRule(
+    public ApiEnvelopeVO<ConstraintFacade.MutationResult> createDataRule(
             @Valid @RequestBody DataRuleRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(facade.saveDataRule(
+        return ApiEnvelopeVO.success(facade.saveDataRule(
                 dataRuleCommand(null, request, principal)));
     }
 
@@ -251,11 +252,11 @@ public class ConstraintController {
     @RequiresRbac3Permission(permission = "system:data-rule:manage")
     @GatewayOperation(name = "rbac3-data-rule-update-v1", summary = "更新类型化数据规则",
             externalAccessible = true, tags = {"rbac3", "data-rule"})
-    public ApiEnvelope<ConstraintFacade.MutationResult> updateDataRule(
+    public ApiEnvelopeVO<ConstraintFacade.MutationResult> updateDataRule(
             @PathVariable String ruleId,
             @Valid @RequestBody DataRuleRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(facade.saveDataRule(
+        return ApiEnvelopeVO.success(facade.saveDataRule(
                 dataRuleCommand(ruleId, request, principal)));
     }
 
@@ -272,8 +273,8 @@ public class ConstraintController {
     @RequiresRbac3Permission(permission = "system:field-rule:read")
     @GatewayOperation(name = "rbac3-field-rule-list-v1", summary = "查询字段规则",
             externalAccessible = true, tags = {"rbac3", "field-rule"})
-    public ApiEnvelope<List<ConstraintFacade.FieldRuleView>> fieldRules() {
-        return ApiEnvelope.success(facade.fieldRules(tenantId()));
+    public ApiEnvelopeVO<List<ConstraintFacade.FieldRuleView>> fieldRules() {
+        return ApiEnvelopeVO.success(facade.fieldRules(tenantId()));
     }
 
     /**
@@ -291,10 +292,10 @@ public class ConstraintController {
     @RequiresRbac3Permission(permission = "system:field-rule:manage")
     @GatewayOperation(name = "rbac3-field-rule-create-v1", summary = "创建字段访问规则",
             externalAccessible = true, tags = {"rbac3", "field-rule"})
-    public ApiEnvelope<ConstraintFacade.MutationResult> createFieldRule(
+    public ApiEnvelopeVO<ConstraintFacade.MutationResult> createFieldRule(
             @Valid @RequestBody FieldRuleRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(facade.saveFieldRule(
+        return ApiEnvelopeVO.success(facade.saveFieldRule(
                 fieldRuleCommand(null, request, principal)));
     }
 
@@ -314,11 +315,11 @@ public class ConstraintController {
     @RequiresRbac3Permission(permission = "system:field-rule:manage")
     @GatewayOperation(name = "rbac3-field-rule-update-v1", summary = "更新字段访问规则",
             externalAccessible = true, tags = {"rbac3", "field-rule"})
-    public ApiEnvelope<ConstraintFacade.MutationResult> updateFieldRule(
+    public ApiEnvelopeVO<ConstraintFacade.MutationResult> updateFieldRule(
             @PathVariable String ruleId,
             @Valid @RequestBody FieldRuleRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(facade.saveFieldRule(
+        return ApiEnvelopeVO.success(facade.saveFieldRule(
                 fieldRuleCommand(ruleId, request, principal)));
     }
 
@@ -335,8 +336,8 @@ public class ConstraintController {
     @RequiresRbac3Permission(permission = "system:operation-sod:read")
     @GatewayOperation(name = "rbac3-operation-sod-list-v1", summary = "查询同对象职责分离规则",
             externalAccessible = true, tags = {"rbac3", "operation-sod"})
-    public ApiEnvelope<List<ConstraintFacade.OperationSodRuleView>> operationSodRules() {
-        return ApiEnvelope.success(facade.operationSodRules(tenantId()));
+    public ApiEnvelopeVO<List<ConstraintFacade.OperationSodRuleView>> operationSodRules() {
+        return ApiEnvelopeVO.success(facade.operationSodRules(tenantId()));
     }
 
     /**
@@ -355,10 +356,10 @@ public class ConstraintController {
     @GatewayOperation(name = "rbac3-operation-sod-create-v1",
             summary = "创建同对象职责分离规则", externalAccessible = true,
             tags = {"rbac3", "operation-sod"})
-    public ApiEnvelope<ConstraintFacade.MutationResult> createOperationSodRule(
+    public ApiEnvelopeVO<ConstraintFacade.MutationResult> createOperationSodRule(
             @Valid @RequestBody OperationSodRuleRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(facade.saveOperationSodRule(
+        return ApiEnvelopeVO.success(facade.saveOperationSodRule(
                 operationSodCommand(null, request, principal)));
     }
 
@@ -379,11 +380,11 @@ public class ConstraintController {
     @GatewayOperation(name = "rbac3-operation-sod-update-v1",
             summary = "更新同对象职责分离规则", externalAccessible = true,
             tags = {"rbac3", "operation-sod"})
-    public ApiEnvelope<ConstraintFacade.MutationResult> updateOperationSodRule(
+    public ApiEnvelopeVO<ConstraintFacade.MutationResult> updateOperationSodRule(
             @PathVariable String ruleId,
             @Valid @RequestBody OperationSodRuleRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(facade.saveOperationSodRule(
+        return ApiEnvelopeVO.success(facade.saveOperationSodRule(
                 operationSodCommand(ruleId, request, principal)));
     }
 

@@ -18,15 +18,16 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.role.application.RoleFacade;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;
 import java.util.List;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 /**
  * 类型 `RolePermissionController` 位于当前包内，是类型，用于承载 `Role Permission Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -100,9 +101,9 @@ public class RolePermissionController {
             summary = "查询租户角色",
             externalAccessible = true,
             tags = {"rbac3", "role"})
-    public ApiEnvelope<List<RoleFacade.RoleView>> roles(
+    public ApiEnvelopeVO<List<RoleFacade.RoleView>> roles(
             @RequestParam(required = false) String applicationId) {
-        return ApiEnvelope.success(facade.roles(tenantId(), applicationId));
+        return ApiEnvelopeVO.success(facade.roles(tenantId(), applicationId));
     }
 
     /**
@@ -123,13 +124,13 @@ public class RolePermissionController {
             summary = "创建应用角色",
             externalAccessible = true,
             tags = {"rbac3", "role"})
-    public ApiEnvelope<RoleFacade.RoleMutationResult> create(
+    public ApiEnvelopeVO<RoleFacade.RoleMutationResult> create(
             @Valid @RequestBody CreateRoleRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
         if (request.privileged() && !principal.platformAdministrator()) {
             throw new Rbac3RuleViolation("PRIVILEGED_ROLE_MANAGEMENT_DENIED");
         }
-        return ApiEnvelope.success(facade.createRole(new RoleFacade.CreateRoleCommand(
+        return ApiEnvelopeVO.success(facade.createRole(new RoleFacade.CreateRoleCommand(
                 tenantId(),
                 request.applicationId(),
                 request.roleCode(),
@@ -163,11 +164,11 @@ public class RolePermissionController {
             summary = "更新角色可变属性",
             externalAccessible = true,
             tags = {"rbac3", "role"})
-    public ApiEnvelope<RoleFacade.RoleMutationResult> update(
+    public ApiEnvelopeVO<RoleFacade.RoleMutationResult> update(
             @PathVariable String roleId,
             @Valid @RequestBody UpdateRoleRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(facade.updateRole(new RoleFacade.UpdateRoleCommand(
+        return ApiEnvelopeVO.success(facade.updateRole(new RoleFacade.UpdateRoleCommand(
                 tenantId(),
                 roleId,
                 request.roleName(),
@@ -199,11 +200,11 @@ public class RolePermissionController {
             summary = "原子绑定角色权限集合",
             externalAccessible = true,
             tags = {"rbac3", "role", "permission"})
-    public ApiEnvelope<RoleFacade.RoleMutationResult> bindPermissions(
+    public ApiEnvelopeVO<RoleFacade.RoleMutationResult> bindPermissions(
             @PathVariable String roleId,
             @Valid @RequestBody BindPermissionsRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(facade.assignPermissions(
+        return ApiEnvelopeVO.success(facade.assignPermissions(
                 new RoleFacade.AssignPermissionsCommand(
                         tenantId(),
                         request.applicationId(),
@@ -237,13 +238,13 @@ public class RolePermissionController {
             summary = "解除角色权限绑定",
             externalAccessible = true,
             tags = {"rbac3", "role", "permission"})
-    public ApiEnvelope<RoleFacade.RoleMutationResult> unbindPermission(
+    public ApiEnvelopeVO<RoleFacade.RoleMutationResult> unbindPermission(
             @PathVariable String roleId,
             @PathVariable String permissionId,
             @RequestParam String applicationId,
             @RequestParam @PositiveOrZero long expectedRoleVersion,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(facade.removePermission(
+        return ApiEnvelopeVO.success(facade.removePermission(
                 new RoleFacade.RemovePermissionCommand(
                         tenantId(),
                         applicationId,
@@ -273,14 +274,14 @@ public class RolePermissionController {
             summary = "新增角色继承边并重建闭包",
             externalAccessible = true,
             tags = {"rbac3", "role", "inheritance"})
-    public ApiEnvelope<RoleFacade.RoleImpactView> addInheritance(
+    public ApiEnvelopeVO<RoleFacade.RoleImpactView> addInheritance(
             @PathVariable String roleId,
             @Valid @RequestBody InheritanceRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
         facade.addInheritance(new RoleFacade.InheritanceCommand(
                 tenantId(), request.applicationId(), roleId, request.juniorRoleId(),
                 request.expectedRoleVersion(), principal.userId()));
-        return ApiEnvelope.success(facade.impact(tenantId(), roleId));
+        return ApiEnvelopeVO.success(facade.impact(tenantId(), roleId));
     }
 
     /**
@@ -304,7 +305,7 @@ public class RolePermissionController {
             summary = "删除角色继承边并重建闭包",
             externalAccessible = true,
             tags = {"rbac3", "role", "inheritance"})
-    public ApiEnvelope<RoleFacade.RoleImpactView> removeInheritance(
+    public ApiEnvelopeVO<RoleFacade.RoleImpactView> removeInheritance(
             @PathVariable String roleId,
             @PathVariable String juniorRoleId,
             @RequestParam String applicationId,
@@ -313,7 +314,7 @@ public class RolePermissionController {
         facade.removeInheritance(new RoleFacade.InheritanceCommand(
                 tenantId(), applicationId, roleId, juniorRoleId,
                 expectedRoleVersion, principal.userId()));
-        return ApiEnvelope.success(facade.impact(tenantId(), roleId));
+        return ApiEnvelopeVO.success(facade.impact(tenantId(), roleId));
     }
 
     /**
@@ -333,8 +334,8 @@ public class RolePermissionController {
             summary = "分析角色族与权限扩张影响",
             externalAccessible = true,
             tags = {"rbac3", "role", "impact"})
-    public ApiEnvelope<RoleFacade.RoleImpactView> impact(@PathVariable String roleId) {
-        return ApiEnvelope.success(facade.impact(tenantId(), roleId));
+    public ApiEnvelopeVO<RoleFacade.RoleImpactView> impact(@PathVariable String roleId) {
+        return ApiEnvelopeVO.success(facade.impact(tenantId(), roleId));
     }
 
     /**

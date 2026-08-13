@@ -6,7 +6,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
-import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.constraint.application.ConstraintFacade;
 import top.egon.cola.platform.rbac3.admin.constraint.domain.DataRuleEntity;
 import top.egon.cola.platform.rbac3.admin.constraint.domain.DataRuleReferenceEntity;
@@ -666,7 +666,7 @@ public class ConstraintRepository implements
      * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     private static void requireTenant(Object entity, Long tenantId) {
-        if (!(entity instanceof top.egon.cola.platform.rbac3.admin.infrastructure.persistence.TenantScopedEntity
+        if (!(entity instanceof top.egon.cola.platform.rbac3.admin.shared.domain.po.TenantScopedPO
                 scoped) || !tenantId.equals(scoped.getTenantId())) {
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }

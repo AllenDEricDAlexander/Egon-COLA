@@ -9,6 +9,7 @@ import java.time.Instant;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import top.egon.cola.platform.rbac3.admin.shared.repository.jpa.JpaDatabaseClock;
 
 class JpaDatabaseClockTest {
 

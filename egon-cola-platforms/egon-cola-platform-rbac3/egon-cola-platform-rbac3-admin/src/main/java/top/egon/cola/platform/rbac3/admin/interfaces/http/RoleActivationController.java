@@ -12,9 +12,9 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
 import top.egon.cola.platform.rbac3.contract.activation.ActiveRoleSetView;
 import top.egon.cola.platform.rbac3.contract.activation.ReplaceActiveRolesRequest;
@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 /**
  * 类型 `RoleActivationController` 位于当前包内，是类型，用于承载 `Role Activation Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -112,10 +113,10 @@ public class RoleActivationController {
             summary = "查询当前会话可激活的规范根角色",
             externalAccessible = true,
             tags = {"rbac3", "role-activation"})
-    public ApiEnvelope<RoleActivationCandidateView> candidates(
+    public ApiEnvelopeVO<RoleActivationCandidateView> candidates(
             @AuthenticationPrincipal CurrentRbac3Principal principal
     ) {
-        return ApiEnvelope.success(candidateService.candidates(
+        return ApiEnvelopeVO.success(candidateService.candidates(
                 tenantId(), principal.userId(), databaseClock.transactionNow()));
     }
 
@@ -136,10 +137,10 @@ public class RoleActivationController {
             summary = "查询当前会话已激活的规范根角色",
             externalAccessible = true,
             tags = {"rbac3", "role-activation"})
-    public ApiEnvelope<ActiveRoleSetView> current(
+    public ApiEnvelopeVO<ActiveRoleSetView> current(
             @AuthenticationPrincipal CurrentRbac3Principal principal
     ) {
-        return ApiEnvelope.success(facade.current(
+        return ApiEnvelopeVO.success(facade.current(
                 tenantId(), principal.identitySub(), principal.userId(),
                 principal.sessionId()));
     }
@@ -162,12 +163,12 @@ public class RoleActivationController {
             summary = "原子替换当前会话激活角色集合",
             externalAccessible = true,
             tags = {"rbac3", "role-activation"})
-    public ApiEnvelope<ReplaceActiveRolesResult> replace(
+    public ApiEnvelopeVO<ReplaceActiveRolesResult> replace(
             @Valid @RequestBody ReplaceActiveRolesRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal
     ) {
         String commandId = activationCommandId(principal.sessionId(), request);
-        return ApiEnvelope.success(facade.replace(new RoleActivationFacade.ReplaceCommand(
+        return ApiEnvelopeVO.success(facade.replace(new RoleActivationFacade.ReplaceCommand(
                 tenantId(), principal.identitySub(), principal.userId(),
                 principal.sessionId(), request.roleIds(),
                 request.expectedContextVersion(), principal.userId(), commandId)));

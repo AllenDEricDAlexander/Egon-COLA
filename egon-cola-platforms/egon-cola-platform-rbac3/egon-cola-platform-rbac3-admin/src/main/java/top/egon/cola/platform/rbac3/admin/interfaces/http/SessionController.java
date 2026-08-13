@@ -9,12 +9,13 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
 
 import java.time.Instant;
 import java.util.List;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 /**
  * 类型 `SessionController` 位于当前包内，是类型，用于承载 `Session Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -90,9 +91,9 @@ public class SessionController {
             summary = "列出当前用户的会话",
             externalAccessible = true,
             tags = {"rbac3", "session"})
-    public ApiEnvelope<List<SessionView>> mine(
+    public ApiEnvelopeVO<List<SessionView>> mine(
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(managementPort.findByUser(
+        return ApiEnvelopeVO.success(managementPort.findByUser(
                 principal.tenantId(), principal.userId()));
     }
 
@@ -113,13 +114,13 @@ public class SessionController {
             summary = "撤销指定租户会话",
             externalAccessible = true,
             tags = {"rbac3", "session"})
-    public ApiEnvelope<RevocationView> revoke(@PathVariable String sessionId) {
+    public ApiEnvelopeVO<RevocationView> revoke(@PathVariable String sessionId) {
         boolean changed = managementPort.revoke(
                 top.egon.cola.platform.rbac3.admin.tenant.TenantContext
                         .requireCurrent().effectiveTenantId(),
                 sessionId,
                 databaseClock.transactionNow());
-        return ApiEnvelope.success(new RevocationView(true, changed));
+        return ApiEnvelopeVO.success(new RevocationView(true, changed));
     }
 
     /**
@@ -139,13 +140,13 @@ public class SessionController {
             summary = "撤销指定租户用户的全部会话",
             externalAccessible = true,
             tags = {"rbac3", "session"})
-    public ApiEnvelope<RevokeAllView> revokeAll(@PathVariable String userId) {
+    public ApiEnvelopeVO<RevokeAllView> revokeAll(@PathVariable String userId) {
         int changed = managementPort.revokeAll(
                 top.egon.cola.platform.rbac3.admin.tenant.TenantContext
                         .requireCurrent().effectiveTenantId(),
                 userId,
                 databaseClock.transactionNow());
-        return ApiEnvelope.success(new RevokeAllView(true, changed));
+        return ApiEnvelopeVO.success(new RevokeAllView(true, changed));
     }
 
     /**

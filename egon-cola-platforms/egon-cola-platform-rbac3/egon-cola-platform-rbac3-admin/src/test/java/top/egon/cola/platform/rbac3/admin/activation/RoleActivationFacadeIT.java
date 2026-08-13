@@ -3,7 +3,7 @@ package top.egon.cola.platform.rbac3.admin.activation;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
+import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
 import top.egon.cola.platform.rbac3.core.activation.AuthorizationRuleFacts;

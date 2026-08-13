@@ -3,7 +3,7 @@ package top.egon.cola.platform.rbac3.admin.tenant;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 
 /**
  * 类型 `TenantContextResolver` 位于当前包内，是类型，用于承载 `Tenant Context Resolver` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

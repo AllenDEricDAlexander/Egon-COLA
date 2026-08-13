@@ -8,7 +8,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.auth.application.JwtKeyRingService;
 import top.egon.cola.platform.rbac3.admin.auth.application.JwtTokenService;
-import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
+import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
 
 import java.time.Duration;

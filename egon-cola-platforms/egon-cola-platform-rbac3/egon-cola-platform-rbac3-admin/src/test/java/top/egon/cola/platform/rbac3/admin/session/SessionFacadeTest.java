@@ -2,7 +2,7 @@ package top.egon.cola.platform.rbac3.admin.session;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
+import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.session.application.RefreshTokenService;
 import top.egon.cola.platform.rbac3.admin.session.application.SessionFacade;

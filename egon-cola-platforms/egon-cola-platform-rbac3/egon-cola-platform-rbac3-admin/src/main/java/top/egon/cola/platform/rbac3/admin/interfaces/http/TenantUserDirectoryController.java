@@ -19,14 +19,15 @@ import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 /**
  * 类型 `TenantUserDirectoryController` 位于当前包内，是类型，用于承载 `Tenant User Directory Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -105,12 +106,12 @@ public class TenantUserDirectoryController {
             summary = "分页查询平台租户",
             externalAccessible = true,
             tags = {"rbac3", "tenant"})
-    public ApiEnvelope<PageView<TenantView>> tenants(
+    public ApiEnvelopeVO<PageView<TenantView>> tenants(
             @RequestParam(required = false) String query,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(200) int size) {
-        return ApiEnvelope.success(queryPort.findTenants(query, status, page, size));
+        return ApiEnvelopeVO.success(queryPort.findTenants(query, status, page, size));
     }
 
     /**
@@ -131,10 +132,10 @@ public class TenantUserDirectoryController {
             summary = "创建平台租户",
             externalAccessible = true,
             tags = {"rbac3", "tenant"})
-    public ApiEnvelope<TenantView> createTenant(
+    public ApiEnvelopeVO<TenantView> createTenant(
             @Valid @RequestBody CreateTenantCommand command,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(commandPort.createTenant(command, principal.userId()));
+        return ApiEnvelopeVO.success(commandPort.createTenant(command, principal.userId()));
     }
 
     /**
@@ -156,12 +157,12 @@ public class TenantUserDirectoryController {
             summary = "按版本变更平台租户状态",
             externalAccessible = true,
             tags = {"rbac3", "tenant"})
-    public ApiEnvelope<TenantView> changeTenantStatus(
+    public ApiEnvelopeVO<TenantView> changeTenantStatus(
             @PathVariable String tenantId,
             @Valid @RequestBody TenantStatusCommand command,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
         requireTargetTenant(tenantId);
-        return ApiEnvelope.success(commandPort.changeTenantStatus(
+        return ApiEnvelopeVO.success(commandPort.changeTenantStatus(
                 tenantId, command, principal.userId()));
     }
 
@@ -187,14 +188,14 @@ public class TenantUserDirectoryController {
             summary = "分页查询租户用户",
             externalAccessible = true,
             tags = {"rbac3", "directory"})
-    public ApiEnvelope<PageView<UserDirectoryView>> users(
+    public ApiEnvelopeVO<PageView<UserDirectoryView>> users(
             @RequestParam(required = false) String query,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String orgUnitId,
             @RequestParam(required = false) String positionId,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(200) int size) {
-        return ApiEnvelope.success(queryPort.findUsers(tenantId(), query, status,
+        return ApiEnvelopeVO.success(queryPort.findUsers(tenantId(), query, status,
                 orgUnitId, positionId, page, size));
     }
 
@@ -215,8 +216,8 @@ public class TenantUserDirectoryController {
             summary = "读取租户用户详情",
             externalAccessible = true,
             tags = {"rbac3", "directory"})
-    public ApiEnvelope<UserDirectoryView> user(@PathVariable String userId) {
-        return ApiEnvelope.success(queryPort.findUser(tenantId(), userId));
+    public ApiEnvelopeVO<UserDirectoryView> user(@PathVariable String userId) {
+        return ApiEnvelopeVO.success(queryPort.findUser(tenantId(), userId));
     }
 
     /**
@@ -238,11 +239,11 @@ public class TenantUserDirectoryController {
             summary = "按授权版本变更租户用户状态",
             externalAccessible = true,
             tags = {"rbac3", "directory"})
-    public ApiEnvelope<UserDirectoryView> changeUserStatus(
+    public ApiEnvelopeVO<UserDirectoryView> changeUserStatus(
             @PathVariable String userId,
             @Valid @RequestBody UserStatusCommand command,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(commandPort.changeUserStatus(
+        return ApiEnvelopeVO.success(commandPort.changeUserStatus(
                 tenantId(), userId, command, principal.userId()));
     }
 
@@ -265,11 +266,11 @@ public class TenantUserDirectoryController {
             summary = "查询组织单元",
             externalAccessible = true,
             tags = {"rbac3", "directory"})
-    public ApiEnvelope<List<OrgUnitView>> orgUnits(
+    public ApiEnvelopeVO<List<OrgUnitView>> orgUnits(
             @RequestParam(required = false) String parentId,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String status) {
-        return ApiEnvelope.success(queryPort.findOrgUnits(
+        return ApiEnvelopeVO.success(queryPort.findOrgUnits(
                 tenantId(), parentId, type, status));
     }
 
@@ -291,10 +292,10 @@ public class TenantUserDirectoryController {
             summary = "查询岗位",
             externalAccessible = true,
             tags = {"rbac3", "directory"})
-    public ApiEnvelope<List<PositionView>> positions(
+    public ApiEnvelopeVO<List<PositionView>> positions(
             @RequestParam(required = false) String orgUnitId,
             @RequestParam(required = false) String status) {
-        return ApiEnvelope.success(queryPort.findPositions(
+        return ApiEnvelopeVO.success(queryPort.findPositions(
                 tenantId(), orgUnitId, status));
     }
 
@@ -315,9 +316,9 @@ public class TenantUserDirectoryController {
             summary = "提交单调递增的目录快照",
             externalAccessible = true,
             tags = {"rbac3", "directory"})
-    public ApiEnvelope<DirectorySyncView> submit(
+    public ApiEnvelopeVO<DirectorySyncView> submit(
             @Valid @RequestBody DirectorySnapshotCommand command) {
-        return ApiEnvelope.success(commandPort.submit(
+        return ApiEnvelopeVO.success(commandPort.submit(
                 TenantContext.requireCurrent().effectiveTenantId(), command));
     }
 
@@ -338,9 +339,9 @@ public class TenantUserDirectoryController {
             summary = "读取不可变目录快照回执",
             externalAccessible = true,
             tags = {"rbac3", "directory"})
-    public ApiEnvelope<DirectorySnapshotView> snapshot(
+    public ApiEnvelopeVO<DirectorySnapshotView> snapshot(
             @PathVariable String snapshotId) {
-        return ApiEnvelope.success(queryPort.findSnapshot(tenantId(), snapshotId));
+        return ApiEnvelopeVO.success(queryPort.findSnapshot(tenantId(), snapshotId));
     }
 
     /**
@@ -360,9 +361,9 @@ public class TenantUserDirectoryController {
             summary = "读取平台目标租户",
             externalAccessible = true,
             tags = {"rbac3", "tenant"})
-    public ApiEnvelope<TenantView> tenant(@PathVariable String tenantId) {
+    public ApiEnvelopeVO<TenantView> tenant(@PathVariable String tenantId) {
         requireTargetTenant(tenantId);
-        return ApiEnvelope.success(queryPort.findTenant(tenantId));
+        return ApiEnvelopeVO.success(queryPort.findTenant(tenantId));
     }
 
     /**

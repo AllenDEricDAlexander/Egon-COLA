@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.bootstrap;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.bootstrap.application.BootstrapQueryService;
+import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.util.Optional;

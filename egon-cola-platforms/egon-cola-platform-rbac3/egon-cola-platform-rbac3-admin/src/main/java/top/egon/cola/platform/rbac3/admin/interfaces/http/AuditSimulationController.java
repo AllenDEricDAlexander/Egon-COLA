@@ -17,12 +17,13 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.audit.application.AuditQueryService;
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.simulation.application.AuthorizationSimulationService;
 import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
 
 import java.time.Instant;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 /**
  * 类型 `AuditSimulationController` 位于当前包内，是类型，用于承载 `Audit Simulation Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -110,7 +111,7 @@ public class AuditSimulationController {
     @GatewayOperation(name = "rbac3-audit-log-list-v1",
             summary = "按租户和精确过滤条件游标查询审计",
             externalAccessible = true, tags = {"rbac3", "audit"})
-    public ApiEnvelope<AuditQueryService.Page> auditLogs(
+    public ApiEnvelopeVO<AuditQueryService.Page> auditLogs(
             @RequestParam Instant from,
             @RequestParam Instant to,
             @RequestParam(required = false) String actorId,
@@ -126,7 +127,7 @@ public class AuditSimulationController {
             @RequestHeader("X-Request-Id") String auditRequestId,
             @RequestHeader("X-Trace-Id") String auditTraceId,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(auditService.query(
+        return ApiEnvelopeVO.success(auditService.query(
                 new AuditQueryService.Query(
                         tenantId(), from, to, actorId, targetId, eventType,
                         outcome, reasonCode, requestId, traceId, targetType,
@@ -152,12 +153,12 @@ public class AuditSimulationController {
     @GatewayOperation(name = "rbac3-authorization-simulation-v1",
             summary = "基于一致快照执行无业务副作用的授权模拟",
             externalAccessible = true, tags = {"rbac3", "simulation"})
-    public ApiEnvelope<AuthorizationSimulationService.SimulationResult> simulate(
+    public ApiEnvelopeVO<AuthorizationSimulationService.SimulationResult> simulate(
             @Valid @RequestBody SimulationRequest request,
             @RequestHeader("X-Request-Id") String requestId,
             @RequestHeader("X-Trace-Id") String traceId,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(simulationService.simulate(
+        return ApiEnvelopeVO.success(simulationService.simulate(
                 principal,
                 new AuthorizationSimulationService.SimulationRequest(
                         request.decisionRequest(), request.hypothesis(), request.at(),
@@ -182,13 +183,13 @@ public class AuditSimulationController {
     @GatewayOperation(name = "rbac3-role-change-impact-simulation-v1",
             summary = "查询带策略版本和证据校验和的角色变更影响",
             externalAccessible = true, tags = {"rbac3", "simulation"})
-    public ApiEnvelope<AuthorizationSimulationService.RoleChangeImpactResult>
+    public ApiEnvelopeVO<AuthorizationSimulationService.RoleChangeImpactResult>
             simulateRoleChangeImpact(
                     @Valid @RequestBody RoleChangeImpactRequest request,
                     @RequestHeader("X-Request-Id") String requestId,
                     @RequestHeader("X-Trace-Id") String traceId,
                     @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(simulationService.simulateRoleChangeImpact(
+        return ApiEnvelopeVO.success(simulationService.simulateRoleChangeImpact(
                 principal,
                 new AuthorizationSimulationService.RoleChangeImpactRequest(
                         request.roleId(), request.at(), requestId, traceId)));

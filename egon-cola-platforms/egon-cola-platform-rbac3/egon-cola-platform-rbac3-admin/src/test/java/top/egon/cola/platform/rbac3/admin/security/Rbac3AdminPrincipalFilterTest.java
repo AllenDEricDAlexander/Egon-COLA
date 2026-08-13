@@ -17,6 +17,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.config.security.Rbac3AdminAuthenticationToken;
+import top.egon.cola.platform.rbac3.admin.config.security.Rbac3AdminPrincipalFilter;
 
 class Rbac3AdminPrincipalFilterTest {
 

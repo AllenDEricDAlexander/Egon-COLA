@@ -17,11 +17,11 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.management.application.ManagementPolicyFacade;
 import top.egon.cola.platform.rbac3.admin.runtime.application.IdempotencyService;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
 
 import java.time.Duration;
@@ -30,6 +30,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 /**
  * 类型 `ManagementPolicyController` 位于当前包内，是类型，用于承载 `Management Policy Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -125,8 +126,8 @@ public class ManagementPolicyController {
             summary = "查询完整委托管理策略",
             externalAccessible = true,
             tags = {"rbac3", "management-policy"})
-    public ApiEnvelope<List<ManagementPolicyFacade.PolicyView>> policies() {
-        return ApiEnvelope.success(facade.policies(tenantId()));
+    public ApiEnvelopeVO<List<ManagementPolicyFacade.PolicyView>> policies() {
+        return ApiEnvelopeVO.success(facade.policies(tenantId()));
     }
 
     /**
@@ -146,10 +147,10 @@ public class ManagementPolicyController {
             summary = "读取委托管理策略完整聚合",
             externalAccessible = true,
             tags = {"rbac3", "management-policy"})
-    public ApiEnvelope<ManagementPolicyFacade.PolicyView> policy(
+    public ApiEnvelopeVO<ManagementPolicyFacade.PolicyView> policy(
             @PathVariable String policyId
     ) {
-        return ApiEnvelope.success(facade.policy(tenantId(), policyId));
+        return ApiEnvelopeVO.success(facade.policy(tenantId(), policyId));
     }
 
     /**
@@ -171,7 +172,7 @@ public class ManagementPolicyController {
             summary = "创建完整委托管理策略",
             externalAccessible = true,
             tags = {"rbac3", "management-policy"})
-    public ApiEnvelope<ManagementPolicyFacade.PolicyView> create(
+    public ApiEnvelopeVO<ManagementPolicyFacade.PolicyView> create(
             @Valid @RequestBody PolicyRequest request,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @AuthenticationPrincipal CurrentRbac3Principal principal
@@ -201,7 +202,7 @@ public class ManagementPolicyController {
             summary = "按版本完整替换委托管理策略",
             externalAccessible = true,
             tags = {"rbac3", "management-policy"})
-    public ApiEnvelope<ManagementPolicyFacade.PolicyView> update(
+    public ApiEnvelopeVO<ManagementPolicyFacade.PolicyView> update(
             @PathVariable String policyId,
             @RequestHeader("If-Match") String ifMatch,
             @Valid @RequestBody PolicyRequest request,
@@ -232,7 +233,7 @@ public class ManagementPolicyController {
             summary = "禁用委托管理策略并保留历史明细",
             externalAccessible = true,
             tags = {"rbac3", "management-policy"})
-    public ApiEnvelope<ManagementPolicyFacade.PolicyView> disable(
+    public ApiEnvelopeVO<ManagementPolicyFacade.PolicyView> disable(
             @PathVariable String policyId,
             @RequestHeader("If-Match") String ifMatch,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
@@ -243,12 +244,12 @@ public class ManagementPolicyController {
                 principal, "POST:/management-policies/{policyId}/disable",
                 idempotencyKey, policyId + '|' + expectedVersion(ifMatch), now);
         if (claim.outcome() == IdempotencyService.Outcome.REPLAY) {
-            return ApiEnvelope.success(facade.policy(tenantId(), claim.resourceId()));
+            return ApiEnvelopeVO.success(facade.policy(tenantId(), claim.resourceId()));
         }
         ManagementPolicyFacade.PolicyView view = facade.disable(
                 tenantId(), policyId, expectedVersion(ifMatch), principal.userId());
         complete(claim, view, now);
-        return ApiEnvelope.success(view);
+        return ApiEnvelopeVO.success(view);
     }
 
     /**
@@ -267,10 +268,10 @@ public class ManagementPolicyController {
             summary = "查询当前操作者委托管理能力",
             externalAccessible = true,
             tags = {"rbac3", "management-policy", "capability"})
-    public ApiEnvelope<ManagementPolicyFacade.CapabilityView> capabilities(
+    public ApiEnvelopeVO<ManagementPolicyFacade.CapabilityView> capabilities(
             @AuthenticationPrincipal CurrentRbac3Principal principal
     ) {
-        return ApiEnvelope.success(facade.capabilities(
+        return ApiEnvelopeVO.success(facade.capabilities(
                 tenantId(), principal.userId(), databaseClock.transactionNow()));
     }
 
@@ -291,11 +292,11 @@ public class ManagementPolicyController {
             summary = "按委托范围搜索可管理用户",
             externalAccessible = true,
             tags = {"rbac3", "management-policy", "user"})
-    public ApiEnvelope<List<ManagementPolicyFacade.ManagedUserView>> manageableUsers(
+    public ApiEnvelopeVO<List<ManagementPolicyFacade.ManagedUserView>> manageableUsers(
             @RequestParam(required = false) String query,
             @AuthenticationPrincipal CurrentRbac3Principal principal
     ) {
-        return ApiEnvelope.success(facade.manageableUsers(
+        return ApiEnvelopeVO.success(facade.manageableUsers(
                 tenantId(), principal.userId(), query,
                 databaseClock.transactionNow()));
     }
@@ -317,11 +318,11 @@ public class ManagementPolicyController {
             summary = "按委托白名单搜索可管理角色根",
             externalAccessible = true,
             tags = {"rbac3", "management-policy", "role"})
-    public ApiEnvelope<List<ManagementPolicyFacade.ManagedRoleView>> manageableRoles(
+    public ApiEnvelopeVO<List<ManagementPolicyFacade.ManagedRoleView>> manageableRoles(
             @RequestParam(required = false) String query,
             @AuthenticationPrincipal CurrentRbac3Principal principal
     ) {
-        return ApiEnvelope.success(facade.manageableRoles(
+        return ApiEnvelopeVO.success(facade.manageableRoles(
                 tenantId(), principal.userId(), query,
                 databaseClock.transactionNow()));
     }
@@ -341,7 +342,7 @@ public class ManagementPolicyController {
      * @param operation 输入参数 `operation`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private ApiEnvelope<ManagementPolicyFacade.PolicyView> save(
+    private ApiEnvelopeVO<ManagementPolicyFacade.PolicyView> save(
             String policyId,
             long expectedVersion,
             PolicyRequest request,
@@ -354,7 +355,7 @@ public class ManagementPolicyController {
                 principal, operation, idempotencyKey,
                 canonical(policyId, expectedVersion, request), now);
         if (claim.outcome() == IdempotencyService.Outcome.REPLAY) {
-            return ApiEnvelope.success(facade.policy(tenantId(), claim.resourceId()));
+            return ApiEnvelopeVO.success(facade.policy(tenantId(), claim.resourceId()));
         }
         Restrictions requestRestrictions = request.restrictions();
         ManagementPolicyFacade.PolicyView view = facade.save(
@@ -380,7 +381,7 @@ public class ManagementPolicyController {
                         request.activationRootRoleIds(), request.operations(),
                         expectedVersion, principal.userId()));
         complete(claim, view, now);
-        return ApiEnvelope.success(view);
+        return ApiEnvelopeVO.success(view);
     }
 
     /**

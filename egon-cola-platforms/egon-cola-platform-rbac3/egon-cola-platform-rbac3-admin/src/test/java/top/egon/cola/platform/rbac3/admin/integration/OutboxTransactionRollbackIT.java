@@ -17,7 +17,7 @@ import top.egon.cola.component.outbox.autoconfigure.TransactionalOutboxAutoConfi
 import top.egon.cola.component.outbox.delivery.DeliveryContext;
 import top.egon.cola.component.outbox.delivery.DeliveryResult;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
-import top.egon.cola.platform.rbac3.admin.integration.flyway.Rbac3FlywayConfiguration;
+import top.egon.cola.platform.rbac3.admin.config.flyway.Rbac3FlywayConfiguration;
 import top.egon.cola.platform.rbac3.admin.integration.outbox.Rbac3RuntimeProjectionDeliveryHandler;
 import top.egon.cola.platform.rbac3.admin.integration.outbox.TransactionalOutboxAuthorizationEventAdapter;
 

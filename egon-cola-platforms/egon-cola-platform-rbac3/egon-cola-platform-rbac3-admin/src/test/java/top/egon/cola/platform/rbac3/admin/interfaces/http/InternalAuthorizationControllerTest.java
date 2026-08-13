@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 class InternalAuthorizationControllerTest {
 
@@ -47,7 +48,7 @@ class InternalAuthorizationControllerTest {
                 "service:authorization:snapshot"
         );
 
-        ApiEnvelope<SystemAuthorizationSnapshot> response =
+        ApiEnvelopeVO<SystemAuthorizationSnapshot> response =
                 controller.systemSnapshot(
                         "tenant-1", "99", "rbac3-admin", "alice-sub", service);
 
@@ -89,7 +90,7 @@ class InternalAuthorizationControllerTest {
         InternalAuthorizationController controller = new InternalAuthorizationController(
                 decisions, snapshots);
 
-        ApiEnvelope<ResourceAccessDecisionResponse> envelope =
+        ApiEnvelopeVO<ResourceAccessDecisionResponse> envelope =
                 controller.decideResourceAccess(
                         new ResourceAccessDecisionRequest(
                                 "alice-sub", "tenant-1", "session-1",

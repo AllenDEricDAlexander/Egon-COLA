@@ -7,6 +7,7 @@ import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import top.egon.cola.platform.rbac3.admin.shared.controller.Rbac3ApiExceptionHandler;
 
 class Rbac3ApiExceptionHandlerTest {
 

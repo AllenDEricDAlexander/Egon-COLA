@@ -23,6 +23,7 @@ import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSn
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.util.Objects;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 /**
  * 暴露给平台内部受信服务的 RBAC3 授权快照与判定接口。
@@ -92,7 +93,7 @@ public class InternalAuthorizationController {
     @GatewayOperation(name = "rbac3-internal-system-snapshot-v1",
             summary = "按IdP身份和系统读取会话授权上下文",
             externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
-    public ApiEnvelope<SystemAuthorizationSnapshot> systemSnapshot(
+    public ApiEnvelopeVO<SystemAuthorizationSnapshot> systemSnapshot(
             @PathVariable("tenantId") String tenantId,
             @PathVariable("sessionId") String sessionId,
             @RequestParam("systemCode") String systemCode,
@@ -101,7 +102,7 @@ public class InternalAuthorizationController {
         if (!principal.tenantId().equals(tenantId)) {
             throw new Rbac3RuleViolation("SERVICE_IDENTITY_DENIED");
         }
-        return ApiEnvelope.success(systemSnapshots.snapshot(
+        return ApiEnvelopeVO.success(systemSnapshots.snapshot(
                 tenantId, sessionId, systemCode, identitySub));
     }
 
@@ -120,10 +121,10 @@ public class InternalAuthorizationController {
     @GatewayOperation(name = "rbac3-internal-session-snapshot-v1",
             summary = "按服务绑定应用冷加载会话授权快照",
             externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
-    public ApiEnvelope<SessionAuthorizationSnapshot> snapshot(
+    public ApiEnvelopeVO<SessionAuthorizationSnapshot> snapshot(
             @PathVariable String sessionId,
             @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
-        return ApiEnvelope.success(service.snapshot(principal, tenantId(), sessionId));
+        return ApiEnvelopeVO.success(service.snapshot(principal, tenantId(), sessionId));
     }
 
     /**
@@ -141,10 +142,10 @@ public class InternalAuthorizationController {
     @GatewayOperation(name = "rbac3-internal-authorization-decision-v1",
             summary = "使用一致会话快照执行类型化授权决策",
             externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
-    public ApiEnvelope<AuthorizationDecisionService.DecisionBundle> decide(
+    public ApiEnvelopeVO<AuthorizationDecisionService.DecisionBundle> decide(
             @Valid @RequestBody AuthorizationDecisionService.DecisionRequest request,
             @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
-        return ApiEnvelope.success(service.decide(principal, request));
+        return ApiEnvelopeVO.success(service.decide(principal, request));
     }
 
     /**
@@ -162,7 +163,7 @@ public class InternalAuthorizationController {
     @GatewayOperation(name = "rbac3-internal-resource-access-decision-v1",
             summary = "判定用户是否具备Resource Server应用入口权限",
             externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
-    public ApiEnvelope<ResourceAccessDecisionResponse> decideResourceAccess(
+    public ApiEnvelopeVO<ResourceAccessDecisionResponse> decideResourceAccess(
             @Valid @RequestBody ResourceAccessDecisionRequest request,
             @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
         systemSnapshots.snapshot(
@@ -171,7 +172,7 @@ public class InternalAuthorizationController {
                 request.rbacApplicationCode(),
                 request.identitySub()
         );
-        return ApiEnvelope.success(ResourceAccessDecisionResponse.from(
+        return ApiEnvelopeVO.success(ResourceAccessDecisionResponse.from(
                 service.decideResourceAccess(principal, request.toCommand())));
     }
 
@@ -190,10 +191,10 @@ public class InternalAuthorizationController {
     @GatewayOperation(name = "rbac3-internal-authorization-fence-verify-v1",
             summary = "校验会话授权传播 Fence",
             externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
-    public ApiEnvelope<AuthorizationDecisionService.FenceVerification> verifyFence(
+    public ApiEnvelopeVO<AuthorizationDecisionService.FenceVerification> verifyFence(
             @Valid @RequestBody FenceRequest request,
             @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
-        return ApiEnvelope.success(service.verifyFence(
+        return ApiEnvelopeVO.success(service.verifyFence(
                 principal, tenantId(), request.sessionId()));
     }
 

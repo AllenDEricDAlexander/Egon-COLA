@@ -18,13 +18,14 @@ import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.resource.application.ApplicationResourceFacade;
 import top.egon.cola.platform.rbac3.admin.resource.application.ManifestFacade;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
 import top.egon.cola.platform.rbac3.contract.manifest.ResourceManifest;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 /**
  * 类型 `ManifestController` 位于当前包内，是类型，用于承载 `Manifest Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -123,9 +124,9 @@ public class ManifestController {
             summary = "提交不可变资源清单",
             externalAccessible = false,
             tags = {"rbac3", "resource-manifest"})
-    public ApiEnvelope<ManifestFacade.SubmissionResult> submit(
+    public ApiEnvelopeVO<ManifestFacade.SubmissionResult> submit(
             @Valid @RequestBody SubmitManifestRequest request) {
-        return ApiEnvelope.success(manifestFacade.submit(new ManifestFacade.SubmitCommand(
+        return ApiEnvelopeVO.success(manifestFacade.submit(new ManifestFacade.SubmitCommand(
                 tenantId(),
                 request.applicationId(),
                 Long.toString(idGenerator.nextLongId()),
@@ -150,9 +151,9 @@ public class ManifestController {
             summary = "查询资源清单",
             externalAccessible = true,
             tags = {"rbac3", "resource-manifest"})
-    public ApiEnvelope<ApplicationResourceFacade.ManifestView> manifest(
+    public ApiEnvelopeVO<ApplicationResourceFacade.ManifestView> manifest(
             @PathVariable String manifestId) {
-        return ApiEnvelope.success(resourceFacade.manifest(tenantId(), manifestId));
+        return ApiEnvelopeVO.success(resourceFacade.manifest(tenantId(), manifestId));
     }
 
     /**
@@ -172,9 +173,9 @@ public class ManifestController {
             summary = "查询资源清单验证结果",
             externalAccessible = true,
             tags = {"rbac3", "resource-manifest"})
-    public ApiEnvelope<ApplicationResourceFacade.ManifestValidationView> validation(
+    public ApiEnvelopeVO<ApplicationResourceFacade.ManifestValidationView> validation(
             @PathVariable String manifestId) {
-        return ApiEnvelope.success(resourceFacade.validation(tenantId(), manifestId));
+        return ApiEnvelopeVO.success(resourceFacade.validation(tenantId(), manifestId));
     }
 
     /**
@@ -194,9 +195,9 @@ public class ManifestController {
             summary = "分析资源清单激活影响",
             externalAccessible = true,
             tags = {"rbac3", "resource-manifest"})
-    public ApiEnvelope<ApplicationResourceFacade.ManifestImpactView> impact(
+    public ApiEnvelopeVO<ApplicationResourceFacade.ManifestImpactView> impact(
             @PathVariable String manifestId) {
-        return ApiEnvelope.success(resourceFacade.impact(tenantId(), manifestId));
+        return ApiEnvelopeVO.success(resourceFacade.impact(tenantId(), manifestId));
     }
 
     /**
@@ -220,13 +221,13 @@ public class ManifestController {
             summary = "原子激活资源清单",
             externalAccessible = true,
             tags = {"rbac3", "resource-manifest"})
-    public ApiEnvelope<ManifestFacade.ActivationResult> activate(
+    public ApiEnvelopeVO<ManifestFacade.ActivationResult> activate(
             @PathVariable String manifestId,
             @RequestHeader("If-Match") long expectedApplicationVersion,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody ActivateManifestRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(manifestFacade.activate(new ManifestFacade.ActivateCommand(
+        return ApiEnvelopeVO.success(manifestFacade.activate(new ManifestFacade.ActivateCommand(
                 tenantId(),
                 request.applicationId(),
                 manifestId,

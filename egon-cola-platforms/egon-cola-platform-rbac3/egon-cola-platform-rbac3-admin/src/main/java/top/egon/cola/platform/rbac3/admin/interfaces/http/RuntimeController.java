@@ -14,9 +14,10 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.runtime.application.ControlPlaneRuntimeStatusPort;
 import top.egon.cola.platform.rbac3.admin.runtime.application.RuntimeQueryService;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 /**
  * 类型 `RuntimeController` 位于当前包内，是类型，用于承载 `Runtime Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -76,8 +77,8 @@ public class RuntimeController {
     @RequiresRbac3Permission(permission = "system:authorization-runtime:read")
     @GatewayOperation(name = "rbac3-runtime-status-v1", summary = "查询授权运行状态",
             externalAccessible = true, tags = {"rbac3", "runtime"})
-    public ApiEnvelope<ControlPlaneRuntimeStatusPort.RuntimeStatus> status() {
-        return ApiEnvelope.success(service.status());
+    public ApiEnvelopeVO<ControlPlaneRuntimeStatusPort.RuntimeStatus> status() {
+        return ApiEnvelopeVO.success(service.status());
     }
 
     /**
@@ -97,11 +98,11 @@ public class RuntimeController {
     @GatewayOperation(name = "rbac3-runtime-mutations-v1",
             summary = "游标查询授权 Mutation Journal",
             externalAccessible = true, tags = {"rbac3", "runtime"})
-    public ApiEnvelope<RuntimeQueryService.MutationPage> mutations(
+    public ApiEnvelopeVO<RuntimeQueryService.MutationPage> mutations(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "50") @Min(1) @Max(200) int limit) {
-        return ApiEnvelope.success(service.mutations(
+        return ApiEnvelopeVO.success(service.mutations(
                 tenantId(), status, cursor, limit));
     }
 
@@ -121,10 +122,10 @@ public class RuntimeController {
     @GatewayOperation(name = "rbac3-runtime-mutation-retry-v1",
             summary = "按 Mutation ID 触发幂等受控恢复",
             externalAccessible = true, tags = {"rbac3", "runtime"})
-    public ApiEnvelope<RuntimeQueryService.RetryResult> retry(
+    public ApiEnvelopeVO<RuntimeQueryService.RetryResult> retry(
             @PathVariable String mutationId,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(service.retry(
+        return ApiEnvelopeVO.success(service.retry(
                 tenantId(), mutationId, principal.userId()));
     }
 
@@ -142,8 +143,8 @@ public class RuntimeController {
     @GatewayOperation(name = "rbac3-runtime-gateway-ddc-status-v1",
             summary = "分别查询 Definition、DDC Lease 和 Gateway Release",
             externalAccessible = true, tags = {"rbac3", "runtime", "gateway", "ddc"})
-    public ApiEnvelope<ControlPlaneRuntimeStatusPort.RuntimeStatus> gatewayDdcStatus() {
-        return ApiEnvelope.success(service.gatewayDdcStatus());
+    public ApiEnvelopeVO<ControlPlaneRuntimeStatusPort.RuntimeStatus> gatewayDdcStatus() {
+        return ApiEnvelopeVO.success(service.gatewayDdcStatus());
     }
 
     /**

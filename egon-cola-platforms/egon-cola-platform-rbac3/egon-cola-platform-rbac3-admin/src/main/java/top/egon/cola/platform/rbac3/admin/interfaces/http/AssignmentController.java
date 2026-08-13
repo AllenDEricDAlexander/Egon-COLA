@@ -15,17 +15,18 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.assignment.application.AssignmentFacade;
 import top.egon.cola.platform.rbac3.admin.runtime.application.IdempotencyService;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.TenantContext;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 /**
  * 类型 `AssignmentController` 位于当前包内，是类型，用于承载 `Assignment Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -133,7 +134,7 @@ public class AssignmentController {
             summary = "查询用户角色任职及历史状态",
             externalAccessible = true,
             tags = {"rbac3", "assignment"})
-    public ApiEnvelope<List<AssignmentFacade.AssignmentView>> assignments(
+    public ApiEnvelopeVO<List<AssignmentFacade.AssignmentView>> assignments(
             @PathVariable String userId,
             @AuthenticationPrincipal CurrentRbac3Principal principal
     ) {
@@ -141,7 +142,7 @@ public class AssignmentController {
                 && !principal.hasPermission("system:role-assignment:read")) {
             throw new Rbac3RuleViolation("PERMISSION_DENIED");
         }
-        return ApiEnvelope.success(facade.assignments(
+        return ApiEnvelopeVO.success(facade.assignments(
                 tenantId(), userId, databaseClock.transactionNow()));
     }
 
@@ -165,7 +166,7 @@ public class AssignmentController {
             summary = "按完整委托策略创建角色任职",
             externalAccessible = true,
             tags = {"rbac3", "assignment"})
-    public ApiEnvelope<AssignmentFacade.AssignmentResult> assign(
+    public ApiEnvelopeVO<AssignmentFacade.AssignmentResult> assign(
             @PathVariable String userId,
             @Valid @RequestBody AssignRequest request,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
@@ -177,7 +178,7 @@ public class AssignmentController {
                 principal, operation, idempotencyKey,
                 userId + '|' + request, now);
         if (claim.outcome() == IdempotencyService.Outcome.REPLAY) {
-            return ApiEnvelope.success(new AssignmentFacade.AssignmentResult(
+            return ApiEnvelopeVO.success(new AssignmentFacade.AssignmentResult(
                     claim.resourceId(), null, true, "IDEMPOTENT_REPLAY", null));
         }
         AssignmentFacade.AssignmentResult result = facade.assign(
@@ -213,7 +214,7 @@ public class AssignmentController {
             summary = "撤销角色任职并保留历史",
             externalAccessible = true,
             tags = {"rbac3", "assignment"})
-    public ApiEnvelope<AssignmentFacade.AssignmentResult> revoke(
+    public ApiEnvelopeVO<AssignmentFacade.AssignmentResult> revoke(
             @PathVariable String userId,
             @PathVariable String assignmentId,
             @Valid @RequestBody ChangeRequest request,
@@ -245,7 +246,7 @@ public class AssignmentController {
             summary = "暂停角色任职",
             externalAccessible = true,
             tags = {"rbac3", "assignment"})
-    public ApiEnvelope<AssignmentFacade.AssignmentResult> suspend(
+    public ApiEnvelopeVO<AssignmentFacade.AssignmentResult> suspend(
             @PathVariable String userId,
             @PathVariable String assignmentId,
             @Valid @RequestBody ChangeRequest request,
@@ -277,7 +278,7 @@ public class AssignmentController {
             summary = "恢复角色任职",
             externalAccessible = true,
             tags = {"rbac3", "assignment"})
-    public ApiEnvelope<AssignmentFacade.AssignmentResult> resume(
+    public ApiEnvelopeVO<AssignmentFacade.AssignmentResult> resume(
             @PathVariable String userId,
             @PathVariable String assignmentId,
             @Valid @RequestBody ChangeRequest request,
@@ -303,7 +304,7 @@ public class AssignmentController {
      * @param principal 输入参数 `principal`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private ApiEnvelope<AssignmentFacade.AssignmentResult> change(
+    private ApiEnvelopeVO<AssignmentFacade.AssignmentResult> change(
             String userId,
             String assignmentId,
             AssignmentFacade.ChangeOperation operation,
@@ -318,7 +319,7 @@ public class AssignmentController {
                 principal, operationCode, idempotencyKey,
                 userId + '|' + assignmentId + '|' + operation + '|' + request, now);
         if (claim.outcome() == IdempotencyService.Outcome.REPLAY) {
-            return ApiEnvelope.success(new AssignmentFacade.AssignmentResult(
+            return ApiEnvelopeVO.success(new AssignmentFacade.AssignmentResult(
                     claim.resourceId(), null, true, "IDEMPOTENT_REPLAY", null));
         }
         AssignmentFacade.AssignmentResult result = facade.change(
@@ -372,7 +373,7 @@ public class AssignmentController {
      * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private ApiEnvelope<AssignmentFacade.AssignmentResult> complete(
+    private ApiEnvelopeVO<AssignmentFacade.AssignmentResult> complete(
             IdempotencyService.Claim claim,
             AssignmentFacade.AssignmentResult result,
             Instant now
@@ -385,7 +386,7 @@ public class AssignmentController {
             throw new Rbac3RuleViolation(
                     "AUTH_PROPAGATION_PENDING", List.of(result.mutationId()));
         }
-        return ApiEnvelope.success(result);
+        return ApiEnvelopeVO.success(result);
     }
 
     /**

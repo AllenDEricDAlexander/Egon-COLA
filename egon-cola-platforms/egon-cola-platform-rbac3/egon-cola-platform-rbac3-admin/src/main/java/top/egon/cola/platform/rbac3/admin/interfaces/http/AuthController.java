@@ -9,11 +9,12 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.bootstrap.application.BootstrapQueryService;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.session.application.SessionFacade;
 import top.egon.cola.platform.rbac3.contract.auth.BootstrapView;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 /**
  * 类型 `AuthController` 位于当前包内，是类型，用于承载 `Auth Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -99,14 +100,14 @@ public class AuthController {
             summary = "幂等注销当前会话",
             externalAccessible = true,
             tags = {"rbac3", "session"})
-    public ResponseEntity<ApiEnvelope<LogoutView>> logout(
+    public ResponseEntity<ApiEnvelopeVO<LogoutView>> logout(
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
         boolean changed = sessionFacade.logout(
                 principal.tenantId(),
                 principal.userId(),
                 principal.sessionId(),
                 databaseClock.transactionNow());
-        return ResponseEntity.ok(ApiEnvelope.success(new LogoutView(true, changed)));
+        return ResponseEntity.ok(ApiEnvelopeVO.success(new LogoutView(true, changed)));
     }
 
     /**
@@ -125,9 +126,9 @@ public class AuthController {
             summary = "读取当前激活角色的业务启动视图",
             externalAccessible = true,
             tags = {"rbac3", "bootstrap"})
-    public ApiEnvelope<BootstrapView> bootstrap(
+    public ApiEnvelopeVO<BootstrapView> bootstrap(
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelope.success(bootstrapQueryService.query(
+        return ApiEnvelopeVO.success(bootstrapQueryService.query(
                 principal.tenantId(), principal.userId(), principal.sessionId()));
     }
 

@@ -15,14 +15,14 @@ import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperti
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcAutoConfiguration;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
-import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
+import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcPolicyApplier;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcPolicyConfiguration;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcValueDeclarations;
-import top.egon.cola.platform.rbac3.admin.integration.flyway.Rbac3FlywayConfiguration;
+import top.egon.cola.platform.rbac3.admin.config.ddc.Rbac3DdcPolicyConfiguration;
+import top.egon.cola.platform.rbac3.admin.config.ddc.Rbac3DdcValueDeclarations;
+import top.egon.cola.platform.rbac3.admin.config.flyway.Rbac3FlywayConfiguration;
 import top.egon.cola.platform.rbac3.admin.integration.runtime.GatewayDdcRuntimeStatusService;
-import top.egon.cola.platform.rbac3.admin.integration.runtime.Rbac3PlatformIntegrationConfiguration;
+import top.egon.cola.platform.rbac3.admin.config.runtime.Rbac3PlatformIntegrationConfiguration;
 import top.egon.cola.platform.rbac3.admin.integration.runtime.Rbac3ReadinessIndicator;
 
 import javax.sql.DataSource;

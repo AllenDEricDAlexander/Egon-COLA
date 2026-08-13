@@ -12,11 +12,12 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.identity.application.IdentityMappingFacade;
 import top.egon.cola.platform.idp.starter.security.RequiresServiceScope;
 
 import java.util.List;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 /**
  * 类型 `InternalIdentityController` 位于当前包内，是类型，用于承载 `Internal Identity Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -91,10 +92,10 @@ public class InternalIdentityController {
             summary = "查询全局身份可访问的租户",
             externalAccessible = false,
             tags = {"rbac3", "identity", "internal"})
-    public ApiEnvelope<List<TenantMembershipResponse>> tenants(
+    public ApiEnvelopeVO<List<TenantMembershipResponse>> tenants(
             @PathVariable("identitySub") String identitySub,
             @RequestParam("clientId") String clientId) {
-        return ApiEnvelope.success(facade.tenants(identitySub, clientId).stream()
+        return ApiEnvelopeVO.success(facade.tenants(identitySub, clientId).stream()
                 .map(membership -> TenantMembershipResponse.from(
                         identitySub, membership))
                 .toList());
@@ -117,12 +118,12 @@ public class InternalIdentityController {
             summary = "解析全局身份的租户成员关系",
             externalAccessible = false,
             tags = {"rbac3", "identity", "internal"})
-    public ApiEnvelope<ResolvedMembershipResponse> resolve(
+    public ApiEnvelopeVO<ResolvedMembershipResponse> resolve(
             @Valid @RequestBody ResolveRequest request) {
         return facade.resolve(
                         request.identitySub(), request.tenantId(), request.clientId())
                 .map(ResolvedMembershipResponse::from)
-                .map(ApiEnvelope::success)
+                .map(ApiEnvelopeVO::success)
                 .orElseThrow(() -> new IdentityMembershipNotFoundException(
                         request.identitySub(), request.tenantId()));
     }
@@ -144,9 +145,9 @@ public class InternalIdentityController {
             summary = "绑定全局身份与租户用户",
             externalAccessible = false,
             tags = {"rbac3", "identity", "internal"})
-    public ApiEnvelope<IdentityMappingFacade.Mapping> bind(
+    public ApiEnvelopeVO<IdentityMappingFacade.Mapping> bind(
             @Valid @RequestBody BindRequest request) {
-        return ApiEnvelope.success(facade.bind(
+        return ApiEnvelopeVO.success(facade.bind(
                 request.tenantId(), request.identitySub(), request.rbac3UserId(),
                 request.actorId(), databaseClock.transactionNow()));
     }

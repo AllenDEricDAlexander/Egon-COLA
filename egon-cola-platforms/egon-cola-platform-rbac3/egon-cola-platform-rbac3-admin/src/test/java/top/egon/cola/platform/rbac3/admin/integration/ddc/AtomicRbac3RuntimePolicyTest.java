@@ -2,7 +2,7 @@ package top.egon.cola.platform.rbac3.admin.integration.ddc;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
+import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
 
 import java.time.Duration;
 import java.util.HashMap;

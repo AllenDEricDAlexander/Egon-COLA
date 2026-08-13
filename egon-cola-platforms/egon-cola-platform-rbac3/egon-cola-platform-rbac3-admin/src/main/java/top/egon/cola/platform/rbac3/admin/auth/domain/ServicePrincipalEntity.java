@@ -8,7 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import top.egon.cola.platform.rbac3.admin.infrastructure.persistence.TenantScopedEntity;
+import top.egon.cola.platform.rbac3.admin.shared.domain.po.TenantScopedPO;
 
 import java.time.Instant;
 import java.util.List;
@@ -23,7 +23,7 @@ import java.util.Objects;
  */
 @Entity
 @Table(name = "rbac3_service_principal")
-public class ServicePrincipalEntity extends TenantScopedEntity {
+public class ServicePrincipalEntity extends TenantScopedPO {
 
     /**
      * 字段 `id` 表示 `ServicePrincipalEntity` 中与 `id` 相关的状态、依赖、配置或结果（声明类型 `Long`）；其生命周期和取值含义由声明类型及所属对象共同确定。

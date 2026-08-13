@@ -6,11 +6,11 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
-import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.auth.application.AuthenticationFacade;
 import top.egon.cola.platform.rbac3.admin.auth.application.RefreshFacade;
 import top.egon.cola.platform.rbac3.admin.auth.application.StepUpFacade;
-import top.egon.cola.platform.rbac3.admin.bootstrap.application.BootstrapQueryService;
+import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
 import top.egon.cola.platform.rbac3.admin.directory.domain.DirectorySnapshotEntity;
 import top.egon.cola.platform.rbac3.admin.directory.application.DirectorySnapshotProcessor;
 import top.egon.cola.platform.rbac3.admin.directory.domain.OrgUnitEntity;
@@ -43,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Locale;
+import top.egon.cola.platform.rbac3.admin.bootstrap.repository.BootstrapSnapshotRepository;
 
 /**
  * 类型 `Rbac3IdentitySessionQueryStore` 位于当前包内，是类型，用于承载 `Rbac3 Identity Session Query Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -53,7 +54,7 @@ import java.util.Locale;
 public class Rbac3IdentitySessionQueryStore implements
         AuthenticationFacade.LoginStateSource,
         RefreshFacade.RefreshStateSource,
-        BootstrapQueryService.BootstrapSnapshotSource,
+        BootstrapSnapshotRepository,
         SessionController.SessionManagementPort,
         AssignmentController.SessionStrengthPort,
         StepUpFacade.IdentitySource,

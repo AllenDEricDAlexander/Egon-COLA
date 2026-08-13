@@ -6,7 +6,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import top.egon.cola.platform.rbac3.admin.infrastructure.persistence.TenantScopedEntity;
+import top.egon.cola.platform.rbac3.admin.shared.domain.po.TenantScopedPO;
 import top.egon.cola.platform.rbac3.core.hierarchy.RoleNode;
 
 import java.time.Instant;
@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
  */
 @Entity
 @Table(name = "rbac3_role")
-public class RoleEntity extends TenantScopedEntity {
+public class RoleEntity extends TenantScopedPO {
 
     /**
      * 字段 `CODE` 表示 `RoleEntity` 中与 `CODE` 相关的状态、依赖、配置或结果（声明类型 `Pattern`）；其生命周期和取值含义由声明类型及所属对象共同确定。

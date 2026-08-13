@@ -3,7 +3,7 @@ package top.egon.cola.platform.rbac3.admin.simulation;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.simulation.application.AuthorizationSimulationService;
 import top.egon.cola.platform.rbac3.admin.role.application.RoleFacade;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;

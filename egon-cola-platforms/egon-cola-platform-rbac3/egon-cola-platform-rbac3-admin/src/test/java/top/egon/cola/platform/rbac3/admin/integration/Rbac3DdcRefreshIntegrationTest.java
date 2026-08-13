@@ -33,12 +33,12 @@ import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.ddc.service.refresh.DefaultDdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationState;
-import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
+import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.DdcConfigClientStatusService;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.DdcProviderLeaseStatusService;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcPolicyConfiguration;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3IntegrationMetrics;
+import top.egon.cola.platform.rbac3.admin.config.ddc.Rbac3DdcPolicyConfiguration;
+import top.egon.cola.platform.rbac3.admin.config.ddc.Rbac3IntegrationMetrics;
 import top.egon.cola.platform.rbac3.admin.integration.runtime.GatewayDdcRuntimeStatusService;
 
 import java.time.Duration;

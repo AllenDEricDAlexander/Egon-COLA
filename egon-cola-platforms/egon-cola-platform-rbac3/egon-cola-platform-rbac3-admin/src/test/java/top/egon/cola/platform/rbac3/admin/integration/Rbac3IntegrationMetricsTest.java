@@ -9,10 +9,10 @@ import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReportResult;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
-import top.egon.cola.platform.rbac3.admin.config.Rbac3AdminProperties;
+import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3DdcPolicyApplier;
-import top.egon.cola.platform.rbac3.admin.integration.ddc.Rbac3IntegrationMetrics;
+import top.egon.cola.platform.rbac3.admin.config.ddc.Rbac3IntegrationMetrics;
 
 import java.time.Instant;
 import java.util.List;

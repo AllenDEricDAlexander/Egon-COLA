@@ -1,8 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.interfaces.http;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.bootstrap.application.BootstrapQueryService;
+import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
 import top.egon.cola.platform.rbac3.admin.session.application.SessionFacade;
 
 import static org.assertj.core.api.Assertions.assertThat;

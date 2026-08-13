@@ -6,7 +6,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.rbac3.admin.integration.flyway.Rbac3FlywayConfiguration;
+import top.egon.cola.platform.rbac3.admin.config.flyway.Rbac3FlywayConfiguration;
 import top.egon.cola.platform.rbac3.admin.runtime.application.ControlPlaneRuntimeStatusPort;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.AuthorizationMutationEntity;
 

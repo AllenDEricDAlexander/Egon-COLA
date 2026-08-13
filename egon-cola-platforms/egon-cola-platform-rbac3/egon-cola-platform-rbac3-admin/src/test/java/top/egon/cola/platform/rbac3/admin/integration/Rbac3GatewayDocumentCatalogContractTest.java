@@ -21,14 +21,14 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefinitionContributor;
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.activation.application.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.application.port.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.assignment.application.AssignmentFacade;
 import top.egon.cola.platform.rbac3.admin.audit.application.AuditQueryService;
 import top.egon.cola.platform.rbac3.admin.auth.application.AuthenticationFacade;
 import top.egon.cola.platform.rbac3.admin.auth.application.JwtKeyRingService;
 import top.egon.cola.platform.rbac3.admin.auth.application.RefreshFacade;
 import top.egon.cola.platform.rbac3.admin.auth.application.StepUpFacade;
-import top.egon.cola.platform.rbac3.admin.bootstrap.application.BootstrapQueryService;
+import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
 import top.egon.cola.platform.rbac3.admin.constraint.application.ConstraintFacade;
 import top.egon.cola.platform.rbac3.admin.identity.application.IdentityMappingFacade;
 import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
@@ -47,13 +47,18 @@ import top.egon.cola.platform.rbac3.admin.simulation.application.AuthorizationSi
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationBootstrapService;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -65,8 +70,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 })
 class Rbac3GatewayDocumentCatalogContractTest {
 
-    private static final String HTTP_PACKAGE =
-            "top.egon.cola.platform.rbac3.admin.interfaces.http";
+    private static final String ADMIN_PACKAGE =
+            "top.egon.cola.platform.rbac3.admin";
     private static final Pattern VERSIONED_OPERATION =
             Pattern.compile("rbac3(?:-[a-z0-9]+)+-v\\d+");
     private static final Pattern RAW_SECRET = Pattern.compile(
@@ -170,7 +175,8 @@ class Rbac3GatewayDocumentCatalogContractTest {
     private TenantUserDirectoryController.DirectoryQueryPort directoryQueryPort;
 
     @Test
-    void catalogExactlyDescribesEveryRbac3MvcOperationWithoutSensitiveExamples() {
+    void catalogExactlyDescribesEveryRbac3MvcOperationWithoutSensitiveExamples()
+            throws Exception {
         Map<String, HandlerContract> actual = actualMappings();
         var groups = new MvcGatewayDefinitionContributor(
                 handlerMappings, reportingProperties(), objectMapper).discover();
@@ -191,7 +197,7 @@ class Rbac3GatewayDocumentCatalogContractTest {
         assertThat(groups).allSatisfy(group -> {
             assertThat(group.interfaceGroup().sourceType()).isEqualTo("STARTER");
             assertThat(group.interfaceGroup().protocol()).isEqualTo("HTTP");
-            assertThat(group.interfaceGroup().className()).startsWith(HTTP_PACKAGE);
+            assertThat(group.interfaceGroup().className()).startsWith(ADMIN_PACKAGE);
         });
 
         List<String> operationNames = new ArrayList<>();
@@ -227,13 +233,99 @@ class Rbac3GatewayDocumentCatalogContractTest {
             assertNoRawSecret(operation.description());
         });
         assertThat(operationNames).doesNotHaveDuplicates();
+        assertSemanticBaseline(catalog);
         System.out.printf("RBAC3 Gateway document catalog operations: %d%n", operations.size());
+    }
+
+    private void assertSemanticBaseline(
+            Map<String, GatewayInterfaceDefinitionReport.Operation> catalog)
+            throws Exception {
+        Map<String, Object> normalizedCatalog = new TreeMap<>();
+        catalog.forEach((identity, operation) -> {
+            Map<String, Object> contract = new LinkedHashMap<>();
+            contract.put("name", operation.name());
+            contract.put("externalAccessible", operation.externalAccessible());
+            contract.put("requestSchema", normalizeSchema(operation.requestSchema()));
+            contract.put("responseSchema", normalizeSchema(operation.responseSchema()));
+            normalizedCatalog.put(identity, contract);
+        });
+
+        Path baseline = Path.of(System.getProperty("basedir"))
+                .resolve("src/test/resources/contracts/"
+                        + "rbac3-gateway-catalog-semantic-baseline.json");
+        String actual = objectMapper.writerWithDefaultPrettyPrinter()
+                .writeValueAsString(normalizedCatalog);
+        if (Boolean.getBoolean("rbac3.updateGatewayContract")) {
+            Files.createDirectories(baseline.getParent());
+            Files.writeString(baseline, actual + System.lineSeparator());
+        } else {
+            assertThat(actual).isEqualTo(Files.readString(baseline).stripTrailing());
+        }
+    }
+
+    private Object normalizeSchema(Map<String, Object> schema) {
+        Map<String, Object> definitions = new LinkedHashMap<>();
+        if (schema.get("$defs") instanceof Map<?, ?> rawDefinitions) {
+            rawDefinitions.forEach((key, value) ->
+                    definitions.put(key.toString(), value));
+        }
+        return expandSchema(schema, definitions, new ArrayList<>());
+    }
+
+    private Object expandSchema(
+            Object value,
+            Map<String, Object> definitions,
+            List<String> referenceStack) {
+        if (value instanceof Map<?, ?> map) {
+            Object reference = map.get("$ref");
+            Object resolved = null;
+            if (reference instanceof String ref && ref.startsWith("#/$defs/")) {
+                String key = ref.substring("#/$defs/".length());
+                int cycleStart = referenceStack.indexOf(key);
+                if (cycleStart >= 0) {
+                    resolved = Map.of(
+                            "$recursiveDepth",
+                            referenceStack.size() - cycleStart);
+                } else {
+                    Object definition = Objects.requireNonNull(
+                            definitions.get(key),
+                            "missing schema definition " + key);
+                    referenceStack.add(key);
+                    resolved = expandSchema(definition, definitions, referenceStack);
+                    referenceStack.removeLast();
+                }
+            }
+
+            Map<String, Object> normalized = new LinkedHashMap<>();
+            map.entrySet().stream()
+                    .filter(entry -> !Set.of("$defs", "javaType", "$ref")
+                            .contains(entry.getKey().toString()))
+                    .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
+                    .forEach(entry -> normalized.put(
+                            entry.getKey().toString(),
+                            expandSchema(entry.getValue(), definitions, referenceStack)));
+            if (resolved != null && normalized.isEmpty()) {
+                return resolved;
+            }
+            if (resolved != null) {
+                normalized.put("$resolved", resolved);
+            } else if (reference != null) {
+                normalized.put("$ref", reference);
+            }
+            return normalized;
+        }
+        if (value instanceof Collection<?> collection) {
+            return collection.stream()
+                    .map(item -> expandSchema(item, definitions, referenceStack))
+                    .toList();
+        }
+        return value;
     }
 
     private Map<String, HandlerContract> actualMappings() {
         Map<String, HandlerContract> result = new LinkedHashMap<>();
         handlerMappings.getHandlerMethods().forEach((mapping, handler) -> {
-            if (!handler.getBeanType().getPackageName().equals(HTTP_PACKAGE)
+            if (!isAdminControllerPackage(handler.getBeanType().getPackageName())
                     || AnnotatedElementUtils.findMergedAnnotation(
                     handler.getBeanType(), RestController.class) == null) {
                 return;
@@ -253,6 +345,12 @@ class Rbac3GatewayDocumentCatalogContractTest {
             }));
         });
         return result;
+    }
+
+    private boolean isAdminControllerPackage(String packageName) {
+        return packageName.equals(ADMIN_PACKAGE + ".interfaces.http")
+                || packageName.startsWith(ADMIN_PACKAGE + ".")
+                && packageName.contains(".controller");
     }
 
     private void assertControllerAnnotations(HandlerMethod handler) {
