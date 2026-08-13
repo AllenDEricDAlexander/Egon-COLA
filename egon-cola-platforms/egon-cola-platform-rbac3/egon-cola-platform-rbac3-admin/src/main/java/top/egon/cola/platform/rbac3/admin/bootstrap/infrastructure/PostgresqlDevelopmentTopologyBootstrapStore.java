@@ -22,18 +22,69 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-/** PostgreSQL-backed, idempotent local topology bootstrap guarded by an advisory lock. */
+/**
+ * 类型 `PostgresqlDevelopmentTopologyBootstrapStore` 位于当前包内，是类型，用于承载 `Postgresql Development Topology Bootstrap Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
+ * Type `PostgresqlDevelopmentTopologyBootstrapStore` is a type in its package and carries the responsibility, state, or contract for `Postgresql Development Topology Bootstrap Store`; callers normally use it through its public API, Spring assembly, or implementation relationship.
+ *
+ * PostgreSQL-backed, idempotent local topology bootstrap guarded by an advisory lock.
+ */
 @Repository
 public class PostgresqlDevelopmentTopologyBootstrapStore
         implements Rbac3DevelopmentBootstrap.BootstrapPort {
 
+    /**
+     * 字段 `BOOTSTRAP_LOCK_KEY` 表示 `PostgresqlDevelopmentTopologyBootstrapStore` 中与 `BOOTSTRAP LOCK KEY` 相关的状态、依赖、配置或结果（声明类型 `long`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `BOOTSTRAP_LOCK_KEY` stores the `BOOTSTRAP LOCK KEY`-related state, dependency, configuration, or result of `PostgresqlDevelopmentTopologyBootstrapStore` (declared type `long`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `BOOTSTRAP_LOCK_KEY` 时应保持 `PostgresqlDevelopmentTopologyBootstrapStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `BOOTSTRAP_LOCK_KEY`, preserve `PostgresqlDevelopmentTopologyBootstrapStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private static final long BOOTSTRAP_LOCK_KEY = 0x5242414333494450L;
+    /**
+     * 字段 `ACTOR` 表示 `PostgresqlDevelopmentTopologyBootstrapStore` 中与 `ACTOR` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `ACTOR` stores the `ACTOR`-related state, dependency, configuration, or result of `PostgresqlDevelopmentTopologyBootstrapStore` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `ACTOR` 时应保持 `PostgresqlDevelopmentTopologyBootstrapStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `ACTOR`, preserve `PostgresqlDevelopmentTopologyBootstrapStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private static final String ACTOR = "rbac3-development-bootstrap";
 
+    /**
+     * 字段 `entityManager` 表示 `PostgresqlDevelopmentTopologyBootstrapStore` 中与 `entity Manager` 相关的状态、依赖、配置或结果（声明类型 `EntityManager`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `entityManager` stores the `entity Manager`-related state, dependency, configuration, or result of `PostgresqlDevelopmentTopologyBootstrapStore` (declared type `EntityManager`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `entityManager` 时应保持 `PostgresqlDevelopmentTopologyBootstrapStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `entityManager`, preserve `PostgresqlDevelopmentTopologyBootstrapStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final EntityManager entityManager;
+    /**
+     * 字段 `idGenerator` 表示 `PostgresqlDevelopmentTopologyBootstrapStore` 中与 `id Generator` 相关的状态、依赖、配置或结果（声明类型 `LongIdGenerator`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `idGenerator` stores the `id Generator`-related state, dependency, configuration, or result of `PostgresqlDevelopmentTopologyBootstrapStore` (declared type `LongIdGenerator`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `idGenerator` 时应保持 `PostgresqlDevelopmentTopologyBootstrapStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `idGenerator`, preserve `PostgresqlDevelopmentTopologyBootstrapStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final LongIdGenerator idGenerator;
+    /**
+     * 字段 `clock` 表示 `PostgresqlDevelopmentTopologyBootstrapStore` 中与 `clock` 相关的状态、依赖、配置或结果（声明类型 `Clock`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `clock` stores the `clock`-related state, dependency, configuration, or result of `PostgresqlDevelopmentTopologyBootstrapStore` (declared type `Clock`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `clock` 时应保持 `PostgresqlDevelopmentTopologyBootstrapStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `clock`, preserve `PostgresqlDevelopmentTopologyBootstrapStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final Clock clock;
 
+    /**
+     * 构造器 `PostgresqlDevelopmentTopologyBootstrapStore` 用于创建并初始化 `PostgresqlDevelopmentTopologyBootstrapStore` 实例，建立该类型后续方法所依赖的状态和不变量。
+     * Constructor `PostgresqlDevelopmentTopologyBootstrapStore` creates and initializes `PostgresqlDevelopmentTopologyBootstrapStore`, establishing the state and invariants required by subsequent operations.
+     *
+     * 用法：通过 `PostgresqlDevelopmentTopologyBootstrapStore` 的构造入口创建实例，不绕过构造器建立的校验和初始化约束。
+     * Usage: create the instance through `PostgresqlDevelopmentTopologyBootstrapStore`'s constructor entry point and do not bypass the validation and initialization constraints established there.
+     *
+     * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     public PostgresqlDevelopmentTopologyBootstrapStore(
             EntityManager entityManager,
             LongIdGenerator idGenerator,
@@ -43,6 +94,17 @@ public class PostgresqlDevelopmentTopologyBootstrapStore
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
+    /**
+     * 方法 `bootstrap` 按照 `PostgresqlDevelopmentTopologyBootstrapStore` 的职责处理输入，完成 `bootstrap` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `bootstrap` processes its inputs according to `PostgresqlDevelopmentTopologyBootstrapStore`'s responsibility, performs the `bootstrap` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `bootstrap` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `bootstrap`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantCode 输入参数 `tenantCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param username 输入参数 `username`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param identitySub 输入参数 `identitySub`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     @Override
     @Transactional
     public void bootstrap(String tenantCode, String username, String identitySub) {
@@ -95,12 +157,29 @@ public class PostgresqlDevelopmentTopologyBootstrapStore
         entityManager.flush();
     }
 
+    /**
+     * 方法 `acquireLock` 按照 `PostgresqlDevelopmentTopologyBootstrapStore` 的职责处理输入，完成 `acquire Lock` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `acquireLock` processes its inputs according to `PostgresqlDevelopmentTopologyBootstrapStore`'s responsibility, performs the `acquire Lock` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `acquireLock` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `acquireLock`, then continue the business flow using its result, exception, or side effect.
+     */
     private void acquireLock() {
         entityManager.createNativeQuery("select pg_advisory_xact_lock(:lockKey)")
                 .setParameter("lockKey", BOOTSTRAP_LOCK_KEY)
                 .getSingleResult();
     }
 
+    /**
+     * 方法 `findTenant` 按照 `PostgresqlDevelopmentTopologyBootstrapStore` 的职责处理输入，完成 `find Tenant` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `findTenant` processes its inputs according to `PostgresqlDevelopmentTopologyBootstrapStore`'s responsibility, performs the `find Tenant` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `findTenant` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `findTenant`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantCode 输入参数 `tenantCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private TenantEntity findTenant(String tenantCode) {
         return singleOrNull(entityManager.createQuery("""
                         select tenant from TenantEntity tenant
@@ -110,6 +189,17 @@ public class PostgresqlDevelopmentTopologyBootstrapStore
                 .getResultList(), "tenant");
     }
 
+    /**
+     * 方法 `findUser` 按照 `PostgresqlDevelopmentTopologyBootstrapStore` 的职责处理输入，完成 `find User` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `findUser` processes its inputs according to `PostgresqlDevelopmentTopologyBootstrapStore`'s responsibility, performs the `find User` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `findUser` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `findUser`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param normalizedUsername 输入参数 `normalizedUsername`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private UserEntity findUser(Long tenantId, String normalizedUsername) {
         return singleOrNull(entityManager.createQuery("""
                         select user from UserEntity user
@@ -121,6 +211,19 @@ public class PostgresqlDevelopmentTopologyBootstrapStore
                 .getResultList(), "user");
     }
 
+    /**
+     * 方法 `ensureIdentityMapping` 按照 `PostgresqlDevelopmentTopologyBootstrapStore` 的职责处理输入，完成 `ensure Identity Mapping` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `ensureIdentityMapping` processes its inputs according to `PostgresqlDevelopmentTopologyBootstrapStore`'s responsibility, performs the `ensure Identity Mapping` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `ensureIdentityMapping` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `ensureIdentityMapping`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param identitySub 输入参数 `identitySub`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private boolean ensureIdentityMapping(
             Long tenantId,
             Long userId,
@@ -147,6 +250,19 @@ public class PostgresqlDevelopmentTopologyBootstrapStore
         return true;
     }
 
+    /**
+     * 方法 `ensureApplication` 按照 `PostgresqlDevelopmentTopologyBootstrapStore` 的职责处理输入，完成 `ensure Application` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `ensureApplication` processes its inputs according to `PostgresqlDevelopmentTopologyBootstrapStore`'s responsibility, performs the `ensure Application` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `ensureApplication` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `ensureApplication`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param definition 输入参数 `definition`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private boolean ensureApplication(
             Long tenantId,
             Long userId,
@@ -191,6 +307,17 @@ public class PostgresqlDevelopmentTopologyBootstrapStore
         return changed;
     }
 
+    /**
+     * 方法 `findApplication` 按照 `PostgresqlDevelopmentTopologyBootstrapStore` 的职责处理输入，完成 `find Application` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `findApplication` processes its inputs according to `PostgresqlDevelopmentTopologyBootstrapStore`'s responsibility, performs the `find Application` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `findApplication` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `findApplication`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param applicationCode 输入参数 `applicationCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private ApplicationEntity findApplication(Long tenantId, String applicationCode) {
         return singleOrNull(entityManager.createQuery("""
                         select application from ApplicationEntity application
@@ -202,6 +329,18 @@ public class PostgresqlDevelopmentTopologyBootstrapStore
                 .getResultList(), "application");
     }
 
+    /**
+     * 方法 `findRole` 按照 `PostgresqlDevelopmentTopologyBootstrapStore` 的职责处理输入，完成 `find Role` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `findRole` processes its inputs according to `PostgresqlDevelopmentTopologyBootstrapStore`'s responsibility, performs the `find Role` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `findRole` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `findRole`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param applicationId 输入参数 `applicationId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param roleCode 输入参数 `roleCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private RoleEntity findRole(Long tenantId, Long applicationId, String roleCode) {
         return singleOrNull(entityManager.createQuery("""
                         select role from RoleEntity role
@@ -215,6 +354,20 @@ public class PostgresqlDevelopmentTopologyBootstrapStore
                 .getResultList(), "role");
     }
 
+    /**
+     * 方法 `ensurePermission` 按照 `PostgresqlDevelopmentTopologyBootstrapStore` 的职责处理输入，完成 `ensure Permission` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `ensurePermission` processes its inputs according to `PostgresqlDevelopmentTopologyBootstrapStore`'s responsibility, performs the `ensure Permission` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `ensurePermission` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `ensurePermission`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param applicationId 输入参数 `applicationId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param roleId 输入参数 `roleId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param permissionCode 输入参数 `permissionCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private boolean ensurePermission(
             Long tenantId,
             Long applicationId,
@@ -251,6 +404,18 @@ public class PostgresqlDevelopmentTopologyBootstrapStore
         return changed;
     }
 
+    /**
+     * 方法 `hasRolePermission` 按照 `PostgresqlDevelopmentTopologyBootstrapStore` 的职责处理输入，完成 `has Role Permission` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `hasRolePermission` processes its inputs according to `PostgresqlDevelopmentTopologyBootstrapStore`'s responsibility, performs the `has Role Permission` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `hasRolePermission` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `hasRolePermission`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param roleId 输入参数 `roleId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param permissionId 输入参数 `permissionId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private boolean hasRolePermission(Long tenantId, Long roleId, Long permissionId) {
         Number count = (Number) entityManager.createQuery("""
                         select count(mapping) from RolePermissionEntity mapping
@@ -267,6 +432,18 @@ public class PostgresqlDevelopmentTopologyBootstrapStore
         return count.longValue() > 0;
     }
 
+    /**
+     * 方法 `hasAssignment` 按照 `PostgresqlDevelopmentTopologyBootstrapStore` 的职责处理输入，完成 `has Assignment` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `hasAssignment` processes its inputs according to `PostgresqlDevelopmentTopologyBootstrapStore`'s responsibility, performs the `has Assignment` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `hasAssignment` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `hasAssignment`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param roleId 输入参数 `roleId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private boolean hasAssignment(Long tenantId, Long userId, Long roleId) {
         Number count = (Number) entityManager.createQuery("""
                         select count(assignment) from UserRoleAssignmentEntity assignment
@@ -285,6 +462,17 @@ public class PostgresqlDevelopmentTopologyBootstrapStore
         return count.longValue() > 0;
     }
 
+    /**
+     * 方法 `insertSelfClosure` 按照 `PostgresqlDevelopmentTopologyBootstrapStore` 的职责处理输入，完成 `insert Self Closure` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `insertSelfClosure` processes its inputs according to `PostgresqlDevelopmentTopologyBootstrapStore`'s responsibility, performs the `insert Self Closure` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `insertSelfClosure` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `insertSelfClosure`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param applicationId 输入参数 `applicationId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param roleId 输入参数 `roleId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     private void insertSelfClosure(Long tenantId, Long applicationId, Long roleId) {
         entityManager.createNativeQuery("""
                         insert into rbac3_role_closure (
@@ -299,6 +487,16 @@ public class PostgresqlDevelopmentTopologyBootstrapStore
                 .executeUpdate();
     }
 
+    /**
+     * 方法 `risk` 按照 `PostgresqlDevelopmentTopologyBootstrapStore` 的职责处理输入，完成 `risk` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `risk` processes its inputs according to `PostgresqlDevelopmentTopologyBootstrapStore`'s responsibility, performs the `risk` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `risk` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `risk`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param permissionCode 输入参数 `permissionCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static PermissionEntity.RiskLevel risk(String permissionCode) {
         if (permissionCode.endsWith(":read") || permissionCode.equals("DDC_READ")) {
             return PermissionEntity.RiskLevel.MEDIUM;
@@ -311,6 +509,16 @@ public class PostgresqlDevelopmentTopologyBootstrapStore
                 : PermissionEntity.RiskLevel.HIGH;
     }
 
+    /**
+     * 方法 `normalize` 按照 `PostgresqlDevelopmentTopologyBootstrapStore` 的职责处理输入，完成 `normalize` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `normalize` processes its inputs according to `PostgresqlDevelopmentTopologyBootstrapStore`'s responsibility, performs the `normalize` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `normalize` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `normalize`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param value 输入参数 `value`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static String normalize(String value) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("tenantCode is required");
@@ -318,6 +526,18 @@ public class PostgresqlDevelopmentTopologyBootstrapStore
         return value.trim().toLowerCase(Locale.ROOT);
     }
 
+    /**
+     * 方法 `singleOrNull` 按照 `PostgresqlDevelopmentTopologyBootstrapStore` 的职责处理输入，完成 `single Or Null` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `singleOrNull` processes its inputs according to `PostgresqlDevelopmentTopologyBootstrapStore`'s responsibility, performs the `single Or Null` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `singleOrNull` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `singleOrNull`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param <T> 类型参数表示查询结果的具体类型；type parameter representing the query result type.
+     * @param values 输入参数 `values`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param name 输入参数 `name`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static <T> T singleOrNull(List<T> values, String name) {
         if (values.size() > 1) {
             throw new IllegalStateException("duplicate development " + name);

@@ -45,6 +45,8 @@ import java.util.Optional;
 import java.util.Locale;
 
 /**
+ * 类型 `Rbac3IdentitySessionQueryStore` 位于当前包内，是类型，用于承载 `Rbac3 Identity Session Query Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
+ * Type `Rbac3IdentitySessionQueryStore` is a type in its package and carries the responsibility, state, or contract for `Rbac3 Identity Session Query Store`; callers normally use it through its public API, Spring assembly, or implementation relationship.
  * Read models and narrow command adapters shared by authentication controllers.
  */
 @Repository
@@ -59,18 +61,105 @@ public class Rbac3IdentitySessionQueryStore implements
         TenantUserDirectoryController.DirectoryCommandPort,
         TenantUserDirectoryController.DirectoryQueryPort {
 
+    /**
+     * 字段 `entityManager` 表示 `Rbac3IdentitySessionQueryStore` 中与 `entity Manager` 相关的状态、依赖、配置或结果（声明类型 `EntityManager`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `entityManager` stores the `entity Manager`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `EntityManager`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `entityManager` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `entityManager`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final EntityManager entityManager;
+    /**
+     * 字段 `idGenerator` 表示 `Rbac3IdentitySessionQueryStore` 中与 `id Generator` 相关的状态、依赖、配置或结果（声明类型 `LongIdGenerator`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `idGenerator` stores the `id Generator`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `LongIdGenerator`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `idGenerator` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `idGenerator`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final LongIdGenerator idGenerator;
+    /**
+     * 字段 `databaseClock` 表示 `Rbac3IdentitySessionQueryStore` 中与 `database Clock` 相关的状态、依赖、配置或结果（声明类型 `DatabaseClock`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `databaseClock` stores the `database Clock`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `DatabaseClock`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `databaseClock` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `databaseClock`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final DatabaseClock databaseClock;
+    /**
+     * 字段 `candidateService` 表示 `Rbac3IdentitySessionQueryStore` 中与 `candidate Service` 相关的状态、依赖、配置或结果（声明类型 `RoleActivationCandidateService`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `candidateService` stores the `candidate Service`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `RoleActivationCandidateService`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `candidateService` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `candidateService`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final RoleActivationCandidateService candidateService;
+    /**
+     * 字段 `runtimeStore` 表示 `Rbac3IdentitySessionQueryStore` 中与 `runtime Store` 相关的状态、依赖、配置或结果（声明类型 `RedisAuthorizationRuntimeStore`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `runtimeStore` stores the `runtime Store`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `RedisAuthorizationRuntimeStore`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `runtimeStore` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `runtimeStore`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final RedisAuthorizationRuntimeStore runtimeStore;
+    /**
+     * 字段 `directorySnapshotStore` 表示 `Rbac3IdentitySessionQueryStore` 中与 `directory Snapshot Store` 相关的状态、依赖、配置或结果（声明类型 `DirectorySnapshotStore`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `directorySnapshotStore` stores the `directory Snapshot Store`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `DirectorySnapshotStore`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `directorySnapshotStore` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `directorySnapshotStore`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final DirectorySnapshotStore directorySnapshotStore;
+    /**
+     * 字段 `directorySnapshotMaterializer` 表示 `Rbac3IdentitySessionQueryStore` 中与 `directory Snapshot Materializer` 相关的状态、依赖、配置或结果（声明类型 `DirectorySnapshotMaterializer`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `directorySnapshotMaterializer` stores the `directory Snapshot Materializer`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `DirectorySnapshotMaterializer`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `directorySnapshotMaterializer` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `directorySnapshotMaterializer`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final DirectorySnapshotMaterializer directorySnapshotMaterializer;
+    /**
+     * 字段 `runtimeSynchronizer` 表示 `Rbac3IdentitySessionQueryStore` 中与 `runtime Synchronizer` 相关的状态、依赖、配置或结果（声明类型 `SessionRuntimeSynchronizer`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `runtimeSynchronizer` stores the `runtime Synchronizer`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `SessionRuntimeSynchronizer`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `runtimeSynchronizer` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `runtimeSynchronizer`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final SessionRuntimeSynchronizer runtimeSynchronizer;
+    /**
+     * 字段 `securityEventRecorder` 表示 `Rbac3IdentitySessionQueryStore` 中与 `security Event Recorder` 相关的状态、依赖、配置或结果（声明类型 `SessionSecurityEventRecorder`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `securityEventRecorder` stores the `security Event Recorder`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `SessionSecurityEventRecorder`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `securityEventRecorder` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `securityEventRecorder`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final SessionSecurityEventRecorder securityEventRecorder;
+    /**
+     * 字段 `directorySnapshotProcessor` 表示 `Rbac3IdentitySessionQueryStore` 中与 `directory Snapshot Processor` 相关的状态、依赖、配置或结果（声明类型 `DirectorySnapshotProcessor`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `directorySnapshotProcessor` stores the `directory Snapshot Processor`-related state, dependency, configuration, or result of `Rbac3IdentitySessionQueryStore` (declared type `DirectorySnapshotProcessor`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `directorySnapshotProcessor` 时应保持 `Rbac3IdentitySessionQueryStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `directorySnapshotProcessor`, preserve `Rbac3IdentitySessionQueryStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final DirectorySnapshotProcessor directorySnapshotProcessor =
             new DirectorySnapshotProcessor();
 
+    /**
+     * 构造器 `Rbac3IdentitySessionQueryStore` 用于创建并初始化 `Rbac3IdentitySessionQueryStore` 实例，建立该类型后续方法所依赖的状态和不变量。
+     * Constructor `Rbac3IdentitySessionQueryStore` creates and initializes `Rbac3IdentitySessionQueryStore`, establishing the state and invariants required by subsequent operations.
+     *
+     * 用法：通过 `Rbac3IdentitySessionQueryStore` 的构造入口创建实例，不绕过构造器建立的校验和初始化约束。
+     * Usage: create the instance through `Rbac3IdentitySessionQueryStore`'s constructor entry point and do not bypass the validation and initialization constraints established there.
+     *
+     * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param databaseClock 输入参数 `databaseClock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param candidateService 输入参数 `candidateService`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param runtimeStore 输入参数 `runtimeStore`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param directorySnapshotStore 输入参数 `directorySnapshotStore`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param directorySnapshotMaterializer 输入参数 `directorySnapshotMaterializer`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param runtimeSynchronizer 输入参数 `runtimeSynchronizer`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param securityEventRecorder 输入参数 `securityEventRecorder`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     public Rbac3IdentitySessionQueryStore(
             EntityManager entityManager,
             LongIdGenerator idGenerator,
@@ -92,6 +181,18 @@ public class Rbac3IdentitySessionQueryStore implements
         this.securityEventRecorder = securityEventRecorder;
     }
 
+    /**
+     * 方法 `load` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `load` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `load` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `load` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `load` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `load`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantCode 输入参数 `tenantCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional(readOnly = true)
     public AuthenticationFacade.LoginState load(
@@ -116,6 +217,16 @@ public class Rbac3IdentitySessionQueryStore implements
                 tenant.getPolicyVersion(), candidates);
     }
 
+    /**
+     * 方法 `load` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `load` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `load` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `load` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `load` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `load`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param familyId 输入参数 `familyId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional(readOnly = true)
     public RefreshFacade.RefreshState load(String familyId) {
@@ -143,6 +254,18 @@ public class Rbac3IdentitySessionQueryStore implements
                 session.isActivationRequired() ? "ROLE_ACTIVATION_REQUIRED" : null);
     }
 
+    /**
+     * 方法 `find` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `find` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `find` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `find` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `find` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `find`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param sessionId 输入参数 `sessionId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional(readOnly = true)
     public Optional<BootstrapView> find(
@@ -196,6 +319,17 @@ public class Rbac3IdentitySessionQueryStore implements
                 snapshot.policyVersion()));
     }
 
+    /**
+     * 方法 `findByUser` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `find By User` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `findByUser` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `find By User` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `findByUser` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `findByUser`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<SessionController.SessionView> findByUser(
@@ -218,6 +352,18 @@ public class Rbac3IdentitySessionQueryStore implements
                 .toList();
     }
 
+    /**
+     * 方法 `revoke` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `revoke` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `revoke` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `revoke` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `revoke` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `revoke`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param sessionId 输入参数 `sessionId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional
     public boolean revoke(String tenantId, String sessionId, Instant now) {
@@ -245,6 +391,18 @@ public class Rbac3IdentitySessionQueryStore implements
         return changed;
     }
 
+    /**
+     * 方法 `revokeAll` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `revoke All` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `revokeAll` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `revoke All` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `revokeAll` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `revokeAll`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional
     public int revokeAll(String tenantId, String userId, Instant now) {
@@ -274,6 +432,18 @@ public class Rbac3IdentitySessionQueryStore implements
         return changedSessionIds.size();
     }
 
+    /**
+     * 方法 `authenticationStrength` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `authentication Strength` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `authenticationStrength` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `authentication Strength` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `authenticationStrength` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `authenticationStrength`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param sessionId 输入参数 `sessionId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional(readOnly = true)
     public String authenticationStrength(String tenantId, String sessionId, Instant now) {
@@ -295,6 +465,17 @@ public class Rbac3IdentitySessionQueryStore implements
         return session.getAuthenticationStrength().name();
     }
 
+    /**
+     * 方法 `load` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `load` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `load` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `load` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `load` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `load`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional(readOnly = true)
     public StepUpFacade.Identity load(String tenantId, String userId) {
@@ -306,6 +487,19 @@ public class Rbac3IdentitySessionQueryStore implements
         return new StepUpFacade.Identity(tenant.getCode(), user.getUsername());
     }
 
+    /**
+     * 方法 `strengthen` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `strengthen` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `strengthen` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `strengthen` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `strengthen` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `strengthen`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param sessionId 输入参数 `sessionId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional
     public StepUpFacade.StepUpResult strengthen(
@@ -334,6 +528,17 @@ public class Rbac3IdentitySessionQueryStore implements
                 session.getStrongAuthenticatedAt());
     }
 
+    /**
+     * 方法 `submit` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `submit` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `submit` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `submit` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `submit` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `submit`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param command 输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional
     public TenantUserDirectoryController.DirectorySyncView submit(
@@ -372,6 +577,17 @@ public class Rbac3IdentitySessionQueryStore implements
                 longCounts(counts), affectedUsers);
     }
 
+    /**
+     * 方法 `createTenant` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `create Tenant` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `createTenant` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `create Tenant` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `createTenant` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `createTenant`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param command 输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param actorId 输入参数 `actorId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional
     public TenantUserDirectoryController.TenantView createTenant(
@@ -395,6 +611,18 @@ public class Rbac3IdentitySessionQueryStore implements
         return tenantView(tenant);
     }
 
+    /**
+     * 方法 `changeTenantStatus` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `change Tenant Status` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `changeTenantStatus` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `change Tenant Status` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `changeTenantStatus` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `changeTenantStatus`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param command 输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param actorId 输入参数 `actorId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional
     public TenantUserDirectoryController.TenantView changeTenantStatus(
@@ -417,6 +645,19 @@ public class Rbac3IdentitySessionQueryStore implements
         return tenantView(tenant);
     }
 
+    /**
+     * 方法 `changeUserStatus` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `change User Status` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `changeUserStatus` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `change User Status` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `changeUserStatus` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `changeUserStatus`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param command 输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param actorId 输入参数 `actorId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional
     public TenantUserDirectoryController.UserDirectoryView changeUserStatus(
@@ -440,6 +681,17 @@ public class Rbac3IdentitySessionQueryStore implements
         return userView(user);
     }
 
+    /**
+     * 方法 `findUser` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `find User` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `findUser` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `find User` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `findUser` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `findUser`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional(readOnly = true)
     public TenantUserDirectoryController.UserDirectoryView findUser(
@@ -449,6 +701,16 @@ public class Rbac3IdentitySessionQueryStore implements
         return userView(user);
     }
 
+    /**
+     * 方法 `findTenant` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `find Tenant` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `findTenant` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `find Tenant` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `findTenant` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `findTenant`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional(readOnly = true)
     public TenantUserDirectoryController.TenantView findTenant(String tenantId) {
@@ -460,6 +722,19 @@ public class Rbac3IdentitySessionQueryStore implements
         return tenantView(tenant);
     }
 
+    /**
+     * 方法 `findTenants` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `find Tenants` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `findTenants` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `find Tenants` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `findTenants` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `findTenants`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param query 输入参数 `query`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param status 输入参数 `status`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param page 输入参数 `page`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param size 输入参数 `size`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional(readOnly = true)
     public TenantUserDirectoryController.PageView<TenantUserDirectoryController.TenantView>
@@ -496,6 +771,22 @@ public class Rbac3IdentitySessionQueryStore implements
                 items, page, size, countQuery.getSingleResult());
     }
 
+    /**
+     * 方法 `findUsers` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `find Users` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `findUsers` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `find Users` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `findUsers` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `findUsers`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param query 输入参数 `query`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param status 输入参数 `status`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param orgUnitId 输入参数 `orgUnitId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param positionId 输入参数 `positionId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param page 输入参数 `page`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param size 输入参数 `size`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional(readOnly = true)
     public TenantUserDirectoryController.PageView<TenantUserDirectoryController.UserDirectoryView>
@@ -552,6 +843,19 @@ public class Rbac3IdentitySessionQueryStore implements
                 items, page, size, countQuery.getSingleResult());
     }
 
+    /**
+     * 方法 `findOrgUnits` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `find Org Units` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `findOrgUnits` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `find Org Units` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `findOrgUnits` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `findOrgUnits`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param parentId 输入参数 `parentId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param type 输入参数 `type`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param status 输入参数 `status`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<TenantUserDirectoryController.OrgUnitView> findOrgUnits(
@@ -587,6 +891,18 @@ public class Rbac3IdentitySessionQueryStore implements
         return query.getResultList().stream().map(this::orgUnitView).toList();
     }
 
+    /**
+     * 方法 `findPositions` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `find Positions` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `findPositions` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `find Positions` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `findPositions` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `findPositions`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param orgUnitId 输入参数 `orgUnitId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param status 输入参数 `status`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<TenantUserDirectoryController.PositionView> findPositions(
@@ -614,6 +930,17 @@ public class Rbac3IdentitySessionQueryStore implements
         return query.getResultList().stream().map(this::positionView).toList();
     }
 
+    /**
+     * 方法 `findSnapshot` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `find Snapshot` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `findSnapshot` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `find Snapshot` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `findSnapshot` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `findSnapshot`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param snapshotId 输入参数 `snapshotId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional(readOnly = true)
     public TenantUserDirectoryController.DirectorySnapshotView findSnapshot(
@@ -631,6 +958,17 @@ public class Rbac3IdentitySessionQueryStore implements
                 snapshot.getCounts());
     }
 
+    /**
+     * 方法 `requireUser` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `require User` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `requireUser` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `require User` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `requireUser` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `requireUser`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private UserEntity requireUser(Long tenantId, Long userId) {
         UserEntity user = entityManager.find(UserEntity.class, userId);
         if (user == null || !tenantId.equals(user.getTenantId())) {
@@ -639,12 +977,32 @@ public class Rbac3IdentitySessionQueryStore implements
         return user;
     }
 
+    /**
+     * 方法 `tenantView` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `tenant View` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `tenantView` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `tenant View` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `tenantView` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `tenantView`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenant 输入参数 `tenant`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private TenantUserDirectoryController.TenantView tenantView(TenantEntity tenant) {
         return new TenantUserDirectoryController.TenantView(
                 tenant.getId().toString(), tenant.getCode(), tenant.getName(),
                 tenant.getStatus().name(), tenant.getSettings(), tenant.getVersion());
     }
 
+    /**
+     * 方法 `userView` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `user View` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `userView` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `user View` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `userView` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `userView`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param user 输入参数 `user`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private TenantUserDirectoryController.UserDirectoryView userView(UserEntity user) {
         return new TenantUserDirectoryController.UserDirectoryView(
                 user.getId().toString(), user.getUsername(), user.getDisplayName(),
@@ -653,6 +1011,16 @@ public class Rbac3IdentitySessionQueryStore implements
                 user.getDirectorySnapshotVersion());
     }
 
+    /**
+     * 方法 `orgUnitView` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `org Unit View` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `orgUnitView` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `org Unit View` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `orgUnitView` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `orgUnitView`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param unit 输入参数 `unit`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private TenantUserDirectoryController.OrgUnitView orgUnitView(OrgUnitEntity unit) {
         return new TenantUserDirectoryController.OrgUnitView(
                 unit.getId().toString(), unit.getSnapshotId().toString(),
@@ -661,6 +1029,16 @@ public class Rbac3IdentitySessionQueryStore implements
                 unit.getStatus().name());
     }
 
+    /**
+     * 方法 `positionView` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `position View` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `positionView` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `position View` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `positionView` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `positionView`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param position 输入参数 `position`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private TenantUserDirectoryController.PositionView positionView(PositionEntity position) {
         return new TenantUserDirectoryController.PositionView(
                 position.getId().toString(), position.getSnapshotId().toString(),
@@ -668,6 +1046,17 @@ public class Rbac3IdentitySessionQueryStore implements
                 position.getStatus().name());
     }
 
+    /**
+     * 方法 `revokeTenantSessions` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `revoke Tenant Sessions` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `revokeTenantSessions` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `revoke Tenant Sessions` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `revokeTenantSessions` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `revokeTenantSessions`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param actorId 输入参数 `actorId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     private void revokeTenantSessions(Long tenantId, String actorId, Instant now) {
         List<SessionEntity> sessions = entityManager.createQuery("""
                         select s from SessionEntity s where s.tenantId = :tenantId
@@ -692,6 +1081,18 @@ public class Rbac3IdentitySessionQueryStore implements
                 });
     }
 
+    /**
+     * 方法 `archiveCurrentSnapshot` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `archive Current Snapshot` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `archiveCurrentSnapshot` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `archive Current Snapshot` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `archiveCurrentSnapshot` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `archiveCurrentSnapshot`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param providerCode 输入参数 `providerCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param incomingSnapshotId 输入参数 `incomingSnapshotId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     private void archiveCurrentSnapshot(
             Long tenantId,
             String providerCode,
@@ -713,6 +1114,18 @@ public class Rbac3IdentitySessionQueryStore implements
         active.forEach(snapshot -> snapshot.archive("directory-sync", now));
     }
 
+    /**
+     * 方法 `revokeRefreshTokens` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `revoke Refresh Tokens` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `revokeRefreshTokens` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `revoke Refresh Tokens` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `revokeRefreshTokens` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `revokeRefreshTokens`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param sessionIds 输入参数 `sessionIds`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param actorId 输入参数 `actorId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     private void revokeRefreshTokens(
             Long tenantId,
             List<Long> sessionIds,
@@ -732,6 +1145,17 @@ public class Rbac3IdentitySessionQueryStore implements
         tokens.forEach(token -> token.revoke(now, actorId));
     }
 
+    /**
+     * 方法 `recordTermination` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `record Termination` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `recordTermination` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `record Termination` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `recordTermination` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `recordTermination`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param session 输入参数 `session`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param actorId 输入参数 `actorId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param occurredAt 输入参数 `occurredAt`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     private void recordTermination(
             SessionEntity session,
             String actorId,
@@ -742,6 +1166,19 @@ public class Rbac3IdentitySessionQueryStore implements
                 session.getStatus().name(), session.getRevokeReason(), actorId, occurredAt));
     }
 
+    /**
+     * 方法 `enumValue` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `enum Value` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `enumValue` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `enum Value` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `enumValue` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `enumValue`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param <E> 类型参数表示待解析的枚举类型；type parameter representing the enum type to resolve.
+     * @param type 输入参数 `type`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param value 输入参数 `value`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param reasonCode 输入参数 `reasonCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static <E extends Enum<E>> E enumValue(
             Class<E> type, String value, String reasonCode) {
         try {
@@ -751,11 +1188,35 @@ public class Rbac3IdentitySessionQueryStore implements
         }
     }
 
+    /**
+     * 方法 `nullableEnum` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `nullable Enum` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `nullableEnum` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `nullable Enum` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `nullableEnum` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `nullableEnum`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param <E> 类型参数表示可选枚举的具体类型；type parameter representing the optional enum type.
+     * @param type 输入参数 `type`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param value 输入参数 `value`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param reasonCode 输入参数 `reasonCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static <E extends Enum<E>> E nullableEnum(
             Class<E> type, String value, String reasonCode) {
         return nullableText(value) == null ? null : enumValue(type, value, reasonCode);
     }
 
+    /**
+     * 方法 `nullableLong` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `nullable Long` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `nullableLong` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `nullable Long` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `nullableLong` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `nullableLong`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param value 输入参数 `value`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param reasonCode 输入参数 `reasonCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static Long nullableLong(String value, String reasonCode) {
         String normalized = nullableText(value);
         if (normalized == null) {
@@ -768,14 +1229,45 @@ public class Rbac3IdentitySessionQueryStore implements
         }
     }
 
+    /**
+     * 方法 `nullableText` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `nullable Text` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `nullableText` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `nullable Text` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `nullableText` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `nullableText`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param value 输入参数 `value`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static String nullableText(String value) {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
+    /**
+     * 方法 `stringId` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `string Id` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `stringId` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `string Id` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `stringId` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `stringId`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param value 输入参数 `value`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static String stringId(Long value) {
         return value == null ? null : value.toString();
     }
 
+    /**
+     * 方法 `resources` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `resources` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `resources` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `resources` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `resources` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `resources`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param resources 输入参数 `resources`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param type 输入参数 `type`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private List<ManifestResource> resources(
             List<ManifestResource> resources,
             String type) {
@@ -785,6 +1277,16 @@ public class Rbac3IdentitySessionQueryStore implements
                 .toList();
     }
 
+    /**
+     * 方法 `longCounts` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `long Counts` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `longCounts` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `long Counts` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `longCounts` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `longCounts`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param values 输入参数 `values`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private Map<String, Long> longCounts(Map<String, Object> values) {
         Map<String, Long> result = new LinkedHashMap<>();
         values.forEach((key, value) -> {
@@ -795,6 +1297,17 @@ public class Rbac3IdentitySessionQueryStore implements
         return Map.copyOf(result);
     }
 
+    /**
+     * 方法 `numericCount` 按照 `Rbac3IdentitySessionQueryStore` 的职责处理输入，完成 `numeric Count` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `numericCount` processes its inputs according to `Rbac3IdentitySessionQueryStore`'s responsibility, performs the `numeric Count` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `numericCount` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `numericCount`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param values 输入参数 `values`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param key 输入参数 `key`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private long numericCount(Map<String, Object> values, String key) {
         Object value = values.get(key);
         return value instanceof Number number ? number.longValue() : 0;

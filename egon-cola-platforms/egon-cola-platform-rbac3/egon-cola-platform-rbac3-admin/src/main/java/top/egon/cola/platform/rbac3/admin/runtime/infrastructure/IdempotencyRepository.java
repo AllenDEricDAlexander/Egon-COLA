@@ -11,12 +11,43 @@ import top.egon.cola.platform.rbac3.admin.runtime.domain.IdempotencyRecordEntity
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * 类型 `IdempotencyRepository` 位于当前包内，是类型，用于承载 `Idempotency Repository` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
+ * Type `IdempotencyRepository` is a type in its package and carries the responsibility, state, or contract for `Idempotency Repository`; callers normally use it through its public API, Spring assembly, or implementation relationship.
+ *
+ * 语义与用法：将 `IdempotencyRepository` 作为 `当前包` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
+ * Semantics and usage: use `IdempotencyRepository` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
+ */
 @Repository
 public class IdempotencyRepository implements IdempotencyService.IdempotencyStore {
 
+    /**
+     * 字段 `entityManager` 表示 `IdempotencyRepository` 中与 `entity Manager` 相关的状态、依赖、配置或结果（声明类型 `EntityManager`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `entityManager` stores the `entity Manager`-related state, dependency, configuration, or result of `IdempotencyRepository` (declared type `EntityManager`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `entityManager` 时应保持 `IdempotencyRepository` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `entityManager`, preserve `IdempotencyRepository`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final EntityManager entityManager;
+    /**
+     * 字段 `idGenerator` 表示 `IdempotencyRepository` 中与 `id Generator` 相关的状态、依赖、配置或结果（声明类型 `LongIdGenerator`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `idGenerator` stores the `id Generator`-related state, dependency, configuration, or result of `IdempotencyRepository` (declared type `LongIdGenerator`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `idGenerator` 时应保持 `IdempotencyRepository` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `idGenerator`, preserve `IdempotencyRepository`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final LongIdGenerator idGenerator;
 
+    /**
+     * 构造器 `IdempotencyRepository` 用于创建并初始化 `IdempotencyRepository` 实例，建立该类型后续方法所依赖的状态和不变量。
+     * Constructor `IdempotencyRepository` creates and initializes `IdempotencyRepository`, establishing the state and invariants required by subsequent operations.
+     *
+     * 用法：通过 `IdempotencyRepository` 的构造入口创建实例，不绕过构造器建立的校验和初始化约束。
+     * Usage: create the instance through `IdempotencyRepository`'s constructor entry point and do not bypass the validation and initialization constraints established there.
+     *
+     * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     public IdempotencyRepository(
             EntityManager entityManager,
             LongIdGenerator idGenerator
@@ -25,6 +56,16 @@ public class IdempotencyRepository implements IdempotencyService.IdempotencyStor
         this.idGenerator = idGenerator;
     }
 
+    /**
+     * 方法 `claim` 按照 `IdempotencyRepository` 的职责处理输入，完成 `claim` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `claim` processes its inputs according to `IdempotencyRepository`'s responsibility, performs the `claim` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `claim` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `claim`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param command 输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional
     public IdempotencyService.Claim claim(IdempotencyService.StoredCommand command) {
@@ -64,6 +105,20 @@ public class IdempotencyRepository implements IdempotencyService.IdempotencyStor
                 null, null, null);
     }
 
+    /**
+     * 方法 `complete` 按照 `IdempotencyRepository` 的职责处理输入，完成 `complete` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `complete` processes its inputs according to `IdempotencyRepository`'s responsibility, performs the `complete` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `complete` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `complete`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param recordId 输入参数 `recordId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param resourceType 输入参数 `resourceType`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param resourceId 输入参数 `resourceId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param responseStatus 输入参数 `responseStatus`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param responseDigest 输入参数 `responseDigest`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     @Override
     @Transactional
     public void complete(
@@ -84,6 +139,17 @@ public class IdempotencyRepository implements IdempotencyService.IdempotencyStor
                 resourceType, resourceId, responseStatus, responseDigest, now);
     }
 
+    /**
+     * 方法 `claim` 按照 `IdempotencyRepository` 的职责处理输入，完成 `claim` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `claim` processes its inputs according to `IdempotencyRepository`'s responsibility, performs the `claim` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `claim` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `claim`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param record 输入参数 `record`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param outcome 输入参数 `outcome`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private IdempotencyService.Claim claim(
             IdempotencyRecordEntity record,
             IdempotencyService.Outcome outcome

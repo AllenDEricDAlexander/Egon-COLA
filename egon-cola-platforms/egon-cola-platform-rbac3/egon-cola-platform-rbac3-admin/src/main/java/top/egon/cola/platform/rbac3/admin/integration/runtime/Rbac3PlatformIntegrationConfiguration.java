@@ -35,17 +35,39 @@ import java.time.Clock;
 import java.util.List;
 
 /**
+ * 类型 `Rbac3PlatformIntegrationConfiguration` 位于当前包内，是类型，用于承载 `Rbac3 Platform Integration Configuration` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
+ * Type `Rbac3PlatformIntegrationConfiguration` is a type in its package and carries the responsibility, state, or contract for `Rbac3 Platform Integration Configuration`; callers normally use it through its public API, Spring assembly, or implementation relationship.
  * Wires component-owned Gateway, DDC and Outbox runtimes into RBAC3 ports.
  */
 @Configuration(proxyBeanMethods = false)
 public class Rbac3PlatformIntegrationConfiguration {
 
+    /**
+     * 方法 `rbac3Clock` 按照 `Rbac3PlatformIntegrationConfiguration` 的职责处理输入，完成 `rbac3 Clock` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `rbac3Clock` processes its inputs according to `Rbac3PlatformIntegrationConfiguration`'s responsibility, performs the `rbac3 Clock` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `rbac3Clock` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `rbac3Clock`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Bean
     @ConditionalOnMissingBean
     Clock rbac3Clock() {
         return Clock.systemUTC();
     }
 
+    /**
+     * 方法 `authorizationEventPort` 按照 `Rbac3PlatformIntegrationConfiguration` 的职责处理输入，完成 `authorization Event Port` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `authorizationEventPort` processes its inputs according to `Rbac3PlatformIntegrationConfiguration`'s responsibility, performs the `authorization Event Port` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `authorizationEventPort` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `authorizationEventPort`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param outbox 输入参数 `outbox`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Bean
     @ConditionalOnMissingBean(AuthorizationEventPort.class)
     AuthorizationEventPort authorizationEventPort(
@@ -54,6 +76,16 @@ public class Rbac3PlatformIntegrationConfiguration {
         return new TransactionalOutboxAuthorizationEventAdapter(outbox, clock);
     }
 
+    /**
+     * 方法 `rbac3ServiceIdentity` 按照 `Rbac3PlatformIntegrationConfiguration` 的职责处理输入，完成 `rbac3 Service Identity` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `rbac3ServiceIdentity` processes its inputs according to `Rbac3PlatformIntegrationConfiguration`'s responsibility, performs the `rbac3 Service Identity` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `rbac3ServiceIdentity` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `rbac3ServiceIdentity`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param properties 输入参数 `properties`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Bean
     @ConditionalOnProperty(prefix = "egon.cola.component.gateway.reporting",
             name = "enabled", havingValue = "true")
@@ -66,6 +98,18 @@ public class Rbac3PlatformIntegrationConfiguration {
                 "default", properties.getArtifactVersion());
     }
 
+    /**
+     * 方法 `gatewayAdminStatusCredentialProvider` 按照 `Rbac3PlatformIntegrationConfiguration` 的职责处理输入，完成 `gateway Admin Status Credential Provider` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `gatewayAdminStatusCredentialProvider` processes its inputs according to `Rbac3PlatformIntegrationConfiguration`'s responsibility, performs the `gateway Admin Status Credential Provider` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `gatewayAdminStatusCredentialProvider` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `gatewayAdminStatusCredentialProvider`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param properties 输入参数 `properties`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param objectMapper 输入参数 `objectMapper`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Bean
     @ConditionalOnProperty(prefix = "egon.cola.component.gateway.reporting",
             name = "enabled", havingValue = "true")
@@ -77,6 +121,20 @@ public class Rbac3PlatformIntegrationConfiguration {
                 properties.requireOauthTokenFile(), objectMapper, clock);
     }
 
+    /**
+     * 方法 `gatewayAdminControlPlaneStatusClient` 按照 `Rbac3PlatformIntegrationConfiguration` 的职责处理输入，完成 `gateway Admin Control Plane Status Client` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `gatewayAdminControlPlaneStatusClient` processes its inputs according to `Rbac3PlatformIntegrationConfiguration`'s responsibility, performs the `gateway Admin Control Plane Status Client` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `gatewayAdminControlPlaneStatusClient` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `gatewayAdminControlPlaneStatusClient`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param properties 输入参数 `properties`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param identity 输入参数 `identity`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param credentials 输入参数 `credentials`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param objectMapper 输入参数 `objectMapper`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Bean
     @ConditionalOnProperty(prefix = "egon.cola.component.gateway.reporting",
             name = "enabled", havingValue = "true")
@@ -98,6 +156,17 @@ public class Rbac3PlatformIntegrationConfiguration {
                 credentials, objectMapper, clock, properties.requireTimeout());
     }
 
+    /**
+     * 方法 `gatewayDefinitionStatusService` 按照 `Rbac3PlatformIntegrationConfiguration` 的职责处理输入，完成 `gateway Definition Status Service` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `gatewayDefinitionStatusService` processes its inputs according to `Rbac3PlatformIntegrationConfiguration`'s responsibility, performs the `gateway Definition Status Service` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `gatewayDefinitionStatusService` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `gatewayDefinitionStatusService`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param state 输入参数 `state`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param properties 输入参数 `properties`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Bean
     @ConditionalOnProperty(prefix = "egon.cola.component.gateway.reporting",
             name = "enabled", havingValue = "true")
@@ -107,6 +176,17 @@ public class Rbac3PlatformIntegrationConfiguration {
         return new GatewayDefinitionStatusService(state, properties);
     }
 
+    /**
+     * 方法 `ddcProviderLeaseStatusService` 按照 `Rbac3PlatformIntegrationConfiguration` 的职责处理输入，完成 `ddc Provider Lease Status Service` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `ddcProviderLeaseStatusService` processes its inputs according to `Rbac3PlatformIntegrationConfiguration`'s responsibility, performs the `ddc Provider Lease Status Service` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `ddcProviderLeaseStatusService` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `ddcProviderLeaseStatusService`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param runtime 输入参数 `runtime`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param identity 输入参数 `identity`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Bean
     @ConditionalOnBean(GatewayDdcRuntimeStatusService.ServiceIdentity.class)
     @ConditionalOnProperty(prefix = "egon.cola.component.ddc.registry.http",
@@ -117,6 +197,18 @@ public class Rbac3PlatformIntegrationConfiguration {
         return new DdcProviderLeaseStatusService(runtime, identity);
     }
 
+    /**
+     * 方法 `ddcHttpRegistrationServerReadyListener` 按照 `Rbac3PlatformIntegrationConfiguration` 的职责处理输入，完成 `ddc Http Registration Server Ready Listener` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `ddcHttpRegistrationServerReadyListener` processes its inputs according to `Rbac3PlatformIntegrationConfiguration`'s responsibility, performs the `ddc Http Registration Server Ready Listener` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `ddcHttpRegistrationServerReadyListener` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `ddcHttpRegistrationServerReadyListener`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param coordinator 输入参数 `coordinator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param providerRuntime 输入参数 `providerRuntime`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param providerProperties 输入参数 `providerProperties`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Bean(name = "ddcHttpRegistrationServerReadyListener")
     @ConditionalOnProperty(prefix = "egon.cola.component.ddc",
             name = "enabled", havingValue = "true")
@@ -128,6 +220,20 @@ public class Rbac3PlatformIntegrationConfiguration {
                 coordinator, providerRuntime, providerProperties);
     }
 
+    /**
+     * 方法 `gatewayDdcRuntimeStatusService` 按照 `Rbac3PlatformIntegrationConfiguration` 的职责处理输入，完成 `gateway Ddc Runtime Status Service` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `gatewayDdcRuntimeStatusService` processes its inputs according to `Rbac3PlatformIntegrationConfiguration`'s responsibility, performs the `gateway Ddc Runtime Status Service` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `gatewayDdcRuntimeStatusService` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `gatewayDdcRuntimeStatusService`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param definition 输入参数 `definition`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param lease 输入参数 `lease`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param gatewayAdmin 输入参数 `gatewayAdmin`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param identity 输入参数 `identity`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Bean
     @ConditionalOnProperty(prefix = "egon.cola.component.gateway.reporting",
             name = "enabled", havingValue = "true")
@@ -141,6 +247,19 @@ public class Rbac3PlatformIntegrationConfiguration {
                 definition, lease, gatewayAdmin, identity, clock);
     }
 
+    /**
+     * 方法 `rbac3ControlPlaneRuntimeStatusPort` 按照 `Rbac3PlatformIntegrationConfiguration` 的职责处理输入，完成 `rbac3 Control Plane Runtime Status Port` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `rbac3ControlPlaneRuntimeStatusPort` processes its inputs according to `Rbac3PlatformIntegrationConfiguration`'s responsibility, performs the `rbac3 Control Plane Runtime Status Port` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `rbac3ControlPlaneRuntimeStatusPort` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `rbac3ControlPlaneRuntimeStatusPort`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param runtimeStatus 输入参数 `runtimeStatus`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param ddcConfigStatus 输入参数 `ddcConfigStatus`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param operationalStatus 输入参数 `operationalStatus`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Bean
     @Primary
     ControlPlaneRuntimeStatusPort rbac3ControlPlaneRuntimeStatusPort(
@@ -174,6 +293,25 @@ public class Rbac3PlatformIntegrationConfiguration {
         };
     }
 
+    /**
+     * 方法 `rbac3ReadinessIndicator` 按照 `Rbac3PlatformIntegrationConfiguration` 的职责处理输入，完成 `rbac3 Readiness Indicator` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `rbac3ReadinessIndicator` processes its inputs according to `Rbac3PlatformIntegrationConfiguration`'s responsibility, performs the `rbac3 Readiness Indicator` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `rbac3ReadinessIndicator` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `rbac3ReadinessIndicator`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param rbac3Flyway 输入参数 `rbac3Flyway`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param outboxFlyway 输入参数 `outboxFlyway`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param entityManagerFactory 输入参数 `entityManagerFactory`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param outbox 输入参数 `outbox`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param runtimeRedis 输入参数 `runtimeRedis`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param definition 输入参数 `definition`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param lease 输入参数 `lease`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param ddcConfigStatus 输入参数 `ddcConfigStatus`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param runtimeStatus 输入参数 `runtimeStatus`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param reportingProperties 输入参数 `reportingProperties`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Bean("rbac3Readiness")
     @ConditionalOnProperty(prefix = "egon.cola.component.gateway.reporting",
             name = "enabled", havingValue = "true")
@@ -212,6 +350,16 @@ public class Rbac3PlatformIntegrationConfiguration {
                 () -> runtimeStatus.status().gatewayRelease().status());
     }
 
+    /**
+     * 方法 `rbac3TrafficDrainListener` 按照 `Rbac3PlatformIntegrationConfiguration` 的职责处理输入，完成 `rbac3 Traffic Drain Listener` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `rbac3TrafficDrainListener` processes its inputs according to `Rbac3PlatformIntegrationConfiguration`'s responsibility, performs the `rbac3 Traffic Drain Listener` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `rbac3TrafficDrainListener` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `rbac3TrafficDrainListener`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param readiness 输入参数 `readiness`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Bean
     @ConditionalOnBean(name = "rbac3Readiness")
     ApplicationListener<ContextClosedEvent> rbac3TrafficDrainListener(
@@ -219,16 +367,46 @@ public class Rbac3PlatformIntegrationConfiguration {
         return ignored -> readiness.stopAcceptingTraffic();
     }
 
+    /**
+     * 方法 `migrated` 按照 `Rbac3PlatformIntegrationConfiguration` 的职责处理输入，完成 `migrated` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `migrated` processes its inputs according to `Rbac3PlatformIntegrationConfiguration`'s responsibility, performs the `migrated` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `migrated` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `migrated`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param flyway 输入参数 `flyway`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static boolean migrated(Flyway flyway) {
         return flyway.info().pending().length == 0
                 && flyway.info().current() != null;
     }
 
+    /**
+     * 方法 `redisAvailable` 按照 `Rbac3PlatformIntegrationConfiguration` 的职责处理输入，完成 `redis Available` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `redisAvailable` processes its inputs according to `Rbac3PlatformIntegrationConfiguration`'s responsibility, performs the `redis Available` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `redisAvailable` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `redisAvailable`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param redisson 输入参数 `redisson`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static boolean redisAvailable(RedissonClient redisson) {
         redisson.getKeys().count();
         return true;
     }
 
+    /**
+     * 方法 `ddcConfigReady` 按照 `Rbac3PlatformIntegrationConfiguration` 的职责处理输入，完成 `ddc Config Ready` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `ddcConfigReady` processes its inputs according to `Rbac3PlatformIntegrationConfiguration`'s responsibility, performs the `ddc Config Ready` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `ddcConfigReady` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `ddcConfigReady`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param status 输入参数 `status`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static boolean ddcConfigReady(
             ObjectProvider<DdcConfigClientStatusService> status) {
         DdcConfigClientStatusService available = status.getIfAvailable();

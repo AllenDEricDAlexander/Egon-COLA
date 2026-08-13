@@ -14,12 +14,27 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/** Activates the generated local administrator roles for an opted-in development stack. */
+/**
+ * 类型 `Rbac3DevelopmentAuthorizationContextInitializer` 位于当前包内，是类型，用于承载 `Rbac3 Development Authorization Context Initializer` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
+ * Type `Rbac3DevelopmentAuthorizationContextInitializer` is a type in its package and carries the responsibility, state, or contract for `Rbac3 Development Authorization Context Initializer`; callers normally use it through its public API, Spring assembly, or implementation relationship.
+ *
+ * Activates the generated local administrator roles for an opted-in development stack.
+ */
 public final class Rbac3DevelopmentAuthorizationContextInitializer
         implements SystemAuthorizationSnapshotService.ContextInitializer {
 
+    /**
+     * 字段 `DEVELOPMENT_ACTOR` 表示 `Rbac3DevelopmentAuthorizationContextInitializer` 中与 `DEVELOPMENT ACTOR` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `DEVELOPMENT_ACTOR` stores the `DEVELOPMENT ACTOR`-related state, dependency, configuration, or result of `Rbac3DevelopmentAuthorizationContextInitializer` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `DEVELOPMENT_ACTOR` 时应保持 `Rbac3DevelopmentAuthorizationContextInitializer` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `DEVELOPMENT_ACTOR`, preserve `Rbac3DevelopmentAuthorizationContextInitializer`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private static final String DEVELOPMENT_ACTOR = "development-bootstrap";
-    /** 开发拓扑中按应用分组的角色编码；development role codes grouped by application. */
+    /** 开发拓扑中按应用分组的角色编码；development role codes grouped by application.
+     * 含义与用法：读取、传递或更新 `DEVELOPMENT_ROLES_BY_APPLICATION` 时应保持 `Rbac3DevelopmentAuthorizationContextInitializer` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `DEVELOPMENT_ROLES_BY_APPLICATION`, preserve `Rbac3DevelopmentAuthorizationContextInitializer`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private static final Map<String, Set<String>> DEVELOPMENT_ROLES_BY_APPLICATION =
             Rbac3DevelopmentTopology.applications().stream()
                     .collect(Collectors.groupingBy(
@@ -30,10 +45,42 @@ public final class Rbac3DevelopmentAuthorizationContextInitializer
                             )
                     ));
 
+    /**
+     * 字段 `enabled` 表示 `Rbac3DevelopmentAuthorizationContextInitializer` 中与 `enabled` 相关的状态、依赖、配置或结果（声明类型 `boolean`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `enabled` stores the `enabled`-related state, dependency, configuration, or result of `Rbac3DevelopmentAuthorizationContextInitializer` (declared type `boolean`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `enabled` 时应保持 `Rbac3DevelopmentAuthorizationContextInitializer` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `enabled`, preserve `Rbac3DevelopmentAuthorizationContextInitializer`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final boolean enabled;
+    /**
+     * 字段 `candidates` 表示 `Rbac3DevelopmentAuthorizationContextInitializer` 中与 `candidates` 相关的状态、依赖、配置或结果（声明类型 `CandidateSource`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `candidates` stores the `candidates`-related state, dependency, configuration, or result of `Rbac3DevelopmentAuthorizationContextInitializer` (declared type `CandidateSource`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `candidates` 时应保持 `Rbac3DevelopmentAuthorizationContextInitializer` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `candidates`, preserve `Rbac3DevelopmentAuthorizationContextInitializer`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final CandidateSource candidates;
+    /**
+     * 字段 `activator` 表示 `Rbac3DevelopmentAuthorizationContextInitializer` 中与 `activator` 相关的状态、依赖、配置或结果（声明类型 `RoleActivator`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `activator` stores the `activator`-related state, dependency, configuration, or result of `Rbac3DevelopmentAuthorizationContextInitializer` (declared type `RoleActivator`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `activator` 时应保持 `Rbac3DevelopmentAuthorizationContextInitializer` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `activator`, preserve `Rbac3DevelopmentAuthorizationContextInitializer`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final RoleActivator activator;
 
+    /**
+     * 构造器 `Rbac3DevelopmentAuthorizationContextInitializer` 用于创建并初始化 `Rbac3DevelopmentAuthorizationContextInitializer` 实例，建立该类型后续方法所依赖的状态和不变量。
+     * Constructor `Rbac3DevelopmentAuthorizationContextInitializer` creates and initializes `Rbac3DevelopmentAuthorizationContextInitializer`, establishing the state and invariants required by subsequent operations.
+     *
+     * 用法：通过 `Rbac3DevelopmentAuthorizationContextInitializer` 的构造入口创建实例，不绕过构造器建立的校验和初始化约束。
+     * Usage: create the instance through `Rbac3DevelopmentAuthorizationContextInitializer`'s constructor entry point and do not bypass the validation and initialization constraints established there.
+     *
+     * @param enabled 输入参数 `enabled`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param candidates 输入参数 `candidates`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param activator 输入参数 `activator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     public Rbac3DevelopmentAuthorizationContextInitializer(
             boolean enabled,
             RoleActivationCandidateService candidates,
@@ -41,6 +88,17 @@ public final class Rbac3DevelopmentAuthorizationContextInitializer
         this(enabled, candidates::candidates, activator::replace);
     }
 
+    /**
+     * 构造器 `Rbac3DevelopmentAuthorizationContextInitializer` 用于创建并初始化 `Rbac3DevelopmentAuthorizationContextInitializer` 实例，建立该类型后续方法所依赖的状态和不变量。
+     * Constructor `Rbac3DevelopmentAuthorizationContextInitializer` creates and initializes `Rbac3DevelopmentAuthorizationContextInitializer`, establishing the state and invariants required by subsequent operations.
+     *
+     * 用法：通过 `Rbac3DevelopmentAuthorizationContextInitializer` 的构造入口创建实例，不绕过构造器建立的校验和初始化约束。
+     * Usage: create the instance through `Rbac3DevelopmentAuthorizationContextInitializer`'s constructor entry point and do not bypass the validation and initialization constraints established there.
+     *
+     * @param enabled 输入参数 `enabled`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param candidates 输入参数 `candidates`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param activator 输入参数 `activator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     Rbac3DevelopmentAuthorizationContextInitializer(
             boolean enabled,
             CandidateSource candidates,
@@ -50,6 +108,17 @@ public final class Rbac3DevelopmentAuthorizationContextInitializer
         this.activator = Objects.requireNonNull(activator, "activator");
     }
 
+    /**
+     * 方法 `initialize` 按照 `Rbac3DevelopmentAuthorizationContextInitializer` 的职责处理输入，完成 `initialize` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `initialize` processes its inputs according to `Rbac3DevelopmentAuthorizationContextInitializer`'s responsibility, performs the `initialize` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `initialize` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `initialize`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param context 输入参数 `context`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     public SystemAuthorizationSnapshotService.ContextInitialization initialize(
             AuthorizationContextFacade.AuthorizationContext context,
@@ -94,18 +163,53 @@ public final class Rbac3DevelopmentAuthorizationContextInitializer
         return SystemAuthorizationSnapshotService.ContextInitialization.COMPLETED;
     }
 
+    /**
+     * 类型 `CandidateSource` 位于 `Rbac3DevelopmentAuthorizationContextInitializer` 内，是接口，用于承载 `Candidate Source` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
+     * Type `CandidateSource` is an interface inside `Rbac3DevelopmentAuthorizationContextInitializer` and carries the responsibility, state, or contract for `Candidate Source`; callers normally use it through its public API, Spring assembly, or implementation relationship.
+     *
+     * 语义与用法：将 `CandidateSource` 作为 `Rbac3DevelopmentAuthorizationContextInitializer` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
+     * Semantics and usage: use `CandidateSource` as the responsibility boundary of `Rbac3DevelopmentAuthorizationContextInitializer`, following its existing construction, interface, or Spring-assembly mechanism.
+     */
     @FunctionalInterface
     interface CandidateSource {
 
+        /**
+         * 方法 `load` 按照 `CandidateSource` 的职责处理输入，完成 `load` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+         * Method `load` processes its inputs according to `CandidateSource`'s responsibility, performs the `load` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+         *
+         * 用法：调用 `load` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+         * Usage: provide contract-compliant arguments before calling `load`, then continue the business flow using its result, exception, or side effect.
+         *
+         * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+         * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+         * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+         * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+         */
         RoleActivationCandidateView load(
                 String tenantId,
                 String userId,
                 Instant now);
     }
 
+    /**
+     * 类型 `RoleActivator` 位于 `Rbac3DevelopmentAuthorizationContextInitializer` 内，是接口，用于承载 `Role Activator` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
+     * Type `RoleActivator` is an interface inside `Rbac3DevelopmentAuthorizationContextInitializer` and carries the responsibility, state, or contract for `Role Activator`; callers normally use it through its public API, Spring assembly, or implementation relationship.
+     *
+     * 语义与用法：将 `RoleActivator` 作为 `Rbac3DevelopmentAuthorizationContextInitializer` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
+     * Semantics and usage: use `RoleActivator` as the responsibility boundary of `Rbac3DevelopmentAuthorizationContextInitializer`, following its existing construction, interface, or Spring-assembly mechanism.
+     */
     @FunctionalInterface
     interface RoleActivator {
 
+        /**
+         * 方法 `replace` 按照 `RoleActivator` 的职责处理输入，完成 `replace` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+         * Method `replace` processes its inputs according to `RoleActivator`'s responsibility, performs the `replace` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+         *
+         * 用法：调用 `replace` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+         * Usage: provide contract-compliant arguments before calling `replace`, then continue the business flow using its result, exception, or side effect.
+         *
+         * @param command 输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+         */
         void replace(RoleActivationFacade.ReplaceCommand command);
     }
 }

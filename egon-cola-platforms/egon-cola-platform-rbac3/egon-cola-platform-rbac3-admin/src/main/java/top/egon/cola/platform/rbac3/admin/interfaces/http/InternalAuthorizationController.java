@@ -27,6 +27,8 @@ import java.util.Objects;
 /**
  * 暴露给平台内部受信服务的 RBAC3 授权快照与判定接口。
  * RBAC3 authorization snapshot and decision endpoints exposed to trusted platform services.
+ * 语义与用法：将 `InternalAuthorizationController` 作为 `当前包` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
+ * Semantics and usage: use `InternalAuthorizationController` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
 @RestController
 @RequestMapping("/internal/v1/authorization")
@@ -44,9 +46,15 @@ import java.util.Objects;
         basePath = "/internal/v1")
 public class InternalAuthorizationController {
 
-    /** 类型化授权判定服务。 / Typed authorization-decision service. */
+    /** 类型化授权判定服务。 / Typed authorization-decision service.
+     * 含义与用法：读取、传递或更新 `service` 时应保持 `InternalAuthorizationController` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `service`, preserve `InternalAuthorizationController`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final AuthorizationDecisionService service;
-    /** 系统级授权快照服务。 / System-level authorization snapshot service. */
+    /** 系统级授权快照服务。 / System-level authorization snapshot service.
+     * 含义与用法：读取、传递或更新 `systemSnapshots` 时应保持 `InternalAuthorizationController` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `systemSnapshots`, preserve `InternalAuthorizationController`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final SystemAuthorizationSnapshotService systemSnapshots;
 
     /**
@@ -55,6 +63,8 @@ public class InternalAuthorizationController {
      *
      * @param service 类型化授权判定服务 / typed authorization-decision service
      * @param systemSnapshots 系统级授权快照服务 / system-level authorization snapshot service
+     * 用法：通过 `InternalAuthorizationController` 的构造入口创建实例，不绕过构造器建立的校验和初始化约束。
+     * Usage: create the instance through `InternalAuthorizationController`'s constructor entry point and do not bypass the validation and initialization constraints established there.
      */
     public InternalAuthorizationController(
             AuthorizationDecisionService service,
@@ -102,6 +112,8 @@ public class InternalAuthorizationController {
      * @param sessionId 会话标识 / session identifier
      * @param principal 已认证调用服务 / authenticated calling service
      * @return 应用受限会话快照 / application-bound session snapshot
+     * 用法：调用 `snapshot` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `snapshot`, then continue the business flow using its result, exception, or side effect.
      */
     @GetMapping("/sessions/{sessionId}/snapshot")
     @RequiresServiceScope("service:authorization:snapshot")
@@ -121,6 +133,8 @@ public class InternalAuthorizationController {
      * @param request 类型化授权请求 / typed authorization request
      * @param principal 已认证调用服务 / authenticated calling service
      * @return 函数、数据和字段判定组合 / function, data, and field decision bundle
+     * 用法：调用 `decide` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `decide`, then continue the business flow using its result, exception, or side effect.
      */
     @PostMapping("/decisions")
     @RequiresServiceScope("service:authorization:decide")
@@ -140,6 +154,8 @@ public class InternalAuthorizationController {
      * @param request 最小资源入口请求 / minimal resource-entry request
      * @param principal 已认证的 IdP 调用服务 / authenticated IdP calling service
      * @return 仅含判定、原因和授权版本的响应 / response containing only decision, reason, and versions
+     * 用法：调用 `decideResourceAccess` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `decideResourceAccess`, then continue the business flow using its result, exception, or side effect.
      */
     @PostMapping("/resource-access-decisions")
     @RequiresServiceScope("service:authorization:decide")
@@ -166,6 +182,8 @@ public class InternalAuthorizationController {
      * @param request Fence 校验请求 / fence-verification request
      * @param principal 已认证调用服务 / authenticated calling service
      * @return Fence 校验结果 / fence-verification result
+     * 用法：调用 `verifyFence` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `verifyFence`, then continue the business flow using its result, exception, or side effect.
      */
     @PostMapping("/fences/verify")
     @RequiresServiceScope("service:authorization:fence")
@@ -184,6 +202,8 @@ public class InternalAuthorizationController {
      * Returns the effective tenant identifier from the current request context.
      *
      * @return 有效租户标识 / effective tenant identifier
+     * 用法：调用 `tenantId` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `tenantId`, then continue the business flow using its result, exception, or side effect.
      */
     private static String tenantId() {
         return TenantContext.requireCurrent().effectiveTenantId();
@@ -194,12 +214,23 @@ public class InternalAuthorizationController {
      * Session authorization propagation-fence verification request.
      *
      * @param sessionId 会话标识 / session identifier
+     * 语义与用法：将 `FenceRequest` 作为 `InternalAuthorizationController` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
+     * Semantics and usage: use `FenceRequest` as the responsibility boundary of `InternalAuthorizationController`, following its existing construction, interface, or Spring-assembly mechanism.
      */
-    public record FenceRequest(@NotBlank String sessionId) {
+    public record FenceRequest(/**
+ * 字段 `sessionId` 表示 `FenceRequest` 中与 `session Id` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+ * Field `sessionId` stores the `session Id`-related state, dependency, configuration, or result of `FenceRequest` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
+ *
+ * 含义与用法：读取、传递或更新 `sessionId` 时应保持 `FenceRequest` 的生命周期、不可变性和线程安全约束。
+ * Meaning and usage: when reading, passing, or updating `sessionId`, preserve `FenceRequest`'s lifecycle, immutability, and thread-safety constraints.
+ */ @NotBlank String sessionId) {
 
         /**
          * 校验并规范化 Fence 校验请求。
          * Validates and normalizes the fence-verification request.
+         * 用法：通过 `FenceRequest` 的构造入口创建实例，不绕过构造器建立的校验和初始化约束。
+         * Usage: create the instance through `FenceRequest`'s constructor entry point and do not bypass the validation and initialization constraints established there.
+         * @param sessionId 输入参数 `sessionId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
          */
         public FenceRequest {
             if (sessionId == null || sessionId.isBlank()) {

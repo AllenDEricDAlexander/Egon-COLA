@@ -25,18 +25,48 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
+ * 类型 `RoleActivationFactStore` 位于当前包内，是类型，用于承载 `Role Activation Fact Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
+ * Type `RoleActivationFactStore` is a type in its package and carries the responsibility, state, or contract for `Role Activation Fact Store`; callers normally use it through its public API, Spring assembly, or implementation relationship.
  * Loads one tenant-safe, database-time activation fact set.
  */
 @Repository
 public class RoleActivationFactStore
         implements RoleActivationCandidateService.ActivationFactSource {
 
+    /**
+     * 字段 `entityManager` 表示 `RoleActivationFactStore` 中与 `entity Manager` 相关的状态、依赖、配置或结果（声明类型 `EntityManager`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `entityManager` stores the `entity Manager`-related state, dependency, configuration, or result of `RoleActivationFactStore` (declared type `EntityManager`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `entityManager` 时应保持 `RoleActivationFactStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `entityManager`, preserve `RoleActivationFactStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final EntityManager entityManager;
 
+    /**
+     * 构造器 `RoleActivationFactStore` 用于创建并初始化 `RoleActivationFactStore` 实例，建立该类型后续方法所依赖的状态和不变量。
+     * Constructor `RoleActivationFactStore` creates and initializes `RoleActivationFactStore`, establishing the state and invariants required by subsequent operations.
+     *
+     * 用法：通过 `RoleActivationFactStore` 的构造入口创建实例，不绕过构造器建立的校验和初始化约束。
+     * Usage: create the instance through `RoleActivationFactStore`'s constructor entry point and do not bypass the validation and initialization constraints established there.
+     *
+     * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     public RoleActivationFactStore(EntityManager entityManager) {
         this.entityManager = entityManager;
     }
 
+    /**
+     * 方法 `load` 按照 `RoleActivationFactStore` 的职责处理输入，完成 `load` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `load` processes its inputs according to `RoleActivationFactStore`'s responsibility, performs the `load` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `load` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `load`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param databaseNow 输入参数 `databaseNow`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional(readOnly = true)
     public RoleActivationCandidateService.ActivationFacts load(
@@ -132,6 +162,17 @@ public class RoleActivationFactStore
                 names);
     }
 
+    /**
+     * 方法 `dsdSets` 按照 `RoleActivationFactStore` 的职责处理输入，完成 `dsd Sets` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `dsdSets` processes its inputs according to `RoleActivationFactStore`'s responsibility, performs the `dsd Sets` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `dsdSets` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `dsdSets`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private List<DsdSetFact> dsdSets(long tenantId, Instant now) {
         Map<String, MutableDsd> values = new LinkedHashMap<>();
         for (Object[] row : rows("""
@@ -157,6 +198,18 @@ public class RoleActivationFactStore
                 .toList();
     }
 
+    /**
+     * 方法 `authorizationFacts` 按照 `RoleActivationFactStore` 的职责处理输入，完成 `authorization Facts` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `authorizationFacts` processes its inputs according to `RoleActivationFactStore`'s responsibility, performs the `authorization Facts` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `authorizationFacts` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `authorizationFacts`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private AuthorizationRuleFacts authorizationFacts(
             long tenantId,
             long userId,
@@ -293,6 +346,17 @@ public class RoleActivationFactStore
                 permissions, scopes, fieldRules, definitions, resources, landingRoutes);
     }
 
+    /**
+     * 方法 `rows` 按照 `RoleActivationFactStore` 的职责处理输入，完成 `rows` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `rows` processes its inputs according to `RoleActivationFactStore`'s responsibility, performs the `rows` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `rows` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `rows`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param sql 输入参数 `sql`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param parameters 输入参数 `parameters`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @SuppressWarnings("unchecked")
     private List<Object[]> rows(String sql, Map<String, ?> parameters) {
         var query = entityManager.createNativeQuery(sql);
@@ -300,6 +364,17 @@ public class RoleActivationFactStore
         return query.getResultList();
     }
 
+    /**
+     * 方法 `one` 按照 `RoleActivationFactStore` 的职责处理输入，完成 `one` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `one` processes its inputs according to `RoleActivationFactStore`'s responsibility, performs the `one` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `one` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `one`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param sql 输入参数 `sql`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param parameters 输入参数 `parameters`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private Object[] one(String sql, Map<String, ?> parameters) {
         List<Object[]> results = rows(sql, parameters);
         if (results.size() != 1) {
@@ -308,18 +383,58 @@ public class RoleActivationFactStore
         return results.getFirst();
     }
 
+    /**
+     * 方法 `number` 按照 `RoleActivationFactStore` 的职责处理输入，完成 `number` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `number` processes its inputs according to `RoleActivationFactStore`'s responsibility, performs the `number` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `number` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `number`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param value 输入参数 `value`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static Number number(Object value) {
         return (Number) value;
     }
 
+    /**
+     * 方法 `text` 按照 `RoleActivationFactStore` 的职责处理输入，完成 `text` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `text` processes its inputs according to `RoleActivationFactStore`'s responsibility, performs the `text` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `text` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `text`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param value 输入参数 `value`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static String text(Object value) {
         return String.valueOf(value);
     }
 
+    /**
+     * 方法 `nullableText` 按照 `RoleActivationFactStore` 的职责处理输入，完成 `nullable Text` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `nullableText` processes its inputs according to `RoleActivationFactStore`'s responsibility, performs the `nullable Text` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `nullableText` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `nullableText`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param value 输入参数 `value`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static String nullableText(Object value) {
         return value == null ? null : text(value);
     }
 
+    /**
+     * 方法 `instant` 按照 `RoleActivationFactStore` 的职责处理输入，完成 `instant` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `instant` processes its inputs according to `RoleActivationFactStore`'s responsibility, performs the `instant` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `instant` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `instant`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param value 输入参数 `value`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static Instant instant(Object value) {
         if (value instanceof Instant instant) {
             return instant;
@@ -333,12 +448,58 @@ public class RoleActivationFactStore
         throw new IllegalArgumentException("unsupported timestamp value: " + value);
     }
 
+    /**
+     * 类型 `MutableDsd` 位于 `RoleActivationFactStore` 内，是类型，用于承载 `Mutable Dsd` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
+     * Type `MutableDsd` is a type inside `RoleActivationFactStore` and carries the responsibility, state, or contract for `Mutable Dsd`; callers normally use it through its public API, Spring assembly, or implementation relationship.
+     *
+     * 语义与用法：将 `MutableDsd` 作为 `RoleActivationFactStore` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
+     * Semantics and usage: use `MutableDsd` as the responsibility boundary of `RoleActivationFactStore`, following its existing construction, interface, or Spring-assembly mechanism.
+     */
     private static final class MutableDsd {
+        /**
+         * 字段 `id` 表示 `MutableDsd` 中与 `id` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+         * Field `id` stores the `id`-related state, dependency, configuration, or result of `MutableDsd` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
+         *
+         * 含义与用法：读取、传递或更新 `id` 时应保持 `MutableDsd` 的生命周期、不可变性和线程安全约束。
+         * Meaning and usage: when reading, passing, or updating `id`, preserve `MutableDsd`'s lifecycle, immutability, and thread-safety constraints.
+         */
         private final String id;
+        /**
+         * 字段 `applicationId` 表示 `MutableDsd` 中与 `application Id` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+         * Field `applicationId` stores the `application Id`-related state, dependency, configuration, or result of `MutableDsd` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
+         *
+         * 含义与用法：读取、传递或更新 `applicationId` 时应保持 `MutableDsd` 的生命周期、不可变性和线程安全约束。
+         * Meaning and usage: when reading, passing, or updating `applicationId`, preserve `MutableDsd`'s lifecycle, immutability, and thread-safety constraints.
+         */
         private final String applicationId;
+        /**
+         * 字段 `maximumActive` 表示 `MutableDsd` 中与 `maximum Active` 相关的状态、依赖、配置或结果（声明类型 `int`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+         * Field `maximumActive` stores the `maximum Active`-related state, dependency, configuration, or result of `MutableDsd` (declared type `int`); its lifecycle and value semantics are defined by its declared type and owning object.
+         *
+         * 含义与用法：读取、传递或更新 `maximumActive` 时应保持 `MutableDsd` 的生命周期、不可变性和线程安全约束。
+         * Meaning and usage: when reading, passing, or updating `maximumActive`, preserve `MutableDsd`'s lifecycle, immutability, and thread-safety constraints.
+         */
         private final int maximumActive;
+        /**
+         * 字段 `roleIds` 表示 `MutableDsd` 中与 `role Ids` 相关的状态、依赖、配置或结果（声明类型 `Set&lt;String&gt;`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+         * Field `roleIds` stores the `role Ids`-related state, dependency, configuration, or result of `MutableDsd` (declared type `Set&lt;String&gt;`); its lifecycle and value semantics are defined by its declared type and owning object.
+         *
+         * 含义与用法：读取、传递或更新 `roleIds` 时应保持 `MutableDsd` 的生命周期、不可变性和线程安全约束。
+         * Meaning and usage: when reading, passing, or updating `roleIds`, preserve `MutableDsd`'s lifecycle, immutability, and thread-safety constraints.
+         */
         private final Set<String> roleIds = new TreeSet<>();
 
+        /**
+         * 构造器 `MutableDsd` 用于创建并初始化 `MutableDsd` 实例，建立该类型后续方法所依赖的状态和不变量。
+         * Constructor `MutableDsd` creates and initializes `MutableDsd`, establishing the state and invariants required by subsequent operations.
+         *
+         * 用法：通过 `MutableDsd` 的构造入口创建实例，不绕过构造器建立的校验和初始化约束。
+         * Usage: create the instance through `MutableDsd`'s constructor entry point and do not bypass the validation and initialization constraints established there.
+         *
+         * @param id 输入参数 `id`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+         * @param applicationId 输入参数 `applicationId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+         * @param maximumActive 输入参数 `maximumActive`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+         */
         private MutableDsd(String id, String applicationId, int maximumActive) {
             this.id = id;
             this.applicationId = applicationId;

@@ -14,13 +14,29 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
+ * 类型 `TransactionalOutboxAuthorizationEventAdapter` 位于当前包内，是类型，用于承载 `Transactional Outbox Authorization Event Adapter` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
+ * Type `TransactionalOutboxAuthorizationEventAdapter` is a type in its package and carries the responsibility, state, or contract for `Transactional Outbox Authorization Event Adapter`; callers normally use it through its public API, Spring assembly, or implementation relationship.
  * Adapts RBAC3 logical authorization events to the public transactional-outbox API.
  */
 public final class TransactionalOutboxAuthorizationEventAdapter
         implements AuthorizationEventPort {
 
+    /**
+     * 字段 `CHANNEL` 表示 `TransactionalOutboxAuthorizationEventAdapter` 中与 `CHANNEL` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `CHANNEL` stores the `CHANNEL`-related state, dependency, configuration, or result of `TransactionalOutboxAuthorizationEventAdapter` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `CHANNEL` 时应保持 `TransactionalOutboxAuthorizationEventAdapter` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `CHANNEL`, preserve `TransactionalOutboxAuthorizationEventAdapter`'s lifecycle, immutability, and thread-safety constraints.
+     */
     public static final String CHANNEL = "rbac3-runtime";
 
+    /**
+     * 字段 `DESTINATIONS` 表示 `TransactionalOutboxAuthorizationEventAdapter` 中与 `DESTINATIONS` 相关的状态、依赖、配置或结果（声明类型 `Map&lt;String, String&gt;`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `DESTINATIONS` stores the `DESTINATIONS`-related state, dependency, configuration, or result of `TransactionalOutboxAuthorizationEventAdapter` (declared type `Map&lt;String, String&gt;`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `DESTINATIONS` 时应保持 `TransactionalOutboxAuthorizationEventAdapter` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `DESTINATIONS`, preserve `TransactionalOutboxAuthorizationEventAdapter`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private static final Map<String, String> DESTINATIONS = Map.ofEntries(
             Map.entry("RBAC3_SESSION_ACTIVE_ROLES_REPLACED",
                     "rbac3.role-activation.changed.v1"),
@@ -39,9 +55,33 @@ public final class TransactionalOutboxAuthorizationEventAdapter
             Map.entry("FIELD_RULE_CHANGED", "rbac3.role.policy-changed.v1"),
             Map.entry("OPERATION_SOD_RULE_CHANGED", "rbac3.role.policy-changed.v1"));
 
+    /**
+     * 字段 `outbox` 表示 `TransactionalOutboxAuthorizationEventAdapter` 中与 `outbox` 相关的状态、依赖、配置或结果（声明类型 `TransactionalOutbox`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `outbox` stores the `outbox`-related state, dependency, configuration, or result of `TransactionalOutboxAuthorizationEventAdapter` (declared type `TransactionalOutbox`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `outbox` 时应保持 `TransactionalOutboxAuthorizationEventAdapter` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `outbox`, preserve `TransactionalOutboxAuthorizationEventAdapter`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final TransactionalOutbox outbox;
+    /**
+     * 字段 `clock` 表示 `TransactionalOutboxAuthorizationEventAdapter` 中与 `clock` 相关的状态、依赖、配置或结果（声明类型 `Clock`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `clock` stores the `clock`-related state, dependency, configuration, or result of `TransactionalOutboxAuthorizationEventAdapter` (declared type `Clock`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `clock` 时应保持 `TransactionalOutboxAuthorizationEventAdapter` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `clock`, preserve `TransactionalOutboxAuthorizationEventAdapter`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final Clock clock;
 
+    /**
+     * 构造器 `TransactionalOutboxAuthorizationEventAdapter` 用于创建并初始化 `TransactionalOutboxAuthorizationEventAdapter` 实例，建立该类型后续方法所依赖的状态和不变量。
+     * Constructor `TransactionalOutboxAuthorizationEventAdapter` creates and initializes `TransactionalOutboxAuthorizationEventAdapter`, establishing the state and invariants required by subsequent operations.
+     *
+     * 用法：通过 `TransactionalOutboxAuthorizationEventAdapter` 的构造入口创建实例，不绕过构造器建立的校验和初始化约束。
+     * Usage: create the instance through `TransactionalOutboxAuthorizationEventAdapter`'s constructor entry point and do not bypass the validation and initialization constraints established there.
+     *
+     * @param outbox 输入参数 `outbox`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     public TransactionalOutboxAuthorizationEventAdapter(
             TransactionalOutbox outbox,
             Clock clock) {
@@ -49,6 +89,16 @@ public final class TransactionalOutboxAuthorizationEventAdapter
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
+    /**
+     * 方法 `enqueue` 按照 `TransactionalOutboxAuthorizationEventAdapter` 的职责处理输入，完成 `enqueue` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `enqueue` processes its inputs according to `TransactionalOutboxAuthorizationEventAdapter`'s responsibility, performs the `enqueue` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `enqueue` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `enqueue`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param event 输入参数 `event`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     public String enqueue(AuthorizationEvent event) {
         Objects.requireNonNull(event, "event");
@@ -80,6 +130,16 @@ public final class TransactionalOutboxAuthorizationEventAdapter
                 .messageId();
     }
 
+    /**
+     * 方法 `destination` 按照 `TransactionalOutboxAuthorizationEventAdapter` 的职责处理输入，完成 `destination` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `destination` processes its inputs according to `TransactionalOutboxAuthorizationEventAdapter`'s responsibility, performs the `destination` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `destination` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `destination`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param internalEventType 输入参数 `internalEventType`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     static String destination(String internalEventType) {
         String normalized = required(internalEventType, "eventType")
                 .toUpperCase(Locale.ROOT);
@@ -94,6 +154,16 @@ public final class TransactionalOutboxAuthorizationEventAdapter
         return destination;
     }
 
+    /**
+     * 方法 `aggregateVersion` 按照 `TransactionalOutboxAuthorizationEventAdapter` 的职责处理输入，完成 `aggregate Version` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `aggregateVersion` processes its inputs according to `TransactionalOutboxAuthorizationEventAdapter`'s responsibility, performs the `aggregate Version` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `aggregateVersion` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `aggregateVersion`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param payload 输入参数 `payload`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private long aggregateVersion(Map<String, String> payload) {
         for (String key : new String[]{
                 "aggregateVersion", "contextVersion", "sessionVersion", "authVersion",
@@ -114,6 +184,16 @@ public final class TransactionalOutboxAuthorizationEventAdapter
                 "RBAC3 authorization event requires a non-negative aggregate version");
     }
 
+    /**
+     * 方法 `sha256` 按照 `TransactionalOutboxAuthorizationEventAdapter` 的职责处理输入，完成 `sha256` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `sha256` processes its inputs according to `TransactionalOutboxAuthorizationEventAdapter`'s responsibility, performs the `sha256` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `sha256` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `sha256`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param value 输入参数 `value`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static String sha256(String value) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")
@@ -124,6 +204,17 @@ public final class TransactionalOutboxAuthorizationEventAdapter
         }
     }
 
+    /**
+     * 方法 `required` 按照 `TransactionalOutboxAuthorizationEventAdapter` 的职责处理输入，完成 `required` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `required` processes its inputs according to `TransactionalOutboxAuthorizationEventAdapter`'s responsibility, performs the `required` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `required` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `required`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param value 输入参数 `value`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param field 输入参数 `field`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static String required(String value, String field) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(field + " is required");

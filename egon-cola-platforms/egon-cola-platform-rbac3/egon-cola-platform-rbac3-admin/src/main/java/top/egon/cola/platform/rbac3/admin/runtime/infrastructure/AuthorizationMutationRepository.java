@@ -15,18 +15,50 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * 类型 `AuthorizationMutationRepository` 位于当前包内，是类型，用于承载 `Authorization Mutation Repository` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
+ * Type `AuthorizationMutationRepository` is a type in its package and carries the responsibility, state, or contract for `Authorization Mutation Repository`; callers normally use it through its public API, Spring assembly, or implementation relationship.
+ *
+ * 语义与用法：将 `AuthorizationMutationRepository` 作为 `当前包` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
+ * Semantics and usage: use `AuthorizationMutationRepository` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
+ */
 @Repository
 public class AuthorizationMutationRepository implements
         AuthorizationMutationCoordinator.MutationStore,
         RuntimeQueryService.MutationQueryPort,
         AuthorizationMutationRecoveryWorker.RecoveryStore {
 
+    /**
+     * 字段 `entityManager` 表示 `AuthorizationMutationRepository` 中与 `entity Manager` 相关的状态、依赖、配置或结果（声明类型 `EntityManager`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `entityManager` stores the `entity Manager`-related state, dependency, configuration, or result of `AuthorizationMutationRepository` (declared type `EntityManager`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `entityManager` 时应保持 `AuthorizationMutationRepository` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `entityManager`, preserve `AuthorizationMutationRepository`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final EntityManager entityManager;
 
+    /**
+     * 构造器 `AuthorizationMutationRepository` 用于创建并初始化 `AuthorizationMutationRepository` 实例，建立该类型后续方法所依赖的状态和不变量。
+     * Constructor `AuthorizationMutationRepository` creates and initializes `AuthorizationMutationRepository`, establishing the state and invariants required by subsequent operations.
+     *
+     * 用法：通过 `AuthorizationMutationRepository` 的构造入口创建实例，不绕过构造器建立的校验和初始化约束。
+     * Usage: create the instance through `AuthorizationMutationRepository`'s constructor entry point and do not bypass the validation and initialization constraints established there.
+     *
+     * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     public AuthorizationMutationRepository(EntityManager entityManager) {
         this.entityManager = entityManager;
     }
 
+    /**
+     * 方法 `prepare` 按照 `AuthorizationMutationRepository` 的职责处理输入，完成 `prepare` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `prepare` processes its inputs according to `AuthorizationMutationRepository`'s responsibility, performs the `prepare` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `prepare` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `prepare`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param record 输入参数 `record`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     @Override
     @Transactional
     public void prepare(AuthorizationMutationCoordinator.MutationRecord record) {
@@ -46,6 +78,18 @@ public class AuthorizationMutationRepository implements
                 versions.newPolicyVersion(), scope.actorId(), record.createdAt()));
     }
 
+    /**
+     * 方法 `transition` 按照 `AuthorizationMutationRepository` 的职责处理输入，完成 `transition` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `transition` processes its inputs according to `AuthorizationMutationRepository`'s responsibility, performs the `transition` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `transition` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `transition`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param mutationId 输入参数 `mutationId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param status 输入参数 `status`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param errorCode 输入参数 `errorCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     @Override
     @Transactional
     public void transition(
@@ -71,6 +115,19 @@ public class AuthorizationMutationRepository implements
         }
     }
 
+    /**
+     * 方法 `query` 按照 `AuthorizationMutationRepository` 的职责处理输入，完成 `query` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `query` processes its inputs according to `AuthorizationMutationRepository`'s responsibility, performs the `query` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `query` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `query`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param status 输入参数 `status`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param cursor 输入参数 `cursor`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param pageSize 输入参数 `pageSize`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional(readOnly = true)
     public RuntimeQueryService.MutationPage query(
@@ -106,6 +163,17 @@ public class AuthorizationMutationRepository implements
                 pageRows.stream().map(this::toView).toList(), nextCursor);
     }
 
+    /**
+     * 方法 `claimById` 按照 `AuthorizationMutationRepository` 的职责处理输入，完成 `claim By Id` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `claimById` processes its inputs according to `AuthorizationMutationRepository`'s responsibility, performs the `claim By Id` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `claimById` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `claimById`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param mutationId 输入参数 `mutationId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional
     public Optional<AuthorizationMutationRecoveryWorker.MutationWork> claimById(
@@ -124,6 +192,16 @@ public class AuthorizationMutationRepository implements
         return rows.stream().findFirst().map(this::toWork);
     }
 
+    /**
+     * 方法 `claimRecoverable` 按照 `AuthorizationMutationRepository` 的职责处理输入，完成 `claim Recoverable` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `claimRecoverable` processes its inputs according to `AuthorizationMutationRepository`'s responsibility, performs the `claim Recoverable` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `claimRecoverable` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `claimRecoverable`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param batchSize 输入参数 `batchSize`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     @Override
     @Transactional
     public List<AuthorizationMutationRecoveryWorker.MutationWork> claimRecoverable(
@@ -147,6 +225,17 @@ public class AuthorizationMutationRepository implements
                 .toList();
     }
 
+    /**
+     * 方法 `completed` 按照 `AuthorizationMutationRepository` 的职责处理输入，完成 `completed` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `completed` processes its inputs according to `AuthorizationMutationRepository`'s responsibility, performs the `completed` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `completed` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `completed`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param mutationId 输入参数 `mutationId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param actorId 输入参数 `actorId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     @Override
     @Transactional
     public void completed(String mutationId, Instant now, String actorId) {
@@ -160,6 +249,18 @@ public class AuthorizationMutationRepository implements
         mutation.completed(now, actorId);
     }
 
+    /**
+     * 方法 `failed` 按照 `AuthorizationMutationRepository` 的职责处理输入，完成 `failed` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `failed` processes its inputs according to `AuthorizationMutationRepository`'s responsibility, performs the `failed` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `failed` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `failed`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param mutationId 输入参数 `mutationId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param reasonCode 输入参数 `reasonCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param actorId 输入参数 `actorId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     @Override
     @Transactional
     public void failed(
@@ -173,6 +274,16 @@ public class AuthorizationMutationRepository implements
         }
     }
 
+    /**
+     * 方法 `toView` 按照 `AuthorizationMutationRepository` 的职责处理输入，完成 `to View` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `toView` processes its inputs according to `AuthorizationMutationRepository`'s responsibility, performs the `to View` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `toView` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `toView`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param mutation 输入参数 `mutation`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private RuntimeQueryService.MutationView toView(
             AuthorizationMutationEntity mutation) {
         String scopeId = switch (mutation.getScopeType()) {
@@ -188,6 +299,16 @@ public class AuthorizationMutationRepository implements
                 mutation.getUpdatedAt());
     }
 
+    /**
+     * 方法 `toWork` 按照 `AuthorizationMutationRepository` 的职责处理输入，完成 `to Work` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `toWork` processes its inputs according to `AuthorizationMutationRepository`'s responsibility, performs the `to Work` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `toWork` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `toWork`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param mutation 输入参数 `mutation`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private AuthorizationMutationRecoveryWorker.MutationWork toWork(
             AuthorizationMutationEntity mutation) {
         String scopeId = switch (mutation.getScopeType()) {
@@ -203,6 +324,16 @@ public class AuthorizationMutationRepository implements
                 mutation.getStatus().name());
     }
 
+    /**
+     * 方法 `locked` 按照 `AuthorizationMutationRepository` 的职责处理输入，完成 `locked` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `locked` processes its inputs according to `AuthorizationMutationRepository`'s responsibility, performs the `locked` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `locked` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `locked`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param mutationId 输入参数 `mutationId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private AuthorizationMutationEntity locked(String mutationId) {
         AuthorizationMutationEntity mutation = entityManager.find(
                 AuthorizationMutationEntity.class, Long.valueOf(mutationId),
@@ -213,6 +344,16 @@ public class AuthorizationMutationRepository implements
         return mutation;
     }
 
+    /**
+     * 方法 `parseCursor` 按照 `AuthorizationMutationRepository` 的职责处理输入，完成 `parse Cursor` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `parseCursor` processes its inputs according to `AuthorizationMutationRepository`'s responsibility, performs the `parse Cursor` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `parseCursor` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `parseCursor`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param cursor 输入参数 `cursor`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static Long parseCursor(String cursor) {
         try {
             long value = Long.parseLong(cursor.trim());

@@ -27,18 +27,62 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 /**
+ * 类型 `PostgresqlPlatformAdminBootstrapStore` 位于当前包内，是类型，用于承载 `Postgresql Platform Admin Bootstrap Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
+ * Type `PostgresqlPlatformAdminBootstrapStore` is a type in its package and carries the responsibility, state, or contract for `Postgresql Platform Admin Bootstrap Store`; callers normally use it through its public API, Spring assembly, or implementation relationship.
  * Creates the first platform security administrator under one PostgreSQL transaction lock.
  */
 @Repository
 public class PostgresqlPlatformAdminBootstrapStore
         implements Rbac3PlatformAdminBootstrapCli.BootstrapPort {
 
+    /**
+     * 字段 `BOOTSTRAP_LOCK_KEY` 表示 `PostgresqlPlatformAdminBootstrapStore` 中与 `BOOTSTRAP LOCK KEY` 相关的状态、依赖、配置或结果（声明类型 `long`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `BOOTSTRAP_LOCK_KEY` stores the `BOOTSTRAP LOCK KEY`-related state, dependency, configuration, or result of `PostgresqlPlatformAdminBootstrapStore` (declared type `long`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `BOOTSTRAP_LOCK_KEY` 时应保持 `PostgresqlPlatformAdminBootstrapStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `BOOTSTRAP_LOCK_KEY`, preserve `PostgresqlPlatformAdminBootstrapStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private static final long BOOTSTRAP_LOCK_KEY = 0x5242414333424f4fL;
+    /**
+     * 字段 `ACTOR` 表示 `PostgresqlPlatformAdminBootstrapStore` 中与 `ACTOR` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `ACTOR` stores the `ACTOR`-related state, dependency, configuration, or result of `PostgresqlPlatformAdminBootstrapStore` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `ACTOR` 时应保持 `PostgresqlPlatformAdminBootstrapStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `ACTOR`, preserve `PostgresqlPlatformAdminBootstrapStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private static final String ACTOR = "rbac3-platform-bootstrap";
+    /**
+     * 字段 `APPLICATION_CODE` 表示 `PostgresqlPlatformAdminBootstrapStore` 中与 `APPLICATION CODE` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `APPLICATION_CODE` stores the `APPLICATION CODE`-related state, dependency, configuration, or result of `PostgresqlPlatformAdminBootstrapStore` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `APPLICATION_CODE` 时应保持 `PostgresqlPlatformAdminBootstrapStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `APPLICATION_CODE`, preserve `PostgresqlPlatformAdminBootstrapStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private static final String APPLICATION_CODE = "rbac3-system";
+    /**
+     * 字段 `ROLE_CODE` 表示 `PostgresqlPlatformAdminBootstrapStore` 中与 `ROLE CODE` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `ROLE_CODE` stores the `ROLE CODE`-related state, dependency, configuration, or result of `PostgresqlPlatformAdminBootstrapStore` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `ROLE_CODE` 时应保持 `PostgresqlPlatformAdminBootstrapStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `ROLE_CODE`, preserve `PostgresqlPlatformAdminBootstrapStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private static final String ROLE_CODE = "ROLE_PLATFORM_ADMIN";
+    /**
+     * 字段 `TENANT_CODE` 表示 `PostgresqlPlatformAdminBootstrapStore` 中与 `TENANT CODE` 相关的状态、依赖、配置或结果（声明类型 `Pattern`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `TENANT_CODE` stores the `TENANT CODE`-related state, dependency, configuration, or result of `PostgresqlPlatformAdminBootstrapStore` (declared type `Pattern`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `TENANT_CODE` 时应保持 `PostgresqlPlatformAdminBootstrapStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `TENANT_CODE`, preserve `PostgresqlPlatformAdminBootstrapStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private static final Pattern TENANT_CODE = Pattern.compile("^[a-z][a-z0-9-]{2,63}$");
 
+    /**
+     * 字段 `PLATFORM_PERMISSIONS` 表示 `PostgresqlPlatformAdminBootstrapStore` 中与 `PLATFORM PERMISSIONS` 相关的状态、依赖、配置或结果（声明类型 `List&lt;String&gt;`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `PLATFORM_PERMISSIONS` stores the `PLATFORM PERMISSIONS`-related state, dependency, configuration, or result of `PostgresqlPlatformAdminBootstrapStore` (declared type `List&lt;String&gt;`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `PLATFORM_PERMISSIONS` 时应保持 `PostgresqlPlatformAdminBootstrapStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `PLATFORM_PERMISSIONS`, preserve `PostgresqlPlatformAdminBootstrapStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private static final List<String> PLATFORM_PERMISSIONS = List.of(
             "system:application:read",
             "system:audit:read",
@@ -81,13 +125,69 @@ public class PostgresqlPlatformAdminBootstrapStore
             "system:user-status:manage",
             "system:user:read");
 
+    /**
+     * 字段 `entityManager` 表示 `PostgresqlPlatformAdminBootstrapStore` 中与 `entity Manager` 相关的状态、依赖、配置或结果（声明类型 `EntityManager`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `entityManager` stores the `entity Manager`-related state, dependency, configuration, or result of `PostgresqlPlatformAdminBootstrapStore` (declared type `EntityManager`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `entityManager` 时应保持 `PostgresqlPlatformAdminBootstrapStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `entityManager`, preserve `PostgresqlPlatformAdminBootstrapStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final EntityManager entityManager;
+    /**
+     * 字段 `idGenerator` 表示 `PostgresqlPlatformAdminBootstrapStore` 中与 `id Generator` 相关的状态、依赖、配置或结果（声明类型 `LongIdGenerator`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `idGenerator` stores the `id Generator`-related state, dependency, configuration, or result of `PostgresqlPlatformAdminBootstrapStore` (declared type `LongIdGenerator`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `idGenerator` 时应保持 `PostgresqlPlatformAdminBootstrapStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `idGenerator`, preserve `PostgresqlPlatformAdminBootstrapStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final LongIdGenerator idGenerator;
+    /**
+     * 字段 `passwordEncoder` 表示 `PostgresqlPlatformAdminBootstrapStore` 中与 `password Encoder` 相关的状态、依赖、配置或结果（声明类型 `PasswordEncoder`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `passwordEncoder` stores the `password Encoder`-related state, dependency, configuration, or result of `PostgresqlPlatformAdminBootstrapStore` (declared type `PasswordEncoder`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `passwordEncoder` 时应保持 `PostgresqlPlatformAdminBootstrapStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `passwordEncoder`, preserve `PostgresqlPlatformAdminBootstrapStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final PasswordEncoder passwordEncoder;
+    /**
+     * 字段 `auditPort` 表示 `PostgresqlPlatformAdminBootstrapStore` 中与 `audit Port` 相关的状态、依赖、配置或结果（声明类型 `AuditPort`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `auditPort` stores the `audit Port`-related state, dependency, configuration, or result of `PostgresqlPlatformAdminBootstrapStore` (declared type `AuditPort`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `auditPort` 时应保持 `PostgresqlPlatformAdminBootstrapStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `auditPort`, preserve `PostgresqlPlatformAdminBootstrapStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final AuditPort auditPort;
+    /**
+     * 字段 `eventPort` 表示 `PostgresqlPlatformAdminBootstrapStore` 中与 `event Port` 相关的状态、依赖、配置或结果（声明类型 `AuthorizationEventPort`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `eventPort` stores the `event Port`-related state, dependency, configuration, or result of `PostgresqlPlatformAdminBootstrapStore` (declared type `AuthorizationEventPort`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `eventPort` 时应保持 `PostgresqlPlatformAdminBootstrapStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `eventPort`, preserve `PostgresqlPlatformAdminBootstrapStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final AuthorizationEventPort eventPort;
+    /**
+     * 字段 `clock` 表示 `PostgresqlPlatformAdminBootstrapStore` 中与 `clock` 相关的状态、依赖、配置或结果（声明类型 `Clock`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `clock` stores the `clock`-related state, dependency, configuration, or result of `PostgresqlPlatformAdminBootstrapStore` (declared type `Clock`); its lifecycle and value semantics are defined by its declared type and owning object.
+     *
+     * 含义与用法：读取、传递或更新 `clock` 时应保持 `PostgresqlPlatformAdminBootstrapStore` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `clock`, preserve `PostgresqlPlatformAdminBootstrapStore`'s lifecycle, immutability, and thread-safety constraints.
+     */
     private final Clock clock;
 
+    /**
+     * 构造器 `PostgresqlPlatformAdminBootstrapStore` 用于创建并初始化 `PostgresqlPlatformAdminBootstrapStore` 实例，建立该类型后续方法所依赖的状态和不变量。
+     * Constructor `PostgresqlPlatformAdminBootstrapStore` creates and initializes `PostgresqlPlatformAdminBootstrapStore`, establishing the state and invariants required by subsequent operations.
+     *
+     * 用法：通过 `PostgresqlPlatformAdminBootstrapStore` 的构造入口创建实例，不绕过构造器建立的校验和初始化约束。
+     * Usage: create the instance through `PostgresqlPlatformAdminBootstrapStore`'s constructor entry point and do not bypass the validation and initialization constraints established there.
+     *
+     * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param passwordEncoder 输入参数 `passwordEncoder`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param auditPort 输入参数 `auditPort`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param eventPort 输入参数 `eventPort`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     public PostgresqlPlatformAdminBootstrapStore(
             EntityManager entityManager,
             LongIdGenerator idGenerator,
@@ -103,6 +203,17 @@ public class PostgresqlPlatformAdminBootstrapStore
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
+    /**
+     * 方法 `bootstrap` 按照 `PostgresqlPlatformAdminBootstrapStore` 的职责处理输入，完成 `bootstrap` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `bootstrap` processes its inputs according to `PostgresqlPlatformAdminBootstrapStore`'s responsibility, performs the `bootstrap` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `bootstrap` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `bootstrap`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantCode 输入参数 `tenantCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param username 输入参数 `username`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param password 输入参数 `password`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     @Override
     @Transactional
     public void bootstrap(String tenantCode, String username, char[] password) {
@@ -178,12 +289,28 @@ public class PostgresqlPlatformAdminBootstrapStore
                 requestId));
     }
 
+    /**
+     * 方法 `acquireLock` 按照 `PostgresqlPlatformAdminBootstrapStore` 的职责处理输入，完成 `acquire Lock` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `acquireLock` processes its inputs according to `PostgresqlPlatformAdminBootstrapStore`'s responsibility, performs the `acquire Lock` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `acquireLock` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `acquireLock`, then continue the business flow using its result, exception, or side effect.
+     */
     private void acquireLock() {
         entityManager.createNativeQuery("select pg_advisory_xact_lock(:lockKey)")
                 .setParameter("lockKey", BOOTSTRAP_LOCK_KEY)
                 .getSingleResult();
     }
 
+    /**
+     * 方法 `rejectExistingAdministrator` 按照 `PostgresqlPlatformAdminBootstrapStore` 的职责处理输入，完成 `reject Existing Administrator` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `rejectExistingAdministrator` processes its inputs according to `PostgresqlPlatformAdminBootstrapStore`'s responsibility, performs the `reject Existing Administrator` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `rejectExistingAdministrator` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `rejectExistingAdministrator`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantCode 输入参数 `tenantCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     private void rejectExistingAdministrator(String tenantCode) {
         Number count = (Number) entityManager.createNativeQuery("""
                         select count(*)
@@ -208,6 +335,15 @@ public class PostgresqlPlatformAdminBootstrapStore
         }
     }
 
+    /**
+     * 方法 `rejectExistingTenant` 按照 `PostgresqlPlatformAdminBootstrapStore` 的职责处理输入，完成 `reject Existing Tenant` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `rejectExistingTenant` processes its inputs according to `PostgresqlPlatformAdminBootstrapStore`'s responsibility, performs the `reject Existing Tenant` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `rejectExistingTenant` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `rejectExistingTenant`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantCode 输入参数 `tenantCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     private void rejectExistingTenant(String tenantCode) {
         Number count = (Number) entityManager.createNativeQuery(
                         "select count(*) from rbac3_tenant where lower(code) = :tenantCode")
@@ -219,6 +355,17 @@ public class PostgresqlPlatformAdminBootstrapStore
         }
     }
 
+    /**
+     * 方法 `insertSelfClosure` 按照 `PostgresqlPlatformAdminBootstrapStore` 的职责处理输入，完成 `insert Self Closure` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `insertSelfClosure` processes its inputs according to `PostgresqlPlatformAdminBootstrapStore`'s responsibility, performs the `insert Self Closure` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `insertSelfClosure` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `insertSelfClosure`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param applicationId 输入参数 `applicationId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param roleId 输入参数 `roleId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     private void insertSelfClosure(Long tenantId, Long applicationId, Long roleId) {
         entityManager.createNativeQuery("""
                         insert into rbac3_role_closure (
@@ -232,6 +379,16 @@ public class PostgresqlPlatformAdminBootstrapStore
                 .executeUpdate();
     }
 
+    /**
+     * 方法 `normalizeTenantCode` 按照 `PostgresqlPlatformAdminBootstrapStore` 的职责处理输入，完成 `normalize Tenant Code` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `normalizeTenantCode` processes its inputs according to `PostgresqlPlatformAdminBootstrapStore`'s responsibility, performs the `normalize Tenant Code` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `normalizeTenantCode` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `normalizeTenantCode`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param value 输入参数 `value`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static String normalizeTenantCode(String value) {
         String normalized = Objects.requireNonNull(value, "tenantCode")
                 .trim().toLowerCase(Locale.ROOT);
@@ -241,6 +398,15 @@ public class PostgresqlPlatformAdminBootstrapStore
         return normalized;
     }
 
+    /**
+     * 方法 `requirePassword` 按照 `PostgresqlPlatformAdminBootstrapStore` 的职责处理输入，完成 `require Password` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `requirePassword` processes its inputs according to `PostgresqlPlatformAdminBootstrapStore`'s responsibility, performs the `require Password` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `requirePassword` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `requirePassword`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param password 输入参数 `password`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     */
     private static void requirePassword(char[] password) {
         Objects.requireNonNull(password, "password");
         if (password.length < 12 || password.length > 64) {
@@ -248,6 +414,16 @@ public class PostgresqlPlatformAdminBootstrapStore
         }
     }
 
+    /**
+     * 方法 `risk` 按照 `PostgresqlPlatformAdminBootstrapStore` 的职责处理输入，完成 `risk` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `risk` processes its inputs according to `PostgresqlPlatformAdminBootstrapStore`'s responsibility, performs the `risk` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `risk` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `risk`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param permissionCode 输入参数 `permissionCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static PermissionEntity.RiskLevel risk(String permissionCode) {
         return permissionCode.endsWith(":read")
                 ? PermissionEntity.RiskLevel.MEDIUM
@@ -258,6 +434,16 @@ public class PostgresqlPlatformAdminBootstrapStore
                 : PermissionEntity.RiskLevel.HIGH;
     }
 
+    /**
+     * 方法 `permissionName` 按照 `PostgresqlPlatformAdminBootstrapStore` 的职责处理输入，完成 `permission Name` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `permissionName` processes its inputs according to `PostgresqlPlatformAdminBootstrapStore`'s responsibility, performs the `permission Name` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     *
+     * 用法：调用 `permissionName` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `permissionName`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param permissionCode 输入参数 `permissionCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
     private static String permissionName(String permissionCode) {
         return permissionCode.substring("system:".length())
                 .replace(':', ' ')
