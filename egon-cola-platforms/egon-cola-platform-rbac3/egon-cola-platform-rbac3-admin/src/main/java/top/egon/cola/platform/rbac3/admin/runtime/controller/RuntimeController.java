@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.runtime.service.ControlPlaneRuntimeStatusPort;
 import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeQueryService;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;

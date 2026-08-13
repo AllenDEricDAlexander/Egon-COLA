@@ -11,7 +11,6 @@ import top.egon.cola.platform.rbac3.admin.management.domain.vo.PolicyVO;
 import top.egon.cola.platform.rbac3.admin.management.domain.vo.CapabilityVO;
 import top.egon.cola.platform.rbac3.admin.management.domain.vo.ManagedUserVO;
 import top.egon.cola.platform.rbac3.admin.management.domain.vo.ManagedRoleVO;
-import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
 
 /**
      * 类型 `ManagementPolicyControlRepository` 位于 `ManagementPolicyFacade` 内，是接口，用于承载 `Control Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

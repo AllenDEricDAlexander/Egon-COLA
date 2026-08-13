@@ -9,7 +9,6 @@ import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
 import java.io.Serializable;
 import top.egon.cola.platform.rbac3.admin.management.domain.enums.ManagementOperationOperationEnum;
-import top.egon.cola.platform.rbac3.admin.management.domain.po.ManagementOperationPO;
 
 /**
      * 类型 `ManagementOperationKey` 位于 `ManagementOperationPO` 内，是记录类型，用于承载 `ManagementOperationKey` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

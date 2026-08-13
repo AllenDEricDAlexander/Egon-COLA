@@ -1,7 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.activation.repository;
 
-import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.runtime.service.SessionSnapshotProjector;
 import top.egon.cola.platform.rbac3.contract.activation.ActiveRoleSetView;
 import top.egon.cola.platform.rbac3.contract.activation.ReplaceActiveRolesResult;
 import top.egon.cola.platform.rbac3.core.activation.DefaultRoleActivationResolver;
@@ -25,7 +23,6 @@ import top.egon.cola.platform.rbac3.admin.activation.domain.vo.SessionStateVO;
 import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ResolvedActivationVO;
 import top.egon.cola.platform.rbac3.admin.activation.domain.vo.TransactionResultVO;
 import top.egon.cola.platform.rbac3.admin.activation.domain.vo.CurrentStateVO;
-import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
 
 /**
      * 类型 `ActivationTransaction` 位于 `RoleActivationFacade` 内，是接口，用于承载 `Activation Transaction` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

@@ -3,7 +3,6 @@ package top.egon.cola.platform.rbac3.admin.assignment.repository.jdbc;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentFacade;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;

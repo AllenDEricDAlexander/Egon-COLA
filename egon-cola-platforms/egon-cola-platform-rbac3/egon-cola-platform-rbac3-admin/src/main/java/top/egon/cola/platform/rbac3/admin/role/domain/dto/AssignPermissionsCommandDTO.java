@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Objects;
 import java.time.Instant;
 import java.util.function.Function;
-import top.egon.cola.platform.rbac3.admin.role.service.RoleFacade;
 
 /**
      * 类型 `AssignPermissionsCommandDTO` 位于 `RoleFacade` 内，是记录类型，用于承载 `Assign Permissions Command` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

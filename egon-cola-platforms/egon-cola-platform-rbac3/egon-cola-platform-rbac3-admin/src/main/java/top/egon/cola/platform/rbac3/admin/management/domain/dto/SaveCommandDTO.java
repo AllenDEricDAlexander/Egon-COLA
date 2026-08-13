@@ -9,7 +9,6 @@ import java.util.Set;
 import top.egon.cola.platform.rbac3.admin.management.domain.vo.ManagementPolicyRestrictionsVO;
 import top.egon.cola.platform.rbac3.admin.management.domain.vo.ManagementPolicySubjectVO;
 import top.egon.cola.platform.rbac3.admin.management.domain.vo.ManagementPolicyScopeVO;
-import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
 
 /**
      * 类型 `SaveCommandDTO` 位于 `ManagementPolicyFacade` 内，是记录类型，用于承载 `Save Command` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

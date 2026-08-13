@@ -3,7 +3,6 @@ package top.egon.cola.platform.rbac3.admin.activation.repository.internal;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.contract.authorization.FieldAccessLevel;
 import top.egon.cola.platform.rbac3.core.activation.AuthorizationRuleFacts;
 import top.egon.cola.platform.rbac3.core.activation.DsdSetFact;
@@ -22,7 +21,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaRoleActivationFactRepository;
 
 /**
      * 类型 `MutableDsd` 位于 `RoleActivationFactStore` 内，是类型，用于承载 `Mutable Dsd` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

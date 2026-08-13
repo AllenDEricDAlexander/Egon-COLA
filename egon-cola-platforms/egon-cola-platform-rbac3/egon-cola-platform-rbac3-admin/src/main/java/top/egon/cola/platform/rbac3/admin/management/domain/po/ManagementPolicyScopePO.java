@@ -5,13 +5,6 @@ import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
-import top.egon.cola.platform.rbac3.admin.management.domain.po.ManagementOperationPO;
-import top.egon.cola.platform.rbac3.admin.management.domain.po.ManagementPolicyPO;
-import top.egon.cola.platform.rbac3.admin.management.domain.po.ManagementRolePO;
-import top.egon.cola.platform.rbac3.admin.management.domain.po.ManagementScopePO;
-import top.egon.cola.platform.rbac3.admin.management.domain.po.ManagementSubjectPO;
 import top.egon.cola.platform.rbac3.core.delegation.ManagementPolicyDecisionService;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 import java.time.Instant;
@@ -19,8 +12,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import top.egon.cola.platform.rbac3.admin.directory.domain.enums.UserPositionSnapshotStatusEnum;
-import top.egon.cola.platform.rbac3.admin.management.repository.jpa.JpaManagementPolicyRepository;
 
 /**
      * 类型 `ManagementPolicyScopePO` 位于 `ManagementPolicyRepository` 内，是记录类型，用于承载 `ManagementPolicyScopePO` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

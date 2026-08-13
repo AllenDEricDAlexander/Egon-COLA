@@ -1,14 +1,13 @@
 package top.egon.cola.platform.rbac3.admin.runtime.service;
 
-import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.DdcProviderLeaseStatusRepository;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayAdminControlPlaneStatusClient;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayDefinitionStatusRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.GatewayAdminSnapshotRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.GatewayDefinitionStatusPort;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ProviderLeaseStatusPort;
 import top.egon.cola.platform.rbac3.admin.runtime.service.ControlPlaneRuntimeStatusPort;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
-import java.util.function.Supplier;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ServiceIdentityVO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.DdcProviderLeaseStatusVO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayAdminSnapshotVO;
@@ -33,7 +32,7 @@ public final class GatewayDdcRuntimeStatusService
      * 含义与用法：读取、传递或更新 `definition` 时应保持 `GatewayDdcRuntimeStatusService` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `definition`, preserve `GatewayDdcRuntimeStatusService`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final Supplier<GatewayDefinitionStatusVO> definition;
+    private final GatewayDefinitionStatusPort definition;
     /**
      * 字段 `lease` 表示 `GatewayDdcRuntimeStatusService` 中与 `lease` 相关的状态、依赖、配置或结果（声明类型 `Supplier&lt;DdcProviderLeaseStatusVO&gt;`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `lease` stores the `lease`-related state, dependency, configuration, or result of `GatewayDdcRuntimeStatusService` (declared type `Supplier&lt;DdcProviderLeaseStatusVO&gt;`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -41,7 +40,7 @@ public final class GatewayDdcRuntimeStatusService
      * 含义与用法：读取、传递或更新 `lease` 时应保持 `GatewayDdcRuntimeStatusService` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `lease`, preserve `GatewayDdcRuntimeStatusService`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final Supplier<DdcProviderLeaseStatusVO> lease;
+    private final ProviderLeaseStatusPort lease;
     /**
      * 字段 `gatewayAdmin` 表示 `GatewayDdcRuntimeStatusService` 中与 `gateway Admin` 相关的状态、依赖、配置或结果（声明类型 `GatewayAdminControlPlaneStatusClient`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `gatewayAdmin` stores the `gateway Admin`-related state, dependency, configuration, or result of `GatewayDdcRuntimeStatusService` (declared type `GatewayAdminControlPlaneStatusClient`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -49,7 +48,7 @@ public final class GatewayDdcRuntimeStatusService
      * 含义与用法：读取、传递或更新 `gatewayAdmin` 时应保持 `GatewayDdcRuntimeStatusService` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `gatewayAdmin`, preserve `GatewayDdcRuntimeStatusService`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final GatewayAdminControlPlaneStatusClient gatewayAdmin;
+    private final GatewayAdminSnapshotRepository gatewayAdmin;
     /**
      * 字段 `expectedIdentity` 表示 `GatewayDdcRuntimeStatusService` 中与 `expected Identity` 相关的状态、依赖、配置或结果（声明类型 `ServiceIdentityVO`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `expectedIdentity` stores the `expected Identity`-related state, dependency, configuration, or result of `GatewayDdcRuntimeStatusService` (declared type `ServiceIdentityVO`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -81,31 +80,9 @@ public final class GatewayDdcRuntimeStatusService
      * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public GatewayDdcRuntimeStatusService(
-            GatewayDefinitionStatusRepository definition,
-            DdcProviderLeaseStatusRepository lease,
-            GatewayAdminControlPlaneStatusClient gatewayAdmin,
-            ServiceIdentityVO expectedIdentity,
-            Clock clock) {
-        this(definition::status, lease::status, gatewayAdmin, expectedIdentity, clock);
-    }
-
-    /**
-     * 构造器 `GatewayDdcRuntimeStatusService` 用于创建并初始化 `GatewayDdcRuntimeStatusService` 实例，建立该类型后续方法所依赖的状态和不变量。
-     * Constructor `GatewayDdcRuntimeStatusService` creates and initializes `GatewayDdcRuntimeStatusService`, establishing the state and invariants required by subsequent operations.
-     *
-     * 用法：通过 `GatewayDdcRuntimeStatusService` 的构造入口创建实例，不绕过构造器建立的校验和初始化约束。
-     * Usage: create the instance through `GatewayDdcRuntimeStatusService`'s constructor entry point and do not bypass the validation and initialization constraints established there.
-     *
-     * @param definition 输入参数 `definition`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param lease 输入参数 `lease`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param gatewayAdmin 输入参数 `gatewayAdmin`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param expectedIdentity 输入参数 `expectedIdentity`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     */
-    public GatewayDdcRuntimeStatusService(
-            Supplier<GatewayDefinitionStatusVO> definition,
-            Supplier<DdcProviderLeaseStatusVO> lease,
-            GatewayAdminControlPlaneStatusClient gatewayAdmin,
+            GatewayDefinitionStatusPort definition,
+            ProviderLeaseStatusPort lease,
+            GatewayAdminSnapshotRepository gatewayAdmin,
             ServiceIdentityVO expectedIdentity,
             Clock clock) {
         this.definition = Objects.requireNonNull(definition, "definition");
@@ -126,8 +103,8 @@ public final class GatewayDdcRuntimeStatusService
      */
     @Override
     public RuntimeStatusVO status() {
-        var definitionStatus = definition.get();
-        var leaseStatus = lease.get();
+        var definitionStatus = definition.status();
+        var leaseStatus = lease.status();
         var gateway = gatewayAdmin.snapshot();
         Instant checkedAt = clock.instant();
         String routeability = routeability(

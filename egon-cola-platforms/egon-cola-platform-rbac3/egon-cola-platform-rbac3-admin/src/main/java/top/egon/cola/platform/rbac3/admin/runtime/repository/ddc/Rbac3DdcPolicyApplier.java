@@ -3,7 +3,7 @@ package top.egon.cola.platform.rbac3.admin.runtime.repository.ddc;
 import top.egon.cola.component.ddc.api.refresh.DdcConfigApplier;
 
 import java.util.Objects;
-import top.egon.cola.platform.rbac3.admin.runtime.service.internal.ApplyObserver;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ApplyObserver;
 
 /**
  * 类型 `Rbac3DdcPolicyApplier` 位于当前包内，是类型，用于承载 `Rbac3 Ddc Policy Applier` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

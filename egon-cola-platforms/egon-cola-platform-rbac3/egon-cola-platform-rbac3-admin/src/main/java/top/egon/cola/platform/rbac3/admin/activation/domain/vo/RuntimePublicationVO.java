@@ -1,7 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.activation.domain.vo;
 
-import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.runtime.service.SessionSnapshotProjector;
 import top.egon.cola.platform.rbac3.contract.activation.ActiveRoleSetView;
 import top.egon.cola.platform.rbac3.contract.activation.ReplaceActiveRolesResult;
 import top.egon.cola.platform.rbac3.core.activation.DefaultRoleActivationResolver;
@@ -20,7 +18,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
-import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.SessionSnapshotProjectionVO;
 
 /**

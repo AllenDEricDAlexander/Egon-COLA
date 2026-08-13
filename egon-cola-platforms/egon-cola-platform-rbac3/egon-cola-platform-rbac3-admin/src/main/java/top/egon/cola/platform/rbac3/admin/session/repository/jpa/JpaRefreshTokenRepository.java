@@ -5,9 +5,8 @@ import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.session.service.RefreshTokenService;
-import top.egon.cola.platform.rbac3.admin.session.service.SessionRuntimeSynchronizer;
-import top.egon.cola.platform.rbac3.admin.session.service.SessionSecurityEventRecorder;
+import top.egon.cola.platform.rbac3.admin.session.repository.SessionRuntimeSynchronizer;
+import top.egon.cola.platform.rbac3.admin.session.repository.SessionSecurityEventPort;
 import top.egon.cola.platform.rbac3.admin.session.domain.po.RefreshTokenPO;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 
@@ -68,7 +67,7 @@ public class JpaRefreshTokenRepository implements RefreshTokenRepository {
      * 含义与用法：读取、传递或更新 `securityEventRecorder` 时应保持 `JpaRefreshTokenRepository` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `securityEventRecorder`, preserve `JpaRefreshTokenRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final SessionSecurityEventRecorder securityEventRecorder;
+    private final SessionSecurityEventPort securityEventRecorder;
 
     /**
      * 构造器 `JpaRefreshTokenRepository` 用于创建并初始化 `JpaRefreshTokenRepository` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -88,7 +87,7 @@ public class JpaRefreshTokenRepository implements RefreshTokenRepository {
             JpaSessionEntityRepository sessionRepository,
             LongIdGenerator idGenerator,
             SessionRuntimeSynchronizer runtimeSynchronizer,
-            SessionSecurityEventRecorder securityEventRecorder) {
+            SessionSecurityEventPort securityEventRecorder) {
         this.entityManager = entityManager;
         this.sessionRepository = sessionRepository;
         this.idGenerator = idGenerator;

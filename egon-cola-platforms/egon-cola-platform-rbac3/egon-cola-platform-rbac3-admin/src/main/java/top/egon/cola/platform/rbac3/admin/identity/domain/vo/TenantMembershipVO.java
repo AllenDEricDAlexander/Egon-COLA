@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import top.egon.cola.platform.rbac3.admin.identity.service.IdentityMappingFacade;
 
 /**
      * 类型 `TenantMembershipVO` 位于 `IdentityMappingFacade` 内，是记录类型，用于承载 `Tenant Membership` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

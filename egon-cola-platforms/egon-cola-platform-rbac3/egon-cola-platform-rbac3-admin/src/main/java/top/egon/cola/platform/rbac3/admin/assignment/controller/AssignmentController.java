@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentFacade;
 import top.egon.cola.platform.rbac3.admin.runtime.service.IdempotencyService;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;

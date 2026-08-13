@@ -9,7 +9,6 @@ import top.egon.cola.platform.rbac3.admin.resource.domain.vo.ManifestVO;
 import top.egon.cola.platform.rbac3.admin.resource.domain.vo.ManifestValidationVO;
 import top.egon.cola.platform.rbac3.admin.resource.domain.vo.ManifestImpactVO;
 import top.egon.cola.platform.rbac3.admin.resource.domain.vo.ArchiveResultVO;
-import top.egon.cola.platform.rbac3.admin.resource.service.ApplicationResourceFacade;
 
 /**
      * 类型 `ApplicationResourceRepository` 位于 `ApplicationResourceFacade` 内，是接口，用于承载 `ApplicationResourceRepository` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

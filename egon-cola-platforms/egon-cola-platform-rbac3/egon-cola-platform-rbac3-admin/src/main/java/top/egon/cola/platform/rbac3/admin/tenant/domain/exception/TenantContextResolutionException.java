@@ -3,8 +3,6 @@ package top.egon.cola.platform.rbac3.admin.tenant.domain.exception;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.tenant.service.TenantContextResolver;
 
 /**
      * 类型 `TenantContextResolutionException` 位于 `TenantContextResolver` 内，是类型，用于承载 `Tenant Context Resolution Exception` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

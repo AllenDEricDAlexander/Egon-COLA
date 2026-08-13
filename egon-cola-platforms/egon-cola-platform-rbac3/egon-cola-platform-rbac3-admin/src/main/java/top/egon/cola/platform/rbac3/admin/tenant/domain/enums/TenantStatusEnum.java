@@ -13,7 +13,6 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
-import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 
 /**
      * 类型 `TenantStatusEnum` 位于 `TenantEntity` 内，是枚举，用于承载 `TenantStatusEnum` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

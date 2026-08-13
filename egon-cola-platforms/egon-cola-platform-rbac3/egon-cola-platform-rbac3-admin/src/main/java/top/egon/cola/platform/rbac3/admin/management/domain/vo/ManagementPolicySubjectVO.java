@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
 
 /**
      * 类型 `ManagementPolicySubjectVO` 位于 `ManagementPolicyFacade` 内，是记录类型，用于承载 `ManagementPolicySubjectVO` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

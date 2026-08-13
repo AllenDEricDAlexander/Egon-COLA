@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Set;
 import top.egon.cola.platform.rbac3.admin.directory.domain.dto.PositionInputDTO;
 import top.egon.cola.platform.rbac3.admin.directory.domain.dto.UserPositionInputDTO;
-import top.egon.cola.platform.rbac3.admin.directory.service.DirectorySnapshotProcessor;
 
 /**
      * 类型 `SnapshotModelVO` 位于 `DirectorySnapshotProcessor` 内，是记录类型，用于承载 `Snapshot Model` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

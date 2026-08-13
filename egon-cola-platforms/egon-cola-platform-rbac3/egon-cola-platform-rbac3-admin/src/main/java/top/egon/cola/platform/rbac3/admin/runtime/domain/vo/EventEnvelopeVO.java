@@ -9,7 +9,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import top.egon.cola.platform.rbac3.admin.runtime.controller.message.Rbac3RuntimeProjectionDeliveryHandler;
 
 /**
      * 类型 `EventEnvelopeVO` 位于 `Rbac3RuntimeProjectionDeliveryHandler` 内，是记录类型，用于承载 `Event Envelope` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

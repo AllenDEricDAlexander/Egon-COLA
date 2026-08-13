@@ -5,7 +5,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import top.egon.cola.platform.rbac3.admin.constraint.domain.vo.RuleReferenceVO;
-import top.egon.cola.platform.rbac3.admin.constraint.service.ConstraintFacade;
 
 /**
      * 类型 `DataRuleCommandDTO` 位于 `ConstraintFacade` 内，是记录类型，用于承载 `Data Rule Command` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

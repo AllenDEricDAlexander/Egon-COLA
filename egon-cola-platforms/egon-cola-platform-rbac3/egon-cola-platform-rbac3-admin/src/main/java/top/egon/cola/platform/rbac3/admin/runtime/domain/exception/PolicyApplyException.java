@@ -1,7 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.runtime.domain.exception;
 
-import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -10,7 +8,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
 
 /**
      * 类型 `PolicyApplyException` 位于 `AtomicRbac3RuntimePolicy` 内，是类型，用于承载 `Policy Apply Exception` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

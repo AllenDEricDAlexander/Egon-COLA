@@ -9,7 +9,6 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Function;
-import top.egon.cola.platform.rbac3.admin.auth.service.PasswordIdentityAuthenticator;
 
 /**
      * 类型 `PasswordCredentialVO` 位于 `PasswordIdentityAuthenticator` 内，是记录类型，用于承载 `Password Credential` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

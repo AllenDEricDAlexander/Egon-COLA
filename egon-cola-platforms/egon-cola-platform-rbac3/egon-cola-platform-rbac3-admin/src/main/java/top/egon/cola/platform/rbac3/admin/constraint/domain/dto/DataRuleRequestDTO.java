@@ -17,14 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.constraint.service.ConstraintFacade;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
-import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;
 import java.time.Instant;
 import java.util.List;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
-import top.egon.cola.platform.rbac3.admin.constraint.controller.ConstraintController;
 import top.egon.cola.platform.rbac3.admin.constraint.domain.vo.RuleReferenceVO;
 
 /**

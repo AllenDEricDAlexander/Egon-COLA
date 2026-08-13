@@ -2,7 +2,7 @@ package top.egon.cola.platform.rbac3.admin.shared.repository.jpa;
 
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Component;
-import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;

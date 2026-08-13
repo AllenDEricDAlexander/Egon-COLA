@@ -1,12 +1,10 @@
 package top.egon.cola.platform.rbac3.admin.auth.domain.vo;
 
-import top.egon.cola.platform.rbac3.admin.session.service.SessionFacade;
 import top.egon.cola.platform.rbac3.contract.auth.LoginRequest;
 import top.egon.cola.platform.rbac3.contract.auth.LoginResult;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
-import top.egon.cola.platform.rbac3.admin.auth.service.AuthenticationFacade;
 
 /**
      * 类型 `LoginAuditVO` 位于 `AuthenticationFacade` 内，是记录类型，用于承载 `Login Audit` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

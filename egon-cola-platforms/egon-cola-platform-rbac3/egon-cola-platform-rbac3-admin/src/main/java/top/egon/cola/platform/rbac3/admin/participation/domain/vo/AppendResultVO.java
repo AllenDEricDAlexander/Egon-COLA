@@ -15,7 +15,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
-import top.egon.cola.platform.rbac3.admin.participation.service.ParticipationFacade;
 
 /**
      * 类型 `AppendResultVO` 位于 `ParticipationFacade` 内，是记录类型，用于承载 `Append Result` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

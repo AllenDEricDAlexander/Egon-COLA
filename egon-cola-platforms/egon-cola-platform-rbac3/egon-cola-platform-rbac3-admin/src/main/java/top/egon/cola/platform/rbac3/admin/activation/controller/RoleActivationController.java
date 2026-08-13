@@ -12,7 +12,7 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;

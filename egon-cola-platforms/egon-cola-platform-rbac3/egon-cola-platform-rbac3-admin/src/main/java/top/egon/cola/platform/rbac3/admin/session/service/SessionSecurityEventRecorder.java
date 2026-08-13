@@ -2,6 +2,7 @@ package top.egon.cola.platform.rbac3.admin.session.service;
 
 import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
+import top.egon.cola.platform.rbac3.admin.session.repository.SessionSecurityEventPort;
 
 import java.time.Instant;
 import java.util.Map;
@@ -15,7 +16,7 @@ import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.AuthorizationEventVO
  * Type `SessionSecurityEventRecorder` is a type in its package and carries the responsibility, state, or contract for `Session Security Event Recorder`; callers normally use it through its public API, Spring assembly, or implementation relationship.
  * Records one append-only audit entry and one reliable runtime event for a terminal session.
  */
-public final class SessionSecurityEventRecorder {
+public final class SessionSecurityEventRecorder implements SessionSecurityEventPort {
 
     /**
      * 字段 `auditPort` 表示 `SessionSecurityEventRecorder` 中与 `audit Port` 相关的状态、依赖、配置或结果（声明类型 `AuditPort`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -60,6 +61,7 @@ public final class SessionSecurityEventRecorder {
      *
      * @param termination 输入参数 `termination`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
+    @Override
     public void record(TerminationVO termination) {
         Objects.requireNonNull(termination, "termination");
         String correlationId = "session:" + termination.sessionId()

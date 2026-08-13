@@ -5,11 +5,6 @@ import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.directory.service.DirectorySnapshotProcessor;
-import top.egon.cola.platform.rbac3.admin.directory.domain.po.OrgUnitPO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.po.PositionPO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.po.UserPositionSnapshotPO;
-import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -22,7 +17,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import top.egon.cola.platform.rbac3.admin.directory.domain.UserPositionKey;
-import top.egon.cola.platform.rbac3.admin.directory.repository.jpa.DirectorySnapshotMaterializer;
 
 /**
      * 类型 `AssignmentSignature` 位于 `DirectorySnapshotMaterializer` 内，是记录类型，用于承载 `Assignment Signature` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

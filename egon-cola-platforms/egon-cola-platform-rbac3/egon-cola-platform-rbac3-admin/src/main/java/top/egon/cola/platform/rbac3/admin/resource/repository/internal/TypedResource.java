@@ -7,17 +7,6 @@ import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
-import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
-import top.egon.cola.platform.rbac3.admin.resource.service.ApplicationResourceFacade;
-import top.egon.cola.platform.rbac3.admin.resource.service.ManifestFacade;
-import top.egon.cola.platform.rbac3.admin.resource.domain.po.ApplicationPO;
-import top.egon.cola.platform.rbac3.admin.resource.domain.po.FieldDefinitionPO;
-import top.egon.cola.platform.rbac3.admin.resource.domain.po.PermissionPO;
-import top.egon.cola.platform.rbac3.admin.resource.domain.po.PermissionResourcePO;
-import top.egon.cola.platform.rbac3.admin.resource.domain.po.ResourcePO;
-import top.egon.cola.platform.rbac3.admin.resource.domain.po.ResourceManifestPO;
 import top.egon.cola.platform.rbac3.contract.manifest.ManifestResource;
 import top.egon.cola.platform.rbac3.contract.manifest.ResourceManifest;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
@@ -27,7 +16,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import top.egon.cola.platform.rbac3.admin.resource.repository.jpa.JpaResourceManifestRepository;
 import top.egon.cola.platform.rbac3.admin.resource.domain.enums.ResourceTypeEnum;
 
 /**

@@ -1,6 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.authorization.domain.vo;
 
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.AuthorizationDecision;
@@ -16,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
 
 /**
      * 关联租户、IdP 主体、RBAC 用户与不可变授权快照的记录。

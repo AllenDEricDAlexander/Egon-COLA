@@ -1,12 +1,10 @@
 package top.egon.cola.platform.rbac3.admin.auth.repository;
 
-import top.egon.cola.platform.rbac3.admin.session.service.SessionFacade;
 import top.egon.cola.platform.rbac3.contract.auth.LoginRequest;
 import top.egon.cola.platform.rbac3.contract.auth.LoginResult;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
-import top.egon.cola.platform.rbac3.admin.auth.service.AuthenticationFacade;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.SessionRecordVO;
 
 /**

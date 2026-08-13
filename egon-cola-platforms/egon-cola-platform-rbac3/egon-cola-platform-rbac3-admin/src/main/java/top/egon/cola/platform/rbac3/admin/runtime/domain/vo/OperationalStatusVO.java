@@ -6,15 +6,11 @@ import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.rbac3.admin.config.flyway.Rbac3FlywayConfiguration;
-import top.egon.cola.platform.rbac3.admin.runtime.service.ControlPlaneRuntimeStatusPort;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.po.AuthorizationMutationPO;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
-import top.egon.cola.platform.rbac3.admin.runtime.service.Rbac3OperationalRuntimeStatusService;
 
 /**
      * 类型 `OperationalStatusVO` 位于 `Rbac3OperationalRuntimeStatusService` 内，是记录类型，用于承载 `Operational Status` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

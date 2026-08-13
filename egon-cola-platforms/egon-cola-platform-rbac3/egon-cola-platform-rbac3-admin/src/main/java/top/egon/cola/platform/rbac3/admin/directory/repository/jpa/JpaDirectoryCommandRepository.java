@@ -5,28 +5,17 @@ import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
-import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.auth.service.AuthenticationFacade;
-import top.egon.cola.platform.rbac3.admin.auth.service.RefreshFacade;
-import top.egon.cola.platform.rbac3.admin.auth.service.StepUpFacade;
-import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
+import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.directory.domain.po.DirectorySnapshotPO;
-import top.egon.cola.platform.rbac3.admin.directory.service.DirectorySnapshotProcessor;
-import top.egon.cola.platform.rbac3.admin.directory.domain.po.OrgUnitPO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.po.PositionPO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.DirectorySnapshotProcessor;
 import top.egon.cola.platform.rbac3.admin.directory.repository.jpa.DirectorySnapshotMaterializer;
 import top.egon.cola.platform.rbac3.admin.directory.repository.jpa.JpaDirectorySnapshotRepository;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
-import top.egon.cola.platform.rbac3.admin.assignment.controller.AssignmentController;
-import top.egon.cola.platform.rbac3.admin.session.controller.SessionController;
-import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePO;
 import top.egon.cola.platform.rbac3.admin.session.domain.po.RefreshTokenPO;
 import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
-import top.egon.cola.platform.rbac3.admin.session.service.SessionRuntimeSynchronizer;
-import top.egon.cola.platform.rbac3.admin.session.service.SessionSecurityEventRecorder;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.redis.RedisAuthorizationRuntimeRepository;
+import top.egon.cola.platform.rbac3.admin.session.repository.SessionRuntimeSynchronizer;
+import top.egon.cola.platform.rbac3.admin.session.repository.SessionSecurityEventPort;
 import top.egon.cola.platform.rbac3.contract.activation.ActivationRoot;
 import top.egon.cola.platform.rbac3.contract.auth.BootstrapView;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
@@ -42,19 +31,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Locale;
-import top.egon.cola.platform.rbac3.admin.bootstrap.repository.BootstrapSnapshotRepository;
 import top.egon.cola.platform.rbac3.admin.directory.domain.vo.SnapshotModelVO;
 import top.egon.cola.platform.rbac3.admin.directory.domain.enums.DirectorySnapshotStatusEnum;
-import top.egon.cola.platform.rbac3.admin.directory.domain.enums.OrgUnitUnitTypeEnum;
-import top.egon.cola.platform.rbac3.admin.directory.domain.enums.OrgUnitStatusEnum;
-import top.egon.cola.platform.rbac3.admin.directory.domain.enums.PositionStatusEnum;
 import top.egon.cola.platform.rbac3.admin.directory.domain.vo.MaterializationResultVO;
 import top.egon.cola.platform.rbac3.admin.directory.domain.vo.IngestionResultVO;
 import top.egon.cola.platform.rbac3.admin.directory.domain.enums.DirectorySnapshotOutcomeEnum;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.enums.TenantStatusEnum;
 import top.egon.cola.platform.rbac3.admin.identity.domain.enums.UserStatusEnum;
 import top.egon.cola.platform.rbac3.admin.directory.repository.DirectoryCommandRepository;
-import top.egon.cola.platform.rbac3.admin.directory.repository.DirectoryQueryRepository;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.dto.CreateTenantCommandDTO;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.dto.TenantStatusCommandDTO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.dto.UserStatusCommandDTO;
@@ -62,10 +46,6 @@ import top.egon.cola.platform.rbac3.admin.directory.domain.dto.DirectorySnapshot
 import top.egon.cola.platform.rbac3.admin.directory.domain.vo.DirectorySyncVO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.vo.UserDirectoryVO;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.vo.TenantVO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.vo.OrgUnitVO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.vo.PositionVO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.vo.DirectorySnapshotVO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.vo.DirectoryPageVO;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.TerminationVO;
 
 /**
@@ -80,7 +60,7 @@ public class JpaDirectoryCommandRepository implements DirectoryCommandRepository
     private final JpaDirectorySnapshotRepository directorySnapshotStore;
     private final DirectorySnapshotMaterializer directorySnapshotMaterializer;
     private final SessionRuntimeSynchronizer runtimeSynchronizer;
-    private final SessionSecurityEventRecorder securityEventRecorder;
+    private final SessionSecurityEventPort securityEventRecorder;
     private final DirectorySnapshotProcessor directorySnapshotProcessor =
             new DirectorySnapshotProcessor();
 
@@ -91,7 +71,7 @@ public class JpaDirectoryCommandRepository implements DirectoryCommandRepository
             JpaDirectorySnapshotRepository directorySnapshotStore,
             DirectorySnapshotMaterializer directorySnapshotMaterializer,
             SessionRuntimeSynchronizer runtimeSynchronizer,
-            SessionSecurityEventRecorder securityEventRecorder) {
+            SessionSecurityEventPort securityEventRecorder) {
         this.entityManager = entityManager;
         this.idGenerator = idGenerator;
         this.databaseClock = databaseClock;

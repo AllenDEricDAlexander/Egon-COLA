@@ -17,14 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.constraint.service.ConstraintFacade;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
-import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;
 import java.time.Instant;
 import java.util.List;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
-import top.egon.cola.platform.rbac3.admin.constraint.controller.ConstraintController;
 
 /**
      * 类型 `FieldRuleRequestDTO` 位于 `ConstraintController` 内，是记录类型，用于承载 `Field Rule Request` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

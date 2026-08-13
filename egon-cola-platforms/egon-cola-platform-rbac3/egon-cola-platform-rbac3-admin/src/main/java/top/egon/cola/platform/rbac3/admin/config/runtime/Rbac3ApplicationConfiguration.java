@@ -15,6 +15,9 @@ import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandi
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
 import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaRoleActivationFactRepository;
 import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaSessionActiveRoleRepository;
+import top.egon.cola.platform.rbac3.admin.auth.repository.LoginStateDataRepository;
+import top.egon.cola.platform.rbac3.admin.auth.repository.LoginStateRepository;
+import top.egon.cola.platform.rbac3.admin.auth.service.DefaultLoginStateService;
 import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
@@ -171,6 +174,21 @@ public class Rbac3ApplicationConfiguration {
     RoleActivationCandidateService roleActivationCandidateService(
             JpaRoleActivationFactRepository factStore) {
         return new RoleActivationCandidateService(factStore);
+    }
+
+    /**
+     * 组装登录状态与角色激活候选的聚合边界。
+     * Assembles the boundary that combines login state and activation candidates.
+     *
+     * @param stateData 登录状态基础数据仓储；base login-state data repository
+     * @param candidates 角色激活候选服务；role-activation candidate service
+     * @return 登录状态边界；login-state boundary
+     */
+    @Bean
+    LoginStateRepository loginStateRepository(
+            LoginStateDataRepository stateData,
+            RoleActivationCandidateService candidates) {
+        return new DefaultLoginStateService(stateData, candidates);
     }
 
     /**
@@ -667,7 +685,7 @@ public class Rbac3ApplicationConfiguration {
     AuthorizationSimulationService authorizationSimulationService(
             AuthorizationDecisionService decisionService,
             PostgresqlRoleImpactRepository impactSource,
-            PostgresqlAuditRepository auditStore,
+            AuditPort auditStore,
             Clock clock) {
         return new AuthorizationSimulationService(
                 decisionService, impactSource, auditStore, clock);

@@ -14,7 +14,6 @@ import top.egon.cola.platform.rbac3.admin.session.domain.vo.TokenRecordVO;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.RotationResultVO;
 import top.egon.cola.platform.rbac3.admin.session.domain.enums.RefreshTokenOutcomeEnum;
 import top.egon.cola.platform.rbac3.admin.session.domain.enums.RefreshTokenTokenStatusEnum;
-import top.egon.cola.platform.rbac3.admin.session.domain.enums.RefreshTokenFamilyStatusEnum;
 
 /**
  * 类型 `RefreshTokenService` 位于当前包内，是类型，用于承载 `Refresh Token Service` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

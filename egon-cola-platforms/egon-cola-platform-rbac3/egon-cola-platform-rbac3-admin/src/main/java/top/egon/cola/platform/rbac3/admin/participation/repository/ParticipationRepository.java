@@ -20,7 +20,6 @@ import top.egon.cola.platform.rbac3.admin.participation.domain.vo.ParticipationF
 import top.egon.cola.platform.rbac3.admin.participation.domain.vo.PriorActionRuleVO;
 import top.egon.cola.platform.rbac3.admin.participation.domain.vo.AppendResultVO;
 import top.egon.cola.platform.rbac3.admin.participation.domain.dto.ConflictQueryDTO;
-import top.egon.cola.platform.rbac3.admin.participation.service.ParticipationFacade;
 
 /**
      * 类型 `ParticipationRepository` 位于 `ParticipationFacade` 内，是接口，用于承载 `Participation Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

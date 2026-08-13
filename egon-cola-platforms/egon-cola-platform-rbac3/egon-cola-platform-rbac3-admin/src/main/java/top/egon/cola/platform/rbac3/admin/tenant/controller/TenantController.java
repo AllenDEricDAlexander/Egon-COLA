@@ -32,14 +32,7 @@ import top.egon.cola.platform.rbac3.admin.directory.service.DirectoryCommandServ
 import top.egon.cola.platform.rbac3.admin.directory.service.DirectoryQueryService;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.dto.CreateTenantCommandDTO;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.dto.TenantStatusCommandDTO;
-import top.egon.cola.platform.rbac3.admin.identity.domain.dto.UserStatusCommandDTO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.dto.DirectorySnapshotCommandDTO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.vo.DirectorySyncVO;
-import top.egon.cola.platform.rbac3.admin.identity.domain.vo.UserDirectoryVO;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.vo.TenantVO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.vo.OrgUnitVO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.vo.PositionVO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.vo.DirectorySnapshotVO;
 import top.egon.cola.platform.rbac3.admin.directory.domain.vo.DirectoryPageVO;
 
 /**

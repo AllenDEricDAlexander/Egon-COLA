@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -27,30 +28,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class AdminLayerBoundaryTest {
 
-    private static final Set<String> MIGRATED_ROOTS =
-            Set.of("activation", "assignment", "audit", "auth",
-                    "authorization", "bootstrap", "config", "constraint",
-                    "directory", "identity", "management", "participation",
-                    "resource", "role", "runtime", "session", "shared",
-                    "simulation", "tenant");
+    private static final String ADMIN_PACKAGE =
+            "top.egon.cola.platform.rbac3.admin.";
+    private static final Set<String> FORBIDDEN_ROOTS = Set.of(
+            "application", "interfaces", "infrastructure", "integration",
+            "security", "worker", "snapshot");
 
     @Test
-    void controllersDoNotInjectRepositoriesAndAdminUsesUnifiedSecurityStarter()
-            throws Exception {
-        try (Stream<Path> files = Files.walk(adminSourceRoot())) {
-            assertThat(files.filter(path -> path.toString().endsWith(".java"))
-                    .filter(path -> path.toString().contains("/controller/"))
-                    .map(this::read))
-                    .noneMatch(source -> source.contains("Repository"));
-        }
+    void adminUsesUnifiedSecurityStarter() throws Exception {
         String pom = Files.readString(Path.of(System.getProperty("basedir"))
                 .resolve("pom.xml"));
         assertTrue(pom.contains("egon-cola-platform-rbac3-starter"));
     }
 
     @Test
-    void migratedPackagesHaveOneTopLevelTypeAndNoNestedTypes() throws Exception {
-        for (Path source : migratedSources()) {
+    void productionPackagesHaveOneTopLevelTypeAndNoNestedTypes() throws Exception {
+        for (Path source : productionSources()) {
             CompilationUnitTree unit = parse(source);
             List<ClassTree> topLevelTypes = unit.getTypeDecls().stream()
                     .filter(ClassTree.class::isInstance)
@@ -74,8 +67,8 @@ class AdminLayerBoundaryTest {
     }
 
     @Test
-    void migratedPackagesDoNotUseLegacyLayerNames() throws Exception {
-        for (Path source : migratedSources()) {
+    void productionPackagesDoNotUseLegacyLayerNames() throws Exception {
+        for (Path source : productionSources()) {
             Path relative = adminSourceRoot().relativize(source);
             boolean legacyLayer = StreamSupport.stream(
                             relative.spliterator(), false)
@@ -87,17 +80,92 @@ class AdminLayerBoundaryTest {
         }
     }
 
-    private List<Path> migratedSources() throws Exception {
+    @Test
+    void oldTechnicalRootsContainNoProductionJava() throws Exception {
+        for (String root : FORBIDDEN_ROOTS) {
+            Path directory = adminSourceRoot().resolve(root);
+            if (Files.exists(directory)) {
+                try (Stream<Path> files = Files.walk(directory)) {
+                    assertThat(files.filter(path -> path.toString().endsWith(".java")))
+                            .as("no Java source under old root %s", root)
+                            .isEmpty();
+                }
+            }
+        }
+    }
+
+    @Test
+    void everyProductionPackageHasPackageDocumentation() throws Exception {
+        Set<Path> packages = productionSources().stream()
+                .map(Path::getParent)
+                .collect(Collectors.toSet());
+        assertThat(packages)
+                .allSatisfy(directory -> assertThat(directory.resolve("package-info.java"))
+                        .as("package documentation for %s", directory)
+                        .exists());
+    }
+
+    @Test
+    void layersRespectDependencyDirection() throws Exception {
+        for (Path source : productionSources()) {
+            CompilationUnitTree unit = parse(source);
+            String packageName = unit.getPackageName().toString();
+            if (!packageName.startsWith(ADMIN_PACKAGE + "config")) {
+                assertLayerImports(unit, source);
+            }
+        }
+    }
+
+    private void assertLayerImports(CompilationUnitTree unit, Path source) {
+        String packageName = unit.getPackageName().toString();
+        Set<String> imports = unit.getImports().stream()
+                .map(tree -> tree.getQualifiedIdentifier().toString())
+                .filter(name -> name.startsWith(ADMIN_PACKAGE))
+                .collect(Collectors.toSet());
+
+        if (packageName.contains(".domain")) {
+            assertThat(imports)
+                    .as("domain imports in %s", source)
+                    .noneMatch(name -> name.contains(".controller.")
+                            || name.contains(".service.")
+                            || name.contains(".repository."));
+        }
+        if (packageName.contains(".controller")) {
+            String domain = domainPrefix(packageName);
+            assertThat(imports)
+                    .as("controller imports in %s", source)
+                    .allMatch(name -> name.startsWith(domain + ".controller.")
+                            || name.contains(".domain.")
+                            || name.contains(".service.")
+                            || name.startsWith(ADMIN_PACKAGE + "config.security."));
+        }
+        if (packageName.contains(".service")) {
+            assertThat(imports)
+                    .as("service imports in %s", source)
+                    .noneMatch(name -> name.contains(".controller.")
+                            || name.matches(".*\\.repository\\."
+                            + "(jpa|jdbc|redis|http|ddc|outbox|internal)\\..*"));
+        }
+        if (packageName.contains(".repository")) {
+            assertThat(imports)
+                    .as("repository imports in %s", source)
+                    .noneMatch(name -> name.contains(".controller.")
+                            || name.contains(".service."));
+        }
+    }
+
+    private String domainPrefix(String packageName) {
+        String suffix = packageName.substring(ADMIN_PACKAGE.length());
+        int separator = suffix.indexOf('.');
+        String root = separator < 0 ? suffix : suffix.substring(0, separator);
+        return ADMIN_PACKAGE + root;
+    }
+
+    private List<Path> productionSources() throws Exception {
         try (Stream<Path> files = Files.walk(adminSourceRoot())) {
             return files.filter(path -> path.toString().endsWith(".java"))
                     .filter(path -> !path.getFileName().toString()
                             .equals("package-info.java"))
-                    .filter(path -> {
-                        Path relative = adminSourceRoot().relativize(path);
-                        return relative.getNameCount() > 1
-                                && MIGRATED_ROOTS.contains(
-                                relative.getName(0).toString());
-                    })
                     .sorted()
                     .toList();
         }
@@ -119,15 +187,4 @@ class AdminLayerBoundaryTest {
         }
     }
 
-    private String read(Path path) {
-        try {
-            return Files.readString(path);
-        } catch (java.io.IOException error) {
-            throw new IllegalStateException(error);
-        }
-    }
-
-    private String normalize(Path path) {
-        return path.toString().replace('\\', '/');
-    }
 }

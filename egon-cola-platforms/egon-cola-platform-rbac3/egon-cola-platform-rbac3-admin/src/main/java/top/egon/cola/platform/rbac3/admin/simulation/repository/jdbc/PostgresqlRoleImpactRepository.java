@@ -4,8 +4,7 @@ import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
-import top.egon.cola.platform.rbac3.admin.role.service.RoleFacade;
-import top.egon.cola.platform.rbac3.admin.simulation.service.AuthorizationSimulationService;
+import top.egon.cola.platform.rbac3.admin.role.repository.RoleImpactQuery;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -40,7 +39,7 @@ public class PostgresqlRoleImpactRepository
      * 含义与用法：读取、传递或更新 `roleFacade` 时应保持 `PostgresqlRoleImpactRepository` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `roleFacade`, preserve `PostgresqlRoleImpactRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final RoleFacade roleFacade;
+    private final RoleImpactQuery roleImpactQuery;
 
     /**
      * 构造器 `PostgresqlRoleImpactRepository` 用于创建并初始化 `PostgresqlRoleImpactRepository` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -54,9 +53,9 @@ public class PostgresqlRoleImpactRepository
      */
     public PostgresqlRoleImpactRepository(
             EntityManager entityManager,
-            RoleFacade roleFacade) {
+            RoleImpactQuery roleImpactQuery) {
         this.entityManager = entityManager;
-        this.roleFacade = roleFacade;
+        this.roleImpactQuery = roleImpactQuery;
     }
 
     /**
@@ -80,7 +79,7 @@ public class PostgresqlRoleImpactRepository
         if (tenant == null) {
             throw new IllegalArgumentException("tenant is missing");
         }
-        RoleImpactVO impact = roleFacade.impact(tenantId, roleId);
+        RoleImpactVO impact = roleImpactQuery.impact(tenantId, roleId);
         long policyVersion = tenant.getPolicyVersion();
         return new RoleImpactSnapshotVO(
                 impact, policyVersion,

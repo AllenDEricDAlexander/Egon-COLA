@@ -1,11 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.session.domain.vo;
 
-import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
-import top.egon.cola.platform.rbac3.admin.session.service.SessionSecurityEventRecorder;
 
 /**
      * 类型 `TerminationVO` 位于 `SessionSecurityEventRecorder` 内，是记录类型，用于承载 `TerminationVO` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

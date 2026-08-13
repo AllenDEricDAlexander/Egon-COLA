@@ -1,8 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.runtime.domain.enums;
 
-import top.egon.cola.platform.rbac3.admin.runtime.controller.message.Rbac3RuntimeProjectionDeliveryHandler;
 import java.util.Objects;
-import top.egon.cola.platform.rbac3.admin.runtime.controller.scheduled.RuntimeSnapshotRebuildWorker;
 
 /**
      * 类型 `RuntimeSnapshotRebuildClaimEnum` 位于 `RuntimeSnapshotRebuildWorker` 内，是枚举，用于承载 `RuntimeSnapshotRebuildClaimEnum` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

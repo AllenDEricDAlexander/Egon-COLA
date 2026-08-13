@@ -14,7 +14,7 @@ import java.util.Optional;
 import java.util.Set;
 import top.egon.cola.platform.rbac3.admin.resource.domain.enums.ManifestResourceKindEnum;
 import top.egon.cola.platform.rbac3.admin.resource.repository.ResourceManifestRepository;
-import top.egon.cola.platform.rbac3.admin.resource.service.internal.ActivationMutation;
+import top.egon.cola.platform.rbac3.admin.resource.domain.vo.ActivationMutation;
 import top.egon.cola.platform.rbac3.admin.resource.repository.ComponentKeyRegistry;
 import top.egon.cola.platform.rbac3.admin.resource.domain.dto.SubmitCommandDTO;
 import top.egon.cola.platform.rbac3.admin.resource.domain.vo.StoredManifestVO;

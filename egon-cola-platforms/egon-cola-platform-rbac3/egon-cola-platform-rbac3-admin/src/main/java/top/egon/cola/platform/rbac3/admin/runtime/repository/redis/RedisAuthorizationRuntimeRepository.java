@@ -10,9 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Repository;
-import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.runtime.service.SessionSnapshotProjector;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.core.runtime.Rbac3RuntimeKeyFactory;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
@@ -31,6 +28,7 @@ import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.SnapshotRecord
 import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.PublishCommandDTO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.PublishResultVO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.RuntimeSessionVO;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.RuntimePublicationRepository;
 
 /**
  * 类型 `RedisAuthorizationRuntimeRepository` 位于当前包内，是类型，用于承载 `Redis Authorization Runtime Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -41,7 +39,8 @@ import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.RuntimeSessionVO;
 public class RedisAuthorizationRuntimeRepository implements
         RoleActivationRuntimeRepository,
         AuthorizationSnapshotRepository,
-        FenceVerifier {
+        FenceVerifier,
+        RuntimePublicationRepository {
 
     /**
      * 字段 `PUBLISH_SCRIPT` 表示 `RedisAuthorizationRuntimeRepository` 中与 `PUBLISH SCRIPT` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。

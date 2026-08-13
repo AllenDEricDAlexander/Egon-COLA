@@ -4,7 +4,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.LifecycleChangeVO;
-import top.egon.cola.platform.rbac3.admin.runtime.controller.scheduled.AssignmentLifecycleWorker;
 
 /**
      * 类型 `ChangePublisher` 位于 `AssignmentLifecycleWorker` 内，是接口，用于承载 `Change Publisher` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

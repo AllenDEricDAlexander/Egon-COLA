@@ -4,18 +4,14 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.rbac3.admin.auth.service.PasswordIdentityAuthenticator;
 import top.egon.cola.platform.rbac3.admin.identity.domain.enums.ExternalIdentityStatusEnum;
-import top.egon.cola.platform.rbac3.admin.identity.domain.enums.UserCredentialTypeEnum;
 import top.egon.cola.platform.rbac3.admin.identity.domain.enums.UserStatusEnum;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.ExternalIdentityPO;
-import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserCredentialPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.vo.MappingVO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.vo.ResolvedMembershipVO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.vo.TenantMembershipVO;
 import top.egon.cola.platform.rbac3.admin.identity.repository.IdentityMappingRepository;
-import top.egon.cola.platform.rbac3.admin.shared.repository.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.enums.TenantStatusEnum;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 

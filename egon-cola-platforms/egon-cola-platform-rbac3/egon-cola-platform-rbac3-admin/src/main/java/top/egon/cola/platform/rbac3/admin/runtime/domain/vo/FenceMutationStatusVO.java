@@ -3,7 +3,6 @@ package top.egon.cola.platform.rbac3.admin.runtime.domain.vo;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import top.egon.cola.platform.rbac3.admin.runtime.service.ControlPlaneRuntimeStatusPort;
 
 /**
      * 类型 `FenceMutationStatusVO` 位于 `ControlPlaneRuntimeStatusPort` 内，是记录类型，用于承载 `Fence Mutation Status` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

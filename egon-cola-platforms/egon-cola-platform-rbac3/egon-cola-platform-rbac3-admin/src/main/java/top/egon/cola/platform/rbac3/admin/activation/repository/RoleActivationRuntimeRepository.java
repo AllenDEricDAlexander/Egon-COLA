@@ -1,7 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.activation.repository;
 
-import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.runtime.service.SessionSnapshotProjector;
 import top.egon.cola.platform.rbac3.contract.activation.ActiveRoleSetView;
 import top.egon.cola.platform.rbac3.contract.activation.ReplaceActiveRolesResult;
 import top.egon.cola.platform.rbac3.core.activation.DefaultRoleActivationResolver;
@@ -21,7 +19,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Function;
 import top.egon.cola.platform.rbac3.admin.activation.domain.vo.RuntimePublicationVO;
-import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
 
 /**
      * 类型 `RoleActivationRuntimeRepository` 位于 `RoleActivationFacade` 内，是接口，用于承载 `Runtime Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

@@ -4,12 +4,10 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.rbac3.admin.directory.domain.po.DirectorySnapshotPO;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 import java.util.List;
 import java.util.Objects;
 import top.egon.cola.platform.rbac3.admin.directory.domain.enums.DirectorySnapshotOutcomeEnum;
-import top.egon.cola.platform.rbac3.admin.directory.repository.jpa.JpaDirectorySnapshotRepository;
 
 /**
      * 类型 `IngestionResultVO` 位于 `DirectorySnapshotStore` 内，是记录类型，用于承载 `Ingestion Result` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

@@ -1,7 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.bootstrap.domain.vo;
 
 import java.util.List;
-import top.egon.cola.platform.rbac3.admin.bootstrap.service.Rbac3DevelopmentTopology;
 
 /**
      * 一个应用及其本地角色权限定义。

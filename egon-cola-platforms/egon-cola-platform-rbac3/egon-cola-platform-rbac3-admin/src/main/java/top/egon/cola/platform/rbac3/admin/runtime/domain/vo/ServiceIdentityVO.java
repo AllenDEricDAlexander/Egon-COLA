@@ -1,14 +1,9 @@
 package top.egon.cola.platform.rbac3.admin.runtime.domain.vo;
 
-import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.DdcProviderLeaseStatusRepository;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayAdminControlPlaneStatusClient;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayDefinitionStatusRepository;
-import top.egon.cola.platform.rbac3.admin.runtime.service.ControlPlaneRuntimeStatusPort;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.function.Supplier;
-import top.egon.cola.platform.rbac3.admin.runtime.service.GatewayDdcRuntimeStatusService;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.GatewayServiceKey;
 
 /**

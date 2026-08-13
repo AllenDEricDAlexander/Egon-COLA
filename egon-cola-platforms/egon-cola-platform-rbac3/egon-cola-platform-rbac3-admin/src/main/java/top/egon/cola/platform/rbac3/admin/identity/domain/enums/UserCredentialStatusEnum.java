@@ -6,10 +6,8 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import top.egon.cola.platform.rbac3.admin.shared.domain.po.TenantScopedPO;
 import java.time.Instant;
 import java.util.Objects;
-import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserCredentialPO;
 
 /**
      * 类型 `UserCredentialStatusEnum` 位于 `UserCredentialEntity` 内，是枚举，用于承载 `UserCredentialStatusEnum` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

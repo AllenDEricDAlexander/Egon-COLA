@@ -5,8 +5,6 @@ import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.activation.service.ActiveRoleSetRevalidator;
 import top.egon.cola.platform.rbac3.admin.activation.domain.po.SessionActiveRolePO;
 import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;

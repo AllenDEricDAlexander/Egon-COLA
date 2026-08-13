@@ -5,7 +5,6 @@ import java.time.Instant;
 import java.util.Objects;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.AssignmentLifecycleRepository;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.ChangePublisher;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.LifecycleChangeVO;
 
 /**
  * 类型 `AssignmentLifecycleWorker` 位于当前包内，是类型，用于承载 `Assignment Lifecycle Worker` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

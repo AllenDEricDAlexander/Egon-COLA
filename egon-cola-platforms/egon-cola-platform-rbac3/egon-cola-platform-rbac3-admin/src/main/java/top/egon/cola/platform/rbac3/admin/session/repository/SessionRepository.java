@@ -1,13 +1,11 @@
 package top.egon.cola.platform.rbac3.admin.session.repository;
 
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Objects;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.SessionRecordVO;
-import top.egon.cola.platform.rbac3.admin.session.service.SessionFacade;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.TokenRecordVO;
 
 /**

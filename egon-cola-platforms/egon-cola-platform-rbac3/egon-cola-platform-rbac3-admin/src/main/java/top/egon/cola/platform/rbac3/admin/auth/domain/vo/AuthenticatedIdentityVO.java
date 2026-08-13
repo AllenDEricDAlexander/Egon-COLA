@@ -2,7 +2,6 @@ package top.egon.cola.platform.rbac3.admin.auth.domain.vo;
 
 import top.egon.cola.platform.rbac3.contract.auth.LoginRequest;
 import java.time.Instant;
-import top.egon.cola.platform.rbac3.admin.auth.service.IdentityAuthenticatorStrategy;
 
 /**
      * 类型 `AuthenticatedIdentityVO` 位于 `IdentityAuthenticatorStrategy` 内，是记录类型，用于承载 `Authenticated Identity` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

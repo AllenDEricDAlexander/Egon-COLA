@@ -21,7 +21,6 @@ import top.egon.cola.platform.rbac3.admin.authorization.repository.Authorization
 import top.egon.cola.platform.rbac3.admin.authorization.repository.FenceVerifier;
 import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.SnapshotRecordVO;
 import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.AuthorizationDecisionSubjectVO;
-import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.AuthorizationDecisionResourceVO;
 import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.TokenVersionsVO;
 import top.egon.cola.platform.rbac3.admin.authorization.domain.dto.DecisionRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.DecisionBundleVO;

@@ -18,7 +18,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
 
 /**
      * 类型 `ActivationFactsVO` 位于 `RoleActivationCandidateService` 内，是记录类型，用于承载 `Activation Facts` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

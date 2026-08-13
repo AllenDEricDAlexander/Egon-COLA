@@ -4,7 +4,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFacade;
 import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
 
 import java.time.Instant;

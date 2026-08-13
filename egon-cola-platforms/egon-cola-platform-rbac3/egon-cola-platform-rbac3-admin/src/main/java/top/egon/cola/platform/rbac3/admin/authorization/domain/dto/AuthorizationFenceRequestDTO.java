@@ -15,15 +15,10 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.idp.starter.security.RequiresServiceScope;
-import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.runtime.service.SystemAuthorizationSnapshotService;
-import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 import java.util.Objects;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
-import top.egon.cola.platform.rbac3.admin.authorization.controller.InternalAuthorizationController;
 
 /**
      * 会话授权传播 Fence 校验请求。

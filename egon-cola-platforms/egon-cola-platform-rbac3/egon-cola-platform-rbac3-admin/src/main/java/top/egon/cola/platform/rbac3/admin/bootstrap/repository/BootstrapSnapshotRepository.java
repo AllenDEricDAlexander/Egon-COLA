@@ -4,7 +4,6 @@ import top.egon.cola.platform.rbac3.contract.auth.BootstrapView;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 import java.util.Objects;
 import java.util.Optional;
-import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
 
 /**
      * 类型 `BootstrapSnapshotRepository` 位于 `BootstrapQueryService` 内，是接口，用于承载 `Bootstrap Snapshot Source` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

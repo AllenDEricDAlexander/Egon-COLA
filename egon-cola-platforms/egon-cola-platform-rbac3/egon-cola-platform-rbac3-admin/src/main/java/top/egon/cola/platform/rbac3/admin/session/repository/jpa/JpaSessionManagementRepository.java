@@ -9,8 +9,8 @@ import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.SessionVO;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.TerminationVO;
 import top.egon.cola.platform.rbac3.admin.session.repository.SessionManagementRepository;
-import top.egon.cola.platform.rbac3.admin.session.service.SessionRuntimeSynchronizer;
-import top.egon.cola.platform.rbac3.admin.session.service.SessionSecurityEventRecorder;
+import top.egon.cola.platform.rbac3.admin.session.repository.SessionRuntimeSynchronizer;
+import top.egon.cola.platform.rbac3.admin.session.repository.SessionSecurityEventPort;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -27,7 +27,7 @@ public class JpaSessionManagementRepository implements SessionManagementReposito
     /** 会话运行时同步器。 Session runtime synchronizer. */
     private final SessionRuntimeSynchronizer runtimeSynchronizer;
     /** 会话安全事件记录器。 Session security-event recorder. */
-    private final SessionSecurityEventRecorder securityEventRecorder;
+    private final SessionSecurityEventPort securityEventRecorder;
 
     /**
      * 创建会话管理持久化适配器。 Creates the session-management persistence adapter.
@@ -39,7 +39,7 @@ public class JpaSessionManagementRepository implements SessionManagementReposito
     public JpaSessionManagementRepository(
             EntityManager entityManager,
             SessionRuntimeSynchronizer runtimeSynchronizer,
-            SessionSecurityEventRecorder securityEventRecorder) {
+            SessionSecurityEventPort securityEventRecorder) {
         this.entityManager = entityManager;
         this.runtimeSynchronizer = runtimeSynchronizer;
         this.securityEventRecorder = securityEventRecorder;

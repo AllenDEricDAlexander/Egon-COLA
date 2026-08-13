@@ -5,7 +5,6 @@ import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.runtime.service.IdempotencyService;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.po.IdempotencyRecordPO;
 
 import java.time.Instant;

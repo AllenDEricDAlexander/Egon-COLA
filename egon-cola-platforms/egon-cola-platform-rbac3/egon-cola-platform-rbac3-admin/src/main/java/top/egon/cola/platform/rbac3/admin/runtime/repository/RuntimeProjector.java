@@ -5,7 +5,6 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.function.Supplier;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.MutationRecordVO;
-import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationMutationCoordinator;
 
 /**
      * 类型 `RuntimeProjector` 位于 `AuthorizationMutationCoordinator` 内，是接口，用于承载 `Runtime Projector` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

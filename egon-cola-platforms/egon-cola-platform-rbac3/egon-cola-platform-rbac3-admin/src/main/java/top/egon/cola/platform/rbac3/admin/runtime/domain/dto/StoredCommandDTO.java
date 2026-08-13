@@ -7,7 +7,6 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.Objects;
-import top.egon.cola.platform.rbac3.admin.runtime.service.IdempotencyService;
 
 /**
      * 类型 `StoredCommandDTO` 位于 `IdempotencyService` 内，是记录类型，用于承载 `Stored IdempotencyCommandDTO` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

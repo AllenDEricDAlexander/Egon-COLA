@@ -1,7 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.assignment.repository;
 
-import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
-import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationMutationCoordinator;
 import top.egon.cola.platform.rbac3.core.constraint.PrerequisiteRoleSpecification;
 import top.egon.cola.platform.rbac3.core.constraint.RoleCardinalitySpecification;
 import top.egon.cola.platform.rbac3.core.constraint.SsdSpecification;
@@ -18,7 +16,6 @@ import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.RoleAssignmentDT
 import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.RoleAssignmentChangeDTO;
 import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentChangeFactsVO;
 import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentFactsVO;
-import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentFacade;
 
 /**
      * 类型 `AssignmentFactRepository` 位于 `AssignmentFacade` 内，是接口，用于承载 `Assignment Fact Source` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

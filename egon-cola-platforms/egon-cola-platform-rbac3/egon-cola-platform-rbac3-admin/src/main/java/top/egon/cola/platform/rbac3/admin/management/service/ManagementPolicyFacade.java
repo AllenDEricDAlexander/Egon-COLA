@@ -12,9 +12,6 @@ import top.egon.cola.platform.rbac3.admin.management.repository.ManagementPolicy
 import top.egon.cola.platform.rbac3.admin.management.domain.dto.ManagementPolicyRequestDTO;
 import top.egon.cola.platform.rbac3.admin.management.domain.dto.SaveCommandDTO;
 import top.egon.cola.platform.rbac3.admin.management.domain.vo.PolicyVO;
-import top.egon.cola.platform.rbac3.admin.management.domain.vo.ManagementPolicyRestrictionsVO;
-import top.egon.cola.platform.rbac3.admin.management.domain.vo.ManagementPolicySubjectVO;
-import top.egon.cola.platform.rbac3.admin.management.domain.vo.ManagementPolicyScopeVO;
 import top.egon.cola.platform.rbac3.admin.management.domain.vo.CapabilityVO;
 import top.egon.cola.platform.rbac3.admin.management.domain.vo.ManagedUserVO;
 import top.egon.cola.platform.rbac3.admin.management.domain.vo.ManagedRoleVO;

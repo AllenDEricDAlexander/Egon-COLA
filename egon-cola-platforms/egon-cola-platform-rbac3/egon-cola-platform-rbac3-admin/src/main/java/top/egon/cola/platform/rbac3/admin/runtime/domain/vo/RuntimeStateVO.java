@@ -1,6 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.runtime.domain.vo;
 
-import top.egon.cola.platform.rbac3.admin.session.service.SessionFacade;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
 import java.nio.charset.StandardCharsets;
@@ -11,8 +10,6 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import top.egon.cola.platform.rbac3.admin.session.domain.vo.SessionRecordVO;
-import top.egon.cola.platform.rbac3.admin.runtime.service.LoginRuntimeProjectionFactory;
 
 /**
      * 类型 `RuntimeStateVO` 位于 `LoginRuntimeProjectionFactory` 内，是记录类型，用于承载 `Runtime State` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

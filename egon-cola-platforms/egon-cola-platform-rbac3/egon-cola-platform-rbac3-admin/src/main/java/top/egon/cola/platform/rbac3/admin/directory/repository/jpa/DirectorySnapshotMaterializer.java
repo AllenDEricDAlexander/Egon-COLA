@@ -5,7 +5,6 @@ import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.directory.service.DirectorySnapshotProcessor;
 import top.egon.cola.platform.rbac3.admin.directory.domain.po.OrgUnitPO;
 import top.egon.cola.platform.rbac3.admin.directory.domain.po.PositionPO;
 import top.egon.cola.platform.rbac3.admin.directory.domain.po.UserPositionSnapshotPO;

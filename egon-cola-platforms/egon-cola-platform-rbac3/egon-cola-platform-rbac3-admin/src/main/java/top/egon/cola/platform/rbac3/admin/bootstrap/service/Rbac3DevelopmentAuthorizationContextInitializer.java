@@ -2,8 +2,6 @@ package top.egon.cola.platform.rbac3.admin.bootstrap.service;
 
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFacade;
-import top.egon.cola.platform.rbac3.admin.runtime.service.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.contract.activation.RoleActivationCandidateView;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
@@ -16,6 +14,7 @@ import java.util.stream.Collectors;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.internal.CandidateRepository;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.internal.RoleActivator;
 import top.egon.cola.platform.rbac3.admin.bootstrap.domain.vo.ApplicationDefinitionVO;
+import top.egon.cola.platform.rbac3.admin.bootstrap.domain.Rbac3DevelopmentTopology;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.AuthorizationContextVO;
 import top.egon.cola.platform.rbac3.admin.activation.domain.dto.ReplaceCommandDTO;
 import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationContextInitializer;

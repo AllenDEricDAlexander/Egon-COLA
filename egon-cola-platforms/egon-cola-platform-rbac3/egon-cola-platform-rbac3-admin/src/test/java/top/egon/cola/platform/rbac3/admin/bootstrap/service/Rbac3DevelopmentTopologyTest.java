@@ -6,7 +6,7 @@ import java.util.HashSet;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import top.egon.cola.platform.rbac3.admin.bootstrap.domain.vo.ApplicationDefinitionVO;
-import top.egon.cola.platform.rbac3.admin.bootstrap.service.Rbac3DevelopmentTopology;
+import top.egon.cola.platform.rbac3.admin.bootstrap.domain.Rbac3DevelopmentTopology;
 
 class Rbac3DevelopmentTopologyTest {
 

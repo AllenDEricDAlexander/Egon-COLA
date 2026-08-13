@@ -10,7 +10,6 @@ import java.util.HexFormat;
 import java.util.Objects;
 import java.util.function.Function;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.TokenRecordVO;
-import top.egon.cola.platform.rbac3.admin.session.service.RefreshTokenService;
 
 /**
      * 类型 `RefreshTokenRepository` 位于 `RefreshTokenService` 内，是接口，用于承载 `Refresh Token Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

@@ -18,7 +18,6 @@ import java.util.TreeMap;
 import top.egon.cola.platform.rbac3.admin.audit.domain.dto.QueryDTO;
 import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditVO;
 import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditQueryPageVO;
-import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
 
 /**
      * 类型 `AuditRepository` 位于 `AuditQueryService` 内，是接口，用于承载 `Audit Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

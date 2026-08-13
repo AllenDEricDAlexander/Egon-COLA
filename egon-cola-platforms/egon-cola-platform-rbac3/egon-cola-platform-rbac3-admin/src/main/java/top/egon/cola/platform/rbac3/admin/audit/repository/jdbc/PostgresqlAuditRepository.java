@@ -5,23 +5,17 @@ import jakarta.persistence.TypedQuery;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
 import top.egon.cola.platform.rbac3.admin.audit.repository.internal.AuditCursorCodec;
-import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
 import top.egon.cola.platform.rbac3.admin.audit.domain.po.AuditLogPO;
-import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditEventVO;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.Clock;
-import java.time.ZoneOffset;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import top.egon.cola.platform.rbac3.admin.audit.repository.AuditRepository;
-import top.egon.cola.platform.rbac3.admin.audit.domain.dto.AuditCommandDTO;
 import top.egon.cola.platform.rbac3.admin.audit.domain.dto.QueryDTO;
 import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditVO;
 import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditQueryPageVO;
@@ -33,7 +27,7 @@ import top.egon.cola.platform.rbac3.admin.audit.domain.vo.CursorPositionVO;
  * PostgreSQL append/query adapter for already-redacted audit records.
  */
 @Repository
-public class PostgresqlAuditRepository implements AuditPort, AuditRepository {
+public class PostgresqlAuditRepository implements AuditRepository {
 
     /**
      * 字段 `entityManager` 表示 `PostgresqlAuditRepository` 中与 `entity Manager` 相关的状态、依赖、配置或结果（声明类型 `EntityManager`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -78,27 +72,6 @@ public class PostgresqlAuditRepository implements AuditPort, AuditRepository {
         this.entityManager = entityManager;
         this.idGenerator = idGenerator;
         this.cursorCodec = cursorCodec;
-    }
-
-    /**
-     * 方法 `append` 按照 `PostgresqlAuditRepository` 的职责处理输入，完成 `append` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `append` processes its inputs according to `PostgresqlAuditRepository`'s responsibility, performs the `append` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `append` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `append`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param event 输入参数 `event`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     */
-    @Override
-    @Transactional
-    public void append(AuditEventVO event) {
-        new AuditQueryService(
-                this, Clock.fixed(event.occurredAt(), ZoneOffset.UTC))
-                .record(new AuditCommandDTO(
-                        event.tenantId(), event.eventType(), event.outcome(), event.severity(), "USER",
-                        event.actorId(), event.targetType(), event.targetId(), null,
-                        event.reasonCode(), event.requestId(), event.traceId(), Map.of(),
-                        event.safeEvidence(), event.occurredAt()));
     }
 
     /**

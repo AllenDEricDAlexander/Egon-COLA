@@ -1,6 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.runtime.service;
 
-import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeQueryService;
 
 import java.time.Clock;
 import java.time.Instant;

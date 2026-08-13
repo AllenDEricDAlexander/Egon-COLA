@@ -19,7 +19,6 @@ import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
@@ -30,17 +29,11 @@ import java.util.Map;
 import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 import top.egon.cola.platform.rbac3.admin.directory.service.DirectoryCommandService;
 import top.egon.cola.platform.rbac3.admin.directory.service.DirectoryQueryService;
-import top.egon.cola.platform.rbac3.admin.tenant.domain.dto.CreateTenantCommandDTO;
-import top.egon.cola.platform.rbac3.admin.tenant.domain.dto.TenantStatusCommandDTO;
-import top.egon.cola.platform.rbac3.admin.identity.domain.dto.UserStatusCommandDTO;
 import top.egon.cola.platform.rbac3.admin.directory.domain.dto.DirectorySnapshotCommandDTO;
 import top.egon.cola.platform.rbac3.admin.directory.domain.vo.DirectorySyncVO;
-import top.egon.cola.platform.rbac3.admin.identity.domain.vo.UserDirectoryVO;
-import top.egon.cola.platform.rbac3.admin.tenant.domain.vo.TenantVO;
 import top.egon.cola.platform.rbac3.admin.directory.domain.vo.OrgUnitVO;
 import top.egon.cola.platform.rbac3.admin.directory.domain.vo.PositionVO;
 import top.egon.cola.platform.rbac3.admin.directory.domain.vo.DirectorySnapshotVO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.vo.DirectoryPageVO;
 
 /**
  * 组织、岗位与目录快照 HTTP 入口。

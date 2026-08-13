@@ -7,7 +7,6 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
-import top.egon.cola.platform.rbac3.admin.runtime.controller.Rbac3ReadinessIndicator;
 
 /**
      * 类型 `ReadinessCheckVO` 位于 `Rbac3ReadinessIndicator` 内，是记录类型，用于承载 `Readiness Check` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

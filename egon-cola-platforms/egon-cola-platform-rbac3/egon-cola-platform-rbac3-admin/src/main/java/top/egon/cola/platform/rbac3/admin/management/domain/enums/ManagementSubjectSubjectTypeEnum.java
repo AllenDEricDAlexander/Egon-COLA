@@ -8,7 +8,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
 import java.io.Serializable;
-import top.egon.cola.platform.rbac3.admin.management.domain.po.ManagementSubjectPO;
 
 /**
      * 类型 `ManagementSubjectSubjectTypeEnum` 位于 `ManagementSubjectEntity` 内，是枚举，用于承载 `Subject Type` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

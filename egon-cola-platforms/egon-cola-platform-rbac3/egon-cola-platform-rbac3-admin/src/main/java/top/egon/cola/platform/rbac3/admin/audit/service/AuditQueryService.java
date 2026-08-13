@@ -17,17 +17,19 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 import top.egon.cola.platform.rbac3.admin.audit.repository.AuditRepository;
+import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
 import top.egon.cola.platform.rbac3.admin.audit.domain.dto.AuditCommandDTO;
 import top.egon.cola.platform.rbac3.admin.audit.domain.dto.QueryDTO;
 import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditVO;
 import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditQueryPageVO;
+import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditEventVO;
 
 /**
  * 类型 `AuditQueryService` 位于当前包内，是类型，用于承载 `Audit QueryDTO Service` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
  * Type `AuditQueryService` is a type in its package and carries the responsibility, state, or contract for `Audit QueryDTO Service`; callers normally use it through its public API, Spring assembly, or implementation relationship.
  * Tenant-scoped audit write/query facade with mandatory redaction and read audit.
  */
-public final class AuditQueryService {
+public final class AuditQueryService implements AuditPort {
 
     /**
      * 字段 `MAX_QUERY_WINDOW` 表示 `AuditQueryService` 中与 `MAX QUERY WINDOW` 相关的状态、依赖、配置或结果（声明类型 `Duration`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -86,6 +88,22 @@ public final class AuditQueryService {
     public AuditQueryService(AuditRepository store, Clock clock) {
         this.store = Objects.requireNonNull(store, "store");
         this.clock = Objects.requireNonNull(clock, "clock");
+    }
+
+    /**
+     * 将通用审计事件转换为脱敏后的审计记录。
+     * Converts a generic audit event into a sanitized audit record.
+     *
+     * @param event 审计事件；audit event
+     */
+    @Override
+    public void append(AuditEventVO event) {
+        record(new AuditCommandDTO(
+                event.tenantId(), event.eventType(), event.outcome(),
+                event.severity(), "USER", event.actorId(), event.targetType(),
+                event.targetId(), null, event.reasonCode(), event.requestId(),
+                event.traceId(), Map.of(), event.safeEvidence(),
+                event.occurredAt()));
     }
 
     /**

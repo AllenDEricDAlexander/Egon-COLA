@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.Objects;
 import top.egon.cola.platform.rbac3.admin.auth.domain.vo.StepUpResultVO;
-import top.egon.cola.platform.rbac3.admin.auth.service.StepUpFacade;
 
 /**
      * 类型 `SessionStrengthRepository` 位于 `StepUpFacade` 内，是接口，用于承载 `Session Strength Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

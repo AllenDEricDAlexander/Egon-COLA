@@ -1,6 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.auth.repository;
 
-import top.egon.cola.platform.rbac3.admin.session.service.RefreshTokenService;
 import top.egon.cola.platform.rbac3.contract.auth.RefreshResult;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 import java.time.Duration;
@@ -8,7 +7,6 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.function.Supplier;
 import top.egon.cola.platform.rbac3.admin.auth.domain.vo.RefreshStateVO;
-import top.egon.cola.platform.rbac3.admin.auth.service.RefreshFacade;
 
 /**
      * 类型 `RefreshRuntimePublisher` 位于 `RefreshFacade` 内，是接口，用于承载 `Refresh Runtime Publisher` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

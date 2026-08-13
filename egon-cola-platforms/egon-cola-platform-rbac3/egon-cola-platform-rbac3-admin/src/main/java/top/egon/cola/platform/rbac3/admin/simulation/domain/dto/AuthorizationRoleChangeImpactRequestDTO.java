@@ -15,14 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
-import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
-import top.egon.cola.platform.rbac3.admin.simulation.service.AuthorizationSimulationService;
-import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;
 import java.time.Instant;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 /**
      * 类型 `AuthorizationRoleChangeImpactRequestDTO` 位于 `AuditSimulationController` 内，是记录类型，用于承载 `Role Change Impact Request` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

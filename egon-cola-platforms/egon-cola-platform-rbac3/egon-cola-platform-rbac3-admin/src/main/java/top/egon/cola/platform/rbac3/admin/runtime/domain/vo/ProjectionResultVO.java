@@ -1,6 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.runtime.domain.vo;
 
-import top.egon.cola.platform.rbac3.admin.runtime.repository.RuntimeProjectionPort;
 
 
 /**

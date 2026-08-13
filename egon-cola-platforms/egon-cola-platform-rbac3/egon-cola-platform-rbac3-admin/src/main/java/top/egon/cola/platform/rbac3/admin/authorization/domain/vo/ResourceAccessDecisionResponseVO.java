@@ -1,6 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.authorization.domain.vo;
 
-import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.contract.authorization.Decision;
 
 import java.time.Instant;

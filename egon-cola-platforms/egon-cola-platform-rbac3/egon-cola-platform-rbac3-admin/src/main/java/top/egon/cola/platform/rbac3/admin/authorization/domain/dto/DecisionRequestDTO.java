@@ -1,6 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.authorization.domain.dto;
 
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.AuthorizationDecision;
@@ -20,7 +19,6 @@ import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.AuthorizationD
 import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.AuthorizationDecisionResourceVO;
 import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.TokenVersionsVO;
 import top.egon.cola.platform.rbac3.admin.authorization.domain.enums.AuthorizationDecisionDecisionTypeEnum;
-import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
 
 /**
      * 一致快照上的类型化授权判定请求。

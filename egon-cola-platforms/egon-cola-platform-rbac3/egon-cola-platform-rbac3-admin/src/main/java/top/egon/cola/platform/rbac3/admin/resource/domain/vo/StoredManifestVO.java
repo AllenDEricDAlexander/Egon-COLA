@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import top.egon.cola.platform.rbac3.admin.resource.service.ManifestFacade;
 
 /**
      * 类型 `StoredManifestVO` 位于 `ManifestFacade` 内，是记录类型，用于承载 `Stored Manifest` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

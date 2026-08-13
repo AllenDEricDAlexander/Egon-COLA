@@ -6,7 +6,6 @@ import java.util.Optional;
 import top.egon.cola.platform.rbac3.admin.session.repository.MembershipRepository;
 import top.egon.cola.platform.rbac3.admin.session.repository.AuthorizationContextRepository;
 import top.egon.cola.platform.rbac3.admin.session.service.internal.ContextIdGenerator;
-import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextOpener;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.ActiveMembershipVO;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.AuthorizationContextVO;
 import top.egon.cola.platform.rbac3.admin.session.domain.exception.AuthorizationContextMismatchException;

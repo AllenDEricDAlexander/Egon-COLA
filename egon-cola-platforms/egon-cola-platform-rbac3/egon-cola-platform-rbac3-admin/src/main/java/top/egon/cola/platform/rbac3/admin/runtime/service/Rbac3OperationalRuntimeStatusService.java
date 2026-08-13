@@ -7,8 +7,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.platform.rbac3.admin.config.flyway.Rbac3FlywayConfiguration;
-import top.egon.cola.platform.rbac3.admin.runtime.service.ControlPlaneRuntimeStatusPort;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.po.AuthorizationMutationPO;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -16,7 +14,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.OperationalStatusVO;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.internal.MutationFacts;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.MutationFacts;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.FlywayStatusVO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.RedisProjectionStatusVO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.FenceMutationStatusVO;

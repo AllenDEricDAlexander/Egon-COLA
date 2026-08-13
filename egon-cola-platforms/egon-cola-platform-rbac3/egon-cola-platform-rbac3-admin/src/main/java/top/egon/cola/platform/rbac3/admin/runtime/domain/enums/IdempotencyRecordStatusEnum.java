@@ -6,9 +6,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import top.egon.cola.platform.rbac3.admin.shared.domain.po.TenantScopedPO;
 import java.time.Instant;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.po.IdempotencyRecordPO;
 
 /**
      * 类型 `IdempotencyRecordStatusEnum` 位于 `IdempotencyRecordEntity` 内，是枚举，用于承载 `IdempotencyRecordStatusEnum` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

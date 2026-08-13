@@ -18,7 +18,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.GatewayServiceKey;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayAdminControlPlaneStatusClient;
 
 /**
      * 类型 `GatewayProviderInstanceVO` 位于 `GatewayAdminControlPlaneStatusClient` 内，是记录类型，用于承载 `Provider Instance` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

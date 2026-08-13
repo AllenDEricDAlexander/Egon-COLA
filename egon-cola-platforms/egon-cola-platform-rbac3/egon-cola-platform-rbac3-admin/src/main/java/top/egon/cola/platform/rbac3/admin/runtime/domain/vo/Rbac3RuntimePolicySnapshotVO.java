@@ -3,7 +3,6 @@ package top.egon.cola.platform.rbac3.admin.runtime.domain.vo;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
 
 /**
      * 类型 `Rbac3RuntimePolicySnapshotVO` 位于 `Rbac3RuntimePolicy` 内，是记录类型，用于承载 `Rbac3RuntimePolicySnapshotVO` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

@@ -19,7 +19,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ActivationFactsVO;
-import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
 
 /**
      * 类型 `RoleActivationFactRepository` 位于 `RoleActivationCandidateService` 内，是接口，用于承载 `Activation Fact Source` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

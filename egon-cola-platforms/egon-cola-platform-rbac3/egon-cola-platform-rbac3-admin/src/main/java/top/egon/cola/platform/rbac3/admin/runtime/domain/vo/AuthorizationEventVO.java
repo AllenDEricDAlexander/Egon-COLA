@@ -1,7 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.runtime.domain.vo;
 
 import java.util.Map;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
 
 /**
      * 类型 `AuthorizationEventVO` 位于 `AuthorizationEventPort` 内，是记录类型，用于承载 `Authorization Event` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

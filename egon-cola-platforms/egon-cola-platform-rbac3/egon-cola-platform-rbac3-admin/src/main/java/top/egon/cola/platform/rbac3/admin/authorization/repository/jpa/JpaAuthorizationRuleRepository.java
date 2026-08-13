@@ -3,8 +3,6 @@ package top.egon.cola.platform.rbac3.admin.authorization.repository.jpa;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.rbac3.admin.constraint.domain.po.OperationSodRulePO;
-import top.egon.cola.platform.rbac3.admin.participation.service.ParticipationFacade;
 
 import java.time.Instant;
 import java.util.List;

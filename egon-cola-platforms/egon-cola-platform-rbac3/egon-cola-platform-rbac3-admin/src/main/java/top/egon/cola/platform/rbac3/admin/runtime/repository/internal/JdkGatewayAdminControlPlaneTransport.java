@@ -19,7 +19,6 @@ import java.util.Objects;
 import java.util.Optional;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayAdminControlPlaneTransport;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayAdminControlPlaneHttpResponseVO;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayAdminControlPlaneStatusClient;
 
 /**
      * 类型 `JdkGatewayAdminControlPlaneTransport` 位于 `GatewayAdminControlPlaneStatusClient` 内，是类型，用于承载 `Jdk GatewayAdminControlPlaneTransport` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

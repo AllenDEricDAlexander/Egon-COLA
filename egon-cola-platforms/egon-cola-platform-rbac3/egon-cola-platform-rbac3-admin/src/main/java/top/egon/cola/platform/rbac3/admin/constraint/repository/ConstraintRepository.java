@@ -15,7 +15,6 @@ import top.egon.cola.platform.rbac3.admin.constraint.domain.vo.SodVO;
 import top.egon.cola.platform.rbac3.admin.constraint.domain.vo.DataRuleVO;
 import top.egon.cola.platform.rbac3.admin.constraint.domain.vo.FieldRuleVO;
 import top.egon.cola.platform.rbac3.admin.constraint.domain.vo.OperationSodRuleVO;
-import top.egon.cola.platform.rbac3.admin.constraint.service.ConstraintFacade;
 
 /**
      * 类型 `ConstraintRepository` 位于 `ConstraintFacade` 内，是接口，用于承载 `Constraint Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

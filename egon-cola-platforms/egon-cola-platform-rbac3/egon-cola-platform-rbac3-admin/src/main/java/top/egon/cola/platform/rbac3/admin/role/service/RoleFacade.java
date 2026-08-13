@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.util.function.Function;
 import top.egon.cola.platform.rbac3.admin.role.repository.RoleHierarchyRepository;
 import top.egon.cola.platform.rbac3.admin.role.repository.RoleControlRepository;
+import top.egon.cola.platform.rbac3.admin.role.repository.RoleImpactQuery;
 import top.egon.cola.platform.rbac3.admin.role.domain.dto.CreateRoleCommandDTO;
 import top.egon.cola.platform.rbac3.admin.role.domain.dto.AssignPermissionCommandDTO;
 import top.egon.cola.platform.rbac3.admin.role.domain.dto.AssignPermissionsCommandDTO;
@@ -27,7 +28,7 @@ import top.egon.cola.platform.rbac3.admin.role.domain.vo.RoleMutationResultVO;
  * Type `RoleFacade` is a type in its package and carries the responsibility, state, or contract for `Role Facade`; callers normally use it through its public API, Spring assembly, or implementation relationship.
  * Serializes role graph changes and rebuilds the materialized closure atomically.
  */
-public final class RoleFacade {
+public final class RoleFacade implements RoleImpactQuery {
 
     /**
      * 字段 `hierarchyStore` 表示 `RoleFacade` 中与 `hierarchy Store` 相关的状态、依赖、配置或结果（声明类型 `RoleHierarchyRepository`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -189,6 +190,7 @@ public final class RoleFacade {
      * @param roleId 输入参数 `roleId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
+    @Override
     public RoleImpactVO impact(String tenantId, String roleId) {
         return requiredControlStore().impact(tenantId, roleId);
     }

@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import top.egon.cola.platform.rbac3.contract.error.Rbac3ErrorCode;
 import top.egon.cola.platform.rbac3.contract.error.Rbac3ErrorResponse;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
-import top.egon.cola.platform.rbac3.admin.auth.service.PasswordIdentityAuthenticator;
 
 import java.time.Instant;
 import java.util.List;

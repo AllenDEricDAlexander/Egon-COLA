@@ -3,7 +3,6 @@ package top.egon.cola.platform.rbac3.admin.activation.repository.jpa;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.contract.authorization.FieldAccessLevel;
 import top.egon.cola.platform.rbac3.core.activation.AuthorizationRuleFacts;
 import top.egon.cola.platform.rbac3.core.activation.DsdSetFact;

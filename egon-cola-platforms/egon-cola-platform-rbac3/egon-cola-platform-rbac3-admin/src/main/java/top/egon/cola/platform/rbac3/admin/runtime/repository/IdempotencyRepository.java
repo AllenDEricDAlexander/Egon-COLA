@@ -9,7 +9,6 @@ import java.util.HexFormat;
 import java.util.Objects;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.StoredCommandDTO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.IdempotencyClaimVO;
-import top.egon.cola.platform.rbac3.admin.runtime.service.IdempotencyService;
 
 /**
      * 类型 `IdempotencyRepository` 位于 `IdempotencyService` 内，是接口，用于承载 `Idempotency Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

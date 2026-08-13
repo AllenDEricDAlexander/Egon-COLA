@@ -1,6 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.runtime.service;
 
-import top.egon.cola.platform.rbac3.admin.session.service.SessionFacade;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
 

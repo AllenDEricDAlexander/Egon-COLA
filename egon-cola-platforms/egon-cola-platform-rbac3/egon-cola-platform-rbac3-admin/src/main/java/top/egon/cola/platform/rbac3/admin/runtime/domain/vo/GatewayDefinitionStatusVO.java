@@ -3,11 +3,9 @@ package top.egon.cola.platform.rbac3.admin.runtime.domain.vo;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReportResult;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
-import top.egon.cola.platform.rbac3.admin.runtime.service.GatewayDdcRuntimeStatusService;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayDefinitionStatusRepository;
 
 /**
      * 类型 `GatewayDefinitionStatusVO` 位于 `GatewayDefinitionStatusService` 内，是记录类型，用于承载 `Definition Status` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

@@ -6,10 +6,8 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import top.egon.cola.platform.rbac3.admin.shared.domain.po.TenantScopedPO;
 import java.time.Instant;
 import java.util.Objects;
-import top.egon.cola.platform.rbac3.admin.resource.domain.po.FieldDefinitionPO;
 
 /**
      * 类型 `FieldDefinitionStatusEnum` 位于 `FieldDefinitionEntity` 内，是枚举，用于承载 `FieldDefinitionStatusEnum` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

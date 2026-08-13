@@ -1,7 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.config.ddc;
 
 import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.Rbac3DdcPolicyApplier;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
@@ -14,7 +13,7 @@ import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
 
 import java.util.Objects;
 import java.util.Set;
-import top.egon.cola.platform.rbac3.admin.runtime.service.internal.ApplyObserver;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ApplyObserver;
 
 /**
  * 类型 `Rbac3IntegrationMetrics` 位于当前包内，是类型，用于承载 `Rbac3 Integration Metrics` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

@@ -3,7 +3,6 @@ package top.egon.cola.platform.rbac3.admin.session.service.internal;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
-import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFacade;
 
 /**
      * 类型 `ContextIdGenerator` 位于 `AuthorizationContextFacade` 内，是接口，用于承载 `Context Id Generator` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

@@ -1,7 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.assignment.domain.dto;
 
-import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
-import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationMutationCoordinator;
 import top.egon.cola.platform.rbac3.core.constraint.PrerequisiteRoleSpecification;
 import top.egon.cola.platform.rbac3.core.constraint.RoleCardinalitySpecification;
 import top.egon.cola.platform.rbac3.core.constraint.SsdSpecification;
@@ -14,7 +12,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
-import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentFacade;
 
 /**
      * 类型 `AssignmentCommandDTO` 位于 `AssignmentFacade` 内，是记录类型，用于承载 `Assignment Command` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

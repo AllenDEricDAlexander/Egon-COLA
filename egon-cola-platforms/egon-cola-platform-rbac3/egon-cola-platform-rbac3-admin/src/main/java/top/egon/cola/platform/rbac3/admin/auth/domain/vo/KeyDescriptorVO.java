@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import top.egon.cola.platform.rbac3.admin.auth.domain.enums.JwtKeyRingKeyStateEnum;
-import top.egon.cola.platform.rbac3.admin.auth.service.JwtKeyRingService;
 
 /**
      * 类型 `KeyDescriptorVO` 位于 `JwtKeyRingService` 内，是记录类型，用于承载 `Key Descriptor` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

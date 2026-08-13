@@ -1,6 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.runtime.domain.dto;
 
-import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.DataScopeDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.Decision;
@@ -18,9 +17,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ActivationFactsVO;
-import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ApplicationFactVO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.SessionSnapshotProjectionVO;
-import top.egon.cola.platform.rbac3.admin.runtime.service.SessionSnapshotProjector;
 
 /**
      * 类型 `ProjectionCommandDTO` 位于 `SessionSnapshotProjector` 内，是记录类型，用于承载 `SessionSnapshotProjectionVO Command` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

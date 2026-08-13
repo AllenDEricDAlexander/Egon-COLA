@@ -1,16 +1,10 @@
 package top.egon.cola.platform.rbac3.admin.simulation.domain.dto;
 
-import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
-import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.role.service.RoleFacade;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import top.egon.cola.platform.rbac3.admin.role.domain.vo.RoleImpactVO;
-import top.egon.cola.platform.rbac3.admin.simulation.service.AuthorizationSimulationService;
 
 /**
      * 类型 `HypothesisDTO` 位于 `AuthorizationSimulationService` 内，是记录类型，用于承载 `HypothesisDTO` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

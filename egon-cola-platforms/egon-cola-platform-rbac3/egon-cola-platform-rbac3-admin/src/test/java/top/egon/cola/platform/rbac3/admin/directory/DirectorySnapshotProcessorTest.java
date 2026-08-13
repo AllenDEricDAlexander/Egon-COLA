@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.directory;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.directory.service.DirectorySnapshotProcessor;
+import top.egon.cola.platform.rbac3.admin.directory.domain.DirectorySnapshotProcessor;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;

@@ -9,7 +9,6 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Objects;
-import top.egon.cola.platform.rbac3.admin.audit.repository.internal.AuditCursorCodec;
 
 /**
      * 类型 `CursorPositionVO` 位于 `AuditCursorCodec` 内，是记录类型，用于承载 `Cursor Position` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

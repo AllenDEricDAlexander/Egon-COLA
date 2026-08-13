@@ -3,20 +3,20 @@ package top.egon.cola.platform.rbac3.admin.runtime.repository.http;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReportResult;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
-import top.egon.cola.platform.rbac3.admin.runtime.service.GatewayDdcRuntimeStatusService;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayDefinitionStatusVO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ServiceIdentityVO;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.GatewayDefinitionStatusPort;
 
 /**
  * 类型 `GatewayDefinitionStatusRepository` 位于当前包内，是类型，用于承载 `Gateway Definition Status Service` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
  * Type `GatewayDefinitionStatusRepository` is a type in its package and carries the responsibility, state, or contract for `Gateway Definition Status Service`; callers normally use it through its public API, Spring assembly, or implementation relationship.
  * Exposes the definition receipt without conflating it with provider or release state.
  */
-public final class GatewayDefinitionStatusRepository {
+public final class GatewayDefinitionStatusRepository implements GatewayDefinitionStatusPort {
 
     /**
      * 字段 `snapshot` 表示 `GatewayDefinitionStatusRepository` 中与 `snapshot` 相关的状态、依赖、配置或结果（声明类型 `Supplier&lt;GatewayReportingState.Snapshot&gt;`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -80,6 +80,7 @@ public final class GatewayDefinitionStatusRepository {
      *
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
+    @Override
     public GatewayDefinitionStatusVO status() {
         GatewayReportingState.Snapshot current = snapshot.get();
         GatewayInterfaceDefinitionReportResult result = current.result();

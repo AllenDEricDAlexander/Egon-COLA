@@ -15,7 +15,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
-import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
 
 /**
      * 类型 `AuditCommandDTO` 位于 `AuditQueryService` 内，是记录类型，用于承载 `Audit Command` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

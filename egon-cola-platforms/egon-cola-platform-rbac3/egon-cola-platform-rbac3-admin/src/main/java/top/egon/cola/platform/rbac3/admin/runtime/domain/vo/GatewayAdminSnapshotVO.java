@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayAdminControlPlaneStatusClient;
 
 /**
      * 类型 `GatewayAdminSnapshotVO` 位于 `GatewayAdminControlPlaneStatusClient` 内，是记录类型，用于承载 `Gateway Admin Snapshot` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

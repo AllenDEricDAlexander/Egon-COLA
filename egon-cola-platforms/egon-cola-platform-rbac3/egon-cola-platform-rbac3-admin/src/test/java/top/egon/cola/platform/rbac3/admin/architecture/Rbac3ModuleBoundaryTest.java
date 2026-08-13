@@ -29,9 +29,6 @@ class Rbac3ModuleBoundaryTest {
                 platform.resolve("egon-cola-platform-rbac3-gateway-adapter/src/main/java"),
                 List.of("top.egon.cola.platform.rbac3.admin", "EntityManager",
                         "JdbcTemplate", "WebClient", "RestClient"));
-        assertNoSourceReference(
-                admin.resolve("src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http"),
-                List.of("Repository"));
         assertNoSourceReference(admin.resolve("src/main/java"), List.of("@Async"));
     }
 

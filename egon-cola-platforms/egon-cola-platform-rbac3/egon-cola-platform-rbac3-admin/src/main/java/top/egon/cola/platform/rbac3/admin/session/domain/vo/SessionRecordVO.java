@@ -1,13 +1,11 @@
 package top.egon.cola.platform.rbac3.admin.session.domain.vo;
 
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Objects;
 import top.egon.cola.platform.rbac3.admin.session.domain.enums.SessionLifecycleStatusEnum;
-import top.egon.cola.platform.rbac3.admin.session.service.SessionFacade;
 
 /**
      * 类型 `SessionRecordVO` 位于 `SessionFacade` 内，是记录类型，用于承载 `Session Record` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

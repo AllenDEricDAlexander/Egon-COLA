@@ -29,13 +29,15 @@ import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayProviderInsta
 import top.egon.cola.platform.rbac3.admin.runtime.domain.GatewayServiceKey;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayConsistencyObservationVO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.BearerCredentialVO;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.GatewayAdminSnapshotRepository;
 
 /**
  * 类型 `GatewayAdminControlPlaneStatusClient` 位于当前包内，是类型，用于承载 `Gateway Admin Control Plane Status Client` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
  * Type `GatewayAdminControlPlaneStatusClient` is a type in its package and carries the responsibility, state, or contract for `Gateway Admin Control Plane Status Client`; callers normally use it through its public API, Spring assembly, or implementation relationship.
  * Read-only typed client for Gateway Admin release and discovery observations.
  */
-public final class GatewayAdminControlPlaneStatusClient {
+public final class GatewayAdminControlPlaneStatusClient
+        implements GatewayAdminSnapshotRepository {
 
     /**
      * 字段 `adminBaseUri` 表示 `GatewayAdminControlPlaneStatusClient` 中与 `admin Base Uri` 相关的状态、依赖、配置或结果（声明类型 `URI`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -249,6 +251,7 @@ public final class GatewayAdminControlPlaneStatusClient {
      *
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
+    @Override
     public GatewayAdminSnapshotVO snapshot() {
         Instant checkedAt = clock.instant();
         Optional<BearerCredentialVO> supplied =

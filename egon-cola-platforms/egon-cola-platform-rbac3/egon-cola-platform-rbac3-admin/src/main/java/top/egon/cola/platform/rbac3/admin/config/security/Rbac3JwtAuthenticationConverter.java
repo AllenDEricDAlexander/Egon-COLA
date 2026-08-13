@@ -3,7 +3,6 @@ package top.egon.cola.platform.rbac3.admin.config.security;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.oauth2.jwt.Jwt;
-import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.redis.RedisAuthorizationRuntimeRepository;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 

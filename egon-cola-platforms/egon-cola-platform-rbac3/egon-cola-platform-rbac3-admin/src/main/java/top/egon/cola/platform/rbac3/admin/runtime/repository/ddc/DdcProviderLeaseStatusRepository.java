@@ -2,12 +2,12 @@ package top.egon.cola.platform.rbac3.admin.runtime.repository.ddc;
 
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
-import top.egon.cola.platform.rbac3.admin.runtime.service.GatewayDdcRuntimeStatusService;
 
 import java.time.Instant;
 import java.util.Objects;
 import java.util.function.Supplier;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.DdcProviderLeaseStatusVO;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ProviderLeaseStatusPort;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ServiceIdentityVO;
 
 /**
@@ -15,7 +15,7 @@ import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ServiceIdentityVO;
  * Type `DdcProviderLeaseStatusRepository` is a type in its package and carries the responsibility, state, or contract for `Ddc Provider Lease Status Service`; callers normally use it through its public API, Spring assembly, or implementation relationship.
  * Maps the existing provider lease state machine to the RBAC3 status contract.
  */
-public final class DdcProviderLeaseStatusRepository {
+public final class DdcProviderLeaseStatusRepository implements ProviderLeaseStatusPort {
 
     /**
      * 字段 `status` 表示 `DdcProviderLeaseStatusRepository` 中与 `status` 相关的状态、依赖、配置或结果（声明类型 `Supplier&lt;DdcProviderLeaseStatusVO&gt;`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -71,6 +71,7 @@ public final class DdcProviderLeaseStatusRepository {
      *
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
+    @Override
     public DdcProviderLeaseStatusVO status() {
         return status.get();
     }

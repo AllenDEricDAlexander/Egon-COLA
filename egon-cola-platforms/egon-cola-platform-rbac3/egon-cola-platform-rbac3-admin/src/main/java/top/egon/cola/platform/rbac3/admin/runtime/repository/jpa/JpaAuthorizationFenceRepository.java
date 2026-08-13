@@ -3,7 +3,6 @@ package top.egon.cola.platform.rbac3.admin.runtime.repository.jpa;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationFenceService;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.redis.RedisAuthorizationRuntimeRepository;
 
 import java.time.Duration;
