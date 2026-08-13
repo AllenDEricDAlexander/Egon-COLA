@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.idp.starter.security.RequiresServiceScope;
-import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
+import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
@@ -24,6 +24,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.dto.DecisionRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.dto.ResourceAccessRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.ResourceAccessDecisionVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.dto.AuthorizationFenceRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.controller.InternalAuthorizationController;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.dto.ResourceAccessDecisionRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.ResourceAccessDecisionResponseVO;
 
 class InternalAuthorizationControllerTest {
 
@@ -70,12 +77,12 @@ class InternalAuthorizationControllerTest {
     @Test
     void resourceAccessEndpointReturnsOnlyDecisionReasonAndAuthorizationVersions() {
         AuthorizationDecisionService decisions = mock(AuthorizationDecisionService.class);
-        AuthorizationDecisionService.ResourceAccessRequest command =
-                new AuthorizationDecisionService.ResourceAccessRequest(
+        ResourceAccessRequestDTO command =
+                new ResourceAccessRequestDTO(
                         "alice-sub", "tenant-1", "session-1",
                         "finance-web", "finance:payment:approve");
-        AuthorizationDecisionService.ResourceAccessDecision expected =
-                new AuthorizationDecisionService.ResourceAccessDecision(
+        ResourceAccessDecisionVO expected =
+                new ResourceAccessDecisionVO(
                         top.egon.cola.platform.rbac3.contract.authorization.Decision.ALLOW,
                         "ALLOW", 43L, 2L, 18L,
                         Instant.parse("2026-08-10T00:00:00Z"));
@@ -90,18 +97,18 @@ class InternalAuthorizationControllerTest {
         InternalAuthorizationController controller = new InternalAuthorizationController(
                 decisions, snapshots);
 
-        ApiEnvelopeVO<ResourceAccessDecisionResponse> envelope =
+        ApiEnvelopeVO<ResourceAccessDecisionResponseVO> envelope =
                 controller.decideResourceAccess(
-                        new ResourceAccessDecisionRequest(
+                        new ResourceAccessDecisionRequestDTO(
                                 "alice-sub", "tenant-1", "session-1",
                                 "finance-web", "finance:payment:approve"),
                         principal);
 
-        assertThat(envelope.data()).isEqualTo(new ResourceAccessDecisionResponse(
+        assertThat(envelope.data()).isEqualTo(new ResourceAccessDecisionResponseVO(
                 top.egon.cola.platform.rbac3.contract.authorization.Decision.ALLOW,
                 "ALLOW", 43L, 2L, 18L,
                 Instant.parse("2026-08-10T00:00:00Z")));
-        assertThat(Arrays.stream(ResourceAccessDecisionResponse.class.getRecordComponents())
+        assertThat(Arrays.stream(ResourceAccessDecisionResponseVO.class.getRecordComponents())
                 .map(component -> component.getName()))
                 .containsExactly("decision", "reasonCode", "authVersion",
                         "sessionVersion", "policyVersion", "decidedAt");
@@ -119,12 +126,12 @@ class InternalAuthorizationControllerTest {
         assertServiceOperation("snapshot", "service:authorization:snapshot",
                 String.class, ServiceIdentityPrincipal.class);
         assertServiceOperation("decide", "service:authorization:decide",
-                AuthorizationDecisionService.DecisionRequest.class,
+                DecisionRequestDTO.class,
                 ServiceIdentityPrincipal.class);
         assertServiceOperation("decideResourceAccess", "service:authorization:decide",
-                ResourceAccessDecisionRequest.class, ServiceIdentityPrincipal.class);
+                ResourceAccessDecisionRequestDTO.class, ServiceIdentityPrincipal.class);
         assertServiceOperation("verifyFence", "service:authorization:fence",
-                InternalAuthorizationController.FenceRequest.class,
+                AuthorizationFenceRequestDTO.class,
                 ServiceIdentityPrincipal.class);
     }
 

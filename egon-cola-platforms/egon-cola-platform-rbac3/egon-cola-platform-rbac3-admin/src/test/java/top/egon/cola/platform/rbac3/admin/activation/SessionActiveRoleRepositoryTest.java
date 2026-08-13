@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
 import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaSessionActiveRoleRepository;
-import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
+import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
 import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
 import top.egon.cola.platform.rbac3.admin.session.repository.jpa.JpaSessionEntityRepository;

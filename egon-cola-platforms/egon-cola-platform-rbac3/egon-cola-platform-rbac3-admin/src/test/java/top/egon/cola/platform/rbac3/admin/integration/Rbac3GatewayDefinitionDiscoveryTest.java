@@ -7,18 +7,19 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.resource.controller.ApplicationResourceController;
 import top.egon.cola.platform.rbac3.admin.assignment.controller.AssignmentController;
-import top.egon.cola.platform.rbac3.admin.interfaces.http.AuditSimulationController;
+import top.egon.cola.platform.rbac3.admin.audit.controller.AuditController;
 import top.egon.cola.platform.rbac3.admin.auth.controller.AuthController;
 import top.egon.cola.platform.rbac3.admin.constraint.controller.ConstraintController;
-import top.egon.cola.platform.rbac3.admin.interfaces.http.InternalAuthorizationController;
+import top.egon.cola.platform.rbac3.admin.authorization.controller.InternalAuthorizationController;
 import top.egon.cola.platform.rbac3.admin.identity.controller.InternalIdentityController;
 import top.egon.cola.platform.rbac3.admin.management.controller.ManagementPolicyController;
 import top.egon.cola.platform.rbac3.admin.resource.controller.ManifestController;
-import top.egon.cola.platform.rbac3.admin.interfaces.http.ParticipationController;
+import top.egon.cola.platform.rbac3.admin.participation.controller.ParticipationController;
 import top.egon.cola.platform.rbac3.admin.activation.controller.RoleActivationController;
 import top.egon.cola.platform.rbac3.admin.role.controller.RolePermissionController;
 import top.egon.cola.platform.rbac3.admin.interfaces.http.RuntimeController;
 import top.egon.cola.platform.rbac3.admin.session.controller.SessionController;
+import top.egon.cola.platform.rbac3.admin.simulation.controller.AuthorizationSimulationController;
 import top.egon.cola.platform.rbac3.admin.directory.controller.DirectoryController;
 import top.egon.cola.platform.rbac3.admin.identity.controller.UserDirectoryController;
 import top.egon.cola.platform.rbac3.admin.tenant.controller.TenantController;
@@ -39,7 +40,8 @@ class Rbac3GatewayDefinitionDiscoveryTest {
         List<Class<?>> controllers = List.of(
                 ApplicationResourceController.class,
                 AssignmentController.class,
-                AuditSimulationController.class,
+                AuditController.class,
+                AuthorizationSimulationController.class,
                 AuthController.class,
                 ConstraintController.class,
                 InternalAuthorizationController.class,

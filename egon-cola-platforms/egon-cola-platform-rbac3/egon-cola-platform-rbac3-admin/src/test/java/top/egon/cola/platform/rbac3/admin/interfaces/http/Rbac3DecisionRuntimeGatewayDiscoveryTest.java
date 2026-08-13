@@ -10,11 +10,13 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefinitionContributor;
-import top.egon.cola.platform.rbac3.admin.audit.application.AuditQueryService;
-import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.participation.application.ParticipationFacade;
+import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
+import top.egon.cola.platform.rbac3.admin.audit.controller.AuditController;
+import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
+import top.egon.cola.platform.rbac3.admin.participation.service.ParticipationFacade;
 import top.egon.cola.platform.rbac3.admin.runtime.application.RuntimeQueryService;
-import top.egon.cola.platform.rbac3.admin.simulation.application.AuthorizationSimulationService;
+import top.egon.cola.platform.rbac3.admin.simulation.service.AuthorizationSimulationService;
+import top.egon.cola.platform.rbac3.admin.simulation.controller.AuthorizationSimulationController;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
 
 import java.util.Map;
@@ -22,12 +24,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import top.egon.cola.platform.rbac3.admin.authorization.controller.InternalAuthorizationController;
+import top.egon.cola.platform.rbac3.admin.participation.controller.ParticipationController;
 
 @WebMvcTest(
         controllers = {
                 InternalAuthorizationController.class,
                 ParticipationController.class,
-                AuditSimulationController.class,
+                AuditController.class,
+                AuthorizationSimulationController.class,
                 RuntimeController.class
         },
         excludeAutoConfiguration = {
@@ -87,9 +92,10 @@ class Rbac3DecisionRuntimeGatewayDiscoveryTest {
                 .contains(
                         "POST /api/rbac3/v1/internal/business-participations",
                         "GET /api/rbac3/v1/internal/business-participations/conflicts");
-        assertThat(methods.get(AuditSimulationController.class.getName()))
+        assertThat(methods.get(AuditController.class.getName()))
+                .contains("GET /api/rbac3/v1/audit-logs");
+        assertThat(methods.get(AuthorizationSimulationController.class.getName()))
                 .contains(
-                        "GET /api/rbac3/v1/audit-logs",
                         "POST /api/rbac3/v1/simulations/authorization",
                         "POST /api/rbac3/v1/simulations/role-change-impact");
         assertThat(methods.get(RuntimeController.class.getName()))

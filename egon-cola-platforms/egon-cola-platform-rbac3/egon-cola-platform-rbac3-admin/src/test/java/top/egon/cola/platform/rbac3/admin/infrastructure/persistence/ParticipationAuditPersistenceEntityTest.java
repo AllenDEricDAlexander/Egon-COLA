@@ -3,8 +3,8 @@ package top.egon.cola.platform.rbac3.admin.infrastructure.persistence;
 import org.junit.jupiter.api.Test;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import top.egon.cola.platform.rbac3.admin.audit.domain.AuditLogEntity;
-import top.egon.cola.platform.rbac3.admin.participation.domain.BusinessParticipationEntity;
+import top.egon.cola.platform.rbac3.admin.audit.domain.po.AuditLogPO;
+import top.egon.cola.platform.rbac3.admin.participation.domain.po.BusinessParticipationPO;
 
 import java.time.Instant;
 import java.util.Map;
@@ -17,7 +17,7 @@ class ParticipationAuditPersistenceEntityTest {
 
     @Test
     void mapsAppendOnlyParticipationIdentityAndPayloadDigest() {
-        BusinessParticipationEntity entity = new BusinessParticipationEntity(
+        BusinessParticipationPO entity = new BusinessParticipationPO(
                 1L, 7L, "finance-service", "PAYMENT", "PAY-1", 9L,
                 "SUBMIT", "event-1", NOW.minusSeconds(5), "trace-1",
                 "sha256:payload", NOW, "finance-service");
@@ -31,7 +31,7 @@ class ParticipationAuditPersistenceEntityTest {
 
     @Test
     void mapsOnlyRedactedAuditSnapshotsAndChecksum() {
-        AuditLogEntity entity = new AuditLogEntity(
+        AuditLogPO entity = new AuditLogPO(
                 2L, 7L, "ROLE_CHANGED", "SUCCESS", "HIGH", "USER", "user-1",
                 "ROLE", "role-1", null, "ALLOW", "request-1", "trace-1",
                 null, null, Map.of("password", "<redacted>"), Map.of("result", "ok"),
@@ -46,7 +46,7 @@ class ParticipationAuditPersistenceEntityTest {
 
     @Test
     void bindsAuditClientAddressesAsPostgresqlInetValues() throws Exception {
-        JdbcTypeCode jdbcType = AuditLogEntity.class
+        JdbcTypeCode jdbcType = AuditLogPO.class
                 .getDeclaredField("clientIp")
                 .getAnnotation(JdbcTypeCode.class);
 

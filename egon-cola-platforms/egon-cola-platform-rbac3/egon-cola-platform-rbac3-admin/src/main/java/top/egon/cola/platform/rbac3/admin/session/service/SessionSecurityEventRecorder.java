@@ -1,12 +1,13 @@
 package top.egon.cola.platform.rbac3.admin.session.service;
 
-import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
+import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
 
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.TerminationVO;
+import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditEventVO;
 
 /**
  * 类型 `SessionSecurityEventRecorder` 位于当前包内，是类型，用于承载 `Session Security Event Recorder` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -68,7 +69,7 @@ public final class SessionSecurityEventRecorder {
                 "reason", termination.reason(),
                 "sessionVersion", Long.toString(termination.sessionVersion()));
         boolean replayDetected = "REFRESH_TOKEN_REUSED".equals(termination.reason());
-        auditPort.append(new AuditPort.AuditEvent(
+        auditPort.append(new AuditEventVO(
                 termination.tenantId(), auditEventType(termination), termination.actorId(),
                 "SESSION", termination.sessionId(), correlationId, correlationId,
                 evidence, termination.occurredAt(),

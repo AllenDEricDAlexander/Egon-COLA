@@ -2,6 +2,7 @@ package top.egon.cola.platform.rbac3.admin.interfaces.http;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.web.bind.annotation.RequestParam;
+import top.egon.cola.platform.rbac3.admin.audit.controller.AuditController;
 import top.egon.cola.platform.rbac3.admin.directory.controller.DirectoryController;
 import top.egon.cola.platform.rbac3.admin.identity.controller.UserDirectoryController;
 import top.egon.cola.platform.rbac3.admin.tenant.controller.TenantController;
@@ -22,7 +23,7 @@ class ControllerRequestParameterMetadataTest {
                         UserDirectoryController.class,
                         DirectoryController.class,
                         RolePermissionController.class,
-                        AuditSimulationController.class)
+                        AuditController.class)
                 .stream()
                 .flatMap(type -> List.of(type.getDeclaredMethods()).stream())
                 .flatMap(method -> List.of(method.getParameters()).stream()

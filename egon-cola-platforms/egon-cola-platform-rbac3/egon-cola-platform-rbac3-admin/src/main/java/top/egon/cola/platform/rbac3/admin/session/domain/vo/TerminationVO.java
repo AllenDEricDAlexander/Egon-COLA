@@ -1,6 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.session.domain.vo;
 
-import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
+import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
 import java.time.Instant;
 import java.util.Map;

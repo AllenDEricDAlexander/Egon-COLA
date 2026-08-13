@@ -8,7 +8,7 @@ import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
 import top.egon.cola.platform.rbac3.admin.activation.service.ActiveRoleSetRevalidator;
 import top.egon.cola.platform.rbac3.admin.activation.domain.po.SessionActiveRolePO;
-import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
+import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.AuthorizationMutationEntity;
 import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
@@ -32,6 +32,7 @@ import top.egon.cola.platform.rbac3.admin.activation.domain.vo.SessionStateVO;
 import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ResolvedActivationVO;
 import top.egon.cola.platform.rbac3.admin.activation.domain.vo.TransactionResultVO;
 import top.egon.cola.platform.rbac3.admin.activation.domain.vo.CurrentStateVO;
+import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditEventVO;
 
 /**
  * 类型 `JpaSessionActiveRoleRepository` 位于当前包内，是类型，用于承载 `Session Active Role Repository` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -203,7 +204,7 @@ public class JpaSessionActiveRoleRepository
             }
         }
         mutation.committed(now, command.actorId());
-        auditPort.append(new AuditPort.AuditEvent(
+        auditPort.append(new AuditEventVO(
                 command.tenantId(), "SESSION_ACTIVE_ROLES_REPLACED",
                 command.actorId(), "SESSION", command.sessionId(),
                 command.commandId(), command.commandId(),

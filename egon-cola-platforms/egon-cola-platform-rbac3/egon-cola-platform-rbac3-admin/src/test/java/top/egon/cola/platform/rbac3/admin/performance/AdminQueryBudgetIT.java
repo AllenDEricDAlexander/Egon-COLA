@@ -3,7 +3,7 @@ package top.egon.cola.platform.rbac3.admin.performance;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
-import top.egon.cola.platform.rbac3.admin.audit.application.AuditQueryService;
+import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
 import top.egon.cola.platform.rbac3.core.activation.AuthorizationRuleFacts;
 import top.egon.cola.platform.rbac3.core.activation.EligibleAssignmentFact;
 import top.egon.cola.platform.rbac3.core.hierarchy.RoleHierarchy;
@@ -21,6 +21,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ActivationFactsVO;
 import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ApplicationFactVO;
+import top.egon.cola.platform.rbac3.admin.audit.repository.AuditRepository;
+import top.egon.cola.platform.rbac3.admin.audit.domain.dto.QueryDTO;
+import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditVO;
+import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditQueryPageVO;
 
 class AdminQueryBudgetIT {
 
@@ -40,7 +44,7 @@ class AdminQueryBudgetIT {
         CountingAuditStore auditStore = new CountingAuditStore();
         AuditQueryService audit = new AuditQueryService(
                 auditStore, Clock.fixed(NOW, ZoneOffset.UTC));
-        audit.query(new AuditQueryService.Query(
+        audit.query(new QueryDTO(
                         "tenant", NOW.minusSeconds(60), NOW,
                         null, null, null, null, null, null, null, null,
                         100, null),
@@ -84,21 +88,21 @@ class AdminQueryBudgetIT {
     }
 
     private static final class CountingAuditStore
-            implements AuditQueryService.AuditStore {
+            implements AuditRepository {
         private final AtomicInteger queries = new AtomicInteger();
         private final AtomicInteger appends = new AtomicInteger();
 
         @Override
-        public AuditQueryService.AuditView append(
-                AuditQueryService.AuditView record) {
+        public AuditVO append(
+                AuditVO record) {
             appends.incrementAndGet();
             return record;
         }
 
         @Override
-        public AuditQueryService.Page query(AuditQueryService.Query query) {
+        public AuditQueryPageVO query(QueryDTO query) {
             queries.incrementAndGet();
-            return new AuditQueryService.Page(List.of(), null);
+            return new AuditQueryPageVO(List.of(), null);
         }
     }
 }

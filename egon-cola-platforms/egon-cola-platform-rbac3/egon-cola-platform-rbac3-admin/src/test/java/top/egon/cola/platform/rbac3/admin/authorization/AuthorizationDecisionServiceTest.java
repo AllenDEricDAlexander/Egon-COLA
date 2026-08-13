@@ -2,7 +2,7 @@ package top.egon.cola.platform.rbac3.admin.authorization;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
-import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
+import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.DataScopeDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.Decision;
@@ -22,6 +22,13 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.SnapshotRecordVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.AuthorizationDecisionSubjectVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.AuthorizationDecisionResourceVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.TokenVersionsVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.dto.DecisionRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.dto.ResourceAccessRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.enums.AuthorizationDecisionDecisionTypeEnum;
 
 class AuthorizationDecisionServiceTest {
 
@@ -67,11 +74,11 @@ class AuthorizationDecisionServiceTest {
                 .isInstanceOfSatisfying(Rbac3RuleViolation.class,
                         error -> assertThat(error.reasonCode())
                                 .isEqualTo("APPLICATION_BINDING_DENIED"));
-        assertVersionFailure(service, new AuthorizationDecisionService.TokenVersions(42, 2, 18),
+        assertVersionFailure(service, new TokenVersionsVO(42, 2, 18),
                 "AUTH_VERSION_MISMATCH");
-        assertVersionFailure(service, new AuthorizationDecisionService.TokenVersions(43, 1, 18),
+        assertVersionFailure(service, new TokenVersionsVO(43, 1, 18),
                 "SESSION_VERSION_MISMATCH");
-        assertVersionFailure(service, new AuthorizationDecisionService.TokenVersions(43, 2, 17),
+        assertVersionFailure(service, new TokenVersionsVO(43, 2, 17),
                 "POLICY_VERSION_MISMATCH");
     }
 
@@ -210,10 +217,10 @@ class AuthorizationDecisionServiceTest {
 
     private void assertVersionFailure(
             AuthorizationDecisionService service,
-            AuthorizationDecisionService.TokenVersions versions,
+            TokenVersionsVO versions,
             String reasonCode) {
-        AuthorizationDecisionService.DecisionRequest request = request(PERMISSION);
-        var stale = new AuthorizationDecisionService.DecisionRequest(
+        DecisionRequestDTO request = request(PERMISSION);
+        var stale = new DecisionRequestDTO(
                 request.subject(), request.permissionCode(), request.resource(),
                 request.requestedDecisions(), versions);
         assertThatThrownBy(() -> service.decide(servicePrincipal("finance-web"), stale))
@@ -225,7 +232,7 @@ class AuthorizationDecisionServiceTest {
             SessionAuthorizationSnapshot snapshot,
             boolean fenced) {
         return new AuthorizationDecisionService(
-                (tenantId, sessionId) -> new AuthorizationDecisionService.SnapshotRecord(
+                (tenantId, sessionId) -> new SnapshotRecordVO(
                         tenantId, "user-1", snapshot),
                 (tenantId, sessionId) -> fenced,
                 Clock.fixed(NOW, ZoneOffset.UTC));
@@ -237,30 +244,30 @@ class AuthorizationDecisionServiceTest {
             SessionAuthorizationSnapshot snapshot,
             boolean fenced) {
         return new AuthorizationDecisionService(
-                (tenantId, sessionId) -> new AuthorizationDecisionService.SnapshotRecord(
+                (tenantId, sessionId) -> new SnapshotRecordVO(
                         recordTenantId, identitySub, "user-1", snapshot),
                 (tenantId, sessionId) -> fenced,
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
-    private AuthorizationDecisionService.ResourceAccessRequest resourceAccessRequest(
+    private ResourceAccessRequestDTO resourceAccessRequest(
             String applicationCode) {
-        return new AuthorizationDecisionService.ResourceAccessRequest(
+        return new ResourceAccessRequestDTO(
                 "alice-sub", "tenant-1", "session-1", applicationCode, PERMISSION);
     }
 
-    private AuthorizationDecisionService.DecisionRequest request(String permission) {
-        return new AuthorizationDecisionService.DecisionRequest(
-                new AuthorizationDecisionService.Subject(
+    private DecisionRequestDTO request(String permission) {
+        return new DecisionRequestDTO(
+                new AuthorizationDecisionSubjectVO(
                         "tenant-1", "user-1", "session-1"),
                 permission,
-                new AuthorizationDecisionService.Resource(
+                new AuthorizationDecisionResourceVO(
                         "finance-web", "payment-approvals"),
                 EnumSet.of(
-                        AuthorizationDecisionService.DecisionType.FUNCTION,
-                        AuthorizationDecisionService.DecisionType.DATA_SCOPE,
-                        AuthorizationDecisionService.DecisionType.FIELD),
-                new AuthorizationDecisionService.TokenVersions(43, 2, 18));
+                        AuthorizationDecisionDecisionTypeEnum.FUNCTION,
+                        AuthorizationDecisionDecisionTypeEnum.DATA_SCOPE,
+                        AuthorizationDecisionDecisionTypeEnum.FIELD),
+                new TokenVersionsVO(43, 2, 18));
     }
 
     private ServiceIdentityPrincipal servicePrincipal(String applicationCode) {

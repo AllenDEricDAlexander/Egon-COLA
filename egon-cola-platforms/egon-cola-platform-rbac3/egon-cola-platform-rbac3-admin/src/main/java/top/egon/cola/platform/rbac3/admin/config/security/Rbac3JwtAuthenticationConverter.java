@@ -3,12 +3,13 @@ package top.egon.cola.platform.rbac3.admin.config.security;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.oauth2.jwt.Jwt;
-import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
+import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.snapshot.infrastructure.RedisAuthorizationRuntimeStore;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.SnapshotRecordVO;
 
 /**
  * 将已验证的用户 Bearer Claim 转换为 RBAC3 用户主体。
@@ -76,7 +77,7 @@ public final class Rbac3JwtAuthenticationConverter
         long authVersion = number(jwt, "av");
         long sessionVersion = number(jwt, "sv");
         long policyVersion = number(jwt, "pv");
-        AuthorizationDecisionService.SnapshotRecord record = runtimeStore.load(
+        SnapshotRecordVO record = runtimeStore.load(
                 tenantId, sessionId);
         if (!record.tenantId().equals(tenantId)
                 || !record.identitySub().equals(identitySub)

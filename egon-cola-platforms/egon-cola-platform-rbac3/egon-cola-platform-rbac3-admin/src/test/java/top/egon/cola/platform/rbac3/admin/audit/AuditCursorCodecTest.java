@@ -1,13 +1,14 @@
 package top.egon.cola.platform.rbac3.admin.audit;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.audit.infrastructure.AuditCursorCodec;
+import top.egon.cola.platform.rbac3.admin.audit.repository.internal.AuditCursorCodec;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import top.egon.cola.platform.rbac3.admin.audit.domain.vo.CursorPositionVO;
 
 class AuditCursorCodecTest {
 
@@ -16,7 +17,7 @@ class AuditCursorCodecTest {
 
     @Test
     void roundTripsPositionOnlyForTheSameTenantAndFilter() {
-        var position = new AuditCursorCodec.CursorPosition(
+        var position = new CursorPositionVO(
                 Instant.parse("2026-07-30T12:00:00Z"), 901L);
 
         String cursor = codec.encode(position, "tenant-1", "filter-a");
@@ -33,7 +34,7 @@ class AuditCursorCodecTest {
     @Test
     void rejectsTamperingAndMalformedCursor() {
         String cursor = codec.encode(
-                new AuditCursorCodec.CursorPosition(
+                new CursorPositionVO(
                         Instant.parse("2026-07-30T12:00:00Z"), 901L),
                 "tenant-1", "filter-a");
         String tampered = cursor.substring(0, cursor.length() - 1)

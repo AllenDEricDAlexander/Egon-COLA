@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.snapshot.application;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
+import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFacade;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.AuthorizationContextVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.SnapshotRecordVO;
 
 class SystemAuthorizationSnapshotServiceTest {
 
@@ -32,7 +33,7 @@ class SystemAuthorizationSnapshotServiceTest {
                         NOW.plusSeconds(3600));
         SystemAuthorizationSnapshotService service = new SystemAuthorizationSnapshotService(
                 (tenantId, sessionId, identitySub, now, expiresAt) -> context,
-                (tenantId, sessionId) -> new AuthorizationDecisionService.SnapshotRecord(
+                (tenantId, sessionId) -> new SnapshotRecordVO(
                         tenantId, "alice-sub", "101", sessionSnapshot()),
                 Clock.fixed(NOW, ZoneOffset.UTC));
 
@@ -54,7 +55,7 @@ class SystemAuthorizationSnapshotServiceTest {
                         NOW.plusSeconds(3600));
         SystemAuthorizationSnapshotService service = new SystemAuthorizationSnapshotService(
                 (tenantId, sessionId, identitySub, now, expiresAt) -> context,
-                (tenantId, sessionId) -> new AuthorizationDecisionService.SnapshotRecord(
+                (tenantId, sessionId) -> new SnapshotRecordVO(
                         tenantId, "mallory-sub", "101", sessionSnapshot()),
                 Clock.fixed(NOW, ZoneOffset.UTC));
 
@@ -102,7 +103,7 @@ class SystemAuthorizationSnapshotServiceTest {
         SystemAuthorizationSnapshotService service = new SystemAuthorizationSnapshotService(
                 (tenantId, sessionId, identitySub, now, expiresAt) ->
                         openings.getAndIncrement() == 0 ? unactivated : activated,
-                (tenantId, sessionId) -> new AuthorizationDecisionService.SnapshotRecord(
+                (tenantId, sessionId) -> new SnapshotRecordVO(
                         tenantId, "alice-sub", "101", sessionSnapshot(7, 1, 11)),
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 (context, now) ->
@@ -130,7 +131,7 @@ class SystemAuthorizationSnapshotServiceTest {
                     if (snapshotReads.getAndIncrement() == 0) {
                         throw new Rbac3RuleViolation("AUTH_SNAPSHOT_NOT_READY");
                     }
-                    return new AuthorizationDecisionService.SnapshotRecord(
+                    return new SnapshotRecordVO(
                             tenantId, "alice-sub", "101",
                             sessionSnapshot(7, 1, 11));
                 },
@@ -166,11 +167,11 @@ class SystemAuthorizationSnapshotServiceTest {
                         openings.getAndIncrement() == 0 ? unactivated : activated,
                 (tenantId, sessionId) -> {
                     if (snapshotReads.getAndIncrement() == 0) {
-                        return new AuthorizationDecisionService.SnapshotRecord(
+                        return new SnapshotRecordVO(
                                 tenantId, "alice-sub", "101",
                                 sessionSnapshot(7, 0, 11));
                     }
-                    return new AuthorizationDecisionService.SnapshotRecord(
+                    return new SnapshotRecordVO(
                             tenantId, "alice-sub", "101",
                             sessionSnapshot(7, 1, 11));
                 },
@@ -200,7 +201,7 @@ class SystemAuthorizationSnapshotServiceTest {
                         openings.getAndIncrement() == 0 ? unactivated : activated,
                 (tenantId, sessionId) -> {
                     snapshotReads.incrementAndGet();
-                    return new AuthorizationDecisionService.SnapshotRecord(
+                    return new SnapshotRecordVO(
                             tenantId, "alice-sub", "101",
                             sessionSnapshot(7, 0, 11));
                 },

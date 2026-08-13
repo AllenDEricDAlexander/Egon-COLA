@@ -3,8 +3,8 @@ package top.egon.cola.platform.rbac3.admin.participation;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.idp.starter.security.RequiresServiceScope;
-import top.egon.cola.platform.rbac3.admin.interfaces.http.ParticipationController;
-import top.egon.cola.platform.rbac3.admin.participation.application.ParticipationFacade;
+import top.egon.cola.platform.rbac3.admin.participation.controller.ParticipationController;
+import top.egon.cola.platform.rbac3.admin.participation.service.ParticipationFacade;
 import top.egon.cola.platform.rbac3.contract.participation.BusinessParticipationCommand;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
@@ -22,6 +22,13 @@ import java.util.concurrent.Executors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import top.egon.cola.platform.rbac3.admin.participation.repository.ParticipationRepository;
+import top.egon.cola.platform.rbac3.admin.participation.domain.vo.ParticipationRecordVO;
+import top.egon.cola.platform.rbac3.admin.participation.domain.vo.ParticipationFactVO;
+import top.egon.cola.platform.rbac3.admin.participation.domain.vo.PriorActionRuleVO;
+import top.egon.cola.platform.rbac3.admin.participation.domain.vo.AppendResultVO;
+import top.egon.cola.platform.rbac3.admin.participation.domain.vo.RecordResultVO;
+import top.egon.cola.platform.rbac3.admin.participation.domain.dto.ConflictQueryDTO;
 
 class ParticipationConcurrencyIT {
 
@@ -36,7 +43,7 @@ class ParticipationConcurrencyIT {
 
         var conflict = facade.conflicts(
                 caller("finance-service"), "tenant-1",
-                new ParticipationFacade.ConflictQuery(
+                new ConflictQueryDTO(
                         "finance-service", "PAYMENT", "PAY-1", "user-1", "APPROVE"));
         assertThat(conflict.allowed()).isFalse();
         assertThat(conflict.reasonCode()).isEqualTo("OPERATION_SOD_CONSTRAINT_VIOLATION");
@@ -69,7 +76,7 @@ class ParticipationConcurrencyIT {
         ParticipationFacade facade = facade(store);
         var executor = Executors.newFixedThreadPool(8);
         try {
-            List<Callable<ParticipationFacade.RecordResult>> calls = new ArrayList<>();
+            List<Callable<RecordResultVO>> calls = new ArrayList<>();
             for (int index = 0; index < 16; index++) {
                 calls.add(() -> facade.record(
                         caller("finance-service"), "tenant-1",
@@ -86,8 +93,8 @@ class ParticipationConcurrencyIT {
                     })
                     .toList();
 
-            assertThat(results).filteredOn(ParticipationFacade.RecordResult::created).hasSize(1);
-            assertThat(results).extracting(ParticipationFacade.RecordResult::participationId)
+            assertThat(results).filteredOn(RecordResultVO::created).hasSize(1);
+            assertThat(results).extracting(RecordResultVO::participationId)
                     .containsOnly("participation-1");
             assertThat(store.facts).hasSize(1);
         } finally {
@@ -110,7 +117,7 @@ class ParticipationConcurrencyIT {
         return new ParticipationFacade(
                 (tenantId, applicationCode, businessResource, laterAction, at) ->
                         "APPROVE".equals(laterAction)
-                                ? List.of(new ParticipationFacade.PriorActionRule(
+                                ? List.of(new PriorActionRuleVO(
                                         "sod-rule-1", "SUBMIT", Instant.EPOCH))
                                 : List.of(),
                 store,
@@ -142,21 +149,21 @@ class ParticipationConcurrencyIT {
         );
     }
 
-    private static final class InMemoryStore implements ParticipationFacade.ParticipationStore {
-        private final Map<String, ParticipationFacade.ParticipationRecord> byEvent =
+    private static final class InMemoryStore implements ParticipationRepository {
+        private final Map<String, ParticipationRecordVO> byEvent =
                 new HashMap<>();
-        private final List<ParticipationFacade.ParticipationFact> facts = new ArrayList<>();
+        private final List<ParticipationFactVO> facts = new ArrayList<>();
 
         @Override
-        public synchronized ParticipationFacade.AppendResult appendAtomically(
-                ParticipationFacade.ParticipationRecord record,
-                List<ParticipationFacade.PriorActionRule> rules) {
-            ParticipationFacade.ParticipationRecord previous = byEvent.get(record.businessEventId());
+        public synchronized AppendResultVO appendAtomically(
+                ParticipationRecordVO record,
+                List<PriorActionRuleVO> rules) {
+            ParticipationRecordVO previous = byEvent.get(record.businessEventId());
             if (previous != null) {
                 if (!previous.payloadDigest().equals(record.payloadDigest())) {
                     throw new Rbac3RuleViolation("IDEMPOTENCY_CONFLICT");
                 }
-                return new ParticipationFacade.AppendResult(
+                return new AppendResultVO(
                         false, "participation-1", List.of());
             }
             List<String> conflicts = facts.stream()
@@ -168,23 +175,23 @@ class ParticipationConcurrencyIT {
                     .filter(fact -> rules.stream().anyMatch(rule ->
                             rule.actionCode().equals(fact.actionCode())
                                     && !fact.occurredAt().isBefore(rule.lookbackFrom())))
-                    .map(ParticipationFacade.ParticipationFact::participationId)
+                    .map(ParticipationFactVO::participationId)
                     .toList();
             if (!conflicts.isEmpty()) {
-                return new ParticipationFacade.AppendResult(false, null, conflicts);
+                return new AppendResultVO(false, null, conflicts);
             }
             String id = "participation-" + (facts.size() + 1);
             byEvent.put(record.businessEventId(), record);
-            facts.add(new ParticipationFacade.ParticipationFact(
+            facts.add(new ParticipationFactVO(
                     id, record.tenantId(), record.applicationCode(),
                     record.businessResource(), record.businessId(), record.actorUserId(),
                     record.actionCode(), record.businessEventId(), record.occurredAt()));
-            return new ParticipationFacade.AppendResult(true, id, List.of());
+            return new AppendResultVO(true, id, List.of());
         }
 
         @Override
-        public synchronized List<ParticipationFacade.ParticipationFact> find(
-                ParticipationFacade.ConflictQuery query,
+        public synchronized List<ParticipationFactVO> find(
+                ConflictQueryDTO query,
                 String tenantId,
                 Instant lookbackFrom) {
             return List.copyOf(facts);

@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Repository;
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
+import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.core.runtime.Rbac3RuntimeKeyFactory;
@@ -25,6 +25,9 @@ import java.util.List;
 import java.util.Objects;
 import top.egon.cola.platform.rbac3.admin.activation.repository.RoleActivationRuntimeRepository;
 import top.egon.cola.platform.rbac3.admin.activation.domain.vo.RuntimePublicationVO;
+import top.egon.cola.platform.rbac3.admin.authorization.repository.AuthorizationSnapshotRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.repository.FenceVerifier;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.SnapshotRecordVO;
 
 /**
  * 类型 `RedisAuthorizationRuntimeStore` 位于当前包内，是类型，用于承载 `Redis Authorization Runtime Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -34,8 +37,8 @@ import top.egon.cola.platform.rbac3.admin.activation.domain.vo.RuntimePublicatio
 @Repository
 public class RedisAuthorizationRuntimeStore implements
         RoleActivationRuntimeRepository,
-        AuthorizationDecisionService.SnapshotSource,
-        AuthorizationDecisionService.FenceVerifier {
+        AuthorizationSnapshotRepository,
+        FenceVerifier {
 
     /**
      * 字段 `PUBLISH_SCRIPT` 表示 `RedisAuthorizationRuntimeStore` 中与 `PUBLISH SCRIPT` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -283,7 +286,7 @@ public class RedisAuthorizationRuntimeStore implements
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Override
-    public AuthorizationDecisionService.SnapshotRecord load(
+    public SnapshotRecordVO load(
             String tenantId,
             String sessionId) {
         try {
@@ -331,7 +334,7 @@ public class RedisAuthorizationRuntimeStore implements
                     || snapshot.policyVersion() != session.policyVersion()) {
                 throw new Rbac3RuleViolation("SESSION_VERSION_MISMATCH");
             }
-            return new AuthorizationDecisionService.SnapshotRecord(
+            return new SnapshotRecordVO(
                     tenantId, session.identitySub(), session.userId(), snapshot);
         } catch (Rbac3RuleViolation error) {
             throw error;

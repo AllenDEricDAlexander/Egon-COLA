@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.audit;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.audit.application.AuditQueryService;
+import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -12,6 +12,11 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import top.egon.cola.platform.rbac3.admin.audit.repository.AuditRepository;
+import top.egon.cola.platform.rbac3.admin.audit.domain.dto.AuditCommandDTO;
+import top.egon.cola.platform.rbac3.admin.audit.domain.dto.QueryDTO;
+import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditVO;
+import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditQueryPageVO;
 
 class AuditRedactionIT {
 
@@ -22,13 +27,13 @@ class AuditRedactionIT {
         InMemoryStore store = new InMemoryStore();
         AuditQueryService service = new AuditQueryService(
                 store, Clock.fixed(NOW, ZoneOffset.UTC));
-        service.record(new AuditQueryService.AuditCommand(
+        service.record(new AuditCommandDTO(
                 "tenant-1", "ROLE_CHANGED", "SUCCESS", "HIGH", "USER", "user-1",
                 "ROLE", "role-1", null, "ALLOW", "request-1", "trace-1",
                 Map.of("password", "plaintext", "profile", Map.of("name", "Mario")),
                 Map.of("authorization", "Bearer secret", "result", "ok"), NOW));
 
-        AuditQueryService.AuditView stored = store.appended.getFirst();
+        AuditVO stored = store.appended.getFirst();
         assertThat(stored.beforeSnapshot())
                 .containsEntry("password", "<redacted>")
                 .containsEntry("profile", Map.of("name", "Mario"));
@@ -37,13 +42,13 @@ class AuditRedactionIT {
                 .containsEntry("result", "ok");
         assertThat(stored.payloadChecksum()).startsWith("sha256:");
 
-        AuditQueryService.Page page = service.query(new AuditQueryService.Query(
+        AuditQueryPageVO page = service.query(new QueryDTO(
                 "tenant-1", NOW.minusSeconds(3600), NOW, null, null,
                 "ROLE_CHANGED", "SUCCESS", null, null, null, null, 50, null),
                 "auditor-1", "audit-request", "audit-trace");
 
         assertThat(page.items()).hasSize(1);
-        assertThat(store.appended).extracting(AuditQueryService.AuditView::eventType)
+        assertThat(store.appended).extracting(AuditVO::eventType)
                 .containsExactly("ROLE_CHANGED", "AUDIT_LOGS_READ");
     }
 
@@ -52,13 +57,13 @@ class AuditRedactionIT {
         AuditQueryService service = new AuditQueryService(
                 new InMemoryStore(), Clock.fixed(NOW, ZoneOffset.UTC));
 
-        assertThatThrownBy(() -> service.query(new AuditQueryService.Query(
+        assertThatThrownBy(() -> service.query(new QueryDTO(
                         "tenant-1", NOW.minusSeconds(32L * 24 * 3600), NOW,
                         null, null, null, null, null, null, null, null, 50, null),
                 "auditor-1", "request-1", "trace-1"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("31 days");
-        assertThatThrownBy(() -> service.query(new AuditQueryService.Query(
+        assertThatThrownBy(() -> service.query(new QueryDTO(
                         "tenant-1", NOW.minusSeconds(3600), NOW,
                         null, null, null, null, null, null, null, null, 201, null),
                 "auditor-1", "request-1", "trace-1"))
@@ -66,18 +71,18 @@ class AuditRedactionIT {
                 .hasMessageContaining("pageSize");
     }
 
-    private static final class InMemoryStore implements AuditQueryService.AuditStore {
-        private final List<AuditQueryService.AuditView> appended = new ArrayList<>();
+    private static final class InMemoryStore implements AuditRepository {
+        private final List<AuditVO> appended = new ArrayList<>();
 
         @Override
-        public AuditQueryService.AuditView append(AuditQueryService.AuditView record) {
+        public AuditVO append(AuditVO record) {
             appended.add(record);
             return record;
         }
 
         @Override
-        public AuditQueryService.Page query(AuditQueryService.Query query) {
-            return new AuditQueryService.Page(
+        public AuditQueryPageVO query(QueryDTO query) {
+            return new AuditQueryPageVO(
                     appended.stream()
                             .filter(record -> !record.eventType().equals("AUDIT_LOGS_READ"))
                             .toList(), null);

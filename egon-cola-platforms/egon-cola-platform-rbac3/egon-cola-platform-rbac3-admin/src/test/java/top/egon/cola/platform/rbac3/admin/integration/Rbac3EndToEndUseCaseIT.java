@@ -2,7 +2,7 @@ package top.egon.cola.platform.rbac3.admin.integration;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
-import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
+import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.Decision;
 import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
@@ -26,6 +26,12 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.SnapshotRecordVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.AuthorizationDecisionSubjectVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.AuthorizationDecisionResourceVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.TokenVersionsVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.dto.DecisionRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.enums.AuthorizationDecisionDecisionTypeEnum;
 
 class Rbac3EndToEndUseCaseIT {
 
@@ -64,7 +70,7 @@ class Rbac3EndToEndUseCaseIT {
                         List.of(), activation.snapshot().landingRouteCode())),
                 activation.snapshot().checksum(), NOW);
         AuthorizationDecisionService decisions = new AuthorizationDecisionService(
-                (tenant, session) -> new AuthorizationDecisionService.SnapshotRecord(
+                (tenant, session) -> new SnapshotRecordVO(
                         tenant, "user", snapshot),
                 (tenant, session) -> false,
                 Clock.fixed(NOW, ZoneOffset.UTC));
@@ -88,15 +94,15 @@ class Rbac3EndToEndUseCaseIT {
                                 .isEqualTo("APPLICATION_BINDING_DENIED"));
     }
 
-    private static AuthorizationDecisionService.DecisionRequest request(
+    private static DecisionRequestDTO request(
             String application,
             String permission) {
-        return new AuthorizationDecisionService.DecisionRequest(
-                new AuthorizationDecisionService.Subject("tenant", "user", "session"),
+        return new DecisionRequestDTO(
+                new AuthorizationDecisionSubjectVO("tenant", "user", "session"),
                 permission,
-                new AuthorizationDecisionService.Resource(application, "payment"),
-                EnumSet.of(AuthorizationDecisionService.DecisionType.FUNCTION),
-                new AuthorizationDecisionService.TokenVersions(3L, 6L, 7L));
+                new AuthorizationDecisionResourceVO(application, "payment"),
+                EnumSet.of(AuthorizationDecisionDecisionTypeEnum.FUNCTION),
+                new TokenVersionsVO(3L, 6L, 7L));
     }
 
     private static ServiceIdentityPrincipal servicePrincipal(String application) {

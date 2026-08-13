@@ -15,18 +15,18 @@ import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandi
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
 import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaRoleActivationFactRepository;
 import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaSessionActiveRoleRepository;
-import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
+import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
 import top.egon.cola.platform.rbac3.admin.application.port.Rbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.integration.ddc.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentFacade;
 import top.egon.cola.platform.rbac3.admin.assignment.repository.jpa.JpaAssignmentRepository;
 import top.egon.cola.platform.rbac3.admin.assignment.repository.jdbc.PostgresqlAssignmentLockRepository;
-import top.egon.cola.platform.rbac3.admin.audit.application.AuditQueryService;
-import top.egon.cola.platform.rbac3.admin.audit.infrastructure.AuditCursorCodec;
-import top.egon.cola.platform.rbac3.admin.audit.infrastructure.PostgresqlAuditStore;
-import top.egon.cola.platform.rbac3.admin.authorization.application.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.authorization.infrastructure.AuthorizationRuleRepository;
+import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
+import top.egon.cola.platform.rbac3.admin.audit.repository.internal.AuditCursorCodec;
+import top.egon.cola.platform.rbac3.admin.audit.repository.jdbc.PostgresqlAuditRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
+import top.egon.cola.platform.rbac3.admin.authorization.repository.jpa.JpaAuthorizationRuleRepository;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.Rbac3DevelopmentAuthorizationContextInitializer;
 import top.egon.cola.platform.rbac3.admin.bootstrap.controller.cli.Rbac3PlatformAdminBootstrapCli;
@@ -39,8 +39,8 @@ import top.egon.cola.platform.rbac3.admin.identity.repository.IdentityMappingRep
 import top.egon.cola.platform.rbac3.admin.identity.service.IdentityMappingFacade;
 import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
 import top.egon.cola.platform.rbac3.admin.management.repository.jpa.JpaManagementPolicyRepository;
-import top.egon.cola.platform.rbac3.admin.participation.application.ParticipationFacade;
-import top.egon.cola.platform.rbac3.admin.participation.infrastructure.PostgresqlParticipationStore;
+import top.egon.cola.platform.rbac3.admin.participation.service.ParticipationFacade;
+import top.egon.cola.platform.rbac3.admin.participation.repository.jdbc.PostgresqlParticipationRepository;
 import top.egon.cola.platform.rbac3.admin.resource.service.ApplicationResourceFacade;
 import top.egon.cola.platform.rbac3.admin.resource.service.ManifestFacade;
 import top.egon.cola.platform.rbac3.admin.resource.repository.jpa.JpaResourceManifestRepository;
@@ -57,8 +57,8 @@ import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFa
 import top.egon.cola.platform.rbac3.admin.session.service.SessionSecurityEventRecorder;
 import top.egon.cola.platform.rbac3.admin.session.repository.jpa.JpaSessionRepository;
 import top.egon.cola.platform.rbac3.admin.session.repository.jpa.JpaAuthorizationContextRepository;
-import top.egon.cola.platform.rbac3.admin.simulation.application.AuthorizationSimulationService;
-import top.egon.cola.platform.rbac3.admin.simulation.infrastructure.PostgresqlRoleImpactSource;
+import top.egon.cola.platform.rbac3.admin.simulation.service.AuthorizationSimulationService;
+import top.egon.cola.platform.rbac3.admin.simulation.repository.jdbc.PostgresqlRoleImpactRepository;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SessionSnapshotProjector;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.LoginRuntimeProjectionFactory;
 import top.egon.cola.platform.rbac3.admin.snapshot.application.SystemAuthorizationSnapshotService;
@@ -606,8 +606,8 @@ public class Rbac3ApplicationConfiguration {
      */
     @Bean
     ParticipationFacade participationFacade(
-            AuthorizationRuleRepository rules,
-            PostgresqlParticipationStore store,
+            JpaAuthorizationRuleRepository rules,
+            PostgresqlParticipationRepository store,
             Clock clock) {
         return new ParticipationFacade(rules, store, clock);
     }
@@ -645,7 +645,7 @@ public class Rbac3ApplicationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Bean
-    AuditQueryService auditQueryService(PostgresqlAuditStore store, Clock clock) {
+    AuditQueryService auditQueryService(PostgresqlAuditRepository store, Clock clock) {
         return new AuditQueryService(store, clock);
     }
 
@@ -665,8 +665,8 @@ public class Rbac3ApplicationConfiguration {
     @Bean
     AuthorizationSimulationService authorizationSimulationService(
             AuthorizationDecisionService decisionService,
-            PostgresqlRoleImpactSource impactSource,
-            PostgresqlAuditStore auditStore,
+            PostgresqlRoleImpactRepository impactSource,
+            PostgresqlAuditRepository auditStore,
             Clock clock) {
         return new AuthorizationSimulationService(
                 decisionService, impactSource, auditStore, clock);

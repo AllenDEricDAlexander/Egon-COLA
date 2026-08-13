@@ -10,6 +10,7 @@ import top.egon.cola.platform.rbac3.admin.auth.domain.po.ServicePrincipalPO;
 import top.egon.cola.platform.rbac3.admin.activation.domain.po.SessionActiveRolePO;
 import top.egon.cola.platform.rbac3.admin.assignment.domain.po.AutoAssignmentRulePO;
 import top.egon.cola.platform.rbac3.admin.assignment.domain.po.UserRoleAssignmentPO;
+import top.egon.cola.platform.rbac3.admin.audit.domain.po.AuditLogPO;
 import top.egon.cola.platform.rbac3.admin.constraint.domain.po.DataRulePO;
 import top.egon.cola.platform.rbac3.admin.constraint.domain.po.DataRuleReferencePO;
 import top.egon.cola.platform.rbac3.admin.constraint.domain.po.FieldRulePO;
@@ -30,6 +31,7 @@ import top.egon.cola.platform.rbac3.admin.management.domain.po.ManagementPolicyP
 import top.egon.cola.platform.rbac3.admin.management.domain.po.ManagementRolePO;
 import top.egon.cola.platform.rbac3.admin.management.domain.po.ManagementScopePO;
 import top.egon.cola.platform.rbac3.admin.management.domain.po.ManagementSubjectPO;
+import top.egon.cola.platform.rbac3.admin.participation.domain.po.BusinessParticipationPO;
 import top.egon.cola.platform.rbac3.admin.resource.domain.po.ApplicationPO;
 import top.egon.cola.platform.rbac3.admin.resource.domain.po.FieldDefinitionPO;
 import top.egon.cola.platform.rbac3.admin.resource.domain.po.PermissionPO;
@@ -93,7 +95,9 @@ class JpaEntityNameCompatibilityTest {
             Map.entry(ManagementPolicyPO.class, "ManagementPolicyEntity"),
             Map.entry(ManagementRolePO.class, "ManagementRoleEntity"),
             Map.entry(ManagementScopePO.class, "ManagementScopeEntity"),
-            Map.entry(ManagementSubjectPO.class, "ManagementSubjectEntity"));
+            Map.entry(ManagementSubjectPO.class, "ManagementSubjectEntity"),
+            Map.entry(AuditLogPO.class, "AuditLogEntity"),
+            Map.entry(BusinessParticipationPO.class, "BusinessParticipationEntity"));
 
     @Test
     void renamedEntitiesRetainTheirLegacyJpaNames() {

@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.session.application;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.application.port.AuditPort;
+import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
 import top.egon.cola.platform.rbac3.admin.application.port.AuthorizationEventPort;
 
 import java.time.Instant;
@@ -10,12 +10,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import top.egon.cola.platform.rbac3.admin.session.domain.vo.TerminationVO;
 import top.egon.cola.platform.rbac3.admin.session.service.SessionSecurityEventRecorder;
+import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditEventVO;
 
 class SessionSecurityEventRecorderTest {
 
     @Test
     void recordsTheAuditAndReliableRevocationEventFromOneCommittedFact() {
-        AtomicReference<AuditPort.AuditEvent> audit = new AtomicReference<>();
+        AtomicReference<AuditEventVO> audit = new AtomicReference<>();
         AtomicReference<AuthorizationEventPort.AuthorizationEvent> event =
                 new AtomicReference<>();
         var recorder = new SessionSecurityEventRecorder(
