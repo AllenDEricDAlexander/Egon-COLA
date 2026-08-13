@@ -1,8 +1,8 @@
-package top.egon.cola.component.gateway.admin.application.observability;
+package top.egon.cola.component.gateway.admin.observability.service;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.gateway.admin.application.projection
-        .GatewayProjectionService;
+import top.egon.cola.component.gateway.admin.runtime.service.GatewayProjectionService;
+import top.egon.cola.component.gateway.admin.observability.repository.GatewayObservabilityRepository;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -19,8 +19,8 @@ class GatewayObservabilityQueryServiceTest {
 
     @Test
     void mergesRegistryAndEngineProjectionCountsIntoDashboard() {
-        GatewayObservabilityStore store =
-                mock(GatewayObservabilityStore.class);
+        GatewayObservabilityRepository store =
+                mock(GatewayObservabilityRepository.class);
         GatewayProjectionService projections =
                 mock(GatewayProjectionService.class);
         when(store.dashboard(eq("test"), eq("gateway"), any()))
@@ -28,7 +28,7 @@ class GatewayObservabilityQueryServiceTest {
         when(projections.scopeCounts(
                 "test-biz", "orders", "test", "gateway"
         ))
-                .thenReturn(new GatewayProjectionService.ProjectionCounts(
+                .thenReturn(new top.egon.cola.component.gateway.admin.runtime.service.GatewayProjectionCounts(
                         2,
                         3,
                         1,
@@ -46,7 +46,7 @@ class GatewayObservabilityQueryServiceTest {
                         projections
                 );
 
-        GatewayObservabilityStore.DashboardSummary result =
+        top.egon.cola.component.gateway.admin.observability.domain.vo.GatewayDashboardVO result =
                 service.dashboard(
                         "test-biz", "orders", "test", "gateway"
                 );
@@ -61,8 +61,8 @@ class GatewayObservabilityQueryServiceTest {
 
     @Test
     void keepsDatabaseSummaryWhenProjectionIsUnavailable() {
-        GatewayObservabilityStore store =
-                mock(GatewayObservabilityStore.class);
+        GatewayObservabilityRepository store =
+                mock(GatewayObservabilityRepository.class);
         GatewayProjectionService projections =
                 mock(GatewayProjectionService.class);
         when(store.dashboard(eq("test"), eq("gateway"), any()))
@@ -86,8 +86,8 @@ class GatewayObservabilityQueryServiceTest {
         );
     }
 
-    private GatewayObservabilityStore.DashboardSummary summary(String state) {
-        return new GatewayObservabilityStore.DashboardSummary(
+    private top.egon.cola.component.gateway.admin.observability.domain.vo.GatewayDashboardVO summary(String state) {
+        return new top.egon.cola.component.gateway.admin.observability.domain.vo.GatewayDashboardVO(
                 1,
                 0,
                 0,

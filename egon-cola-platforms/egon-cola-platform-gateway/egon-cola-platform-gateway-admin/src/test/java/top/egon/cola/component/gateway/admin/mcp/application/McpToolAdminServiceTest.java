@@ -1,19 +1,19 @@
-package top.egon.cola.component.gateway.admin.mcp.application;
+package top.egon.cola.component.gateway.admin.mcp.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.gateway.admin.application.IdempotencyStore;
-import top.egon.cola.component.gateway.admin.application.RequestAuditContext;
-import top.egon.cola.component.gateway.admin.domain.AdminActor;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayAuditLogRepository;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftEntity;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftRepository;
-import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpManagedToolOverrideStore;
-import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpRemoteProviderStore;
-import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpRemoteToolDraftStore;
-import top.egon.cola.component.gateway.admin.mcp.persistence.McpServerEntity;
-import top.egon.cola.component.gateway.admin.mcp.persistence.McpServerRepository;
+import top.egon.cola.component.gateway.admin.shared.repository.IdempotencyRepository;
+import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
+import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
+import top.egon.cola.component.gateway.admin.observability.repository.GatewayAuditLogRepository;
+import top.egon.cola.component.gateway.admin.routing.domain.po.GatewayDraftPO;
+import top.egon.cola.component.gateway.admin.routing.repository.GatewayDraftJpaRepository;
+import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpManagedToolOverrideRepository;
+import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpRemoteProviderRepository;
+import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpRemoteToolDraftRepository;
+import top.egon.cola.component.gateway.admin.mcp.domain.po.McpServerPO;
+import top.egon.cola.component.gateway.admin.mcp.repository.McpServerRepository;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
 
 import java.time.Clock;
@@ -42,7 +42,7 @@ class McpToolAdminServiceTest {
 
     private static final AdminActor ACTOR = new AdminActor(
             "admin-1",
-            AdminActor.ActorType.USER,
+            top.egon.cola.component.gateway.admin.shared.domain.enums.AdminActorTypeEnum.USER,
             Set.of(),
             Set.of()
     );
@@ -51,17 +51,17 @@ class McpToolAdminServiceTest {
 
     private McpValidationService validation;
 
-    private JdbcMcpManagedToolOverrideStore managedOverrides;
+    private JdbcMcpManagedToolOverrideRepository managedOverrides;
 
-    private JdbcMcpRemoteToolDraftStore remoteTools;
+    private JdbcMcpRemoteToolDraftRepository remoteTools;
 
-    private JdbcMcpRemoteProviderStore remote;
+    private JdbcMcpRemoteProviderRepository remote;
 
     private McpServerRepository servers;
 
-    private GatewayDraftRepository drafts;
+    private GatewayDraftJpaRepository drafts;
 
-    private IdempotencyStore idempotency;
+    private IdempotencyRepository idempotency;
 
     private McpToolAdminService service;
 
@@ -69,12 +69,12 @@ class McpToolAdminServiceTest {
     void setUp() {
         contentFactory = mock(McpReleaseContentFactory.class);
         validation = mock(McpValidationService.class);
-        managedOverrides = mock(JdbcMcpManagedToolOverrideStore.class);
-        remoteTools = mock(JdbcMcpRemoteToolDraftStore.class);
-        remote = mock(JdbcMcpRemoteProviderStore.class);
+        managedOverrides = mock(JdbcMcpManagedToolOverrideRepository.class);
+        remoteTools = mock(JdbcMcpRemoteToolDraftRepository.class);
+        remote = mock(JdbcMcpRemoteProviderRepository.class);
         servers = mock(McpServerRepository.class);
-        drafts = mock(GatewayDraftRepository.class);
-        idempotency = mock(IdempotencyStore.class);
+        drafts = mock(GatewayDraftJpaRepository.class);
+        idempotency = mock(IdempotencyRepository.class);
         service = new McpToolAdminService(
                 contentFactory,
                 validation,
@@ -92,7 +92,7 @@ class McpToolAdminServiceTest {
 
     @Test
     void createRemoteToolReplaysWithTheOriginalGeneratedId() {
-        AtomicReference<IdempotencyStore.Record> saved =
+        AtomicReference<top.egon.cola.component.gateway.admin.shared.domain.po.IdempotencyPO> saved =
                 new AtomicReference<>();
         when(idempotency.find(anyString(), anyString(), anyString()))
                 .thenAnswer(invocation -> Optional.ofNullable(saved.get()));
@@ -102,28 +102,28 @@ class McpToolAdminServiceTest {
         }).when(idempotency).save(any());
         prepareRemoteToolDependencies("server-1");
         when(remoteTools.save(
-                any(JdbcMcpRemoteToolDraftStore.RemoteToolDraft.class),
+                any(top.egon.cola.component.gateway.admin.mcp.domain.po.McpRemoteToolDraftPO.class),
                 eq(0L),
                 eq(ACTOR),
                 eq(NOW)
         )).thenAnswer(invocation -> {
-            JdbcMcpRemoteToolDraftStore.RemoteToolDraft draft =
+            top.egon.cola.component.gateway.admin.mcp.domain.po.McpRemoteToolDraftPO draft =
                     invocation.getArgument(0);
-            return new JdbcMcpRemoteToolDraftStore.DraftMutation(
+            return new top.egon.cola.component.gateway.admin.mcp.domain.dto.McpRemoteToolDraftMutationDTO(
                     draft.id(),
                     0
             );
         });
-        McpToolAdminService.RemoteToolMutation command = mutation();
+        top.egon.cola.component.gateway.admin.mcp.domain.dto.McpRemoteToolMutationDTO command = mutation();
 
-        McpControlPlaneService.MutationResult created = service.putRemoteTool(
+        top.egon.cola.component.gateway.admin.mcp.domain.vo.McpMutationResultVO created = service.putRemoteTool(
                 null,
                 command,
                 "create-remote-tool-1",
                 ACTOR,
                 new RequestAuditContext("request-1", "trace-1")
         );
-        McpControlPlaneService.MutationResult replayed = service.putRemoteTool(
+        top.egon.cola.component.gateway.admin.mcp.domain.vo.McpMutationResultVO replayed = service.putRemoteTool(
                 null,
                 command,
                 "create-remote-tool-1",
@@ -137,7 +137,7 @@ class McpToolAdminServiceTest {
         assertThat(replayed.resourceRevision())
                 .isEqualTo(created.resourceRevision());
         verify(remoteTools).save(
-                any(JdbcMcpRemoteToolDraftStore.RemoteToolDraft.class),
+                any(top.egon.cola.component.gateway.admin.mcp.domain.po.McpRemoteToolDraftPO.class),
                 eq(0L),
                 eq(ACTOR),
                 eq(NOW)
@@ -213,7 +213,7 @@ class McpToolAdminServiceTest {
     }
 
     private void prepareRemoteToolDependencies(String mountServerId) {
-        McpServerEntity server = new McpServerEntity(
+        McpServerPO server = new McpServerPO(
                 "server-1",
                 "group-1",
                 "orders",
@@ -229,7 +229,7 @@ class McpToolAdminServiceTest {
         when(servers.findByIdAndDeletedFalse("server-1"))
                 .thenReturn(Optional.of(server));
         when(remote.mounts("group-1")).thenReturn(List.of(
-                new JdbcMcpRemoteProviderStore.RemoteMountDraft(
+                new top.egon.cola.component.gateway.admin.mcp.domain.po.McpRemoteMountDraftPO(
                         "mount-1",
                         "group-1",
                         mountServerId,
@@ -242,7 +242,7 @@ class McpToolAdminServiceTest {
                 )
         ));
         when(drafts.findById("group-1")).thenReturn(Optional.of(
-                new GatewayDraftEntity("group-1", ACTOR.actorId(), NOW)
+                new GatewayDraftPO("group-1", ACTOR.actorId(), NOW)
         ));
     }
 
@@ -270,7 +270,7 @@ class McpToolAdminServiceTest {
                 enabled
         );
         when(contentFactory.managedTools("group-1")).thenReturn(List.of(
-                new McpReleaseContentFactory.ManagedToolProjection(
+                new top.egon.cola.component.gateway.admin.mcp.domain.vo.McpManagedToolProjectionVO(
                         "group-1",
                         "http:orders:GET:/orders/{id}",
                         "server-1",
@@ -286,11 +286,11 @@ class McpToolAdminServiceTest {
         ));
     }
 
-    private McpToolAdminService.ManagedToolOverrideMutation override(
+    private top.egon.cola.component.gateway.admin.mcp.domain.dto.McpManagedToolOverrideMutationDTO override(
             Set<String> permissions,
             String minimumRisk,
             Boolean enabled) {
-        return new McpToolAdminService.ManagedToolOverrideMutation(
+        return new top.egon.cola.component.gateway.admin.mcp.domain.dto.McpManagedToolOverrideMutationDTO(
                 "group-1",
                 enabled,
                 null,
@@ -302,8 +302,8 @@ class McpToolAdminServiceTest {
         );
     }
 
-    private McpToolAdminService.RemoteToolMutation mutation() {
-        return new McpToolAdminService.RemoteToolMutation(
+    private top.egon.cola.component.gateway.admin.mcp.domain.dto.McpRemoteToolMutationDTO mutation() {
+        return new top.egon.cola.component.gateway.admin.mcp.domain.dto.McpRemoteToolMutationDTO(
                 "group-1",
                 "server-1",
                 "remote.orders.get",

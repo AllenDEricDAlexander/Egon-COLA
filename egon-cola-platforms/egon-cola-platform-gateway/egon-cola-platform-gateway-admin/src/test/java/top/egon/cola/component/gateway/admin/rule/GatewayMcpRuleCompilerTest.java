@@ -1,6 +1,7 @@
-package top.egon.cola.component.gateway.admin.rule;
+package top.egon.cola.component.gateway.admin.rule.service;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.gateway.admin.rule.domain.vo.CompiledGatewayRelease;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuleContent;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeServer;

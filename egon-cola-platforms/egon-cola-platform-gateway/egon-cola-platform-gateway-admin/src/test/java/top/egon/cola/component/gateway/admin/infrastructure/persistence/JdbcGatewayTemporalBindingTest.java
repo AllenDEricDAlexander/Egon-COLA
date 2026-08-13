@@ -1,10 +1,11 @@
-package top.egon.cola.component.gateway.admin.infrastructure.persistence;
+package top.egon.cola.component.gateway.admin.credential.repository.jdbc;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.jdbc.core.JdbcTemplate;
-import top.egon.cola.component.gateway.admin.application.credential
-        .GatewayCredentialStore;
+import top.egon.cola.component.gateway.admin.credential.repository.GatewayCredentialRepository;
+import top.egon.cola.component.gateway.admin.reporting.repository.jdbc.JdbcGatewayHmacNonceRepository;
+import top.egon.cola.component.gateway.admin.release.repository.jdbc.JdbcGatewayReleasePublicationRepository;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -24,10 +25,10 @@ class JdbcGatewayTemporalBindingTest {
     @Test
     void credentialWritesUseJdbcTimestampValues() {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
-        JdbcGatewayCredentialStore store =
-                new JdbcGatewayCredentialStore(jdbc);
+        JdbcGatewayCredentialRepository store =
+                new JdbcGatewayCredentialRepository(jdbc);
 
-        store.insert(new GatewayCredentialStore.CredentialRecord(
+        store.insert(new top.egon.cola.component.gateway.admin.credential.domain.po.GatewayCredentialPO(
                 "credential-1",
                 "application-1",
                 "access-1",
@@ -52,8 +53,8 @@ class JdbcGatewayTemporalBindingTest {
     void nonceCleanupUsesJdbcTimestampValue() {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
         when(jdbc.update(anyString(), any(Object[].class))).thenReturn(0);
-        JdbcGatewayHmacNonceStore store =
-                new JdbcGatewayHmacNonceStore(jdbc);
+        JdbcGatewayHmacNonceRepository store =
+                new JdbcGatewayHmacNonceRepository(jdbc);
 
         store.deleteExpired(NOW);
 
@@ -72,8 +73,8 @@ class JdbcGatewayTemporalBindingTest {
                 any(org.springframework.jdbc.core.RowMapper.class),
                 any(Object[].class)
         )).thenReturn(java.util.List.of());
-        JdbcGatewayReleasePublicationStore store =
-                new JdbcGatewayReleasePublicationStore(jdbc);
+        JdbcGatewayReleasePublicationRepository store =
+                new JdbcGatewayReleasePublicationRepository(jdbc);
 
         store.findChunkCleanupCandidates(NOW);
 

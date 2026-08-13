@@ -1,10 +1,10 @@
-package top.egon.cola.component.gateway.admin.mcp.interfaces;
+package top.egon.cola.component.gateway.admin.mcp.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import top.egon.cola.component.gateway.admin.interfaces.management.GatewayAdminExceptionHandler;
-import top.egon.cola.component.gateway.admin.mcp.application.McpControlPlaneService;
+import top.egon.cola.component.gateway.admin.shared.controller.GatewayAdminExceptionHandler;
+import top.egon.cola.component.gateway.admin.mcp.service.McpControlPlaneService;
 
 import java.time.Instant;
 import java.util.List;
@@ -24,7 +24,7 @@ class McpAdminApiIT {
             throws Exception {
         McpControlPlaneService service = mock(McpControlPlaneService.class);
         when(service.listServers("group-1")).thenReturn(List.of(
-                new McpControlPlaneService.ServerView(
+                new top.egon.cola.component.gateway.admin.mcp.domain.vo.McpServerVO(
                         "server-1",
                         "group-1",
                         "billing",

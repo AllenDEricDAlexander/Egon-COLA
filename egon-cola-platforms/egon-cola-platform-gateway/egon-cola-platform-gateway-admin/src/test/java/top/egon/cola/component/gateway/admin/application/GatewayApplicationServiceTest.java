@@ -1,15 +1,17 @@
-package top.egon.cola.component.gateway.admin.application;
+package top.egon.cola.component.gateway.admin.application.service;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import top.egon.cola.component.ddc.model.management.DdcManagementScopeBinding;
-import top.egon.cola.component.gateway.admin.application.scope.GatewayScopeService;
-import top.egon.cola.component.gateway.admin.application.scope.GatewayScopeService.ScopeQuery;
-import top.egon.cola.component.gateway.admin.domain.AdminActor;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationEntity;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationRepository;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayAuditLogRepository;
+import top.egon.cola.component.gateway.admin.scope.service.GatewayScopeService;
+import top.egon.cola.component.gateway.admin.scope.domain.dto.GatewayScopeQueryDTO;
+import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
+import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
+import top.egon.cola.component.gateway.admin.application.domain.exception.GatewayApplicationAlreadyExistsException;
+import top.egon.cola.component.gateway.admin.application.domain.po.GatewayApplicationPO;
+import top.egon.cola.component.gateway.admin.application.repository.GatewayApplicationRepository;
+import top.egon.cola.component.gateway.admin.observability.repository.GatewayAuditLogRepository;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -72,7 +74,7 @@ class GatewayApplicationServiceTest {
 
     @Test
     void secondNamespaceCannotCreateASecondPhysicalApplication() {
-        ScopeQuery scope = new ScopeQuery(
+        GatewayScopeQueryDTO scope = new GatewayScopeQueryDTO(
                 "retail",
                 "ops",
                 "local",
@@ -103,7 +105,7 @@ class GatewayApplicationServiceTest {
 
     @Test
     void listsOnePhysicalApplicationThroughEitherNamespace() {
-        ScopeQuery scope = new ScopeQuery(
+        GatewayScopeQueryDTO scope = new GatewayScopeQueryDTO(
                 "retail",
                 "ops",
                 "local",
@@ -127,12 +129,12 @@ class GatewayApplicationServiceTest {
 
     @Test
     void unfilteredListKeepsLegacyApplicationsAndMarksDdcMatches() {
-        ScopeQuery query = new ScopeQuery(null, null, null, null);
+        GatewayScopeQueryDTO query = new GatewayScopeQueryDTO(null, null, null, null);
         when(scopes.bindings(query)).thenReturn(List.of(binding("ops")));
         when(applications.findAllByDeletedFalseOrderByCreatedAtDesc())
                 .thenReturn(List.of(
                         application("application-order", "default"),
-                        new GatewayApplicationEntity(
+                        new GatewayApplicationPO(
                                 "application-legacy",
                                 "legacy",
                                 "legacy-app",
@@ -147,8 +149,8 @@ class GatewayApplicationServiceTest {
 
         assertThat(service.list(query))
                 .extracting(
-                        GatewayApplicationService.GatewayApplicationView::id,
-                        GatewayApplicationService.GatewayApplicationView::ddcMatched
+                        top.egon.cola.component.gateway.admin.application.domain.vo.GatewayApplicationVO::id,
+                        top.egon.cola.component.gateway.admin.application.domain.vo.GatewayApplicationVO::ddcMatched
                 )
                 .containsExactly(
                         tuple(
@@ -162,9 +164,9 @@ class GatewayApplicationServiceTest {
                 );
     }
 
-    private GatewayApplicationService.CreateGatewayApplication command(
-            ScopeQuery scope) {
-        return new GatewayApplicationService.CreateGatewayApplication(
+    private top.egon.cola.component.gateway.admin.application.domain.dto.GatewayApplicationCreateCommandDTO command(
+            GatewayScopeQueryDTO scope) {
+        return new top.egon.cola.component.gateway.admin.application.domain.dto.GatewayApplicationCreateCommandDTO(
                 scope.bizCode(),
                 scope.appCode(),
                 "Order",
@@ -187,10 +189,10 @@ class GatewayApplicationServiceTest {
         );
     }
 
-    private GatewayApplicationEntity application(
+    private GatewayApplicationPO application(
             String id,
             String namespace) {
-        return new GatewayApplicationEntity(
+        return new GatewayApplicationPO(
                 id,
                 "retail",
                 "order",
@@ -206,7 +208,7 @@ class GatewayApplicationServiceTest {
     private AdminActor actor() {
         return new AdminActor(
                 "admin",
-                AdminActor.ActorType.USER,
+                top.egon.cola.component.gateway.admin.shared.domain.enums.AdminActorTypeEnum.USER,
                 Set.of("*"),
                 Set.of("GATEWAY_ADMIN")
         );

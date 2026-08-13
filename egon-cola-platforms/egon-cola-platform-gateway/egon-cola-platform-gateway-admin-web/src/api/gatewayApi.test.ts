@@ -13,13 +13,66 @@ afterEach(() => {
 
 describe('gateway API response adapters', () => {
   it('loads the authoritative scope catalog without static filters', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(jsonResponse([]))
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse([])))
     vi.stubGlobal('fetch', fetchMock)
 
     await gatewayApi.scopes()
 
     expect(fetchMock).toHaveBeenCalledOnce()
     expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/gateway/admin/scopes')
+  })
+
+  it('loads groups across scopes and applications with optional page-local filters', async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse([])))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await gatewayApi.groups()
+    await gatewayApi.applications({ bizCode: 'retail', env: 'prod' })
+    await gatewayApi.applications()
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/gateway/admin/gateway-groups')
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      '/api/v1/gateway/admin/applications?bizCode=retail&env=prod',
+    )
+    expect(fetchMock.mock.calls[2][0]).toBe('/api/v1/gateway/admin/applications')
+  })
+
+  it('loads MCP operation options from the selected application catalog only', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
+      businessDomains: [{
+        id: 'business-1',
+        code: 'retail',
+        displayName: 'Retail',
+        entityDomains: [{
+          id: 'entity-1',
+          code: 'orders',
+          displayName: 'Orders',
+          interfaceGroups: [{
+            id: 'group-1',
+            code: 'commands',
+            displayName: 'Commands',
+            sourceType: 'MANUAL',
+            operations: [{
+              id: 'operation-1',
+              operationKey: 'orders.create',
+              protocol: 'HTTP',
+              methodIdentity: 'POST /orders',
+            }],
+          }],
+        }],
+      }],
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(gatewayApi.mcpOperationOptions('application-1')).resolves.toEqual([{
+      value: 'operation-1',
+      label: 'orders.create · HTTP POST /orders',
+    }])
+
+    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/v1/gateway/admin/applications/application-1/catalog',
+    )
   })
 
   it('unwraps engine and provider projections without losing freshness', async () => {

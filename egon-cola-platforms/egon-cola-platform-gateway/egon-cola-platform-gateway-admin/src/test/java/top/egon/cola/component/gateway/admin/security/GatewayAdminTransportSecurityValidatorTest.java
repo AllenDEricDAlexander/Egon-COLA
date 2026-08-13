@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.security;
+package top.egon.cola.component.gateway.admin.config;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;

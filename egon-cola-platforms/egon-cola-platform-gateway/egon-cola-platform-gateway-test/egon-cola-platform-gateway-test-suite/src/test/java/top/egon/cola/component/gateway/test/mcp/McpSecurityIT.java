@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
-import top.egon.cola.component.gateway.admin.application.catalog.GatewayCatalogStore;
-import top.egon.cola.component.gateway.admin.mcp.application.McpValidationService;
-import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpArtifactMetadataStore;
+import top.egon.cola.component.gateway.admin.catalog.repository.GatewayCatalogRepository;
+import top.egon.cola.component.gateway.admin.mcp.service.McpValidationService;
+import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpArtifactMetadataRepository;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpErrorCode;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuleContent;
@@ -114,8 +114,8 @@ class McpSecurityIT {
         ));
         McpRuntimeTool tool = tool("LOW", schema);
         McpValidationService validator = new McpValidationService(
-                mock(GatewayCatalogStore.class),
-                mock(JdbcMcpArtifactMetadataStore.class),
+                mock(GatewayCatalogRepository.class),
+                mock(JdbcMcpArtifactMetadataRepository.class),
                 objectMapper
         );
 

@@ -21,7 +21,7 @@ export type AdminSession = {
   expiresAt?: string
 }
 
-export type GatewayGroup = Scope & {
+export type GatewayGroup = {
   id: string
   gatewayGroupCode: string
   displayName: string
@@ -30,6 +30,8 @@ export type GatewayGroup = Scope & {
   revision: number
   createdAt?: string
   updatedAt?: string
+  env: string
+  namespace: string
 }
 
 export type Application = Omit<Scope, 'appCode'> & {

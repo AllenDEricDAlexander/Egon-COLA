@@ -7,22 +7,28 @@ import {
   Input,
   Modal,
   Popconfirm,
+  Select,
   Space,
   Table,
   Typography,
   message,
 } from 'antd'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { gatewayApi } from '../../api/gatewayApi'
 import { GatewayApiError } from '../../api/client'
 import type { Application, Credential, IssuedCredential } from '../../api/types'
 import { useCapability } from '../../app/capabilities'
 import { JsonPanel } from '../../components/JsonPanel'
 import { LoadingBlock, QueryFailure } from '../../components/QueryState'
-import { useScope } from '../../hooks/useScope'
+import { GatewayScopeFilter } from '../../components/GatewayScopeFilter'
+import { useGatewayScopeBindings } from '../../hooks/useGatewayScopeBindings'
+import { readScopeSearchParams, writeScopeSearchParams } from '../../hooks/scopeSearchParams'
 
 export const ApplicationsPage = () => {
-  const { scope } = useScope()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filters = readScopeSearchParams(searchParams, ['bizCode', 'namespace', 'env', 'appCode'])
+  const bindings = useGatewayScopeBindings()
   const queryClient = useQueryClient()
   const canWrite = useCapability('gateway:applications:write')
   const canWriteCredential = useCapability('gateway:credentials:write')
@@ -31,8 +37,8 @@ export const ApplicationsPage = () => {
   const [application, setApplication] = useState<Application>()
   const [issued, setIssued] = useState<IssuedCredential>()
   const applications = useQuery({
-    queryKey: ['applications', scope],
-    queryFn: ({ signal }) => gatewayApi.applications(scope, signal),
+    queryKey: ['applications', filters],
+    queryFn: ({ signal }) => gatewayApi.applications(filters, signal),
   })
   const credentials = useQuery({
     queryKey: ['credentials', application?.id],
@@ -47,24 +53,24 @@ export const ApplicationsPage = () => {
           expectedRevision: editing.revision,
         })
       : gatewayApi.createApplication({
-        bizCode: scope.bizCode,
-        namespace: scope.namespace,
-        env: scope.env,
-        applicationCode: scope.appCode,
+        bizCode: bindings.data?.find((binding) => binding.bindingId === values.bindingId)?.bizCode ?? '',
+        namespace: bindings.data?.find((binding) => binding.bindingId === values.bindingId)?.namespace ?? '',
+        env: bindings.data?.find((binding) => binding.bindingId === values.bindingId)?.env ?? '',
+        applicationCode: bindings.data?.find((binding) => binding.bindingId === values.bindingId)?.appCode ?? '',
         displayName: values.displayName,
         description: values.description,
       }),
     onSuccess: async () => {
       setEditing(undefined)
       form.resetFields()
-      await queryClient.invalidateQueries({ queryKey: ['applications', scope] })
+      await queryClient.invalidateQueries({ queryKey: ['applications'] })
       void message.success('Application 已保存')
     },
     onError: async (error) => {
       if (error instanceof GatewayApiError
         && error.code === 'GATEWAY_ADMIN_APPLICATION_ALREADY_EXISTS') {
         await queryClient.invalidateQueries({
-          queryKey: ['applications', scope],
+          queryKey: ['applications'],
         })
       }
     },
@@ -113,10 +119,18 @@ export const ApplicationsPage = () => {
           新建 Application
         </Button>
       </Space>
+      <GatewayScopeFilter
+        fields={['bizCode', 'namespace', 'env', 'appCode']}
+        value={filters}
+        onChange={(value) => setSearchParams(
+          writeScopeSearchParams(searchParams, value, ['bizCode', 'namespace', 'env', 'appCode']),
+        )}
+      />
       <Table<Application>
         rowKey="id"
         dataSource={applications.data}
         columns={[
+          { title: 'Biz', dataIndex: 'bizCode' },
           { title: 'Code', dataIndex: 'applicationCode' },
           { title: '名称', dataIndex: 'displayName' },
           { title: 'Env', dataIndex: 'env' },
@@ -155,20 +169,23 @@ export const ApplicationsPage = () => {
         {save.error && <QueryFailure error={save.error} />}
         <Form form={form} layout="vertical" onFinish={(values) => save.mutate(values)}>
           {!editing?.id && (
-            <>
-              <Form.Item label="业务域">
-                <Input value={scope.bizCode} disabled />
-              </Form.Item>
-              <Form.Item label="命名空间">
-                <Input value={scope.namespace} disabled />
-              </Form.Item>
-              <Form.Item label="环境">
-                <Input value={scope.env} disabled />
-              </Form.Item>
-              <Form.Item label="应用">
-                <Input value={scope.appCode} disabled />
-              </Form.Item>
-            </>
+            <Form.Item name="bindingId" label="Scope Binding" rules={[{ required: true }]}>
+              <Select
+                aria-label="Scope Binding"
+                placeholder="选择未连接的 Scope Binding"
+                options={(bindings.data ?? []).map((binding) => ({
+                  value: binding.bindingId,
+                  label: [
+                    binding.bizCode,
+                    binding.appCode,
+                    binding.env,
+                    binding.namespace,
+                    binding.appName,
+                  ].join(' / '),
+                  disabled: binding.connected,
+                }))}
+              />
+            </Form.Item>
           )}
           <Form.Item name="displayName" label="名称" rules={[{ required: true }]}>
             <Input />

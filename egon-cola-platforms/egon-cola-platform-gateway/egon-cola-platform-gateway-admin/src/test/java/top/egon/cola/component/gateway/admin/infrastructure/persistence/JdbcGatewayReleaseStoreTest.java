@@ -1,11 +1,10 @@
-package top.egon.cola.component.gateway.admin.infrastructure.persistence;
+package top.egon.cola.component.gateway.admin.release.repository.jdbc;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import top.egon.cola.component.gateway.admin.application.release
-        .GatewayReleaseStore;
+import top.egon.cola.component.gateway.admin.release.repository.GatewayReleaseRepository;
 
 import java.util.List;
 
@@ -21,8 +20,8 @@ class JdbcGatewayReleaseStoreTest {
     @Test
     void findsLatestRecoverableAttemptFromPublicationJournal() {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
-        GatewayReleaseStore.RecoverableAttempt attempt =
-                new GatewayReleaseStore.RecoverableAttempt(
+        top.egon.cola.component.gateway.admin.release.domain.po.GatewayRecoverableReleaseAttemptPO attempt =
+                new top.egon.cola.component.gateway.admin.release.domain.po.GatewayRecoverableReleaseAttemptPO(
                         "release-1",
                         "group-1",
                         2
@@ -31,7 +30,7 @@ class JdbcGatewayReleaseStoreTest {
                 contains("JOIN gateway_release_publication"),
                 any(RowMapper.class)
         )).thenReturn(List.of(attempt));
-        JdbcGatewayReleaseStore store = new JdbcGatewayReleaseStore(
+        JdbcGatewayReleaseRepository store = new JdbcGatewayReleaseRepository(
                 jdbc,
                 new ObjectMapper()
         );

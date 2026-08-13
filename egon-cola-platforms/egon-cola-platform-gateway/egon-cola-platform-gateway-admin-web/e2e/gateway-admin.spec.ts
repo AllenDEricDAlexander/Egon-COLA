@@ -49,6 +49,7 @@ const group = {
 
 const application = {
   id: `${prefix}-application-id`,
+  bizCode: 'e2e',
   applicationCode: `${prefix}-application`,
   displayName: 'E2E Application',
   env: 'dev',
@@ -127,7 +128,7 @@ const installReadFixtures = async (page: Page) => {
     requestSeries: [],
     protocolCalls: [],
   }))
-  await page.route('**/api/v1/gateway/admin/gateway-groups?**', (route) =>
+  await page.route('**/api/v1/gateway/admin/gateway-groups*', (route) =>
     json(route, [group]))
   await page.route(`**/api/v1/gateway/admin/gateway-groups/${group.id}`, (route) =>
     json(route, group))
@@ -160,7 +161,7 @@ const installReadFixtures = async (page: Page) => {
       source: 'DDC_CONFIG_CLIENT',
       stale: false,
     }))
-  await page.route('**/api/v1/gateway/admin/applications?**', (route) =>
+  await page.route('**/api/v1/gateway/admin/applications*', (route) =>
     json(route, [application]))
   await page.route(`**/api/v1/gateway/admin/applications/${application.id}/catalog`, (route) =>
     json(route, {
@@ -192,7 +193,7 @@ const installReadFixtures = async (page: Page) => {
       route.request().method() === 'POST' ? 201 : 200))
   await page.route(`**/api/v1/gateway/admin/releases/${release.releaseId}`, (route) =>
     json(route, release))
-  await page.route('**/api/v1/gateway/admin/providers/instances?**', (route) =>
+  await page.route('**/api/v1/gateway/admin/providers/instances*', (route) =>
     json(route, {
       value: [{
         serviceKey: 'HTTP_PROVIDER:HTTP:orders::',
@@ -212,9 +213,9 @@ const installReadFixtures = async (page: Page) => {
       source: 'DDC_SERVICE_REGISTRY',
       stale: false,
     }))
-  await page.route('**/api/v1/gateway/admin/observability/traces?**', (route) =>
+  await page.route('**/api/v1/gateway/admin/observability/traces*', (route) =>
     json(route, { items: [], page: 0, size: 20, total: 0 }))
-  await page.route('**/api/v1/gateway/admin/audit?**', (route) =>
+  await page.route('**/api/v1/gateway/admin/audit*', (route) =>
     json(route, { items: [], page: 0, size: 20, total: 0 }))
 }
 
@@ -237,7 +238,7 @@ test('login, logout and a later 401 clear the browser session', async ({ page })
   await page.route('**/api/v1/gateway/admin/session', (route) =>
     json(route, session()))
   await installReadFixtures(page)
-  await page.goto('/dashboard')
+  await page.goto('/dashboard?bizCode=e2e&appCode=' + application.applicationCode + '&env=dev&namespace=default')
   await expect(page.getByRole('heading', { name: 'Gateway Admin' })).toBeVisible()
   await page.getByRole('button', { name: '使用统一身份登录' }).click()
   await expect(page).toHaveURL(/\/oauth2\/authorize\?/)
@@ -246,7 +247,7 @@ test('login, logout and a later 401 clear the browser session', async ({ page })
   expect(authorization.get('tenant_id')).toBe('default')
 
   allowRefresh = true
-  await page.goto('/dashboard')
+  await page.goto('/dashboard?bizCode=e2e&appCode=' + application.applicationCode + '&env=dev&namespace=default')
   await expect(page.getByText('Gateway E2E')).toBeVisible()
   await page.getByRole('button', { name: '退出' }).click()
   await expect(page.getByRole('heading', { name: 'Gateway Admin' })).toBeVisible()
@@ -254,7 +255,7 @@ test('login, logout and a later 401 clear the browser session', async ({ page })
   await page.goto('/gateway-groups')
   await expect(page.getByText('Gateway E2E')).toBeVisible()
   allowRefresh = false
-  await page.route('**/api/v1/gateway/admin/providers/instances?**', (route) =>
+  await page.route('**/api/v1/gateway/admin/providers/instances*', (route) =>
     json(route, { code: 'TOKEN_EXPIRED' }, 401))
   await page.getByRole('link', { name: 'Provider' }).click()
   await expect(page.getByRole('heading', { name: 'Gateway Admin' })).toBeVisible()
@@ -285,6 +286,8 @@ test('gateway group create, edit and disable use management APIs', async ({ page
   await page.getByRole('button', { name: '新建 Gateway Group' }).click()
   await page.getByLabel('Group Code').fill(`${prefix}-new-group`)
   await page.getByLabel('名称').fill('New E2E Group')
+  await page.getByLabel('Scope Binding').click()
+  await page.getByText('dev / default (' + application.applicationCode + ')', { exact: true }).click()
   await page.getByRole('button', { name: /确\s*定/ }).click()
   expect((await create).postDataJSON().gatewayGroupCode).toBe(`${prefix}-new-group`)
   await page.getByRole('button', { name: /停\s*用/ }).click()
@@ -428,11 +431,11 @@ test('release targets and group consistency expose every engine', async ({ page 
 test('provider, trace and audit queries are available without excluded products', async ({ page }) => {
   await authenticate(page)
   await installReadFixtures(page)
-  await page.goto('/providers')
+  await page.goto('/providers?bizCode=e2e&appCode=' + application.applicationCode + '&env=dev&namespace=default')
   await expect(page.getByText('provider-1')).toBeVisible()
-  await page.goto('/observability/traces')
+  await page.goto('/observability/traces?env=dev&namespace=default')
   await expect(page.getByRole('heading', { name: '调用观测' })).toBeVisible()
-  await page.goto('/audit')
+  await page.goto('/audit?env=dev&namespace=default')
   await expect(page.getByRole('heading', { name: '审计日志' })).toBeVisible()
   await expect(page.getByText('Nginx')).toHaveCount(0)
   await expect(page.getByText('Nacos')).toHaveCount(0)

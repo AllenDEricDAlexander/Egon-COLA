@@ -1,6 +1,7 @@
-package top.egon.cola.component.gateway.admin.rule;
+package top.egon.cola.component.gateway.admin.routing.service;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.gateway.admin.routing.service.GatewayTransportValidationIssue;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -23,15 +24,14 @@ class GatewayRouteTransportPolicyValidatorTest {
     void reportsMissingHostWithoutApplyingWildcardFallback() {
         Map<String, Object> content = route("POST", Map.of());
         content.remove("host");
-        List<GatewayRouteTransportPolicyValidator.ValidationIssue> issues =
+        List<top.egon.cola.component.gateway.admin.routing.service.GatewayTransportValidationIssue> issues =
                 validator.validate(
                         content,
                         GatewayProtocol.HTTP,
                         GatewayResponseMode.TRANSPARENT
                 );
 
-        assertThat(issues).contains(new GatewayRouteTransportPolicyValidator
-                .ValidationIssue(
+        assertThat(issues).contains(new GatewayTransportValidationIssue(
                 "host",
                 "ROUTE_HOST_REQUIRED",
                 "Host is required"
@@ -52,7 +52,7 @@ class GatewayRouteTransportPolicyValidatorTest {
                         GatewayProtocol.HTTP,
                         GatewayResponseMode.TRANSPARENT
                 ).stream()
-                .map(GatewayRouteTransportPolicyValidator.ValidationIssue::path)
+                .map(top.egon.cola.component.gateway.admin.routing.service.GatewayTransportValidationIssue::path)
                 .toList();
 
         assertThat(paths).containsExactly(
@@ -133,7 +133,7 @@ class GatewayRouteTransportPolicyValidatorTest {
                 route("POST", Map.of("retryEnabled", "false")),
                 GatewayProtocol.HTTP,
                 GatewayResponseMode.TRANSPARENT
-        )).contains(new GatewayRouteTransportPolicyValidator.ValidationIssue(
+        )).contains(new top.egon.cola.component.gateway.admin.routing.service.GatewayTransportValidationIssue(
                 "transportPolicy.retryEnabled",
                 "TRANSPORT_BOOLEAN_INVALID",
                 "retryEnabled must be a boolean"
@@ -151,12 +151,12 @@ class GatewayRouteTransportPolicyValidatorTest {
                 GatewayProtocol.HTTP,
                 GatewayResponseMode.TRANSPARENT
         )).contains(
-                new GatewayRouteTransportPolicyValidator.ValidationIssue(
+                new top.egon.cola.component.gateway.admin.routing.service.GatewayTransportValidationIssue(
                         "host",
                         "ROUTE_HOST_INVALID",
                         "Host must be a string"
                 ),
-                new GatewayRouteTransportPolicyValidator.ValidationIssue(
+                new top.egon.cola.component.gateway.admin.routing.service.GatewayTransportValidationIssue(
                         "httpMethod",
                         "ROUTE_METHOD_INVALID",
                         "HTTP Method must be a string"

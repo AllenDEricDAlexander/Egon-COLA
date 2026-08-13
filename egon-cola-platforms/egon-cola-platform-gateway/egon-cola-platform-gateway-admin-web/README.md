@@ -41,15 +41,15 @@ The browser calls Gateway Admin. Set `VITE_GATEWAY_ADMIN_API_BASE_URL` to use a 
 origin; an empty value uses the current origin. The authenticated session endpoint supplies
 the actor and capabilities; the browser does not configure a placeholder actor.
 
-The deployment can set the scope selected when the admin page first opens. The configured
-values are also added to the scope selectors in the page header:
+Scope is a page-local query condition. Each page persists its own selected `bizCode`,
+`appCode`, `env`, and `namespace` values in the URL, so navigating between pages does not
+silently hide data from another scope. Cross-scope pages load the complete authorized result
+set and filter it locally. The scope binding catalog is read from `GET /api/v1/gateway/admin/scopes`
+only to populate page controls and creation forms; it is not a global header context.
 
-```text
-VITE_GATEWAY_ADMIN_DEFAULT_BIZ_CODE=default
-VITE_GATEWAY_ADMIN_DEFAULT_APP_CODE=default-app
-VITE_GATEWAY_ADMIN_DEFAULT_ENV=dev
-VITE_GATEWAY_ADMIN_DEFAULT_NAMESPACE=default
-```
+Dashboard and provider pages require all four fields. Trace and audit pages require `env` and
+`namespace`; groups, MCP server, and remote-provider pages use optional `env` and `namespace`
+filters. Interface Catalog and MCP resource/prompt pages use the full optional scope filter.
 
 Keep credentials out of committed `.env` files. The identity provider, browser CORS/PKCE setup,
 TLS termination, and the Gateway Admin authorization policy remain deployment responsibilities.

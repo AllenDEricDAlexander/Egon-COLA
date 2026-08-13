@@ -1,25 +1,33 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Button, Form, Input, Modal, Popconfirm, Space, Table, Typography, message } from 'antd'
+import { Button, Form, Input, Modal, Popconfirm, Select, Space, Table, Typography, message } from 'antd'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useMemo } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { gatewayApi } from '../../api/gatewayApi'
 import type { GatewayGroup } from '../../api/types'
 import { useCapability } from '../../app/capabilities'
 import { LoadingBlock, QueryFailure } from '../../components/QueryState'
 import { StatusTag } from '../../components/StatusTag'
-import { useScope } from '../../hooks/useScope'
+import { GatewayScopeFilter } from '../../components/GatewayScopeFilter'
+import { useGatewayScopeBindings } from '../../hooks/useGatewayScopeBindings'
+import { readScopeSearchParams, writeScopeSearchParams } from '../../hooks/scopeSearchParams'
 
 export const GatewayGroupsPage = () => {
-  const { scope } = useScope()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
+  const bindings = useGatewayScopeBindings()
   const canWrite = useCapability('gateway:groups:write')
   const [form] = Form.useForm()
   const [editing, setEditing] = useState<GatewayGroup>()
+  const filters = readScopeSearchParams(searchParams, ['env', 'namespace'])
   const query = useQuery({
-    queryKey: ['gateway-groups', scope],
-    queryFn: ({ signal }) => gatewayApi.groups(scope, signal),
+    queryKey: ['gateway-groups'],
+    queryFn: ({ signal }) => gatewayApi.groups(signal),
   })
+  const groups = useMemo(() => (query.data ?? []).filter((group) =>
+    (!filters.env || group.env === filters.env)
+      && (!filters.namespace || group.namespace === filters.namespace)), [filters.env, filters.namespace, query.data])
   const save = useMutation({
     mutationFn: (values: any) => editing?.id
       ? gatewayApi.updateGroup(editing.id, {
@@ -27,15 +35,20 @@ export const GatewayGroupsPage = () => {
           description: values.description,
           expectedRevision: editing.revision,
         })
-      : gatewayApi.createGroup({
-        ...values,
-        env: scope.env,
-        namespace: scope.namespace,
-      }),
+      : (() => {
+          const binding = bindings.data?.find((item) => item.bindingId === values.bindingId)
+          return gatewayApi.createGroup({
+            gatewayGroupCode: values.gatewayGroupCode,
+            displayName: values.displayName,
+            description: values.description,
+            env: binding?.env ?? values.env,
+            namespace: binding?.namespace ?? values.namespace,
+          })
+        })(),
     onSuccess: async () => {
       setEditing(undefined)
       form.resetFields()
-      await queryClient.invalidateQueries({ queryKey: ['gateway-groups', scope] })
+      await queryClient.invalidateQueries({ queryKey: ['gateway-groups'] })
       void message.success('Gateway Group 已保存')
     },
   })
@@ -43,7 +56,7 @@ export const GatewayGroupsPage = () => {
     mutationFn: (group: GatewayGroup) =>
       gatewayApi.setGroupEnabled(group.id, !group.enabled),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['gateway-groups', scope] })
+      await queryClient.invalidateQueries({ queryKey: ['gateway-groups'] })
       void message.success('Gateway Group 状态已更新')
     },
   })
@@ -64,9 +77,14 @@ export const GatewayGroupsPage = () => {
           新建 Gateway Group
         </Button>
       </Space>
+      <GatewayScopeFilter
+        fields={['env', 'namespace']}
+        value={filters}
+        onChange={(value) => setSearchParams(writeScopeSearchParams(searchParams, value, ['env', 'namespace']))}
+      />
       <Table
         rowKey="id"
-        dataSource={query.data ?? []}
+        dataSource={groups}
         scroll={{ x: 900 }}
         columns={[
           { title: 'Code', dataIndex: 'gatewayGroupCode' },
@@ -120,6 +138,17 @@ export const GatewayGroupsPage = () => {
           {!editing?.id && (
             <Form.Item name="gatewayGroupCode" label="Group Code" rules={[{ required: true }]}>
               <Input />
+            </Form.Item>
+          )}
+          {!editing?.id && (
+            <Form.Item name="bindingId" label="Scope Binding" rules={[{ required: true }]}>
+              <Select
+                placeholder="选择 Gateway Group Scope"
+                options={(bindings.data ?? []).map((binding) => ({
+                  value: binding.bindingId,
+                  label: `${binding.env} / ${binding.namespace} (${binding.appCode})`,
+                }))}
+              />
             </Form.Item>
           )}
           <Form.Item name="displayName" label="名称" rules={[{ required: true }]}>

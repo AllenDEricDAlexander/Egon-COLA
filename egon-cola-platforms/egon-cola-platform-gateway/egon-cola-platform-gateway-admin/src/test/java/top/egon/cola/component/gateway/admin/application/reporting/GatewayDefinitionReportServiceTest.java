@@ -1,8 +1,9 @@
-package top.egon.cola.component.gateway.admin.application.reporting;
+package top.egon.cola.component.gateway.admin.reporting.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.gateway.admin.application.IdempotencyStore;
+import top.egon.cola.component.gateway.admin.shared.repository.IdempotencyRepository;
+import top.egon.cola.component.gateway.admin.reporting.repository.GatewayDefinitionReportRepository;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReport;
 
 import java.time.Instant;
@@ -18,8 +19,8 @@ class GatewayDefinitionReportServiceTest {
     void rejectsReportedMcpExposureWithRequiredHeaderInput() {
         GatewayDefinitionReportService service =
                 new GatewayDefinitionReportService(
-                        mock(GatewayDefinitionReportStore.class),
-                        mock(IdempotencyStore.class),
+                        mock(GatewayDefinitionReportRepository.class),
+                        mock(IdempotencyRepository.class),
                         new ObjectMapper()
                 );
         GatewayInterfaceDefinitionReport report = report();

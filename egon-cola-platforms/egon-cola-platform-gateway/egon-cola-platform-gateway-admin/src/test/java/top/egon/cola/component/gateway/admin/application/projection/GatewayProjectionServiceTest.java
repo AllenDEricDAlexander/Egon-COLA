@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.application.projection;
+package top.egon.cola.component.gateway.admin.runtime.service;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.api.client.DdcManagementClient;
@@ -18,11 +18,11 @@ import top.egon.cola.component.ddc.model.management.DdcManagementServiceInstance
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceKey;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceSnapshot;
-import top.egon.cola.component.gateway.admin.application.release.GatewayReleaseService;
-import top.egon.cola.component.gateway.admin.application.release.GatewayReleaseStore;
-import top.egon.cola.component.gateway.admin.domain.GatewayReleaseStatus;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupEntity;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayGroupRepository;
+import top.egon.cola.component.gateway.admin.release.service.GatewayReleaseService;
+import top.egon.cola.component.gateway.admin.release.repository.GatewayReleaseRepository;
+import top.egon.cola.component.gateway.admin.release.domain.enums.GatewayReleaseStatus;
+import top.egon.cola.component.gateway.admin.group.domain.po.GatewayGroupPO;
+import top.egon.cola.component.gateway.admin.group.repository.GatewayGroupRepository;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -53,7 +53,7 @@ class GatewayProjectionServiceTest {
                 Clock.fixed(now, ZoneOffset.UTC)
         );
 
-        service.services(new GatewayProjectionService.ProviderQuery(
+        service.services(new top.egon.cola.component.gateway.admin.runtime.domain.dto.GatewayProviderQueryDTO(
                 "test-biz",
                 "orders",
                 "test",
@@ -92,7 +92,7 @@ class GatewayProjectionServiceTest {
                 Clock.fixed(now, ZoneOffset.UTC)
         );
 
-        service.instances(new GatewayProjectionService.ProviderQuery(
+        service.instances(new top.egon.cola.component.gateway.admin.runtime.domain.dto.GatewayProviderQueryDTO(
                 "test-biz",
                 "orders",
                 "test",
@@ -148,8 +148,8 @@ class GatewayProjectionServiceTest {
                 rpc,
                 List.of()
         );
-        var groups = mock(top.egon.cola.component.gateway.admin.infrastructure
-                .persistence.GatewayGroupRepository.class);
+        var groups = mock(top.egon.cola.component.gateway.admin.group.repository
+                .GatewayGroupRepository.class);
         when(groups
                 .findAllByEnvAndNamespaceAndDeletedFalseOrderByCreatedAtDesc(
                         "test",
@@ -157,8 +157,8 @@ class GatewayProjectionServiceTest {
                 )).thenReturn(List.of());
         GatewayProjectionService service = new GatewayProjectionService(
                 groups,
-                mock(top.egon.cola.component.gateway.admin.application
-                        .release.GatewayReleaseService.class),
+                mock(top.egon.cola.component.gateway.admin.release.service
+                        .GatewayReleaseService.class),
                 client,
                 Clock.fixed(now, ZoneOffset.UTC)
         );
@@ -169,10 +169,10 @@ class GatewayProjectionServiceTest {
 
         assertThat(projection.stale()).isFalse();
         assertThat(projection.value()).extracting(
-                GatewayProjectionService.ProviderInstanceProjection::protocol
+                top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayProviderInstanceVO::protocol
         ).containsExactly("http", "grpc");
         assertThat(projection.value()).extracting(
-                GatewayProjectionService.ProviderInstanceProjection::status
+                top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayProviderInstanceVO::status
         ).containsOnly("ONLINE");
         assertThat(projection.value().getFirst().weight()).isEqualTo(80);
         assertThat(projection.value().getFirst().definitionSetId())
@@ -181,9 +181,9 @@ class GatewayProjectionServiceTest {
                 "test-biz", "orders", "test", "gateway"
         ))
                 .extracting(
-                        GatewayProjectionService.ProjectionCounts
+                        top.egon.cola.component.gateway.admin.runtime.service.GatewayProjectionCounts
                                 ::activeProviders,
-                        GatewayProjectionService.ProjectionCounts
+                        top.egon.cola.component.gateway.admin.runtime.service.GatewayProjectionCounts
                                 ::abnormalProviders
                 )
                 .containsExactly(2L, 0L);
@@ -194,7 +194,7 @@ class GatewayProjectionServiceTest {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         GatewayGroupRepository groups = mock(GatewayGroupRepository.class);
         GatewayReleaseService releases = mock(GatewayReleaseService.class);
-        GatewayGroupEntity group = new GatewayGroupEntity(
+        GatewayGroupPO group = new GatewayGroupPO(
                 "group-1",
                 "edge",
                 "Edge",
@@ -206,8 +206,8 @@ class GatewayProjectionServiceTest {
         );
         when(groups.findByIdAndDeletedFalse("group-1"))
                 .thenReturn(java.util.Optional.of(group));
-        GatewayReleaseStore.TargetRecord target =
-                new GatewayReleaseStore.TargetRecord(
+        top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO target =
+                new top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO(
                         "engine-1",
                         "lease-1",
                         "SUCCESS",
@@ -254,8 +254,8 @@ class GatewayProjectionServiceTest {
         assertThat(consistency.readyEngineNodeCount()).isEqualTo(1);
         assertThat(consistency.nodes()).singleElement()
                 .extracting(
-                        GatewayProjectionService.EngineNodeConsistency::status,
-                        GatewayProjectionService.EngineNodeConsistency::reason
+                        top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayEngineNodeConsistencyVO::status,
+                        top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayEngineNodeConsistencyVO::reason
                 )
                 .containsExactly("CONSISTENT", null);
     }
@@ -265,7 +265,7 @@ class GatewayProjectionServiceTest {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         GatewayGroupRepository groups = mock(GatewayGroupRepository.class);
         GatewayReleaseService releases = mock(GatewayReleaseService.class);
-        GatewayGroupEntity group = new GatewayGroupEntity(
+        GatewayGroupPO group = new GatewayGroupPO(
                 "group-1",
                 "edge",
                 "Edge",
@@ -277,8 +277,8 @@ class GatewayProjectionServiceTest {
         );
         when(groups.findByIdAndDeletedFalse("group-1"))
                 .thenReturn(java.util.Optional.of(group));
-        GatewayReleaseStore.TargetRecord historicalTarget =
-                new GatewayReleaseStore.TargetRecord(
+        top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO historicalTarget =
+                new top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO(
                         "engine-1",
                         "lease-1",
                         "SUCCESS",
@@ -346,8 +346,8 @@ class GatewayProjectionServiceTest {
         assertThat(consistency.consistent()).isTrue();
         assertThat(consistency.readyEngineNodeCount()).isEqualTo(2);
         assertThat(consistency.nodes()).extracting(
-                GatewayProjectionService.EngineNodeConsistency::status,
-                GatewayProjectionService.EngineNodeConsistency::reason
+                top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayEngineNodeConsistencyVO::status,
+                top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayEngineNodeConsistencyVO::reason
         ).containsExactly(
                 org.assertj.core.groups.Tuple.tuple("CONSISTENT", null),
                 org.assertj.core.groups.Tuple.tuple("CONSISTENT", null)
@@ -359,7 +359,7 @@ class GatewayProjectionServiceTest {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         GatewayGroupRepository groups = mock(GatewayGroupRepository.class);
         GatewayReleaseService releases = mock(GatewayReleaseService.class);
-        GatewayGroupEntity group = new GatewayGroupEntity(
+        GatewayGroupPO group = new GatewayGroupPO(
                 "group-1",
                 "edge",
                 "Edge",
@@ -371,8 +371,8 @@ class GatewayProjectionServiceTest {
         );
         when(groups.findByIdAndDeletedFalse("group-1"))
                 .thenReturn(java.util.Optional.of(group));
-        GatewayReleaseStore.TargetRecord target =
-                new GatewayReleaseStore.TargetRecord(
+        top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO target =
+                new top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO(
                         "engine-current",
                         "lease-current",
                         "SUCCESS",
@@ -426,9 +426,9 @@ class GatewayProjectionServiceTest {
         assertThat(consistency.consistent()).isTrue();
         assertThat(consistency.nodes()).singleElement()
                 .extracting(
-                        GatewayProjectionService.EngineNodeConsistency
+                        top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayEngineNodeConsistencyVO
                                 ::instanceId,
-                        GatewayProjectionService.EngineNodeConsistency::status
+                        top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayEngineNodeConsistencyVO::status
                 )
                 .containsExactly("engine-current", "CONSISTENT");
     }
@@ -438,7 +438,7 @@ class GatewayProjectionServiceTest {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         GatewayGroupRepository groups = mock(GatewayGroupRepository.class);
         GatewayReleaseService releases = mock(GatewayReleaseService.class);
-        GatewayGroupEntity group = new GatewayGroupEntity(
+        GatewayGroupPO group = new GatewayGroupPO(
                 "group-1",
                 "edge",
                 "Edge",
@@ -450,8 +450,8 @@ class GatewayProjectionServiceTest {
         );
         when(groups.findByIdAndDeletedFalse("group-1"))
                 .thenReturn(java.util.Optional.of(group));
-        GatewayReleaseStore.TargetRecord target =
-                new GatewayReleaseStore.TargetRecord(
+        top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO target =
+                new top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO(
                         "engine-1",
                         "lease-1",
                         "SUCCESS",
@@ -497,17 +497,17 @@ class GatewayProjectionServiceTest {
         assertThat(consistency.readyEngineNodeCount()).isZero();
         assertThat(consistency.nodes()).singleElement()
                 .extracting(
-                        GatewayProjectionService.EngineNodeConsistency::status,
-                        GatewayProjectionService.EngineNodeConsistency::reason
+                        top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayEngineNodeConsistencyVO::status,
+                        top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayEngineNodeConsistencyVO::reason
                 )
                 .containsExactly("INCONSISTENT", "RELEASE_MISMATCH");
     }
 
-    private GatewayReleaseService.ReleaseView release(
+    private top.egon.cola.component.gateway.admin.release.domain.vo.GatewayReleaseVO release(
             String releaseId,
-            GatewayReleaseStore.TargetRecord target,
+            top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO target,
             Instant now) {
-        return new GatewayReleaseService.ReleaseView(
+        return new top.egon.cola.component.gateway.admin.release.domain.vo.GatewayReleaseVO(
                 releaseId,
                 "group-1",
                 1,
@@ -521,7 +521,7 @@ class GatewayProjectionServiceTest {
                 "test",
                 now.minusSeconds(10),
                 now.minusSeconds(5),
-                List.of(new GatewayReleaseStore.AttemptRecord(
+                List.of(new top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseAttemptPO(
                         1,
                         "SUCCESS",
                         "change-1",

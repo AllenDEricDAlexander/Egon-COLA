@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.infrastructure.persistence;
+package top.egon.cola.component.gateway.admin.observability.repository.jdbc;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -34,8 +34,8 @@ class JdbcGatewayObservabilityStoreTest {
                 anyString(),
                 any(Object[].class)
         )).thenReturn(Map.of("total", 0L, "success", 0L));
-        JdbcGatewayObservabilityStore store =
-                new JdbcGatewayObservabilityStore(jdbc);
+        JdbcGatewayObservabilityRepository store =
+                new JdbcGatewayObservabilityRepository(jdbc);
 
         store.dashboard(
                 "test",

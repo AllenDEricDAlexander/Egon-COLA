@@ -1,7 +1,13 @@
-package top.egon.cola.component.gateway.admin.interfaces.management;
+package top.egon.cola.component.gateway.admin;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.web.bind.annotation.RequestHeader;
+import top.egon.cola.component.gateway.admin.application.controller.GatewayApplicationController;
+import top.egon.cola.component.gateway.admin.catalog.controller.GatewayCatalogController;
+import top.egon.cola.component.gateway.admin.credential.controller.GatewayCredentialController;
+import top.egon.cola.component.gateway.admin.group.controller.GatewayGroupController;
+import top.egon.cola.component.gateway.admin.release.controller.GatewayReleaseController;
+import top.egon.cola.component.gateway.admin.routing.controller.GatewayDraftController;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;

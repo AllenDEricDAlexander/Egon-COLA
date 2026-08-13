@@ -1,9 +1,8 @@
-package top.egon.cola.component.gateway.admin.infrastructure.persistence;
+package top.egon.cola.component.gateway.admin.release.repository.jdbc;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
-import top.egon.cola.component.gateway.admin.application.release
-        .GatewayReleasePublicationStore;
+import top.egon.cola.component.gateway.admin.release.repository.GatewayReleasePublicationRepository;
 
 import java.time.Instant;
 import java.util.List;
@@ -16,18 +15,12 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static top.egon.cola.component.gateway.admin.application.release
-        .GatewayReleasePublicationStore.PhaseType.ACTIVATION;
-import static top.egon.cola.component.gateway.admin.application.release
-        .GatewayReleasePublicationStore.PhaseType.CHUNK;
-import static top.egon.cola.component.gateway.admin.application.release
-        .GatewayReleasePublicationStore.PublicationStatus.PLANNED;
-import static top.egon.cola.component.gateway.admin.application.release
-        .GatewayReleasePublicationStore.PublicationStatus.RESOLVED;
-import static top.egon.cola.component.gateway.admin.application.release
-        .GatewayReleasePublicationStore.PublicationStatus.SUBMITTED;
-import static top.egon.cola.component.gateway.admin.application.release
-        .GatewayReleasePublicationStore.PublicationStatus.SUCCESS;
+import static top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationPhaseEnum.ACTIVATION;
+import static top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationPhaseEnum.CHUNK;
+import static top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum.PLANNED;
+import static top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum.RESOLVED;
+import static top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum.SUBMITTED;
+import static top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum.SUCCESS;
 
 class JdbcGatewayReleasePublicationStoreTest {
 
@@ -37,13 +30,13 @@ class JdbcGatewayReleasePublicationStoreTest {
     @Test
     void insertsAndReadsAttemptInPhaseOrder() {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
-        GatewayReleasePublicationStore.PublicationRecord chunk = record(
+        top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO chunk = record(
                 0,
                 CHUNK,
                 "gateway.rules.chunk.release-1.0",
                 "018f22d8-155d-7000-8000-000000000001"
         );
-        GatewayReleasePublicationStore.PublicationRecord activation = record(
+        top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO activation = record(
                 1,
                 ACTIVATION,
                 "gateway.rules.active",
@@ -54,8 +47,8 @@ class JdbcGatewayReleasePublicationStoreTest {
                 any(org.springframework.jdbc.core.RowMapper.class),
                 any(Object[].class)
         )).thenReturn(List.of(chunk, activation));
-        JdbcGatewayReleasePublicationStore store =
-                new JdbcGatewayReleasePublicationStore(jdbc);
+        JdbcGatewayReleasePublicationRepository store =
+                new JdbcGatewayReleasePublicationRepository(jdbc);
 
         store.insertAll(List.of(chunk, activation));
 
@@ -83,8 +76,8 @@ class JdbcGatewayReleasePublicationStoreTest {
                 contains("ddc_status = ?"),
                 any(Object[].class)
         )).thenReturn(1);
-        JdbcGatewayReleasePublicationStore store =
-                new JdbcGatewayReleasePublicationStore(jdbc);
+        JdbcGatewayReleasePublicationRepository store =
+                new JdbcGatewayReleasePublicationRepository(jdbc);
 
         store.resolveDocument(
                 "018f22d8-155d-7000-8000-000000000001",
@@ -116,8 +109,8 @@ class JdbcGatewayReleasePublicationStoreTest {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
         when(jdbc.update(anyString(), any(Object[].class)))
                 .thenReturn(0);
-        JdbcGatewayReleasePublicationStore store =
-                new JdbcGatewayReleasePublicationStore(jdbc);
+        JdbcGatewayReleasePublicationRepository store =
+                new JdbcGatewayReleasePublicationRepository(jdbc);
 
         assertThatThrownBy(() -> store.markSubmitted(
                 "018f22d8-155d-7000-8000-000000000001",
@@ -128,8 +121,8 @@ class JdbcGatewayReleasePublicationStoreTest {
 
     @Test
     void acceptsOnlyTerminalStatusesAsResults() {
-        JdbcGatewayReleasePublicationStore store =
-                new JdbcGatewayReleasePublicationStore(
+        JdbcGatewayReleasePublicationRepository store =
+                new JdbcGatewayReleasePublicationRepository(
                         mock(JdbcTemplate.class)
                 );
 
@@ -147,8 +140,8 @@ class JdbcGatewayReleasePublicationStoreTest {
     @Test
     void cleanupCandidatesProtectActiveAndRetainPredecessor() {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
-        GatewayReleasePublicationStore.ChunkCleanupCandidate candidate =
-                new GatewayReleasePublicationStore.ChunkCleanupCandidate(
+        top.egon.cola.component.gateway.admin.release.domain.po.GatewayChunkCleanupCandidatePO candidate =
+                new top.egon.cola.component.gateway.admin.release.domain.po.GatewayChunkCleanupCandidatePO(
                         "change-1",
                         "release-old",
                         "gateway-engine-orders",
@@ -162,8 +155,8 @@ class JdbcGatewayReleasePublicationStoreTest {
                 any(org.springframework.jdbc.core.RowMapper.class),
                 any(Object[].class)
         )).thenReturn(List.of(candidate));
-        JdbcGatewayReleasePublicationStore store =
-                new JdbcGatewayReleasePublicationStore(jdbc);
+        JdbcGatewayReleasePublicationRepository store =
+                new JdbcGatewayReleasePublicationRepository(jdbc);
 
         assertThat(store.findChunkCleanupCandidates(NOW))
                 .containsExactly(candidate);
@@ -174,12 +167,12 @@ class JdbcGatewayReleasePublicationStoreTest {
         );
     }
 
-    private GatewayReleasePublicationStore.PublicationRecord record(
+    private top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO record(
             int phaseOrder,
-            GatewayReleasePublicationStore.PhaseType phaseType,
+            top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationPhaseEnum phaseType,
             String configKey,
             String changeId) {
-        return new GatewayReleasePublicationStore.PublicationRecord(
+        return new top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO(
                 "release-1",
                 1,
                 phaseOrder,

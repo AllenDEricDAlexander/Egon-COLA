@@ -1,10 +1,14 @@
-package top.egon.cola.component.gateway.admin.application.catalog;
+package top.egon.cola.component.gateway.admin.catalog.service;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.gateway.admin.application.RequestAuditContext;
-import top.egon.cola.component.gateway.admin.domain.AdminActor;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayAuditLogRepository;
+import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
+import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
+import top.egon.cola.component.gateway.admin.observability.repository.GatewayAuditLogRepository;
+import top.egon.cola.component.gateway.admin.catalog.repository.*;
+import top.egon.cola.component.gateway.admin.catalog.domain.dto.*;
+import top.egon.cola.component.gateway.admin.catalog.domain.po.*;
+import top.egon.cola.component.gateway.admin.catalog.domain.vo.*;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -31,7 +35,7 @@ class GatewayCatalogServiceTest {
         FakeStore store = new FakeStore();
         GatewayCatalogService service = service(store);
 
-        GatewayCatalogService.OperationDetail created =
+        top.egon.cola.component.gateway.admin.catalog.domain.vo.GatewayOperationDetailVO created =
                 service.createManualOperation(
                         "group-1",
                         operation(false),
@@ -62,7 +66,7 @@ class GatewayCatalogServiceTest {
                 audit()
         ).operation().id();
 
-        GatewayCatalogService.OperationDetail updated =
+        top.egon.cola.component.gateway.admin.catalog.domain.vo.GatewayOperationDetailVO updated =
                 service.updateManualDefinition(
                         operationId,
                         definition(true, "updated"),
@@ -74,7 +78,7 @@ class GatewayCatalogServiceTest {
                 .isEqualTo("orders:http:GET:/orders/{id}");
         assertThat(updated.operation().externalAccessible()).isTrue();
         assertThat(updated.definitions())
-                .extracting(GatewayCatalogStore.OperationDefinition
+                .extracting(top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationDefinitionPO
                         ::definitionVersion)
                 .containsExactly(2L, 1L);
     }
@@ -82,7 +86,7 @@ class GatewayCatalogServiceTest {
     @Test
     void refusesManualOverwriteOfStarterOperation() {
         FakeStore store = new FakeStore();
-        store.operation = new GatewayCatalogStore.OperationRecord(
+        store.operation = new top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationPO(
                 "starter-operation",
                 "application-1",
                 "group-1",
@@ -119,10 +123,10 @@ class GatewayCatalogServiceTest {
         );
     }
 
-    private GatewayCatalogService.ManualOperation operation(
+    private top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualOperationDTO operation(
             boolean externalAccessible) {
-        return new GatewayCatalogService.ManualOperation(
-                GatewayCatalogService.Protocol.HTTP,
+        return new top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualOperationDTO(
+                top.egon.cola.component.gateway.admin.catalog.domain.enums.GatewayCatalogProtocolEnum.HTTP,
                 "GET",
                 "/orders/{id}",
                 null,
@@ -136,10 +140,10 @@ class GatewayCatalogServiceTest {
         );
     }
 
-    private GatewayCatalogService.ManualDefinition definition(
+    private top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualDefinitionDTO definition(
             boolean externalAccessible,
             String summary) {
-        return new GatewayCatalogService.ManualDefinition(
+        return new top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualDefinitionDTO(
                 summary,
                 List.of("order"),
                 Map.of("type", "object"),
@@ -154,7 +158,7 @@ class GatewayCatalogServiceTest {
     private AdminActor actor() {
         return new AdminActor(
                 "admin",
-                AdminActor.ActorType.USER,
+                top.egon.cola.component.gateway.admin.shared.domain.enums.AdminActorTypeEnum.USER,
                 Set.of("*"),
                 Set.of("GATEWAY_ADMIN")
         );
@@ -164,29 +168,29 @@ class GatewayCatalogServiceTest {
         return new RequestAuditContext("request", "trace");
     }
 
-    private static final class FakeStore implements GatewayCatalogStore {
+    private static final class FakeStore implements GatewayCatalogRepository {
 
-        private final List<OperationDefinition> definitions =
+        private final List<GatewayOperationDefinitionPO> definitions =
                 new ArrayList<>();
 
-        private OperationRecord operation;
+        private GatewayOperationPO operation;
 
         @Override
-        public CatalogTree loadCatalog(String applicationId) {
-            return new CatalogTree(applicationId, List.of());
+        public GatewayCatalogTreeVO loadCatalog(String applicationId) {
+            return new GatewayCatalogTreeVO(applicationId, List.of());
         }
 
         @Override
         public String createManualHierarchy(
                 String applicationId,
-                ManualHierarchy hierarchy,
+                GatewayManualHierarchyDTO hierarchy,
                 Instant now) {
             return "group-1";
         }
 
         @Override
-        public Optional<InterfaceGroupScope> findInterfaceGroup(String id) {
-            return Optional.of(new InterfaceGroupScope(
+        public Optional<GatewayInterfaceGroupScopeVO> findInterfaceGroup(String id) {
+            return Optional.of(new GatewayInterfaceGroupScopeVO(
                     id,
                     "application-1",
                     "test-biz",
@@ -197,14 +201,14 @@ class GatewayCatalogServiceTest {
         }
 
         @Override
-        public Optional<OperationRecord> findOperation(String operationId) {
+        public Optional<GatewayOperationPO> findOperation(String operationId) {
             return operation == null || !operation.id().equals(operationId)
                     ? Optional.empty()
                     : Optional.of(operation);
         }
 
         @Override
-        public Optional<OperationRecord> findOperation(
+        public Optional<GatewayOperationPO> findOperation(
                 String applicationId,
                 String operationKey) {
             return operation == null
@@ -214,23 +218,23 @@ class GatewayCatalogServiceTest {
         }
 
         @Override
-        public List<OperationDefinition> loadDefinitions(String operationId) {
+        public List<GatewayOperationDefinitionPO> loadDefinitions(String operationId) {
             return definitions.reversed();
         }
 
         @Override
-        public List<CurrentOperationDefinition> loadCurrentOperationDefinitions(
+        public List<GatewayCurrentOperationDefinitionVO> loadCurrentOperationDefinitions(
                 String gatewayGroupId) {
             return List.of();
         }
 
         @Override
-        public void insertOperation(OperationRecord value) {
+        public void insertOperation(GatewayOperationPO value) {
             operation = value;
         }
 
         @Override
-        public void appendDefinition(OperationDefinition definition) {
+        public void appendDefinition(GatewayOperationDefinitionPO definition) {
             definitions.add(definition);
         }
 
@@ -240,7 +244,7 @@ class GatewayCatalogServiceTest {
                 String definitionId,
                 boolean externalAccessible,
                 Instant now) {
-            operation = new OperationRecord(
+            operation = new GatewayOperationPO(
                     operation.id(),
                     operation.applicationId(),
                     operation.interfaceGroupId(),

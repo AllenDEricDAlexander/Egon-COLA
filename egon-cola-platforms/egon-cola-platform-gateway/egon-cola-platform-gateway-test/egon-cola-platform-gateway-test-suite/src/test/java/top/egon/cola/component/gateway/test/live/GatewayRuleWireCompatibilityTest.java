@@ -1,8 +1,8 @@
 package top.egon.cola.component.gateway.test.live;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.gateway.admin.rule.GatewayRuleCanonicalizer;
-import top.egon.cola.component.gateway.admin.rule.GatewayRuleCompiler;
+import top.egon.cola.component.gateway.admin.rule.service.GatewayRuleCanonicalizer;
+import top.egon.cola.component.gateway.admin.rule.service.GatewayRuleCompiler;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.gateway.contract.rule.GatewayRequestBodyMode;

@@ -13,11 +13,13 @@ import {
   Tabs,
 } from 'antd'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { gatewayApi } from '../../api/gatewayApi'
 import type { McpCapabilityDraft, McpCapabilityPlural } from '../../api/types'
 import { useCapability } from '../../app/capabilities'
 import { QueryFailure } from '../../components/QueryState'
-import { useScope } from '../../hooks/useScope'
+import { GatewayScopeFilter } from '../../components/GatewayScopeFilter'
+import { readScopeSearchParams, writeScopeSearchParams } from '../../hooks/scopeSearchParams'
 import { parseStringList, validateResourceTemplate, validateResourceUri } from './mcpValidation'
 import { useMcpCapabilityCollection } from './useMcpCapabilityCollection'
 
@@ -64,7 +66,8 @@ export const McpResourcesPanel = ({ serverId, gatewayGroupId, draftRevision }: {
   gatewayGroupId: string
   draftRevision: number
 }) => {
-  const { scope } = useScope()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const scope = readScopeSearchParams(searchParams, ['bizCode', 'namespace', 'env', 'appCode'], 'resource')
   const canWrite = useCapability('gateway:mcp:write')
   const resources = useMcpCapabilityCollection('resources', serverId, gatewayGroupId, draftRevision)
   const templates = useMcpCapabilityCollection(
@@ -73,9 +76,15 @@ export const McpResourcesPanel = ({ serverId, gatewayGroupId, draftRevision }: {
     gatewayGroupId,
     draftRevision,
   )
+  const applications = useQuery({
+    queryKey: ['mcp-applications', scope],
+    queryFn: ({ signal }) => gatewayApi.applications(scope, signal),
+  })
+  const selectedApplicationId = searchParams.get('resourceApplicationId') ?? ''
   const operations = useQuery({
-    queryKey: ['mcp-operation-options', scope],
-    queryFn: ({ signal }) => gatewayApi.mcpOperationOptions(scope, signal),
+    queryKey: ['mcp-operation-options', selectedApplicationId],
+    queryFn: ({ signal }) => gatewayApi.mcpOperationOptions(selectedApplicationId, signal),
+    enabled: Boolean(selectedApplicationId),
   })
   const mounts = useQuery({
     queryKey: ['mcp-remote-mounts', gatewayGroupId],
@@ -198,6 +207,33 @@ export const McpResourcesPanel = ({ serverId, gatewayGroupId, draftRevision }: {
 
   return (
     <section>
+      <GatewayScopeFilter
+        fields={['bizCode', 'namespace', 'env', 'appCode']}
+        value={scope}
+        onChange={(value) => {
+          const next = writeScopeSearchParams(searchParams, value, ['bizCode', 'namespace', 'env', 'appCode'], 'resource')
+          next.delete('resourceApplicationId')
+          next.delete('resourceOperationId')
+          setSearchParams(next)
+        }}
+      />
+      <Select
+        aria-label="Resource Application"
+        style={{ width: 360, marginBottom: 16 }}
+        placeholder="选择 Application 后加载 Operation"
+        value={selectedApplicationId || undefined}
+        loading={applications.isLoading}
+        options={(applications.data ?? []).map((application) => ({
+          value: application.id,
+          label: `${application.bizCode} / ${application.applicationCode} / ${application.env} / ${application.namespace} · ${application.displayName}`,
+        }))}
+        onChange={(value) => {
+          const next = new URLSearchParams(searchParams)
+          next.set('resourceApplicationId', value)
+          next.delete('resourceOperationId')
+          setSearchParams(next)
+        }}
+      />
       <Tabs items={[
         { key: 'resources', label: 'Resources', children: table('resources', resources.query.data) },
         {

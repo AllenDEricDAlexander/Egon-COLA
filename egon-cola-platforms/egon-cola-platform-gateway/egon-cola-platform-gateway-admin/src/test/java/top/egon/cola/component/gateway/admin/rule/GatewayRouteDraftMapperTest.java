@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin.rule;
+package top.egon.cola.component.gateway.admin.routing.service;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.gateway.contract.rule.GatewayRequestBodyMode;

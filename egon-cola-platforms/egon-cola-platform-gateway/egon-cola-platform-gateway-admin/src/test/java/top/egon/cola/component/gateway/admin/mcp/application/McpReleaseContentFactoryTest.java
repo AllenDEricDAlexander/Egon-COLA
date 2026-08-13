@@ -1,19 +1,19 @@
-package top.egon.cola.component.gateway.admin.mcp.application;
+package top.egon.cola.component.gateway.admin.mcp.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.gateway.admin.application.catalog.GatewayCatalogStore;
-import top.egon.cola.component.gateway.admin.domain.AdminActor;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayDraftRepository;
-import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpArtifactMetadataStore;
-import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpCapabilityDraftStore;
-import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpManagedToolOverrideStore;
-import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpRemoteProviderStore;
-import top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpRemoteToolDraftStore;
-import top.egon.cola.component.gateway.admin.mcp.persistence.McpServerEntity;
-import top.egon.cola.component.gateway.admin.mcp.persistence.McpServerRepository;
+import top.egon.cola.component.gateway.admin.catalog.repository.GatewayCatalogRepository;
+import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
+import top.egon.cola.component.gateway.admin.routing.repository.GatewayDraftJpaRepository;
+import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpArtifactMetadataRepository;
+import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpCapabilityDraftRepository;
+import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpManagedToolOverrideRepository;
+import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpRemoteProviderRepository;
+import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpRemoteToolDraftRepository;
+import top.egon.cola.component.gateway.admin.mcp.domain.po.McpServerPO;
+import top.egon.cola.component.gateway.admin.mcp.repository.McpServerRepository;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
 
 import java.time.Instant;
@@ -33,25 +33,25 @@ class McpReleaseContentFactoryTest {
 
     private McpServerRepository servers;
 
-    private JdbcMcpManagedToolOverrideStore overrides;
+    private JdbcMcpManagedToolOverrideRepository overrides;
 
-    private GatewayCatalogStore catalog;
+    private GatewayCatalogRepository catalog;
 
     private McpReleaseContentFactory factory;
 
     @BeforeEach
     void setUp() {
         servers = mock(McpServerRepository.class);
-        overrides = mock(JdbcMcpManagedToolOverrideStore.class);
-        catalog = mock(GatewayCatalogStore.class);
+        overrides = mock(JdbcMcpManagedToolOverrideRepository.class);
+        catalog = mock(GatewayCatalogRepository.class);
         factory = new McpReleaseContentFactory(
                 servers,
-                mock(JdbcMcpCapabilityDraftStore.class),
+                mock(JdbcMcpCapabilityDraftRepository.class),
                 overrides,
-                mock(JdbcMcpRemoteToolDraftStore.class),
-                mock(JdbcMcpRemoteProviderStore.class),
-                mock(JdbcMcpArtifactMetadataStore.class),
-                mock(GatewayDraftRepository.class),
+                mock(JdbcMcpRemoteToolDraftRepository.class),
+                mock(JdbcMcpRemoteProviderRepository.class),
+                mock(JdbcMcpArtifactMetadataRepository.class),
+                mock(GatewayDraftJpaRepository.class),
                 catalog,
                 mock(McpValidationService.class),
                 objectMapper
@@ -240,7 +240,7 @@ class McpReleaseContentFactoryTest {
 
     @Test
     void ignoresForgedExposureOnManualOperation() {
-        GatewayCatalogStore.CurrentOperationDefinition starter = current(
+        top.egon.cola.component.gateway.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO starter = current(
                 "operation-1",
                 "http:orders:GET:/orders",
                 "HTTP",
@@ -252,8 +252,8 @@ class McpReleaseContentFactoryTest {
                 Map.of("type", "object"),
                 Map.of("type", "object")
         );
-        GatewayCatalogStore.OperationRecord manualOperation =
-                new GatewayCatalogStore.OperationRecord(
+        top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationPO manualOperation =
+                new top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationPO(
                         starter.operation().id(),
                         starter.operation().applicationId(),
                         starter.operation().interfaceGroupId(),
@@ -271,7 +271,7 @@ class McpReleaseContentFactoryTest {
                 );
         when(catalog.loadCurrentOperationDefinitions("group-1"))
                 .thenReturn(List.of(
-                        new GatewayCatalogStore.CurrentOperationDefinition(
+                        new top.egon.cola.component.gateway.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO(
                                 manualOperation,
                                 starter.definition()
                         )
@@ -282,8 +282,8 @@ class McpReleaseContentFactoryTest {
 
     @Test
     void overrideCanOnlyTightenPermissionsRiskAndEnabledState() {
-        McpServerEntity codeServer = server("server-1", "orders");
-        McpServerEntity strictServer = server("server-2", "restricted");
+        McpServerPO codeServer = server("server-1", "orders");
+        McpServerPO strictServer = server("server-2", "restricted");
         when(servers
                 .findAllByGatewayGroupIdAndDeletedFalseOrderByServerCode(
                         "group-1"
@@ -315,7 +315,7 @@ class McpReleaseContentFactoryTest {
         when(catalog.loadCurrentOperationDefinitions("group-1"))
                 .thenReturn(List.of(current));
         when(overrides.load("group-1")).thenReturn(List.of(
-                new JdbcMcpManagedToolOverrideStore.ManagedToolOverride(
+                new top.egon.cola.component.gateway.admin.mcp.domain.po.McpManagedToolOverridePO(
                         toolId,
                         "group-1",
                         "operation-1",
@@ -341,14 +341,14 @@ class McpReleaseContentFactoryTest {
         assertThat(projection.overrideRevision()).isEqualTo(3);
     }
 
-    private GatewayCatalogStore.CurrentOperationDefinition current(
+    private top.egon.cola.component.gateway.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO current(
             String operationId,
             String operationKey,
             String protocol,
             Map<String, Object> attributes,
             Map<String, Object> requestSchema,
             Map<String, Object> responseSchema) {
-        var operation = new GatewayCatalogStore.OperationRecord(
+        var operation = new top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationPO(
                 operationId,
                 "app-1",
                 "interface-1",
@@ -364,7 +364,7 @@ class McpReleaseContentFactoryTest {
                 NOW,
                 NOW
         );
-        var definition = new GatewayCatalogStore.OperationDefinition(
+        var definition = new top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationDefinitionPO(
                 "definition-1",
                 operationId,
                 1,
@@ -380,7 +380,7 @@ class McpReleaseContentFactoryTest {
                 NOW,
                 "STARTER"
         );
-        return new GatewayCatalogStore.CurrentOperationDefinition(
+        return new top.egon.cola.component.gateway.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO(
                 operation,
                 definition
         );
@@ -400,8 +400,8 @@ class McpReleaseContentFactoryTest {
         );
     }
 
-    private McpServerEntity server(String id, String code) {
-        return new McpServerEntity(
+    private McpServerPO server(String id, String code) {
+        return new McpServerPO(
                 id,
                 "group-1",
                 code,
@@ -413,7 +413,7 @@ class McpReleaseContentFactoryTest {
                 30,
                 new AdminActor(
                         "admin",
-                        AdminActor.ActorType.USER,
+                        top.egon.cola.component.gateway.admin.shared.domain.enums.AdminActorTypeEnum.USER,
                         Set.of(),
                         Set.of()
                 ),

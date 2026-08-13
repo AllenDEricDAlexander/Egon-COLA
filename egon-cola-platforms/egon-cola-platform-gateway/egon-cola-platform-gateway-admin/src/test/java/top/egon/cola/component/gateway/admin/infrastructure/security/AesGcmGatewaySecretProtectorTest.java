@@ -1,7 +1,7 @@
-package top.egon.cola.component.gateway.admin.infrastructure.security;
+package top.egon.cola.component.gateway.admin.credential.service;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.gateway.admin.application.credential.GatewaySecretProtector;
+import top.egon.cola.component.gateway.admin.credential.service.GatewaySecretProtector;
 
 import java.util.Arrays;
 
@@ -17,7 +17,7 @@ class AesGcmGatewaySecretProtectorTest {
         AesGcmGatewaySecretProtector protector =
                 new AesGcmGatewaySecretProtector(key, "v1");
 
-        GatewaySecretProtector.ProtectedSecret encrypted =
+        top.egon.cola.component.gateway.admin.credential.domain.vo.GatewayProtectedSecretVO encrypted =
                 protector.protect("gateway-secret", "app:key");
 
         assertThat(encrypted.ciphertext())

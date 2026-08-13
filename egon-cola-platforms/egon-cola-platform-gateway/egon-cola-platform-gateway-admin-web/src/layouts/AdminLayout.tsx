@@ -10,7 +10,7 @@ import {
   RobotOutlined,
   ShareAltOutlined,
 } from '@ant-design/icons'
-import { Badge, Select, Space } from 'antd'
+import { Badge, Space } from 'antd'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   EnterpriseLayout,
@@ -19,17 +19,8 @@ import {
 } from '@egon-cola/admin-web-shared'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { version } from '../../package.json'
-import { useScope } from '../hooks/useScope'
-import { optionsFor, type ScopeField } from '../hooks/scopeDefaults'
 import { useAuth } from '../auth/AuthContext'
 import { useCapability, type Capability } from '../app/capabilities'
-
-const selectors: Array<[ScopeField, string]> = [
-  ['bizCode', '业务域'],
-  ['namespace', '命名空间'],
-  ['env', '环境'],
-  ['appCode', '应用'],
-]
 
 // 平台自己的导航数据，由 capability 过滤后交给统一 Header。
 const navigation: Array<{
@@ -82,7 +73,6 @@ const navigation: Array<{
 export const AdminLayout = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { scope, bindings, changeScope: selectScope } = useScope()
   const auth = useAuth()
   const canRead = useCapability('gateway:read')
   const canReadMcp = useCapability('gateway:mcp:read')
@@ -96,36 +86,12 @@ export const AdminLayout = () => {
       label: item.label,
     }))
 
-  const changeScope = (
-    field: ScopeField,
-    value: string,
-  ) => {
-    if (!window.confirm('切换作用域会清空当前缓存和未保存表单，是否继续？')) {
-      return
-    }
-    selectScope(field, value)
-    queryClient.removeQueries({
-      predicate: (query) => query.queryKey[0] !== 'gateway-scopes',
-    })
-    navigate('/dashboard')
-  }
-
   const config: EnterpriseLayoutConfig = {
     platformName: 'Gateway Admin',
     navigation: items,
     actions: (
       <Space size="middle" wrap>
         <Badge status="processing" text="Admin API" />
-        {selectors.map(([field, label]) => (
-          <Select
-            key={field}
-            role="combobox"
-            aria-label={label}
-            value={scope[field]}
-            options={optionsFor(bindings, scope, field)}
-            onChange={(value) => changeScope(field, value)}
-          />
-        ))}
       </Space>
     ),
     user: auth.session

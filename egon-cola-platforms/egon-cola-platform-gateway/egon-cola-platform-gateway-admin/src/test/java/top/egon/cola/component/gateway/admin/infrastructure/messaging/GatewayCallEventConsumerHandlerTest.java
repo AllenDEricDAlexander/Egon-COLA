@@ -1,10 +1,10 @@
-package top.egon.cola.component.gateway.admin.infrastructure.messaging;
+package top.egon.cola.component.gateway.admin.observability.controller.message;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.gateway.admin.application.observability.GatewayCallEventIngestService;
-import top.egon.cola.component.gateway.admin.application.observability.GatewayObservabilityStore;
+import top.egon.cola.component.gateway.admin.observability.service.GatewayCallEventIngestService;
+import top.egon.cola.component.gateway.admin.observability.repository.GatewayObservabilityRepository;
 import top.egon.cola.component.gateway.contract.observability.GatewayCallEventV1;
 
 import java.time.Clock;
@@ -25,8 +25,8 @@ class GatewayCallEventConsumerHandlerTest {
     @Test
     void projectsValidEventAndRecordsPoisonForInvalidJson()
             throws Exception {
-        GatewayObservabilityStore store =
-                mock(GatewayObservabilityStore.class);
+        GatewayObservabilityRepository store =
+                mock(GatewayObservabilityRepository.class);
         when(store.project(any(), any())).thenReturn(true);
         Clock clock = Clock.fixed(
                 Instant.parse("2026-07-25T00:00:00Z"),
@@ -52,7 +52,7 @@ class GatewayCallEventConsumerHandlerTest {
                 .writeValueAsBytes(event());
 
         assertEquals(
-                GatewayCallEventConsumerHandler.Result.PROJECTED,
+                top.egon.cola.component.gateway.admin.observability.domain.enums.GatewayCallEventConsumeResultEnum.PROJECTED,
                 handler.handle(new ConsumerRecord<>(
                         "calls",
                         0,
@@ -62,7 +62,7 @@ class GatewayCallEventConsumerHandlerTest {
                 ))
         );
         assertEquals(
-                GatewayCallEventConsumerHandler.Result.POISON_RECORDED,
+                top.egon.cola.component.gateway.admin.observability.domain.enums.GatewayCallEventConsumeResultEnum.POISON_RECORDED,
                 handler.handle(new ConsumerRecord<>(
                         "calls",
                         0,

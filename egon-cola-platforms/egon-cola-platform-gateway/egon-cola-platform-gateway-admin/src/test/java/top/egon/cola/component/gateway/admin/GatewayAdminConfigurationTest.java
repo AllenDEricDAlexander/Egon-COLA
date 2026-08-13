@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.admin;
+package top.egon.cola.component.gateway.admin.bootstrap;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;

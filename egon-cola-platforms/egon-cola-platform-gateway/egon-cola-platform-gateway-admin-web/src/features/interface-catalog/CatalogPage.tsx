@@ -16,12 +16,13 @@ import {
   message,
 } from 'antd'
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import type { DataNode } from 'antd/es/tree'
 import { gatewayApi } from '../../api/gatewayApi'
 import type { CatalogTree } from '../../api/types'
 import { EmptyBlock, LoadingBlock, QueryFailure } from '../../components/QueryState'
-import { useScope } from '../../hooks/useScope'
+import { GatewayScopeFilter } from '../../components/GatewayScopeFilter'
+import { readScopeSearchParams, writeScopeSearchParams } from '../../hooks/scopeSearchParams'
 import { useCapability } from '../../app/capabilities'
 
 const toTree = (catalog: CatalogTree, search: string): DataNode[] => {
@@ -54,7 +55,9 @@ const toTree = (catalog: CatalogTree, search: string): DataNode[] => {
 }
 
 export const CatalogPage = () => {
-  const { scope } = useScope()
+  const { applicationId: routeApplicationId } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filters = readScopeSearchParams(searchParams, ['bizCode', 'namespace', 'env', 'appCode'])
   const [applicationId, setApplicationId] = useState<string>()
   const [search, setSearch] = useState('')
   const [hierarchyOpen, setHierarchyOpen] = useState(false)
@@ -64,10 +67,14 @@ export const CatalogPage = () => {
   const queryClient = useQueryClient()
   const canWrite = useCapability('gateway:catalog:write')
   const applications = useQuery({
-    queryKey: ['applications', scope],
-    queryFn: ({ signal }) => gatewayApi.applications(scope, signal),
+    queryKey: ['applications', filters],
+    queryFn: ({ signal }) => gatewayApi.applications(filters, signal),
   })
-  const selected = applicationId ?? applications.data?.[0]?.id
+  const selected = routeApplicationId
+    ?? (applicationId && applications.data?.some((item) => item.id === applicationId)
+      ? applicationId
+      : undefined)
+    ?? applications.data?.[0]?.id
   const catalog = useQuery({
     queryKey: ['catalog', selected],
     queryFn: ({ signal }) => gatewayApi.catalog(selected!, signal),
@@ -144,6 +151,13 @@ export const CatalogPage = () => {
       </Space>
       <Card>
         <Space wrap>
+          <GatewayScopeFilter
+            fields={['bizCode', 'namespace', 'env', 'appCode']}
+            value={filters}
+            onChange={(value) => setSearchParams(
+              writeScopeSearchParams(searchParams, value, ['bizCode', 'namespace', 'env', 'appCode']),
+            )}
+          />
           <Select
             aria-label="应用"
             style={{ width: 260 }}
@@ -151,10 +165,18 @@ export const CatalogPage = () => {
             placeholder="选择应用"
             options={(applications.data ?? []).map((application) => ({
               value: application.id,
-              label: `${application.displayName} (${application.applicationCode})`,
+              label: `${application.bizCode} / ${application.applicationCode} / ${application.env} / ${application.namespace} · ${application.displayName}`,
             }))}
             onChange={setApplicationId}
           />
+          {selected && applications.data?.find((application) => application.id === selected) && (
+            <Typography.Text type="secondary">
+              Scope：{(() => {
+                const item = applications.data!.find((application) => application.id === selected)!
+                return `${item.bizCode} / ${item.applicationCode} / ${item.env} / ${item.namespace}`
+              })()}
+            </Typography.Text>
+          )}
           <Input.Search
             aria-label="接口搜索"
             allowClear

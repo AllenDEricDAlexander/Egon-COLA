@@ -1,13 +1,14 @@
-package top.egon.cola.component.gateway.admin.interfaces.scheduled;
+package top.egon.cola.component.gateway.admin.reporting.controller.scheduled;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.ddc.api.client.DdcManagementClient;
-import top.egon.cola.component.gateway.admin.application.projection.GatewayProjectionService;
-import top.egon.cola.component.gateway.admin.application.reporting.GatewayDefinitionLifecycleStore;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationEntity;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayApplicationRepository;
-import top.egon.cola.component.gateway.admin.infrastructure.persistence.GatewayAuditLogRepository;
+import top.egon.cola.component.gateway.admin.runtime.service.GatewayProjectionService;
+import top.egon.cola.component.gateway.admin.reporting.repository.GatewayDefinitionLifecycleRepository;
+import top.egon.cola.component.gateway.admin.application.domain.po.GatewayApplicationPO;
+import top.egon.cola.component.gateway.admin.application.repository.GatewayApplicationRepository;
+import top.egon.cola.component.gateway.admin.observability.repository.GatewayAuditLogRepository;
+import top.egon.cola.component.gateway.admin.reporting.domain.vo.GatewayReconcileResultVO;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -33,8 +34,8 @@ class GatewayDefinitionLifecycleReconcilerTest {
                 mock(GatewayApplicationRepository.class);
         GatewayProjectionService projections =
                 mock(GatewayProjectionService.class);
-        GatewayDefinitionLifecycleStore lifecycle =
-                mock(GatewayDefinitionLifecycleStore.class);
+        GatewayDefinitionLifecycleRepository lifecycle =
+                mock(GatewayDefinitionLifecycleRepository.class);
         GatewayAuditLogRepository audits =
                 mock(GatewayAuditLogRepository.class);
         TransactionTemplate transactions = mock(TransactionTemplate.class);
@@ -45,7 +46,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
             return null;
         }).when(transactions).executeWithoutResult(any());
         when(applications.findAllByDeletedFalseOrderByCreatedAtDesc())
-                .thenReturn(List.of(new GatewayApplicationEntity(
+                .thenReturn(List.of(new GatewayApplicationPO(
                         "application-1",
                         "test-biz",
                         "orders",
@@ -59,7 +60,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
         when(projections.instances(
                 "test-biz", "orders", "test", "gateway"
         )).thenReturn(
-                new GatewayProjectionService.ProjectionEnvelope<>(
+                new top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayProjectionEnvelopeVO<>(
                         List.of(provider(
                                 "provider-1",
                                 "definition-1",
@@ -73,8 +74,8 @@ class GatewayDefinitionLifecycleReconcilerTest {
                 )
         );
         when(lifecycle.reconcile(eq(java.util.Set.of("definition-1")), eq(now)))
-                .thenReturn(new GatewayDefinitionLifecycleStore
-                        .ReconcileResult(1, 1, 2, 1));
+                .thenReturn(new top.egon.cola.component.gateway.admin.reporting.domain.vo
+                        .GatewayReconcileResultVO(1, 1, 2, 1));
         GatewayDefinitionLifecycleReconciler reconciler =
                 new GatewayDefinitionLifecycleReconciler(
                         mock(DdcManagementClient.class),
@@ -102,10 +103,10 @@ class GatewayDefinitionLifecycleReconcilerTest {
                 mock(GatewayApplicationRepository.class);
         GatewayProjectionService projections =
                 mock(GatewayProjectionService.class);
-        GatewayDefinitionLifecycleStore lifecycle =
-                mock(GatewayDefinitionLifecycleStore.class);
+        GatewayDefinitionLifecycleRepository lifecycle =
+                mock(GatewayDefinitionLifecycleRepository.class);
         when(applications.findAllByDeletedFalseOrderByCreatedAtDesc())
-                .thenReturn(List.of(new GatewayApplicationEntity(
+                .thenReturn(List.of(new GatewayApplicationPO(
                         "application-1",
                         "test-biz",
                         "orders",
@@ -119,7 +120,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
         when(projections.instances(
                 "test-biz", "orders", "test", "gateway"
         )).thenReturn(
-                new GatewayProjectionService.ProjectionEnvelope<>(
+                new top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayProjectionEnvelopeVO<>(
                         List.of(),
                         now.minusSeconds(30),
                         "DDC_SERVICE_REGISTRY",
@@ -150,8 +151,8 @@ class GatewayDefinitionLifecycleReconcilerTest {
                 mock(GatewayApplicationRepository.class);
         GatewayProjectionService projections =
                 mock(GatewayProjectionService.class);
-        GatewayDefinitionLifecycleStore lifecycle =
-                mock(GatewayDefinitionLifecycleStore.class);
+        GatewayDefinitionLifecycleRepository lifecycle =
+                mock(GatewayDefinitionLifecycleRepository.class);
         TransactionTemplate transactions = mock(TransactionTemplate.class);
         doAnswer(invocation -> {
             java.util.function.Consumer<org.springframework.transaction
@@ -160,7 +161,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
             return null;
         }).when(transactions).executeWithoutResult(any());
         when(applications.findAllByDeletedFalseOrderByCreatedAtDesc())
-                .thenReturn(List.of(new GatewayApplicationEntity(
+                .thenReturn(List.of(new GatewayApplicationPO(
                         "application-1",
                         "test-biz",
                         "orders",
@@ -174,7 +175,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
         when(projections.instances(
                 "test-biz", "orders", "test", "gateway"
         )).thenReturn(
-                new GatewayProjectionService.ProjectionEnvelope<>(
+                new top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayProjectionEnvelopeVO<>(
                         List.of(),
                         now,
                         "DDC_SERVICE_REGISTRY",
@@ -183,7 +184,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
                 )
         );
         when(lifecycle.reconcile(Set.of(), now)).thenReturn(
-                new GatewayDefinitionLifecycleStore.ReconcileResult(
+                new top.egon.cola.component.gateway.admin.reporting.domain.vo.GatewayReconcileResultVO(
                         0,
                         1,
                         0,
@@ -206,12 +207,12 @@ class GatewayDefinitionLifecycleReconcilerTest {
         verify(lifecycle).reconcile(Set.of(), now);
     }
 
-    private GatewayProjectionService.ProviderInstanceProjection provider(
+    private top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayProviderInstanceVO provider(
             String instanceId,
             String definitionSetId,
             String status,
             Instant expireAt) {
-        return new GatewayProjectionService.ProviderInstanceProjection(
+        return new top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayProviderInstanceVO(
                 "HTTP_PROVIDER:HTTP:orders:default:1.0.0",
                 "HTTP",
                 "orders",
