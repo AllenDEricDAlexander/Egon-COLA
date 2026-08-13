@@ -86,10 +86,8 @@ public class DdcNamespaceService {
     @Transactional
     public DdcNamespaceEntity save(DdcNamespaceEntity namespace) {
         LocalDateTime now = LocalDateTime.now();
-        if (namespace.getId() == null) {
-            namespace.setId(UuidV7.simpleString());
-            namespace.setCreatedAt(now);
-        }
+        namespace.setId(UuidV7.simpleString());
+        namespace.setCreatedAt(now);
         if (namespace.getEnabled() == null) {
             namespace.setEnabled(true);
         }

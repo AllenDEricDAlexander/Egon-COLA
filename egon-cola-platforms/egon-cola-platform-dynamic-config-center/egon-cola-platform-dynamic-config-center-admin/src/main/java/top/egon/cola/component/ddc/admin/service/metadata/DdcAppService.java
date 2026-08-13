@@ -104,10 +104,8 @@ public class DdcAppService {
     @Transactional
     public DdcAppEntity save(DdcAppEntity app) {
         LocalDateTime now = LocalDateTime.now();
-        if (app.getId() == null) {
-            app.setId(UuidV7.simpleString());
-            app.setCreatedAt(now);
-        }
+        app.setId(UuidV7.simpleString());
+        app.setCreatedAt(now);
         if (app.getEnabled() == null) {
             app.setEnabled(true);
         }

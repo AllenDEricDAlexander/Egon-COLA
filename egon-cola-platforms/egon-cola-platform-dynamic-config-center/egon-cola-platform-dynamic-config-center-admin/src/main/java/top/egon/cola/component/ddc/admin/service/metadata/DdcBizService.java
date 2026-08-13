@@ -60,10 +60,8 @@ public class DdcBizService {
     @Transactional
     public DdcBizEntity save(DdcBizEntity biz) {
         LocalDateTime now = LocalDateTime.now();
-        if (biz.getId() == null) {
-            biz.setId(UuidV7.simpleString());
-            biz.setCreatedAt(now);
-        }
+        biz.setId(UuidV7.simpleString());
+        biz.setCreatedAt(now);
         if (biz.getEnabled() == null) {
             biz.setEnabled(true);
         }

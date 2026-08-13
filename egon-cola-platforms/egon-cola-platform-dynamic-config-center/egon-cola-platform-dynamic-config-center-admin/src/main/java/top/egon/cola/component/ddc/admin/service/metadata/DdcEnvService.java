@@ -87,10 +87,8 @@ public class DdcEnvService {
     @Transactional
     public DdcEnvEntity save(DdcEnvEntity env) {
         LocalDateTime now = LocalDateTime.now();
-        if (env.getId() == null) {
-            env.setId(UuidV7.simpleString());
-            env.setCreatedAt(now);
-        }
+        env.setId(UuidV7.simpleString());
+        env.setCreatedAt(now);
         if (env.getEnabled() == null) {
             env.setEnabled(true);
         }
