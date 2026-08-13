@@ -3,8 +3,8 @@ package top.egon.cola.component.rpc.exception;
 import io.grpc.Metadata;
 import io.grpc.Status;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.rpc.context.RpcFailureStage;
-import top.egon.cola.component.rpc.context.RpcMetadataKeys;
+import top.egon.cola.component.rpc.context.invocation.RpcFailureStage;
+import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

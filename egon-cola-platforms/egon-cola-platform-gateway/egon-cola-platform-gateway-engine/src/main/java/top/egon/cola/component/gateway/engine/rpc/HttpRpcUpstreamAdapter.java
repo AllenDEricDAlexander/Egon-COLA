@@ -15,7 +15,7 @@ import top.egon.cola.component.gateway.core.provider.ProviderInstance;
 import top.egon.cola.component.gateway.core.route.HttpRouteMatch;
 import top.egon.cola.component.gateway.engine.http.GatewayOutboundHttpResponse;
 import top.egon.cola.component.gateway.engine.rule.CompiledGatewayRules;
-import top.egon.cola.component.rpc.context.RpcMetadataKeys;
+import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;

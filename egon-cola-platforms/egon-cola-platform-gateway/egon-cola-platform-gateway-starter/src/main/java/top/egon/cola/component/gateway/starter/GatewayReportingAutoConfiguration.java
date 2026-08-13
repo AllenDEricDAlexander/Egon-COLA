@@ -25,9 +25,9 @@ import top.egon.cola.component.gateway.starter.reporting.GatewayDefinitionReport
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportHttpClient;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingCoordinator;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
-import top.egon.cola.component.rpc.contract.RpcContractCatalog;
+import top.egon.cola.component.rpc.contract.catalog.RpcContractCatalog;
 import top.egon.cola.component.rpc.config.EgonRpcAutoConfig;
-import top.egon.cola.component.rpc.provider.RpcProviderMetadataContributor;
+import top.egon.cola.component.rpc.provider.metadata.RpcProviderMetadataContributor;
 
 import java.util.List;
 import java.util.Map;

@@ -3,7 +3,7 @@ package top.egon.cola.component.rpc.exception;
 import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import top.egon.cola.component.rpc.context.RpcFailureStage;
+import top.egon.cola.component.rpc.context.invocation.RpcFailureStage;
 
 public class RpcStatusExceptionMapper {
 

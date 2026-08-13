@@ -2,10 +2,10 @@ package top.egon.cola.component.rpc.ddc.security;
 
 import io.grpc.Metadata;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.rpc.context.RpcClientInvocation;
-import top.egon.cola.component.rpc.context.RpcProcessIdentity;
-import top.egon.cola.component.rpc.contract.RpcContractDescriptor;
-import top.egon.cola.component.rpc.contract.RpcContractValidator;
+import top.egon.cola.component.rpc.consumer.interceptor.RpcClientInvocation;
+import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
+import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
+import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
 import top.egon.cola.component.rpc.ddc.contract.DdcConfigRuntimeRpc;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcScope;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.PullConfigRequest;

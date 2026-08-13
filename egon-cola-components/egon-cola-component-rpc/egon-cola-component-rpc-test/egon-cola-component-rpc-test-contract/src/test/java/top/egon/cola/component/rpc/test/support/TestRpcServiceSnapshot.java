@@ -1,6 +1,6 @@
 package top.egon.cola.component.rpc.test.support;
 
-import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
+import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
 
 import java.time.Instant;
 import java.util.List;

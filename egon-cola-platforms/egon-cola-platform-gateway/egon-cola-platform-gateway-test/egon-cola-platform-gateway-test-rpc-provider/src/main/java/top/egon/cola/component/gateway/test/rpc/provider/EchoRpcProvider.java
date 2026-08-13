@@ -5,7 +5,7 @@ import top.egon.cola.component.gateway.test.rpc.contract.EchoRpc;
 import top.egon.cola.component.gateway.test.rpc.contract.proto.EchoRequest;
 import top.egon.cola.component.gateway.test.rpc.contract.proto.EchoResponse;
 import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
-import top.egon.cola.component.rpc.context.RpcInvocationMetadata;
+import top.egon.cola.component.rpc.context.invocation.RpcInvocationMetadata;
 
 @EgonRpcProvider
 public class EchoRpcProvider implements EchoRpc {

@@ -1,13 +1,13 @@
 package top.egon.cola.component.rpc.test.support;
 
-import top.egon.cola.component.rpc.consumer.RpcGatewayQuery;
-import top.egon.cola.component.rpc.consumer.RpcGatewaySnapshot;
-import top.egon.cola.component.rpc.consumer.RpcGatewaySubscription;
-import top.egon.cola.component.rpc.provider.RpcLeaseOperationResult;
-import top.egon.cola.component.rpc.provider.RpcProviderLease;
-import top.egon.cola.component.rpc.provider.RpcProviderLeaseIdentity;
-import top.egon.cola.component.rpc.provider.RpcProviderRegistration;
-import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
+import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayQuery;
+import top.egon.cola.component.rpc.consumer.gateway.RpcGatewaySnapshot;
+import top.egon.cola.component.rpc.consumer.gateway.RpcGatewaySubscription;
+import top.egon.cola.component.rpc.provider.registration.RpcLeaseOperationResult;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderLease;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderLeaseIdentity;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistration;
+import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;

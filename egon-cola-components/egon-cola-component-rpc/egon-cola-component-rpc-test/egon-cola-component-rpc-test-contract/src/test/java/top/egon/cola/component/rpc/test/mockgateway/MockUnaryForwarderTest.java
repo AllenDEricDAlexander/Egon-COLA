@@ -12,8 +12,8 @@ import io.grpc.stub.ClientCalls;
 import io.grpc.stub.ServerCalls;
 import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.rpc.context.RpcMetadataKeys;
-import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
+import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
+import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
 
 import java.time.Instant;
 import java.util.concurrent.CompletableFuture;

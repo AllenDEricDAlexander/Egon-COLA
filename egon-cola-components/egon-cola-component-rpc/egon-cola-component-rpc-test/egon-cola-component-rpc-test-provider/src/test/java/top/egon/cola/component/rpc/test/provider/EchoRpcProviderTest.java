@@ -2,8 +2,8 @@ package top.egon.cola.component.rpc.test.provider;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import top.egon.cola.component.rpc.contract.RpcContractValidator;
-import top.egon.cola.component.rpc.provider.RpcProviderBeanScanner;
+import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
+import top.egon.cola.component.rpc.provider.binding.RpcProviderBeanScanner;
 import top.egon.cola.component.rpc.test.contract.proto.EchoRequest;
 import top.egon.cola.component.rpc.test.contract.proto.EchoResponse;
 

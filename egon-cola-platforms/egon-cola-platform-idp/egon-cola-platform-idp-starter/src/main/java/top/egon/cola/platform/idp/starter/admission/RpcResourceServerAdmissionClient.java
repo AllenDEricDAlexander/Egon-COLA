@@ -7,7 +7,7 @@ import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import top.egon.cola.component.ddc.model.admission.DdcAdmissionRequest;
 import top.egon.cola.component.ddc.model.admission.DdcAdmissionTicket;
-import top.egon.cola.component.rpc.consumer.RpcDirectClientHandle;
+import top.egon.cola.component.rpc.consumer.direct.RpcDirectClientHandle;
 import top.egon.cola.platform.idp.rpc.contract.ResourceServerAdmissionRpc;
 import top.egon.cola.platform.idp.rpc.contract.proto.v1.IssueResourceServerAdmissionRequest;
 import top.egon.cola.platform.idp.rpc.contract.proto.v1.IssueResourceServerAdmissionResponse;

@@ -2,8 +2,8 @@ package top.egon.cola.component.rpc.ddc.contract;
 
 import io.grpc.ServiceDescriptor;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.rpc.contract.RpcContractDescriptor;
-import top.egon.cola.component.rpc.contract.RpcContractValidator;
+import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
+import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcConfigRuntimeServiceGrpc;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcManagementServiceGrpc;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcServiceRegistryServiceGrpc;

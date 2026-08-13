@@ -15,9 +15,9 @@ import top.egon.cola.component.gateway.starter.discovery.http.WebFluxGatewayDefi
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportHttpClient;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingCoordinator;
 import top.egon.cola.component.rpc.config.EgonRpcAutoConfig;
-import top.egon.cola.component.rpc.provider.RpcProviderMetadataContributor;
-import top.egon.cola.component.rpc.provider.RpcProviderMetadataMerger;
-import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
+import top.egon.cola.component.rpc.provider.metadata.RpcProviderMetadataContributor;
+import top.egon.cola.component.rpc.provider.metadata.RpcProviderMetadataMerger;
+import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
 
 import java.util.Map;
 

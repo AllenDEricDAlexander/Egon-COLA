@@ -3,7 +3,7 @@ package top.egon.cola.component.gateway.test.rpc.provider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
-import top.egon.cola.component.rpc.provider.RpcProviderMetadataContributor;
+import top.egon.cola.component.rpc.provider.metadata.RpcProviderMetadataContributor;
 
 import java.util.Map;
 

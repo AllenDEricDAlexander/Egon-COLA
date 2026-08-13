@@ -3,8 +3,8 @@ package top.egon.cola.component.rpc.ddc.security;
 import io.grpc.ClientInterceptor;
 import io.grpc.Metadata;
 import io.grpc.stub.MetadataUtils;
-import top.egon.cola.component.rpc.context.RpcClientInterceptorFactory;
-import top.egon.cola.component.rpc.context.RpcClientInvocation;
+import top.egon.cola.component.rpc.consumer.interceptor.RpcClientInterceptorFactory;
+import top.egon.cola.component.rpc.consumer.interceptor.RpcClientInvocation;
 
 import java.time.Clock;
 import java.util.UUID;

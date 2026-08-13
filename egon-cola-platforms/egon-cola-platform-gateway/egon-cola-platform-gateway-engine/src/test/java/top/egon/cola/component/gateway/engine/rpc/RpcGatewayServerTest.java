@@ -31,8 +31,8 @@ import top.egon.cola.component.gateway.engine.rule.CompiledGatewayRules;
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficPolicyCompiler;
 import top.egon.cola.component.gateway.engine.traffic.RuntimeTrafficPolicy;
-import top.egon.cola.component.rpc.context.RpcFailureStage;
-import top.egon.cola.component.rpc.context.RpcMetadataKeys;
+import top.egon.cola.component.rpc.context.invocation.RpcFailureStage;
+import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;

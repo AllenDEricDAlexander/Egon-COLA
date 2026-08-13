@@ -11,7 +11,7 @@ import top.egon.cola.component.ddc.error.management.DdcManagementClientException
 import top.egon.cola.component.ddc.error.management.DdcManagementErrorCode;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcRpcErrorDetail;
 import top.egon.cola.component.rpc.ddc.security.DdcRpcOperation;
-import top.egon.cola.component.rpc.provider.RpcProviderExceptionMapper;
+import top.egon.cola.component.rpc.provider.server.RpcProviderExceptionMapper;
 
 import java.util.Arrays;
 import java.util.Optional;

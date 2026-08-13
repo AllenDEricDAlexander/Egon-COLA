@@ -22,14 +22,14 @@ import top.egon.cola.component.ddc.listener.registry.DdcRegistrySubscriptionCoor
 import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.service.registry.DdcRegistrySnapshotLoader;
 import top.egon.cola.component.rpc.config.EgonRpcAutoConfig;
-import top.egon.cola.component.rpc.consumer.RpcGatewayDirectory;
-import top.egon.cola.component.rpc.context.RpcProcessIdentity;
-import top.egon.cola.component.rpc.context.RpcProcessIdentityProvider;
+import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayDirectory;
+import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
+import top.egon.cola.component.rpc.context.identity.RpcProcessIdentityProvider;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
 import top.egon.cola.component.rpc.ddc.client.registry.RpcDdcServiceRegistryClient;
 import top.egon.cola.component.rpc.ddc.registry.*;
-import top.egon.cola.component.rpc.provider.RpcProviderRegistry;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistry;
 
 import java.net.InetAddress;
 

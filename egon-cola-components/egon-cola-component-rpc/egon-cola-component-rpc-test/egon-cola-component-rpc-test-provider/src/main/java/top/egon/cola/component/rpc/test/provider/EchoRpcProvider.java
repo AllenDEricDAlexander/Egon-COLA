@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
-import top.egon.cola.component.rpc.context.RpcInvocationMetadata;
+import top.egon.cola.component.rpc.context.invocation.RpcInvocationMetadata;
 import top.egon.cola.component.rpc.test.contract.EchoRpc;
 import top.egon.cola.component.rpc.test.contract.proto.EchoRequest;
 import top.egon.cola.component.rpc.test.contract.proto.EchoResponse;

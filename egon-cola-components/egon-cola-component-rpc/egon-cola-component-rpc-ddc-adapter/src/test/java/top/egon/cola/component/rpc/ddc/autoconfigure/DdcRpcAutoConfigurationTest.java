@@ -14,11 +14,11 @@ import top.egon.cola.component.ddc.autoconfigure.DdcAutoConfiguration;
 import top.egon.cola.component.ddc.autoconfigure.DdcRedisAutoConfiguration;
 import top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfiguration;
 import top.egon.cola.component.ddc.service.registry.DdcRegistrySnapshotLoader;
-import top.egon.cola.component.rpc.consumer.RpcGatewayDirectory;
-import top.egon.cola.component.rpc.context.RpcProcessIdentityProvider;
+import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayDirectory;
+import top.egon.cola.component.rpc.context.identity.RpcProcessIdentityProvider;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
-import top.egon.cola.component.rpc.provider.RpcProviderRegistry;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistry;
 
 import java.net.URI;
 import java.time.Instant;

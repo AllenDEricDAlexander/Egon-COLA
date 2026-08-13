@@ -1,11 +1,11 @@
 package top.egon.cola.component.rpc.test.mockgateway;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.rpc.context.RpcProcessIdentity;
-import top.egon.cola.component.rpc.provider.RpcProviderLease;
-import top.egon.cola.component.rpc.provider.RpcProviderLeaseIdentity;
-import top.egon.cola.component.rpc.provider.RpcProviderRegistration;
-import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
+import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderLease;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderLeaseIdentity;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistration;
+import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
 import top.egon.cola.component.rpc.test.support.InMemoryRpcRegistryBackend;
 import top.egon.cola.component.rpc.test.support.InMemoryRpcRegistryClient;
 

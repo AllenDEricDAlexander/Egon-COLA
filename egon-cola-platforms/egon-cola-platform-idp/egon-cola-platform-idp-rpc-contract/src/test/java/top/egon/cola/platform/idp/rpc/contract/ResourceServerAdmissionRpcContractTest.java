@@ -1,8 +1,8 @@
 package top.egon.cola.platform.idp.rpc.contract;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.rpc.contract.RpcContractDescriptor;
-import top.egon.cola.component.rpc.contract.RpcContractValidator;
+import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
+import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

@@ -11,12 +11,12 @@ import top.egon.cola.component.gateway.starter.discovery.GatewayDefinitionContri
 import top.egon.cola.component.gateway.starter.discovery.GatewayOperationSemantics;
 import top.egon.cola.component.gateway.starter.discovery.mcp.McpExposureMapper;
 import top.egon.cola.component.gateway.starter.discovery.schema.ProtobufSchemaMapper;
-import top.egon.cola.component.rpc.contract.RpcContractCatalog;
-import top.egon.cola.component.rpc.contract.RpcContractDescriptor;
-import top.egon.cola.component.rpc.contract.RpcContractSnapshot;
-import top.egon.cola.component.rpc.contract.RpcMethodDescriptor;
-import top.egon.cola.component.rpc.contract.RpcMethodSnapshot;
-import top.egon.cola.component.rpc.contract.RpcType;
+import top.egon.cola.component.rpc.contract.catalog.RpcContractCatalog;
+import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
+import top.egon.cola.component.rpc.contract.snapshot.RpcContractSnapshot;
+import top.egon.cola.component.rpc.contract.descriptor.RpcMethodDescriptor;
+import top.egon.cola.component.rpc.contract.snapshot.RpcMethodSnapshot;
+import top.egon.cola.component.rpc.contract.descriptor.RpcType;
 
 import java.util.ArrayList;
 import java.util.Base64;

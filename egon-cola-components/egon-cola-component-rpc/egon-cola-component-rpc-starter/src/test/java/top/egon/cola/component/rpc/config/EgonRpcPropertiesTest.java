@@ -1,7 +1,7 @@
 package top.egon.cola.component.rpc.config;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.rpc.provider.RpcProviderRegistrationMode;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistrationMode;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

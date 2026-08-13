@@ -1,12 +1,12 @@
 package top.egon.cola.component.rpc.test.consumer;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.rpc.consumer.EgonRpcReferenceBeanPostProcessor;
-import top.egon.cola.component.rpc.consumer.GatewayRpcInvocationChannelProvider;
-import top.egon.cola.component.rpc.consumer.RpcConsumerGatewayManager;
-import top.egon.cola.component.rpc.consumer.RpcConsumerProxyFactory;
-import top.egon.cola.component.rpc.context.RpcProcessIdentity;
-import top.egon.cola.component.rpc.contract.RpcContractValidator;
+import top.egon.cola.component.rpc.consumer.proxy.EgonRpcReferenceBeanPostProcessor;
+import top.egon.cola.component.rpc.consumer.gateway.GatewayRpcInvocationChannelProvider;
+import top.egon.cola.component.rpc.consumer.gateway.RpcConsumerGatewayManager;
+import top.egon.cola.component.rpc.consumer.proxy.RpcConsumerProxyFactory;
+import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
+import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
 import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
 
 import java.lang.reflect.Proxy;

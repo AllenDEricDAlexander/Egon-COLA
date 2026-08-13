@@ -4,7 +4,11 @@ import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.format.ServiceInstanceMetaCodec;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
-import top.egon.cola.component.rpc.consumer.*;
+import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayDirectory;
+import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayEndpoint;
+import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayQuery;
+import top.egon.cola.component.rpc.consumer.gateway.RpcGatewaySnapshot;
+import top.egon.cola.component.rpc.consumer.gateway.RpcGatewaySubscription;
 
 import java.util.function.Consumer;
 

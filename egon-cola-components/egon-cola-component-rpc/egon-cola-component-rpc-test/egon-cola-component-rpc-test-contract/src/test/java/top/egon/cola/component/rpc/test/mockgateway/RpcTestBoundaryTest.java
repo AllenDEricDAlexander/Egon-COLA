@@ -1,8 +1,8 @@
 package top.egon.cola.component.rpc.test.mockgateway;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.rpc.consumer.RpcConsumerChannelFactory;
-import top.egon.cola.component.rpc.provider.RpcProviderServerFactory;
+import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelFactory;
+import top.egon.cola.component.rpc.provider.server.RpcProviderServerFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

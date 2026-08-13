@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
-import top.egon.cola.component.rpc.provider.RpcProviderExceptionMapper;
+import top.egon.cola.component.rpc.provider.server.RpcProviderExceptionMapper;
 
 /**
  * 将 DDC RPC 认证与异常映射接入中立 RPC Provider 扩展点。

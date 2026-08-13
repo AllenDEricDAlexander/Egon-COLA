@@ -1,7 +1,7 @@
 package top.egon.cola.component.rpc.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import top.egon.cola.component.rpc.provider.RpcProviderRegistrationMode;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistrationMode;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

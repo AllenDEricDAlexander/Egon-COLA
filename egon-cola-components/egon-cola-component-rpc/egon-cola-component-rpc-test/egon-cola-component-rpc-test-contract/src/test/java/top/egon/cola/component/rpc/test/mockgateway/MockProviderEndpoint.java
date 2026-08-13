@@ -1,6 +1,6 @@
 package top.egon.cola.component.rpc.test.mockgateway;
 
-import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
+import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
 import top.egon.cola.component.rpc.test.support.TestRpcServiceInstance;
 
 import java.time.Instant;

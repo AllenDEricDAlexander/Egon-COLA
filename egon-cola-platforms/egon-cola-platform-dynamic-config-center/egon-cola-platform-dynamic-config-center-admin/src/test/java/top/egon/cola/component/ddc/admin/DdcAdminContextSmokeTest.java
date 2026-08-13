@@ -39,9 +39,9 @@ import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcAutoConfiguration;
 import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcProperties;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
-import top.egon.cola.component.rpc.provider.RpcProviderLifecycle;
-import top.egon.cola.component.rpc.provider.RpcProviderRegistrationMode;
-import top.egon.cola.component.rpc.provider.RpcProviderRegistry;
+import top.egon.cola.component.rpc.provider.lifecycle.RpcProviderLifecycle;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistrationMode;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistry;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;

@@ -4,7 +4,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.model.registry.*;
-import top.egon.cola.component.rpc.consumer.*;
+import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayEndpoint;
+import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayQuery;
+import top.egon.cola.component.rpc.consumer.gateway.RpcGatewaySnapshot;
+import top.egon.cola.component.rpc.consumer.gateway.RpcGatewaySubscription;
 
 import java.time.Instant;
 import java.util.List;

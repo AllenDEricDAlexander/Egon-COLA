@@ -9,7 +9,7 @@ import io.grpc.MethodDescriptor;
 import io.grpc.Status;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
-import top.egon.cola.component.rpc.context.RpcMetadataKeys;
+import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 
 final class MockUnaryForwarder {
 

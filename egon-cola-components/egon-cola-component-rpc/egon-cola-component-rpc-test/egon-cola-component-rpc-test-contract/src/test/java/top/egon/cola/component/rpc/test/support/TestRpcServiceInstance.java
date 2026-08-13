@@ -1,8 +1,8 @@
 package top.egon.cola.component.rpc.test.support;
 
-import top.egon.cola.component.rpc.provider.RpcProviderLease;
-import top.egon.cola.component.rpc.provider.RpcProviderRegistration;
-import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderLease;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistration;
+import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
 
 import java.time.Instant;
 

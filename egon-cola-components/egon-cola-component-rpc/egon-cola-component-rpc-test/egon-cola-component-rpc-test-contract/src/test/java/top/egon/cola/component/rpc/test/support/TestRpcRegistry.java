@@ -1,10 +1,10 @@
 package top.egon.cola.component.rpc.test.support;
 
-import top.egon.cola.component.rpc.consumer.RpcGatewayDirectory;
-import top.egon.cola.component.rpc.provider.RpcProviderRegistry;
-import top.egon.cola.component.rpc.provider.RpcProviderLease;
-import top.egon.cola.component.rpc.provider.RpcProviderRegistration;
-import top.egon.cola.component.rpc.provider.RpcServiceIdentity;
+import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayDirectory;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistry;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderLease;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistration;
+import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
 
 import java.util.List;
 import java.util.function.Consumer;

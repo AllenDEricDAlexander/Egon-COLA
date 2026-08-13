@@ -25,8 +25,8 @@ import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficContext;
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficRejectedException;
 import top.egon.cola.component.gateway.engine.traffic.ProviderCallClassification;
-import top.egon.cola.component.rpc.context.RpcFailureStage;
-import top.egon.cola.component.rpc.context.RpcMetadataKeys;
+import top.egon.cola.component.rpc.context.invocation.RpcFailureStage;
+import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 
 import java.time.Duration;
 import java.util.LinkedHashSet;

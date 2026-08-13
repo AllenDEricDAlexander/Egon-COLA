@@ -7,8 +7,12 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.admission.DdcAdmissionTicket;
-import top.egon.cola.component.rpc.context.RpcProcessIdentity;
-import top.egon.cola.component.rpc.provider.*;
+import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
+import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
+import top.egon.cola.component.rpc.provider.registration.RpcLeaseOperationResult;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderLease;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderLeaseIdentity;
+import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistration;
 
 import java.net.URI;
 import java.time.Instant;

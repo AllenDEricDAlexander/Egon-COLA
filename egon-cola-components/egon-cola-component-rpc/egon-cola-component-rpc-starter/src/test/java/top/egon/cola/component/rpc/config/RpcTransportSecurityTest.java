@@ -2,8 +2,8 @@ package top.egon.cola.component.rpc.config;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import top.egon.cola.component.rpc.consumer.RpcConsumerChannelFactory;
-import top.egon.cola.component.rpc.consumer.RpcGatewayEndpoint;
+import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelFactory;
+import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayEndpoint;
 
 import java.io.IOException;
 import java.nio.file.Files;
