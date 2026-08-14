@@ -204,8 +204,7 @@ class ResourceServerPolicyTest {
             @Override
             public TenantMembership resolve(
                     String identitySub,
-                    String tenantId,
-                    String clientId) {
+                    String tenantId) {
                 return new TenantMembership(
                         identitySub,
                         tenantId,
@@ -216,9 +215,7 @@ class ResourceServerPolicyTest {
             }
 
             @Override
-            public List<TenantMembership> list(
-                    String identitySub,
-                    String clientId) {
+            public List<TenantMembership> list(String identitySub) {
                 return List.of();
             }
         };
@@ -240,8 +237,7 @@ class ResourceServerPolicyTest {
                 publicClient(),
                 RESOURCE_URI,
                 "alice-sub",
-                "tenant-001",
-                "session-001"
+                "tenant-001"
         );
 
         assertEquals(resource.resourceServerId(), access.resourceServerId());

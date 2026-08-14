@@ -6,11 +6,10 @@ public interface TenantMembershipPort {
 
     TenantMembership resolve(
             String identitySub,
-            String tenantId,
-            String clientId
+            String tenantId
     );
 
-    List<TenantMembership> list(String identitySub, String clientId);
+    List<TenantMembership> list(String identitySub);
 
     record TenantMembership(
             String identitySub,

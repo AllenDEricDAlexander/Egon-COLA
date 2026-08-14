@@ -7,7 +7,6 @@ public record IdentitySecurityEvent(
         String identitySub,
         String reason,
         String sourceBucket,
-        long tokenVersion,
         Instant occurredAt
 ) {
 }

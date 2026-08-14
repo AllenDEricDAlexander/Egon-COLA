@@ -21,13 +21,11 @@ class IdentityPrincipalTest {
                 new IdentityPrincipal(
                         " ",
                         "tenant-a",
-                        "sid-a",
-                        "web",
                         "jti-a",
-                        0L,
                         Set.of("mock-api"),
                         Instant.EPOCH,
-                        Instant.EPOCH.plusSeconds(900)
+                        Instant.EPOCH.plusSeconds(300),
+                        AuthenticationContext.password()
                 ));
     }
 
@@ -51,13 +49,11 @@ class IdentityPrincipalTest {
         IdentityPrincipal user = new IdentityPrincipal(
                 "alice-sub",
                 "tenant-a",
-                "sid-a",
-                "web",
                 "jti-a",
-                0L,
                 Set.of("https://api.egon.internal/prod/permission/idp"),
                 Instant.EPOCH,
-                Instant.EPOCH.plusSeconds(900)
+                Instant.EPOCH.plusSeconds(300),
+                AuthenticationContext.password()
         );
         ServiceIdentityPrincipal service = new ServiceIdentityPrincipal(
                 "idp-service",

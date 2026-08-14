@@ -38,15 +38,6 @@ public sealed interface IdpPrincipal
     String tenantId();
 
     /**
-     * 返回 OAuth Client 标识。
-     *
-     * <p>Returns the OAuth Client identifier.</p>
-     *
-     * @return Client 标识；Client identifier
-     */
-    String clientId();
-
-    /**
      * 返回 Access Token jti。
      *
      * <p>Returns the Access Token jti.</p>

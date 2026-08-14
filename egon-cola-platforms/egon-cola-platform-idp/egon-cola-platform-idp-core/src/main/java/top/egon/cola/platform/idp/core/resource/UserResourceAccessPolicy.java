@@ -69,15 +69,13 @@ public final class UserResourceAccessPolicy {
      * @param resourceUri 目标 Resource URI；target Resource URI
      * @param identitySub 用户身份标识；user identity subject
      * @param tenantId    当前租户；current tenant
-     * @param sessionId   当前身份会话；current identity session
      * @return 已授权 USER Resource 上下文；authorized USER Resource context
      */
     public UserResourceAccess authorize(
             OAuthClient client,
             URI resourceUri,
             String identitySub,
-            String tenantId,
-            String sessionId) {
+            String tenantId) {
         Objects.requireNonNull(client, "client");
         if (client.status() != OAuthClient.Status.ACTIVE) {
             deny("IDP_CLIENT_DISABLED", "OAuth Client is disabled");
@@ -108,7 +106,7 @@ public final class UserResourceAccessPolicy {
                 ));
         TenantMembershipPort.TenantMembership membership =
                 memberships.resolve(required(identitySub, "identitySub"),
-                        required(tenantId, "tenantId"), client.clientId());
+                        required(tenantId, "tenantId"));
         if (membership == null
                 || membership.status() != TenantMembershipPort.MembershipStatus.ACTIVE
                 || !identitySub.equals(membership.identitySub())
@@ -122,7 +120,6 @@ public final class UserResourceAccessPolicy {
                         new UserResourceAccessAuthorizationPort.AccessRequest(
                                 membership.identitySub(),
                                 membership.tenantId(),
-                                required(sessionId, "sessionId"),
                                 resource.rbacApplicationCode(),
                                 resource.entryPermissionCode()
                         )

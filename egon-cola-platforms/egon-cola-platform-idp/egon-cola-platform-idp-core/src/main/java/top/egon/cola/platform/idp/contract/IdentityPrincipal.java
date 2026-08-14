@@ -11,10 +11,7 @@ import java.util.Set;
  *
  * @param subject      用户身份标识；user identity subject
  * @param tenantId     当前租户；current tenant
- * @param sessionId    身份会话；identity session
- * @param clientId     OAuth Client；OAuth Client
  * @param tokenId      Access Token jti；Access Token jti
- * @param tokenVersion 用户实时令牌版本；current user token version
  * @param audience     Token Resource Audience；Token Resource Audience
  * @param issuedAt     签发时间；issued-at instant
  * @param expiresAt    过期时间；expiration instant
@@ -22,13 +19,11 @@ import java.util.Set;
 public record IdentityPrincipal(
         String subject,
         String tenantId,
-        String sessionId,
-        String clientId,
         String tokenId,
-        long tokenVersion,
         Set<String> audience,
         Instant issuedAt,
-        Instant expiresAt
+        Instant expiresAt,
+        AuthenticationContext authenticationContext
 ) implements IdpPrincipal {
 
     /**
@@ -39,14 +34,7 @@ public record IdentityPrincipal(
     public IdentityPrincipal {
         subject = required(subject, "subject");
         tenantId = required(tenantId, "tenantId");
-        sessionId = required(sessionId, "sessionId");
-        clientId = required(clientId, "clientId");
         tokenId = required(tokenId, "tokenId");
-        if (tokenVersion < 0L) {
-            throw new IllegalArgumentException(
-                    "tokenVersion must not be negative"
-            );
-        }
         audience = Set.copyOf(Objects.requireNonNull(
                 audience,
                 "audience"
@@ -60,6 +48,10 @@ public record IdentityPrincipal(
         }
         issuedAt = Objects.requireNonNull(issuedAt, "issuedAt");
         expiresAt = Objects.requireNonNull(expiresAt, "expiresAt");
+        authenticationContext = Objects.requireNonNull(
+                authenticationContext,
+                "authenticationContext"
+        );
         if (!expiresAt.isAfter(issuedAt)) {
             throw new IllegalArgumentException(
                     "expiresAt must be after issuedAt"

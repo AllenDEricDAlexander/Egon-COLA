@@ -59,14 +59,12 @@ public interface UserResourceAccessAuthorizationPort {
      *
      * @param identitySub         用户身份；user identity
      * @param tenantId           租户；tenant
-     * @param sessionId          身份会话；identity session
      * @param rbacApplicationCode RBAC3 应用；RBAC3 application
      * @param entryPermissionCode 入口权限；entry permission
      */
     record AccessRequest(
             String identitySub,
             String tenantId,
-            String sessionId,
             String rbacApplicationCode,
             String entryPermissionCode
     ) {

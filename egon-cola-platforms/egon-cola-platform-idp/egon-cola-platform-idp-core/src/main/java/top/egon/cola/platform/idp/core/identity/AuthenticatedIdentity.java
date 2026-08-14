@@ -4,7 +4,6 @@ public record AuthenticatedIdentity(
         String identitySub,
         String username,
         String displayName,
-        long tokenVersion,
         boolean mustChangePassword
 ) {
 }

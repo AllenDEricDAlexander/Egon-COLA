@@ -6,7 +6,6 @@ import java.util.Objects;
 public record IdentityUserState(
         String subject,
         Status status,
-        long tokenVersion,
         Instant updatedAt
 ) {
 
@@ -16,11 +15,6 @@ public record IdentityUserState(
         }
         subject = subject.trim();
         status = Objects.requireNonNull(status, "status");
-        if (tokenVersion < 0L) {
-            throw new IllegalArgumentException(
-                    "tokenVersion must not be negative"
-            );
-        }
         updatedAt = Objects.requireNonNull(updatedAt, "updatedAt");
     }
 
