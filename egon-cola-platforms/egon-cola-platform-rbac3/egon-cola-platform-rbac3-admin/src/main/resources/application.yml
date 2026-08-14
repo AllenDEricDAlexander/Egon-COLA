@@ -75,9 +75,8 @@ egon.cola.platform:
       database: ${RBAC3_AUTHORIZATION_REDIS_DATABASE:0}
     authorization:
       endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT}
-      service-credential-file: ${RBAC3_ADMIN_SERVICE_CREDENTIAL_FILE}
       service-token:
-        enabled: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED:false}
+        enabled: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED:true}
         token-endpoint: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_TOKEN_ENDPOINT:}
         client-id: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_CLIENT_ID:}
         key-id: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_KEY_ID:}
@@ -88,10 +87,6 @@ egon.cola.platform:
 
 egon:
   rbac3:
-    access-token-ttl: 15m
-    refresh-token-ttl: 7d
-    session-idle-timeout: 30m
-    session-absolute-timeout: 12h
     maximum-active-roots: 16
     component-keys: ${RBAC3_COMPONENT_KEYS}
     runtime:
@@ -106,13 +101,6 @@ egon:
       release-id: ${GATEWAY_RELEASE_ID}
       oauth-token-file: ${GATEWAY_STATUS_OAUTH_TOKEN_FILE}
       timeout: ${GATEWAY_STATUS_TIMEOUT:3s}
-    security:
-      jwt-private-key-file: ${RBAC3_JWT_PRIVATE_KEY_FILE}
-      jwt-public-key-file: ${RBAC3_JWT_PUBLIC_KEY_FILE}
-      jwt-kid: ${RBAC3_JWT_KID}
-      issuer: ${RBAC3_JWT_ISSUER}
-      resource-uris: ${RBAC3_JWT_RESOURCE_URIS}
-      audit-cursor-secret-file: ${RBAC3_AUDIT_CURSOR_SECRET_FILE}
     topology:
       ddc-registry-client-bean: ddcRedissonClient
       runtime-client-bean: rbac3RuntimeRedissonClient
@@ -182,7 +170,7 @@ egon:
             fail-fast: true
       gateway:
         reporting:
-          enabled: true
+          enabled: ${RBAC3_GATEWAY_REPORTING_ENABLED:true}
           admin-base-url: ${GATEWAY_ADMIN_BASE_URL}
           biz-code: ${RBAC3_RESOURCE_BIZ_CODE:permission}
           application-code: ${RBAC3_RESOURCE_APP_CODE:rbac3}

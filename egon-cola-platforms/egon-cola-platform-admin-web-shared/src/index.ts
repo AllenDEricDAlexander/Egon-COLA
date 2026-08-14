@@ -5,11 +5,15 @@ export { AdminThemeProvider } from './theme/ThemeProvider'
 // API
 export { createHttpClient, type HttpClient, type HttpClientConfig } from './api/httpClient'
 export { ApiError, classifyApiError, type ErrorClassification } from './api/errors'
-export { decodeTokenPayload, computeExpiresAt, isTokenExpired } from './api/jwt'
 
 // Auth
-export { createTokenStore, type TokenStore, type AuthTokens } from './auth/tokenStore'
-export { createOAuthClient, type OAuthClient, type OAuthClientConfiguration, type OAuthRuntime } from './auth/oauthClient'
+export {
+    createGatewayAuthClient,
+    type GatewayAuthClient,
+    type GatewayAuthClientOptions,
+    type GatewayLoginRequest,
+    type GatewayLoginResult,
+} from './auth/gatewayAuthClient'
 
 // i18n
 export { initI18n, I18nProvider, useT, changeLanguage, currentLanguage, type I18nInitOptions } from './i18n'

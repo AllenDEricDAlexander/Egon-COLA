@@ -1,10 +1,10 @@
-import { QueryClientProvider } from '@tanstack/react-query'
-import { createElement, type PropsWithChildren } from 'react'
-import { renderHook, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { setDdcTokenProvider, setDdcUnauthorizedHandler } from '../../api/client'
-import { createDdcQueryClient } from '../../query/queryClient'
-import { scopeOptionKey, useScopeOption } from './useScopeOptions'
+import {QueryClientProvider} from '@tanstack/react-query'
+import {createElement, type PropsWithChildren} from 'react'
+import {renderHook, waitFor} from '@testing-library/react'
+import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {setDdcUnauthorizedHandler} from '../../api/client'
+import {createDdcQueryClient} from '../../query/queryClient'
+import {scopeOptionKey, useScopeOption} from './useScopeOptions'
 
 const record = (data: unknown) => ({
   success: true,
@@ -23,7 +23,6 @@ const jsonResponse = (body: unknown) => new Response(
 
 describe('useScopeOption', () => {
   beforeEach(() => {
-    setDdcTokenProvider(() => 'token')
     setDdcUnauthorizedHandler(() => {})
     vi.stubGlobal('fetch', vi.fn())
   })

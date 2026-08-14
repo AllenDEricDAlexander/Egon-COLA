@@ -11,10 +11,10 @@ import top.egon.cola.platform.rbac3.starter.security.Rbac3MethodAuthorizationAsp
 import java.time.Instant;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class StarterProviderFlowIT {
 
@@ -23,7 +23,7 @@ class StarterProviderFlowIT {
         AuthorizationService authorization = mock(AuthorizationService.class);
         when(authorization.requirePermission(any())).thenReturn(new AuthorizationDecision(
                 Decision.DENY, "PERMISSION_DENIED", "10001", "20001",
-                "finance:payment:read", 1L, 2L, 3L, List.of(), Instant.now()));
+                "finance:payment:read", 1L, 2L, List.of(), Instant.now()));
         AspectJProxyFactory proxyFactory = new AspectJProxyFactory(
                 new PaymentFixtureController());
         proxyFactory.addAspect(new Rbac3MethodAuthorizationAspect(authorization));

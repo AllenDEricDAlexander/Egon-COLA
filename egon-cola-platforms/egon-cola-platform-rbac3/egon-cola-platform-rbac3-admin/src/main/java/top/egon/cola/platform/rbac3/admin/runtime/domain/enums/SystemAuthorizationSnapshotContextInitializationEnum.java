@@ -1,17 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.runtime.domain.enums;
 
-import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
-import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
-import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
-import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
-import java.time.Clock;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-
 /**
      * 类型 `SystemAuthorizationSnapshotContextInitializationEnum` 位于 `SystemAuthorizationSnapshotService` 内，是枚举，用于承载 `Context Initialization` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
      * Type `SystemAuthorizationSnapshotContextInitializationEnum` is an enum inside `SystemAuthorizationSnapshotService` and carries the responsibility, state, or contract for `Context Initialization`; callers normally use it through its public API, Spring assembly, or implementation relationship.

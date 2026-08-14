@@ -16,7 +16,14 @@ egon:
           password-file: ${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/secrets/redis.password}
         authorization:
           endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
-          service-credential-file: ${GATEWAY_RBAC3_SERVICE_CREDENTIAL_FILE:.runtime/unified-identity/gateway-admin.service.jwt}
+          service-token:
+            enabled: ${GATEWAY_RBAC3_SERVICE_TOKEN_ENABLED:false}
+            token-endpoint: ${GATEWAY_RBAC3_SERVICE_TOKEN_TOKEN_ENDPOINT:http://127.0.0.1:18120/oauth2/token}
+            client-id: ${GATEWAY_RBAC3_SERVICE_TOKEN_CLIENT_ID:}
+            key-id: ${GATEWAY_RBAC3_SERVICE_TOKEN_KEY_ID:}
+            private-key-file: ${GATEWAY_RBAC3_SERVICE_TOKEN_PRIVATE_KEY_FILE:}
+            resource-uri: ${GATEWAY_RBAC3_SERVICE_TOKEN_RESOURCE_URI:}
+            scopes: ${GATEWAY_RBAC3_SERVICE_TOKEN_SCOPES:}
     component:
       ddc:
         rpc:
@@ -25,3 +32,10 @@ egon:
             development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:true}
         redis:
           password: ${DDC_REDIS_PASSWORD:HomeLab666}
+      gateway:
+        reporting:
+          enabled: ${GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED:false}
+          env: local
+          namespace: default
+          application-code: gateway-admin
+          artifact-version: local

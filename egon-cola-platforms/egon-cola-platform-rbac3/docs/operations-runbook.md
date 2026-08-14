@@ -45,11 +45,11 @@ snapshot.
 RBAC3 topology intentionally has three named clients; do not alias them to an
 unqualified primary bean:
 
-| Bean | Owner | Data |
-| --- | --- | --- |
-| `ddcRedissonClient` | DDC configuration and registry integration | Configuration events, provider leases, and DDC registry state |
-| `gatewayRateLimitRedissonClient` | Gateway Engine | Gateway policies, release/rate-limit runtime state |
-| `rbac3RuntimeRedissonClient` | RBAC3 | Session snapshots, versions, fences and projection checkpoints |
+| Bean                             | Owner                                      | Data                                                                 |
+|----------------------------------|--------------------------------------------|----------------------------------------------------------------------|
+| `ddcRedissonClient`              | DDC configuration and registry integration | Configuration events, provider leases, and DDC registry state        |
+| `gatewayRateLimitRedissonClient` | Gateway Engine                             | Gateway policies, release/rate-limit runtime state                   |
+| `rbac3RuntimeRedissonClient`     | RBAC3                                      | Authorization snapshots, versions, fences and projection checkpoints |
 
 Admin configuration uses `RBAC3_RUNTIME_REDIS_ADDRESS`, database, timeout and a
 password **file**. DDC registry uses its explicit mode/nodes or host/port,
@@ -57,21 +57,17 @@ password and database. Gateway owns its own corresponding rate-limit Redis
 configuration. Do not silently reuse database numbers, credentials or client
 beans across these roles.
 
-### 2.3 JWT and audit keys
+### 2.3 IdP token verification and audit key
 
 | Variable | Rule |
 | --- | --- |
-| `RBAC3_JWT_PRIVATE_KEY_FILE` | Deployment-owned PKCS#8 RSA private key, readable only by Admin |
-| `RBAC3_JWT_PUBLIC_KEY_FILE` | Matching public key published through JWKS |
-| `RBAC3_JWT_KID` | Stable active Key Ring identifier |
-| `RBAC3_JWT_ISSUER` | Exact trusted issuer URI/name |
-| `RBAC3_JWT_AUDIENCES` | Explicit audiences for Starter/Gateway consumers |
 | `RBAC3_AUDIT_CURSOR_SECRET_FILE` | Independent secret for signed audit cursors |
 
-Key Ring phases are `PREPARED -> SIGNING -> VERIFY_ONLY -> RETIRED`. Key
-material rotation is cryptographic operations work, not a business role-rotation
-workflow. Keep old public keys through the maximum access-token validation
-window. Do not place access/refresh tokens or private keys in logs or evidence.
+IdP owns the USER/SERVICE JWT private key, JWKS publication and token lifecycle.
+RBAC3 Admin and RBAC3 Starter only perform local IdP public-key verification;
+they do not load a private JWT key, publish JWKS, issue USER/Refresh tokens or
+maintain a Key Ring. Do not place access/refresh tokens, public-key material or
+audit secrets in logs or evidence.
 
 ### 2.4 Gateway Definition reporting
 
@@ -120,10 +116,6 @@ Never infer one from the other.
 
 | Key | Default | Range | Relationship/effect |
 | --- | ---: | ---: | --- |
-| `rbac3.access-token-ttl-seconds` | 900 | 300..1800 | New Access Tokens only |
-| `rbac3.refresh-token-ttl-seconds` | 604800 | 86400..2592000 | Must be at least Absolute; new Refresh Tokens/Sessions only |
-| `rbac3.session-idle-timeout-seconds` | 1800 | 300..28800 | Must not exceed Absolute; new/refreshed Sessions only |
-| `rbac3.session-absolute-timeout-seconds` | 43200 | 3600..86400 | Between Idle and Refresh; new/refreshed Sessions only |
 | `rbac3.maximum-active-roots` | 16 | 1..32 | New role-activation replacement commands only |
 
 Each DDC message carries the complete YAML resource. Update all related policy
@@ -140,12 +132,12 @@ last-known-good. Do not retry the same version with different content: DDC treat
 that as a checksum conflict. Correct the YAML document and publish a higher
 version. A successful higher version clears the failure for that resource.
 
-Dynamic configuration never rewrites already issued token expiry, already
-persisted Session expiry or already committed active-role sets. Reauthentication,
-Session refresh/creation or a new activation command is required to consume the
-new value.
+Dynamic configuration never rewrites an IdP-issued token or already committed
+active-role sets. A new role-activation replacement command is required to
+consume the new RBAC3 policy value; token issuance and Refresh Token lifecycle
+remain IdP responsibilities.
 
-These five keys are scalar policy values, not a secret channel. Never publish
+This policy key is scalar configuration, not a secret channel. Never publish
 passwords, access/secret keys, OAuth or refresh tokens, lease credentials,
 private keys, hashes, bootstrap administrator passwords or bootstrap commands
 through DDC. Do not put them in ACK evidence, status output, metrics or document
@@ -172,7 +164,7 @@ request. RBAC3 never auto-publishes a Release.
    privilege.
 4. Start the first Admin instance through deployment tooling.
 5. Confirm both Flyway history tables, liveness and persistence readiness.
-6. Confirm the DDC `CONFIG_CLIENT` session is `READY`, all five startup versions
+6. Confirm the DDC `CONFIG_CLIENT` lease is `READY`, the startup version
    are present, and there is no unresolved apply failure. The RBAC3 publication
    gate will not publish the root HTTP port before this point.
 7. Confirm Definition acknowledgement independently.
@@ -243,7 +235,7 @@ ticket and critical audit; do not rerun bootstrap as recovery.
 Back up:
 
 - the PostgreSQL database containing RBAC3 facts, mutation journal, audit,
-  idempotency, Key Ring metadata, both Flyway histories and Outbox records;
+  idempotency, both Flyway histories and Outbox records;
 - encrypted/private key files through the organization's secret backup process;
 - Gateway Release/configuration and DDC configuration through their owners;
 - deployment manifests containing instance/build/version identity, without
@@ -281,8 +273,8 @@ Record independently:
 - RBAC3 and Outbox Flyway state;
 - runtime Redis availability, projection checkpoint, mutation backlog and Fence;
 - Outbox pending/retry/dead counts;
-- DDC Config Client state, instance ID, lease fingerprint/expiry, five current
-  config versions and last apply failure key/version/code;
+- DDC Config Client state, instance ID, lease fingerprint/expiry, current config
+  version and last apply failure key/version/code;
 - Definition status/set ID and warnings;
 - DDC HTTP Provider lease instance ID, expiry and last heartbeat;
 - Gateway Release ID/status, engine-observed version and consistency;
@@ -291,8 +283,8 @@ Record independently:
 
 Fixed low-cardinality metrics are:
 
-- `rbac3_ddc_config_apply_total{key,status}` where key is one of the five keys
-  and status is only `success|failed`;
+- `rbac3_ddc_config_apply_total{key,status}` where key is the fixed RBAC3 policy
+  key and status is only `success|failed`;
 - `rbac3_ddc_config_snapshot_version{key}`;
 - `rbac3_ddc_config_ready`;
 - `rbac3_gateway_definition_operation_count`.
@@ -304,15 +296,15 @@ Raw values, lease IDs and instance IDs are not metric labels.
 Always inspect in this order, without skipping a fact:
 
 ```text
-DDC Config Client state/session
-  -> current five config versions / last apply error code
+DDC Config Client state/lease
+  -> current config version / last apply error code
   -> Gateway Definition status
   -> DDC HTTP_PROVIDER lease and expiry
   -> Gateway Release / Engine consistency
   -> routed request evidence
 ```
 
-- If the Config Client is not `READY` or lacks a `CONFIG_CLIENT` session, fix
+- If the Config Client is not `READY` or lacks a `CONFIG_CLIENT` lease, fix
   DDC registration/connectivity first. Provider publication is intentionally
   blocked; do not bypass the gate.
 - If a version did not advance, compare only key, target/current version,
@@ -332,7 +324,7 @@ DDC Config Client state/session
   complete path at that moment.
 
 On an authorization incident, preserve signed/redacted audit evidence, mutation
-ID, Session ID, tenant/application IDs and policy versions. Never capture raw
+request/mutation ID, tenant/application IDs and policy versions. Never capture raw
 passwords, tokens, refresh cookies, private keys or unmasked sensitive fields.
 
 ## 10. Evidence boundary

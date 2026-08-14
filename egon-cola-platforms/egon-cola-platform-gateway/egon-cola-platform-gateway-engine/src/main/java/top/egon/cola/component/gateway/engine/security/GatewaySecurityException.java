@@ -1,5 +1,8 @@
 package top.egon.cola.component.gateway.engine.security;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * 中文说明：{@code GatewaySecurityException} 是异常类型，位于当前 Gateway 模块的相关包中，负责网关安全Exception相关的职责与边界。
  * English summary: {@code GatewaySecurityException} is a gateway security exception exception in the current Gateway module; it owns the gateway security exception-related responsibility and boundary.
@@ -32,6 +35,8 @@ public final class GatewaySecurityException extends RuntimeException {
      */
     private final String rpcStatus;
 
+    private final Map<String, List<String>> responseHeaders;
+
     /**
      * 中文说明：创建 {@code GatewaySecurityException} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
      * English summary: Creates an instance of {@code GatewaySecurityException} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
@@ -45,10 +50,21 @@ public final class GatewaySecurityException extends RuntimeException {
             String code,
             int httpStatus,
             String rpcStatus) {
+        this(code, httpStatus, rpcStatus, Map.of());
+    }
+
+    public GatewaySecurityException(
+            String code,
+            int httpStatus,
+            String rpcStatus,
+            Map<String, List<String>> responseHeaders) {
         super(code);
         this.code = code;
         this.httpStatus = httpStatus;
         this.rpcStatus = rpcStatus;
+        this.responseHeaders = responseHeaders == null
+                ? Map.of()
+                : Map.copyOf(responseHeaders);
     }
 
     /**
@@ -82,6 +98,10 @@ public final class GatewaySecurityException extends RuntimeException {
      */
     public String rpcStatus() {
         return rpcStatus;
+    }
+
+    public Map<String, List<String>> responseHeaders() {
+        return responseHeaders;
     }
 
     /**
@@ -127,6 +147,15 @@ public final class GatewaySecurityException extends RuntimeException {
                 401,
                 "UNAUTHENTICATED"
         );
+    }
+
+    public static GatewaySecurityException authenticationFailed(
+            Map<String, List<String>> responseHeaders) {
+        return new GatewaySecurityException(
+                "GATEWAY_AUTHENTICATION_FAILED",
+                401,
+                "UNAUTHENTICATED",
+                responseHeaders);
     }
 
     /**

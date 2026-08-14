@@ -1,22 +1,23 @@
-import { useActiveRoles, usePermission, useRbac3Session } from '@egon-cola/rbac3-react-sdk'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, Button, Card, Descriptions, Input, Modal, Space, Tag, Typography } from 'antd'
-import { useMemo, useState } from 'react'
-import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '@egon-cola/admin-web-shared'
-import { RoleActivationSelector, findDsdConflict } from './RoleActivationSelector'
-import { roleActivationApi } from './roleActivation.api'
+import {useActiveRoles, usePermission, useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
+import {useQuery, useQueryClient} from '@tanstack/react-query'
+import {Alert, Button, Card, Descriptions, Input, Modal, Space, Tag, Typography} from 'antd'
+import {useMemo, useState} from 'react'
+import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
+import {PageState} from '@egon-cola/admin-web-shared'
+import {findDsdConflict, RoleActivationSelector} from './RoleActivationSelector'
+import {roleActivationApi} from './roleActivation.api'
+import {gatewayAuth} from '../auth/gatewayAuth'
 
 export const RoleActivationPage = () => {
-  const session = useRbac3Session()
+    const authorization = useRbac3Authorization()
   const canActivateAfterBootstrap = usePermission('system:role-activation:use')
   const { replaceActiveRoles } = useActiveRoles()
   const { effectiveTenantId } = useFeatureTenantContext()
   const api = roleActivationApi(useFeatureApi())
   const queryClient = useQueryClient()
-  const enabled = ['READY', 'ACTIVATION_REQUIRED'].includes(session.status)
+    const enabled = ['READY', 'ACTIVATION_REQUIRED'].includes(authorization.status)
   const candidates = useQuery({
-    queryKey: ['rbac3', 'activation-candidates', effectiveTenantId ?? 'none', session.bootstrap?.authVersion ?? 'none'],
+      queryKey: ['rbac3', 'activation-candidates', effectiveTenantId ?? 'none', authorization.bootstrap?.authVersion ?? 'none'],
     queryFn: api.candidates,
     enabled,
   })
@@ -33,7 +34,7 @@ export const RoleActivationPage = () => {
   const [submitError, setSubmitError] = useState<unknown>(null)
   const [stepUpRequest, setStepUpRequest] = useState<{
     readonly roleIds: readonly string[]
-    readonly expectedSessionVersion: number
+      readonly expectedAuthVersion: number
   } | null>(null)
   const [stepUpCredential, setStepUpCredential] = useState('')
   const [stepUpError, setStepUpError] = useState<unknown>(null)
@@ -46,7 +47,7 @@ export const RoleActivationPage = () => {
     setSubmitError(null)
     const request = {
       roleIds: selectedRoleIds,
-      expectedSessionVersion: current.data.sessionVersion,
+        expectedAuthVersion: current.data.authVersion,
     }
     try {
       await replaceActiveRoles(request)
@@ -71,7 +72,7 @@ export const RoleActivationPage = () => {
     setStepUpSubmitting(true)
     setStepUpError(null)
     try {
-      await api.stepUp(stepUpCredential)
+        await gatewayAuth.stepUp(stepUpCredential)
       await replaceActiveRoles(stepUpRequest)
       setStepUpRequest(null)
       setStepUpCredential('')
@@ -95,13 +96,12 @@ export const RoleActivationPage = () => {
   }
   return (
     <>
-      <Card title="激活当前会话角色">
+        <Card title="激活当前用户角色">
         <Typography.Paragraph type="secondary">
-          选择会话需要的一个或多个激活根角色。提交的是完整 Root Set；服务端按 Session Version 原子替换并返回权威集合。
+            选择当前用户需要的一个或多个激活根角色。提交的是完整 Root Set；服务端按用户授权版本原子替换并返回权威集合。
         </Typography.Paragraph>
         {current.data && (
           <Descriptions bordered size="small" column={3} style={{ marginBottom: 16 }}>
-            <Descriptions.Item label="Session Version">{current.data.sessionVersion}</Descriptions.Item>
             <Descriptions.Item label="Auth Version">{current.data.authVersion}</Descriptions.Item>
             <Descriptions.Item label="Policy Version">{current.data.policyVersion}</Descriptions.Item>
           </Descriptions>
@@ -124,17 +124,17 @@ export const RoleActivationPage = () => {
             <RoleActivationSelector
               candidates={candidates.data}
               selectedRoleIds={selectedRoleIds}
-              disabled={session.status === 'REPLACING_ACTIVE_ROLES'}
+              disabled={authorization.status === 'REPLACING_ACTIVE_ROLES'}
               onChange={setSelectionOverride}
             />
           )}
         </PageState>
         <Space style={{ marginTop: 16 }}>
-          {(session.status === 'ACTIVATION_REQUIRED' || canActivateAfterBootstrap) && (
+            {(authorization.status === 'ACTIVATION_REQUIRED' || canActivateAfterBootstrap) && (
             <Button
               type="primary"
-              disabled={!current.data || Boolean(conflict) || session.status === 'REPLACING_ACTIVE_ROLES'}
-              loading={session.status === 'REPLACING_ACTIVE_ROLES'}
+              disabled={!current.data || Boolean(conflict) || authorization.status === 'REPLACING_ACTIVE_ROLES'}
+              loading={authorization.status === 'REPLACING_ACTIVE_ROLES'}
               onClick={() => void submit()}
             >
               激活所选角色
@@ -161,7 +161,7 @@ export const RoleActivationPage = () => {
         ]}
       >
         <Typography.Paragraph type="secondary">
-          所选角色包含高风险或关键权限。请重新输入当前密码，只增强当前 Session，然后继续激活原角色集合。
+            所选角色包含高风险或关键权限。请重新输入当前密码，Gateway 会更新当前用户的短期 Access Token，然后继续激活原角色集合。
         </Typography.Paragraph>
         {stepUpError !== null && (
           <Alert

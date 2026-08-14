@@ -272,7 +272,6 @@ class McpHaRecoveryIT {
                         "callerId", "user-1",
                         "tenantId", "tenant-1",
                         "idp.client-id", "client-1",
-                        "identity.session-id", "login-session-1",
                         "identity.token-id", "token-1"
                 )),
                 MAPPER,

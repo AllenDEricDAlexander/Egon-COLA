@@ -1,22 +1,22 @@
 package top.egon.cola.platform.rbac3.admin.simulation.service;
 
+import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditEventVO;
 import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.SnapshotRecordVO;
 import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.simulation.domain.dto.RoleChangeImpactRequestDTO;
+import top.egon.cola.platform.rbac3.admin.simulation.domain.dto.SimulationRequestDTO;
+import top.egon.cola.platform.rbac3.admin.simulation.domain.vo.RoleChangeImpactResultVO;
+import top.egon.cola.platform.rbac3.admin.simulation.domain.vo.RoleImpactSnapshotVO;
+import top.egon.cola.platform.rbac3.admin.simulation.domain.vo.SimulationResultVO;
+import top.egon.cola.platform.rbac3.admin.simulation.repository.RoleImpactRepository;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import top.egon.cola.platform.rbac3.admin.simulation.domain.dto.SimulationRequestDTO;
-import top.egon.cola.platform.rbac3.admin.simulation.domain.vo.SimulationResultVO;
-import top.egon.cola.platform.rbac3.admin.simulation.domain.dto.RoleChangeImpactRequestDTO;
-import top.egon.cola.platform.rbac3.admin.simulation.domain.vo.RoleImpactSnapshotVO;
-import top.egon.cola.platform.rbac3.admin.simulation.domain.vo.RoleChangeImpactResultVO;
-import top.egon.cola.platform.rbac3.admin.simulation.repository.RoleImpactRepository;
-import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditEventVO;
-import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.SnapshotRecordVO;
 
 /**
  * 类型 `AuthorizationSimulationService` 位于当前包内，是类型，用于承载 `Authorization Simulation Service` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -117,7 +117,7 @@ public final class AuthorizationSimulationService {
         Instant expiresAt = clock.instant().plusSeconds(RESULT_TTL_SECONDS);
         auditPort.append(new AuditEventVO(
                 caller.tenantId(), "AUTHORIZATION_SIMULATED", caller.userId(),
-                "SESSION", request.decisionRequest().subject().sessionId(),
+                "USER", request.decisionRequest().subject().identitySub(),
                 request.requestId(), request.traceId(),
                 Map.of(
                         "applicationCode",
@@ -127,7 +127,7 @@ public final class AuthorizationSimulationService {
                 clock.instant()));
         return new SimulationResultVO(
                 current, hypothetical, snapshot.snapshot().authVersion(),
-                snapshot.snapshot().sessionVersion(), snapshot.snapshot().policyVersion(),
+                snapshot.snapshot().policyVersion(),
                 snapshot.snapshot().checksum(), expiresAt);
     }
 

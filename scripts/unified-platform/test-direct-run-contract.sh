@@ -7,6 +7,7 @@ identity_script="${repo_root}/scripts/unified-identity-local.sh"
 platform_start_script="${repo_root}/scripts/unified-platform/start-local-stack.sh"
 platform_common_script="${repo_root}/scripts/unified-platform/lib/common.sh"
 platform_verify_script="${repo_root}/scripts/unified-platform/verify-local-stack.sh"
+cleanup_script="${repo_root}/scripts/unified-platform/cleanup-legacy-identity-keys.sh"
 release_fixture="${repo_root}/scripts/unified-platform/fixtures/unified-platform-release.json"
 
 fail() {
@@ -170,10 +171,37 @@ jq -e '
   || fail 'MCP Server fixture must use the exact OAuth Resource URI contract'
 assert_contains "${platform_start_script}" 'ensure_mcp_user_delegation' \
   'local MCP startup must explicitly grant its exact Resource to the OAuth client'
-assert_contains "${platform_start_script}" 'mcp-tenant-b.access.jwt' \
+assert_contains "${platform_start_script}" \
+  'gateway-admin-control-plane.service.jwt' \
+  'Gateway control-plane automation must use the dedicated IdP SERVICE token'
+assert_contains "${identity_script}" \
+  'ensure_gateway_reporting_application permission idp' \
+  'Gateway initialization must register the real IdP catalog application'
+assert_contains "${identity_script}" \
+  'wait_gateway_catalog_for_app' \
+  'Gateway startup must wait for every real provider catalog'
+assert_contains "${identity_script}" \
+  'publish_gateway_routes' \
+  'Gateway startup must publish operation-scoped routes from real catalogs'
+assert_contains "${identity_script}" \
+  'GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED false' \
+  'Gateway Admin must be available before other providers report catalogs'
+assert_contains "${cleanup_script}" '--execute' \
+  'legacy-key cleanup must require an explicit execute switch'
+assert_contains "${cleanup_script}" '--endpoint host:port/database' \
+  'legacy-key cleanup must require an explicit Redis endpoint'
+assert_contains "${cleanup_script}" 'identity:v1:sso-session:*' \
+  'legacy-key cleanup must name the old IdP SSO prefix explicitly'
+assert_contains "${cleanup_script}" 'rbac3:*:fence:session:*' \
+  'legacy-key cleanup must name the old RBAC3 fence prefix explicitly'
+assert_not_contains "${cleanup_script}" 'FLUSHDB' \
+  'legacy-key cleanup must not flush a Redis database'
+assert_not_contains "${cleanup_script}" 'FLUSHALL' \
+  'legacy-key cleanup must not flush all Redis databases'
+assert_contains "${platform_start_script}" 'mcp-user.at' \
   'local MCP startup must issue a token for the exact provider Resource'
 assert_contains "${platform_verify_script}" \
-  'mcp_token_file="${unified_platform_secret_dir}/mcp-tenant-b.access.jwt"' \
+  'mcp_token_file="${verification_token_dir}/mcp-user.at"' \
   'MCP verification must not reuse the mock backend Resource token'
 assert_contains "${platform_verify_script}" 'run_identity issue-user-token' \
   'MCP verification must refresh its Resource token after identity revocation checks'
@@ -233,6 +261,14 @@ assert_env_equals "${idp_env}" IDP_DDC_ENABLED true \
   'local IdP must start its DDC config client'
 assert_env_equals "${idp_env}" IDP_HTTP_PROVIDER_ENABLED true \
   'local IdP must publish its HTTP Provider lease'
+assert_env_equals "${idp_env}" IDP_GATEWAY_REPORTING_ENABLED false \
+  'local IdP must defer Gateway catalog reporting until its control plane is ready'
+assert_env_equals "${idp_env}" IDP_RESOURCE_BIZ_CODE permission \
+  'local IdP must report under the permission business scope'
+assert_env_equals "${idp_env}" IDP_RESOURCE_APP_CODE idp \
+  'local IdP must report under the idp application scope'
+assert_env_equals "${idp_env}" IDP_DECLARED_HOSTS 127.0.0.1 \
+  'local IdP must report its declared host explicitly'
 assert_env_equals "${idp_env}" \
   EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false \
   'local IdP must recover until its DDC scope binding is initialized'
@@ -300,6 +336,14 @@ assert_env_equals "${rbac3_env}" RBAC3_DDC_ENABLED true \
   'local RBAC3 must start its DDC config client'
 assert_env_equals "${rbac3_env}" RBAC3_HTTP_PROVIDER_ENABLED true \
   'local RBAC3 must publish its HTTP Provider lease'
+assert_env_equals "${rbac3_env}" RBAC3_GATEWAY_REPORTING_ENABLED false \
+  'local RBAC3 must defer Gateway catalog reporting until its control plane is ready'
+assert_env_equals "${rbac3_env}" RBAC3_RESOURCE_BIZ_CODE permission \
+  'local RBAC3 must report under the permission business scope'
+assert_env_equals "${rbac3_env}" RBAC3_RESOURCE_APP_CODE rbac3 \
+  'local RBAC3 must report under the rbac3 application scope'
+assert_env_equals "${rbac3_env}" RBAC3_DECLARED_HOSTS 127.0.0.1 \
+  'local RBAC3 must report its declared host explicitly'
 assert_env_equals "${rbac3_env}" \
   EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false \
   'local RBAC3 must recover until its DDC scope binding is initialized'
@@ -371,6 +415,15 @@ assert_env_equals "${gateway_admin_env}" \
   GATEWAY_ADMIN_RESOURCE_ADMISSION_RPC_TARGET \
   dns:///127.0.0.1:18122 \
   'local Gateway Admin must use the static IdP admission RPC target'
+assert_env_equals "${gateway_admin_env}" \
+  GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED false \
+  'Gateway Admin must defer self-reporting until other catalogs are published'
+assert_env_equals "${gateway_admin_env}" GATEWAY_ADMIN_RESOURCE_BIZ_CODE platform \
+  'Gateway Admin must report under the platform business scope'
+assert_env_equals "${gateway_admin_env}" GATEWAY_ADMIN_RESOURCE_APP_CODE gateway-admin \
+  'Gateway Admin must report under the gateway-admin application scope'
+assert_env_equals "${gateway_admin_env}" GATEWAY_ADMIN_DECLARED_HOSTS 127.0.0.1 \
+  'Gateway Admin must report its declared host explicitly'
 assert_contains \
   'egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/resources/application.yml' \
   '          id: ${GATEWAY_ENGINE_DDC_INSTANCE_ID:}' \
@@ -381,7 +434,7 @@ assert_contains \
   'mock backend DDC client and admission ticket must share one instance id'
 [[ "$(grep -Fc 'service_tenant_id="$(rbac3_tenant_id default)"' \
   "${identity_script}")" == "2" ]] || fail \
-  'start and refresh-tokens must both resolve the exact RBAC3 tenant id'
+  'start and credential synchronization must both resolve the exact RBAC3 tenant id'
 assert_contains "${identity_script}" \
   'resolve_existing_service_tenant_id' \
   'prepare must restore an existing exact RBAC3 tenant id before rewriting env files'
@@ -394,8 +447,17 @@ assert_contains "${identity_script}" \
 assert_contains "${identity_script}" 'MOCK_LOCAL_ENTRY' \
   'the no-admin verification state must preserve mock Resource entry permission'
 assert_contains "${identity_script}" \
-  '[[ -s "${runtime_dir}/browser.cookies" ]] || oauth_login' \
-  'issuing another Resource token must reuse the current browser SSO session'
+  'user_access_token_for_tenant "${tenant}"' \
+  'USER token issuance must reuse the Gateway cookie and never create a server session'
+assert_not_contains "${identity_script}" '.access.jwt' \
+  'identity bootstrap must not persist per-client USER Access Token files'
+legacy_service_file_key='RBAC3_SERVICE_CREDENTIAL_'
+assert_not_contains "${identity_script}" "${legacy_service_file_key}FILE" \
+  'identity services must use IdP Client Assertion instead of static RBAC3 bearer files'
+assert_not_contains "${platform_start_script}" '.access.jwt' \
+  'platform startup must not persist per-client USER Access Token files'
+assert_not_contains "${platform_verify_script}" '.access.jwt' \
+  'platform verification must not persist per-client USER Access Token files'
 
 gateway_engine_env="${generated_runtime}/env/gateway-engine.env"
 assert_env_equals "${gateway_engine_env}" \
@@ -439,6 +501,14 @@ assert_env_equals "${ddc_env}" DDC_RESOURCE_URI \
 assert_env_equals "${ddc_env}" DDC_ADMIN_JWT_AUDIENCE \
   https://api.egon.internal/local/platform/ddc \
   'local DDC Admin security chain must use the Resource URI as audience'
+assert_env_equals "${ddc_env}" DDC_GATEWAY_REPORTING_ENABLED false \
+  'DDC must defer Gateway catalog reporting until its control plane is ready'
+assert_env_equals "${ddc_env}" DDC_RESOURCE_BIZ_CODE platform \
+  'DDC must report under the platform business scope'
+assert_env_equals "${ddc_env}" DDC_RESOURCE_APP_CODE ddc \
+  'DDC must report under the ddc application scope'
+assert_env_equals "${ddc_env}" DDC_DECLARED_HOSTS 127.0.0.1 \
+  'DDC must report its declared host explicitly'
 assert_env_equals "${rbac3_env}" DDC_REGISTRY_REDIS_DATABASE 10 \
   'local RBAC3 must use the DDC Registry Redis database'
 
@@ -482,7 +552,7 @@ ddc_api() {
     '{method:$method,path:$path,body:$body}' >>"${ddc_topology_calls}"
   printf '%s' '{"success":true,"data":{}}'
 }
-initialize_ddc_topology
+initialize_ddc_topology test-user-token
 while read -r provider_biz provider_app; do
   jq -e --arg app "${provider_app}" --arg biz "${provider_biz}" '
     select(
@@ -674,11 +744,19 @@ draft_validation_line="$(grep -nF 'validation="$(gateway_api POST' \
     && "${deferred_return_line}" -lt "${draft_validation_line}" ]] \
   || fail 'deferred startup must postpone full draft validation until MCP providers are online'
 assert_contains "${live_login_test}" 'fresh Admin endpoint returned HTTP' \
-  'frontend login contract must exercise fresh SSO Admin endpoints'
-for client_id in idp-admin-web rbac3-admin-web gateway-admin-web ddc-admin-web; do
-  assert_contains "${live_login_test}" "fresh_oauth_token ${client_id}" \
-    "frontend login contract must issue a fresh ${client_id} token"
-done
+  'frontend login contract must exercise fresh Gateway JWT Admin endpoints'
+assert_contains "${live_login_test}" 'fresh_cookie="${fresh_dir}/gateway.cookies"' \
+  'frontend login contract must use one Gateway USER cookie jar'
+assert_not_contains "${live_login_test}" 'Authorization: Bearer $(<"${default_token}")' \
+  'frontend login contract must not forward the pre-generated USER Access Token'
+assert_not_contains "${live_login_test}" 'fresh_dir}/idp.access.jwt' \
+  'frontend login contract must not create per-client USER token files'
+assert_not_contains "${live_login_test}" '.access.jwt' \
+  'frontend login contract must not persist per-client USER Access Token files'
+assert_not_contains "${live_login_test}" '/oauth2/authorize' \
+  'frontend login contract must not use Authorization Code flow'
+assert_not_contains "${live_login_test}" 'grant_type=authorization_code' \
+  'frontend login contract must not exchange Authorization Codes'
 for application_code in idp-admin rbac3-admin gateway-admin ddc-admin mock-backend; do
   assert_contains "${live_login_test}" "\"${application_code}\"" \
     "frontend login contract must verify the ${application_code} role"

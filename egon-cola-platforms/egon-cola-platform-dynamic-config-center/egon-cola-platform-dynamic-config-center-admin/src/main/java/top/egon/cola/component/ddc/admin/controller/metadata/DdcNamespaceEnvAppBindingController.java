@@ -16,11 +16,20 @@ import top.egon.cola.component.ddc.admin.model.dto.DdcNamespaceEnvAppBindingRequ
 import top.egon.cola.component.ddc.admin.model.vo.DdcNamespaceEnvAppBindingVO;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcNamespaceEnvAppBindingService;
 import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
+import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
+import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/ddc/namespace-env-app-bindings")
+@GatewayInterfaceGroup(
+        businessDomainCode = "platform",
+        businessDomainName = "平台治理域",
+        entityDomainCode = "ddc-admin",
+        entityDomainName = "Dynamic Config Center 管理实体域",
+        code = "ddc-admin-ddc-namespace-env-app-binding-controller",
+        name = "DdcNamespaceEnvAppBindingController 管理接口组")
 public class DdcNamespaceEnvAppBindingController {
 
     private final DdcNamespaceEnvAppBindingService bindingService;
@@ -30,6 +39,7 @@ public class DdcNamespaceEnvAppBindingController {
         this.bindingService = bindingService;
     }
 
+    @GatewayOperation(externalAccessible = true)
     @GetMapping
     public ResultRecord<List<DdcNamespaceEnvAppBindingVO>> list(
             @RequestParam(value = "bizCode", required = false) String bizCode,
@@ -40,6 +50,7 @@ public class DdcNamespaceEnvAppBindingController {
                 bizCode, namespaceCode, env, appCode));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @GetMapping("/page")
     public PageResultRecord<DdcNamespaceEnvAppBindingVO> page(
             @RequestParam(value = "bizCode", required = false) String bizCode,
@@ -51,12 +62,14 @@ public class DdcNamespaceEnvAppBindingController {
                 bizCode, namespaceCode, env, appCode, pageQuery));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @PostMapping
     public ResultRecord<DdcNamespaceEnvAppBindingVO> create(
             @RequestBody DdcNamespaceEnvAppBindingRequest request) {
         return ResultRecord.success(bindingService.create(request));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @PutMapping("/{id}")
     public ResultRecord<DdcNamespaceEnvAppBindingVO> update(
             @PathVariable("id") String id,
@@ -64,6 +77,7 @@ public class DdcNamespaceEnvAppBindingController {
         return ResultRecord.success(bindingService.update(id, request));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @DeleteMapping("/{id}")
     public ResultRecord<Void> delete(@PathVariable("id") String id) {
         bindingService.delete(id);

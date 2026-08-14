@@ -6,28 +6,31 @@ public final class Rbac3RuntimeKeyFactory {
 
     private static final Pattern SEGMENT = Pattern.compile("[A-Za-z0-9._-]{1,128}");
 
-    public String session(String tenantId, String sessionId) {
-        return prefix(tenantId) + "session:" + segment(sessionId, "sessionId");
-    }
-
     public String authVersion(String tenantId, String userId) {
         return prefix(tenantId) + "auth-version:" + segment(userId, "userId");
+    }
+
+    /**
+     * Current publication pointer for one IdP subject.
+     */
+    public String user(String tenantId, String identitySub) {
+        return prefix(tenantId) + "user:" + segment(identitySub, "identitySub");
     }
 
     public String policyVersion(String tenantId) {
         return prefix(tenantId) + "policy-version";
     }
 
-    public String snapshot(String tenantId, String sessionId, long sessionVersion) {
-        if (sessionVersion < 0) {
-            throw new IllegalArgumentException("sessionVersion must not be negative");
+    public String snapshot(String tenantId, String identitySub, long authVersion) {
+        if (authVersion < 0) {
+            throw new IllegalArgumentException("authVersion must not be negative");
         }
-        return prefix(tenantId) + "snapshot:" + segment(sessionId, "sessionId")
-                + ':' + sessionVersion;
+        return prefix(tenantId) + "snapshot:" + segment(identitySub, "identitySub")
+                + ':' + authVersion;
     }
 
-    public String sessionFence(String tenantId, String sessionId) {
-        return prefix(tenantId) + "fence:session:" + segment(sessionId, "sessionId");
+    public String authorizationPublicationGuard(String tenantId, String identitySub) {
+        return prefix(tenantId) + "publication-guard:user:" + segment(identitySub, "identitySub");
     }
 
     public String operationMapping(
@@ -56,10 +59,6 @@ public final class Rbac3RuntimeKeyFactory {
                 + segment(definitionSetId, "definitionSetId") + ':'
                 + segment(gatewayOperationId, "gatewayOperationId") + ':'
                 + publishedVersion;
-    }
-
-    public String keyRing(String tenantId) {
-        return prefix(tenantId) + "key-ring";
     }
 
     private String prefix(String tenantId) {

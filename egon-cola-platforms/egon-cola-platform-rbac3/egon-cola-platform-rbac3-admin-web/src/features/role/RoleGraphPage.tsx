@@ -1,9 +1,9 @@
-import { useQueries, useQuery } from '@tanstack/react-query'
-import { Card, List, Space, Tag, Typography } from 'antd'
-import { useRbac3Session } from '@egon-cola/rbac3-react-sdk'
-import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '@egon-cola/admin-web-shared'
-import { roleApi, type RoleImpactView } from './role.api'
+import {useQueries, useQuery} from '@tanstack/react-query'
+import {Card, List, Space, Tag, Typography} from 'antd'
+import {useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
+import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
+import {PageState} from '@egon-cola/admin-web-shared'
+import {roleApi, type RoleImpactView} from './role.api'
 
 export interface RoleGraphPageProps {
   readonly applicationId?: string
@@ -12,7 +12,7 @@ export interface RoleGraphPageProps {
 const MAX_RENDERED_ROLES = 200
 
 export const RoleGraphPage = ({ applicationId }: RoleGraphPageProps) => {
-  const { status } = useRbac3Session()
+    const {status} = useRbac3Authorization()
   const { effectiveTenantId } = useFeatureTenantContext()
   const api = roleApi(useFeatureApi())
   const roles = useQuery({

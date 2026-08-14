@@ -14,7 +14,9 @@ public record GatewaySecurityPolicy(
         String identityMapperId,
         Duration providerTimeout,
         SecurityFailureMode failureMode,
-        CredentialForwardingMode credentialForwardingMode
+        CredentialForwardingMode credentialForwardingMode,
+        GatewayRouteSecurityType routeSecurityType,
+        String credentialRecoveryProviderId
 ) {
 
     public GatewaySecurityPolicy {
@@ -46,6 +48,11 @@ public record GatewaySecurityPolicy(
                 credentialForwardingMode,
                 "credentialForwardingMode"
         );
+        routeSecurityType = Objects.requireNonNull(
+                routeSecurityType,
+                "routeSecurityType"
+        );
+        credentialRecoveryProviderId = optional(credentialRecoveryProviderId);
         if (providerTimeout.isNegative()
                 || providerTimeout.isZero()
                 || providerTimeout.compareTo(Duration.ofSeconds(30)) > 0) {
@@ -70,6 +77,30 @@ public record GatewaySecurityPolicy(
             throw new IllegalArgumentException(
                     "ANY_ALLOW needs authorization providers"
             );
+        }
+        switch (routeSecurityType) {
+            case PUBLIC_PROTOCOL -> {
+                if (authenticationMode != AuthenticationMode.NONE
+                        || !authorizationProviderIds.isEmpty()
+                        || credentialRecoveryProviderId != null) {
+                    throw new IllegalArgumentException(
+                            "PUBLIC_PROTOCOL must be unauthenticated");
+                }
+            }
+            case IDENTITY_PROTECTED -> {
+                if (authenticationMode == AuthenticationMode.NONE
+                        || !authorizationProviderIds.isEmpty()) {
+                    throw new IllegalArgumentException(
+                            "IDENTITY_PROTECTED requires identity-only auth");
+                }
+            }
+            case BUSINESS_PROTECTED -> {
+                if (authenticationMode == AuthenticationMode.NONE
+                        || authorizationProviderIds.isEmpty()) {
+                    throw new IllegalArgumentException(
+                            "BUSINESS_PROTECTED requires authentication and authorization");
+                }
+            }
         }
     }
 
@@ -97,7 +128,44 @@ public record GatewaySecurityPolicy(
                 identityMapperId,
                 providerTimeout,
                 failureMode,
-                CredentialForwardingMode.NONE
+                CredentialForwardingMode.NONE,
+                authenticationMode == AuthenticationMode.NONE
+                        ? GatewayRouteSecurityType.PUBLIC_PROTOCOL
+                        : authorizationProviderIds.isEmpty()
+                          ? GatewayRouteSecurityType.IDENTITY_PROTECTED
+                          : GatewayRouteSecurityType.BUSINESS_PROTECTED,
+                null
+        );
+    }
+
+    public GatewaySecurityPolicy(
+            String policyId,
+            AuthenticationMode authenticationMode,
+            List<String> credentialExtractorIds,
+            List<String> authenticationProviderIds,
+            List<String> authorizationProviderIds,
+            AuthorizationDecisionMode decisionMode,
+            String identityMapperId,
+            Duration providerTimeout,
+            SecurityFailureMode failureMode,
+            CredentialForwardingMode credentialForwardingMode) {
+        this(
+                policyId,
+                authenticationMode,
+                credentialExtractorIds,
+                authenticationProviderIds,
+                authorizationProviderIds,
+                decisionMode,
+                identityMapperId,
+                providerTimeout,
+                failureMode,
+                credentialForwardingMode,
+                authenticationMode == AuthenticationMode.NONE
+                        ? GatewayRouteSecurityType.PUBLIC_PROTOCOL
+                        : authorizationProviderIds.isEmpty()
+                          ? GatewayRouteSecurityType.IDENTITY_PROTECTED
+                          : GatewayRouteSecurityType.BUSINESS_PROTECTED,
+                null
         );
     }
 

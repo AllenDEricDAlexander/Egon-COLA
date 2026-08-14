@@ -1,15 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.bootstrap.repository;
 
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
-import org.springframework.stereotype.Component;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-
 /**
      * 类型 `DevelopmentBootstrapPort` 位于 `Rbac3DevelopmentBootstrap` 内，是接口，用于承载 `Bootstrap Port` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
      * Type `DevelopmentBootstrapPort` is an interface inside `Rbac3DevelopmentBootstrap` and carries the responsibility, state, or contract for `Bootstrap Port`; callers normally use it through its public API, Spring assembly, or implementation relationship.
@@ -30,5 +20,5 @@ import java.util.Objects;
          * @param username 输入参数 `username`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
          * @param identitySub 输入参数 `identitySub`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
          */
-        void bootstrap(String tenantCode, String username, String identitySub);
+        void bootstrap(String tenantCode, String identitySub);
     }

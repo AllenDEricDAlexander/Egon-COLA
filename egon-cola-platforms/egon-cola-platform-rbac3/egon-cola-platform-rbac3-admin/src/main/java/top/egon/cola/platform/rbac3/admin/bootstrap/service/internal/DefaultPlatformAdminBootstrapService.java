@@ -28,7 +28,7 @@ public final class DefaultPlatformAdminBootstrapService
     }
 
     @Override
-    public void bootstrap(String tenantCode, String username, char[] password) {
-        repository.bootstrap(tenantCode, username, password);
+    public void bootstrap(String tenantCode, String identitySub) {
+        repository.bootstrap(tenantCode, identitySub);
     }
 }

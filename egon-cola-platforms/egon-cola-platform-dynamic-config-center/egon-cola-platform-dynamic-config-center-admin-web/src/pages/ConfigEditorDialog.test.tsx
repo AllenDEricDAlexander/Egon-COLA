@@ -1,8 +1,8 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { setDdcTokenProvider, setDdcUnauthorizedHandler } from '../api/client'
-import type { DdcConfig } from '../api/types'
-import { renderWithQueryClient } from '../test/renderWithQueryClient'
+import {fireEvent, screen, waitFor} from '@testing-library/react'
+import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {setDdcUnauthorizedHandler} from '../api/client'
+import type {DdcConfig} from '../api/types'
+import {renderWithQueryClient} from '../test/renderWithQueryClient'
 import ConfigEditorDialog from './ConfigEditorDialog'
 
 vi.mock('../components/scope/ScopeSelects', () => ({
@@ -35,7 +35,6 @@ const config: DdcConfig = {
 
 describe('ConfigEditorDialog', () => {
   beforeEach(() => {
-    setDdcTokenProvider(() => 'token')
     setDdcUnauthorizedHandler(() => {})
     vi.stubGlobal('fetch', vi.fn())
   })

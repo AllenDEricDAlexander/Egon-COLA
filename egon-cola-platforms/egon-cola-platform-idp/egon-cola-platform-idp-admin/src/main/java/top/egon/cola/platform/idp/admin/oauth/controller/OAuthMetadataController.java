@@ -3,6 +3,8 @@ package top.egon.cola.platform.idp.admin.oauth.controller;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
+import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.idp.admin.token.service.impl.Rs256TokenService;
 
 import java.net.URI;
@@ -17,6 +19,13 @@ import java.util.Objects;
  * <p>Publishes OAuth Authorization Server Metadata and the IdP public JWK Set.</p>
  */
 @RestController
+@GatewayInterfaceGroup(
+        businessDomainCode = "platform",
+        businessDomainName = "平台治理域",
+        entityDomainCode = "oauth-protocol",
+        entityDomainName = "OAuth 协议域",
+        code = "idp-oauth-metadata",
+        name = "IdP OAuth 元数据接口组")
 public class OAuthMetadataController {
 
     /** 规范化 IdP Issuer；normalized IdP issuer. */
@@ -50,22 +59,21 @@ public class OAuthMetadataController {
      * @return OAuth Metadata；OAuth metadata
      */
     @GetMapping("/.well-known/oauth-authorization-server")
+    @GatewayOperation(name = "idp-oauth-metadata-v1",
+            summary = "查询 OAuth Authorization Server 元数据",
+            externalAccessible = true,
+            tags = {"idp", "oauth"})
     public Map<String, Object> metadata() {
         Map<String, Object> metadata = new LinkedHashMap<>();
         metadata.put("issuer", issuer);
-        metadata.put("authorization_endpoint", issuer + "/oauth2/authorize");
         metadata.put("token_endpoint", issuer + "/oauth2/token");
         metadata.put("revocation_endpoint", issuer + "/oauth2/revoke");
         metadata.put("jwks_uri", issuer + "/oauth2/jwks");
-        metadata.put("response_types_supported", List.of("code"));
         metadata.put("grant_types_supported", List.of(
-                "authorization_code",
                 "refresh_token",
                 "client_credentials"
         ));
-        metadata.put("code_challenge_methods_supported", List.of("S256"));
         metadata.put("token_endpoint_auth_methods_supported", List.of(
-                "none",
                 "private_key_jwt"
         ));
         return Map.copyOf(metadata);
@@ -79,6 +87,10 @@ public class OAuthMetadataController {
      * @return 公开 JWK Set；public JWK Set
      */
     @GetMapping("/oauth2/jwks")
+    @GatewayOperation(name = "idp-oauth-jwks-v1",
+            summary = "查询 IdP 公钥 JWK Set",
+            externalAccessible = true,
+            tags = {"idp", "oauth"})
     public Map<String, Object> jwks() {
         return tokens.jwkSet();
     }

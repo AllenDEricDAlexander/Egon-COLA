@@ -1,18 +1,23 @@
-import { PermissionGuard, useRbac3Session } from '@egon-cola/rbac3-react-sdk'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, Button, Card, Popconfirm, Space, Table, Tag, Typography } from 'antd'
-import { useState } from 'react'
-import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '@egon-cola/admin-web-shared'
-import { AssignmentEditor } from './AssignmentEditor'
-import { assignmentApi, type AssignmentOperation, type AssignmentView, type CreateAssignmentCommand } from './assignment.api'
+import {PermissionGuard, useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
+import {Alert, Button, Card, Popconfirm, Space, Table, Tag, Typography} from 'antd'
+import {useState} from 'react'
+import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
+import {PageState} from '@egon-cola/admin-web-shared'
+import {AssignmentEditor} from './AssignmentEditor'
+import {
+    assignmentApi,
+    type AssignmentOperation,
+    type AssignmentView,
+    type CreateAssignmentCommand
+} from './assignment.api'
 
 export interface AssignmentListPageProps {
   readonly userId: string
 }
 
 export const AssignmentListPage = ({ userId }: AssignmentListPageProps) => {
-  const { status, bootstrap } = useRbac3Session()
+    const {status, bootstrap} = useRbac3Authorization()
   const { effectiveTenantId } = useFeatureTenantContext()
   const api = assignmentApi(useFeatureApi())
   const queryClient = useQueryClient()

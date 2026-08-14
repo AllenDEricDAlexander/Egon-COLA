@@ -1,6 +1,6 @@
 # 统一身份无 Session JWT 与 Gateway 自动刷新改造规格
 
-> 状态：已确认，implementation plan 已完成，待用户启动实施
+> 状态：已确认，核心无状态 JWT/RBAC3 代码改造、真实应用 Catalog 上报与 Gateway route 编译/发布实现已完成；运行态联调待用户启动本地栈后执行
 > 编写日期：2026-08-13
 > 复审日期：2026-08-14
 > 用户确认日期：2026-08-14
@@ -822,6 +822,17 @@ Contract 和明确的机器身份 Adapter承载；不得通过保留
 - RT 只允许从 HttpOnly Cookie进入 IdP Protocol/Refresh 适配器，不允许 Query、普通 Header
   或业务 Request Body 传递。
 
+### 10.5 MCP 协议会话边界
+
+MCP 的 `Mcp-Session-Id`、`McpSessionStore` 以及 SSE/Streamable HTTP 的传输状态是 MCP
+协议层的连接、任务和恢复状态，不是人员登录 Session；它们可以继续存在，但不得进入 USER
+JWT、`GatewayPrincipal` 的人员认证字段、RBAC3 授权快照身份键或普通业务身份 Header。
+
+MCP 的 `clientId` 只用于协议会话、任务、远程调用和审批的隔离：SERVICE 请求使用经 IdP
+验证的 SERVICE `client_id`，USER 请求使用经 IdP 验证的固定平台 Audience（内部属性
+`idp.audience`）作为协议隔离值。USER JWT 仍然禁止 `client_id` Claim，MCP 也不得从请求头或
+调用方自报值补造该字段。
+
 ---
 
 ## 11. IdP Starter、IdP Admin 与业务服务
@@ -1326,15 +1337,18 @@ RBAC3_INTERNAL_BASE_URL
 
 - 删除“establishing IdP SSO session”、Authorization Code、按 Admin Client的
   `oauth_token`、`fresh_oauth_token` 和人员 Refresh Replay 流程；
-- 不再为 idp/rbac3/gateway/ddc/mock 个别生成或传递 `*.access.jwt`文件；人员
-  契约测试使用同一 Gateway Cookie Jar 保存 AT/RT，不从 JSON 提取 Token；
+- 浏览器和外部人员主链不再按客户端生成、读取或传递 `*.access.jwt`文件；人员
+  契约测试使用同一 Gateway Cookie Jar 保存 AT/RT，不从 JSON 提取 Token。脚本仍可为
+  明确的 CLI/直连负向验证生成短时 USER AT 文件，这些文件只供命令行测试读取，不进入
+  浏览器、Gateway route publisher 或业务服务配置，也不代表新增 Token 类型；
 - 角色候选、激活、Bootstrap、全局退出和所有 Admin 访问都通过 Gateway；
 - SERVICE Client Credentials、Admission 及 MCP 等确有机器消费者的私钥/公钥凭据文件可保留，
   但其凭据注册与 Access Token签发端必须是 IdP；命名和测试必须明确它们是 SERVICE，
   不能被人员 Admin Web 使用，也不能指向 RBAC3 自签 Token端点；现有
-  `*_RBAC3_SERVICE_CREDENTIAL_FILE/*.service.jwt`静态 Bearer快照调用配置和脚本输出删除，
-  统一启用 Starter `service-token` 的 IdP Client Assertion换取流程。机器私钥文件可以保留
-  作为 IdP Client Assertion凭据，但不能把预签 SERVICE Access Token长期落盘。
+  `*_RBAC3_SERVICE_CREDENTIAL_FILE` 静态 Bearer配置删除，统一启用 Starter
+  `service-token` 的 IdP Client Assertion换取流程。机器私钥文件可以保留作为 IdP
+  Client Assertion凭据；本地控制面/MCP直连验证允许在受保护临时目录落盘短时 SERVICE
+  Access Token，但不得进入业务服务配置、人员浏览器链或成为长期预签凭据。
 
 ---
 
@@ -1357,7 +1371,12 @@ RBAC3_INTERNAL_BASE_URL
 - 必要的原子 create/revoke/revoke-subject/expire操作；
 - 审计和安全事件，但不存明文 Token。
 
-旧 Redis SSO/Refresh Key在切换时使用显式、精确 Prefix清理；不得执行针对 Redis DB 的
+旧 Redis SSO/Refresh Key在切换时使用显式、精确 Prefix清理；当前清理脚本覆盖的历史身份
+前缀为 `identity:v1:sso-session:*`、`identity:v1:auth-code:*`、
+`identity:v1:refresh-family:*`、`identity:v1:refresh:*`、
+`identity:v1:refresh-index:user:*`、`identity:v1:user:*`，以及 RBAC3 的
+`rbac3:*:session:*`、`rbac3:*:snapshot:*`、`rbac3:*:fence:session:*`、
+`rbac3:*:key-ring`。不得执行针对 Redis DB 的
 宽泛 flush。旧身份 Key不迁移；清理前后都要确认目标 Prefix，避免删除 DDC、Gateway、
 RBAC3或其他业务数据。“不保留旧数据”只授权丢弃本次身份链自己的旧数据，不授权清空共享
 Redis中的无关业务状态。
@@ -1753,6 +1772,9 @@ implementation plan 至少覆盖：
     Adapter只做适配复用；RPC Contract保持纯 RPC/Proto契约。
 34. 本期没有 `component-jwt`和 JWE；所谓 JWT加解密按 RS256 JWS签名/验签落实，Payload
     保密不在本期范围。
+35. MCP `Mcp-Session-Id`/`McpSessionStore` 仅保留为协议传输状态；USER MCP 的协议隔离
+    `clientId` 来源于已验证的固定 Audience，不是 USER JWT `client_id` Claim，也不是人员
+    登录 Session。
 
 ---
 
@@ -1797,5 +1819,8 @@ USER/SERVICE验证差异由明确安全 Policy和已有 Adapter边界隔离，�
 - JWT职责固定为 IdP Admin签发、IdP Starter统一验签、Gateway Adapter适配复用，RPC
   Contract不放实现；本期不下沉 `component-jwt`，不引入 JWE。
 
-本文已获用户确认，已进入 `docs/superpowers/plans/` 下的详细 implementation
-plan。本次仅交付 Spec 与 Plan 文档，生产代码实施需用户另行启动。
+本文已获用户确认，并已进入 `docs/superpowers/plans/` 下的详细 implementation
+plan。当前已按该 Plan 执行破坏式改造：生产代码、配置、迁移和本地验证脚本已经落地，
+离线验证证据记录在 `docs/superpowers/verification/2026-08-14-unified-identity-stateless-jwt-session-removal.md`。
+IdP/Gateway/RBAC3/DDC 的真实运行态、干净数据库/Redis 切换和强制退出后的五分钟窗口仍由用户
+在本地环境启动后验收；实现代理不会自动启动任何服务。

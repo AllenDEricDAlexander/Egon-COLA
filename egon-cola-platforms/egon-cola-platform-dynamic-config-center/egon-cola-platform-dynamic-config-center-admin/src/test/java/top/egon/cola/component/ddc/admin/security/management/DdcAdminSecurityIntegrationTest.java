@@ -1,5 +1,6 @@
 package top.egon.cola.component.ddc.admin.security.management;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,11 +11,11 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import top.egon.cola.component.ddc.admin.controller.config.DdcCacheController;
 import top.egon.cola.component.ddc.admin.controller.config.DdcConfigController;
 import top.egon.cola.component.ddc.admin.controller.config.DdcPublishTaskController;
@@ -24,10 +25,13 @@ import top.egon.cola.component.ddc.admin.service.cache.DdcCacheService;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishTaskQueryService;
+import top.egon.cola.platform.idp.contract.AuthenticationContext;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
+import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3AuthenticationToken;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFilter;
 
 import java.time.Instant;
 import java.util.List;
@@ -35,6 +39,7 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
@@ -78,6 +83,26 @@ class DdcAdminSecurityIntegrationTest {
 
     @MockBean
     private DdcCacheService cacheService;
+
+    @MockBean
+    private IdpBearerAuthenticationFilter idpBearerAuthenticationFilter;
+
+    @MockBean
+    private Rbac3BearerAuthenticationFilter rbac3BearerAuthenticationFilter;
+
+    @BeforeEach
+    void passThroughAuthenticationFilters() throws Exception {
+        doAnswer(invocation -> {
+            jakarta.servlet.FilterChain chain = invocation.getArgument(2);
+            chain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(idpBearerAuthenticationFilter).doFilter(any(), any(), any());
+        doAnswer(invocation -> {
+            jakarta.servlet.FilterChain chain = invocation.getArgument(2);
+            chain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(rbac3BearerAuthenticationFilter).doFilter(any(), any(), any());
+    }
 
     @Test
     void permitsOnlyDeclaredAnonymousEndpoints() throws Exception {
@@ -255,12 +280,12 @@ class DdcAdminSecurityIntegrationTest {
     private Rbac3AuthenticationToken rbac3(String permission) {
         Instant now = Instant.parse("2026-08-02T04:00:00Z");
         IdentityPrincipal identity = new IdentityPrincipal(
-                "admin-sub", "tenant-a", "sid-1", "ddc-admin-web",
-                "token-1", 2, java.util.Set.of("ddc-admin-web"),
-                now, now.plusSeconds(900));
+                "admin-sub", "tenant-a", "token-1",
+                java.util.Set.of("ddc-admin-web"), now, now.plusSeconds(900),
+                AuthenticationContext.password());
         SystemAuthorizationSnapshot snapshot = new SystemAuthorizationSnapshot(
-                "tenant-a", "admin-sub", "101", "sid-1", "ddc-admin",
-                3, 4, 5, List.of("ddc-reader"), java.util.Set.of(permission),
+                "tenant-a", "admin-sub", "101", "ddc-admin",
+                3, 4, List.of("ddc-reader"), java.util.Set.of(permission),
                 Map.of(), Map.of(), "sha256:ddc", now, now.plusSeconds(900));
         return new Rbac3AuthenticationToken(
                 new AuthorizationService.RuntimeAuthorizationContext(

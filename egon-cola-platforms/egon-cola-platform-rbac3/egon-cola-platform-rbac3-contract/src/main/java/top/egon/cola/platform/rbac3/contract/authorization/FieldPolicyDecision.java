@@ -15,7 +15,6 @@ public record FieldPolicyDecision(
         String resourceCode,
         Map<String, FieldAccess> fields,
         long authVersion,
-        long sessionVersion,
         long policyVersion,
         List<String> evidenceIds,
         Instant decidedAt
@@ -32,7 +31,6 @@ public record FieldPolicyDecision(
         fields = Map.copyOf(Objects.requireNonNull(fields, "fields"));
         fields.keySet().forEach(field -> required(field, "fields"));
         nonNegative(authVersion, "authVersion");
-        nonNegative(sessionVersion, "sessionVersion");
         nonNegative(policyVersion, "policyVersion");
         evidenceIds = List.copyOf(Objects.requireNonNull(
                 evidenceIds,

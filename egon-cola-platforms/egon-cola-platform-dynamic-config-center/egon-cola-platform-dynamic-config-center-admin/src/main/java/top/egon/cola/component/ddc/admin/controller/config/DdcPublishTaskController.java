@@ -15,11 +15,20 @@ import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishTaskQueryService;
 import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
+import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
+import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/ddc/publish-tasks")
+@GatewayInterfaceGroup(
+        businessDomainCode = "platform",
+        businessDomainName = "平台治理域",
+        entityDomainCode = "ddc-admin",
+        entityDomainName = "Dynamic Config Center 管理实体域",
+        code = "ddc-admin-ddc-publish-task-controller",
+        name = "DdcPublishTaskController 管理接口组")
 public class DdcPublishTaskController {
 
     private final DdcPublishTaskRepository publishTaskRepository;
@@ -37,11 +46,13 @@ public class DdcPublishTaskController {
         this.publishTaskQueryService = publishTaskQueryService;
     }
 
+    @GatewayOperation(externalAccessible = true)
     @GetMapping
     public ResultRecord<List<DdcPublishTaskEntity>> list() {
         return ResultRecord.success(publishTaskRepository.findAll());
     }
 
+    @GatewayOperation(externalAccessible = true)
     @GetMapping("/page")
     public PageResultRecord<DdcPublishTaskEntity> page(
             DdcPublishTaskQueryRequest request,
@@ -51,11 +62,13 @@ public class DdcPublishTaskController {
                 publishTaskQueryService.page(request, pageQuery));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @GetMapping("/{changeId}")
     public ResultRecord<DdcPublishTaskEntity> detail(@PathVariable("changeId") String changeId) {
         return ResultRecord.success(publishTaskRepository.findByChangeId(changeId).orElse(null));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @PostMapping("/{changeId}/retry")
     public ResultRecord<DdcPublishResultVO> retry(
             @PathVariable("changeId") String changeId) {

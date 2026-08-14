@@ -12,10 +12,6 @@ import top.egon.cola.platform.rbac3.admin.directory.repository.jpa.DirectorySnap
 import top.egon.cola.platform.rbac3.admin.directory.repository.jpa.JpaDirectorySnapshotRepository;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
-import top.egon.cola.platform.rbac3.admin.session.domain.po.RefreshTokenPO;
-import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
-import top.egon.cola.platform.rbac3.admin.session.repository.SessionRuntimeSynchronizer;
-import top.egon.cola.platform.rbac3.admin.session.repository.SessionSecurityEventPort;
 import top.egon.cola.platform.rbac3.contract.activation.ActivationRoot;
 import top.egon.cola.platform.rbac3.contract.auth.BootstrapView;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
@@ -46,11 +42,11 @@ import top.egon.cola.platform.rbac3.admin.directory.domain.dto.DirectorySnapshot
 import top.egon.cola.platform.rbac3.admin.directory.domain.vo.DirectorySyncVO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.vo.UserDirectoryVO;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.vo.TenantVO;
-import top.egon.cola.platform.rbac3.admin.session.domain.vo.TerminationVO;
 
 /**
- * 目录写模型的 JPA 仓储，保留原 Store 的事务、锁和会话撤销语义。
- * JPA directory-command repository preserving the original Store transaction, lock, and session-revocation semantics.
+ * 目录写模型的 JPA 仓储。用户状态变更只更新 RBAC 用户及其授权版本，令牌生命周期由 IdP 管理。
+ * JPA directory-command repository. User status changes update only the RBAC user and authorization version;
+ * token lifecycle is owned by the IdP.
  */
 @Repository
 public class JpaDirectoryCommandRepository implements DirectoryCommandRepository {
@@ -59,8 +55,6 @@ public class JpaDirectoryCommandRepository implements DirectoryCommandRepository
     private final DatabaseClock databaseClock;
     private final JpaDirectorySnapshotRepository directorySnapshotStore;
     private final DirectorySnapshotMaterializer directorySnapshotMaterializer;
-    private final SessionRuntimeSynchronizer runtimeSynchronizer;
-    private final SessionSecurityEventPort securityEventRecorder;
     private final DirectorySnapshotProcessor directorySnapshotProcessor =
             new DirectorySnapshotProcessor();
 
@@ -69,16 +63,12 @@ public class JpaDirectoryCommandRepository implements DirectoryCommandRepository
             LongIdGenerator idGenerator,
             DatabaseClock databaseClock,
             JpaDirectorySnapshotRepository directorySnapshotStore,
-            DirectorySnapshotMaterializer directorySnapshotMaterializer,
-            SessionRuntimeSynchronizer runtimeSynchronizer,
-            SessionSecurityEventPort securityEventRecorder) {
+            DirectorySnapshotMaterializer directorySnapshotMaterializer) {
         this.entityManager = entityManager;
         this.idGenerator = idGenerator;
         this.databaseClock = databaseClock;
         this.directorySnapshotStore = directorySnapshotStore;
         this.directorySnapshotMaterializer = directorySnapshotMaterializer;
-        this.runtimeSynchronizer = runtimeSynchronizer;
-        this.securityEventRecorder = securityEventRecorder;
     }
 
 /**
@@ -191,10 +181,6 @@ public class JpaDirectoryCommandRepository implements DirectoryCommandRepository
                 TenantStatusEnum.class, command.status(), "TENANT_STATUS_INVALID");
         Instant now = databaseClock.transactionNow();
         tenant.changeStatus(nextStatus, command.expectedVersion(), command.reason(), actorId, now);
-        if (nextStatus == TenantStatusEnum.SUSPENDED
-                || nextStatus == TenantStatusEnum.CLOSED) {
-            revokeTenantSessions(tenant.getId(), actorId, now);
-        }
         return tenantView(tenant);
     }
 
@@ -228,50 +214,7 @@ public class JpaDirectoryCommandRepository implements DirectoryCommandRepository
         Instant now = databaseClock.transactionNow();
         user.changeStatus(nextStatus, command.reason(), command.expectedAuthVersion(),
                 actorId, now);
-        if (nextStatus != UserStatusEnum.ACTIVE) {
-            revokeAll(tenantId, userId, now);
-        }
         return userView(user);
-    }
-
-/**
-     * 方法 `revokeAll` 按照 `JpaDirectoryCommandRepository` 的职责处理输入，完成 `revoke All` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `revokeAll` processes its inputs according to `JpaDirectoryCommandRepository`'s responsibility, performs the `revoke All` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `revokeAll` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `revokeAll`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Transactional
-    public int revokeAll(String tenantId, String userId, Instant now) {
-        List<SessionPO> sessions = entityManager.createQuery("""
-                        select s from SessionEntity s
-                         where s.tenantId = :tenantId and s.userId = :userId
-                        """, SessionPO.class)
-                .setParameter("tenantId", Long.valueOf(tenantId))
-                .setParameter("userId", Long.valueOf(userId))
-                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
-                .getResultList();
-        List<Long> changedSessionIds = new ArrayList<>();
-        for (SessionPO session : sessions) {
-            if (session.revoke("ADMIN_REVOKE_ALL", "session-administration", now)) {
-                changedSessionIds.add(session.getSessionId());
-            }
-        }
-        revokeRefreshTokens(Long.valueOf(tenantId), changedSessionIds,
-                "session-administration", now);
-        sessions.stream()
-                .filter(session -> changedSessionIds.contains(session.getSessionId()))
-                .forEach(session -> {
-                    recordTermination(session, "session-administration", now);
-                    runtimeSynchronizer.synchronize(
-                            tenantId, userId, session.getSessionId().toString(), now);
-                });
-        return changedSessionIds.size();
     }
 
 /**
@@ -321,45 +264,8 @@ public class JpaDirectoryCommandRepository implements DirectoryCommandRepository
      */
     private UserDirectoryVO userView(UserPO user) {
         return new UserDirectoryVO(
-                user.getId().toString(), user.getUsername(), user.getDisplayName(),
-                user.getStatus().name(), user.getAuthVersion(),
-                stringId(user.getPrimaryOrgUnitId()), stringId(user.getPrimaryPositionId()),
-                user.getDirectorySnapshotVersion());
-    }
-
-/**
-     * 方法 `revokeTenantSessions` 按照 `JpaDirectoryCommandRepository` 的职责处理输入，完成 `revoke Tenant Sessions` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `revokeTenantSessions` processes its inputs according to `JpaDirectoryCommandRepository`'s responsibility, performs the `revoke Tenant Sessions` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `revokeTenantSessions` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `revokeTenantSessions`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param actorId 输入参数 `actorId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     */
-    private void revokeTenantSessions(Long tenantId, String actorId, Instant now) {
-        List<SessionPO> sessions = entityManager.createQuery("""
-                        select s from SessionEntity s where s.tenantId = :tenantId
-                        """, SessionPO.class)
-                .setParameter("tenantId", tenantId)
-                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
-                .getResultList();
-        List<Long> changedSessionIds = new ArrayList<>();
-        for (SessionPO session : sessions) {
-            if (session.revoke("TENANT_STATUS_CHANGED", actorId, now)) {
-                changedSessionIds.add(session.getSessionId());
-            }
-        }
-        revokeRefreshTokens(tenantId, changedSessionIds, actorId, now);
-        sessions.stream()
-                .filter(session -> changedSessionIds.contains(session.getSessionId()))
-                .forEach(session -> {
-                    recordTermination(session, actorId, now);
-                    runtimeSynchronizer.synchronize(
-                            tenantId.toString(), session.getUserId().toString(),
-                            session.getSessionId().toString(), now);
-                });
+                user.getId().toString(), user.getIdentitySub(),
+                user.getStatus().name(), user.getAuthVersion());
     }
 
 /**
@@ -393,58 +299,6 @@ public class JpaDirectoryCommandRepository implements DirectoryCommandRepository
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                 .getResultList();
         active.forEach(snapshot -> snapshot.archive("directory-sync", now));
-    }
-
-/**
-     * 方法 `revokeRefreshTokens` 按照 `JpaDirectoryCommandRepository` 的职责处理输入，完成 `revoke Refresh Tokens` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `revokeRefreshTokens` processes its inputs according to `JpaDirectoryCommandRepository`'s responsibility, performs the `revoke Refresh Tokens` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `revokeRefreshTokens` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `revokeRefreshTokens`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param sessionIds 输入参数 `sessionIds`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param actorId 输入参数 `actorId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     */
-    private void revokeRefreshTokens(
-            Long tenantId,
-            List<Long> sessionIds,
-            String actorId,
-            Instant now) {
-        if (sessionIds.isEmpty()) {
-            return;
-        }
-        List<RefreshTokenPO> tokens = entityManager.createQuery("""
-                        select t from RefreshTokenEntity t
-                         where t.tenantId = :tenantId and t.sessionId in :sessionIds
-                        """, RefreshTokenPO.class)
-                .setParameter("tenantId", tenantId)
-                .setParameter("sessionIds", sessionIds)
-                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
-                .getResultList();
-        tokens.forEach(token -> token.revoke(now, actorId));
-    }
-
-/**
-     * 方法 `recordTermination` 按照 `JpaDirectoryCommandRepository` 的职责处理输入，完成 `record Termination` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `recordTermination` processes its inputs according to `JpaDirectoryCommandRepository`'s responsibility, performs the `record Termination` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `recordTermination` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `recordTermination`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param session 输入参数 `session`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param actorId 输入参数 `actorId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param occurredAt 输入参数 `occurredAt`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     */
-    private void recordTermination(
-            SessionPO session,
-            String actorId,
-            Instant occurredAt) {
-        securityEventRecorder.record(new TerminationVO(
-                session.getTenantId().toString(), session.getUserId().toString(),
-                session.getSessionId().toString(), session.getSessionVersion(),
-                session.getStatus().name(), session.getRevokeReason(), actorId, occurredAt));
     }
 
 /**

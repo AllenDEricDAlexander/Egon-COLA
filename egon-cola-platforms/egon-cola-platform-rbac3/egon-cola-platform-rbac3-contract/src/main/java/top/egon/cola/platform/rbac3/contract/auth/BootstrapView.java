@@ -20,9 +20,7 @@ public record BootstrapView(
         Map<String, FieldPolicyDecision> fieldPolicies,
         String defaultApplicationCode,
         String defaultRoute,
-        String sessionId,
         long authVersion,
-        long sessionVersion,
         long policyVersion
 ) {
 
@@ -49,24 +47,22 @@ public record BootstrapView(
                 "defaultApplicationCode"
         );
         defaultRoute = optional(defaultRoute, "defaultRoute");
-        sessionId = required(sessionId, "sessionId");
         nonNegative(authVersion, "authVersion");
-        nonNegative(sessionVersion, "sessionVersion");
         nonNegative(policyVersion, "policyVersion");
     }
 
     public record User(
             String id,
             String tenantId,
-            String username,
-            String displayName
+            String identitySub,
+            String status
     ) {
 
         public User {
             id = required(id, "user.id");
             tenantId = required(tenantId, "user.tenantId");
-            username = required(username, "user.username");
-            displayName = required(displayName, "user.displayName");
+            identitySub = required(identitySub, "user.identitySub");
+            status = required(status, "user.status");
         }
     }
 

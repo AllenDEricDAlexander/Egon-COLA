@@ -35,15 +35,10 @@ gateway:
       artifact-root: ${GATEWAY_MCP_ARTIFACT_ROOT:${java.io.tmpdir}/egon-cola/gateway-mcp-artifacts}
     transport-security:
       mode: DEVELOPMENT_PLAINTEXT
-    security:
-      issuer: ${GATEWAY_ADMIN_JWT_ISSUER:}
-      jwk-set-uri: ${GATEWAY_ADMIN_JWT_JWK_SET_URI:}
     ddc:
       enabled: false
       target-biz-code: ${GATEWAY_ADMIN_DDC_TARGET_BIZ_CODE:infra}
       target-app-code: ${GATEWAY_ADMIN_DDC_TARGET_APP_CODE:ge}
-    hmac:
-      allowed-skew: 5m
     observability:
       retention: 168h
       kafka:
@@ -82,7 +77,14 @@ egon:
           database: ${GATEWAY_AUTHORIZATION_REDIS_DATABASE:0}
         authorization:
           endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT}
-          service-credential-file: ${GATEWAY_RBAC3_SERVICE_CREDENTIAL_FILE}
+          service-token:
+            enabled: ${GATEWAY_RBAC3_SERVICE_TOKEN_ENABLED:true}
+            token-endpoint: ${GATEWAY_RBAC3_SERVICE_TOKEN_TOKEN_ENDPOINT}
+            client-id: ${GATEWAY_RBAC3_SERVICE_TOKEN_CLIENT_ID}
+            key-id: ${GATEWAY_RBAC3_SERVICE_TOKEN_KEY_ID}
+            private-key-file: ${GATEWAY_RBAC3_SERVICE_TOKEN_PRIVATE_KEY_FILE}
+            resource-uri: ${GATEWAY_RBAC3_SERVICE_TOKEN_RESOURCE_URI}
+            scopes: ${GATEWAY_RBAC3_SERVICE_TOKEN_SCOPES}
     component:
       rpc:
         tls:
@@ -131,3 +133,18 @@ egon:
             metadata:
               gateway.component: admin
       gateway:
+        reporting:
+          enabled: ${GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED:true}
+          admin-base-url: ${GATEWAY_ADMIN_BASE_URL:}
+          biz-code: ${GATEWAY_ADMIN_RESOURCE_BIZ_CODE:platform}
+          application-code: ${GATEWAY_ADMIN_RESOURCE_APP_CODE:gateway-admin}
+          application-name: Gateway Admin
+          env: ${DEPLOYMENT_ENV:local}
+          namespace: ${DEPLOYMENT_NAMESPACE:default}
+          artifact-version: ${GATEWAY_ADMIN_VERSION:local}
+          build-id: ${GATEWAY_ADMIN_BUILD_ID:local}
+          declared-hosts: ${GATEWAY_ADMIN_DECLARED_HOSTS:127.0.0.1}
+          fail-fast: true
+          access-key: ${GATEWAY_REPORT_ACCESS_KEY:}
+          secret-key: ${GATEWAY_REPORT_SECRET_KEY:}
+          state-file: ${GATEWAY_REPORT_STATE_FILE:}

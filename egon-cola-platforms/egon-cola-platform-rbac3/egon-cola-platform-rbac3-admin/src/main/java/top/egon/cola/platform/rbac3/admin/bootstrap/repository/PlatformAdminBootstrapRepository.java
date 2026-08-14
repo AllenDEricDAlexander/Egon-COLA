@@ -12,8 +12,7 @@ public interface PlatformAdminBootstrapRepository {
      * Bootstraps the platform administrator and built-in permissions within one transaction boundary.
      *
      * @param tenantCode 租户编码；tenant code
-     * @param username 管理员用户名；administrator username
-     * @param password 管理员密码字符；administrator password characters
+     * @param identitySub IdP 主体标识；IdP subject
      */
-    void bootstrap(String tenantCode, String username, char[] password);
+    void bootstrap(String tenantCode, String identitySub);
 }

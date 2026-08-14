@@ -1,7 +1,7 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { setDdcTokenProvider, setDdcUnauthorizedHandler } from '../api/client'
-import { renderWithQueryClient } from '../test/renderWithQueryClient'
+import {act, fireEvent, screen, waitFor} from '@testing-library/react'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
+import {setDdcUnauthorizedHandler} from '../api/client'
+import {renderWithQueryClient} from '../test/renderWithQueryClient'
 import PublishTasksPage from './PublishTasksPage'
 
 const record = (data: unknown) => ({
@@ -99,7 +99,6 @@ const mockEndpoints = (): void => {
 
 describe('PublishTasksPage', () => {
   beforeEach(() => {
-    setDdcTokenProvider(() => 'token')
     setDdcUnauthorizedHandler(() => {})
     vi.stubGlobal('fetch', vi.fn())
   })

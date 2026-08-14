@@ -6,8 +6,8 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.admin.catalog.repository.GatewayCatalogRepository;
 import top.egon.cola.component.gateway.admin.mcp.domain.vo.McpValidationReportVO;
-import top.egon.cola.component.gateway.admin.mcp.service.McpValidationService;
 import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpArtifactMetadataRepository;
+import top.egon.cola.component.gateway.admin.mcp.service.McpValidationService;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpErrorCode;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuleContent;
@@ -400,10 +400,8 @@ class McpSecurityIT {
                         "https://idp.internal",
                         "subject-1",
                         "tenant-1",
-                        "session-1",
                         "client-1",
                         "token-1",
-                        2L,
                         "https://resource.egon.top/gateway-mcp",
                         Instant.parse("2026-08-03T00:00:00Z"),
                         Instant.parse("2026-08-03T01:00:00Z"),

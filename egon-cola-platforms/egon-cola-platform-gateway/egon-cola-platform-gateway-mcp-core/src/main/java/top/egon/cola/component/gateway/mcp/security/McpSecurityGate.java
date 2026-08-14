@@ -4,10 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpErrorCode;
-import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimePrompt;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeResource;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeResourceTemplate;
+import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
 import top.egon.cola.component.gateway.core.mcp.security.McpApprovalPort;
 import top.egon.cola.component.gateway.core.mcp.security.McpAuthorizationPort;
 import top.egon.cola.component.gateway.core.mcp.security.McpAuthorizationRequest;
@@ -385,10 +385,8 @@ public final class McpSecurityGate {
      * @param issuer 参数 issuer；parameter issuer。
      * @param subjectId 参数 subjectId；parameter subject id。
      * @param tenantId 参数 tenantId；parameter tenant id。
-     * @param sessionId 参数 会话Id；parameter session id。
      * @param clientId 参数 客户端Id；parameter client id。
      * @param tokenId 参数 tokenId；parameter token id。
-     * @param tokenVersion 参数 tokenVersion；parameter token version。
      * @param resourceUri 参数 资源Uri；parameter resource uri。
      * @param issuedAt 参数 issuedAt；parameter issued at。
      * @param expiresAt 参数 expiresAt；parameter expires at。
@@ -419,13 +417,6 @@ public final class McpSecurityGate {
              */
             String tenantId,
             /**
-             * 中文说明：保存 会话Id 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code McpSecurityGate.IdentityContext} 在其生命周期内读取或更新。
-             * English summary: Holds the state, dependency, or configuration represented by session id; its type is {@code String}, and {@code McpSecurityGate.IdentityContext} reads or updates it during its lifecycle.
-             *
-             * 用法 / Usage: 该字段通过 {@code McpSecurityGate.IdentityContext} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpSecurityGate.IdentityContext}; do not couple callers to its representation when the owning type exposes an API.
-             */
-            String sessionId,
-            /**
              * 中文说明：保存 客户端Id 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code McpSecurityGate.IdentityContext} 在其生命周期内读取或更新。
              * English summary: Holds the state, dependency, or configuration represented by client id; its type is {@code String}, and {@code McpSecurityGate.IdentityContext} reads or updates it during its lifecycle.
              *
@@ -439,13 +430,6 @@ public final class McpSecurityGate {
              * 用法 / Usage: 该字段通过 {@code McpSecurityGate.IdentityContext} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpSecurityGate.IdentityContext}; do not couple callers to its representation when the owning type exposes an API.
              */
             String tokenId,
-            /**
-             * 中文说明：保存 tokenVersion 对应的状态、依赖或配置值；字段类型为 {@code long}，由 {@code McpSecurityGate.IdentityContext} 在其生命周期内读取或更新。
-             * English summary: Holds the state, dependency, or configuration represented by token version; its type is {@code long}, and {@code McpSecurityGate.IdentityContext} reads or updates it during its lifecycle.
-             *
-             * 用法 / Usage: 该字段通过 {@code McpSecurityGate.IdentityContext} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpSecurityGate.IdentityContext}; do not couple callers to its representation when the owning type exposes an API.
-             */
-            long tokenVersion,
             /**
              * 中文说明：保存 资源Uri 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code McpSecurityGate.IdentityContext} 在其生命周期内读取或更新。
              * English summary: Holds the state, dependency, or configuration represented by resource uri; its type is {@code String}, and {@code McpSecurityGate.IdentityContext} reads or updates it during its lifecycle.
@@ -498,10 +482,8 @@ public final class McpSecurityGate {
          * @param issuer 参数 issuer；parameter issuer。
          * @param subjectId 参数 subjectId；parameter subject id。
          * @param tenantId 参数 tenantId；parameter tenant id。
-         * @param sessionId 参数 会话Id；parameter session id。
          * @param clientId 参数 客户端Id；parameter client id。
          * @param tokenId 参数 tokenId；parameter token id。
-         * @param tokenVersion 参数 tokenVersion；parameter token version。
          * @param resourceUri 参数 资源Uri；parameter resource uri。
          * @param issuedAt 参数 issuedAt；parameter issued at。
          * @param expiresAt 参数 expiresAt；parameter expires at。
@@ -513,10 +495,8 @@ public final class McpSecurityGate {
             issuer = required(issuer, "issuer");
             subjectId = required(subjectId, "subjectId");
             tenantId = required(tenantId, "tenantId");
-            sessionId = required(sessionId, "sessionId");
             clientId = required(clientId, "clientId");
             tokenId = required(tokenId, "tokenId");
-            nonNegative(tokenVersion, "tokenVersion");
             resourceUri = required(resourceUri, "resourceUri");
             issuedAt = Objects.requireNonNull(issuedAt, "issuedAt");
             expiresAt = Objects.requireNonNull(expiresAt, "expiresAt");
@@ -543,10 +523,8 @@ public final class McpSecurityGate {
                     issuer,
                     subjectId,
                     tenantId,
-                    sessionId,
                     clientId,
                     tokenId,
-                    tokenVersion,
                     resourceUri,
                     issuedAt,
                     expiresAt,
@@ -574,23 +552,14 @@ public final class McpSecurityGate {
                     text(attributes, "identity.tenant-id", "tenantId"),
                     text(
                             attributes,
-                            "identity.session-id",
-                            "idp.session-id"
-                    ),
-                    text(
-                            attributes,
                             "identity.client-id",
-                            "idp.client-id"
+                            "idp.client-id",
+                            "idp.audience"
                     ),
                     text(
                             attributes,
                             "identity.token-id",
                             "idp.token-id"
-                    ),
-                    number(
-                            attributes,
-                            "identity.token-version",
-                            "idp.token-version"
                     ),
                     text(attributes, "identity.resource-uri", "idp.resource-uri"),
                     instant(
@@ -628,28 +597,6 @@ public final class McpSecurityGate {
                 );
             }
             return text.trim();
-        }
-
-        /**
-         * 中文说明：执行 number 操作；该方法是 {@code McpSecurityGate.IdentityContext} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-         * English summary: Executes the number operation; this method is the invocation entry point on {@code McpSecurityGate.IdentityContext} and performs the corresponding runtime, management, or protocol work.
-         *
-         * 用法 / Usage: 调用方式 / Usage: {@code McpSecurityGate.IdentityContext.number(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-         * @param attributes 参数 attributes；parameter attributes。
-         * @param keys 参数 keys；parameter keys。
-         * @return 返回 number 的处理结果；returns the result of the operation.
-         */
-        private static long number(
-                Map<String, Object> attributes,
-                String... keys) {
-            Object value = first(attributes, keys);
-            if (value instanceof Number number) {
-                return number.longValue();
-            }
-            if (value instanceof String text && !text.isBlank()) {
-                return Long.parseLong(text.trim());
-            }
-            throw new IllegalArgumentException(keys[0] + " is required");
         }
 
         /**

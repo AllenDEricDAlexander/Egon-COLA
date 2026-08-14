@@ -1,21 +1,21 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { InMemoryAccessTokenStore, Rbac3Provider, type Rbac3Client } from '@egon-cola/rbac3-react-sdk'
-import { render, screen, waitFor } from '@testing-library/react'
-import type { PropsWithChildren } from 'react'
-import { describe, expect, it } from 'vitest'
-import { FeatureApiProvider, type FeatureApiClient } from '../shared/FeatureApi'
-import { ApplicationListPage } from './ApplicationListPage'
-import { ManifestDetailPage } from './ManifestDetailPage'
-import { ResourceCatalogPage } from './ResourceCatalogPage'
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
+import {type Rbac3Client, Rbac3Provider} from '@egon-cola/rbac3-react-sdk'
+import {render, screen, waitFor} from '@testing-library/react'
+import type {PropsWithChildren} from 'react'
+import {describe, expect, it} from 'vitest'
+import {type FeatureApiClient, FeatureApiProvider} from '../shared/FeatureApi'
+import {ApplicationListPage} from './ApplicationListPage'
+import {ManifestDetailPage} from './ManifestDetailPage'
+import {ResourceCatalogPage} from './ResourceCatalogPage'
 
 const wrapper = ({ children }: PropsWithChildren) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const sdk = {
-    refresh: async () => ({ accessToken: 'access', roleActivationRequired: false }),
     getBootstrap: async () => ({
-      user: { id: '7', tenantId: '42' },
+        user: {id: '7', tenantId: '42', identitySub: 'application-test', status: 'ACTIVE'},
       permissions: ['system:application:read', 'system:resource:read'],
-      fieldPolicies: {},
+        fieldPolicies: {}, activeRoleContexts: [], apps: [], menus: [], routes: [], actions: [],
+        defaultApplicationCode: null, defaultRoute: null, authVersion: 1, policyVersion: 1,
     }),
   } as unknown as Rbac3Client
   const api: FeatureApiClient = {
@@ -37,7 +37,7 @@ const wrapper = ({ children }: PropsWithChildren) => {
   }
   return (
     <QueryClientProvider client={queryClient}>
-      <Rbac3Provider client={sdk} accessTokenStore={new InMemoryAccessTokenStore()}>
+        <Rbac3Provider client={sdk}>
         <FeatureApiProvider client={api}>{children}</FeatureApiProvider>
       </Rbac3Provider>
     </QueryClientProvider>

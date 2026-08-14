@@ -15,18 +15,21 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import top.egon.cola.platform.idp.gateway.runtime.IdpGatewayRedissonConfiguration;
 import top.egon.cola.platform.idp.gateway.security.GatewayResourceServerResolver;
-import top.egon.cola.platform.idp.gateway.security.IdpBearerCredentialExtractor;
 import top.egon.cola.platform.idp.gateway.security.IdpGatewayJwtVerifier;
 import top.egon.cola.platform.idp.gateway.security.IdpIdentityAuthenticationProvider;
+import top.egon.cola.platform.idp.gateway.security.IdpRefreshClient;
 import top.egon.cola.platform.idp.gateway.security.IdpReservedHeaderSanitizer;
 import top.egon.cola.platform.idp.gateway.security.IdpTrustedIdentityMapper;
+import top.egon.cola.platform.idp.gateway.security.IdpUserCookieCredentialExtractor;
+import top.egon.cola.platform.idp.gateway.security.IdpUserCredentialRecoveryProvider;
+import top.egon.cola.platform.idp.gateway.security.ReactorNettyIdpRefreshClient;
 import top.egon.cola.platform.idp.starter.security.RetryingJwtDecoder;
 import top.egon.cola.platform.idp.starter.state.IdentityOAuthClientStateReader;
 import top.egon.cola.platform.idp.starter.state.IdentityResourceServerStateReader;
-import top.egon.cola.platform.idp.starter.state.IdentityUserStateReader;
 import top.egon.cola.platform.idp.starter.state.RedisIdentityOAuthClientStateReader;
 import top.egon.cola.platform.idp.starter.state.RedisIdentityResourceServerStateReader;
-import top.egon.cola.platform.idp.starter.state.RedisIdentityUserStateReader;
+
+import java.time.Duration;
 
 /**
  * 将统一 IdP 身份验证能力装配到非 Servlet 的 Gateway 安全扩展点。
@@ -78,10 +81,15 @@ public class IdpGatewayAdapterAutoConfiguration {
      */
     @Bean
     @ConditionalOnMissingBean
-    public IdpBearerCredentialExtractor idpBearerCredentialExtractor(
-            IdpReservedHeaderSanitizer sanitizer
+    public IdpUserCookieCredentialExtractor idpUserCookieCredentialExtractor(
+            IdpReservedHeaderSanitizer sanitizer,
+            IdpGatewayAdapterProperties properties
     ) {
-        return new IdpBearerCredentialExtractor(sanitizer);
+        properties.validate();
+        return new IdpUserCookieCredentialExtractor(
+                sanitizer,
+                properties.getAccessTokenCookieName(),
+                properties.getTrustedOrigins());
     }
 
     /**
@@ -100,31 +108,6 @@ public class IdpGatewayAdapterAutoConfiguration {
     ) {
         properties.validate();
         return new RetryingJwtDecoder(() -> decoder(properties));
-    }
-
-    /**
-     * 创建使用 Gateway 专用 Redis 客户端的用户实时状态读取器。
-     *
-     * <p>Creates the current user-state reader backed by the Gateway-specific Redis client.</p>
-     *
-     * @param redisson Gateway 专用 Redis 客户端；Gateway-specific Redis client
-     * @param objectMapper 用户状态 JSON 反序列化器；user-state JSON deserializer
-     * @param properties Gateway IdP 适配器配置；Gateway IdP adapter settings
-     * @return 用户实时状态读取器；current user-state reader
-     */
-    @Bean(name = "idpGatewayIdentityUserStateReader")
-    @ConditionalOnBean(name = "idpGatewayRedissonClient")
-    @ConditionalOnMissingBean(name = "idpGatewayIdentityUserStateReader")
-    public IdentityUserStateReader idpGatewayIdentityUserStateReader(
-            @Qualifier("idpGatewayRedissonClient") RedissonClient redisson,
-            ObjectMapper objectMapper,
-            IdpGatewayAdapterProperties properties
-    ) {
-        properties.validate();
-        return new RedisIdentityUserStateReader(
-                redisson,
-                objectMapper,
-                properties.getUserStateKeyPrefix());
     }
 
     /**
@@ -205,16 +188,47 @@ public class IdpGatewayAdapterAutoConfiguration {
     @ConditionalOnMissingBean
     public IdpGatewayJwtVerifier idpGatewayJwtVerifier(
             @Qualifier("idpGatewayJwtDecoder") JwtDecoder decoder,
-            @Qualifier("idpGatewayIdentityUserStateReader")
-            IdentityUserStateReader userStates,
             @Qualifier("idpGatewayResourceServerStateReader")
             IdentityResourceServerStateReader resourceStates,
             @Qualifier("idpGatewayOAuthClientStateReader")
             IdentityOAuthClientStateReader clientStates,
-            GatewayResourceServerResolver resources
+            GatewayResourceServerResolver resources,
+            IdpGatewayAdapterProperties properties
     ) {
         return new IdpGatewayJwtVerifier(
-                decoder, userStates, resourceStates, clientStates, resources);
+                decoder,
+                resourceStates,
+                clientStates,
+                resources,
+                properties.getPlatformAudience(),
+                java.time.Clock.systemUTC());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public IdpRefreshClient idpRefreshClient(
+            IdpGatewayAdapterProperties properties) {
+        properties.validate();
+        return new ReactorNettyIdpRefreshClient(
+                properties.getIdpRefreshUri(),
+                properties.getRefreshTokenCookieName(),
+                properties.getAccessTokenCookieName(),
+                Duration.ofSeconds(2));
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public IdpUserCredentialRecoveryProvider idpUserCredentialRecoveryProvider(
+            IdpRefreshClient client,
+            IdpGatewayJwtVerifier verifier,
+            IdpReservedHeaderSanitizer sanitizer,
+            IdpGatewayAdapterProperties properties) {
+        return new IdpUserCredentialRecoveryProvider(
+                client,
+                verifier,
+                sanitizer,
+                properties.getRefreshTokenCookieName(),
+                properties.getAccessTokenCookieName());
     }
 
     /**

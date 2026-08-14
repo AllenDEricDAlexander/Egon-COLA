@@ -1,9 +1,9 @@
 package top.egon.cola.platform.rbac3.admin;
 
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
-import org.springframework.boot.WebApplicationType;
 import org.springframework.core.env.MapPropertySource;
 import top.egon.cola.platform.rbac3.admin.bootstrap.controller.cli.Rbac3PlatformAdminBootstrapCli;
 
@@ -40,7 +40,7 @@ public class Rbac3AdminApplication {
                             bootstrapRuntimeProperties())));
             try (var context = application.run(args)) {
                 context.getBean(Rbac3PlatformAdminBootstrapCli.class)
-                        .run(args, System.in);
+                        .run(args);
             }
             return;
         }

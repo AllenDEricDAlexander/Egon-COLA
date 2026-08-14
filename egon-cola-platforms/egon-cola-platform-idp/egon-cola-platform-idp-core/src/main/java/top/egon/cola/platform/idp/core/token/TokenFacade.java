@@ -114,6 +114,28 @@ public final class TokenFacade {
                 accessClaims.expiresAt(), claims.expiresAt());
     }
 
+    /**
+     * Re-signs a short-lived USER AT after an already authenticated step-up.
+     * The stable RT is deliberately untouched and no server-side session is created.
+     */
+    public AccessTokenIssue issueStepUp(
+            String identitySub,
+            String tenantId,
+            AuthenticationContext authenticationContext) {
+        String subject = required(identitySub, "identitySub");
+        String tenant = required(tenantId, "tenantId");
+        AuthenticationContext context = Objects.requireNonNull(
+                authenticationContext, "authenticationContext");
+        if (!"STRONG".equals(context.acr())) {
+            throw new IllegalArgumentException("step-up requires STRONG authentication");
+        }
+        Instant now = tokenTime();
+        activeUser(subject);
+        requireActiveMembership(subject, tenant);
+        AccessTokenClaims claims = accessClaims(subject, tenant, now, context);
+        return new AccessTokenIssue(signer.signAccess(claims), claims.expiresAt());
+    }
+
     /** Revokes one exact RT without affecting other devices or tenants. */
     public void revoke(String rawRefreshToken) {
         Instant now = tokenTime();
@@ -133,6 +155,18 @@ public final class TokenFacade {
     }
 
     private AccessTokenClaims accessClaims(String subject, String tenantId, Instant now) {
+        return accessClaims(
+                subject,
+                tenantId,
+                now,
+                AuthenticationContext.of("PASSWORD", now));
+    }
+
+    private AccessTokenClaims accessClaims(
+            String subject,
+            String tenantId,
+            Instant now,
+            AuthenticationContext authenticationContext) {
         return new AccessTokenClaims(
                 PrincipalType.USER,
                 subject,
@@ -142,7 +176,7 @@ public final class TokenFacade {
                 now,
                 now,
                 now.plus(ACCESS_TOKEN_TTL),
-                AuthenticationContext.of("PASSWORD", now));
+                authenticationContext);
     }
 
     private RefreshTokenClaims verifiedRefresh(String rawRefreshToken, Instant now) {
@@ -229,5 +263,23 @@ public final class TokenFacade {
 
     private static TokenException invalidGrant() {
         return new TokenException("invalid_grant");
+    }
+
+    /**
+     * In-process AT result used only to set the HttpOnly cookie.
+     */
+    public record AccessTokenIssue(String accessToken, Instant expiresAt) {
+        public AccessTokenIssue {
+            if (accessToken == null || accessToken.isBlank()) {
+                throw new IllegalArgumentException("accessToken is required");
+            }
+            Objects.requireNonNull(expiresAt, "expiresAt");
+        }
+
+        @Override
+        public String toString() {
+            return "AccessTokenIssue[accessToken=<redacted>, expiresAt="
+                    + expiresAt + ']';
+        }
     }
 }

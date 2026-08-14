@@ -5,19 +5,20 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "${script_dir}/lib/common.sh"
 
-default_token="${unified_platform_secret_dir}/idp-admin.access.jwt"
 service_token="${unified_platform_secret_dir}/idp-admin.service.jwt"
-[[ -s "${default_token}" ]] \
-  || unified_platform_fail "missing default tenant access token"
 [[ -s "${service_token}" ]] \
   || unified_platform_fail "missing IdP service token"
 
-tenant_id="$(jq -Rer 'split(".")[1] | @base64d | fromjson | .tid' \
-  <"${default_token}")"
-identity_sub="$(jq -Rer 'split(".")[1] | @base64d | fromjson | .sub' \
-  <"${default_token}")"
+default_cookie="${unified_platform_runtime_dir}/browser.default.cookies"
+[[ -s "${default_cookie}" ]] \
+  || unified_platform_fail "missing default tenant Gateway cookie jar"
+userinfo="$(curl --max-time 10 -fsS -b "${default_cookie}" \
+  "${GATEWAY_BASE_URL}/oauth2/userinfo")" \
+  || unified_platform_fail "default tenant Gateway cookie could not resolve /oauth2/userinfo"
+tenant_id="$(jq -er '.tid' <<<"${userinfo}")"
+identity_sub="$(jq -er '.sub' <<<"${userinfo}")"
 [[ "${tenant_id}" =~ ^[1-9][0-9]*$ ]] \
-  || unified_platform_fail "default access token has an invalid tenant ID"
+  || unified_platform_fail "default Gateway userinfo has an invalid tenant ID"
 
 frontends=(
   "idp-admin-web|${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web|${IDP_ADMIN_WEB_URL}/src/auth/CentralLoginPage.tsx"
@@ -59,131 +60,56 @@ for frontend in "${frontends[@]}"; do
     || unified_platform_fail "${client_id} membership is not active"
 done
 
-for command in curl jq openssl; do
+for command in curl jq; do
   unified_platform_require_command "${command}"
 done
 
 fresh_dir="$(mktemp -d "${unified_platform_runtime_dir}/fresh-admin-login.XXXXXX")"
 chmod 700 "${fresh_dir}"
 trap 'rm -rf "${fresh_dir}"' EXIT
-fresh_cookie="${fresh_dir}/browser.cookies"
+fresh_cookie="${fresh_dir}/gateway.cookies"
 
 csrf="$(curl --max-time 10 -fsS \
   -c "${fresh_cookie}" -b "${fresh_cookie}" \
   -H "Origin: ${IDP_ADMIN_WEB_URL}" \
-  "${IDP_BASE_URL}/oauth2/login/csrf" | jq -er '.token')"
+  "${GATEWAY_BASE_URL}/oauth2/login/csrf" | jq -er '.token')"
 login_code="$(curl --max-time 10 -sS -o "${fresh_dir}/login.json" \
   -w '%{http_code}' -c "${fresh_cookie}" -b "${fresh_cookie}" \
   -H "Origin: ${IDP_ADMIN_WEB_URL}" \
   -H 'Content-Type: application/json' -H "X-IDP-CSRF: ${csrf}" \
-  -d "$(jq -cn --arg password \
-    "$(<"${unified_platform_secret_dir}/idp-admin.password")" \
-    '{username:"alice",password:$password}')" \
-  "${IDP_BASE_URL}/oauth2/login")"
+  -d "$(jq -cn --arg tenantId "${tenant_id}" \
+    --arg password "$(<"${unified_platform_secret_dir}/idp-admin.password")" \
+    '{tenantId:$tenantId,username:"alice",password:$password}')" \
+  "${GATEWAY_BASE_URL}/oauth2/login")"
 [[ "${login_code}" == '200' ]] \
   || unified_platform_fail \
-    "fresh browser password login returned HTTP ${login_code}"
+    "fresh Gateway password login returned HTTP ${login_code}"
 
-fresh_oauth_token() {
-  local client_id="$1" origin="$2" output="$3"
-  local resource verifier challenge state headers code http_code
-  case "${client_id}" in
-    idp-admin-web)
-      resource=https://api.egon.internal/local/permission/idp
-      ;;
-    rbac3-admin-web)
-      resource=https://api.egon.internal/local/permission/rbac3
-      ;;
-    gateway-admin-web)
-      resource=https://api.egon.internal/local/platform/gateway-admin
-      ;;
-    ddc-admin-web)
-      resource=https://api.egon.internal/local/platform/ddc
-      ;;
-    *) unified_platform_fail "unknown Admin OAuth client: ${client_id}" ;;
-  esac
-  verifier="$(openssl rand -base64 48 | tr '+/' '-_' | tr -d '=\n')"
-  challenge="$(printf '%s' "${verifier}" | openssl dgst -binary -sha256 \
-    | openssl base64 -A | tr '+/' '-_' | tr -d '=')"
-  state="$(openssl rand -hex 16)"
-  headers="${fresh_dir}/${client_id}.authorize.headers"
-  http_code="$(curl --max-time 10 -sS -D "${headers}" -o /dev/null \
-    -w '%{http_code}' -c "${fresh_cookie}" -b "${fresh_cookie}" -G \
-    "${IDP_BASE_URL}/oauth2/authorize" \
-    --data-urlencode response_type=code \
-    --data-urlencode "client_id=${client_id}" \
-    --data-urlencode "redirect_uri=${origin}/oauth/callback" \
-    --data-urlencode "resource=${resource}" \
-    --data-urlencode "tenant_id=${tenant_id}" \
-    --data-urlencode "state=${state}" --data-urlencode "nonce=${state}" \
-    --data-urlencode "code_challenge=${challenge}" \
-    --data-urlencode code_challenge_method=S256)"
-  [[ "${http_code}" == '302' ]] \
-    || unified_platform_fail \
-      "${client_id} fresh authorization returned HTTP ${http_code}"
-  code="$(sed -n \
-    's/^[Ll]ocation:.*[?&]code=\([^&[:space:]]*\).*/\1/p' \
-    "${headers}" | tail -1)"
-  [[ -n "${code}" ]] \
-    || unified_platform_fail "${client_id} fresh authorization returned no code"
-  http_code="$(curl --max-time 10 -sS -o "${fresh_dir}/${client_id}.token.json" \
-    -w '%{http_code}' -c "${fresh_cookie}" -b "${fresh_cookie}" \
-    -H "Origin: ${origin}" \
-    -H 'Content-Type: application/x-www-form-urlencoded' \
-    --data-urlencode grant_type=authorization_code \
-    --data-urlencode "client_id=${client_id}" \
-    --data-urlencode "code=${code}" \
-    --data-urlencode "code_verifier=${verifier}" \
-    --data-urlencode "resource=${resource}" \
-    --data-urlencode "redirect_uri=${origin}/oauth/callback" \
-    "${IDP_BASE_URL}/oauth2/token")"
-  [[ "${http_code}" == '200' ]] \
-    || unified_platform_fail \
-      "${client_id} fresh token exchange returned HTTP ${http_code}"
-  jq -er '.access_token' "${fresh_dir}/${client_id}.token.json" >"${output}"
-  chmod 600 "${output}"
-}
-
-fresh_oauth_token idp-admin-web "${IDP_ADMIN_WEB_URL}" \
-  "${fresh_dir}/idp.access.jwt"
-fresh_oauth_token rbac3-admin-web "${RBAC3_ADMIN_WEB_URL}" \
-  "${fresh_dir}/rbac3.access.jwt"
-fresh_oauth_token gateway-admin-web "${GATEWAY_ADMIN_WEB_URL}" \
-  "${fresh_dir}/gateway.access.jwt"
-fresh_oauth_token ddc-admin-web "${DDC_ADMIN_WEB_URL}" \
-  "${fresh_dir}/ddc.access.jwt"
-
-idp_refresh_code="$(curl --max-time 10 -sS \
-  -o "${fresh_dir}/idp.refresh.json" -w '%{http_code}' \
+cp "${fresh_cookie}" "${fresh_dir}/refresh-before.cookies"
+refresh_code="$(curl --max-time 10 -sS \
+  -o "${fresh_dir}/refresh.json" -w '%{http_code}' \
   -c "${fresh_cookie}" -b "${fresh_cookie}" \
   -H "Origin: ${IDP_ADMIN_WEB_URL}" \
   -H 'Content-Type: application/x-www-form-urlencoded' \
   --data-urlencode grant_type=refresh_token \
-  --data-urlencode client_id=idp-admin-web \
-  --data-urlencode resource=https://api.egon.internal/local/permission/idp \
-  "${IDP_BASE_URL}/oauth2/token")"
-[[ "${idp_refresh_code}" == '200' ]] \
+  "${GATEWAY_BASE_URL}/oauth2/token")"
+[[ "${refresh_code}" == '200' ]] \
   || unified_platform_fail \
-    "idp-admin-web refresh token returned HTTP ${idp_refresh_code}"
-jq -er '.access_token' "${fresh_dir}/idp.refresh.json" \
-  >"${fresh_dir}/idp.refreshed.access.jwt"
-chmod 600 "${fresh_dir}/idp.refreshed.access.jwt"
-
-fresh_sid_count="$(for token_file in \
-  "${fresh_dir}/idp.access.jwt" \
-  "${fresh_dir}/rbac3.access.jwt" \
-  "${fresh_dir}/gateway.access.jwt" \
-  "${fresh_dir}/ddc.access.jwt"; do
-  jq -Rr 'split(".")[1] | @base64d | fromjson | .sid' <"${token_file}"
-done | sort -u | wc -l | tr -d ' ')"
-[[ "${fresh_sid_count}" == '1' ]] \
-  || unified_platform_fail "fresh Admin tokens do not share one SSO session"
+    "Gateway refresh token returned HTTP ${refresh_code}"
+refresh_code="$(curl --max-time 10 -sS -o "${fresh_dir}/stable-refresh.json" \
+  -w '%{http_code}' -c "${fresh_dir}/refresh-before.cookies" \
+  -b "${fresh_dir}/refresh-before.cookies" -X POST \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode grant_type=refresh_token \
+  "${GATEWAY_BASE_URL}/oauth2/token")"
+[[ "${refresh_code}" == '200' ]] \
+  || unified_platform_fail 'stable USER Refresh Token was rejected before logout'
 
 verify_fresh_admin_json() {
-  local label="$1" url="$2" token_file="$3"
+  local label="$1" url="$2"
   local output="${fresh_dir}/${label}.json" http_code
   http_code="$(curl --max-time 15 -sS -o "${output}" -w '%{http_code}' \
-    -H "Authorization: Bearer $(<"${token_file}")" "${url}")"
+    -b "${fresh_cookie}" "${url}")"
   [[ "${http_code}" == '200' ]] \
     || unified_platform_fail \
       "fresh Admin endpoint returned HTTP ${http_code}: ${label}"
@@ -193,10 +119,10 @@ verify_fresh_admin_json() {
 }
 
 verify_fresh_admin_array() {
-  local label="$1" url="$2" token_file="$3"
+  local label="$1" url="$2"
   local output="${fresh_dir}/${label}.json" http_code
   http_code="$(curl --max-time 15 -sS -o "${output}" -w '%{http_code}' \
-    -H "Authorization: Bearer $(<"${token_file}")" "${url}")"
+    -b "${fresh_cookie}" "${url}")"
   [[ "${http_code}" == '200' ]] \
     || unified_platform_fail \
       "fresh Admin endpoint returned HTTP ${http_code}: ${label}"
@@ -214,8 +140,7 @@ expected_role_pairs="$(jq -cn '[
   {applicationCode:"rbac3-admin",rootRoleCode:"RBAC3_LOCAL_ADMIN"}
 ]')"
 verify_fresh_admin_json role-candidates \
-  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/auth/role-activation-candidates" \
-  "${fresh_dir}/rbac3.access.jwt"
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/auth/role-activation-candidates"
 expected_active_roles="$(jq -cer --argjson expected "${expected_role_pairs}" '
   [
     .data.applications[] as $application
@@ -242,23 +167,18 @@ expected_active_roles="$(jq -cer --argjson expected "${expected_role_pairs}" '
     end' "${fresh_dir}/role-candidates.json")"
 
 verify_fresh_admin_json idp-bootstrap \
-  "${IDP_ADMIN_WEB_URL}/api/v1/auth/bootstrap" \
-  "${fresh_dir}/idp.refreshed.access.jwt"
+  "${IDP_ADMIN_WEB_URL}/api/v1/auth/bootstrap"
 verify_fresh_admin_array idp-users \
-  "${IDP_ADMIN_WEB_URL}/api/v1/identity/users" \
-  "${fresh_dir}/idp.refreshed.access.jwt"
+  "${IDP_ADMIN_WEB_URL}/api/v1/identity/users"
 verify_fresh_admin_array idp-clients \
-  "${IDP_ADMIN_WEB_URL}/api/v1/identity/clients" \
-  "${fresh_dir}/idp.refreshed.access.jwt"
+  "${IDP_ADMIN_WEB_URL}/api/v1/identity/clients"
 verify_fresh_admin_array idp-signing-keys \
-  "${IDP_ADMIN_WEB_URL}/api/v1/identity/signing-keys" \
-  "${fresh_dir}/idp.refreshed.access.jwt"
+  "${IDP_ADMIN_WEB_URL}/api/v1/identity/signing-keys"
 verify_fresh_admin_json idp-audits \
-  "${IDP_ADMIN_WEB_URL}/api/v1/identity/audits?page=0&size=20" \
-  "${fresh_dir}/idp.refreshed.access.jwt"
+  "${IDP_ADMIN_WEB_URL}/api/v1/identity/audits?page=0&size=20"
 
 curl --max-time 15 -fsS -o "${fresh_dir}/active-roles.json" \
-  -H "Authorization: Bearer $(<"${fresh_dir}/rbac3.access.jwt")" \
+  -b "${fresh_cookie}" \
   "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/auth/role-activations"
 jq -e \
   --argjson expected "${expected_active_roles}" \
@@ -268,17 +188,32 @@ jq -e \
       | sort_by(.applicationCode)) == $expected' \
   "${fresh_dir}/active-roles.json" >/dev/null \
   || unified_platform_fail \
-    "fresh SSO session did not activate the generated local administrator roles"
+    "fresh Gateway JWT login did not activate the generated local administrator roles"
 
 verify_fresh_admin_json rbac3-bootstrap \
-  "${RBAC3_ADMIN_WEB_URL}/api/v1/auth/bootstrap" \
-  "${fresh_dir}/rbac3.access.jwt"
-verify_fresh_admin_json gateway-session \
-  "${GATEWAY_ADMIN_WEB_URL}/api/v1/gateway/admin/session" \
-  "${fresh_dir}/gateway.access.jwt"
+  "${RBAC3_ADMIN_WEB_URL}/api/v1/auth/bootstrap"
+verify_fresh_admin_json gateway-bootstrap \
+  "${GATEWAY_ADMIN_WEB_URL}/api/v1/auth/bootstrap"
 verify_fresh_admin_json ddc-bootstrap \
-  "${DDC_ADMIN_WEB_URL}/api/v1/auth/bootstrap" \
-  "${fresh_dir}/ddc.access.jwt"
+  "${DDC_ADMIN_WEB_URL}/api/v1/auth/bootstrap"
+
+cp "${fresh_cookie}" "${fresh_dir}/pre-logout.cookies"
+logout_code="$(curl --max-time 10 -sS -o "${fresh_dir}/logout.json" \
+  -w '%{http_code}' -c "${fresh_cookie}" -b "${fresh_cookie}" -X POST \
+  "${GATEWAY_BASE_URL}/oauth2/logout")"
+[[ "${logout_code}" == '204' ]] \
+  || unified_platform_fail "Gateway logout returned HTTP ${logout_code}"
+refresh_code="$(curl --max-time 10 -sS -o "${fresh_dir}/refresh-after-logout.json" \
+  -w '%{http_code}' -c "${fresh_dir}/refresh-before.cookies" \
+  -b "${fresh_dir}/refresh-before.cookies" -X POST \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode grant_type=refresh_token \
+  "${GATEWAY_BASE_URL}/oauth2/token")"
+[[ "${refresh_code}" != '200' ]] \
+  || unified_platform_fail 'Gateway logout did not revoke the USER Refresh Token'
+fresh_cookie="${fresh_dir}/pre-logout.cookies"
+verify_fresh_admin_json idp-bootstrap-after-logout \
+  "${IDP_ADMIN_WEB_URL}/api/v1/auth/bootstrap"
 
 printf '%s\n' \
   'live-frontend-login: memberships, refresh, IdP pages, and four Admin endpoints PASS'

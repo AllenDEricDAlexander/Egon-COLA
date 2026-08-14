@@ -12,12 +12,9 @@ import top.egon.cola.platform.idp.admin.token.service.SigningKeyRuntime;
 import top.egon.cola.platform.idp.admin.token.service.impl.ExternalPemSigningKeyRuntime;
 import top.egon.cola.platform.idp.admin.token.service.impl.Rs256TokenService;
 import top.egon.cola.platform.idp.admin.token.service.impl.RsaPemKeyLoader;
-import top.egon.cola.platform.idp.core.audit.IdentitySecurityEventPort;
-import top.egon.cola.platform.idp.core.port.IdentityUserStatePort;
 import top.egon.cola.platform.idp.core.port.IdentityUserStore;
-import top.egon.cola.platform.idp.core.port.OAuthClientStore;
 import top.egon.cola.platform.idp.core.port.RefreshTokenStore;
-import top.egon.cola.platform.idp.core.resource.UserResourceAccessPolicy;
+import top.egon.cola.platform.idp.core.port.TenantMembershipPort;
 import top.egon.cola.platform.idp.core.token.TokenFacade;
 
 import java.nio.file.Path;
@@ -92,7 +89,7 @@ public class TokenConfig {
     }
 
     /**
-     * 创建支持轮换和重放检测的 Redis Refresh Token 存储。
+     * 创建稳定 Refresh Token 的 Redis 元数据存储。
      *
      * <p>Creates the Redis refresh-token store with rotation and replay detection.</p>
      *
@@ -117,10 +114,7 @@ public class TokenConfig {
      * @param signer Token 签名器；token signer
      * @param refreshTokens Refresh Token 存储；refresh-token store
      * @param users 身份用户存储；identity-user store
-     * @param userStates 用户安全状态端口；user security-state port
-     * @param securityEvents 安全事件端口；security-event port
-     * @param clients OAuth Client 查询端口；OAuth Client lookup port
-     * @param resourceAccess USER Resource 入口策略；USER Resource entry policy
+     * @param memberships 租户成员关系端口；tenant-membership port
      * @param idpClock UTC 业务时钟；UTC business clock
      * @param idGenerator 全局 ID 生成器；global ID generator
      * @return Token 生命周期门面；token-lifecycle facade
@@ -130,23 +124,19 @@ public class TokenConfig {
             Rs256TokenService signer,
             RefreshTokenStore refreshTokens,
             IdentityUserStore users,
-            IdentityUserStatePort userStates,
-            IdentitySecurityEventPort securityEvents,
-            OAuthClientStore clients,
-            UserResourceAccessPolicy resourceAccess,
+            TenantMembershipPort memberships,
             @Qualifier("idpClock") Clock idpClock,
-            LongIdGenerator idGenerator
+            LongIdGenerator idGenerator,
+            @Value("${egon.idp.oauth.user-audience:platform}") String userAudience
     ) {
         return new TokenFacade(
                 signer,
                 refreshTokens,
                 users,
-                userStates,
-                securityEvents,
-                clients,
-                resourceAccess,
+                memberships,
                 idpClock,
-                idGenerator::nextId
+                idGenerator::nextId,
+                userAudience
         );
     }
 }

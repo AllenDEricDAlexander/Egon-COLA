@@ -14,24 +14,21 @@
   declared. A repeated key with a different request hash is rejected.
 - Unknown JSON properties and malformed enum values are rejected.
 
-## 2. Authentication and Session
+## 2. Authentication boundary and role activation
 
-| Method | Path | Semantics |
-| --- | --- | --- |
-| POST | `/auth/login` | Authenticate identity; create an empty-role Session |
-| POST | `/auth/refresh` | Rotate opaque Refresh cookie; replay compromises the token family |
-| POST | `/auth/logout` | Revoke current Session/Refresh family |
-| POST | `/auth/step-up` | Re-authenticate and strengthen only the current Session |
-| GET | `/auth/bootstrap` | Identity, candidate roots, navigation and current activation summary |
-| GET | `/auth/jwks` | Public reference-JWT verification keys |
-| GET | `/sessions/me` | Redacted current-user Session list |
-| POST | `/sessions/{sessionId}/revoke` | Revoke one authorized Session and its Refresh tokens |
-| POST | `/users/{userId}/sessions/revoke-all` | Revoke every Session and Refresh token for one tenant user |
-| GET | `/auth/role-activation-candidates` | Assigned canonical roots and explanations |
-| GET | `/auth/role-activations` | Current complete active-root set |
-| PUT | `/auth/role-activations` | Atomically replace the complete active-root set |
+RBAC3 exposes no login, Refresh, logout, JWKS, authorization-code or personnel
+Session endpoint. Browser and API authentication are handled by IdP through the
+Gateway. Every RBAC3 request receives an IdP-signed USER Access Token and RBAC3
+locally verifies it with the IdP Starter; RBAC3 never reads a Refresh Token.
 
-Login does not accept a role ID. Activation accepts multiple role IDs, maps
+| Method | Path                                            | Semantics                                                      |
+|--------|-------------------------------------------------|----------------------------------------------------------------|
+| GET    | `/api/v1/auth/bootstrap`                        | Current identity-facing RBAC3 bootstrap and activation summary |
+| GET    | `/api/rbac3/v1/auth/role-activation-candidates` | Assigned canonical roots and explanations                      |
+| GET    | `/api/rbac3/v1/auth/role-activations`           | Current complete user-level active-root set                    |
+| PUT    | `/api/rbac3/v1/auth/role-activations`           | Atomically replace the complete user-level active-root set     |
+
+Role activation does not accept a login or Session ID. It accepts multiple role IDs, maps
 children to roots, expands whole families, and rejects same-APP mutually
 exclusive roots before mutation.
 
@@ -68,7 +65,7 @@ explicit, audited action.
 
 ## 5. Assignment and delegated management
 
-Assignments are qualification records, not active Session roles. Routes under
+Assignments are qualification records, not active roles. Routes under
 `/users/{userId}/role-assignments` support list, create, suspend, resume and
 revoke. Mutations require version/idempotency evidence and enforce SSD,
 prerequisites, cardinality, target scope and privileged/self-assignment rules.
@@ -80,20 +77,20 @@ Operation. Fragments from multiple policies are never combined.
 
 ## 6. Decision, audit and runtime
 
-| Method | Path | Semantics |
-| --- | --- | --- |
-| POST | `/internal/authorization/decisions` | Typed Function/Data/Field decision |
-| GET | `/internal/authorization/sessions/{id}/snapshot` | Internal immutable Session snapshot |
-| POST | `/internal/authorization/fences/verify` | Verify mutation Fence state |
-| POST | `/internal/business-participations` | Append idempotent participation fact |
-| GET | `/internal/business-participations/conflicts` | Operation-SOD conflict evidence |
-| GET | `/audit-logs` | Redacted, signed-cursor audit query |
-| POST | `/simulations/authorization` | Consistent-snapshot decision simulation |
-| POST | `/simulations/role-change-impact` | Role-change impact simulation |
-| GET | `/runtime/status` | Runtime subsystem status |
-| GET | `/runtime/mutations` | Bounded mutation journal query |
-| POST | `/runtime/mutations/{id}/retry` | Retry one stable FAILED mutation ID |
-| GET | `/runtime/gateway-ddc-status` | Separate Definition, Lease and Release observations |
+| Method | Path                                           | Semantics                                           |
+|--------|------------------------------------------------|-----------------------------------------------------|
+| POST   | `/internal/authorization/decisions`            | Typed Function/Data/Field decision                  |
+| GET    | `/internal/v1/authorization/snapshots/current` | Internal immutable user authorization snapshot      |
+| POST   | `/internal/authorization/fences/verify`        | Verify mutation Fence state                         |
+| POST   | `/internal/business-participations`            | Append idempotent participation fact                |
+| GET    | `/internal/business-participations/conflicts`  | Operation-SOD conflict evidence                     |
+| GET    | `/audit-logs`                                  | Redacted, signed-cursor audit query                 |
+| POST   | `/simulations/authorization`                   | Consistent-snapshot decision simulation             |
+| POST   | `/simulations/role-change-impact`              | Role-change impact simulation                       |
+| GET    | `/runtime/status`                              | Runtime subsystem status                            |
+| GET    | `/runtime/mutations`                           | Bounded mutation journal query                      |
+| POST   | `/runtime/mutations/{id}/retry`                | Retry one stable FAILED mutation ID                 |
+| GET    | `/runtime/gateway-ddc-status`                  | Separate Definition, Lease and Release observations |
 
 Internal routes require service identity plus exact tenant/APP boundaries; they
 are not alternate public administration routes.

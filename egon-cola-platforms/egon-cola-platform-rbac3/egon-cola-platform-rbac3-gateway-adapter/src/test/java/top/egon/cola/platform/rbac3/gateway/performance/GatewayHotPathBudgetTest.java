@@ -77,10 +77,7 @@ class GatewayHotPathBudgetTest {
                 "policy", "/payments", "GET", Set.of("bearer"),
                 new GatewayPrincipal(
                         "user", "USER", "tenant", null, true,
-                        Map.of("rbac3.session-id", "session",
-                                "rbac3.auth-version", "3",
-                                "rbac3.session-version", "5",
-                                "rbac3.policy-version", "7")),
+                        Map.of()),
                 "127.0.0.1", "trace", "request",
                 Instant.parse("2026-07-30T08:00:05Z"), "release");
     }

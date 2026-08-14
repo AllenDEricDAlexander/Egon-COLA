@@ -40,9 +40,8 @@ public final class TransactionalOutboxAuthorizationEventPublisher
      * Meaning and usage: when reading, passing, or updating `DESTINATIONS`, preserve `TransactionalOutboxAuthorizationEventPublisher`'s lifecycle, immutability, and thread-safety constraints.
      */
     private static final Map<String, String> DESTINATIONS = Map.ofEntries(
-            Map.entry("RBAC3_SESSION_ACTIVE_ROLES_REPLACED",
+            Map.entry("RBAC3_USER_ACTIVE_ROLES_REPLACED",
                     "rbac3.role-activation.changed.v1"),
-            Map.entry("SESSION_REVOKED", "rbac3.session.revoked.v1"),
             Map.entry("ASSIGNMENT_CHANGED", "rbac3.assignment.changed.v1"),
             Map.entry("RESOURCE_MANIFEST_ACTIVATED", "rbac3.manifest.activated.v1"),
             Map.entry("RESOURCE_ARCHIVED", "rbac3.role.policy-changed.v1"),
@@ -168,7 +167,7 @@ public final class TransactionalOutboxAuthorizationEventPublisher
      */
     private long aggregateVersion(Map<String, String> payload) {
         for (String key : new String[]{
-                "aggregateVersion", "contextVersion", "sessionVersion", "authVersion",
+                "aggregateVersion", "contextVersion", "authVersion",
                 "policyVersion", "manifestVersion"}) {
             String value = payload.get(key);
             if (value != null) {

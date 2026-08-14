@@ -4,23 +4,19 @@ import java.util.List;
 import java.util.Objects;
 
 public record ActiveRoleSetView(
-        String sessionId,
         List<ApplicationActiveRoles> activeRoles,
         boolean activationRequired,
         long authVersion,
-        long sessionVersion,
         long policyVersion,
         String snapshotChecksum
 ) {
 
     public ActiveRoleSetView {
-        sessionId = required(sessionId, "sessionId");
         activeRoles = List.copyOf(Objects.requireNonNull(
                 activeRoles,
                 "activeRoles"
         ));
         nonNegative(authVersion, "authVersion");
-        nonNegative(sessionVersion, "sessionVersion");
         nonNegative(policyVersion, "policyVersion");
         snapshotChecksum = required(
                 snapshotChecksum,

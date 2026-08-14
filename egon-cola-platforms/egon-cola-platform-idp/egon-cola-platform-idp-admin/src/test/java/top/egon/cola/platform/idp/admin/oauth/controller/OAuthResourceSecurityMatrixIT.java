@@ -51,10 +51,10 @@ class OAuthResourceSecurityMatrixIT {
         OAuthClient client = publicClient();
 
         assertThat(policy.authorize(
-                client, IDP_URI, "alice", "tenant-1", "session-1")
+                        client, IDP_URI, "alice", "tenant-1")
                 .resourceUri()).isEqualTo(IDP_URI);
         assertThatThrownBy(() -> policy.authorize(
-                client, RBAC3_URI, "alice", "tenant-1", "session-1"))
+                client, RBAC3_URI, "alice", "tenant-1"))
                 .isInstanceOfSatisfying(ResourceAuthorizationException.class,
                         error -> assertThat(error.code())
                                 .isEqualTo("IDP_RESOURCE_ACCESS_DENIED"));
@@ -128,8 +128,7 @@ class OAuthResourceSecurityMatrixIT {
             @Override
             public TenantMembership resolve(
                     String identitySub,
-                    String tenantId,
-                    String clientId
+                    String tenantId
             ) {
                 return new TenantMembership(
                         identitySub, tenantId, "rbac-user-1", "Tenant 1",
@@ -137,11 +136,8 @@ class OAuthResourceSecurityMatrixIT {
             }
 
             @Override
-            public List<TenantMembership> list(
-                    String identitySub,
-                    String clientId
-            ) {
-                return List.of(resolve(identitySub, "tenant-1", clientId));
+            public List<TenantMembership> list(String identitySub) {
+                return List.of(resolve(identitySub, "tenant-1"));
             }
         };
     }

@@ -15,9 +15,18 @@ import top.egon.cola.component.ddc.model.management.DdcManagementServiceInstance
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceKey;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceSnapshot;
+import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
+import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 @RestController
 @RequestMapping("/api/v1/ddc/registry")
+@GatewayInterfaceGroup(
+        businessDomainCode = "platform",
+        businessDomainName = "平台治理域",
+        entityDomainCode = "ddc-admin",
+        entityDomainName = "Dynamic Config Center 管理实体域",
+        code = "ddc-admin-ddc-registry-admin-controller",
+        name = "DdcRegistryAdminController 管理接口组")
 public class DdcRegistryAdminController {
 
     private final DdcManagementFacade facade;
@@ -32,6 +41,7 @@ public class DdcRegistryAdminController {
         this.pageService = pageService;
     }
 
+    @GatewayOperation(externalAccessible = true)
     @GetMapping("/services")
     public ResultRecord<DdcManagementServiceCatalog> services(
             @RequestParam(value = "bizCode", required = false) String bizCode,
@@ -60,6 +70,7 @@ public class DdcRegistryAdminController {
         )));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @GetMapping("/services/page")
     public PageResultRecord<DdcManagementServiceKey> pageServices(
             @RequestParam(value = "bizCode", required = false) String bizCode,
@@ -85,6 +96,7 @@ public class DdcRegistryAdminController {
         ));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @GetMapping("/instances")
     public ResultRecord<DdcManagementServiceSnapshot> instances(
             @RequestParam("bizCode") String bizCode,
@@ -109,6 +121,7 @@ public class DdcRegistryAdminController {
         )));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @GetMapping("/instances/page")
     public PageResultRecord<DdcManagementServiceInstance> pageInstances(
             @RequestParam("bizCode") String bizCode,

@@ -39,10 +39,6 @@ class GatewayEngineRbac3ConfigurationTest {
                 properties,
                 "egon.cola.platform.rbac3.authorization.endpoint"
         ));
-        assertEquals("${GATEWAY_MCP_RBAC3_SERVICE_CREDENTIAL_FILE:}", value(
-                properties,
-                "egon.cola.platform.rbac3.authorization.service-credential-file"
-        ));
     }
 
     private String value(Properties properties, String key) {

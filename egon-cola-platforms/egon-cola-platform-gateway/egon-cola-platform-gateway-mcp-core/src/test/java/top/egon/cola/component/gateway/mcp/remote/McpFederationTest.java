@@ -356,10 +356,8 @@ class McpFederationTest {
                         Map.entry("tenantId", "tenant-a"),
                         Map.entry("traceparent", "00-trace-parent"),
                         Map.entry("idp.issuer", "https://idp.internal"),
-                        Map.entry("idp.session-id", "session-1"),
                         Map.entry("idp.client-id", "developer-web"),
                         Map.entry("idp.token-id", "token-1"),
-                        Map.entry("idp.token-version", "2"),
                         Map.entry("idp.resource-uri",
                                 "https://resource.egon.top/gateway-mcp"),
                         Map.entry(

@@ -73,7 +73,10 @@ public final class Rbac3BearerAuthenticationFilter extends OncePerRequestFilter 
      */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        return request.getRequestURI().startsWith("/internal/");
+        String path = request.getRequestURI();
+        // IdP protocol and identity endpoints are authenticated by IdP only;
+        // they must not require an RBAC3 authorization snapshot.
+        return path.startsWith("/internal/") || path.startsWith("/oauth2/");
     }
 
     /**

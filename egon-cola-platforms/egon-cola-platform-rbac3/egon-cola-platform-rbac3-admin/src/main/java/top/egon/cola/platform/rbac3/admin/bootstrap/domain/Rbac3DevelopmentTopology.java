@@ -1,7 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.bootstrap.domain;
 
-import java.util.List;
 import top.egon.cola.platform.rbac3.admin.bootstrap.domain.vo.ApplicationDefinitionVO;
+
+import java.util.List;
 
 /**
  * 本地开发环境使用的统一身份应用及管理权限拓扑。
@@ -49,9 +50,6 @@ public final class Rbac3DevelopmentTopology {
             "system:role:create",
             "system:role:read",
             "system:role:update",
-            "system:session:logout",
-            "system:session:read",
-            "system:session:revoke",
             "system:tenant:manage",
             "system:tenant:read",
             "system:tenant:target",

@@ -12,12 +12,13 @@ import java.util.Set;
 
 /**
  * 把已验证且不可变的身份字段映射为固定的后端可信请求头。
- * 映射前要求主体已经认证且租户存在，并只输出用户主体、租户、会话、客户端和令牌标识；
- * 用户资料与权限不会透传。
+ * 映射前要求主体已经认证且租户存在，并只输出已验证的主体、租户、令牌标识及
+ * SERVICE 机器身份属性；用户资料与权限不会透传。
  *
  * <p>Maps only verified immutable identity fields into fixed trusted downstream headers. The
- * principal must be authenticated and have a tenant, and only subject, tenant, session, client,
- * and token identifiers are emitted. User profile data and authorities are not propagated.</p>
+ * principal must be authenticated and have a tenant. USER principals are deliberately rejected;
+ * SERVICE mappings emit subject, tenant, token and verified machine attributes. User profile data
+ * and authorities are not propagated.</p>
  */
 public final class IdpTrustedIdentityMapper implements GatewayIdentityMapper {
 
@@ -79,23 +80,22 @@ public final class IdpTrustedIdentityMapper implements GatewayIdentityMapper {
             throw new IllegalArgumentException(
                     "authenticated IdP principal is required");
         }
+        if ("USER".equals(principal.principalType())) {
+            throw new IllegalArgumentException(
+                    "USER identity headers are not trusted downstream input");
+        }
         Map<String, String> attributes = principal.attributes();
         Map<String, String> headers = new LinkedHashMap<>();
         headers.put("X-Egon-Principal-Type", principal.principalType());
         headers.put("X-Egon-Identity-Sub", principal.principalId());
         headers.put("X-Egon-Tenant-Id", principal.tenantId());
-        headers.put("X-Egon-Client-Id", required(
-                attributes, "idp.client-id"));
         headers.put("X-Egon-Token-Id", required(
                 attributes, "idp.token-id"));
-        headers.put("X-Egon-Resource-Uri", required(
-                attributes, "idp.resource-uri"));
-        if ("USER".equals(principal.principalType())) {
-            headers.put("X-Egon-Session-Id", required(
-                    attributes, "idp.session-id"));
-            headers.put("X-Egon-Token-Version", required(
-                    attributes, "idp.token-version"));
-        } else if ("SERVICE".equals(principal.principalType())) {
+        if ("SERVICE".equals(principal.principalType())) {
+            headers.put("X-Egon-Client-Id", required(
+                    attributes, "idp.client-id"));
+            headers.put("X-Egon-Resource-Uri", required(
+                    attributes, "idp.resource-uri"));
             headers.put("X-Egon-Resource-Version", required(
                     attributes, "idp.resource-version"));
             headers.put("X-Egon-Source-Biz", required(

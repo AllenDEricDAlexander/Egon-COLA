@@ -3,12 +3,6 @@ spring:
     url: ${RBAC3_POSTGRES_URL:jdbc:postgresql://127.0.0.1:5432/egon_rbac3_unified_identity_local}
     username: ${RBAC3_POSTGRES_USER:postgres}
     password: ${RBAC3_POSTGRES_PASSWORD:HomeLab666}
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          public-key-location: ${RBAC3_JWT_PUBLIC_KEY_LOCATION:classpath:rbac3-local-public.pem}
-
 server:
   port: ${RBAC3_ADVERTISED_PORT:0}
 
@@ -31,7 +25,14 @@ egon.cola.platform:
       password-file: ${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/secrets/redis.password}
     authorization:
       endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
-      service-credential-file: ${RBAC3_ADMIN_SERVICE_CREDENTIAL_FILE:.runtime/unified-identity/rbac3-admin.service.jwt}
+      service-token:
+        enabled: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED:false}
+        token-endpoint: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_TOKEN_ENDPOINT:http://127.0.0.1:18120/oauth2/token}
+        client-id: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_CLIENT_ID:}
+        key-id: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_KEY_ID:}
+        private-key-file: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_PRIVATE_KEY_FILE:}
+        resource-uri: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_RESOURCE_URI:}
+        scopes: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_SCOPES:}
 
 egon:
   rbac3:
@@ -51,11 +52,6 @@ egon:
       release-id: ${GATEWAY_RELEASE_ID:local}
       oauth-token-file: ${GATEWAY_STATUS_OAUTH_TOKEN_FILE:build/local-gateway-status-token.json}
     security:
-      jwt-private-key-file: ${RBAC3_JWT_PRIVATE_KEY_FILE:build/local-rbac3-private.pem}
-      jwt-public-key-file: ${RBAC3_JWT_PUBLIC_KEY_FILE:build/local-rbac3-public.pem}
-      jwt-kid: ${RBAC3_JWT_KID:rbac3-local}
-      issuer: ${RBAC3_JWT_ISSUER:http://localhost:8080}
-      resource-uris: ${RBAC3_JWT_RESOURCE_URIS:https://api.egon.internal/local/permission/rbac3}
       audit-cursor-secret-file: ${RBAC3_AUDIT_CURSOR_SECRET_FILE:build/local-audit-secret}
   cola:
     component:

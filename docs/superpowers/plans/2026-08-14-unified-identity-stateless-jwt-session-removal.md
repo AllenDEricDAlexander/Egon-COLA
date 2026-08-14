@@ -659,7 +659,11 @@ Use the production names `__Host-egon_user_at`/`__Host-egon_user_rt`, or the exa
 
 - [ ] **Step 5: Delegate all JWT classification to Starter**
 
-`IdpGatewayJwtVerifier` calls `IdpJwtVerifier.verifyUser`; `IdpIdentityAuthenticationProvider` maps the result to Gateway `ALLOW/EXPIRED/INVALID` and creates `GatewayPrincipal(subject, tenantId, USER)` without Session/Client/TokenVersion attributes.
+`IdpGatewayJwtVerifier` calls `IdpJwtVerifier.verifyUser`; `IdpIdentityAuthenticationProvider` maps the result to
+Gateway `ALLOW/EXPIRED/INVALID` and creates `GatewayPrincipal(subject, tenantId, USER)` without Session, USER
+`client_id`, or TokenVersion attributes. It may expose the verified fixed USER `aud` as an internal `idp.audience`
+attribute solely for MCP protocol/application isolation; this is not a JWT `client_id`, and it is never trusted as a
+business permission.
 
 - [ ] **Step 6: Implement internal Refresh Client and Recovery Provider**
 
@@ -1284,7 +1288,12 @@ Assert exact public protocol endpoints, IDENTITY Step-up/UserInfo, every reporte
 
 - [ ] **Step 2: Rewrite shell contract assertions before scripts**
 
-`test-direct-run-contract.sh` must require one public Gateway origin for browser/API calls; forbid per-client USER token files, direct backend Admin Web proxies, OAuth callback env, `refresh-tokens`, `.service.jwt` static snapshot calls and RBAC password bootstrap. It must preserve SERVICE/Admission token fixtures needed by machine/MCP flows. It must also assert that the MCP-only `unified-platform-release.json` is not used to publish HTTP routes.
+`test-direct-run-contract.sh` must require one public Gateway origin for browser/API calls; forbid per-client USER token
+files, direct backend Admin Web proxies, OAuth callback env, the legacy `refresh-tokens` flow, static
+`RBAC3_SERVICE_CREDENTIAL_FILE` properties and RBAC password bootstrap. It must preserve short-lived SERVICE/Admission
+token fixtures needed by machine/control-plane/MCP flows, while asserting that runtime RBAC3 calls use IdP Client
+Assertion `service-token` configuration. It must also assert that the MCP-only `unified-platform-release.json` is not
+used to publish HTTP routes.
 
 - [ ] **Step 3: Verify RED without starting the stack**
 
@@ -1320,7 +1329,7 @@ bash scripts/unified-platform/test-direct-run-contract.sh
   -Dsurefire.failIfNoSpecifiedTests=false test
 ./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am \
   -DskipTests compile
-! rg -n "oauth/callback|refresh-tokens|\.service\.jwt|RBAC3_SERVICE_CREDENTIAL_FILE|sessionVersion|idp-admin\.access\.jwt|rbac3-default\.access\.jwt" \
+! rg -n "oauth/callback|refresh-tokens|RBAC3_SERVICE_CREDENTIAL_FILE|sessionVersion|idp-admin\.access\.jwt|rbac3-default\.access\.jwt" \
   scripts/unified-platform scripts/unified-identity-local.sh
 ```
 

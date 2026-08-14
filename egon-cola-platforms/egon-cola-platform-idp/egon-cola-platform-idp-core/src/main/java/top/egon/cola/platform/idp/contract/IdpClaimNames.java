@@ -9,14 +9,8 @@ public final class IdpClaimNames {
 
     /** 租户标识。 / Tenant identifier. */
     public static final String TENANT_ID = "tid";
-    /** 身份会话标识。 / Identity session identifier. */
-    public static final String SESSION_ID = "sid";
     /** OAuth Client 标识。 / OAuth Client identifier. */
     public static final String CLIENT_ID = "client_id";
-    /** 用户令牌版本。 / User token version. */
-    public static final String TOKEN_VERSION = "token_version";
-    /** OIDC nonce。 / OIDC nonce. */
-    public static final String NONCE = "nonce";
     /** USER 或 SERVICE 主体类型。 / USER or SERVICE principal type. */
     public static final String PRINCIPAL_TYPE = "principal_type";
     /** Resource Server 版本。 / Resource Server version. */
@@ -31,8 +25,6 @@ public final class IdpClaimNames {
     public static final String SOURCE_ENV = "source_env";
     /** Client 公钥 kid。 / Client public-key kid. */
     public static final String CREDENTIAL_ID = "credential_id";
-    /** RFC 8707 Resource URI。 / RFC 8707 Resource URI. */
-    public static final String RESOURCE = "resource";
     /** JWT 专用用途。 / Dedicated JWT use. */
     public static final String TOKEN_USE = "token_use";
     /** Resource 业务域。 / Resource business domain. */

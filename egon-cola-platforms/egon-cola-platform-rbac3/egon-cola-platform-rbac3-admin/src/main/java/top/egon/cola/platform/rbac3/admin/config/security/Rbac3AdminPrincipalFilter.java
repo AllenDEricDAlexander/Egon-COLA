@@ -58,8 +58,7 @@ public final class Rbac3AdminPrincipalFilter extends OncePerRequestFilter {
             var snapshot = context.snapshot();
             var principal = new CurrentRbac3Principal(
                     snapshot.tenantId(), snapshot.identitySub(),
-                    snapshot.rbac3UserId(), snapshot.sessionId(),
-                    snapshot.authVersion(), snapshot.contextVersion(),
+                    snapshot.rbac3UserId(), snapshot.authVersion(),
                     snapshot.policyVersion(), snapshot.permissions(),
                     snapshot.permissions().contains("system:platform:admin"));
             var projected = SecurityContextHolder.createEmptyContext();

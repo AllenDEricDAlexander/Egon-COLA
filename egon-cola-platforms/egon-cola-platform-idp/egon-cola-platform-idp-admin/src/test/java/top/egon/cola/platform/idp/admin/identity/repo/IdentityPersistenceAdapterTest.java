@@ -1,11 +1,11 @@
 package top.egon.cola.platform.idp.admin.identity.repo;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.test.context.ContextConfiguration;
@@ -42,7 +42,7 @@ class IdentityPersistenceAdapterTest {
 
     @Test
     void persistsAndFindsGlobalUserAndCredential() {
-        IdentityUser user = user(0L, 0L);
+        IdentityUser user = user(0L);
         adapter.save(user, 0L);
         adapter.save(credential(0L), 0L);
 
@@ -55,24 +55,23 @@ class IdentityPersistenceAdapterTest {
 
     @Test
     void rejectsStaleExpectedVersion() {
-        adapter.save(user(0L, 0L), 0L);
-        adapter.save(user(1L, 1L), 0L);
+        adapter.save(user(0L), 0L);
+        adapter.save(user(1L), 0L);
 
         OptimisticLockingFailureException exception = assertThrows(
                 OptimisticLockingFailureException.class,
-                () -> adapter.save(user(2L, 2L), 0L)
+                () -> adapter.save(user(2L), 0L)
         );
         assertTrue(exception.getMessage().contains("1001"));
     }
 
-    private IdentityUser user(long tokenVersion, long version) {
+    private IdentityUser user(long version) {
         return new IdentityUser(
                 "1001",
                 "Alice",
                 "alice",
                 "Alice",
                 IdentityUserStatus.ACTIVE,
-                tokenVersion,
                 0,
                 null,
                 null,

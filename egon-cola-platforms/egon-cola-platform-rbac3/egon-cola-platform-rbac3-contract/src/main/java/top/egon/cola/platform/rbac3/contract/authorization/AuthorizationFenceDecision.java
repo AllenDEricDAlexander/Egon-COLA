@@ -10,13 +10,11 @@ public record AuthorizationFenceDecision(
         String tenantId,
         String subjectId,
         String permissionCode,
-        String sessionId,
         String snapshotChecksum,
         String businessResource,
         String businessId,
         String traceId,
         long authVersion,
-        long sessionVersion,
         long policyVersion,
         List<String> evidenceIds,
         Instant decidedAt,
@@ -29,7 +27,6 @@ public record AuthorizationFenceDecision(
         tenantId = required(tenantId, "tenantId");
         subjectId = required(subjectId, "subjectId");
         permissionCode = required(permissionCode, "permissionCode");
-        sessionId = required(sessionId, "sessionId");
         snapshotChecksum = required(
                 snapshotChecksum,
                 "snapshotChecksum"
@@ -41,7 +38,6 @@ public record AuthorizationFenceDecision(
         businessId = required(businessId, "businessId");
         traceId = required(traceId, "traceId");
         nonNegative(authVersion, "authVersion");
-        nonNegative(sessionVersion, "sessionVersion");
         nonNegative(policyVersion, "policyVersion");
         evidenceIds = List.copyOf(Objects.requireNonNull(
                 evidenceIds,

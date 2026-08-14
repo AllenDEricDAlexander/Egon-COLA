@@ -20,9 +20,7 @@ public final class Rbac3ReservedHeaderSanitizer {
             "authorization",
             "x-egon-gateway-tenant-id",
             "x-egon-gateway-user-id",
-            "x-egon-gateway-session-id",
             "x-egon-gateway-auth-version",
-            "x-egon-gateway-session-version",
             "x-egon-gateway-policy-version",
             "x-egon-gateway-trace-id"
     );

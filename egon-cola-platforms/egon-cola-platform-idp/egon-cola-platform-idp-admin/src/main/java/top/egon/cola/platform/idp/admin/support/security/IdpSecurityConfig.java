@@ -1,7 +1,7 @@
 package top.egon.cola.platform.idp.admin.support.security;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.access.AccessDeniedException;
@@ -9,11 +9,11 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
+import top.egon.cola.platform.idp.starter.security.IdpEndpointAuthenticationPolicy;
 import top.egon.cola.platform.rbac3.contract.authorization.Decision;
 import top.egon.cola.platform.rbac3.contract.authorization.PermissionRequest;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
@@ -29,6 +29,29 @@ import java.util.List;
  */
 @Configuration(proxyBeanMethods = false)
 public class IdpSecurityConfig {
+
+    /**
+     * 将 IdP 开放协议面精确标记为 PUBLIC；其余 IdP Admin 路径默认使用 USER。
+     *
+     * <p>Marks only the IdP public protocol surface as PUBLIC; all other IdP Admin paths use the
+     * starter's USER default.</p>
+     */
+    @Bean
+    @ConditionalOnMissingBean(IdpEndpointAuthenticationPolicy.class)
+    IdpEndpointAuthenticationPolicy idpEndpointAuthenticationPolicy() {
+        return new IdpEndpointAuthenticationPolicy(
+                List.of(
+                        "/.well-known/oauth-authorization-server",
+                        "/oauth2/jwks",
+                        "/oauth2/login/csrf",
+                        "/oauth2/login",
+                        "/oauth2/token",
+                        "/oauth2/revoke",
+                        "/oauth2/logout",
+                        "/actuator/health/liveness",
+                        "/actuator/health/readiness"),
+                List.of());
+    }
 
     /**
      * 创建 IdP Security 配置实例。
@@ -47,9 +70,6 @@ public class IdpSecurityConfig {
      * @param http Spring Security HTTP 配置；Spring Security HTTP configuration
      * @param idpFilters IdP Bearer 过滤器候选；IdP Bearer filter candidate
      * @param rbac3Filters RBAC3 Bearer 过滤器候选；RBAC3 Bearer filter candidate
-     * @param ssoFilters SSO 身份恢复过滤器候选；SSO identity-restoration filter candidate
-     * @param authorizationEntryPoints OAuth 授权登录入口候选；OAuth authorization entry-point
-     * candidate
      * @return IdP Security Filter Chain；IdP Security Filter Chain
      * @throws Exception Spring Security 装配失败时抛出；when Spring Security wiring fails
      */
@@ -57,16 +77,10 @@ public class IdpSecurityConfig {
     SecurityFilterChain idpAdminSecurityFilterChain(
             HttpSecurity http,
             ObjectProvider<IdpBearerAuthenticationFilter> idpFilters,
-            ObjectProvider<Rbac3BearerAuthenticationFilter> rbac3Filters,
-            ObjectProvider<IdpSsoAuthenticationFilter> ssoFilters,
-            ObjectProvider<IdpAuthorizationAuthenticationEntryPoint>
-                    authorizationEntryPoints)
+            ObjectProvider<Rbac3BearerAuthenticationFilter> rbac3Filters)
             throws Exception {
         IdpBearerAuthenticationFilter idpFilter = idpFilters.getIfAvailable();
         Rbac3BearerAuthenticationFilter rbac3Filter = rbac3Filters.getIfAvailable();
-        IdpSsoAuthenticationFilter ssoFilter = ssoFilters.getIfAvailable();
-        IdpAuthorizationAuthenticationEntryPoint authorizationEntryPoint =
-                authorizationEntryPoints.getIfAvailable();
         http
                 .csrf(csrf -> csrf.ignoringRequestMatchers(
                         "/api/**",
@@ -86,6 +100,7 @@ public class IdpSecurityConfig {
                                 "/oauth2/login/**",
                                 "/oauth2/token",
                                 "/oauth2/revoke",
+                                "/oauth2/logout",
                                 "/actuator/health/liveness",
                                 "/actuator/health/readiness"
                         ).permitAll()
@@ -97,26 +112,14 @@ public class IdpSecurityConfig {
                                         .ReferrerPolicyHeaderWriter.ReferrerPolicy
                                         .NO_REFERRER
                         )));
-        if (authorizationEntryPoint != null) {
-            http.exceptionHandling(exceptions -> exceptions
-                    .defaultAuthenticationEntryPointFor(
-                            authorizationEntryPoint,
-                            new AntPathRequestMatcher("/oauth2/authorize")
-                    ));
-        }
-        if (ssoFilter != null) {
-            http.addFilterBefore(ssoFilter, AnonymousAuthenticationFilter.class);
-        }
-        if (idpFilter != null && rbac3Filter != null) {
+        if (idpFilter != null) {
             http.addFilterBefore(idpFilter, AnonymousAuthenticationFilter.class);
-            http.addFilterAfter(rbac3Filter, IdpBearerAuthenticationFilter.class);
-        } else if (idpFilter == null && rbac3Filter == null) {
-            http.oauth2ResourceServer(resourceServer -> resourceServer.jwt(
-                    jwt -> jwt.jwtAuthenticationConverter(
-                            new IdpJwtAuthenticationConverter())));
-        } else {
+            if (rbac3Filter != null) {
+                http.addFilterAfter(rbac3Filter, IdpBearerAuthenticationFilter.class);
+            }
+        } else if (rbac3Filter != null) {
             throw new IllegalStateException(
-                    "IdP and RBAC3 authentication filters must be configured together");
+                    "RBAC3 authentication filter requires the IdP bearer filter");
         }
         return http.build();
     }

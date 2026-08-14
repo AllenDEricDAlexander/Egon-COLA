@@ -30,12 +30,6 @@ public class IdentityAuditLogEntity {
     @Column(name = "tenant_id", length = 64)
     private String tenantId;
 
-    @Column(name = "session_id", length = 64)
-    private String sessionId;
-
-    @Column(name = "client_id", length = 128)
-    private String clientId;
-
     @Column(name = "source_ip", length = 64)
     private String sourceIp;
 

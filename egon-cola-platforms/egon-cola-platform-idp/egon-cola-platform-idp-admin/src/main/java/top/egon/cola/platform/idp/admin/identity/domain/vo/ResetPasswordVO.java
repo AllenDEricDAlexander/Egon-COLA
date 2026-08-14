@@ -8,7 +8,6 @@ package top.egon.cola.platform.idp.admin.identity.domain.vo;
 public record ResetPasswordVO(
         String subject,
         String oneTimePassword,
-        boolean mustChangePassword,
-        long tokenVersion
+        boolean mustChangePassword
 ) {
 }

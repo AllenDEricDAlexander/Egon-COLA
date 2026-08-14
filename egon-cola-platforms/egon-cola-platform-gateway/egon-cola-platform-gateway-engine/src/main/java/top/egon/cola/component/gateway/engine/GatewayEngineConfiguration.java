@@ -8,9 +8,9 @@ import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -21,26 +21,27 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
-import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
-import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
-import top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.api.extension.DdcInstanceMetadataContributor;
+import top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry;
+import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
+import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.gateway.core.http.HttpRequestNormalizer;
+import top.egon.cola.component.gateway.core.mcp.remote.RemoteAuthProvider;
 import top.egon.cola.component.gateway.core.mcp.security.McpApprovalPort;
 import top.egon.cola.component.gateway.core.mcp.security.McpAuthorizationPort;
-import top.egon.cola.component.gateway.core.mcp.remote.RemoteAuthProvider;
 import top.egon.cola.component.gateway.core.provider.ProviderProtocolType;
 import top.egon.cola.component.gateway.core.route.HttpRouteCompiler;
 import top.egon.cola.component.gateway.core.security.GatewayAuthenticationProvider;
 import top.egon.cola.component.gateway.core.security.GatewayAuthorizationProvider;
 import top.egon.cola.component.gateway.core.security.GatewayCredentialExtractor;
+import top.egon.cola.component.gateway.core.security.GatewayCredentialRecoveryProvider;
 import top.egon.cola.component.gateway.core.security.GatewayIdentityMapper;
 import top.egon.cola.component.gateway.core.transport.GatewayTransportDefaults;
 import top.egon.cola.component.gateway.core.transport.GatewayTransportSafetyLimits;
-import top.egon.cola.component.gateway.engine.discovery.DdcProviderServiceRegistryAdapter;
-import top.egon.cola.component.gateway.engine.discovery.DirectoryProviderSelector;
 import top.egon.cola.component.gateway.engine.discovery.ActiveHealthProbePolicy;
 import top.egon.cola.component.gateway.engine.discovery.ActiveHealthTracker;
+import top.egon.cola.component.gateway.engine.discovery.DdcProviderServiceRegistryAdapter;
+import top.egon.cola.component.gateway.engine.discovery.DirectoryProviderSelector;
 import top.egon.cola.component.gateway.engine.discovery.HttpProviderActiveHealthProbe;
 import top.egon.cola.component.gateway.engine.discovery.PassiveHealthPolicy;
 import top.egon.cola.component.gateway.engine.discovery.PassiveHealthTracker;
@@ -56,6 +57,22 @@ import top.egon.cola.component.gateway.engine.http.RuleBackedHttpGatewaySecurity
 import top.egon.cola.component.gateway.engine.http.proxy.AggregatedHttpProxyStrategy;
 import top.egon.cola.component.gateway.engine.http.proxy.GatewayHttpProxyStrategySelector;
 import top.egon.cola.component.gateway.engine.http.proxy.StreamingHttpProxyStrategy;
+import top.egon.cola.component.gateway.engine.mcp.FileSystemMcpAppArtifactReader;
+import top.egon.cola.component.gateway.engine.mcp.HttpMcpTaskServiceTokenSupplier;
+import top.egon.cola.component.gateway.engine.mcp.JdbcMcpRuntimeTaskStore;
+import top.egon.cola.component.gateway.engine.mcp.McpAuditPublisher;
+import top.egon.cola.component.gateway.engine.mcp.McpEngineHttpHandler;
+import top.egon.cola.component.gateway.engine.mcp.McpGatewayIdentityAuthenticator;
+import top.egon.cola.component.gateway.engine.mcp.McpRuntimeHealthIndicator;
+import top.egon.cola.component.gateway.engine.mcp.McpRuntimeProperties;
+import top.egon.cola.component.gateway.engine.mcp.McpTaskOperationExecutor;
+import top.egon.cola.component.gateway.engine.mcp.McpTaskServiceTokenSupplier;
+import top.egon.cola.component.gateway.engine.mcp.McpTaskWorker;
+import top.egon.cola.component.gateway.engine.mcp.MicrometerMcpTelemetry;
+import top.egon.cola.component.gateway.engine.mcp.RedisMcpSessionStore;
+import top.egon.cola.component.gateway.engine.mcp.remote.ReactorNettyRemoteMcpClient;
+import top.egon.cola.component.gateway.engine.mcp.security.JdbcMcpApprovalAdapter;
+import top.egon.cola.component.gateway.engine.mcp.security.Rbac3McpAuthorizationAdapter;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallAccessLogger;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallCompletionListener;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallEventDispatcher;
@@ -63,26 +80,10 @@ import top.egon.cola.component.gateway.engine.observability.GatewayCallEventSeri
 import top.egon.cola.component.gateway.engine.observability.GatewayCallMetricsListener;
 import top.egon.cola.component.gateway.engine.observability.GatewayTelemetry;
 import top.egon.cola.component.gateway.engine.observability.KafkaGatewayCallEventSink;
-import top.egon.cola.component.gateway.engine.mcp.McpEngineHttpHandler;
-import top.egon.cola.component.gateway.engine.mcp.McpGatewayIdentityAuthenticator;
-import top.egon.cola.component.gateway.engine.mcp.JdbcMcpRuntimeTaskStore;
-import top.egon.cola.component.gateway.engine.mcp.McpAuditPublisher;
-import top.egon.cola.component.gateway.engine.mcp.McpRuntimeHealthIndicator;
-import top.egon.cola.component.gateway.engine.mcp.McpRuntimeProperties;
-import top.egon.cola.component.gateway.engine.mcp.McpTaskWorker;
-import top.egon.cola.component.gateway.engine.mcp.HttpMcpTaskServiceTokenSupplier;
-import top.egon.cola.component.gateway.engine.mcp.McpTaskOperationExecutor;
-import top.egon.cola.component.gateway.engine.mcp.McpTaskServiceTokenSupplier;
-import top.egon.cola.component.gateway.engine.mcp.MicrometerMcpTelemetry;
-import top.egon.cola.component.gateway.engine.mcp.FileSystemMcpAppArtifactReader;
-import top.egon.cola.component.gateway.engine.mcp.RedisMcpSessionStore;
-import top.egon.cola.component.gateway.engine.mcp.remote.ReactorNettyRemoteMcpClient;
-import top.egon.cola.component.gateway.engine.mcp.security.JdbcMcpApprovalAdapter;
-import top.egon.cola.component.gateway.engine.mcp.security.Rbac3McpAuthorizationAdapter;
 import top.egon.cola.component.gateway.engine.operation.DefaultGatewayOperationTransport;
 import top.egon.cola.component.gateway.engine.operation.EngineGatewayOperationInvoker;
-import top.egon.cola.component.gateway.engine.rpc.RpcGatewayForwarder;
 import top.egon.cola.component.gateway.engine.rpc.HttpRpcUpstreamAdapter;
+import top.egon.cola.component.gateway.engine.rpc.RpcGatewayForwarder;
 import top.egon.cola.component.gateway.engine.rpc.RpcGatewayHandlerRegistry;
 import top.egon.cola.component.gateway.engine.rpc.RpcGatewayServer;
 import top.egon.cola.component.gateway.engine.rpc.RpcGatewaySlotProperties;
@@ -107,18 +108,25 @@ import top.egon.cola.component.gateway.engine.traffic.RedissonRedisTokenBucketEx
 import top.egon.cola.component.gateway.engine.transport.GatewayTransportDispatcher;
 import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketProxy;
 import top.egon.cola.component.gateway.engine.websocket.ReactorNettyWebSocketUpstreamAdapter;
-import top.egon.cola.component.gateway.mcp.completion.DictionaryCompletionProvider;
-import top.egon.cola.component.gateway.mcp.completion.McpCompletionHandler;
-import top.egon.cola.component.gateway.mcp.completion.OperationCompletionProvider;
 import top.egon.cola.component.gateway.mcp.app.AppUiResourceDriver;
 import top.egon.cola.component.gateway.mcp.app.McpAppRuntime;
 import top.egon.cola.component.gateway.mcp.app.McpAppSecurityValidator;
+import top.egon.cola.component.gateway.mcp.completion.DictionaryCompletionProvider;
+import top.egon.cola.component.gateway.mcp.completion.McpCompletionHandler;
+import top.egon.cola.component.gateway.mcp.completion.OperationCompletionProvider;
 import top.egon.cola.component.gateway.mcp.prompt.McpPromptDriver;
 import top.egon.cola.component.gateway.mcp.prompt.McpPromptsGetHandler;
 import top.egon.cola.component.gateway.mcp.prompt.McpPromptsListHandler;
 import top.egon.cola.component.gateway.mcp.prompt.OperationPromptDriver;
 import top.egon.cola.component.gateway.mcp.prompt.StaticPromptDriver;
 import top.egon.cola.component.gateway.mcp.prompt.StrictPromptTemplate;
+import top.egon.cola.component.gateway.mcp.remote.McpDialectTranslator;
+import top.egon.cola.component.gateway.mcp.remote.McpNamespaceRouter;
+import top.egon.cola.component.gateway.mcp.remote.McpRemoteClientPool;
+import top.egon.cola.component.gateway.mcp.remote.RemoteMcpCompletionProvider;
+import top.egon.cola.component.gateway.mcp.remote.RemoteMcpPromptDriver;
+import top.egon.cola.component.gateway.mcp.remote.RemoteMcpResourceDriver;
+import top.egon.cola.component.gateway.mcp.remote.RemoteMcpToolDriver;
 import top.egon.cola.component.gateway.mcp.resource.DatabaseSchemaResourceDriver;
 import top.egon.cola.component.gateway.mcp.resource.McpResourceCatalog;
 import top.egon.cola.component.gateway.mcp.resource.McpResourceDriver;
@@ -130,13 +138,6 @@ import top.egon.cola.component.gateway.mcp.resource.ObjectStorageResourceDriver;
 import top.egon.cola.component.gateway.mcp.resource.OperationResourceDriver;
 import top.egon.cola.component.gateway.mcp.resource.StaticBlobResourceDriver;
 import top.egon.cola.component.gateway.mcp.resource.StaticTextResourceDriver;
-import top.egon.cola.component.gateway.mcp.remote.McpDialectTranslator;
-import top.egon.cola.component.gateway.mcp.remote.McpNamespaceRouter;
-import top.egon.cola.component.gateway.mcp.remote.McpRemoteClientPool;
-import top.egon.cola.component.gateway.mcp.remote.RemoteMcpCompletionProvider;
-import top.egon.cola.component.gateway.mcp.remote.RemoteMcpPromptDriver;
-import top.egon.cola.component.gateway.mcp.remote.RemoteMcpResourceDriver;
-import top.egon.cola.component.gateway.mcp.remote.RemoteMcpToolDriver;
 import top.egon.cola.component.gateway.mcp.rule.CompiledMcpRules;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
 import top.egon.cola.component.gateway.mcp.server.McpMethodDispatcher;
@@ -339,12 +340,14 @@ public class GatewayEngineConfiguration {
             ObjectProvider<GatewayCredentialExtractor> extractors,
             ObjectProvider<GatewayAuthenticationProvider> authentications,
             ObjectProvider<GatewayAuthorizationProvider> authorizations,
-            ObjectProvider<GatewayIdentityMapper> identityMappers) {
+            ObjectProvider<GatewayIdentityMapper> identityMappers,
+            ObjectProvider<GatewayCredentialRecoveryProvider> recoveries) {
         return new GatewaySecurityCapabilityRegistry(
                 extractors.orderedStream().toList(),
                 authentications.orderedStream().toList(),
                 authorizations.orderedStream().toList(),
-                identityMappers.orderedStream().toList()
+                identityMappers.orderedStream().toList(),
+                recoveries.orderedStream().toList()
         );
     }
 

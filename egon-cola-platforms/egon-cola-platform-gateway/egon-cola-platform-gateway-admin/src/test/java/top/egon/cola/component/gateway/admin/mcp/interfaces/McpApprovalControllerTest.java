@@ -6,6 +6,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.security.core.Authentication;
 import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpApprovalRepository;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityDigests;
+import top.egon.cola.platform.idp.contract.AuthenticationContext;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 
 import java.security.SecureRandom;
@@ -14,7 +15,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -86,13 +86,11 @@ class McpApprovalControllerTest {
         return new IdentityPrincipal(
                 "alice-sub",
                 "tenant-a",
-                "session-1",
-                "finance-web",
                 "token-1",
-                2L,
-                Set.of("gateway-admin"),
+                Set.of("finance-web"),
                 NOW.minusSeconds(30),
-                NOW.plusSeconds(300)
+                NOW.plusSeconds(300),
+                AuthenticationContext.password()
         );
     }
 }

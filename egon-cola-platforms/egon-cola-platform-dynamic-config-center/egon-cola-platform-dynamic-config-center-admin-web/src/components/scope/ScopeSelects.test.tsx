@@ -1,9 +1,9 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
-import { useState } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { setDdcTokenProvider, setDdcUnauthorizedHandler } from '../../api/client'
-import { renderWithQueryClient } from '../../test/renderWithQueryClient'
-import ScopeSelects, { type ScopeValue } from './ScopeSelects'
+import {fireEvent, screen, waitFor} from '@testing-library/react'
+import {useState} from 'react'
+import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {setDdcUnauthorizedHandler} from '../../api/client'
+import {renderWithQueryClient} from '../../test/renderWithQueryClient'
+import ScopeSelects, {type ScopeValue} from './ScopeSelects'
 
 // 说明：jsdom + React 19 下 antd 下拉 portal 的选项点击事件无法送达 React（环境缺口，
 // 真实浏览器无此问题）。交互测试统一走"输入 + Enter"路径，下拉选项只做渲染断言。
@@ -42,7 +42,6 @@ const mockScopeEndpoints = (bizs: string[], apps: string[], nss: string[], envs:
 
 describe('ScopeSelects', () => {
   beforeEach(() => {
-    setDdcTokenProvider(() => 'token')
     setDdcUnauthorizedHandler(() => {})
     vi.stubGlobal('fetch', vi.fn())
   })

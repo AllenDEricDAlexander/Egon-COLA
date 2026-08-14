@@ -57,7 +57,6 @@ class IdpBootstrapServiceTest {
                 "alice",
                 "alice",
                 IdentityUserStatus.ACTIVE,
-                0L,
                 0,
                 null,
                 null,

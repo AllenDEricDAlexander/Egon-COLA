@@ -9,7 +9,6 @@ import java.util.TreeSet;
 public record ActiveRoleSet(
         String tenantId,
         String userId,
-        String sessionId,
         Map<String, Set<String>> rootsByApplication,
         String checksum
 ) {
@@ -17,7 +16,6 @@ public record ActiveRoleSet(
     public ActiveRoleSet {
         tenantId = required(tenantId, "tenantId");
         userId = required(userId, "userId");
-        sessionId = required(sessionId, "sessionId");
         checksum = required(checksum, "checksum");
         var normalized = new TreeMap<String, Set<String>>();
         rootsByApplication.forEach((applicationId, rootIds) -> normalized.put(

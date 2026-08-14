@@ -26,6 +26,7 @@ import top.egon.cola.platform.idp.core.port.IdentityUserStore;
 import top.egon.cola.platform.idp.core.port.OAuthClientStore;
 import top.egon.cola.platform.idp.core.port.PasswordCredentialStore;
 import top.egon.cola.platform.idp.core.port.PasswordHashPort;
+import top.egon.cola.platform.idp.core.port.RefreshTokenStore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -70,6 +71,7 @@ class SpringConstructorResolutionTest {
                 PasswordHashPort.class,
                 IdentityUserStatePort.class,
                 IdentitySecurityEventPort.class,
+                RefreshTokenStore.class,
                 LongIdGenerator.class
         )) {
             context.registerBean(IdentityUserServiceImpl.class);

@@ -6,7 +6,6 @@ import {AuthProvider, useAuth} from '../auth/AuthContext'
 import {AdminLayout} from './AdminLayout'
 
 const CentralLoginPage = lazy(() => import('../auth/CentralLoginPage').then(m => ({ default: m.CentralLoginPage })))
-const CallbackPage = lazy(() => import('../auth/CallbackPage').then(m => ({ default: m.CallbackPage })))
 const OverviewPage = lazy(() => import('../features/overview/OverviewPage').then(m => ({ default: m.OverviewPage })))
 const UserListPage = lazy(() => import('../features/users/UserListPage').then(m => ({ default: m.UserListPage })))
 const ClientListPage = lazy(() => import('../features/clients/ClientListPage').then(m => ({ default: m.ClientListPage })))
@@ -41,7 +40,6 @@ export const AppRouter = () => (
       <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/login" element={<LoginRoute />} />
-          <Route path="/oauth/callback" element={<CallbackPage />} />
           <Route element={<ConsoleGuard />}>
             <Route index element={<Navigate to="/overview" replace />} />
             <Route path="/overview" element={<OverviewPage />} />

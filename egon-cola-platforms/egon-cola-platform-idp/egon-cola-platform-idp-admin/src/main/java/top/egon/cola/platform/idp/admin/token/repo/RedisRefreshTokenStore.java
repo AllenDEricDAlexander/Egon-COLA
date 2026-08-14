@@ -5,34 +5,34 @@ import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 import org.springframework.core.io.ClassPathResource;
 import top.egon.cola.platform.idp.core.port.RefreshTokenStore;
-import top.egon.cola.platform.idp.core.token.RefreshFamily;
+import top.egon.cola.platform.idp.core.token.RefreshTokenRecord;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
+/**
+ * Redis-backed stable refresh-token metadata store.
+ * 基于 Redis 的稳定 Refresh Token 元数据存储，只保存摘要和索引。
+ */
 public final class RedisRefreshTokenStore implements RefreshTokenStore {
 
     private static final Pattern SAFE_SEGMENT = Pattern.compile(
-            "[A-Za-z0-9._~-]{1,128}"
-    );
+            "[A-Za-z0-9._~-]{1,128}");
     private static final Pattern DIGEST = Pattern.compile(
-            "[A-Za-z0-9_-]{43}"
-    );
-    private static final String SCRIPT_LOCATION =
-            "redis/rotate-refresh-token.lua";
+            "[A-Za-z0-9_-]{43}");
+    private static final String SCRIPT_LOCATION = "redis/manage-refresh-token.lua";
+    private static final String FIELD_SEPARATOR = "\u001f";
 
     private final RScript script;
     private final String keyPrefix;
     private final String scriptSource;
 
-    public RedisRefreshTokenStore(
-            RedissonClient redisson,
-            String keyPrefix
-    ) {
+    public RedisRefreshTokenStore(RedissonClient redisson, String keyPrefix) {
         Objects.requireNonNull(redisson, "redisson");
         this.script = redisson.getScript(StringCodec.INSTANCE);
         this.keyPrefix = validPrefix(keyPrefix);
@@ -40,95 +40,70 @@ public final class RedisRefreshTokenStore implements RefreshTokenStore {
     }
 
     @Override
-    public void create(RefreshFamily family) {
-        Objects.requireNonNull(family, "family");
+    public void create(RefreshTokenRecord record) {
+        Objects.requireNonNull(record, "record");
+        if (record.status() != RefreshTokenRecord.Status.ACTIVE) {
+            throw new IllegalArgumentException("new refresh record must be active");
+        }
         String result = evaluate(
-                List.of(
-                        familyKey(family.familyId()),
-                        digestKey(family.currentTokenDigest()),
-                        subjectIndexKey(family.identitySub())
-                ),
+                List.of(tokenKey(record.tokenDigest()), subjectIndexKey(record.identitySub())),
                 "CREATE",
-                family.familyId(),
-                family.identitySub(),
-                family.tenantId(),
-                family.sessionId(),
-                family.clientId(),
-                Long.toString(family.tokenVersion()),
-                Long.toString(family.generation()),
-                digest(family.currentTokenDigest()),
-                family.status().name(),
-                millis(family.createdAt()),
-                millis(family.updatedAt()),
-                millis(family.expiresAt())
-        );
+                segment(record.identitySub(), "identitySub"),
+                segment(record.tenantId(), "tenantId"),
+                millis(record.issuedAt()),
+                millis(record.expiresAt()));
         if (!"CREATED".equals(result)) {
-            throw new IllegalStateException("refresh family collision");
+            throw new IllegalStateException("refresh token collision");
         }
     }
 
     @Override
-    public RotationResult rotate(RotationCommand command) {
-        Objects.requireNonNull(command, "command");
-        String familyId = segment(command.familyId(), "familyId");
-        String currentDigest = digest(command.currentTokenDigest());
-        String successorDigest = digest(command.successorTokenDigest());
+    public Optional<RefreshTokenRecord> findValid(String tokenDigest, Instant now) {
         String result = evaluate(
-                List.of(
-                        familyKey(familyId),
-                        digestKey(currentDigest),
-                        digestKey(successorDigest)
-                ),
-                "ROTATE",
-                familyId,
-                currentDigest,
-                successorDigest,
-                Long.toString(command.successorGeneration()),
-                segment(command.expectedIdentitySub(), "identitySub"),
-                Long.toString(command.expectedTokenVersion()),
-                millis(command.expiresAt()),
-                millis(command.now())
-        );
+                List.of(tokenKey(tokenDigest)), "FIND", millis(now));
+        if (result == null || result.isBlank()) {
+            return Optional.empty();
+        }
+        String[] fields = result.split(FIELD_SEPARATOR, -1);
+        if (fields.length != 5) {
+            throw new IllegalStateException("invalid refresh metadata");
+        }
         try {
-            return new RotationResult(
-                    RotationOutcome.valueOf(result),
-                    null
-            );
-        } catch (IllegalArgumentException exception) {
-            throw new IllegalStateException(
-                    "unexpected refresh rotation result",
-                    exception
-            );
+            return Optional.of(new RefreshTokenRecord(
+                    validDigest(tokenDigest),
+                    fields[0],
+                    fields[1],
+                    Instant.ofEpochMilli(Long.parseLong(fields[2])),
+                    Instant.ofEpochMilli(Long.parseLong(fields[3])),
+                    RefreshTokenRecord.Status.valueOf(fields[4])));
+        } catch (RuntimeException exception) {
+            throw new IllegalStateException("invalid refresh metadata", exception);
         }
     }
 
     @Override
-    public void revokeFamily(
-            String familyId,
-            String reason,
-            Instant now
-    ) {
+    public void revokeToken(String tokenDigest, String reason, Instant now) {
         evaluate(
-                List.of(familyKey(familyId)),
-                "REVOKE_FAMILY",
-                segment(familyId, "familyId"),
+                List.of(tokenKey(tokenDigest)),
+                "REVOKE_TOKEN",
                 reason(reason),
-                millis(now)
-        );
+                millis(now));
     }
 
     @Override
-    public void revokeSubject(
-            String identitySub,
-            String reason,
-            Instant now
-    ) {
+    public void revokeSubject(String identitySub, String reason, Instant now) {
         evaluate(
                 List.of(subjectIndexKey(identitySub)),
                 "REVOKE_SUBJECT",
                 reason(reason),
-                millis(now)
-        );
+                millis(now));
+    }
+
+    @Override
+    public void expire(Instant now) {
+        // Token keys and subject indexes use PEXPIREAT at creation. Redis performs
+        // the global expiry without a KEYS/SCAN pass; this call is intentionally idempotent.
+        Objects.requireNonNull(now, "now");
     }
 
     public String scriptSource() {
@@ -141,33 +116,23 @@ public final class RedisRefreshTokenStore implements RefreshTokenStore {
                 scriptSource,
                 RScript.ReturnType.VALUE,
                 keys,
-                arguments
-        );
+                arguments);
     }
 
-    private String familyKey(String familyId) {
-        return keyPrefix + "refresh-family:"
-                + segment(familyId, "familyId");
-    }
-
-    private String digestKey(String tokenDigest) {
-        return keyPrefix + "refresh:" + digest(tokenDigest);
+    private String tokenKey(String tokenDigest) {
+        return keyPrefix + "refresh:" + validDigest(tokenDigest);
     }
 
     private String subjectIndexKey(String identitySub) {
-        return keyPrefix + "refresh-index:user:"
-                + segment(identitySub, "identitySub");
+        return keyPrefix + "refresh-index:user:" + segment(identitySub, "identitySub");
     }
 
     private static String millis(Instant value) {
-        return Long.toString(Objects.requireNonNull(value, "instant")
-                .toEpochMilli());
+        return Long.toString(Objects.requireNonNull(value, "instant").toEpochMilli());
     }
 
     private static String reason(String value) {
-        if (value == null
-                || value.isBlank()
-                || value.length() > 128
+        if (value == null || value.isBlank() || value.length() > 128
                 || !value.matches("[A-Z0-9_]+")) {
             throw new IllegalArgumentException("invalid revocation reason");
         }
@@ -181,7 +146,7 @@ public final class RedisRefreshTokenStore implements RefreshTokenStore {
         return value;
     }
 
-    private static String digest(String value) {
+    private static String validDigest(String value) {
         if (value == null || !DIGEST.matcher(value).matches()) {
             throw new IllegalArgumentException("invalid token digest");
         }
@@ -189,9 +154,7 @@ public final class RedisRefreshTokenStore implements RefreshTokenStore {
     }
 
     private static String validPrefix(String value) {
-        if (value == null
-                || value.isBlank()
-                || !value.endsWith(":")
+        if (value == null || value.isBlank() || !value.endsWith(":")
                 || value.contains(" ")) {
             throw new IllegalArgumentException("invalid refresh key prefix");
         }
@@ -203,10 +166,7 @@ public final class RedisRefreshTokenStore implements RefreshTokenStore {
             return new ClassPathResource(SCRIPT_LOCATION)
                     .getContentAsString(StandardCharsets.UTF_8);
         } catch (IOException exception) {
-            throw new IllegalStateException(
-                    "cannot load refresh rotation script",
-                    exception
-            );
+            throw new IllegalStateException("cannot load refresh management script", exception);
         }
     }
 }

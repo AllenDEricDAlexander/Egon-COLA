@@ -1,12 +1,12 @@
-import { useQuery } from '@tanstack/react-query'
-import { Card, Table, Tag } from 'antd'
-import { useRbac3Session } from '@egon-cola/rbac3-react-sdk'
-import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '@egon-cola/admin-web-shared'
-import { applicationApi, type ApplicationView } from './application.api'
+import {useQuery} from '@tanstack/react-query'
+import {Card, Table, Tag} from 'antd'
+import {useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
+import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
+import {PageState} from '@egon-cola/admin-web-shared'
+import {applicationApi, type ApplicationView} from './application.api'
 
 export const ApplicationListPage = () => {
-  const { status } = useRbac3Session()
+    const {status} = useRbac3Authorization()
   const { effectiveTenantId } = useFeatureTenantContext()
   const api = applicationApi(useFeatureApi())
   const query = useQuery({

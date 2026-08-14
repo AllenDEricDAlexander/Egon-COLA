@@ -1,7 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.config.security;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -14,9 +13,12 @@ import org.springframework.security.core.annotation.AnnotationTemplateExpression
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
-import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFilter;
+import top.egon.cola.platform.idp.starter.security.IdpEndpointAuthenticationPolicy;
 import top.egon.cola.platform.rbac3.admin.tenant.controller.filter.TenantContextFilter;
 import top.egon.cola.platform.rbac3.admin.tenant.service.TenantContextResolver;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFilter;
+
+import java.util.List;
 
 /**
  * 类型 `Rbac3AdminSecurityConfiguration` 位于当前包内，是类型，用于承载 `Rbac3 Admin Security Configuration` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -28,6 +30,19 @@ import top.egon.cola.platform.rbac3.admin.tenant.service.TenantContextResolver;
 @Configuration(proxyBeanMethods = false)
 @EnableMethodSecurity
 public class Rbac3AdminSecurityConfiguration {
+
+    /**
+     * 将 RBAC3 的内部机器调用明确绑定到 IdP SERVICE Token。
+     *
+     * <p>Marks RBAC3 internal machine calls as IdP SERVICE-token endpoints. All other RBAC3
+     * application paths keep the starter's USER default.</p>
+     */
+    @Bean
+    IdpEndpointAuthenticationPolicy rbac3EndpointAuthenticationPolicy() {
+        return new IdpEndpointAuthenticationPolicy(
+                List.of(),
+                List.of("/internal/**", "/api/rbac3/v1/internal/**"));
+    }
 
     /**
      * 方法 `annotationTemplateExpressionDefaults` 按照 `Rbac3AdminSecurityConfiguration` 的职责处理输入，完成 `annotation Template Expression Defaults` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
@@ -141,13 +156,10 @@ public class Rbac3AdminSecurityConfiguration {
     SecurityFilterChain rbac3SecurityFilterChain(
             HttpSecurity http,
             TenantContextFilter tenantFilter,
-            Rbac3JwtAuthenticationConverter authenticationConverter,
             Rbac3AdminPrincipalFilter principalFilter,
-            ObjectProvider<IdpBearerAuthenticationFilter> idpFilters,
-            ObjectProvider<Rbac3BearerAuthenticationFilter> rbac3Filters
+            IdpBearerAuthenticationFilter idpFilter,
+            Rbac3BearerAuthenticationFilter rbac3Filter
     ) throws Exception {
-        IdpBearerAuthenticationFilter idpFilter = idpFilters.getIfAvailable();
-        Rbac3BearerAuthenticationFilter rbac3Filter = rbac3Filters.getIfAvailable();
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(
@@ -157,19 +169,10 @@ public class Rbac3AdminSecurityConfiguration {
                                 "/actuator/health/readiness")
                         .permitAll()
                         .anyRequest().authenticated());
-        if (idpFilter != null && rbac3Filter != null) {
-            http.addFilterBefore(idpFilter, AnonymousAuthenticationFilter.class);
-            http.addFilterAfter(rbac3Filter, IdpBearerAuthenticationFilter.class);
-            http.addFilterAfter(principalFilter, Rbac3BearerAuthenticationFilter.class);
-            http.addFilterAfter(tenantFilter, Rbac3AdminPrincipalFilter.class);
-        } else if (idpFilter == null && rbac3Filter == null) {
-            http.oauth2ResourceServer(resourceServer -> resourceServer.jwt(
-                    jwt -> jwt.jwtAuthenticationConverter(authenticationConverter)));
-            http.addFilterAfter(tenantFilter, AnonymousAuthenticationFilter.class);
-        } else {
-            throw new IllegalStateException(
-                    "IdP and RBAC3 authentication filters must be configured together");
-        }
+        http.addFilterBefore(idpFilter, AnonymousAuthenticationFilter.class);
+        http.addFilterAfter(rbac3Filter, IdpBearerAuthenticationFilter.class);
+        http.addFilterAfter(principalFilter, Rbac3BearerAuthenticationFilter.class);
+        http.addFilterAfter(tenantFilter, Rbac3AdminPrincipalFilter.class);
         return http.build();
     }
 

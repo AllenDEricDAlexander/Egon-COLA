@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
+import top.egon.cola.platform.idp.contract.IdpPrincipal;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -16,13 +17,12 @@ import java.util.Objects;
 
 /**
  * 从单个 Bearer 访问令牌建立仅包含身份的 Spring Security 上下文。
- * 缺少令牌时继续过滤链，令牌格式或身份验证失败时返回统一的 401 JSON 响应；所有路径
- * 包括 {@code /internal/} 都执行相同 Resource Token 身份校验。
+ * 缺少令牌时继续过滤链，令牌格式或身份验证失败时返回统一的 401 JSON 响应；端点
+ * 认证类型由 {@link IdpEndpointAuthenticationPolicy} 明确选择。
  *
  * <p>Establishes an identity-only Spring Security context from one Bearer access token. Requests
  * without a token continue through the chain, while malformed or invalid tokens receive a uniform
- * JSON 401 response. Every path, including {@code /internal/}, receives the same Resource Token
- * identity verification.</p>
+ * JSON 401 response. Endpoint ownership is selected by the explicit policy.</p>
  */
 public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
 
@@ -35,11 +35,21 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
     private static final int MAX_CREDENTIAL_LENGTH = 8192;
 
     /**
-     * 访问令牌与实时用户状态验证器。
+     * 访问令牌验证器。
      *
-     * <p>Access-token and current-user-state verifier.</p>
+     * <p>Access-token verifier.</p>
      */
-    private final IdpJwtVerifier jwtVerifier;
+    private final UserAccessTokenVerifier userAccessTokenVerifier;
+
+    /**
+     * Explicit SERVICE access-token verifier.
+     */
+    private final ServiceAccessTokenVerifier serviceAccessTokenVerifier;
+
+    /**
+     * Endpoint policy selecting PUBLIC, USER or SERVICE handling.
+     */
+    private final IdpEndpointAuthenticationPolicy endpointAuthenticationPolicy;
 
     /**
      * 认证失败响应的 JSON 序列化器。
@@ -60,7 +70,32 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
             IdpJwtVerifier jwtVerifier,
             ObjectMapper objectMapper
     ) {
-        this.jwtVerifier = Objects.requireNonNull(jwtVerifier, "jwtVerifier");
+        this(
+                new UserAccessTokenVerifier(jwtVerifier),
+                new ServiceAccessTokenVerifier(jwtVerifier),
+                new IdpEndpointAuthenticationPolicy(),
+                objectMapper);
+    }
+
+    /**
+     * Creates a filter with explicit USER/SERVICE verifiers and endpoint policy.
+     *
+     * <p>The filter never falls back from one principal type to the other. This keeps endpoint
+     * ownership explicit and prevents a SERVICE token from being accepted on a USER path (or the
+     * reverse).</p>
+     */
+    public IdpBearerAuthenticationFilter(
+            UserAccessTokenVerifier userAccessTokenVerifier,
+            ServiceAccessTokenVerifier serviceAccessTokenVerifier,
+            IdpEndpointAuthenticationPolicy endpointAuthenticationPolicy,
+            ObjectMapper objectMapper
+    ) {
+        this.userAccessTokenVerifier = Objects.requireNonNull(
+                userAccessTokenVerifier, "userAccessTokenVerifier");
+        this.serviceAccessTokenVerifier = Objects.requireNonNull(
+                serviceAccessTokenVerifier, "serviceAccessTokenVerifier");
+        this.endpointAuthenticationPolicy = Objects.requireNonNull(
+                endpointAuthenticationPolicy, "endpointAuthenticationPolicy");
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
     }
 
@@ -83,6 +118,16 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
+        IdpEndpointAuthenticationPolicy.Requirement requirement =
+                endpointAuthenticationPolicy.requirement(request);
+        if (requirement == IdpEndpointAuthenticationPolicy.Requirement.DENY) {
+            unauthorized(response, "ENDPOINT_AUTHENTICATION_POLICY_INVALID");
+            return;
+        }
+        if (requirement == IdpEndpointAuthenticationPolicy.Requirement.PUBLIC) {
+            filterChain.doFilter(request, response);
+            return;
+        }
         var headers = Collections.list(request.getHeaders("Authorization"));
         if (headers.isEmpty()) {
             filterChain.doFilter(request, response);
@@ -99,16 +144,46 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
         try {
-            var principal = jwtVerifier.verify(token);
+            IdpPrincipal principal;
+            boolean userToken = requirement == IdpEndpointAuthenticationPolicy.Requirement.USER;
+            if (userToken) {
+                var verification = userAccessTokenVerifier.verify(token);
+                if (verification instanceof AccessTokenVerification.Valid<?> valid) {
+                    principal = valid.principal();
+                } else {
+                    unauthorized(response, reason(verification));
+                    return;
+                }
+            } else {
+                var verification = serviceAccessTokenVerifier.verify(token);
+                if (verification instanceof AccessTokenVerification.Valid<?> valid) {
+                    principal = valid.principal();
+                } else {
+                    unauthorized(response, reason(verification));
+                    return;
+                }
+            }
             var context = SecurityContextHolder.createEmptyContext();
             context.setAuthentication(new IdpAuthenticationToken(principal));
             SecurityContextHolder.setContext(context);
+            if (userToken) {
+                VerifiedUserTokenCarrier.set(request, token);
+            }
             filterChain.doFilter(request, response);
-        } catch (IdpJwtVerifier.InvalidTokenException exception) {
-            unauthorized(response, exception.getMessage());
         } finally {
+            VerifiedUserTokenCarrier.clear(request);
             SecurityContextHolder.clearContext();
         }
+    }
+
+    private String reason(AccessTokenVerification<?> verification) {
+        if (verification instanceof AccessTokenVerification.Expired<?>) {
+            return "JWT_EXPIRED";
+        }
+        if (verification instanceof AccessTokenVerification.Invalid<?> invalid) {
+            return invalid.reasonCode();
+        }
+        return "JWT_INVALID";
     }
 
     /**

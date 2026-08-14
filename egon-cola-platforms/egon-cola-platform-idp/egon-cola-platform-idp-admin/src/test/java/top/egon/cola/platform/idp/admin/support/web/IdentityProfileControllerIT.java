@@ -16,6 +16,7 @@ import top.egon.cola.platform.idp.admin.oauth.controller.OAuthUserInfoController
 import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthenticationToken;
 import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthorizationPort;
 import top.egon.cola.platform.idp.admin.support.security.IdpSecurityConfig;
+import top.egon.cola.platform.idp.contract.AuthenticationContext;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 
 import java.time.Instant;
@@ -93,8 +94,8 @@ class IdentityProfileControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.subject").value("admin-sub"))
                 .andExpect(jsonPath("$.tenantId").value("tenant-a"))
-                .andExpect(jsonPath("$.sessionId").value("session-a"))
-                .andExpect(jsonPath("$.tokenVersion").value(3));
+                .andExpect(jsonPath("$.tokenId").value("token-a"))
+                .andExpect(jsonPath("$.audience[0]").value("idp-admin"));
         verify(authorization).require(
                 any(IdentityPrincipal.class),
                 eq("idp:identity:self:read")
@@ -104,10 +105,7 @@ class IdentityProfileControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sub").value("admin-sub"))
                 .andExpect(jsonPath("$.tid").value("tenant-a"))
-                .andExpect(jsonPath("$.sid").value("session-a"))
-                .andExpect(jsonPath("$.client_id")
-                        .value("idp-admin-web"))
-                .andExpect(jsonPath("$.token_version").value(3));
+                .andExpect(jsonPath("$.aud[0]").value("idp-admin"));
     }
 
     @Test
@@ -129,13 +127,11 @@ class IdentityProfileControllerIT {
                 new IdentityPrincipal(
                         "admin-sub",
                         "tenant-a",
-                        "session-a",
-                        "idp-admin-web",
                         "token-a",
-                        3L,
                         Set.of("idp-admin"),
                         Instant.parse("2026-08-02T00:00:00Z"),
-                        Instant.parse("2026-08-02T00:15:00Z")
+                        Instant.parse("2026-08-02T00:15:00Z"),
+                        AuthenticationContext.password()
                 ),
                 "raw-token"
         ));

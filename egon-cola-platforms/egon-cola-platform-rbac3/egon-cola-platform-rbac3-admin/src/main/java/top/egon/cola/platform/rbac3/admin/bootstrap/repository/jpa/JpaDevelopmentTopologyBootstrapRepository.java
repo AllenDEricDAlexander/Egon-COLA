@@ -6,7 +6,6 @@ import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.assignment.domain.po.UserRoleAssignmentPO;
 import top.egon.cola.platform.rbac3.admin.bootstrap.domain.Rbac3DevelopmentTopology;
-import top.egon.cola.platform.rbac3.admin.identity.domain.po.ExternalIdentityPO;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
 import top.egon.cola.platform.rbac3.admin.resource.domain.po.ApplicationPO;
@@ -114,7 +113,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
      */
     @Override
     @Transactional
-    public void bootstrap(String tenantCode, String username, String identitySub) {
+    public void bootstrap(String tenantCode, String identitySub) {
         acquireLock();
         Instant now = clock.instant();
         String normalizedTenantCode = normalize(tenantCode);
@@ -137,22 +136,20 @@ public class JpaDevelopmentTopologyBootstrapRepository
             entityManager.persist(tenant);
             changed = true;
         }
-        String normalizedUsername = UserPO.normalize(username);
-        UserPO user = findUser(tenant.getId(), normalizedUsername);
+        String normalizedIdentitySub = required(identitySub, "identitySub");
+        UserPO user = findUser(tenant.getId(), normalizedIdentitySub);
         if (user == null) {
             user = new UserPO(
                     idGenerator.nextLongId(),
                     tenant.getId(),
-                    username.trim(),
-                    username.trim(),
+                    normalizedIdentitySub,
+                    top.egon.cola.platform.rbac3.admin.identity.domain.enums.UserStatusEnum.ACTIVE,
                     ACTOR,
                     now
             );
             entityManager.persist(user);
             changed = true;
         }
-        changed |= ensureIdentityMapping(
-                tenant.getId(), user.getId(), identitySub.trim(), now);
 
         for (var definition : Rbac3DevelopmentTopology.applications()) {
             changed |= ensureApplication(tenant.getId(), user.getId(), definition, now);
@@ -207,54 +204,15 @@ public class JpaDevelopmentTopologyBootstrapRepository
      * @param normalizedUsername 输入参数 `normalizedUsername`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private UserPO findUser(Long tenantId, String normalizedUsername) {
+    private UserPO findUser(Long tenantId, String identitySub) {
         return singleOrNull(entityManager.createQuery("""
                         select user from UserEntity user
                          where user.tenantId = :tenantId
-                           and user.normalizedUsername = :username
+                           and user.identitySub = :identitySub
                         """, UserPO.class)
                 .setParameter("tenantId", tenantId)
-                .setParameter("username", normalizedUsername)
-                .getResultList(), "user");
-    }
-
-    /**
-     * 方法 `ensureIdentityMapping` 按照 `JpaDevelopmentTopologyBootstrapRepository` 的职责处理输入，完成 `ensure Identity Mapping` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `ensureIdentityMapping` processes its inputs according to `JpaDevelopmentTopologyBootstrapRepository`'s responsibility, performs the `ensure Identity Mapping` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `ensureIdentityMapping` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `ensureIdentityMapping`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param identitySub 输入参数 `identitySub`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    private boolean ensureIdentityMapping(
-            Long tenantId,
-            Long userId,
-            String identitySub,
-            Instant now) {
-        List<ExternalIdentityPO> mappings = entityManager.createQuery("""
-                        select identity from ExternalIdentityEntity identity
-                         where identity.tenantId = :tenantId
-                           and identity.providerCode = 'IDP'
-                           and identity.externalSubjectId = :identitySub
-                        """, ExternalIdentityPO.class)
-                .setParameter("tenantId", tenantId)
                 .setParameter("identitySub", identitySub)
-                .getResultList();
-        if (!mappings.isEmpty()) {
-            if (mappings.size() != 1 || !mappings.getFirst().getUserId().equals(userId)) {
-                throw new IllegalStateException(
-                        "IdP subject is already bound to another RBAC3 user");
-            }
-            return false;
-        }
-        entityManager.persist(ExternalIdentityPO.idpMapping(
-                idGenerator.nextLongId(), tenantId, identitySub, userId, ACTOR, now));
-        return true;
+                .getResultList(), "user");
     }
 
     /**
@@ -531,6 +489,13 @@ public class JpaDevelopmentTopologyBootstrapRepository
             throw new IllegalArgumentException("tenantCode is required");
         }
         return value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static String required(String value, String name) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(name + " is required");
+        }
+        return value.trim();
     }
 
     /**

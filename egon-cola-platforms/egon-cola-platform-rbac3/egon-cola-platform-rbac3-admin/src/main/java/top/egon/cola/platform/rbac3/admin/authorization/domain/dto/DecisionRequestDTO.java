@@ -1,24 +1,12 @@
 package top.egon.cola.platform.rbac3.admin.authorization.domain.dto;
 
-import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
-import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
-import top.egon.cola.platform.rbac3.contract.authorization.AuthorizationDecision;
-import top.egon.cola.platform.rbac3.contract.authorization.DataScopeDecision;
-import top.egon.cola.platform.rbac3.contract.authorization.Decision;
-import top.egon.cola.platform.rbac3.contract.authorization.FieldPolicyDecision;
-import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
-import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
-import java.time.Clock;
-import java.time.Instant;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.enums.AuthorizationDecisionDecisionTypeEnum;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.AuthorizationDecisionResourceVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.AuthorizationDecisionSubjectVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.TokenVersionsVO;
+
 import java.util.Objects;
 import java.util.Set;
-import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.AuthorizationDecisionSubjectVO;
-import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.AuthorizationDecisionResourceVO;
-import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.TokenVersionsVO;
-import top.egon.cola.platform.rbac3.admin.authorization.domain.enums.AuthorizationDecisionDecisionTypeEnum;
 
 /**
      * 一致快照上的类型化授权判定请求。

@@ -89,7 +89,6 @@ class AuthorizationContractTest {
                 "directorySnapshotVersion",
                 "decisionVersion",
                 "authVersion",
-                "sessionVersion",
                 "policyVersion",
                 "evidenceIds",
                 "decidedAt"
@@ -119,7 +118,6 @@ class AuthorizationContractTest {
                 )),
                 43L,
                 3L,
-                18L,
                 List.of("field-policy-01"),
                 Instant.parse("2026-07-30T08:00:00Z")
         );
@@ -134,7 +132,6 @@ class AuthorizationContractTest {
                 "resourceCode",
                 "fields",
                 "authVersion",
-                "sessionVersion",
                 "policyVersion",
                 "evidenceIds",
                 "decidedAt"
@@ -157,7 +154,6 @@ class AuthorizationContractTest {
                 List.of("CREATE"),
                 43L,
                 3L,
-                18L,
                 List.of("operation-sod-01"),
                 Instant.parse("2026-07-30T08:00:00Z")
         );
@@ -174,7 +170,6 @@ class AuthorizationContractTest {
                 "actionCode",
                 "conflictingActionCodes",
                 "authVersion",
-                "sessionVersion",
                 "policyVersion",
                 "evidenceIds",
                 "decidedAt"
@@ -191,14 +186,12 @@ class AuthorizationContractTest {
                 "20001",
                 "10001",
                 "finance:payment:approve",
-                "40001",
                 "sha256:snapshot",
                 "PAYMENT",
                 "payment-9001",
                 "trace-01",
                 43L,
                 3L,
-                18L,
                 List.of("fence-01"),
                 Instant.parse("2026-07-30T08:00:00Z"),
                 Instant.parse("2026-07-30T08:00:00.010Z")
@@ -210,13 +203,11 @@ class AuthorizationContractTest {
                 "tenantId",
                 "subjectId",
                 "permissionCode",
-                "sessionId",
                 "snapshotChecksum",
                 "businessResource",
                 "businessId",
                 "traceId",
                 "authVersion",
-                "sessionVersion",
                 "policyVersion",
                 "evidenceIds",
                 "decidedAt",
@@ -253,7 +244,6 @@ class AuthorizationContractTest {
                 18L,
                 43L,
                 3L,
-                18L,
                 List.of("71001"),
                 Instant.parse("2026-07-30T08:00:00Z")
         );

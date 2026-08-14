@@ -5,15 +5,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import top.egon.cola.component.outbox.delivery.DeliveryContext;
 import top.egon.cola.component.outbox.delivery.DeliveryHandler;
 import top.egon.cola.component.outbox.delivery.DeliveryResult;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.Rbac3RuntimeEventCatalog;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.Rbac3RuntimeProjectionDeliveryHandlerProjectionOutcomeEnum;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.EventEnvelopeVO;
+import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeProjectionService;
 
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.Rbac3RuntimeEventCatalog;
-import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeProjectionService;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.Rbac3RuntimeProjectionDeliveryHandlerProjectionOutcomeEnum;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.EventEnvelopeVO;
 
 /**
  * 类型 `Rbac3RuntimeProjectionDeliveryHandler` 位于当前包内，是类型，用于承载 `Rbac3 Runtime Projection Delivery Handler` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -37,7 +37,6 @@ public final class Rbac3RuntimeProjectionDeliveryHandler implements DeliveryHand
             "rbac3.management-policy.changed.v1",
             "rbac3.role-activation.changed.v1",
             "rbac3.manifest.activated.v1",
-            "rbac3.session.revoked.v1",
             "rbac3.authorization.mutation-committed.v1",
             "rbac3.participation.recorded.v1");
 

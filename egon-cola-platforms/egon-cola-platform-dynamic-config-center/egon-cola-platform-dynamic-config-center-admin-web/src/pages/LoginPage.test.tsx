@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import LoginPage from '../auth/LoginPage'
 
 const auth = vi.hoisted(() => ({
-  token: '',
   loading: false,
   error: undefined,
   login: vi.fn(),
@@ -31,15 +30,21 @@ describe('LoginPage', () => {
     vi.unstubAllGlobals()
   })
 
-  it('starts unified SSO and never renders a token input', async () => {
+    it('uses the Gateway cookie login flow and never renders a token input', async () => {
     render(<MemoryRouter><LoginPage /></MemoryRouter>)
 
     expect(screen.queryByPlaceholderText(/Token/)).not.toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('租户 ID'), {
       target: { value: 'tenant-a' },
     })
-    fireEvent.click(screen.getByRole('button', { name: '使用统一身份登录' }))
+        fireEvent.change(screen.getByLabelText('用户名'), {
+            target: {value: 'admin'},
+        })
+        fireEvent.change(screen.getByLabelText('密码'), {
+            target: {value: 'secret'},
+        })
+        fireEvent.click(screen.getByRole('button', {name: /使用统一身份登录/}))
 
-    await waitFor(() => expect(auth.login).toHaveBeenCalledWith('tenant-a', '/'))
+        await waitFor(() => expect(auth.login).toHaveBeenCalledWith('tenant-a', 'admin', 'secret'))
   })
 })

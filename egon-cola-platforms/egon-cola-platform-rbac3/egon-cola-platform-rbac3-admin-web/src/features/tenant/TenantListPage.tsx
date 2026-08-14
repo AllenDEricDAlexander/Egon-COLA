@@ -1,11 +1,10 @@
-import { useRbac3Session } from '@egon-cola/rbac3-react-sdk'
-import { PermissionGuard } from '@egon-cola/rbac3-react-sdk'
-import { Button, Card, Descriptions, Input, Space, Typography } from 'antd'
-import { useState } from 'react'
-import { useFeatureTenantContext } from '../shared/FeatureApi'
+import {PermissionGuard, useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
+import {Button, Card, Descriptions, Input, Space, Typography} from 'antd'
+import {useState} from 'react'
+import {useFeatureTenantContext} from '../shared/FeatureApi'
 
 export const TenantListPage = () => {
-  const { status } = useRbac3Session()
+    const {status} = useRbac3Authorization()
   const { effectiveTenantId, targetTenantId, setTargetTenantId } = useFeatureTenantContext()
   const [draftTenantId, setDraftTenantId] = useState(targetTenantId ?? '')
   return (

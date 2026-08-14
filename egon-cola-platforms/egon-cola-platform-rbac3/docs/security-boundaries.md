@@ -2,15 +2,15 @@
 
 ## 1. Trust zones
 
-| Boundary | Trusted input | Untrusted input and treatment |
-| --- | --- | --- |
-| Public/API client -> Gateway | One Bearer token over TLS | All headers/body/path; validate schema, size, identity and permission |
-| Gateway -> RBAC3 Admin | Gateway-owned routing plus original Bearer after allow | Client-supplied identity headers are removed/replaced |
-| Business service -> Starter PEP | Verified reference JWT and named runtime Redis | Missing/invalid snapshots, mappings or fences deny |
-| Trusted provider -> Manifest/internal API | Scoped service identity and tenant/APP contract | Manifest content remains strictly validated and immutable |
-| RBAC3 Admin -> Gateway Admin | HMAC Definition report credential | Separate OAuth read token; credentials are not interchangeable |
-| RBAC3 Admin -> DDC | Separate runtime/registry signing credentials and explicit service identity | Direct RPC target, env, namespace, host, port and version require local configuration |
-| Admin -> PostgreSQL/Redis | Named deployment-owned clients | No implicit localhost, primary bean or cross-role database reuse |
+| Boundary                                  | Trusted input                                                                                                            | Untrusted input and treatment                                                           |
+|-------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| Public/API client -> Gateway              | USER Access Token cookie/Bearer over TLS; Gateway may use the IdP Refresh Token only for one expired/missing-AT recovery | All headers/body/path; validate schema, size, identity and permission                   |
+| Gateway -> RBAC3 Admin                    | Gateway-owned routing plus the original USER Access Token after allow                                                    | Client-supplied identity headers are removed/replaced; Refresh Token is never forwarded |
+| Business service -> Starter PEP           | Locally verified IdP USER Access Token and named runtime Redis                                                           | Missing/invalid snapshots, mappings or fences deny                                      |
+| Trusted provider -> Manifest/internal API | Scoped service identity and tenant/APP contract                                                                          | Manifest content remains strictly validated and immutable                               |
+| RBAC3 Admin -> Gateway Admin              | HMAC Definition report credential                                                                                        | Separate OAuth read token; credentials are not interchangeable                          |
+| RBAC3 Admin -> DDC                        | Separate runtime/registry signing credentials and explicit service identity                                              | Direct RPC target, env, namespace, host, port and version require local configuration   |
+| Admin -> PostgreSQL/Redis                 | Named deployment-owned clients                                                                                           | No implicit localhost, primary bean or cross-role database reuse                        |
 
 ## 2. Tenant and APP isolation
 
@@ -25,12 +25,13 @@ not allow a trusted service for APP A to obtain decisions or snapshots for APP B
 
 ## 3. Credential handling
 
-- Access Tokens are reference JWTs with identity/version claims only. They are
-  kept in process memory by the React SDK and never browser-persisted.
-- Refresh Tokens are opaque, rotated, cookie transported and stored hashed. A
-  replay compromises and revokes the family.
-- Private JWT keys and audit cursor secrets come from files. JWKS exposes public
-  material only.
+- Access Tokens are five-minute IdP-signed JWTs with identity claims only. The
+  browser uses an HttpOnly cookie; the React SDK never reads or persists them.
+- Refresh Tokens are stable, signed IdP JWTs with an absolute expiry. IdP stores
+  only a digest and subject/status index in Redis; deleting that record blocks
+  future refresh. RBAC3 never stores or processes them.
+- IdP owns private JWT keys and JWKS. RBAC3 only performs local public-key
+  verification; its audit cursor secret is a separate file-backed secret.
 - Gateway HMAC write keys, Gateway OAuth read tokens and DDC signing keys have
   separate scopes and lifecycles.
 - Logs, UI errors, audit details and verification evidence redact Authorization,
@@ -39,13 +40,13 @@ not allow a trusted service for APP A to obtain decisions or snapshots for APP B
 ## 4. Fail-closed matrix
 
 Access is denied for malformed/multiple Bearer credentials, unknown `kid`, bad
-signature, issuer/audience/time mismatch, expired Session, disabled User/Tenant,
+signature, issuer/audience/time mismatch, expired Access Token, disabled User/Tenant,
 auth or policy version drift, missing/expired Redis snapshot, closed Fence,
 unknown Gateway operation mapping, unavailable non-covered key source, invalid
 Data/Field rule, Participation conflict, or internal dependency error.
 
 A cached public key can be last-known-good only for its bounded validity window.
-It never authorizes a missing Session snapshot or bypasses a Fence.
+It never authorizes a missing authorization snapshot or bypasses a Fence.
 
 ## 5. Privilege change protections
 
@@ -53,7 +54,7 @@ It never authorizes a missing Session snapshot or bypasses a Fence.
 - Self-assignment and privileged-role assignment require explicit policy.
 - One complete Management Policy must cover subject, target scope, role root and
   operation; policy fragments are never composed.
-- SSD constrains qualification. DSD and same-APP mutex constrain active Sessions.
+- SSD constrains qualification. DSD and same-APP mutex constrain active role sets.
 - Optimistic versions, PostgreSQL locks and stable capacity keys serialize
   concurrent changes.
 - Idempotency keys are stored with request hashes; reuse with changed content is

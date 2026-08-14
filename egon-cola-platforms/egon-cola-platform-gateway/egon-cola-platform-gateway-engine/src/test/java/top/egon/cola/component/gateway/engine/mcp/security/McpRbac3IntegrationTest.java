@@ -53,15 +53,15 @@ class McpRbac3IntegrationTest {
                 request(Set.of(
                         "mcp:billing:tool:pay_invoice:call",
                         "invoice:pay"
-                ), 7L, 3L, 11L)
+                ), 7L, 3L, 3L)
         );
         McpAuthorizationPort.Decision missingPermission = authorize(
                 adapter,
-                request(Set.of("invoice:refund"), 7L, 3L, 11L)
+                request(Set.of("invoice:refund"), 7L, 3L, 3L)
         );
         McpAuthorizationPort.Decision staleSnapshot = authorize(
                 adapter,
-                request(Set.of("invoice:pay"), 8L, 3L, 11L)
+                request(Set.of("invoice:pay"), 8L, 3L, 3L)
         );
 
         assertTrue(allowed.allowed());
@@ -88,10 +88,8 @@ class McpRbac3IntegrationTest {
                 "https://idp.internal",
                 "alice-sub",
                 "tenant-a",
-                "session-1",
                 "finance-web",
                 "token-1",
-                2L,
                 "https://resource.egon.top/gateway-mcp",
                 NOW.minusSeconds(30),
                 NOW.plusSeconds(300),
@@ -107,11 +105,9 @@ class McpRbac3IntegrationTest {
                 "tenant-a",
                 "alice-sub",
                 "user-1",
-                "session-1",
                 systemCode,
                 7L,
                 3L,
-                11L,
                 java.util.List.of("billing-operator"),
                 Set.of(
                         "mcp:billing:tool:pay_invoice:call",

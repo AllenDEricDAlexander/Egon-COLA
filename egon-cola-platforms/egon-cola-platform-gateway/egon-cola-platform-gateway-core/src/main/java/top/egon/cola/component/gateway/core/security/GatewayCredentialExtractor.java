@@ -12,4 +12,14 @@ public interface GatewayCredentialExtractor {
     Publisher<CredentialExtractionResult> extract(
             GatewayExchange exchange,
             GatewaySecurityPolicy policy);
+
+    /**
+     * Context-aware extension point; legacy extractors continue to work.
+     */
+    default Publisher<CredentialExtractionResult> extract(
+            GatewayExchange exchange,
+            GatewayAuthContext context,
+            GatewaySecurityPolicy policy) {
+        return extract(exchange, policy);
+    }
 }

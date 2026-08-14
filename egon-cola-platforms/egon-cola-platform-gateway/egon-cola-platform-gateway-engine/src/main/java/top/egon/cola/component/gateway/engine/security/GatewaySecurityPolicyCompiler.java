@@ -5,6 +5,7 @@ import top.egon.cola.component.gateway.contract.rule.GatewayRuntimePolicy;
 import top.egon.cola.component.gateway.core.security.AuthenticationMode;
 import top.egon.cola.component.gateway.core.security.AuthorizationDecisionMode;
 import top.egon.cola.component.gateway.core.security.CredentialForwardingMode;
+import top.egon.cola.component.gateway.core.security.GatewayRouteSecurityType;
 import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
 import top.egon.cola.component.gateway.core.security.SecurityFailureMode;
 
@@ -118,7 +119,15 @@ public final class GatewaySecurityPolicyCompiler {
                         config,
                         "credentialForwardingMode",
                         "NONE"
-                ))
+                )),
+                GatewayRouteSecurityType.valueOf(string(
+                        config,
+                        "routeSecurityType",
+                        source.scope().equalsIgnoreCase("PUBLIC")
+                                ? "PUBLIC_PROTOCOL"
+                                : "BUSINESS_PROTECTED"
+                )),
+                string(config, "credentialRecoveryProviderId", null)
         );
     }
 

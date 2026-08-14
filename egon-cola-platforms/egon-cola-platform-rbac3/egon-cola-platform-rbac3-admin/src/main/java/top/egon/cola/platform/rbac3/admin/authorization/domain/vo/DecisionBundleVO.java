@@ -1,20 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.authorization.domain.vo;
 
-import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
-import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.AuthorizationDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.DataScopeDecision;
-import top.egon.cola.platform.rbac3.contract.authorization.Decision;
 import top.egon.cola.platform.rbac3.contract.authorization.FieldPolicyDecision;
-import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
-import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
-import java.time.Clock;
-import java.time.Instant;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 
 /**
      * 函数、数据范围和字段策略的类型化判定组合。

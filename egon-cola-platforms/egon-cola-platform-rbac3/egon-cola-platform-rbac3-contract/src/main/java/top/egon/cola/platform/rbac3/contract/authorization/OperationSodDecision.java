@@ -16,7 +16,6 @@ public record OperationSodDecision(
         String actionCode,
         List<String> conflictingActionCodes,
         long authVersion,
-        long sessionVersion,
         long policyVersion,
         List<String> evidenceIds,
         Instant decidedAt
@@ -44,7 +43,6 @@ public record OperationSodDecision(
                 "conflictingActionCodes"
         ));
         nonNegative(authVersion, "authVersion");
-        nonNegative(sessionVersion, "sessionVersion");
         nonNegative(policyVersion, "policyVersion");
         evidenceIds = List.copyOf(Objects.requireNonNull(
                 evidenceIds,

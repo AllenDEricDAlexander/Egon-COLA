@@ -1,18 +1,18 @@
 package top.egon.cola.platform.rbac3.admin.runtime.service;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.util.Objects;
-import java.util.function.Supplier;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationMutationRepository;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.RuntimeProjector;
-import top.egon.cola.platform.rbac3.admin.runtime.service.internal.TransactionExecutor;
-import top.egon.cola.platform.rbac3.admin.runtime.service.internal.MutationIdGenerator;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.MutationScopeVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.AuthorizationMutationResultStatusEnum;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ExpectedVersionsVO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.MutationRecordVO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.MutationResultVO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.AuthorizationMutationResultStatusEnum;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.MutationScopeVO;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationMutationRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.RuntimeProjector;
+import top.egon.cola.platform.rbac3.admin.runtime.service.internal.MutationIdGenerator;
+import top.egon.cola.platform.rbac3.admin.runtime.service.internal.TransactionExecutor;
+
+import java.time.Clock;
+import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * 类型 `AuthorizationMutationCoordinator` 位于当前包内，是类型，用于承载 `Authorization Mutation Coordinator` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -30,13 +30,13 @@ public final class AuthorizationMutationCoordinator {
      */
     private final AuthorizationMutationRepository mutationStore;
     /**
-     * 字段 `fenceService` 表示 `AuthorizationMutationCoordinator` 中与 `fence Service` 相关的状态、依赖、配置或结果（声明类型 `AuthorizationFenceService`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `fenceService` stores the `fence Service`-related state, dependency, configuration, or result of `AuthorizationMutationCoordinator` (declared type `AuthorizationFenceService`); its lifecycle and value semantics are defined by its declared type and owning object.
+     * 字段 `fenceService` 表示 `AuthorizationMutationCoordinator` 中与 `fence Service` 相关的状态、依赖、配置或结果（声明类型 `AuthorizationPublicationGuardService`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+     * Field `fenceService` stores the `fence Service`-related state, dependency, configuration, or result of `AuthorizationMutationCoordinator` (declared type `AuthorizationPublicationGuardService`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
      * 含义与用法：读取、传递或更新 `fenceService` 时应保持 `AuthorizationMutationCoordinator` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `fenceService`, preserve `AuthorizationMutationCoordinator`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final AuthorizationFenceService fenceService;
+    private final AuthorizationPublicationGuardService fenceService;
     /**
      * 字段 `projector` 表示 `AuthorizationMutationCoordinator` 中与 `projector` 相关的状态、依赖、配置或结果（声明类型 `RuntimeProjector`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `projector` stores the `projector`-related state, dependency, configuration, or result of `AuthorizationMutationCoordinator` (declared type `RuntimeProjector`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -86,7 +86,7 @@ public final class AuthorizationMutationCoordinator {
      */
     public AuthorizationMutationCoordinator(
             AuthorizationMutationRepository mutationStore,
-            AuthorizationFenceService fenceService,
+            AuthorizationPublicationGuardService fenceService,
             RuntimeProjector projector,
             TransactionExecutor transactionExecutor,
             MutationIdGenerator idGenerator,

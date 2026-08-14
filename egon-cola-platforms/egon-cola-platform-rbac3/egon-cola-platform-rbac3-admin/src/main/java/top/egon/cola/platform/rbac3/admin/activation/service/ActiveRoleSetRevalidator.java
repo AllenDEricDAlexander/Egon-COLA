@@ -1,19 +1,17 @@
 package top.egon.cola.platform.rbac3.admin.activation.service;
 
+import top.egon.cola.platform.rbac3.admin.activation.domain.dto.RevalidationCommandDTO;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.CurrentActivationVO;
+import top.egon.cola.platform.rbac3.admin.activation.domain.vo.RevalidationResultVO;
+import top.egon.cola.platform.rbac3.admin.activation.repository.CurrentActivationRepository;
+import top.egon.cola.platform.rbac3.admin.activation.repository.ReselectionRepository;
+import top.egon.cola.platform.rbac3.admin.activation.repository.RoleActivationFactRepository;
 import top.egon.cola.platform.rbac3.core.activation.DefaultRoleActivationResolver;
 import top.egon.cola.platform.rbac3.core.activation.RoleActivationInput;
 import top.egon.cola.platform.rbac3.core.activation.RoleActivationResolver;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
-import java.time.Instant;
-import java.util.List;
 import java.util.Objects;
-import top.egon.cola.platform.rbac3.admin.activation.repository.CurrentActivationRepository;
-import top.egon.cola.platform.rbac3.admin.activation.repository.ReselectionRepository;
-import top.egon.cola.platform.rbac3.admin.activation.domain.dto.RevalidationCommandDTO;
-import top.egon.cola.platform.rbac3.admin.activation.domain.vo.CurrentActivationVO;
-import top.egon.cola.platform.rbac3.admin.activation.domain.vo.RevalidationResultVO;
-import top.egon.cola.platform.rbac3.admin.activation.repository.RoleActivationFactRepository;
 
 /**
  * 类型 `ActiveRoleSetRevalidator` 位于当前包内，是类型，用于承载 `Active Role Set Revalidator` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -111,7 +109,7 @@ public final class ActiveRoleSetRevalidator {
      */
     public RevalidationResultVO revalidate(RevalidationCommandDTO command) {
         CurrentActivationVO current = currentSource.current(
-                command.tenantId(), command.userId(), command.sessionId());
+                command.tenantId(), command.userId(), command.userId());
         if (current.rootRoleIds().isEmpty()) {
             return new RevalidationResultVO(false, true, "ROLE_ACTIVATION_REQUIRED");
         }
@@ -119,15 +117,15 @@ public final class ActiveRoleSetRevalidator {
                 command.tenantId(), command.userId(), command.databaseNow());
         try {
             resolver.resolve(new RoleActivationInput(
-                    command.tenantId(), command.userId(), command.sessionId(),
-                    current.rootRoleIds(), facts.assignments(), facts.hierarchy(),
+                    command.tenantId(), command.userId(), current.rootRoleIds(),
+                    facts.assignments(), facts.hierarchy(),
                     facts.dsdSets(), facts.authorizationFacts(), facts.authVersion(),
-                    current.sessionVersion(), facts.policyVersion(), command.databaseNow()));
+                    facts.policyVersion(), command.databaseNow()));
             return new RevalidationResultVO(true, false, "ALLOW");
         } catch (Rbac3RuleViolation violation) {
             reselectionStore.requireReselection(
-                    command.tenantId(), command.sessionId(),
-                    current.sessionVersion(), command.databaseNow(), command.actorId());
+                    command.tenantId(), command.userId(),
+                    current.authVersion(), command.databaseNow(), command.actorId());
             return new RevalidationResultVO(false, true, "ROLE_RESELECTION_REQUIRED");
         }
     }

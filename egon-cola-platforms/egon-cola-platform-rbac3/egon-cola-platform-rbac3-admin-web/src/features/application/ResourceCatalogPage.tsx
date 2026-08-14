@@ -1,16 +1,16 @@
-import { PermissionGuard, useRbac3Session } from '@egon-cola/rbac3-react-sdk'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Button, Card, Popconfirm, Table, Tag } from 'antd'
-import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '@egon-cola/admin-web-shared'
-import { applicationApi, type ResourceView } from './application.api'
+import {PermissionGuard, useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
+import {Button, Card, Popconfirm, Table, Tag} from 'antd'
+import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
+import {PageState} from '@egon-cola/admin-web-shared'
+import {applicationApi, type ResourceView} from './application.api'
 
 export interface ResourceCatalogPageProps {
   readonly applicationId: string
 }
 
 export const ResourceCatalogPage = ({ applicationId }: ResourceCatalogPageProps) => {
-  const { status } = useRbac3Session()
+    const {status} = useRbac3Authorization()
   const { effectiveTenantId } = useFeatureTenantContext()
   const featureClient = useFeatureApi()
   const api = applicationApi(featureClient)

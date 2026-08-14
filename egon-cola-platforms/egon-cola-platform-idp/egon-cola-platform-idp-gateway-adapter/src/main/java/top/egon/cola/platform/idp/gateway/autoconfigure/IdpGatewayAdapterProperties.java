@@ -41,7 +41,15 @@ public class IdpGatewayAdapterProperties {
      *
      * <p>Redis key prefix used for current IdP user-state projections.</p>
      */
-    private String userStateKeyPrefix = "identity:v1:user:";
+    private String platformAudience = "platform";
+
+    private String idpRefreshUri;
+
+    private String accessTokenCookieName = "__Host-egon_user_at";
+
+    private String refreshTokenCookieName = "__Host-egon_user_rt";
+
+    private java.util.Set<String> trustedOrigins = java.util.Set.of();
 
     /** Resource Server 状态键前缀；Resource Server state-key prefix. */
     private String resourceStateKeyPrefix = "identity:resource-server:";
@@ -136,26 +144,46 @@ public class IdpGatewayAdapterProperties {
         this.jwkSetUri = jwkSetUri;
     }
 
-    /**
-     * 返回用户实时状态 Redis 键前缀。
-     *
-     * <p>Returns the Redis key prefix for current user state.</p>
-     *
-     * @return Redis 键前缀；Redis key prefix
-     */
-    public String getUserStateKeyPrefix() {
-        return userStateKeyPrefix;
+    public String getPlatformAudience() {
+        return platformAudience;
     }
 
-    /**
-     * 设置用户实时状态 Redis 键前缀。
-     *
-     * <p>Sets the Redis key prefix for current user state.</p>
-     *
-     * @param userStateKeyPrefix Redis 键前缀；Redis key prefix
-     */
-    public void setUserStateKeyPrefix(String userStateKeyPrefix) {
-        this.userStateKeyPrefix = userStateKeyPrefix;
+    public void setPlatformAudience(String platformAudience) {
+        this.platformAudience = platformAudience;
+    }
+
+    public String getIdpRefreshUri() {
+        return idpRefreshUri;
+    }
+
+    public void setIdpRefreshUri(String idpRefreshUri) {
+        this.idpRefreshUri = idpRefreshUri;
+    }
+
+    public String getAccessTokenCookieName() {
+        return accessTokenCookieName;
+    }
+
+    public void setAccessTokenCookieName(String accessTokenCookieName) {
+        this.accessTokenCookieName = accessTokenCookieName;
+    }
+
+    public String getRefreshTokenCookieName() {
+        return refreshTokenCookieName;
+    }
+
+    public void setRefreshTokenCookieName(String refreshTokenCookieName) {
+        this.refreshTokenCookieName = refreshTokenCookieName;
+    }
+
+    public java.util.Set<String> getTrustedOrigins() {
+        return trustedOrigins;
+    }
+
+    public void setTrustedOrigins(java.util.Set<String> trustedOrigins) {
+        this.trustedOrigins = trustedOrigins == null
+                ? java.util.Set.of()
+                : java.util.Set.copyOf(trustedOrigins);
     }
 
     /** 返回 Resource 状态键前缀；Returns the Resource state-key prefix. */
@@ -220,7 +248,10 @@ public class IdpGatewayAdapterProperties {
     public void validate() {
         required(issuer, "issuer");
         required(jwkSetUri, "jwkSetUri");
-        required(userStateKeyPrefix, "userStateKeyPrefix");
+        required(platformAudience, "platformAudience");
+        required(idpRefreshUri, "idpRefreshUri");
+        required(accessTokenCookieName, "accessTokenCookieName");
+        required(refreshTokenCookieName, "refreshTokenCookieName");
         required(resourceStateKeyPrefix, "resourceStateKeyPrefix");
         required(resourceScopeKeyPrefix, "resourceScopeKeyPrefix");
         required(resourceUriKeyPrefix, "resourceUriKeyPrefix");
@@ -244,7 +275,7 @@ public class IdpGatewayAdapterProperties {
     }
 
     /**
-     * 描述 Gateway 读取 IdP 用户实时状态所需的 Redis 连接参数。
+     * 描述 Gateway 读取 IdP Resource/Client 运行态所需的 Redis 连接参数。
      * 密码通过文件路径注入，避免把明文凭据直接放入常规配置值。
      *
      * <p>Describes Redis connection settings used by the Gateway to read current IdP user state.

@@ -1,110 +1,6 @@
 package top.egon.cola.component.gateway.admin.routing.controller;
 
-
-import top.egon.cola.component.gateway.admin.application.controller.*;
-import top.egon.cola.component.gateway.admin.application.domain.dto.*;
-import top.egon.cola.component.gateway.admin.application.domain.exception.*;
-import top.egon.cola.component.gateway.admin.application.domain.po.*;
-import top.egon.cola.component.gateway.admin.application.domain.vo.*;
-import top.egon.cola.component.gateway.admin.application.repository.*;
-import top.egon.cola.component.gateway.admin.application.service.*;
-import top.egon.cola.component.gateway.admin.auth.controller.*;
-import top.egon.cola.component.gateway.admin.auth.domain.vo.*;
-import top.egon.cola.component.gateway.admin.auth.service.*;
-import top.egon.cola.component.gateway.admin.bootstrap.*;
-import top.egon.cola.component.gateway.admin.catalog.controller.*;
-import top.egon.cola.component.gateway.admin.catalog.domain.dto.*;
-import top.egon.cola.component.gateway.admin.catalog.domain.enums.*;
-import top.egon.cola.component.gateway.admin.catalog.domain.po.*;
-import top.egon.cola.component.gateway.admin.catalog.domain.vo.*;
-import top.egon.cola.component.gateway.admin.catalog.repository.*;
-import top.egon.cola.component.gateway.admin.catalog.repository.jdbc.*;
-import top.egon.cola.component.gateway.admin.catalog.service.*;
-import top.egon.cola.component.gateway.admin.config.*;
-import top.egon.cola.component.gateway.admin.config.properties.*;
-import top.egon.cola.component.gateway.admin.credential.controller.*;
-import top.egon.cola.component.gateway.admin.credential.domain.dto.*;
-import top.egon.cola.component.gateway.admin.credential.domain.po.*;
-import top.egon.cola.component.gateway.admin.credential.domain.vo.*;
-import top.egon.cola.component.gateway.admin.credential.repository.*;
-import top.egon.cola.component.gateway.admin.credential.repository.jdbc.*;
-import top.egon.cola.component.gateway.admin.credential.service.*;
-import top.egon.cola.component.gateway.admin.group.controller.*;
-import top.egon.cola.component.gateway.admin.group.domain.dto.*;
-import top.egon.cola.component.gateway.admin.group.domain.po.*;
-import top.egon.cola.component.gateway.admin.group.domain.vo.*;
-import top.egon.cola.component.gateway.admin.group.repository.*;
-import top.egon.cola.component.gateway.admin.group.service.*;
-import top.egon.cola.component.gateway.admin.mcp.controller.*;
-import top.egon.cola.component.gateway.admin.mcp.domain.dto.*;
-import top.egon.cola.component.gateway.admin.mcp.domain.enums.*;
-import top.egon.cola.component.gateway.admin.mcp.domain.exception.*;
-import top.egon.cola.component.gateway.admin.mcp.domain.po.*;
-import top.egon.cola.component.gateway.admin.mcp.domain.vo.*;
-import top.egon.cola.component.gateway.admin.mcp.repository.*;
-import top.egon.cola.component.gateway.admin.mcp.repository.filesystem.*;
-import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.*;
-import top.egon.cola.component.gateway.admin.mcp.service.*;
-import top.egon.cola.component.gateway.admin.observability.controller.*;
-import top.egon.cola.component.gateway.admin.observability.controller.message.*;
-import top.egon.cola.component.gateway.admin.observability.controller.scheduled.*;
-import top.egon.cola.component.gateway.admin.observability.domain.dto.*;
-import top.egon.cola.component.gateway.admin.observability.domain.enums.*;
-import top.egon.cola.component.gateway.admin.observability.domain.po.*;
-import top.egon.cola.component.gateway.admin.observability.domain.vo.*;
-import top.egon.cola.component.gateway.admin.observability.repository.*;
-import top.egon.cola.component.gateway.admin.observability.repository.jdbc.*;
-import top.egon.cola.component.gateway.admin.observability.service.*;
-import top.egon.cola.component.gateway.admin.release.controller.*;
-import top.egon.cola.component.gateway.admin.release.controller.scheduled.*;
-import top.egon.cola.component.gateway.admin.release.domain.*;
-import top.egon.cola.component.gateway.admin.release.domain.dto.*;
-import top.egon.cola.component.gateway.admin.release.domain.enums.*;
-import top.egon.cola.component.gateway.admin.release.domain.po.*;
-import top.egon.cola.component.gateway.admin.release.domain.vo.*;
-import top.egon.cola.component.gateway.admin.release.repository.*;
-import top.egon.cola.component.gateway.admin.release.repository.jdbc.*;
-import top.egon.cola.component.gateway.admin.release.service.*;
-import top.egon.cola.component.gateway.admin.reporting.controller.openapi.*;
-import top.egon.cola.component.gateway.admin.reporting.controller.scheduled.*;
-import top.egon.cola.component.gateway.admin.reporting.domain.dto.*;
-import top.egon.cola.component.gateway.admin.reporting.domain.po.*;
-import top.egon.cola.component.gateway.admin.reporting.domain.vo.*;
-import top.egon.cola.component.gateway.admin.reporting.repository.*;
-import top.egon.cola.component.gateway.admin.reporting.repository.jdbc.*;
-import top.egon.cola.component.gateway.admin.reporting.service.*;
-import top.egon.cola.component.gateway.admin.routing.controller.*;
-import top.egon.cola.component.gateway.admin.routing.domain.*;
-import top.egon.cola.component.gateway.admin.routing.domain.dto.*;
-import top.egon.cola.component.gateway.admin.routing.domain.po.*;
-import top.egon.cola.component.gateway.admin.routing.domain.vo.*;
-import top.egon.cola.component.gateway.admin.routing.repository.*;
-import top.egon.cola.component.gateway.admin.routing.repository.jdbc.*;
-import top.egon.cola.component.gateway.admin.routing.service.*;
-import top.egon.cola.component.gateway.admin.rule.domain.dto.*;
-import top.egon.cola.component.gateway.admin.rule.domain.vo.*;
-import top.egon.cola.component.gateway.admin.rule.service.*;
-import top.egon.cola.component.gateway.admin.runtime.controller.*;
-import top.egon.cola.component.gateway.admin.runtime.domain.dto.*;
-import top.egon.cola.component.gateway.admin.runtime.domain.vo.*;
-import top.egon.cola.component.gateway.admin.runtime.service.*;
-import top.egon.cola.component.gateway.admin.scope.controller.*;
-import top.egon.cola.component.gateway.admin.scope.domain.*;
-import top.egon.cola.component.gateway.admin.scope.domain.dto.*;
-import top.egon.cola.component.gateway.admin.scope.domain.vo.*;
-import top.egon.cola.component.gateway.admin.scope.service.*;
-import top.egon.cola.component.gateway.admin.shared.controller.*;
-import top.egon.cola.component.gateway.admin.shared.domain.*;
-import top.egon.cola.component.gateway.admin.shared.domain.enums.*;
-import top.egon.cola.component.gateway.admin.shared.domain.exception.*;
-import top.egon.cola.component.gateway.admin.shared.domain.po.*;
-import top.egon.cola.component.gateway.admin.shared.domain.vo.*;
-import top.egon.cola.component.gateway.admin.shared.repository.*;
-import top.egon.cola.component.gateway.admin.shared.repository.jdbc.*;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -114,16 +10,15 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
+import top.egon.cola.component.gateway.admin.routing.domain.dto.GatewayDraftMutationRequestDTO;
+import top.egon.cola.component.gateway.admin.routing.domain.dto.GatewayDraftPolicyRequestDTO;
+import top.egon.cola.component.gateway.admin.routing.domain.dto.GatewayDraftRouteRequestDTO;
 import top.egon.cola.component.gateway.admin.routing.service.GatewayDraftService;
 import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
+import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
+import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
+import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
-import java.util.Map;
-
-
-import top.egon.cola.component.gateway.admin.routing.domain.dto.GatewayDraftRouteRequestDTO;
-import top.egon.cola.component.gateway.admin.routing.domain.dto.GatewayDraftPolicyRequestDTO;
-import top.egon.cola.component.gateway.admin.routing.domain.dto.GatewayDraftMutationRequestDTO;
 /**
  * 中文说明：{@code GatewayDraftController} 是接口控制器，位于当前 Gateway 模块的相关包中，负责网关草稿控制器相关的职责与边界。
  * English summary: {@code GatewayDraftController} is a gateway draft controller controller in the current Gateway module; it owns the gateway draft controller-related responsibility and boundary.
@@ -133,6 +28,13 @@ import top.egon.cola.component.gateway.admin.routing.domain.dto.GatewayDraftMuta
 @RestController
 @RequestMapping("/api/v1/gateway/admin/gateway-groups/{gatewayGroupId}/draft")
 @PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
+@GatewayInterfaceGroup(
+        businessDomainCode = "platform",
+        businessDomainName = "平台治理域",
+        entityDomainCode = "gateway-admin",
+        entityDomainName = "Gateway Admin 管理实体域",
+        code = "gateway-admin-gateway-draft-controller",
+        name = "GatewayDraftController 管理接口组")
 public class GatewayDraftController {
 
     /**
@@ -162,6 +64,7 @@ public class GatewayDraftController {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 get 的处理结果；returns the result of the operation.
      */
+    @GatewayOperation(externalAccessible = true)
     @GetMapping
     public top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftVO get(
             @PathVariable String gatewayGroupId) {
@@ -179,6 +82,7 @@ public class GatewayDraftController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 put路由 的处理结果；returns the result of the operation.
      */
+    @GatewayOperation(externalAccessible = true)
     @PutMapping("/routes/{routeId}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:drafts:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftMutationResultVO putRoute(
@@ -213,6 +117,7 @@ public class GatewayDraftController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 delete路由 的处理结果；returns the result of the operation.
      */
+    @GatewayOperation(externalAccessible = true)
     @DeleteMapping("/routes/{routeId}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:drafts:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftMutationResultVO deleteRoute(
@@ -240,6 +145,7 @@ public class GatewayDraftController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 put策略 的处理结果；returns the result of the operation.
      */
+    @GatewayOperation(externalAccessible = true)
     @PutMapping("/policies/{policyId}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:drafts:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftMutationResultVO putPolicy(
@@ -275,6 +181,7 @@ public class GatewayDraftController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 delete策略 的处理结果；returns the result of the operation.
      */
+    @GatewayOperation(externalAccessible = true)
     @DeleteMapping("/policies/{policyId}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:drafts:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftMutationResultVO deletePolicy(
@@ -299,6 +206,7 @@ public class GatewayDraftController {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 validate 的处理结果；returns the result of the operation.
      */
+    @GatewayOperation(externalAccessible = true)
     @PostMapping("/validate")
     public top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftValidationReportVO validate(
             @PathVariable String gatewayGroupId) {
@@ -313,6 +221,7 @@ public class GatewayDraftController {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 diff 的处理结果；returns the result of the operation.
      */
+    @GatewayOperation(externalAccessible = true)
     @GetMapping("/diff")
     public top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftDiffVO diff(
             @PathVariable String gatewayGroupId) {

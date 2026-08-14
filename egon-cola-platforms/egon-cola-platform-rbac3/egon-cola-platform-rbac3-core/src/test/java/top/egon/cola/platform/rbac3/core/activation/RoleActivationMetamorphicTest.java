@@ -80,7 +80,7 @@ class RoleActivationMetamorphicTest {
             Collections.shuffle(permissions, new Random(seed * 41L));
         }
         RoleActivationInput input = new RoleActivationInput(
-                "tenant", "user", "session", List.of("role-39"),
+                "tenant", "user", List.of("role-39"),
                 List.of(new EligibleAssignmentFact(
                         "assignment", "user", "role-39",
                         EligibleAssignmentFact.Status.ACTIVE,
@@ -88,7 +88,7 @@ class RoleActivationMetamorphicTest {
                 new RoleHierarchy(nodes, edges), List.of(),
                 new AuthorizationRuleFacts(
                         permissions, List.of(), List.of(), List.of(), List.of()),
-                3L, 5L, 7L, NOW);
+                3L, 5L, NOW);
         return new DefaultRoleActivationResolver().resolve(input);
     }
 

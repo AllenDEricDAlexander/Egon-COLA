@@ -1,6 +1,7 @@
 package top.egon.cola.platform.rbac3.starter.security;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.platform.idp.contract.AuthenticationContext;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.rbac3.contract.authorization.Decision;
 import top.egon.cola.platform.rbac3.contract.authorization.PermissionRequest;
@@ -80,15 +81,15 @@ class StarterFailClosedSecurityMatrixTest {
 
     private static IdentityPrincipal claims() {
         return new IdentityPrincipal(
-                "identity", "tenant", "session", "finance-web", "jti",
-                1L, Set.of("finance"), NOW.minusSeconds(30),
-                NOW.plusSeconds(300));
+                "identity", "tenant", "jti", Set.of("finance"),
+                NOW.minusSeconds(30), NOW.plusSeconds(300),
+                AuthenticationContext.password());
     }
 
     private static SystemAuthorizationSnapshot snapshot(Set<String> permissions) {
         return new SystemAuthorizationSnapshot(
-                "tenant", "identity", "user", "session", "finance",
-                3L, 5L, 7L, List.of("root"), permissions, Map.of(), Map.of(),
+                "tenant", "identity", "user", "finance",
+                3L, 7L, List.of("root"), permissions, Map.of(), Map.of(),
                 "sha256:snapshot", NOW, NOW.plusSeconds(300));
     }
 }

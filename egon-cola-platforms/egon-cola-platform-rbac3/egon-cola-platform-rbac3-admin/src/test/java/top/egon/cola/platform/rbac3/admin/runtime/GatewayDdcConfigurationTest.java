@@ -4,15 +4,22 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.env.YamlPropertySourceLoader;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.FileSystemResource;
-import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
-import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
-import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReportResult;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntimeProperties;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationState;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.GatewayServiceKey;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.DdcProviderLeaseStatusVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayAdminSnapshotVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayConsistencyObservationVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayDefinitionStatusVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayProviderInstanceVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayProviderObservationVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayReleaseObservationVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ServiceIdentityVO;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.DdcProviderLeaseStatusRepository;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayAdminControlPlaneStatusClient;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.http.GatewayDefinitionStatusRepository;
 import top.egon.cola.platform.rbac3.admin.runtime.service.GatewayDdcRuntimeStatusService;
 
 import java.nio.file.Files;
@@ -29,15 +36,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.DdcProviderLeaseStatusVO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayAdminSnapshotVO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayReleaseObservationVO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayProviderObservationVO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayProviderInstanceVO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.GatewayServiceKey;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayConsistencyObservationVO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.GatewayDefinitionStatusVO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ServiceIdentityVO;
 
 class GatewayDdcConfigurationTest {
 
@@ -110,7 +108,7 @@ class GatewayDdcConfigurationTest {
                 .isEqualTo(true);
         assertThat(production.getProperty(
                 "egon.cola.component.gateway.reporting.enabled"))
-                .isEqualTo(true);
+                .isEqualTo("${RBAC3_GATEWAY_REPORTING_ENABLED:true}");
         assertThat(production.getProperty(
                 "egon.cola.component.ddc.registry.http.enabled"))
                 .isEqualTo(true);

@@ -7,14 +7,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 class UnifiedIdentityRevocationIT {
 
     @Test
-    void revokedIdentityIsRejectedBeforeTheBackend() throws Exception {
+    void refreshRevocationLeavesAlreadyIssuedAccessTokenValidUntilExpiry()
+            throws Exception {
         UnifiedIdentityLiveClient client = UnifiedIdentityLiveClient.enabled();
 
         assertThat(client.get(
                 client.requiredEnv("UNIFIED_IDENTITY_GATEWAY_URL"),
                 "/api/mock/read",
-                client.token("UNIFIED_IDENTITY_REVOKED_TOKEN_FILE")))
-                .isEqualTo(401);
+                client.token("UNIFIED_IDENTITY_PRE_LOGOUT_TOKEN_FILE")))
+                .isEqualTo(200);
         assertThat(client.get(
                 client.requiredEnv("UNIFIED_IDENTITY_GATEWAY_URL"),
                 "/api/mock/read",

@@ -1,7 +1,7 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { setDdcTokenProvider, setDdcUnauthorizedHandler } from '../api/client'
-import { renderWithQueryClient } from '../test/renderWithQueryClient'
+import {fireEvent, screen, waitFor} from '@testing-library/react'
+import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {setDdcUnauthorizedHandler} from '../api/client'
+import {renderWithQueryClient} from '../test/renderWithQueryClient'
 import BizsPage from './BizsPage'
 
 const pageRecord = <T,>(records: T[], total = records.length) => ({
@@ -39,7 +39,6 @@ const jsonResponse = (body: unknown) => new Response(
 
 describe('BizsPage', () => {
   beforeEach(() => {
-    setDdcTokenProvider(() => 'token')
     setDdcUnauthorizedHandler(() => {})
     vi.stubGlobal('fetch', vi.fn())
   })

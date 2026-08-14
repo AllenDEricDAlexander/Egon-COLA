@@ -6,10 +6,9 @@ import java.util.Objects;
 public record ReplaceActiveRolesResult(
         List<ActiveRoleSetView.ApplicationActiveRoles> activeRoles,
         boolean changed,
-        long contextVersion,
         long authVersion,
         long policyVersion,
-        boolean bootstrapRequired,
+        boolean activationRequired,
         String snapshotChecksum
 ) {
 
@@ -18,7 +17,6 @@ public record ReplaceActiveRolesResult(
                 activeRoles,
                 "activeRoles"
         ));
-        nonNegative(contextVersion, "contextVersion");
         nonNegative(authVersion, "authVersion");
         nonNegative(policyVersion, "policyVersion");
         snapshotChecksum = required(
@@ -31,10 +29,9 @@ public record ReplaceActiveRolesResult(
     public String toString() {
         return "ReplaceActiveRolesResult[activeRoles=" + activeRoles
                 + ", changed=" + changed
-                + ", contextVersion=" + contextVersion
                 + ", authVersion=" + authVersion
                 + ", policyVersion=" + policyVersion
-                + ", bootstrapRequired=" + bootstrapRequired
+                + ", activationRequired=" + activationRequired
                 + ", snapshotChecksum=" + snapshotChecksum + ']';
     }
 

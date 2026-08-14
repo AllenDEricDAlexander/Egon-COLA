@@ -377,14 +377,6 @@ public class Rbac3StarterProperties {
          */
         private String endpoint;
         /**
-         * 字段 `serviceCredentialFile` 表示 `Authorization` 中与 `service Credential File` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-         * Field `serviceCredentialFile` stores the `service Credential File`-related state, dependency, configuration, or result of `Authorization` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
-         *
-         * 含义与用法：读取、传递或更新 `serviceCredentialFile` 时应保持 `Authorization` 的生命周期、不可变性和线程安全约束。
-         * Meaning and usage: when reading, passing, or updating `serviceCredentialFile`, preserve `Authorization`'s lifecycle, immutability, and thread-safety constraints.
-         */
-        private String serviceCredentialFile;
-        /**
          * 字段 `cacheTtl` 表示 `Authorization` 中与 `cache Ttl` 相关的状态、依赖、配置或结果（声明类型 `Duration`）；其生命周期和取值含义由声明类型及所属对象共同确定。
          * Field `cacheTtl` stores the `cache Ttl`-related state, dependency, configuration, or result of `Authorization` (declared type `Duration`); its lifecycle and value semantics are defined by its declared type and owning object.
          *
@@ -449,32 +441,6 @@ public class Rbac3StarterProperties {
          */
         public void setEndpoint(String endpoint) {
             this.endpoint = endpoint;
-        }
-
-        /**
-         * 方法 `getServiceCredentialFile` 按照 `Authorization` 的职责处理输入，完成 `get Service Credential File` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-         * Method `getServiceCredentialFile` processes its inputs according to `Authorization`'s responsibility, performs the `get Service Credential File` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-         *
-         * 用法：调用 `getServiceCredentialFile` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-         * Usage: provide contract-compliant arguments before calling `getServiceCredentialFile`, then continue the business flow using its result, exception, or side effect.
-         *
-         * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-         */
-        public String getServiceCredentialFile() {
-            return serviceCredentialFile;
-        }
-
-        /**
-         * 方法 `setServiceCredentialFile` 按照 `Authorization` 的职责处理输入，完成 `set Service Credential File` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-         * Method `setServiceCredentialFile` processes its inputs according to `Authorization`'s responsibility, performs the `set Service Credential File` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-         *
-         * 用法：调用 `setServiceCredentialFile` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-         * Usage: provide contract-compliant arguments before calling `setServiceCredentialFile`, then continue the business flow using its result, exception, or side effect.
-         *
-         * @param serviceCredentialFile 输入参数 `serviceCredentialFile`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-         */
-        public void setServiceCredentialFile(String serviceCredentialFile) {
-            this.serviceCredentialFile = serviceCredentialFile;
         }
 
         /**
@@ -893,14 +859,6 @@ public class Rbac3StarterProperties {
          * Meaning and usage: when reading, passing, or updating `reportingEnabled`, preserve `Manifest`'s lifecycle, immutability, and thread-safety constraints.
          */
         private boolean reportingEnabled;
-        /**
-         * 字段 `serviceCredentialFile` 表示 `Manifest` 中与 `service Credential File` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-         * Field `serviceCredentialFile` stores the `service Credential File`-related state, dependency, configuration, or result of `Manifest` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
-         *
-         * 含义与用法：读取、传递或更新 `serviceCredentialFile` 时应保持 `Manifest` 的生命周期、不可变性和线程安全约束。
-         * Meaning and usage: when reading, passing, or updating `serviceCredentialFile`, preserve `Manifest`'s lifecycle, immutability, and thread-safety constraints.
-         */
-        private String serviceCredentialFile;
 
         /**
          * 方法 `isReportingEnabled` 按照 `Manifest` 的职责处理输入，完成 `is Reporting Enabled` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
@@ -928,30 +886,5 @@ public class Rbac3StarterProperties {
             this.reportingEnabled = reportingEnabled;
         }
 
-        /**
-         * 方法 `getServiceCredentialFile` 按照 `Manifest` 的职责处理输入，完成 `get Service Credential File` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-         * Method `getServiceCredentialFile` processes its inputs according to `Manifest`'s responsibility, performs the `get Service Credential File` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-         *
-         * 用法：调用 `getServiceCredentialFile` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-         * Usage: provide contract-compliant arguments before calling `getServiceCredentialFile`, then continue the business flow using its result, exception, or side effect.
-         *
-         * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-         */
-        public String getServiceCredentialFile() {
-            return serviceCredentialFile;
-        }
-
-        /**
-         * 方法 `setServiceCredentialFile` 按照 `Manifest` 的职责处理输入，完成 `set Service Credential File` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-         * Method `setServiceCredentialFile` processes its inputs according to `Manifest`'s responsibility, performs the `set Service Credential File` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-         *
-         * 用法：调用 `setServiceCredentialFile` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-         * Usage: provide contract-compliant arguments before calling `setServiceCredentialFile`, then continue the business flow using its result, exception, or side effect.
-         *
-         * @param serviceCredentialFile 输入参数 `serviceCredentialFile`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-         */
-        public void setServiceCredentialFile(String serviceCredentialFile) {
-            this.serviceCredentialFile = serviceCredentialFile;
-        }
     }
 }

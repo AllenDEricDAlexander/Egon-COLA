@@ -51,14 +51,12 @@ public class MockBackendController {
         return new IdentityView(
                 identity.subject(),
                 identity.tenantId(),
-                identity.sessionId(),
                 operation);
     }
 
     public record IdentityView(
             String subject,
             String tenantId,
-            String sessionId,
             String operation) {
     }
 }

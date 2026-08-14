@@ -9,8 +9,6 @@ import top.egon.cola.component.gateway.admin.application.domain.vo.*;
 import top.egon.cola.component.gateway.admin.application.repository.*;
 import top.egon.cola.component.gateway.admin.application.service.*;
 import top.egon.cola.component.gateway.admin.auth.controller.*;
-import top.egon.cola.component.gateway.admin.auth.domain.vo.*;
-import top.egon.cola.component.gateway.admin.auth.service.*;
 import top.egon.cola.component.gateway.admin.bootstrap.*;
 import top.egon.cola.component.gateway.admin.catalog.controller.*;
 import top.egon.cola.component.gateway.admin.catalog.domain.dto.*;

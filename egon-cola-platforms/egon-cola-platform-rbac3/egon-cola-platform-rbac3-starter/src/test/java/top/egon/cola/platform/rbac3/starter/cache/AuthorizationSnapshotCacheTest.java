@@ -23,9 +23,9 @@ public class AuthorizationSnapshotCacheTest {
         InMemoryStore store = new InMemoryStore(clock);
         AuthorizationSnapshotCache cache = new AuthorizationSnapshotCache(
                 store, clock, Duration.ofSeconds(5));
-        var key = new AuthorizationSnapshotCache.Key("finance", "tenant-a", "sid-1");
+        var key = new AuthorizationSnapshotCache.Key("finance", "tenant-a", "alice-sub");
 
-        cache.put(key, snapshot("sid-1"), Duration.ofSeconds(2));
+        cache.put(key, snapshot("alice-sub"), Duration.ofSeconds(2));
         assertThat(cache.get(key)).isPresent();
 
         clock.advance(Duration.ofSeconds(3));
@@ -34,12 +34,12 @@ public class AuthorizationSnapshotCacheTest {
         assertThat(store.get(key)).isEmpty();
     }
 
-    public static SystemAuthorizationSnapshot snapshot(String sessionId) {
+    public static SystemAuthorizationSnapshot snapshot(String identitySub) {
         return new SystemAuthorizationSnapshot(
-                "tenant-a", "alice-sub", "101", sessionId, "finance",
-                7, 3, 11, java.util.List.of("role-1"),
+                "tenant-a", identitySub, "101", "finance",
+                7, 11, java.util.List.of("role-1"),
                 java.util.Set.of("payment:read"), Map.of(), Map.of(),
-                "sha256:" + sessionId, NOW, NOW.plusSeconds(3600));
+                "sha256:" + identitySub, NOW, NOW.plusSeconds(3600));
     }
 
     public static final class InMemoryStore

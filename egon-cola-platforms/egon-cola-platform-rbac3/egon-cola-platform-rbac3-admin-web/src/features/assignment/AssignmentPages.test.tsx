@@ -1,10 +1,10 @@
-import { InMemoryAccessTokenStore, Rbac3Provider, type Rbac3Client } from '@egon-cola/rbac3-react-sdk'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
-import type { PropsWithChildren } from 'react'
-import { describe, expect, it } from 'vitest'
-import { FeatureApiProvider, type FeatureApiClient } from '../shared/FeatureApi'
-import { AssignmentListPage } from './AssignmentListPage'
+import {type Rbac3Client, Rbac3Provider} from '@egon-cola/rbac3-react-sdk'
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
+import {render, screen, waitFor} from '@testing-library/react'
+import type {PropsWithChildren} from 'react'
+import {describe, expect, it} from 'vitest'
+import {type FeatureApiClient, FeatureApiProvider} from '../shared/FeatureApi'
+import {AssignmentListPage} from './AssignmentListPage'
 
 describe('assignment pages', () => {
   it('renders assignment eligibility states and idempotent guarded actions', async () => {
@@ -34,15 +34,20 @@ describe('assignment pages', () => {
 
 const wrapper = (request: FeatureApiClient['request'], permissions: readonly string[]) => ({ children }: PropsWithChildren) => {
   const sdk = {
-    refresh: async () => ({ accessToken: 'access', roleActivationRequired: false }),
     getBootstrap: async () => ({
-      user: { id: '7', tenantId: '9' }, permissions, fieldPolicies: {},
+        user: {id: '7', tenantId: '9', identitySub: 'assignment-test', status: 'ACTIVE'},
+        permissions,
+        fieldPolicies: {},
       activeRoleContexts: [], apps: [], menus: [], routes: [], actions: [],
+        defaultApplicationCode: null,
+        defaultRoute: null,
+        authVersion: 1,
+        policyVersion: 1,
     }),
   } as unknown as Rbac3Client
   return (
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <Rbac3Provider client={sdk} accessTokenStore={new InMemoryAccessTokenStore()}>
+        <Rbac3Provider client={sdk}>
         <FeatureApiProvider client={{ request }}>{children}</FeatureApiProvider>
       </Rbac3Provider>
     </QueryClientProvider>

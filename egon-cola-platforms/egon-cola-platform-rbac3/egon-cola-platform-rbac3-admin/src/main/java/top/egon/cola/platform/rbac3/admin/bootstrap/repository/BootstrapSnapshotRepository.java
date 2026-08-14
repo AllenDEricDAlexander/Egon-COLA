@@ -1,8 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.bootstrap.repository;
 
 import top.egon.cola.platform.rbac3.contract.auth.BootstrapView;
-import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
-import java.util.Objects;
+
 import java.util.Optional;
 
 /**
@@ -24,8 +23,8 @@ import java.util.Optional;
          *
          * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
          * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-         * @param sessionId 输入参数 `sessionId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+         * @param identitySub 输入参数 `identitySub`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
          * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
          */
-        Optional<BootstrapView> find(String tenantId, String userId, String sessionId);
+        Optional<BootstrapView> find(String tenantId, String userId, String identitySub);
     }

@@ -1,6 +1,7 @@
 package top.egon.cola.platform.rbac3.starter.authorization;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.platform.idp.contract.AuthenticationContext;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.rbac3.contract.authorization.DataScopeDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.Decision;
@@ -77,15 +78,15 @@ class DefaultAuthorizationServiceTest {
 
     private IdentityPrincipal claims() {
         return new IdentityPrincipal(
-                "identity-1", "10001", "30001", "finance-web", "jti-1",
-                1L, Set.of("business"), NOW.minusSeconds(30),
-                NOW.plusSeconds(300));
+                "identity-1", "10001", "jti-1", Set.of("business"),
+                NOW.minusSeconds(30), NOW.plusSeconds(300),
+                AuthenticationContext.password());
     }
 
     private SystemAuthorizationSnapshot snapshot() {
         return new SystemAuthorizationSnapshot(
-                "10001", "identity-1", "20001", "30001", "finance",
-                1L, 2L, 3L, List.of("50001", "50002"),
+                "10001", "identity-1", "20001", "finance",
+                1L, 2L, List.of("50001", "50002"),
                 Set.of("finance:payment:read"),
                 Map.of("finance:payment:read", dataScope()),
                 Map.of("finance:payment:read:finance:payment", fieldPolicy()),
@@ -96,7 +97,7 @@ class DefaultAuthorizationServiceTest {
         return new DataScopeDecision(
                 Decision.ALLOW, "ALLOW", "10001", "20001", "finance:payment:read",
                 "DEPT_TREE", false, Set.of(), false, Set.of("90001"), true,
-                Set.of(), false, null, "5", 1L, 1L, 2L, 3L,
+                Set.of(), false, null, "5", 1L, 1L, 2L,
                 List.of("rule-1"), NOW);
     }
 
@@ -106,6 +107,6 @@ class DefaultAuthorizationServiceTest {
                 "finance", "payment",
                 Map.of("accountNo", new FieldPolicyDecision.FieldAccess(
                         FieldAccessLevel.MASKED_READ, "BANK_ACCOUNT")),
-                1L, 2L, 3L, List.of("field-rule-1"), NOW);
+                1L, 2L, List.of("field-rule-1"), NOW);
     }
 }

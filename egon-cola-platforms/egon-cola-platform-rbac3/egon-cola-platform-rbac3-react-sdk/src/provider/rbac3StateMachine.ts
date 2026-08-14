@@ -1,9 +1,4 @@
-import type {
-  ActiveRoleSetView,
-  BootstrapView,
-  Rbac3State,
-  RoleActivationCandidateView,
-} from '../types'
+import type {ActiveRoleSetView, BootstrapView, Rbac3State, RoleActivationCandidateView,} from '../types'
 
 export interface Rbac3MachineState {
   readonly status: Rbac3State
@@ -22,13 +17,11 @@ export type Rbac3MachineEvent =
       readonly activeRoles?: ActiveRoleSetView | null
     }
   | { readonly type: 'REPLACE_ACTIVE_ROLES' }
-  | { readonly type: 'REFRESH_VERSION' }
   | { readonly type: 'REPLACE_STEP_UP_REQUIRED' }
   | { readonly type: 'REPLACE_REJECTED'; readonly errorCode: string }
   | { readonly type: 'AUTHENTICATION_REQUIRED'; readonly errorCode?: string }
   | { readonly type: 'FORBIDDEN'; readonly errorCode: string }
   | { readonly type: 'ERROR'; readonly errorCode: string; readonly retryable: boolean }
-  | { readonly type: 'LOGOUT' }
 
 export const initialRbac3MachineState: Rbac3MachineState = Object.freeze({
   status: 'UNINITIALIZED',
@@ -63,8 +56,6 @@ export const transitionRbac3State = (
       }
     case 'REPLACE_ACTIVE_ROLES':
       return { ...state, status: 'REPLACING_ACTIVE_ROLES', errorCode: null }
-    case 'REFRESH_VERSION':
-      return { ...state, status: 'REFRESHING_VERSION', errorCode: null }
     case 'REPLACE_STEP_UP_REQUIRED':
       return { ...state, status: 'ACTIVATION_REQUIRED', errorCode: 'STEP_UP_REQUIRED' }
     case 'REPLACE_REJECTED':
@@ -87,7 +78,5 @@ export const transitionRbac3State = (
         status: event.retryable ? 'ERROR_RETRYABLE' : 'ERROR_FATAL',
         errorCode: event.errorCode,
       }
-    case 'LOGOUT':
-      return { ...initialRbac3MachineState, status: 'AUTHENTICATION_REQUIRED' }
   }
 }

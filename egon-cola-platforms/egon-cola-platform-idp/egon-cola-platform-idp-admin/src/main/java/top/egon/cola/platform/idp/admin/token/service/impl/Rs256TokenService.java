@@ -1,13 +1,14 @@
 package top.egon.cola.platform.idp.admin.token.service.impl;
 
+import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
-import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.proc.DefaultJOSEObjectTypeVerifier;
 import com.nimbusds.jose.proc.SecurityContext;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
+import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -15,7 +16,6 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.jwt.JwtValidators;
-import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import top.egon.cola.platform.idp.core.port.TokenSigner;
@@ -117,12 +117,7 @@ public final class Rs256TokenService implements TokenSigner {
     }
 
     /**
-     * 签发 {@code typ=at+jwt} 的单 Resource Access Token。
-     *
-     * <p>Signs a single-Resource access token with {@code typ=at+jwt}.</p>
-     *
-     * @param claims 可信 Access Token 声明；trusted access-token claims
-     * @return 紧凑 JWT；compact JWT
+     * Signs a platform USER access token with only trusted identity claims.
      */
     @Override
     public String signAccess(AccessTokenClaims claims) {
@@ -133,11 +128,8 @@ public final class Rs256TokenService implements TokenSigner {
                 .audience(List.of(claims.audience()))
                 .claim("principal_type", claims.principalType().name())
                 .claim("tid", claims.tenantId())
-                .claim("sid", claims.sessionId())
-                .claim("client_id", claims.clientId())
-                .claim("token_version", claims.tokenVersion())
-                .claim("resource_version", claims.resourceVersion())
-                .claim("nonce", claims.nonce())
+                .claim("acr", claims.authenticationContext().acr())
+                .claim("auth_time", claims.authenticationContext().authTime())
                 .id(claims.tokenId())
                 .issuedAt(claims.issuedAt())
                 .notBefore(claims.notBefore())
@@ -209,36 +201,18 @@ public final class Rs256TokenService implements TokenSigner {
         return encode(claimSet, "rs-admission+jwt");
     }
 
-    /**
-     * 签发仅由 IdP 读取的 Resource 绑定 Refresh Token。
-     *
-     * <p>Signs a Resource-bound refresh token read only by IdP.</p>
-     *
-     * @param claims 可信 Refresh Token 声明；trusted refresh-token claims
-     * @return 紧凑 JWT；compact JWT
-     */
+    /** Signs a stable IdP-only refresh token. */
     @Override
     public String signRefresh(RefreshTokenClaims claims) {
         Objects.requireNonNull(claims, "claims");
         JwtClaimsSet claimSet = JwtClaimsSet.builder()
                 .issuer(issuer)
                 .subject(claims.subject())
-                .audience(List.of(claims.clientId()))
                 .claim("token_use", REFRESH_TOKEN_USE)
                 .claim("tid", claims.tenantId())
-                .claim("sid", claims.sessionId())
-                .claim("client_id", claims.clientId())
-                .claim("family_id", claims.familyId())
-                .claim("generation", claims.generation())
-                .claim("token_version", claims.tokenVersion())
-                .claim("resource_server_id", claims.resourceServerId())
-                .claim("resource", claims.resourceUri())
-                .claim("resource_version", claims.resourceVersion())
-                .claim("nonce", claims.nonce())
-                .claim("token_id", claims.tokenId())
                 .id(claims.tokenId())
                 .issuedAt(claims.issuedAt())
-                .notBefore(claims.issuedAt())
+                .notBefore(claims.notBefore())
                 .expiresAt(claims.expiresAt())
                 .build();
         return encode(claimSet, "JWT");
@@ -260,33 +234,25 @@ public final class Rs256TokenService implements TokenSigner {
                     rawRefreshToken,
                     "rawRefreshToken"
             ));
+            if (!"JWT".equals(jwt.getHeaders().get("typ"))) {
+                throw invalidToken();
+            }
             if (!REFRESH_TOKEN_USE.equals(
                     jwt.getClaimAsString("token_use")
             )) {
                 throw invalidToken();
             }
-            String clientId = jwt.getClaimAsString("client_id");
-            String tokenId = jwt.getClaimAsString("token_id");
-            if (clientId == null
-                    || tokenId == null
-                    || !jwt.getAudience().equals(List.of(clientId))
-                    || !Objects.equals(tokenId, jwt.getId())) {
+            String tokenId = jwt.getId();
+            if (tokenId == null
+                    || jwt.getAudience() != null && !jwt.getAudience().isEmpty()) {
                 throw invalidToken();
             }
             return new RefreshTokenClaims(
                     jwt.getSubject(),
                     jwt.getClaimAsString("tid"),
-                    jwt.getClaimAsString("sid"),
-                    clientId,
-                    jwt.getClaimAsString("family_id"),
                     tokenId,
-                    longClaim(jwt, "generation"),
-                    longClaim(jwt, "token_version"),
-                    jwt.getClaimAsString("resource_server_id"),
-                    jwt.getClaimAsString("resource"),
-                    longClaim(jwt, "resource_version"),
-                    jwt.getClaimAsString("nonce"),
                     jwt.getIssuedAt(),
+                    jwt.getNotBefore(),
                     jwt.getExpiresAt()
             );
         } catch (JwtException | IllegalArgumentException exception) {

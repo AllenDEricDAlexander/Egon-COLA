@@ -1,6 +1,8 @@
 # 统一身份平台本机联调手册
 
-本手册用于开发阶段在宿主机运行 IdP、RBAC3、DDC、Gateway 和模拟下游，验证统一 SSO、多租户、Gateway 基础身份校验及下游授权。脚本不使用 Docker，不删除已有数据库，也不面向生产环境。
+本手册用于开发阶段在宿主机运行 IdP、RBAC3、DDC、Gateway 和模拟下游，验证统一 JWT 身份、多租户、Gateway 基础身份校验及下游授权。人员只有
+USER Access Token 和 Refresh Token；浏览器通过 Gateway 的 HttpOnly JWT Cookie 跨管理 Web 复用身份，不建立服务端登录
+Session。脚本不使用 Docker，不删除已有数据库，也不面向生产环境。
 
 ## 1. 前置条件
 
@@ -37,7 +39,9 @@ export UNIFIED_IDENTITY_REDIS_PASSWORD_FILE=/absolute/path/redis.password
 ./scripts/unified-platform/prepare-local-stack.sh
 ```
 
-该命令会使用真实 PostgreSQL/Redis 构建 JAR、安装缺失的锁定版前端依赖，临时拉起并初始化 IdP SSO、RBAC3 双租户、DDC 和 Gateway/MCP 拓扑，然后停止受管进程，为直接命令释放端口。生成的密钥和每个服务独立的 Spring Properties 位于 `target/local-unified-platform/`，权限为 600，不进入 Git。
+该命令会使用真实 PostgreSQL/Redis 构建 JAR、安装缺失的锁定版前端依赖，临时拉起并初始化 IdP USER JWT、RBAC3 双租户、DDC 和
+Gateway/MCP 拓扑，然后停止受管进程，为直接命令释放端口。生成的密钥和每个服务独立的 Spring Properties 位于
+`target/local-unified-platform/`，权限为 600，不进入 Git。
 
 准备流程还会为四个 Admin Web 生成受管的 `.env.local`，写入 RBAC3 实际创建的数值型默认租户 ID。不要手工改成租户代码 `default`；授权接口的 `tenant_id` 契约是租户 ID。
 
@@ -96,10 +100,12 @@ java -jar egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gate
 - 四个正在运行的 Vite 前端均加载真实默认租户 ID，且该租户会员解析为 `ACTIVE`。
 - Gateway 接受合法身份，但不做 RBAC 权限判断。
 - 模拟下游在角色未激活时返回 403；同一 Access Token 在角色激活和缓存失效后返回 200。
-- `default` 与 `tenant-b` Token 的 `tid` 不同、SSO `sid` 相同。
-- Refresh Token 单次轮换成功；旧 Cookie 重放后整个人员安全状态撤销，旧 Access Token 在 Gateway 返回 401。
-- 禁用 `alice` 后旧 Access Token 在 Gateway 返回 401；断言后脚本只恢复自有开发夹具，并通过 IdP 启动回灌恢复 Redis 状态。
-- 撤销后重新签发的两个租户 Token 可用。
+- `default` 与 `tenant-b` USER Token 的 `tid` 不同、`sub` 相同；同一 Gateway Cookie 模式可在多个 Admin Web 复用，不依赖
+  `sid` 或服务端 Session。
+- Refresh Token 稳定可重复使用且不轮换；Gateway 只在 USER Access Token 缺失或确认过期时通过 RT 向 IdP 换取新的 5 分钟 AT。
+- Gateway Logout/强制退出只删除或失效 IdP 保存的 RT；已经签发的 AT 不会被反向撤销，最多继续有效到原 `exp`（默认五分钟）。RT
+  被删除后，使用该 RT 刷新必须失败并重新登录。
+- 角色激活集合按 RBAC3 用户授权事实保存；登录、Refresh、AT 过期、Gateway 节点切换和跨 Admin Web 不会清空激活角色。未激活角色不进入权限上下文。
 - DDC Provider、Gateway Release、外部路由和下游直连均可用。
 - `UnifiedIdentityTopologyIT`、`UnifiedIdentityRevocationIT`、`UnifiedIdentityTenantSwitchIT` 通过。
 
@@ -152,7 +158,10 @@ cd egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platfo
 npm run dev
 ```
 
-本机管理员用户名为 `alice`。推荐准备命令生成的密码保存在 `target/local-unified-platform/secrets/idp-admin.password`，文件权限为 600；不要提交、复制到文档或写入前端存储。登录一次 IdP 后，进入另外三个管理 Web 会复用 IdP SSO Cookie，不再要求输入密码或 Token。切换租户会重新执行 Authorization Code + PKCE，但不会重新输入密码。
+本机管理员用户名为 `alice`。推荐准备命令生成的密码保存在 `target/local-unified-platform/secrets/idp-admin.password`，文件权限为
+600；不要提交、复制到文档或写入前端存储。登录请求、Refresh、UserInfo、Logout 和管理 API 都经 Gateway 对外提供；成功登录后，Gateway
+在浏览器 Cookie 中保存同一身份链的 USER AT/RT，进入另外三个管理 Web 时复用该 JWT Cookie，不需要 IdP SSO
+Session、Authorization Code、PKCE 或前端 Token Store。切换租户时只重新建立该租户的 JWT Cookie，`sub` 保持不变而 `tid` 按租户变化。
 
 ## 5. 运行数据和日志
 
@@ -161,7 +170,8 @@ npm run dev
 - `logs/`：各后端日志。
 - `pids/`：仅由本脚本管理的 PID。
 - `env/`：本机进程环境文件，权限为 600。
-- `secrets/`：密码、RSA Key、服务凭据和验收 Token，权限为 600。
+- `secrets/`：密码、RSA Key 和受保护的短期 SERVICE/控制面验收凭据，权限为 600；浏览器 USER AT/RT 只在 Gateway Cookie
+  中使用，脚本不会把它们作为每个客户端的长期文件保存。
 - `gateway-engine-data/`：Gateway Engine 本机状态。
 
 常用诊断：
@@ -173,7 +183,8 @@ tail -n 200 .runtime/unified-identity/logs/gateway-engine.log
 tail -n 200 .runtime/unified-identity/logs/mock-backend.log
 ```
 
-脚本把 OAuth、角色激活和 Refresh 失败响应保存在运行目录，并在失败信息中报告 HTTP 状态及安全响应体；不会打印 Access Token、Refresh Token 或密码。
+脚本把登录、角色激活、Gateway 自动 Refresh 和 RT 失效响应保存在运行目录，并在失败信息中报告 HTTP 状态及安全响应体；不会打印
+Access Token、Refresh Token 或密码。
 
 ## 6. 停止
 

@@ -88,14 +88,12 @@ public final class HttpTenantMembershipAdapter
      *
      * @param identitySub 用户身份标识；user identity subject
      * @param tenantId 租户标识；tenant identifier
-     * @param clientId Client 标识；Client identifier
      * @return 已解析成员关系；resolved membership
      */
     @Override
     public TenantMembership resolve(
             String identitySub,
-            String tenantId,
-            String clientId
+            String tenantId
     ) {
         try {
             MembershipEnvelope response = restClient.post()
@@ -107,8 +105,7 @@ public final class HttpTenantMembershipAdapter
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(new ResolveRequest(
                             required(identitySub, "identitySub"),
-                            required(tenantId, "tenantId"),
-                            required(clientId, "clientId")
+                            required(tenantId, "tenantId")
                     ))
                     .retrieve()
                     .onStatus(
@@ -133,13 +130,11 @@ public final class HttpTenantMembershipAdapter
      * <p>Lists the user's ACTIVE tenant memberships in one Client context.</p>
      *
      * @param identitySub 用户身份标识；user identity subject
-     * @param clientId Client 标识；Client identifier
      * @return ACTIVE 成员关系列表；ACTIVE membership list
      */
     @Override
     public List<TenantMembership> list(
-            String identitySub,
-            String clientId
+            String identitySub
     ) {
         try {
             String subject = required(identitySub, "identitySub");
@@ -147,9 +142,8 @@ public final class HttpTenantMembershipAdapter
                     .uri(
                             baseUrl
                                     + "/internal/v1/identity/{identitySub}"
-                                    + "/tenants?clientId={clientId}",
-                            subject,
-                            required(clientId, "clientId")
+                                    + "/tenants",
+                            subject
                     )
                     .header(
                             HttpHeaders.AUTHORIZATION,
@@ -326,12 +320,10 @@ public final class HttpTenantMembershipAdapter
      *
      * @param identitySub 用户身份；user identity
      * @param tenantId 租户；tenant
-     * @param clientId Client 标识；Client identifier
      */
     private record ResolveRequest(
             String identitySub,
-            String tenantId,
-            String clientId
+            String tenantId
     ) {
     }
 

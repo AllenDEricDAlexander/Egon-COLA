@@ -1,4 +1,4 @@
-import { expect, test, type Page, type Route } from '@playwright/test'
+import {expect, type Page, type Route, test} from '@playwright/test'
 
 const json = (route: Route, body: unknown, status = 200) => route.fulfill({
   status,
@@ -126,34 +126,26 @@ const remoteTool = {
   revision: 1,
 }
 
-const accessToken = [
-  Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url'),
-  Buffer.from(JSON.stringify({ sub: 'mcp-e2e-user', exp: 4_102_444_800 })).toString('base64url'),
-  'e2e-signature',
-].join('.')
+const authorization = {
+    user: {id: 'mcp-e2e-user', tenantId: 'default', identitySub: 'mcp-e2e-user', status: 'ACTIVE'},
+    activeRoleContexts: [],
+    permissions: [
+        'gateway:read',
+        'gateway:mcp:read',
+        'gateway:mcp:write',
+        'gateway:mcp:test',
+        'gateway:mcp:release',
+        'gateway:mcp:runtime:read',
+        'gateway:mcp:approve',
+        'gateway:releases:write',
+    ],
+    apps: [], menus: [], routes: [], actions: [], fieldPolicies: {},
+    defaultApplicationCode: null, defaultRoute: null, authVersion: 1, policyVersion: 1,
+}
 
 const authenticate = async (page: Page) => {
-  await page.route('http://127.0.0.1:18120/oauth2/token', (route) => json(route, {
-    access_token: accessToken,
-    token_type: 'Bearer',
-    expires_in: 3_600,
-  }))
-  await page.route('**/api/v1/gateway/admin/session', (route) => json(route, {
-    actorId: 'mcp-e2e-user',
-    displayName: 'MCP E2E',
-    actorType: 'USER',
-    capabilities: [
-      'gateway:read',
-      'gateway:mcp:read',
-      'gateway:mcp:write',
-      'gateway:mcp:test',
-      'gateway:mcp:release',
-      'gateway:mcp:runtime:read',
-      'gateway:mcp:approve',
-      'gateway:releases:write',
-    ],
-    roles: ['gateway-mcp-admin'],
-  }))
+    await page.route('**/api/v1/auth/bootstrap', (route) => json(route, authorization))
+    await page.route('**/oauth2/logout', (route) => json(route, {}))
   await page.route('**/api/v1/gateway/admin/scopes', (route) => json(route, [{
     ...scope,
     bindingId: 'scope-mcp-e2e',

@@ -48,7 +48,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-unified_platform_stage 'initializing databases, SSO, authorization, DDC, and Gateway topology'
+unified_platform_stage 'initializing databases, JWT authorization, DDC, and Gateway topology'
 "${script_dir}/start-local-stack.sh"
 "${script_dir}/stop-local-stack.sh"
 cleanup_required=false

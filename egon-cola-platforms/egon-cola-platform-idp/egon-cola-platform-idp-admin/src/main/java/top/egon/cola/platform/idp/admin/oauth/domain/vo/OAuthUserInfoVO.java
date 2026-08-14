@@ -1,7 +1,5 @@
 package top.egon.cola.platform.idp.admin.oauth.domain.vo;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.util.Set;
 
 /**
@@ -12,9 +10,6 @@ import java.util.Set;
 public record OAuthUserInfoVO(
         String sub,
         String tid,
-        String sid,
-        @JsonProperty("client_id") String clientId,
-        @JsonProperty("token_version") long tokenVersion,
         Set<String> aud
 ) {
 }

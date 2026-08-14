@@ -6,7 +6,7 @@ import java.util.Set;
 
 public record ReplaceActiveRolesRequest(
         List<String> roleIds,
-        long expectedContextVersion
+        long expectedAuthVersion
 ) {
 
     public ReplaceActiveRolesRequest {
@@ -22,9 +22,9 @@ public record ReplaceActiveRolesRequest(
                     "roleIds must not contain duplicates"
             );
         }
-        if (expectedContextVersion < 0L) {
+        if (expectedAuthVersion < 0L) {
             throw new IllegalArgumentException(
-                    "expectedContextVersion must not be negative"
+                    "expectedAuthVersion must not be negative"
             );
         }
     }

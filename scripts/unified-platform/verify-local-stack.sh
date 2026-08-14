@@ -8,13 +8,15 @@ source "${script_dir}/lib/common.sh"
 legacy_script="${unified_platform_repo_root}/scripts/unified-identity-local.sh"
 ddc_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/target/egon-cola-platform-dynamic-config-center-admin-exec.jar"
 mcp_remote_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-mcp-remote/target/gateway-test-mcp-remote-exec.jar"
-gateway_admin_token_file="${unified_platform_secret_dir}/gateway-admin.access.jwt"
-idp_admin_token_file="${unified_platform_secret_dir}/idp-admin.access.jwt"
-rbac3_admin_token_file="${unified_platform_secret_dir}/rbac3-default.access.jwt"
-ddc_admin_token_file="${unified_platform_secret_dir}/ddc-admin.access.jwt"
-tenant_token_file="${unified_platform_secret_dir}/tenant-b.access.jwt"
-mcp_token_file="${unified_platform_secret_dir}/mcp-tenant-b.access.jwt"
-rbac3_token_file="${unified_platform_secret_dir}/rbac3-tenant-b.access.jwt"
+gateway_control_plane_service_token_file="${unified_platform_secret_dir}/gateway-admin-control-plane.service.jwt"
+verification_token_dir=""
+gateway_admin_token_file=""
+idp_admin_token_file=""
+rbac3_admin_token_file=""
+ddc_admin_token_file=""
+tenant_token_file=""
+mcp_token_file=""
+rbac3_token_file=""
 gateway_group_file="${unified_platform_runtime_dir}/gateway-group.id"
 gateway_application_file="${unified_platform_runtime_dir}/gateway-application.id"
 
@@ -120,6 +122,19 @@ if ((failures > 0)); then
   exit 1
 fi
 
+tmp_dir="$(mktemp -d "${unified_platform_runtime_dir}/verify.XXXXXX")"
+chmod 700 "${tmp_dir}"
+verification_token_dir="${tmp_dir}/tokens"
+mkdir -p "${verification_token_dir}"
+chmod 700 "${verification_token_dir}"
+gateway_admin_token_file="${gateway_control_plane_service_token_file}"
+idp_admin_token_file="${verification_token_dir}/default.at"
+rbac3_admin_token_file="${verification_token_dir}/default.at"
+ddc_admin_token_file="${verification_token_dir}/default.at"
+tenant_token_file="${verification_token_dir}/tenant-b.at"
+mcp_token_file="${verification_token_dir}/mcp-user.at"
+rbac3_token_file="${verification_token_dir}/default.at"
+
 "${script_dir}/test-live-frontend-login.sh" \
   || unified_platform_fail "Admin Web login contract verification failed"
 
@@ -127,6 +142,17 @@ set -e
 for command in curl jq openssl; do
   unified_platform_require_command "${command}"
 done
+
+run_identity sync-local-credentials >"${tmp_dir}/token-sync.log"
+UNIFIED_IDENTITY_TENANT=default \
+UNIFIED_IDENTITY_ACCESS_TOKEN_FILE="${verification_token_dir}/default.at" \
+  run_identity issue-user-token >"${tmp_dir}/default-token.log"
+UNIFIED_IDENTITY_TENANT=tenant-b \
+UNIFIED_IDENTITY_ACCESS_TOKEN_FILE="${verification_token_dir}/tenant-b.at" \
+  run_identity issue-user-token >"${tmp_dir}/tenant-b-token.log"
+UNIFIED_IDENTITY_TENANT=tenant-b \
+UNIFIED_IDENTITY_ACCESS_TOKEN_FILE="${verification_token_dir}/mcp-user.at" \
+  run_identity issue-user-token >"${tmp_dir}/mcp-token.log"
 for file in \
   "${gateway_admin_token_file}" \
   "${tenant_token_file}" \
@@ -137,8 +163,6 @@ for file in \
   [[ -s "${file}" ]] || unified_platform_fail "missing verifier input: ${file}"
 done
 
-tmp_dir="$(mktemp -d "${unified_platform_runtime_dir}/verify.XXXXXX")"
-chmod 700 "${tmp_dir}"
 ddc_interrupted=false
 remote_interrupted=false
 roles_modified=false
@@ -181,9 +205,9 @@ put_role_activations() {
     -H "Authorization: Bearer $(<"${rbac3_token_file}")" \
     "${RBAC3_BASE_URL}/api/rbac3/v1/auth/role-activations"
   roles="$(role_ids "${mode}" "${candidates}")"
-  version="$(jq -er '.data.sessionVersion' "${current}")"
+  version="$(jq -er '.data.authVersion' "${current}")"
   request="$(jq -cn --argjson roles "${roles}" --argjson version "${version}" \
-    '{roleIds:$roles,expectedContextVersion:$version}')"
+    '{roleIds:$roles,expectedAuthVersion:$version}')"
   http_code="$(curl -sS -o "${tmp_dir}/role-update.json" -w '%{http_code}' \
     -X PUT -H 'Content-Type: application/json' \
     -H "Authorization: Bearer $(<"${rbac3_token_file}")" \
@@ -250,7 +274,7 @@ verify_browser_preflight() {
     -H "Origin: ${origin}" \
     -H 'Access-Control-Request-Method: POST' \
     -H "Access-Control-Request-Headers: ${request_headers}" \
-    "${IDP_BASE_URL}${endpoint}")"
+    "${GATEWAY_BASE_URL}${endpoint}")"
   [[ "${http_code}" == "200" ]] || unified_platform_fail \
     "${label} browser preflight failed with HTTP ${http_code}"
   allowed_origin="$(response_header \
@@ -274,7 +298,7 @@ verify_unknown_origin_rejected() {
     -H 'Origin: http://localhost:18152' \
     -H 'Access-Control-Request-Method: POST' \
     -H 'Access-Control-Request-Headers: content-type' \
-    "${IDP_BASE_URL}/oauth2/token")"
+    "${GATEWAY_BASE_URL}/oauth2/token")"
   [[ "${http_code}" == "403" ]] || unified_platform_fail \
     "unconfigured browser origin was not rejected: HTTP ${http_code}"
   [[ -z "$(response_header "${headers}" Access-Control-Allow-Origin)" ]] \
@@ -368,16 +392,10 @@ verify_browser_preflight ddc-token "${DDC_ADMIN_WEB_URL}" \
   /oauth2/token content-type
 verify_unknown_origin_rejected
 
-unified_platform_stage "verifying unified identity SSO and revocation semantics"
+unified_platform_stage "verifying unified identity JWT cookie and refresh-token semantics"
 if [[ "${UNIFIED_PLATFORM_SKIP_IDENTITY_VERIFY:-false}" != "true" ]]; then
   run_identity verify >"${tmp_dir}/identity-verification.log"
 fi
-run_identity refresh-tokens >"${tmp_dir}/token-refresh.log"
-UNIFIED_IDENTITY_OAUTH_CLIENT_ID=mock-backend \
-UNIFIED_IDENTITY_OAUTH_TENANT=tenant-b \
-UNIFIED_IDENTITY_OAUTH_RESOURCE_URI=https://api.egon.internal/local/identity/gateway-test-mcp-provider \
-UNIFIED_IDENTITY_OAUTH_TOKEN_FILE="${mcp_token_file}" \
-  run_identity issue-user-token >"${tmp_dir}/mcp-token-refresh.log"
 
 unified_platform_stage "verifying authenticated Admin feature matrix"
 verify_authenticated_json idp-bootstrap \
@@ -438,9 +456,9 @@ verify_authenticated_json rbac3-field-rules \
 verify_authenticated_json rbac3-operation-sod-rules \
   "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/operation-sod-rules" \
   "${rbac3_admin_token_file}" '.data != null'
-verify_authenticated_json rbac3-sessions \
-  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/sessions/me" \
-  "${rbac3_admin_token_file}" '.data != null'
+verify_authenticated_json rbac3-authorization-bootstrap \
+  "${RBAC3_ADMIN_WEB_URL}/api/v1/auth/bootstrap" \
+  "${rbac3_admin_token_file}" 'type == "object"'
 verify_authenticated_json rbac3-role-candidates \
   "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/auth/role-activation-candidates" \
   "${rbac3_admin_token_file}" '.data != null'
@@ -457,8 +475,8 @@ gateway_group_id="$(<"${gateway_group_file}")"
 gateway_application_id="$(<"${gateway_application_file}")"
 gateway_admin_path="${GATEWAY_ADMIN_WEB_URL}/api/v1/gateway/admin"
 gateway_scope='bizCode=identity&appCode=mock-backend&env=local&namespace=default'
-verify_authenticated_json gateway-session \
-  "${gateway_admin_path}/session" "${gateway_admin_token_file}"
+verify_authenticated_json gateway-authorization-bootstrap \
+  "${GATEWAY_ADMIN_WEB_URL}/api/v1/auth/bootstrap" "${gateway_admin_token_file}"
 verify_authenticated_json gateway-scopes \
   "${gateway_admin_path}/scopes" "${gateway_admin_token_file}" \
   'type == "array"'
@@ -561,7 +579,7 @@ verify_authenticated_json ddc-cache \
   "${ddc_admin_token_file}" \
   '.success == true and (.data | type) == "array"'
 
-unified_platform_stage "verifying Stable primitives and cross-engine Redis session"
+unified_platform_stage "verifying Stable primitives and cross-engine MCP protocol session"
 mcp_initialize "${GATEWAY_BASE_URL}" stable-a >/dev/null
 stable_session="${tmp_dir}/stable-a.session"
 response="$(mcp_call "${GATEWAY_ENGINE_B_PUBLIC_URL}" "${stable_session}" \
@@ -779,7 +797,7 @@ assert_json "${response}" '.result.isError == false' \
 
 unified_platform_stage "recording sanitized verification evidence"
 jq -n --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-  '{verifiedAt:$verifiedAt,status:"PASS",checks:["process-health","admin-web-default-tenant-membership","admin-web-browser-sso","admin-feature-matrix","identity-sso-tokenVersion-refresh-replay","rbac3-snapshot-revocation","ddc-registration-and-lkg","gateway-annotation-managed-mcp-release","mcp-stable-rc-legacy","mcp-local-remote-primitives","mcp-app","mcp-cross-engine-session-and-task","remote-circuit-recovery"]}' \
+  '{verifiedAt:$verifiedAt,status:"PASS",checks:["process-health","admin-web-default-tenant-membership","admin-web-gateway-cookie-login","admin-feature-matrix","identity-jwt-cookie-stable-refresh-rt-revoke","rbac3-snapshot-revocation","ddc-registration-and-lkg","gateway-annotation-managed-mcp-release","mcp-stable-rc-legacy","mcp-local-remote-primitives","mcp-app","mcp-cross-engine-protocol-session-and-task","remote-circuit-recovery"]}' \
   >"${unified_platform_evidence_dir}/verification-summary.json"
 chmod 600 "${unified_platform_evidence_dir}/verification-summary.json"
 

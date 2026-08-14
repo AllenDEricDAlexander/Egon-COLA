@@ -17,9 +17,7 @@ import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.ConfigurationCondition.ConfigurationPhase;
 import org.springframework.core.env.Environment;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
-import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
-import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
@@ -39,15 +37,16 @@ import top.egon.cola.platform.idp.starter.admission.OwnerOnlyPrivateKeyLoader;
 import top.egon.cola.platform.idp.starter.admission.PrivateKeyJwtAssertionFactory;
 import top.egon.cola.platform.idp.starter.admission.RpcResourceServerAdmissionClient;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
+import top.egon.cola.platform.idp.starter.security.IdpEndpointAuthenticationPolicy;
 import top.egon.cola.platform.idp.starter.security.IdpJwtVerifier;
+import top.egon.cola.platform.idp.starter.security.ServiceAccessTokenVerifier;
+import top.egon.cola.platform.idp.starter.security.UserAccessTokenVerifier;
 import top.egon.cola.platform.idp.starter.security.RetryingJwtDecoder;
 import top.egon.cola.platform.idp.starter.security.ServiceScopeAuthorization;
 import top.egon.cola.platform.idp.starter.state.IdentityOAuthClientStateReader;
 import top.egon.cola.platform.idp.starter.state.IdentityResourceServerStateReader;
-import top.egon.cola.platform.idp.starter.state.IdentityUserStateReader;
 import top.egon.cola.platform.idp.starter.state.RedisIdentityOAuthClientStateReader;
 import top.egon.cola.platform.idp.starter.state.RedisIdentityResourceServerStateReader;
-import top.egon.cola.platform.idp.starter.state.RedisIdentityUserStateReader;
 
 import java.security.SecureRandom;
 import java.time.Clock;
@@ -60,7 +59,7 @@ import java.util.List;
  * Bearer 过滤器；它不签发 OAuth Access Token，也不执行接口权限判断。
  *
  * <p>Auto-configures unified IdP identity verification for regular Servlet resource servers.
- * It creates the Admission Ticket supplier, JWT decoder, current-user-state reader, identity
+ * It creates the Admission Ticket supplier, JWT decoder, service-state readers, identity
  * verifier, and Bearer filter. It neither issues OAuth access tokens nor makes endpoint
  * authorization decisions.</p>
  */
@@ -252,36 +251,6 @@ public class IdpStarterAutoConfiguration {
     }
 
     /**
-     * 创建从共享 Redis 键空间读取用户实时状态的端口实现。
-     * 如果存在 RBAC3 专用客户端则优先复用，否则要求容器中只有一个可确定的 Redisson 客户端。
-     *
-     * <p>Creates the port implementation that reads current user state from the shared Redis key
-     * space. The RBAC3 runtime client is preferred when present; otherwise a unique Redisson client
-     * must be available.</p>
-     *
-     * @param redissonClients 容器中的 Redisson 客户端候选；Redisson client candidates
-     * @param beanFactory 用于按名称选择客户端的 Bean 工厂；bean factory used for named lookup
-     * @param objectMapper 用户状态 JSON 反序列化器；JSON mapper for user-state deserialization
-     * @param properties IdP Starter 配置；IdP Starter settings
-     * @return 用户实时状态读取器；current user-state reader
-     */
-    @Bean
-    @ConditionalOnBean(RedissonClient.class)
-    @ConditionalOnMissingBean
-    public IdentityUserStateReader identityUserStateReader(
-            ObjectProvider<RedissonClient> redissonClients,
-            ListableBeanFactory beanFactory,
-            ObjectMapper objectMapper,
-            IdpStarterProperties properties
-    ) {
-        properties.validate();
-        return new RedisIdentityUserStateReader(
-                identityStateRedisson(redissonClients, beanFactory),
-                objectMapper,
-                properties.getUserStateKeyPrefix());
-    }
-
-    /**
      * 创建从共享 Redis 键空间读取 Resource Server 运行态投影的端口实现。
      *
      * <p>Creates the port implementation that reads Resource Server runtime projections from the
@@ -346,7 +315,6 @@ public class IdpStarterAutoConfiguration {
      * <p>Creates the shared IdP access-token verifier.</p>
      *
      * @param decoder JWT 解码器；JWT decoder
-     * @param userStates 用户实时状态读取器；current user-state reader
      * @param resourceStates Resource Server 状态读取器；Resource Server state reader
      * @param clientStates OAuth Client 状态读取器；OAuth Client state reader
      * @param properties IdP Starter 配置；IdP Starter settings
@@ -354,14 +322,12 @@ public class IdpStarterAutoConfiguration {
      */
     @Bean
     @ConditionalOnBean({
-            IdentityUserStateReader.class,
             IdentityResourceServerStateReader.class,
             IdentityOAuthClientStateReader.class
     })
     @ConditionalOnMissingBean
     public IdpJwtVerifier idpJwtVerifier(
             @Qualifier("idpJwtDecoder") JwtDecoder decoder,
-            IdentityUserStateReader userStates,
             IdentityResourceServerStateReader resourceStates,
             IdentityOAuthClientStateReader clientStates,
             IdpStarterProperties properties
@@ -369,11 +335,41 @@ public class IdpStarterAutoConfiguration {
         properties.validate();
         return new IdpJwtVerifier(
                 decoder,
-                userStates,
                 resourceStates,
                 clientStates,
                 properties.getResourceServerId(),
-                properties.getResourceUri());
+                properties.getResourceUri(),
+                properties.getPlatformAudience(),
+                Clock.systemUTC());
+    }
+
+    /**
+     * Exposes the stateless USER-token verifier to internal subject-token adapters.
+     */
+    @Bean
+    @ConditionalOnBean(IdpJwtVerifier.class)
+    @ConditionalOnMissingBean
+    public UserAccessTokenVerifier userAccessTokenVerifier(IdpJwtVerifier verifier) {
+        return new UserAccessTokenVerifier(verifier);
+    }
+
+    /**
+     * Exposes the explicit SERVICE-token verifier used by SERVICE-only endpoint policies.
+     */
+    @Bean
+    @ConditionalOnBean(IdpJwtVerifier.class)
+    @ConditionalOnMissingBean
+    public ServiceAccessTokenVerifier serviceAccessTokenVerifier(IdpJwtVerifier verifier) {
+        return new ServiceAccessTokenVerifier(verifier);
+    }
+
+    /**
+     * Provides a fail-closed-capable default endpoint policy for resource applications.
+     */
+    @Bean
+    @ConditionalOnMissingBean
+    public IdpEndpointAuthenticationPolicy idpEndpointAuthenticationPolicy() {
+        return new IdpEndpointAuthenticationPolicy();
     }
 
     /**
@@ -396,7 +392,9 @@ public class IdpStarterAutoConfiguration {
      * <p>Creates the Bearer filter that stores a verified identity in the Spring Security
      * context.</p>
      *
-     * @param verifier IdP JWT 验证器；IdP JWT verifier
+     * @param userAccessTokenVerifier USER access-token verifier
+     * @param serviceAccessTokenVerifier SERVICE access-token verifier
+     * @param endpointAuthenticationPolicy endpoint credential policy
      * @param objectMapper 认证失败响应的 JSON 序列化器；JSON mapper for authentication failures
      * @return IdP Bearer 身份过滤器；IdP Bearer identity filter
      */
@@ -404,10 +402,16 @@ public class IdpStarterAutoConfiguration {
     @ConditionalOnBean(IdpJwtVerifier.class)
     @ConditionalOnMissingBean
     public IdpBearerAuthenticationFilter idpBearerAuthenticationFilter(
-            IdpJwtVerifier verifier,
+            UserAccessTokenVerifier userAccessTokenVerifier,
+            ServiceAccessTokenVerifier serviceAccessTokenVerifier,
+            IdpEndpointAuthenticationPolicy endpointAuthenticationPolicy,
             ObjectMapper objectMapper
     ) {
-        return new IdpBearerAuthenticationFilter(verifier, objectMapper);
+        return new IdpBearerAuthenticationFilter(
+                userAccessTokenVerifier,
+                serviceAccessTokenVerifier,
+                endpointAuthenticationPolicy,
+                objectMapper);
     }
 
     /**
@@ -437,10 +441,10 @@ public class IdpStarterAutoConfiguration {
     }
 
     /**
-     * 根据 JWK Set 地址构造 Nimbus 解码器，并同时校验签发方和精确 Resource 受众。
+     * 根据 JWK Set 地址构造 Nimbus 解码器，并校验签发方和时间窗口。
      *
-     * <p>Builds a Nimbus decoder from the JWK Set endpoint and validates both issuer and the exact
-     * Resource audience.</p>
+     * <p>Builds a Nimbus decoder from the JWK Set endpoint and validates issuer and time claims.
+     * USER and SERVICE verifiers apply their own exact audience policy after decoding.</p>
      *
      * @param properties 已完成校验的 IdP Starter 配置；validated IdP Starter settings
      * @return 配置完成的 JWT 解码器；configured JWT decoder
@@ -453,20 +457,14 @@ public class IdpStarterAutoConfiguration {
         List<OAuth2TokenValidator<Jwt>> validators = new ArrayList<>();
         validators.add(JwtValidators.createDefaultWithIssuer(
                 properties.getIssuer().trim()));
-        String resourceUri = properties.getResourceUri().toString();
-        validators.add(jwt -> jwt.getAudience().size() == 1
-                && resourceUri.equals(jwt.getAudience().getFirst())
-                ? OAuth2TokenValidatorResult.success()
-                : OAuth2TokenValidatorResult.failure(new OAuth2Error(
-                        "invalid_token", "JWT audience is invalid", null)));
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(validators));
         return decoder;
     }
 
     /**
-     * 选择读取 IdP 用户状态所用的 Redisson 客户端。
+     * 选择读取 IdP Resource/Client 运行态所用的 Redisson 客户端。
      *
-     * <p>Selects the Redisson client used to read current IdP user state.</p>
+     * <p>Selects the Redisson client used to read IdP Resource/Client runtime state.</p>
      *
      * @param clients 容器中的 Redisson 客户端候选；Redisson client candidates
      * @param beanFactory 用于按名称查找客户端的 Bean 工厂；bean factory for named lookup
@@ -484,7 +482,7 @@ public class IdpStarterAutoConfiguration {
         RedissonClient unique = clients.getIfUnique();
         if (unique == null) {
             throw new IllegalStateException(
-                    "IdP user-state Redis client is ambiguous");
+                    "IdP service-state Redis client is ambiguous");
         }
         return unique;
     }

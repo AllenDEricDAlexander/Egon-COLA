@@ -10,7 +10,6 @@ import top.egon.cola.platform.rbac3.contract.authorization.OperationSodDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.PermissionRequest;
 
 import java.time.Clock;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -284,7 +283,7 @@ public final class DefaultAuthorizationService implements AuthorizationService {
     ) {
         return new AuthorizationDecision(
                 decision, reasonCode, facts.tenantId(), facts.rbac3UserId(), permissionCode,
-                facts.authVersion(), facts.contextVersion(), facts.policyVersion(),
+                facts.authVersion(), facts.policyVersion(),
                 facts.activeRoleIds(), clock.instant());
     }
 
@@ -311,7 +310,7 @@ public final class DefaultAuthorizationService implements AuthorizationService {
                 decision, reasonCode, facts.tenantId(), facts.rbac3UserId(), permissionCode,
                 "NONE", false, Set.of(), false, Set.of(), false, Set.of(),
                 false, null, "unavailable", 0L, facts.authVersion(),
-                facts.contextVersion(), facts.policyVersion(),
+                facts.policyVersion(),
                 List.of(), clock.instant());
     }
 
@@ -337,8 +336,8 @@ public final class DefaultAuthorizationService implements AuthorizationService {
         return new FieldPolicyDecision(
                 decision, reasonCode, facts.tenantId(), facts.rbac3UserId(),
                 request.permissionCode(), request.applicationCode(), request.resourceCode(),
-                Map.of(), facts.authVersion(), facts.contextVersion(),
-                facts.policyVersion(), List.of(), clock.instant());
+                Map.of(), facts.authVersion(), facts.policyVersion(),
+                List.of(), clock.instant());
     }
 
     /**
@@ -365,7 +364,7 @@ public final class DefaultAuthorizationService implements AuthorizationService {
                 request.permissionCode(), request.applicationCode(),
                 request.businessResource(), request.businessId(), request.actionCode(),
                 result.conflictingActionCodes(), facts.authVersion(),
-                facts.contextVersion(), facts.policyVersion(),
+                facts.policyVersion(),
                 result.evidenceIds(), clock.instant());
     }
 
@@ -392,9 +391,9 @@ public final class DefaultAuthorizationService implements AuthorizationService {
     ) {
         return new AuthorizationFenceDecision(
                 decision, result.reasonCode(), facts.tenantId(), facts.rbac3UserId(),
-                request.permissionCode(), facts.sessionId(), checksum,
+                request.permissionCode(), checksum,
                 request.businessResource(), request.businessId(), request.traceId(),
-                facts.authVersion(), facts.contextVersion(), facts.policyVersion(),
+                facts.authVersion(), facts.policyVersion(),
                 result.evidenceIds(), clock.instant(), result.verifiedAt());
     }
 
@@ -411,7 +410,7 @@ public final class DefaultAuthorizationService implements AuthorizationService {
     private RuntimeFacts unavailable(RuntimeUnavailableException exception) {
         IdentityPrincipal identity = exception.identity();
         return new RuntimeFacts(identity.tenantId(), identity.subject(),
-                identity.sessionId(), 0, 0, 0, List.of());
+                0, 0, List.of());
     }
 
     /**
@@ -427,8 +426,7 @@ public final class DefaultAuthorizationService implements AuthorizationService {
     private RuntimeFacts facts(RuntimeAuthorizationContext context) {
         return new RuntimeFacts(
                 context.snapshot().tenantId(), context.snapshot().rbac3UserId(),
-                context.snapshot().sessionId(), context.snapshot().authVersion(),
-                context.snapshot().contextVersion(), context.snapshot().policyVersion(),
+                context.snapshot().authVersion(), context.snapshot().policyVersion(),
                 context.snapshot().activeRoleIds());
     }
 
@@ -548,9 +546,7 @@ public final class DefaultAuthorizationService implements AuthorizationService {
      *
      * @param tenantId 记录组件 `tenantId` 表示构造该记录时传入的业务数据，其取值含义由所属记录的契约定义；record component `tenantId` carries constructor data whose meaning is defined by the record contract.
      * @param rbac3UserId 记录组件 `rbac3UserId` 表示构造该记录时传入的业务数据，其取值含义由所属记录的契约定义；record component `rbac3UserId` carries constructor data whose meaning is defined by the record contract.
-     * @param sessionId 记录组件 `sessionId` 表示构造该记录时传入的业务数据，其取值含义由所属记录的契约定义；record component `sessionId` carries constructor data whose meaning is defined by the record contract.
      * @param authVersion 记录组件 `authVersion` 表示构造该记录时传入的业务数据，其取值含义由所属记录的契约定义；record component `authVersion` carries constructor data whose meaning is defined by the record contract.
-     * @param contextVersion 记录组件 `contextVersion` 表示构造该记录时传入的业务数据，其取值含义由所属记录的契约定义；record component `contextVersion` carries constructor data whose meaning is defined by the record contract.
      * @param policyVersion 记录组件 `policyVersion` 表示构造该记录时传入的业务数据，其取值含义由所属记录的契约定义；record component `policyVersion` carries constructor data whose meaning is defined by the record contract.
      * @param activeRoleIds 记录组件 `activeRoleIds` 表示构造该记录时传入的业务数据，其取值含义由所属记录的契约定义；record component `activeRoleIds` carries constructor data whose meaning is defined by the record contract.
      */
@@ -572,14 +568,6 @@ public final class DefaultAuthorizationService implements AuthorizationService {
              */
             String rbac3UserId,
             /**
-             * 字段 `sessionId` 表示 `RuntimeFacts` 中与 `session Id` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-             * Field `sessionId` stores the `session Id`-related state, dependency, configuration, or result of `RuntimeFacts` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
-             *
-             * 含义与用法：读取、传递或更新 `sessionId` 时应保持 `RuntimeFacts` 的生命周期、不可变性和线程安全约束。
-             * Meaning and usage: when reading, passing, or updating `sessionId`, preserve `RuntimeFacts`'s lifecycle, immutability, and thread-safety constraints.
-             */
-            String sessionId,
-            /**
              * 字段 `authVersion` 表示 `RuntimeFacts` 中与 `auth Version` 相关的状态、依赖、配置或结果（声明类型 `long`）；其生命周期和取值含义由声明类型及所属对象共同确定。
              * Field `authVersion` stores the `auth Version`-related state, dependency, configuration, or result of `RuntimeFacts` (declared type `long`); its lifecycle and value semantics are defined by its declared type and owning object.
              *
@@ -587,14 +575,6 @@ public final class DefaultAuthorizationService implements AuthorizationService {
              * Meaning and usage: when reading, passing, or updating `authVersion`, preserve `RuntimeFacts`'s lifecycle, immutability, and thread-safety constraints.
              */
             long authVersion,
-            /**
-             * 字段 `contextVersion` 表示 `RuntimeFacts` 中与 `context Version` 相关的状态、依赖、配置或结果（声明类型 `long`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-             * Field `contextVersion` stores the `context Version`-related state, dependency, configuration, or result of `RuntimeFacts` (declared type `long`); its lifecycle and value semantics are defined by its declared type and owning object.
-             *
-             * 含义与用法：读取、传递或更新 `contextVersion` 时应保持 `RuntimeFacts` 的生命周期、不可变性和线程安全约束。
-             * Meaning and usage: when reading, passing, or updating `contextVersion`, preserve `RuntimeFacts`'s lifecycle, immutability, and thread-safety constraints.
-             */
-            long contextVersion,
             /**
              * 字段 `policyVersion` 表示 `RuntimeFacts` 中与 `policy Version` 相关的状态、依赖、配置或结果（声明类型 `long`）；其生命周期和取值含义由声明类型及所属对象共同确定。
              * Field `policyVersion` stores the `policy Version`-related state, dependency, configuration, or result of `RuntimeFacts` (declared type `long`); its lifecycle and value semantics are defined by its declared type and owning object.

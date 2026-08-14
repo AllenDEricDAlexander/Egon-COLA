@@ -1,11 +1,5 @@
-import { isRefreshableAuthenticationError, useRbac3Session } from '@egon-cola/rbac3-react-sdk'
-import {
-  createContext,
-  useContext,
-  useMemo,
-  useState,
-  type PropsWithChildren,
-} from 'react'
+import {useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
+import {createContext, type PropsWithChildren, useContext, useMemo, useState,} from 'react'
 
 export interface FeatureApiRequest {
   readonly method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
@@ -32,7 +26,7 @@ export interface FeatureApiProviderProps extends PropsWithChildren {
 }
 
 export const FeatureApiProvider = ({ client, children }: FeatureApiProviderProps) => {
-  const { bootstrap, refresh } = useRbac3Session()
+    const {bootstrap} = useRbac3Authorization()
   const [targetTenantId, setTargetTenant] = useState<string | null>(null)
   const effectiveTenantId = bootstrap?.user.tenantId ?? null
   const tenantClient = useMemo<FeatureApiClient>(() => ({
@@ -40,15 +34,9 @@ export const FeatureApiProvider = ({ client, children }: FeatureApiProviderProps
       const tenantRequest = targetTenantId === null || !path.startsWith('/api/rbac3/v1/platform/')
         ? request
         : { ...request, headers: { ...request.headers, 'X-RBAC3-Target-Tenant': targetTenantId } }
-      try {
-        return await client.request<T>(path, tenantRequest)
-      } catch (error) {
-        if (!isRefreshableAuthenticationError(error)) throw error
-        await refresh()
         return client.request<T>(path, tenantRequest)
-      }
     },
-  }), [client, refresh, targetTenantId])
+  }), [client, targetTenantId])
   const setTargetTenantId = (tenantId: string | null) => {
     const normalized = tenantId?.trim() || null
     setTargetTenant(normalized)

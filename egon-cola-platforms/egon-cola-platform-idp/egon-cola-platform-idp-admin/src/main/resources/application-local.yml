@@ -20,7 +20,6 @@ egon.cola.platform:
       password-file: ${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/secrets/redis.password}
     authorization:
       endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
-      service-credential-file: ${IDP_RBAC3_SERVICE_CREDENTIAL_FILE:.runtime/unified-identity/idp-admin.service.jwt}
 
 egon:
   idp:
@@ -45,3 +44,10 @@ egon:
             development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:true}
         redis:
           password: ${DDC_REGISTRY_REDIS_PASSWORD:HomeLab666}
+      gateway:
+        reporting:
+          enabled: ${IDP_GATEWAY_REPORTING_ENABLED:false}
+          env: local
+          namespace: default
+          application-code: idp
+          artifact-version: local

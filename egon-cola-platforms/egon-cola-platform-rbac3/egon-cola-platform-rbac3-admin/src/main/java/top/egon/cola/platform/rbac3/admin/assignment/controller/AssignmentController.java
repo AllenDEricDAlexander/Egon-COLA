@@ -1,9 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.assignment.controller;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,29 +12,28 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.AssignRequestDTO;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.RoleAssignmentChangeDTO;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.RoleAssignmentChangeRequestDTO;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.RoleAssignmentDTO;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.enums.AssignmentChangeOperationEnum;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentResultVO;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentVO;
 import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentFacade;
-import top.egon.cola.platform.rbac3.admin.runtime.service.IdempotencyService;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.IdempotencyCommandDTO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.IdempotencyOutcomeEnum;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.IdempotencyClaimVO;
+import top.egon.cola.platform.rbac3.admin.runtime.service.IdempotencyService;
+import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
-import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentSessionStrengthService;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.AssignRequestDTO;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.RoleAssignmentChangeRequestDTO;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.RoleAssignmentChangeDTO;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.RoleAssignmentDTO;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentResultVO;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentVO;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.enums.AssignmentChangeOperationEnum;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.IdempotencyCommandDTO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.IdempotencyClaimVO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.IdempotencyOutcomeEnum;
 
 /**
  * 类型 `AssignmentController` 位于当前包内，是类型，用于承载 `Assignment Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -88,14 +84,6 @@ public class AssignmentController {
      */
     private final IdempotencyService idempotencyService;
     /**
-     * 字段 `sessionStrengthPort` 表示 `AssignmentController` 中与 `session Strength Port` 相关的状态、依赖、配置或结果（声明类型 `AssignmentSessionStrengthService`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `sessionStrengthPort` stores the `session Strength Port`-related state, dependency, configuration, or result of `AssignmentController` (declared type `AssignmentSessionStrengthService`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `sessionStrengthPort` 时应保持 `AssignmentController` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `sessionStrengthPort`, preserve `AssignmentController`'s lifecycle, immutability, and thread-safety constraints.
-     */
-    private final AssignmentSessionStrengthService sessionStrengthPort;
-    /**
      * 字段 `databaseClock` 表示 `AssignmentController` 中与 `database Clock` 相关的状态、依赖、配置或结果（声明类型 `DatabaseClock`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `databaseClock` stores the `database Clock`-related state, dependency, configuration, or result of `AssignmentController` (declared type `DatabaseClock`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
@@ -113,18 +101,15 @@ public class AssignmentController {
      *
      * @param facade 输入参数 `facade`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param idempotencyService 输入参数 `idempotencyService`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param sessionStrengthPort 输入参数 `sessionStrengthPort`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param databaseClock 输入参数 `databaseClock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public AssignmentController(
             AssignmentFacade facade,
             IdempotencyService idempotencyService,
-            AssignmentSessionStrengthService sessionStrengthPort,
             DatabaseClock databaseClock
     ) {
         this.facade = facade;
         this.idempotencyService = idempotencyService;
-        this.sessionStrengthPort = sessionStrengthPort;
         this.databaseClock = databaseClock;
     }
 
@@ -197,8 +182,7 @@ public class AssignmentController {
                         tenantId(), principal.userId(), userId, request.roleId(),
                         request.assignmentType(), request.validFrom(), request.validTo(),
                         request.reason(), request.ticketNo(),
-                        sessionStrengthPort.authenticationStrength(
-                                tenantId(), principal.sessionId(), now),
+                        "ACCESS_TOKEN",
                         principal.platformAdministrator(),
                         request.expectedUserAuthVersion(), claim.recordId(), now));
         return complete(claim, result, now);
@@ -337,8 +321,7 @@ public class AssignmentController {
                 new RoleAssignmentChangeDTO(
                         tenantId(), principal.userId(), userId, assignmentId, operation,
                         request.reason(), request.ticketNo(),
-                        sessionStrengthPort.authenticationStrength(
-                                tenantId(), principal.sessionId(), now),
+                        "ACCESS_TOKEN",
                         principal.platformAdministrator(),
                         request.expectedAssignmentVersion(),
                         request.expectedUserAuthVersion(), claim.recordId(), now));

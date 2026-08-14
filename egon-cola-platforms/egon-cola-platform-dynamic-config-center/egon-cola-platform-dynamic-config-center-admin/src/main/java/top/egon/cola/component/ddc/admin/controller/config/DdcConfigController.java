@@ -24,11 +24,20 @@ import top.egon.cola.component.ddc.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
 import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
+import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
+import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/ddc/configs")
+@GatewayInterfaceGroup(
+        businessDomainCode = "platform",
+        businessDomainName = "平台治理域",
+        entityDomainCode = "ddc-admin",
+        entityDomainName = "Dynamic Config Center 管理实体域",
+        code = "ddc-admin-ddc-config-controller",
+        name = "DdcConfigController 管理接口组")
 public class DdcConfigController {
 
     private final DdcConfigService configService;
@@ -40,11 +49,13 @@ public class DdcConfigController {
         this.publishService = publishService;
     }
 
+    @GatewayOperation(externalAccessible = true)
     @GetMapping
     public ResultRecord<List<DdcConfigVO>> list(DdcConfigQueryRequest request) {
         return ResultRecord.success(configService.list(request));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @GetMapping("/page")
     public PageResultRecord<DdcConfigVO> page(
             DdcConfigQueryRequest request,
@@ -52,6 +63,7 @@ public class DdcConfigController {
         return DdcAdminPageSupport.result(configService.page(request, pageQuery));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @PostMapping
     public ResultRecord<DdcConfigVO> create(@RequestBody DdcConfigCreateRequest request,
                                       @RequestParam(name = "operator", defaultValue = "system") String operator,
@@ -62,6 +74,7 @@ public class DdcConfigController {
         ));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @PutMapping("/{id}")
     public ResultRecord<DdcConfigVO> update(@PathVariable("id") String id,
                                       @RequestBody DdcConfigUpdateRequest request,
@@ -74,6 +87,7 @@ public class DdcConfigController {
         ));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @DeleteMapping("/{id}")
     public ResultRecord<DdcConfigVO> delete(@PathVariable("id") String id,
                                       @RequestParam(name = "operator", defaultValue = "system") String operator,
@@ -86,6 +100,7 @@ public class DdcConfigController {
         ));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @PostMapping("/{id}/publish")
     public ResultRecord<DdcPublishResultVO> publish(@PathVariable("id") String id,
                                               @RequestBody DdcPublishRequest request,
@@ -103,11 +118,13 @@ public class DdcConfigController {
         ));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @GetMapping("/{id}/versions")
     public ResultRecord<List<DdcConfigVersionVO>> versions(@PathVariable("id") String id) {
         return ResultRecord.success(configService.versions(id));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @GetMapping("/{id}/versions/page")
     public PageResultRecord<DdcConfigVersionVO> pageVersions(
             @PathVariable("id") String id,
@@ -116,6 +133,7 @@ public class DdcConfigController {
                 configService.pageVersions(id, pageQuery));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @PostMapping("/{id}/rollback")
     public ResultRecord<DdcConfigVO> rollback(@PathVariable("id") String id,
                                         @RequestBody DdcConfigRollbackRequest request,

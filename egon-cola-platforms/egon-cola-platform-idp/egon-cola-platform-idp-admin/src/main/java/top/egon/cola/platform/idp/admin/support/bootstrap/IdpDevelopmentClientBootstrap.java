@@ -2,10 +2,10 @@ package top.egon.cola.platform.idp.admin.support.bootstrap;
 
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.RSAKey;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.CreateOAuthClientDTO;
@@ -22,8 +22,8 @@ import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepo
 import top.egon.cola.platform.idp.admin.resource.service.ResourceServerProjectionService;
 import top.egon.cola.platform.idp.admin.token.service.impl.RsaPemKeyLoader;
 
-import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -211,6 +211,25 @@ public class IdpDevelopmentClientBootstrap
             "service:identity:resolve"
     );
 
+    /**
+     * Gateway Admin 控制面 Service Token 所需 Scope；scopes required by the Gateway Admin
+     * control-plane Service Token.
+     */
+    private static final Set<String> GATEWAY_ADMIN_SERVICE_SCOPES = Set.of(
+            "gateway:read",
+            "gateway:applications:write",
+            "gateway:catalog:write",
+            "gateway:credentials:write",
+            "gateway:drafts:write",
+            "gateway:groups:write",
+            "gateway:mcp:approve",
+            "gateway:mcp:read",
+            "gateway:mcp:runtime:read",
+            "gateway:mcp:test",
+            "gateway:mcp:write",
+            "gateway:releases:write"
+    );
+
     /** MCP Task Worker 的 Source Client；source Client used by the MCP task worker. */
     private static final String MCP_TASK_SERVICE_CLIENT =
             "gateway-engine-service";
@@ -353,6 +372,7 @@ public class IdpDevelopmentClientBootstrap
         ));
         RESOURCES.forEach(this::reconcileResourceAndGrant);
         reconcileRbac3ServiceGrants();
+        reconcileGatewayAdminServiceGrants();
         reconcileMcpTaskServiceGrants();
     }
 
@@ -642,6 +662,57 @@ public class IdpDevelopmentClientBootstrap
     }
 
     /**
+     * 给 Gateway Admin 控制面 Client 显式登记 IdP 签名的管理 Scope。
+     *
+     * <p>Explicitly grants the Gateway Admin control-plane Client the IdP-signed management
+     * scopes used by the local catalog and route publisher.</p>
+     */
+    private void reconcileGatewayAdminServiceGrants() {
+        String target = "platform-gateway-admin-local";
+        String allowedScopes = GATEWAY_ADMIN_SERVICE_SCOPES.stream()
+                .sorted()
+                .map(scope -> "\"" + scope + "\"")
+                .collect(Collectors.joining(",", "[", "]"));
+        rbac3ServiceTenantIds.forEach(tenantId -> {
+            Optional<IdentityClientResourceGrantEntity> exact =
+                    grants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
+                            "gateway-admin-service",
+                            target,
+                            IdentityClientResourceGrantEntity.GrantType
+                                    .CLIENT_CREDENTIALS,
+                            tenantId
+                    );
+            IdentityClientResourceGrantEntity grant = exact.orElseGet(() ->
+                    IdentityClientResourceGrantEntity.clientCredentials(
+                            gatewayAdminServiceGrantId(tenantId),
+                            "gateway-admin-service",
+                            target,
+                            tenantId,
+                            allowedScopes,
+                            Instant.now()
+                    ));
+            if (exact.isPresent()
+                    && allowedScopes.equals(grant.getAllowedScopes())
+                    && grant.getStatus()
+                    == IdentityClientResourceGrantEntity.Status.ACTIVE) {
+                return;
+            }
+            if (exact.isPresent()) {
+                grant.update(
+                        IdentityClientResourceGrantEntity.GrantType
+                                .CLIENT_CREDENTIALS,
+                        tenantId,
+                        allowedScopes,
+                        grant.getVersion(),
+                        Instant.now()
+                );
+            }
+            grants.save(grant);
+            projections.projectServiceGrant(grant);
+        });
+    }
+
+    /**
      * 给 Gateway Engine 的异步 MCP Worker 显式登记目标 Provider 的 Service Grant。
      * Explicitly grants the Gateway Engine asynchronous MCP worker access to the target
      * Provider Resource.
@@ -741,6 +812,16 @@ public class IdpDevelopmentClientBootstrap
                 tenantId.getBytes(StandardCharsets.UTF_8)
         ).toString().substring(0, 8);
         return "dev-mcp-task-grant-" + suffix;
+    }
+
+    /**
+     * 为精确租户生成稳定的 Gateway Admin Service Grant 标识。
+     */
+    private static String gatewayAdminServiceGrantId(String tenantId) {
+        String suffix = UUID.nameUUIDFromBytes(
+                tenantId.getBytes(StandardCharsets.UTF_8)
+        ).toString().substring(0, 8);
+        return "dev-gateway-admin-grant-" + suffix;
     }
 
     /**

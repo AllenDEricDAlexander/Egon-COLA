@@ -3,9 +3,7 @@ export const RBAC3_ERROR_DEFINITIONS = {
   AUTHENTICATION_REQUIRED: { status: 401, retryable: false },
   AUTHENTICATION_FAILED: { status: 401, retryable: false },
   TOKEN_INVALID: { status: 401, retryable: false },
-  SESSION_INVALIDATED: { status: 401, retryable: false },
   AUTH_VERSION_MISMATCH: { status: 401, retryable: false },
-  SESSION_VERSION_MISMATCH: { status: 401, retryable: false },
   POLICY_VERSION_MISMATCH: { status: 401, retryable: false },
   PERMISSION_DENIED: { status: 403, retryable: false },
   MANAGEMENT_POLICY_DENIED: { status: 403, retryable: false },
@@ -35,9 +33,8 @@ export const RBAC3_ERROR_DEFINITIONS = {
   AUTH_PROPAGATION_PENDING: { status: 503, retryable: true },
   TENANT_CONTEXT_INVALID: { status: 400, retryable: false },
   DIRECTORY_SNAPSHOT_INVALID: { status: 400, retryable: false },
-  USER_LOCKED: { status: 401, retryable: true },
-  REFRESH_TOKEN_REUSED: { status: 401, retryable: false },
-  STEP_UP_REQUIRED: { status: 401, retryable: true },
+    USER_LOCKED: {status: 401, retryable: false},
+    STEP_UP_REQUIRED: {status: 401, retryable: false},
   SERVICE_IDENTITY_DENIED: { status: 403, retryable: false },
   APPLICATION_BINDING_DENIED: { status: 403, retryable: false },
   RESOURCE_NOT_FOUND: { status: 404, retryable: false },
@@ -132,18 +129,3 @@ export class Rbac3RequestError extends Error {
     this.traceId = options.traceId ?? null
   }
 }
-
-const REFRESHABLE_AUTHENTICATION_CODES = new Set<string>([
-  'AUTHENTICATION_REQUIRED',
-  'TOKEN_INVALID',
-  'SESSION_INVALIDATED',
-  'AUTH_VERSION_MISMATCH',
-  'SESSION_VERSION_MISMATCH',
-  'POLICY_VERSION_MISMATCH',
-])
-
-export const isRefreshableAuthenticationError = (
-  error: unknown,
-): error is Rbac3RequestError => error instanceof Rbac3RequestError
-  && error.status === 401
-  && REFRESHABLE_AUTHENTICATION_CODES.has(error.code)

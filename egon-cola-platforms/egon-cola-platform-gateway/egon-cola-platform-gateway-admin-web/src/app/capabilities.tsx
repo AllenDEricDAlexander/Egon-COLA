@@ -1,5 +1,5 @@
-import { createContext, useContext, useMemo, type PropsWithChildren } from 'react'
-import { useAuth } from '../auth/AuthContext'
+import {createContext, type PropsWithChildren, useContext, useMemo} from 'react'
+import {useAuth} from '../auth/AuthContext'
 
 export type Capability =
   | 'gateway:read'
@@ -19,10 +19,10 @@ export type Capability =
 const CapabilityContext = createContext<ReadonlySet<string>>(new Set())
 
 export const CapabilityProvider = ({ children }: PropsWithChildren) => {
-  const { session } = useAuth()
+    const {authorization} = useAuth()
   const capabilities = useMemo(
-    () => new Set(session?.capabilities ?? []),
-    [session],
+      () => new Set(authorization?.permissions ?? []),
+      [authorization],
   )
   return (
     <CapabilityContext.Provider value={capabilities}>

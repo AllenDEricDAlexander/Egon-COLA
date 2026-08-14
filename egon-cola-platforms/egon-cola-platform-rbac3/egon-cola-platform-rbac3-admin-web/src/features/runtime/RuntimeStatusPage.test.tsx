@@ -1,13 +1,33 @@
-import { InMemoryAccessTokenStore, Rbac3Provider, type Rbac3Client } from '@egon-cola/rbac3-react-sdk'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
-import type { PropsWithChildren } from 'react'
-import { describe, expect, it } from 'vitest'
-import { FeatureApiProvider, type FeatureApiClient } from '../shared/FeatureApi'
-import { RuntimeStatusPage } from './RuntimeStatusPage'
+import {type Rbac3Client, Rbac3Provider} from '@egon-cola/rbac3-react-sdk'
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
+import {render, screen, waitFor} from '@testing-library/react'
+import type {PropsWithChildren} from 'react'
+import {describe, expect, it} from 'vitest'
+import {type FeatureApiClient, FeatureApiProvider} from '../shared/FeatureApi'
+import {RuntimeStatusPage} from './RuntimeStatusPage'
 
 const wrapper = ({ children }: PropsWithChildren) => {
-  const sdk = { refresh: async () => ({ accessToken: 'access', roleActivationRequired: false }), getBootstrap: async () => ({ user: { id: '7', tenantId: '9' }, permissions: ['system:authorization-runtime:read', 'system:authorization-runtime:operate'], fieldPolicies: {}, activeRoleContexts: [], apps: [], menus: [], routes: [], actions: [] }) } as unknown as Rbac3Client
+    const sdk = {
+        getBootstrap: async () => ({
+            user: {
+                id: '7',
+                tenantId: '9',
+                identitySub: 'runtime-test',
+                status: 'ACTIVE'
+            },
+            permissions: ['system:authorization-runtime:read', 'system:authorization-runtime:operate'],
+            fieldPolicies: {},
+            activeRoleContexts: [],
+            apps: [],
+            menus: [],
+            routes: [],
+            actions: [],
+            defaultApplicationCode: null,
+            defaultRoute: null,
+            authVersion: 1,
+            policyVersion: 1
+        })
+    } as unknown as Rbac3Client
   const status = {
     ddcConfigClient: { state: 'READY', instanceId: 'rbac3-1', leaseIdFingerprint: 'af0130b1190e', leaseExpireAt: '2026-08-01T00:00:30Z', configVersions: { 'rbac3.maximum-active-roots': 7 }, lastApplyFailureKey: null, lastApplyFailureVersion: null, lastApplyFailureCode: null },
     definition: { status: 'ACCEPTED', definitionSetId: 'definition-7', warnings: [] },
@@ -17,7 +37,8 @@ const wrapper = ({ children }: PropsWithChildren) => {
     fence: { state: 'STALE', oldestAgeSeconds: 90 }, outbox: { state: 'LAGGING', pendingCount: 12, oldestAgeSeconds: 30 },
   }
   const api: FeatureApiClient = { request: async <T,>(path: string) => (path.includes('/mutations') ? { items: [{ mutationId: '701', scopeType: 'USER', scopeId: '7', commandId: 'cmd-1', status: 'FAILED', attempt: 2, lastErrorCode: 'REDIS_UNAVAILABLE', updatedAt: '2026-08-01T00:00:00Z' }], nextCursor: null } : status) as T }
-  return <QueryClientProvider client={new QueryClient()}><Rbac3Provider client={sdk} accessTokenStore={new InMemoryAccessTokenStore()}><FeatureApiProvider client={api}>{children}</FeatureApiProvider></Rbac3Provider></QueryClientProvider>
+    return <QueryClientProvider client={new QueryClient()}><Rbac3Provider client={sdk}><FeatureApiProvider
+        client={api}>{children}</FeatureApiProvider></Rbac3Provider></QueryClientProvider>
 }
 
 describe('runtime status page', () => {

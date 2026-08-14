@@ -12,7 +12,6 @@ public record IdentityUserVO(
         String username,
         String displayName,
         String status,
-        long tokenVersion,
         int failedLoginCount,
         Instant lockedUntil,
         Instant lastLoginAt,

@@ -1,6 +1,23 @@
 package top.egon.cola.platform.rbac3.admin.assignment.service;
 
+import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.AssignmentCommandDTO;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.RoleAssignmentChangeDTO;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.RoleAssignmentDTO;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.enums.AssignmentChangeOperationEnum;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentChangeFactsVO;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentFactsVO;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentResultVO;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentVO;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.CardinalityVO;
+import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.LockExecutionVO;
+import top.egon.cola.platform.rbac3.admin.assignment.repository.AssignmentFactRepository;
+import top.egon.cola.platform.rbac3.admin.assignment.repository.AssignmentLock;
+import top.egon.cola.platform.rbac3.admin.assignment.repository.RoleAssignmentRepository;
+import top.egon.cola.platform.rbac3.admin.management.domain.dto.ManagementPolicyRequestDTO;
 import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ExpectedVersionsVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.MutationResultVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.MutationScopeVO;
 import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationMutationCoordinator;
 import top.egon.cola.platform.rbac3.core.constraint.PrerequisiteRoleSpecification;
 import top.egon.cola.platform.rbac3.core.constraint.RoleCardinalitySpecification;
@@ -14,24 +31,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Supplier;
-import top.egon.cola.platform.rbac3.admin.assignment.repository.AssignmentFactRepository;
-import top.egon.cola.platform.rbac3.admin.assignment.repository.AssignmentLock;
-import top.egon.cola.platform.rbac3.admin.assignment.repository.RoleAssignmentRepository;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.LockExecutionVO;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.RoleAssignmentDTO;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.AssignmentCommandDTO;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.dto.RoleAssignmentChangeDTO;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentChangeFactsVO;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentFactsVO;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.CardinalityVO;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentResultVO;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.vo.AssignmentVO;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.enums.AssignmentChangeOperationEnum;
-import top.egon.cola.platform.rbac3.admin.management.domain.dto.ManagementPolicyRequestDTO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.MutationScopeVO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ExpectedVersionsVO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.MutationResultVO;
 
 /**
  * 类型 `AssignmentFacade` 位于当前包内，是类型，用于承载 `Assignment Facade` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -183,7 +182,6 @@ public final class AssignmentFacade {
                                                     request.actorId()),
                                             request.targetUserId(),
                                             new ExpectedVersionsVO(
-                                                    null, null,
                                                     request.expectedUserAuthVersion(),
                                                     request.validFrom().isAfter(
                                                             request.databaseNow())
@@ -266,7 +264,6 @@ public final class AssignmentFacade {
                                                 request.actorId()),
                                         request.targetUserId(),
                                         new ExpectedVersionsVO(
-                                                null, null,
                                                 request.expectedUserAuthVersion(),
                                                 Math.incrementExact(
                                                         request.expectedUserAuthVersion()),

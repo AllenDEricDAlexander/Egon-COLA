@@ -46,23 +46,23 @@ including logical database numbers without recording credentials.
 
 ## 4. Independent control-plane observations
 
-| Observation | Expected | Actual | Timestamp/trace |
-| --- | --- | --- | --- |
-| Admin 1 DDC Config Client state/session | READY / CONFIG_CLIENT | | |
-| Admin 2 DDC Config Client state/session | READY / CONFIG_CLIENT | | |
-| Admin 1 five config versions / last apply error code | recorded / none | | |
-| Admin 2 five config versions / last apply error code | recorded / none | | |
-| Admin 1 Definition status/set ID | accepted | | |
-| Admin 2 Definition status/set ID | accepted | | |
-| DDC HTTP Provider lease Admin 1/expiry | registered/unexpired | | |
-| DDC HTTP Provider lease Admin 2/expiry | registered/unexpired | | |
-| Gateway Release ID/status | explicit/success | | |
-| Gateway engine-observed version | matches release | | |
-| Runtime consistency | true | | |
-| Five routed requests with two instances | success | | |
-| Five routed requests after instance 1 stopped | success | | |
-| Route after both instances stopped | configured fail-closed status | | |
-| Route after both instances restored | success | | |
+| Observation                                    | Expected                      | Actual | Timestamp/trace |
+|------------------------------------------------|-------------------------------|--------|-----------------|
+| Admin 1 DDC Config Client state/lease          | READY / CONFIG_CLIENT         |        |                 |
+| Admin 2 DDC Config Client state/lease          | READY / CONFIG_CLIENT         |        |                 |
+| Admin 1 config version / last apply error code | recorded / none               |        |                 |
+| Admin 2 config version / last apply error code | recorded / none               |        |                 |
+| Admin 1 Definition status/set ID               | accepted                      |        |                 |
+| Admin 2 Definition status/set ID               | accepted                      |        |                 |
+| DDC HTTP Provider lease Admin 1/expiry         | registered/unexpired          |        |                 |
+| DDC HTTP Provider lease Admin 2/expiry         | registered/unexpired          |        |                 |
+| Gateway Release ID/status                      | explicit/success              |        |                 |
+| Gateway engine-observed version                | matches release               |        |                 |
+| Runtime consistency                            | true                          |        |                 |
+| Routed requests with two instances             | success                       |        |                 |
+| Routed requests after instance 1 stopped       | success                       |        |                 |
+| Route after both instances stopped             | configured fail-closed status |        |                 |
+| Route after both instances restored            | success                       |        |                 |
 
 The five facts are DDC Config Client, Gateway Definition, DDC HTTP Provider
 lease, explicit Gateway Release/Engine consistency, and routed request evidence.
@@ -84,10 +84,10 @@ bounded error codes; never copy complete lease IDs or configuration values.
 
 ## 6. Security/failure cases
 
-Record status/error code and trace ID for: missing token, invalid signature,
-Tenant mismatch, same-APP mutually exclusive activation, stale Session version,
-Refresh replay, closed Fence, stale snapshot, forbidden field, unknown Gateway
-operation, DDC lease loss and no-provider Gateway route.
+Record status/error code and trace ID for: missing/expired token, invalid
+signature, Tenant mismatch, same-APP mutually exclusive activation, stale
+`authVersion`, deleted Refresh Token, closed Fence, stale snapshot, forbidden
+field, unknown Gateway operation, DDC lease loss and no-provider Gateway route.
 
 For DDC LKG evidence, record the config key, previous/current/target versions,
 checksum result, fixed error code, failed ACK status and later higher successful

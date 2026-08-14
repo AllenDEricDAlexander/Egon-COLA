@@ -10,7 +10,6 @@ import top.egon.cola.platform.idp.admin.identity.domain.vo.ResetPasswordVO;
 import top.egon.cola.platform.idp.admin.identity.repo.IdentityUserDirectory;
 import top.egon.cola.platform.idp.contract.IdentityUserState;
 import top.egon.cola.platform.idp.core.audit.IdentitySecurityEvent;
-import top.egon.cola.platform.idp.core.audit.IdentitySecurityEventPort;
 import top.egon.cola.platform.idp.core.identity.IdentityUser;
 import top.egon.cola.platform.idp.core.identity.IdentityUserStatus;
 import top.egon.cola.platform.idp.core.identity.PasswordCredential;
@@ -19,6 +18,8 @@ import top.egon.cola.platform.idp.core.port.IdentityUserStatePort;
 import top.egon.cola.platform.idp.core.port.IdentityUserStore;
 import top.egon.cola.platform.idp.core.port.PasswordCredentialStore;
 import top.egon.cola.platform.idp.core.port.PasswordHashPort;
+import top.egon.cola.platform.idp.core.port.RefreshTokenStore;
+import top.egon.cola.platform.idp.core.token.RefreshTokenRecord;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -38,6 +39,7 @@ class IdentityUserServiceImplTest {
 
     private final FakePersistence persistence = new FakePersistence();
     private final FakeState state = new FakeState();
+    private final FakeRefreshTokens refreshTokens = new FakeRefreshTokens();
     private final List<IdentitySecurityEvent> events = new ArrayList<>();
     private IdentityUserServiceImpl service;
 
@@ -50,6 +52,7 @@ class IdentityUserServiceImplTest {
                 new FakePasswordHash(),
                 state,
                 events::add,
+                refreshTokens,
                 () -> 1001L,
                 new UsernameNormalizer(),
                 Clock.fixed(NOW, ZoneOffset.UTC),
@@ -79,7 +82,7 @@ class IdentityUserServiceImplTest {
     }
 
     @Test
-    void disablingAndPasswordResetBumpTokenVersionAndRevokeFamilies() {
+    void disablingAndPasswordResetRevokeRefreshTokens() {
         service.create(new CreateIdentityUserDTO(
                 "alice",
                 "Alice"
@@ -96,14 +99,14 @@ class IdentityUserServiceImplTest {
         ResetPasswordVO reset =
                 service.resetPassword("1001");
 
-        assertThat(disabled.tokenVersion()).isEqualTo(1L);
+        assertThat(disabled.version()).isEqualTo(1L);
         assertThat(reset.oneTimePassword()).isEqualTo("TempPassword12345");
-        assertThat(persistence.users.get("1001").tokenVersion())
+        assertThat(persistence.users.get("1001").version())
                 .isEqualTo(2L);
         assertThat(persistence.credentials.get("1001").mustChangePassword())
                 .isTrue();
-        assertThat(state.revocations)
-                .containsExactly("1001:1:USER_DISABLED", "1001:2:PASSWORD_RESET");
+        assertThat(refreshTokens.revocations)
+                .containsExactly("1001:USER_DISABLED", "1001:PASSWORD_RESET");
     }
 
     private static final class FakePersistence
@@ -178,20 +181,40 @@ class IdentityUserServiceImplTest {
     private static final class FakeState implements IdentityUserStatePort {
 
         private final List<IdentityUserState> states = new ArrayList<>();
-        private final List<String> revocations = new ArrayList<>();
 
         @Override
         public void publish(IdentityUserState value) {
             states.add(value);
         }
+    }
+
+    private static final class FakeRefreshTokens implements RefreshTokenStore {
+
+        private final List<String> revocations = new ArrayList<>();
 
         @Override
-        public void revokeFamilies(
-                String identitySub,
-                long tokenVersion,
-                String reason
+        public void create(RefreshTokenRecord record) {
+        }
+
+        @Override
+        public java.util.Optional<RefreshTokenRecord> findValid(
+                String tokenDigest,
+                Instant now
         ) {
-            revocations.add(identitySub + ':' + tokenVersion + ':' + reason);
+            return java.util.Optional.empty();
+        }
+
+        @Override
+        public void revokeToken(String tokenDigest, String reason, Instant now) {
+        }
+
+        @Override
+        public void revokeSubject(String identitySub, String reason, Instant now) {
+            revocations.add(identitySub + ':' + reason);
+        }
+
+        @Override
+        public void expire(Instant now) {
         }
     }
 }

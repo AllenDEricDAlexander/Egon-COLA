@@ -15,11 +15,11 @@ import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.AdditionalMatchers.aryEq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.AdditionalMatchers.aryEq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -38,9 +38,9 @@ class RedisAuthorizationSnapshotCacheTest {
                 .thenReturn(1L);
         RedisAuthorizationSnapshotCache store = store(redisson);
         var key = new AuthorizationSnapshotCache.Key(
-                "finance", "tenant-a", "sid-1");
+                "finance", "tenant-a", "alice-sub");
 
-        store.put(key, AuthorizationSnapshotCacheTest.snapshot("sid-1"),
+        store.put(key, AuthorizationSnapshotCacheTest.snapshot("alice-sub"),
                 Duration.ofMinutes(5));
 
         @SuppressWarnings("unchecked")
@@ -49,9 +49,9 @@ class RedisAuthorizationSnapshotCacheTest {
                 eq(RScript.Mode.READ_WRITE), anyString(),
                 eq(RScript.ReturnType.INTEGER), keys.capture(), any(Object[].class));
         assertThat(keys.getValue()).containsExactly(
-                "rbac3:authorization:finance:tenant-a:sid-1",
-                "rbac3:authorization:index:user:finance:tenant-a:alice-sub",
-                "rbac3:authorization:index:tenant:finance:tenant-a");
+                "rbac3:authorization:finance:tenant-a:alice-sub",
+                "rbac3:authorization:finance:tenant-a:user:alice-sub",
+                "rbac3:authorization:finance:tenant-a:tenant");
     }
 
     @Test
@@ -60,11 +60,11 @@ class RedisAuthorizationSnapshotCacheTest {
         RSet<String> userIndex = set();
         RSet<String> tenantIndex = set();
         RKeys redisKeys = mock(RKeys.class);
-        String dataKey = "rbac3:authorization:finance:tenant-a:sid-1";
+        String dataKey = "rbac3:authorization:finance:tenant-a:alice-sub";
         String userIndexKey =
-                "rbac3:authorization:index:user:finance:tenant-a:alice-sub";
+                "rbac3:authorization:finance:tenant-a:user:alice-sub";
         String tenantIndexKey =
-                "rbac3:authorization:index:tenant:finance:tenant-a";
+                "rbac3:authorization:finance:tenant-a:tenant";
         when(redisson.<String>getSet(eq(userIndexKey), any(Codec.class)))
                 .thenReturn(userIndex);
         when(redisson.<String>getSet(eq(tenantIndexKey), any(Codec.class)))

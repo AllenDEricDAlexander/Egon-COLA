@@ -10,11 +10,13 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.platform.rbac3.admin.activation.domain.dto.ReplaceCommandDTO;
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.contract.activation.ActiveRoleSetView;
 import top.egon.cola.platform.rbac3.contract.activation.ReplaceActiveRolesRequest;
@@ -25,8 +27,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
-import top.egon.cola.platform.rbac3.admin.activation.domain.dto.ReplaceCommandDTO;
 
 /**
  * 类型 `RoleActivationController` 位于当前包内，是类型，用于承载 `Role Activation Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -142,8 +142,7 @@ public class RoleActivationController {
             @AuthenticationPrincipal CurrentRbac3Principal principal
     ) {
         return ApiEnvelopeVO.success(facade.current(
-                tenantId(), principal.identitySub(), principal.userId(),
-                principal.sessionId()));
+                tenantId(), principal.identitySub(), principal.userId()));
     }
 
     /**
@@ -168,11 +167,11 @@ public class RoleActivationController {
             @Valid @RequestBody ReplaceActiveRolesRequest request,
             @AuthenticationPrincipal CurrentRbac3Principal principal
     ) {
-        String commandId = activationCommandId(principal.sessionId(), request);
+        String commandId = activationCommandId(principal.identitySub(), request);
         return ApiEnvelopeVO.success(facade.replace(new ReplaceCommandDTO(
                 tenantId(), principal.identitySub(), principal.userId(),
-                principal.sessionId(), request.roleIds(),
-                request.expectedContextVersion(), principal.userId(), commandId)));
+                request.roleIds(), request.expectedAuthVersion(),
+                principal.userId(), commandId)));
     }
 
     /**
@@ -195,18 +194,18 @@ public class RoleActivationController {
      * 用法：调用 `activationCommandId` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
      * Usage: provide contract-compliant arguments before calling `activationCommandId`, then continue the business flow using its result, exception, or side effect.
      *
-     * @param sessionId 输入参数 `sessionId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param identitySub 输入参数 `identitySub`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param request 输入参数 `request`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     private static String activationCommandId(
-            String sessionId,
+            String identitySub,
             ReplaceActiveRolesRequest request) {
         String canonicalRoles = request.roleIds().stream()
                 .sorted()
                 .reduce((left, right) -> left + "," + right)
                 .orElse("");
-        String canonical = sessionId + '|' + request.expectedContextVersion()
+        String canonical = identitySub + '|' + request.expectedAuthVersion()
                 + '|' + canonicalRoles;
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")

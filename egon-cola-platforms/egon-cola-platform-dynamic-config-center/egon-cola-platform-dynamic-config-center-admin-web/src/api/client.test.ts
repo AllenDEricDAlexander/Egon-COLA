@@ -1,12 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { oauthClient } from '../auth/AuthContext'
-import {
-  DdcApiError,
-  ddcApi,
-  ddcPageApi,
-  setDdcTokenProvider,
-  setDdcUnauthorizedHandler,
-} from './client'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
+import {ddcApi, DdcApiError, ddcPageApi, setDdcUnauthorizedHandler,} from './client'
 
 const record = (data: unknown) => ({
   success: true, code: 0, status: 'SUCCESS', message: '', data,
@@ -33,12 +26,8 @@ const pageRecord = <T,>(records: T[], total = records.length) => ({
 
 describe('ddcApi', () => {
   beforeEach(() => {
-    setDdcTokenProvider(() => 'token-1')
     setDdcUnauthorizedHandler(() => {})
     vi.stubGlobal('fetch', vi.fn())
-    vi.spyOn(oauthClient, 'refresh').mockRejectedValue(
-      new Error('refresh unavailable'),
-    )
   })
   afterEach(() => {
     vi.restoreAllMocks()
@@ -48,12 +37,13 @@ describe('ddcApi', () => {
   const jsonResponse = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
 
-  it('sends bearer token and returns data', async () => {
+    it('sends cookie credentials and returns data', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse(record({ list: [1] })))
     await expect(ddcApi<{ list: number[] }>('/api/v1/ddc/apps')).resolves.toEqual({ list: [1] })
     const [url, init] = vi.mocked(fetch).mock.calls[0]
     expect(url).toBe('/api/v1/ddc/apps')
-    expect((init!.headers as Headers).get('Authorization')).toBe('Bearer token-1')
+        expect(init!.credentials).toBe('include')
+        expect((init!.headers as Headers).has('Authorization')).toBe(false)
   })
 
   it('stringifies JSON bodies with content type', async () => {
@@ -97,19 +87,16 @@ describe('ddcApi', () => {
       .rejects.toMatchObject({ code: '422', traceId: 'trace-error' })
   })
 
-  it('keeps the original AbortSignal after refreshing a 401', async () => {
+    it('keeps the original AbortSignal after a 401', async () => {
     const controller = new AbortController()
-    vi.mocked(oauthClient.refresh).mockResolvedValue('token-2')
-    vi.mocked(fetch)
-      .mockResolvedValueOnce(jsonResponse(record(null), 401))
-      .mockResolvedValueOnce(jsonResponse(record({ refreshed: true })))
+        vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(record(null), 401))
 
-    await expect(ddcApi<{ refreshed: boolean }>(
+        await expect(ddcApi(
       '/api/v1/ddc/apps',
       { signal: controller.signal },
-    )).resolves.toEqual({ refreshed: true })
+        )).rejects.toMatchObject({status: 401})
 
-    expect(vi.mocked(fetch).mock.calls[1][1]?.signal)
+        expect(vi.mocked(fetch).mock.calls[0][1]?.signal)
       .toBe(controller.signal)
   })
 

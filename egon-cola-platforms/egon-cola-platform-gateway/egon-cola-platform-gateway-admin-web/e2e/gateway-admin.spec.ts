@@ -1,4 +1,4 @@
-import { expect, test, type Page, type Route } from '@playwright/test'
+import {expect, type Page, type Route, test} from '@playwright/test'
 
 const prefix = `e2e-${Date.now()}`
 const allCapabilities = [
@@ -18,24 +18,25 @@ const json = (route: Route, body: unknown, status = 200) =>
     body: JSON.stringify(body),
   })
 
-const session = (capabilities = allCapabilities) => ({
-  actorId: `${prefix}-actor`,
-  displayName: 'Gateway E2E',
-  actorType: 'USER',
-  capabilities,
-  roles: ['gateway-admin'],
-  expiresAt: '2099-01-01T00:00:00Z',
+const authorization = (permissions = allCapabilities) => ({
+    user: {
+        id: `${prefix}-user`,
+        tenantId: 'default',
+        identitySub: `${prefix}-actor`,
+        status: 'ACTIVE',
+    },
+    activeRoleContexts: [],
+    permissions,
+    apps: [],
+    menus: [],
+    routes: [],
+    actions: [],
+    fieldPolicies: {},
+    defaultApplicationCode: null,
+    defaultRoute: null,
+    authVersion: 1,
+    policyVersion: 1,
 })
-
-const accessToken = (nonce?: string) => [
-  Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url'),
-  Buffer.from(JSON.stringify({
-    sub: `${prefix}-actor`,
-    exp: 4_102_444_800,
-    ...(nonce ? { nonce } : {}),
-  })).toString('base64url'),
-  'e2e-signature',
-].join('.')
 
 const group = {
   id: `${prefix}-group-id`,
@@ -96,15 +97,17 @@ const release = {
 
 const authenticate = async (
   page: Page,
-  capabilities = allCapabilities,
+  permissions = allCapabilities,
 ) => {
-  await page.route('http://127.0.0.1:18120/oauth2/token', (route) => json(route, {
-    access_token: accessToken(),
-    token_type: 'Bearer',
-    expires_in: 3_600,
+    await page.route('**/oauth2/login/csrf', (route) => json(route, {token: 'csrf-fixture'}))
+    await page.route('**/oauth2/login', (route) => json(route, {
+        identitySub: `${prefix}-actor`,
+        displayName: 'Gateway E2E',
+        mustChangePassword: false,
   }))
-  await page.route('**/api/v1/gateway/admin/session', (route) =>
-    json(route, session(capabilities)))
+    await page.route('**/api/v1/auth/bootstrap', (route) =>
+        json(route, authorization(permissions)))
+    await page.route('**/oauth2/logout', (route) => json(route, {}))
 }
 
 const installReadFixtures = async (page: Page) => {
@@ -220,45 +223,37 @@ const installReadFixtures = async (page: Page) => {
 }
 
 test('login, logout and a later 401 clear the browser session', async ({ page }) => {
-  let allowRefresh = false
-  await page.route('http://127.0.0.1:18120/oauth2/authorize?**', (route) => {
-    return route.fulfill({ status: 200, contentType: 'text/html', body: '<h1>Unified Identity</h1>' })
+    let loggedIn = false
+    await page.route('**/oauth2/login/csrf', (route) => json(route, {token: 'csrf-fixture'}))
+    await page.route('**/oauth2/login', async (route) => {
+        loggedIn = true
+        await json(route, {identitySub: `${prefix}-actor`, displayName: 'Gateway E2E', mustChangePassword: false})
   })
-  await page.route('http://127.0.0.1:18120/oauth2/token', (route) => {
-    if (!allowRefresh) {
-      return json(route, { error: 'invalid_grant' }, 401)
-    }
-    return json(route, {
-      access_token: accessToken(),
-      token_type: 'Bearer',
-      expires_in: 3_600,
+    await page.route('**/oauth2/logout', async (route) => {
+        loggedIn = false
+        await json(route, {})
     })
-  })
-  await page.route('http://127.0.0.1:18120/oauth2/revoke', (route) => json(route, {}))
-  await page.route('**/api/v1/gateway/admin/session', (route) =>
-    json(route, session()))
+    await page.route('**/api/v1/auth/bootstrap', (route) =>
+        loggedIn ? json(route, authorization()) : json(route, {code: 'AUTHENTICATION_REQUIRED'}, 401))
   await installReadFixtures(page)
   await page.goto('/dashboard?bizCode=e2e&appCode=' + application.applicationCode + '&env=dev&namespace=default')
   await expect(page.getByRole('heading', { name: 'Gateway Admin' })).toBeVisible()
+    await page.getByLabel('租户 ID').fill('default')
+    await page.getByLabel('用户名').fill('alice')
+    await page.getByLabel('密码').fill('secret')
   await page.getByRole('button', { name: '使用统一身份登录' }).click()
-  await expect(page).toHaveURL(/\/oauth2\/authorize\?/)
-  const authorization = new URL(page.url()).searchParams
-  expect(authorization.get('code_challenge_method')).toBe('S256')
-  expect(authorization.get('tenant_id')).toBe('default')
-
-  allowRefresh = true
   await page.goto('/dashboard?bizCode=e2e&appCode=' + application.applicationCode + '&env=dev&namespace=default')
   await expect(page.getByText('Gateway E2E')).toBeVisible()
-  await page.getByRole('button', { name: '退出' }).click()
-  await expect(page.getByRole('heading', { name: 'Gateway Admin' })).toBeVisible()
 
   await page.goto('/gateway-groups')
   await expect(page.getByText('Gateway E2E')).toBeVisible()
-  allowRefresh = false
   await page.route('**/api/v1/gateway/admin/providers/instances*', (route) =>
     json(route, { code: 'TOKEN_EXPIRED' }, 401))
   await page.getByRole('link', { name: 'Provider' }).click()
   await expect(page.getByRole('heading', { name: 'Gateway Admin' })).toBeVisible()
+
+    await page.getByRole('button', {name: '退出'}).click()
+    await expect(page.getByRole('heading', {name: 'Gateway Admin'})).toBeVisible()
 })
 
 test('server capabilities hide mutations and missing read renders 403', async ({ page }) => {
@@ -267,8 +262,8 @@ test('server capabilities hide mutations and missing read renders 403', async ({
   await page.goto('/gateway-groups')
   await expect(page.getByRole('button', { name: '新建 Gateway Group' })).toBeDisabled()
 
-  await page.unroute('**/api/v1/gateway/admin/session')
-  await page.route('**/api/v1/gateway/admin/session', (route) => json(route, session([])))
+    await page.unroute('**/api/v1/auth/bootstrap')
+    await page.route('**/api/v1/auth/bootstrap', (route) => json(route, authorization([])))
   await page.reload()
   await expect(page.getByText('当前账号缺少 gateway:read 能力')).toBeVisible()
 })

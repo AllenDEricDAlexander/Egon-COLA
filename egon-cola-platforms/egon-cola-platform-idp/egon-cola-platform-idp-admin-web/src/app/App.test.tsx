@@ -1,7 +1,7 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
-import type { ReactNode } from 'react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { App } from './App'
+import {cleanup, render, screen, waitFor} from '@testing-library/react'
+import type {ReactNode} from 'react'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
+import {App} from './App'
 
 const admin = vi.hoisted(() => ({ request: vi.fn() }))
 
@@ -10,9 +10,11 @@ vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({
     loading: false,
     bootstrap: {
-      identitySub: 'alice-sub',
-      tenantId: 'default',
+        user: {id: 'user-1', identitySub: 'alice-sub', tenantId: 'default', status: 'ACTIVE'},
+        activeRoleContexts: [],
       permissions: [],
+        apps: [], menus: [], routes: [], actions: [], fieldPolicies: {},
+        defaultApplicationCode: null, defaultRoute: null, authVersion: 1, policyVersion: 1,
     },
   }),
   httpClient: { request: admin.request },
@@ -26,7 +28,6 @@ beforeEach(() => {
         username: 'alice',
         displayName: 'Alice',
         status: 'ACTIVE',
-        tokenVersion: 1,
       }])
     }
     if (path === '/api/v1/identity/clients') {

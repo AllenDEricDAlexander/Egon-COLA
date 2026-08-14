@@ -1,38 +1,27 @@
-import {
-  isRefreshableAuthenticationError,
-  Rbac3RequestError,
-  type Rbac3ErrorCode,
-  type Rbac3ErrorResponse,
-} from '../errors'
+import {type Rbac3ErrorCode, type Rbac3ErrorResponse, Rbac3RequestError,} from '../errors'
 import type {
-  ActiveRoleSetView,
-  ApiEnvelope,
-  BootstrapView,
-  Rbac3Client,
-  RefreshResult,
-  ReplaceActiveRolesRequest,
-  ReplaceActiveRolesResult,
-  RoleActivationCandidateView,
+    ActiveRoleSetView,
+    ApiEnvelope,
+    BootstrapView,
+    Rbac3Client,
+    ReplaceActiveRolesRequest,
+    ReplaceActiveRolesResult,
+    RoleActivationCandidateView,
 } from '../types'
-import { InMemoryAccessTokenStore } from '../auth/InMemoryAccessTokenStore'
 
 export interface Rbac3ApiClientOptions {
   readonly basePath?: string
   readonly fetch?: typeof globalThis.fetch
-  readonly accessTokenStore: InMemoryAccessTokenStore
 }
 
-/** Typed HTTP adapter with one refresh retry and cookie-based refresh transport. */
+/** Typed authorization HTTP adapter. Identity cookies are owned by Gateway/IdP. */
 export class Rbac3ApiClient implements Rbac3Client {
   private readonly basePath: string
   private readonly fetcher: typeof globalThis.fetch
-  private readonly tokenStore: InMemoryAccessTokenStore
-  private refreshPromise: Promise<RefreshResult> | null = null
 
-  constructor(options: Rbac3ApiClientOptions) {
+    constructor(options: Rbac3ApiClientOptions = {}) {
     this.basePath = normalizeBasePath(options.basePath ?? '')
     this.fetcher = options.fetch ?? globalThis.fetch.bind(globalThis)
-    this.tokenStore = options.accessTokenStore
   }
 
   getActivationCandidates(): Promise<RoleActivationCandidateView> {
@@ -53,56 +42,22 @@ export class Rbac3ApiClient implements Rbac3Client {
   }
 
   getBootstrap(): Promise<BootstrapView> {
-    return this.request('/api/rbac3/v1/auth/bootstrap')
+      return this.request('/api/v1/auth/bootstrap')
   }
 
-  refresh(): Promise<RefreshResult> {
-    if (this.refreshPromise === null) {
-      this.refreshPromise = this.refreshDirect()
-        .finally(() => {
-          this.refreshPromise = null
-        })
-    }
-    return this.refreshPromise
-  }
+    private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+        const headers = new Headers(init.headers)
+        headers.set('Accept', 'application/json')
+        if (init.body !== undefined && !headers.has('Content-Type')) {
+            headers.set('Content-Type', 'application/json')
+        }
 
-  async logout(): Promise<void> {
-    try {
-      await this.request<unknown>('/api/rbac3/v1/auth/logout', {
-        method: 'POST',
-      }, false)
-    } catch (error) {
-      if (!(error instanceof Rbac3RequestError) || error.status !== 401) {
-        throw error
-      }
-    } finally {
-      this.tokenStore.clear()
-    }
-  }
-
-  private async refreshDirect(): Promise<RefreshResult> {
-    const result = await this.request<RefreshResult>(
-      '/api/rbac3/v1/auth/refresh',
-      { method: 'POST' },
-      false,
-      false,
-    )
-    this.tokenStore.set(result.accessToken)
-    return result
-  }
-
-  private async request<T>(
-    path: string,
-    init: RequestInit = {},
-    allowRefresh = true,
-    withBearer = true,
-  ): Promise<T> {
     let response: Response
     try {
       response = await this.fetcher(`${this.basePath}${path}`, {
         ...init,
         credentials: 'include',
-        headers: this.headers(init.headers, withBearer),
+          headers,
       })
     } catch (cause) {
       throw new Rbac3RequestError({
@@ -113,14 +68,7 @@ export class Rbac3ApiClient implements Rbac3Client {
       })
     }
 
-    if (!response.ok) {
-      const error = await toRequestError(response)
-      if (allowRefresh && isRefreshableAuthenticationError(error)) {
-        await this.refresh()
-        return this.request(path, init, false, withBearer)
-      }
-      throw error
-    }
+        if (!response.ok) throw await toRequestError(response)
 
     const envelope = await readJson<ApiEnvelope<T>>(response)
     if (envelope === null || typeof envelope !== 'object' || !('data' in envelope)) {
@@ -132,21 +80,6 @@ export class Rbac3ApiClient implements Rbac3Client {
       })
     }
     return envelope.data
-  }
-
-  private headers(source: HeadersInit | undefined, withBearer: boolean): Headers {
-    const headers = new Headers(source)
-    headers.set('Accept', 'application/json')
-    if (!headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json')
-    }
-    const accessToken = withBearer ? this.tokenStore.get() : null
-    if (accessToken !== null) {
-      headers.set('Authorization', `Bearer ${accessToken}`)
-    } else {
-      headers.delete('Authorization')
-    }
-    return headers
   }
 }
 

@@ -1,8 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.repository;
 
-import jakarta.persistence.Column;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.session.domain.po.SessionPO;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -30,6 +28,8 @@ class Rbac3MigrationContractTest {
             "db/migration/V3__adopt_idp_identity.sql";
     private static final String TENANT_SESSION_MIGRATION =
             "db/migration/V4__scope_session_identity_by_tenant.sql";
+    private static final String STATELESS_IDENTITY_MIGRATION =
+            "db/migration/V5__remove_sessions_and_minimize_authorization_user.sql";
     private static final Pattern TABLE_PATTERN = Pattern.compile(
             "create\\s+table\\s+(rbac3_[a-z0-9_]+)\\s*\\((.*?)\\);",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
@@ -104,7 +104,7 @@ class Rbac3MigrationContractTest {
             throws Exception {
         assertThat(listMigrationResources()).containsExactly(
                 MIGRATION, STRONG_AUTH_MIGRATION, IDP_MIGRATION,
-                TENANT_SESSION_MIGRATION);
+                TENANT_SESSION_MIGRATION, STATELESS_IDENTITY_MIGRATION);
         assertThat(resourceSql(STRONG_AUTH_MIGRATION))
                 .contains("add column strong_authenticated_at timestamptz")
                 .contains("ck_rbac3_session_strong_authentication_time");
@@ -114,16 +114,13 @@ class Rbac3MigrationContractTest {
         assertThat(resourceSql(TENANT_SESSION_MIGRATION))
                 .contains("drop constraint uq_rbac3_session_id")
                 .doesNotContain("drop constraint uq_rbac3_session_tenant_session");
-    }
-
-    @Test
-    void sessionEntityDoesNotReintroduceGlobalSessionIdUniqueness()
-            throws NoSuchFieldException {
-        Column sessionId = SessionPO.class
-                .getDeclaredField("sessionId")
-                .getAnnotation(Column.class);
-
-        assertThat(sessionId.unique()).isFalse();
+        assertThat(resourceSql(STATELESS_IDENTITY_MIGRATION))
+                .contains("drop table rbac3_refresh_token")
+                .contains("drop table rbac3_session_active_role")
+                .contains("drop table rbac3_session")
+                .contains("drop table rbac3_user_credential")
+                .contains("add column identity_sub varchar(200) not null")
+                .contains("create table rbac3_user_active_role");
     }
 
     @Test

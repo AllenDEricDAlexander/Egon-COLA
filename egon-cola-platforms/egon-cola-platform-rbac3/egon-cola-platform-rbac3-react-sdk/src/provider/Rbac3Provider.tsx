@@ -1,46 +1,24 @@
-import {
-  createContext,
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  type PropsWithChildren,
-} from 'react'
-import { Rbac3RequestError } from '../errors'
-import type {
-  Rbac3Client,
-  RefreshResult,
-  ReplaceActiveRolesRequest,
-  ReplaceActiveRolesResult,
-} from '../types'
-import { InMemoryAccessTokenStore } from '../auth/InMemoryAccessTokenStore'
-import {
-  initialRbac3MachineState,
-  transitionRbac3State,
-  type Rbac3MachineState,
-} from './rbac3StateMachine'
+import {createContext, type PropsWithChildren, useCallback, useEffect, useMemo, useReducer, useRef,} from 'react'
+import {Rbac3RequestError} from '../errors'
+import type {Rbac3Client, ReplaceActiveRolesRequest, ReplaceActiveRolesResult,} from '../types'
+import {initialRbac3MachineState, type Rbac3MachineState, transitionRbac3State,} from './rbac3StateMachine'
 
-export interface Rbac3SessionContextValue extends Rbac3MachineState {
+export interface Rbac3AuthorizationContextValue extends Rbac3MachineState {
   readonly replaceActiveRoles: (
     request: ReplaceActiveRolesRequest,
   ) => Promise<ReplaceActiveRolesResult | null>
-  readonly refresh: () => Promise<RefreshResult>
-  readonly logout: () => Promise<void>
   readonly retry: () => Promise<void>
 }
 
-export const Rbac3SessionContext = createContext<Rbac3SessionContextValue | null>(null)
+export const Rbac3AuthorizationContext = createContext<Rbac3AuthorizationContextValue | null>(null)
 
 export interface Rbac3ProviderProps extends PropsWithChildren {
   readonly client: Rbac3Client
-  readonly accessTokenStore: InMemoryAccessTokenStore
   readonly autoInitialize?: boolean
 }
 
 export const Rbac3Provider = ({
   client,
-  accessTokenStore,
   autoInitialize = true,
   children,
 }: Rbac3ProviderProps) => {
@@ -49,81 +27,55 @@ export const Rbac3Provider = ({
     initialRbac3MachineState,
   )
   const initializePromise = useRef<Promise<void> | null>(null)
-  const refreshPromise = useRef<Promise<RefreshResult> | null>(null)
 
-  const publishRefresh = useCallback(async (result: RefreshResult) => {
-    accessTokenStore.set(result.accessToken)
-    if (result.roleActivationRequired) {
-      const [candidates, activeRoles] = await Promise.all([
-        client.getActivationCandidates(),
-        client.getActiveRoles(),
-      ])
-      dispatch({ type: 'ACTIVATION_REQUIRED', candidates, activeRoles })
-      return
-    }
-    const bootstrap = await client.getBootstrap()
-    dispatch({ type: 'BOOTSTRAP_SUCCEEDED', bootstrap })
-  }, [accessTokenStore, client])
+    const loadActivation = useCallback(async () => {
+        const [candidates, activeRoles] = await Promise.all([
+            client.getActivationCandidates(),
+            client.getActiveRoles(),
+        ])
+        dispatch({type: 'ACTIVATION_REQUIRED', candidates, activeRoles})
+    }, [client])
 
   const handleFailure = useCallback((error: unknown) => {
     const classified = classifyError(error)
     if (classified.status === 401) {
-      accessTokenStore.clear()
-      dispatch({
-        type: 'AUTHENTICATION_REQUIRED',
-        errorCode: classified.code,
-      })
+        dispatch({type: 'AUTHENTICATION_REQUIRED', errorCode: classified.code})
       return
     }
     if (classified.status === 403) {
       dispatch({ type: 'FORBIDDEN', errorCode: classified.code })
       return
     }
-    dispatch({
-      type: 'ERROR',
-      errorCode: classified.code,
-      retryable: classified.retryable,
-    })
-  }, [accessTokenStore])
-
-  const refresh = useCallback((): Promise<RefreshResult> => {
-    if (refreshPromise.current === null) {
-      dispatch({ type: 'REFRESH_VERSION' })
-      refreshPromise.current = client.refresh()
-        .then(async (result) => {
-          await publishRefresh(result)
-          return result
-        })
-        .catch((error: unknown) => {
-          handleFailure(error)
-          throw error
-        })
-        .finally(() => {
-          refreshPromise.current = null
-        })
-    }
-    return refreshPromise.current
-  }, [client, handleFailure, publishRefresh])
+      dispatch({type: 'ERROR', errorCode: classified.code, retryable: classified.retryable})
+  }, [])
 
   const initialize = useCallback((): Promise<void> => {
     if (initializePromise.current === null) {
       dispatch({ type: 'INITIALIZE' })
-      initializePromise.current = client.refresh()
-        .then(publishRefresh)
-        .catch((error: unknown) => {
+        initializePromise.current = client.getBootstrap()
+            .then((bootstrap) => dispatch({type: 'BOOTSTRAP_SUCCEEDED', bootstrap}))
+            .catch(async (error: unknown) => {
+                const classified = classifyError(error)
+                if (classified.code === 'ROLE_ACTIVATION_REQUIRED') {
+                    try {
+                        await loadActivation()
+                        return
+                    } catch (activationError) {
+                        handleFailure(activationError)
+                        return
+                    }
+                }
           handleFailure(error)
         })
-        .finally(() => {
-          initializePromise.current = null
-        })
+            .finally(() => {
+                initializePromise.current = null
+            })
     }
     return initializePromise.current
-  }, [client, handleFailure, publishRefresh])
+  }, [client, handleFailure, loadActivation])
 
   useEffect(() => {
-    if (autoInitialize) {
-      void initialize()
-    }
+      if (autoInitialize) void initialize()
   }, [autoInitialize, initialize])
 
   const replaceActiveRoles = useCallback(async (
@@ -132,7 +84,10 @@ export const Rbac3Provider = ({
     dispatch({ type: 'REPLACE_ACTIVE_ROLES' })
     try {
       const result = await client.replaceActiveRoles(request)
-      accessTokenStore.set(result.accessToken)
+        if (result.activationRequired) {
+            await loadActivation()
+            return result
+        }
       const bootstrap = await client.getBootstrap()
       dispatch({ type: 'BOOTSTRAP_SUCCEEDED', bootstrap })
       return result
@@ -142,18 +97,10 @@ export const Rbac3Provider = ({
         dispatch({ type: 'REPLACE_STEP_UP_REQUIRED' })
         throw error
       }
-      if (classified.retryable) {
+        if (classified.code === 'ROLE_ACTIVATION_VERSION_CONFLICT'
+            || classified.code === 'AUTH_MUTATION_CONFLICT') {
         try {
-          const refreshed = await client.refresh()
-          accessTokenStore.set(refreshed.accessToken)
-          const activeRoles = await client.getActiveRoles()
-          if (refreshed.roleActivationRequired) {
-            const candidates = await client.getActivationCandidates()
-            dispatch({ type: 'ACTIVATION_REQUIRED', candidates, activeRoles })
-          } else {
-            const bootstrap = await client.getBootstrap()
-            dispatch({ type: 'BOOTSTRAP_SUCCEEDED', bootstrap })
-          }
+            await loadActivation()
           return null
         } catch (recoveryError) {
           handleFailure(recoveryError)
@@ -163,29 +110,18 @@ export const Rbac3Provider = ({
       dispatch({ type: 'REPLACE_REJECTED', errorCode: classified.code })
       throw error
     }
-  }, [accessTokenStore, client, handleFailure])
+  }, [client, handleFailure, loadActivation])
 
-  const logout = useCallback(async (): Promise<void> => {
-    try {
-      await client.logout()
-    } finally {
-      accessTokenStore.clear()
-      dispatch({ type: 'LOGOUT' })
-    }
-  }, [accessTokenStore, client])
-
-  const value = useMemo<Rbac3SessionContextValue>(() => ({
+    const value = useMemo<Rbac3AuthorizationContextValue>(() => ({
     ...state,
     replaceActiveRoles,
-    refresh,
-    logout,
     retry: initialize,
-  }), [initialize, logout, refresh, replaceActiveRoles, state])
+    }), [initialize, replaceActiveRoles, state])
 
   return (
-    <Rbac3SessionContext.Provider value={value}>
+      <Rbac3AuthorizationContext.Provider value={value}>
       {children}
-    </Rbac3SessionContext.Provider>
+      </Rbac3AuthorizationContext.Provider>
   )
 }
 
@@ -196,9 +132,7 @@ interface ClassifiedError {
 }
 
 const classifyError = (error: unknown): ClassifiedError => {
-  if (error instanceof Rbac3RequestError) {
-    return error
-  }
+    if (error instanceof Rbac3RequestError) return error
   if (typeof error === 'object' && error !== null) {
     const value = error as Partial<ClassifiedError>
     return {

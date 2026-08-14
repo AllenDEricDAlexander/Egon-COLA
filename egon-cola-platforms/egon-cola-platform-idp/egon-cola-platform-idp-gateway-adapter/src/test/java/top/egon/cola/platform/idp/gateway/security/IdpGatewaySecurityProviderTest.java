@@ -11,8 +11,10 @@ import top.egon.cola.component.gateway.core.exchange.EmptyGatewayBody;
 import top.egon.cola.component.gateway.core.exchange.GatewayExchange;
 import top.egon.cola.component.gateway.core.exchange.GatewayRequest;
 import top.egon.cola.component.gateway.core.exchange.ImmutableGatewayHeaders;
+import top.egon.cola.component.gateway.core.security.AuthenticationDecision;
 import top.egon.cola.component.gateway.core.security.AuthenticationMode;
 import top.egon.cola.component.gateway.core.security.AuthorizationDecisionMode;
+import top.egon.cola.component.gateway.core.security.CredentialForwardingMode;
 import top.egon.cola.component.gateway.core.security.GatewayAuthContext;
 import top.egon.cola.component.gateway.core.security.GatewayCredential;
 import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
@@ -29,141 +31,96 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class IdpGatewaySecurityProviderTest {
 
     private static final Instant NOW = Instant.parse("2026-08-02T08:00:00Z");
 
     @Test
-    void extractsOneBearerAndRemovesEverySpoofableIdentityHeader() {
-        var extractor = new IdpBearerCredentialExtractor(
-                new IdpReservedHeaderSanitizer());
-
+    void extractsCookieOrBearerAndRemovesCookiesAndSpoofableHeaders() {
+        var extractor = new IdpUserCookieCredentialExtractor(
+                new IdpReservedHeaderSanitizer(),
+                "__Host-egon_user_at",
+                Set.of("https://console.example"));
         StepVerifier.create(Mono.from(extractor.extract(exchange(Map.of(
-                                "Authorization", List.of("Bearer exact-token"),
+                                "Cookie", List.of("__Host-egon_user_at=cookie-token"),
+                                "Authorization", List.of("Bearer cookie-token"),
                                 "X-Egon-Identity-Sub", List.of("mallory"))),
-                        policy())))
+                        context(GatewayPrincipal.anonymous()), policy())))
                 .assertNext(result -> {
                     assertThat(result.valid()).isTrue();
                     assertThat(result.credentials()).singleElement()
                             .extracting(GatewayCredential::tokenReference)
-                            .isEqualTo("exact-token");
+                            .isEqualTo("cookie-token");
                     assertThat(result.fieldsToRemove()).contains(
-                            "authorization",
-                            "x-egon-identity-sub",
-                            "x-egon-tenant-id",
-                            "x-egon-session-id",
-                            "x-egon-client-id",
-                            "x-egon-token-id");
+                            "authorization", "cookie", "x-egon-subject-token",
+                            "x-egon-identity-sub");
                 })
                 .verifyComplete();
     }
 
     @Test
-    void authenticatesOnlyIdentityClaimsAndMapsFixedTrustedHeaders() {
-        var provider = new IdpIdentityAuthenticationProvider((context, token) -> {
-            assertThat(token).isEqualTo("signed-token");
-            assertThat(context.attributes())
-                    .containsEntry("idp.biz-code", "permission")
-                    .containsEntry("idp.app-code", "rbac3")
-                    .containsEntry("idp.env", "prod");
-            return principal();
-        });
+    void rejectsConflictingCookieAndBearer() {
+        var extractor = new IdpUserCookieCredentialExtractor(
+                new IdpReservedHeaderSanitizer(),
+                "__Host-egon_user_at", Set.of());
+        StepVerifier.create(Mono.from(extractor.extract(exchange(Map.of(
+                                "Cookie", List.of("__Host-egon_user_at=cookie-token"),
+                                "Authorization", List.of("Bearer another-token"))),
+                        context(GatewayPrincipal.anonymous()), policy())))
+                .assertNext(result -> assertThat(result.valid()).isFalse())
+                .verifyComplete();
+    }
 
-        StepVerifier.create(Mono.from(provider.authenticate(
+    @Test
+    void mapsStatelessUserIdentityWithoutSessionAttributes() {
+        IdentityPrincipal user = new IdentityPrincipal(
+                "identity-1", "tenant-1", "token-1", Set.of("platform"),
+                NOW, NOW.plusSeconds(300),
+                top.egon.cola.platform.idp.contract.AuthenticationContext.password());
+        var provider = new IdpIdentityAuthenticationProvider(
+                (context, token) -> IdpGatewayJwtVerifier.Verification.valid(user));
+        AuthenticationDecision decision = Mono.from(provider.authenticate(
                         context(GatewayPrincipal.anonymous()),
-                        new GatewayCredential("bearer", "signed-token", Map.of()))))
-                .assertNext(decision -> {
-                    assertThat(decision.decision()).isEqualTo(SecurityDecision.ALLOW);
-                    assertThat(decision.principal().principalId())
-                            .isEqualTo("identity-1");
-                    assertThat(decision.principal().tenantId())
-                            .isEqualTo("tenant-1");
-                    assertThat(decision.principal().attributes())
-                            .containsEntry("idp.session-id", "session-1")
-                            .containsEntry("idp.client-id", "gateway-client")
-                            .containsEntry("idp.token-id", "token-1")
-                            .containsEntry("idp.token-version", "7")
-                            .containsEntry("idp.resource-uri",
-                                    "https://api.example/prod/permission/rbac3")
-                            .containsEntry("idp.issued-at", NOW.toString())
-                            .containsEntry(
-                                    "idp.expires-at",
-                                    NOW.plusSeconds(300).toString()
-                            )
-                            .doesNotContainKeys("permissions", "roles", "token");
-                })
-                .verifyComplete();
-
-        GatewayPrincipal authenticated = new GatewayPrincipal(
-                "identity-1", "USER", "tenant-1", null, true, Map.of(
-                "idp.session-id", "session-1",
-                "idp.client-id", "gateway-client",
-                "idp.token-id", "token-1",
-                "idp.token-version", "7",
-                "idp.resource-uri", "https://api.example/prod/permission/rbac3"));
-        var mapped = new IdpTrustedIdentityMapper().map(context(authenticated));
-        assertThat(mapped.httpHeaders()).containsExactlyInAnyOrderEntriesOf(Map.of(
-                "X-Egon-Principal-Type", "USER",
-                "X-Egon-Identity-Sub", "identity-1",
-                "X-Egon-Tenant-Id", "tenant-1",
-                "X-Egon-Session-Id", "session-1",
-                "X-Egon-Client-Id", "gateway-client",
-                "X-Egon-Token-Id", "token-1",
-                "X-Egon-Token-Version", "7",
-                "X-Egon-Resource-Uri", "https://api.example/prod/permission/rbac3"));
+                        new GatewayCredential("bearer", "signed-token", Map.of())))
+                .block();
+        assertThat(decision.decision()).isEqualTo(SecurityDecision.ALLOW);
+        assertThat(decision.principal().attributes())
+                .doesNotContainKeys("idp.session-id", "idp.token-version", "idp.resource-uri")
+                .containsEntry("idp.token-id", "token-1")
+                .containsEntry("idp.audience", "platform");
+        assertThatThrownBy(() -> new IdpTrustedIdentityMapper()
+                .map(context(decision.principal())))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("USER identity headers");
     }
 
     @Test
-    void mapsServiceIdentityWithIdpScopesAndSourceApplication() {
+    void mapsServiceIdentityWithMachineAttributes() {
         ServiceIdentityPrincipal service = new ServiceIdentityPrincipal(
                 "finance-service", "tenant-1", "finance-service", "service-token",
-                URI.create("https://api.example/prod/permission/rbac3"),
-                12L, Set.of("service:authorization:decide", "service:identity:resolve"),
-                "finance", "finance-web", "prod", "credential-1",
-                NOW, NOW.plusSeconds(300));
+                URI.create("https://api.example/resource"), 12L,
+                Set.of("service:authorization:decide"), "finance", "finance-web",
+                "prod", "credential-1", NOW, NOW.plusSeconds(300));
         var provider = new IdpIdentityAuthenticationProvider(
-                (context, token) -> service);
-
+                (context, token) -> IdpGatewayJwtVerifier.Verification.valid(service));
         GatewayPrincipal principal = Mono.from(provider.authenticate(
                         context(GatewayPrincipal.anonymous()),
                         new GatewayCredential("bearer", "signed-token", Map.of())))
                 .block().principal();
-        var mapped = new IdpTrustedIdentityMapper().map(context(principal));
-
         assertThat(principal.principalType()).isEqualTo("SERVICE");
-        assertThat(mapped.httpHeaders()).containsExactlyInAnyOrderEntriesOf(Map.ofEntries(
-                Map.entry("X-Egon-Principal-Type", "SERVICE"),
-                Map.entry("X-Egon-Identity-Sub", "finance-service"),
-                Map.entry("X-Egon-Tenant-Id", "tenant-1"),
-                Map.entry("X-Egon-Client-Id", "finance-service"),
-                Map.entry("X-Egon-Token-Id", "service-token"),
-                Map.entry("X-Egon-Resource-Uri", "https://api.example/prod/permission/rbac3"),
-                Map.entry("X-Egon-Resource-Version", "12"),
-                Map.entry("X-Egon-Source-Biz", "finance"),
-                Map.entry("X-Egon-Source-App", "finance-web"),
-                Map.entry("X-Egon-Source-Env", "prod"),
-                Map.entry("X-Egon-Service-Scopes",
-                        "service:authorization:decide service:identity:resolve"),
-                Map.entry("X-Egon-Credential-Id", "credential-1")));
-    }
-
-    private IdentityPrincipal principal() {
-        return new IdentityPrincipal(
-                "identity-1", "tenant-1", "session-1", "gateway-client",
-                "token-1", 7L,
-                Set.of("https://api.example/prod/permission/rbac3"), NOW,
-                NOW.plusSeconds(300));
+        assertThat(new IdpTrustedIdentityMapper().map(context(principal)).httpHeaders())
+                .containsEntry("X-Egon-Resource-Version", "12")
+                .containsEntry("X-Egon-Client-Id", "finance-service");
     }
 
     private GatewaySecurityPolicy policy() {
         return new GatewaySecurityPolicy(
-                "security", AuthenticationMode.REQUIRED, List.of("idp-bearer"),
-                List.of("idp-jwt"), List.of(),
-                AuthorizationDecisionMode.ALL_ALLOW, "idp-identity",
-                Duration.ofSeconds(1), SecurityFailureMode.FAIL_CLOSED,
-                top.egon.cola.component.gateway.core.security
-                        .CredentialForwardingMode.ORIGINAL_BEARER);
+                "security", AuthenticationMode.REQUIRED, List.of("idp-user-cookie"),
+                List.of("idp-jwt"), List.of(), AuthorizationDecisionMode.ALL_ALLOW,
+                "idp-identity", Duration.ofSeconds(1), SecurityFailureMode.FAIL_CLOSED,
+                CredentialForwardingMode.ORIGINAL_BEARER);
     }
 
     private GatewayAuthContext context(GatewayPrincipal principal) {
@@ -171,10 +128,7 @@ class IdpGatewaySecurityProviderTest {
                 AccessZone.PUBLIC, GatewayProtocol.HTTP, "operation-1", "route-1",
                 "security", "/orders", "GET", Set.of("bearer"), principal,
                 "127.0.0.1", "trace-1", "request-1", NOW.plusSeconds(5),
-                "release-1", Map.of(
-                        "idp.biz-code", "permission",
-                        "idp.app-code", "rbac3",
-                        "idp.env", "prod"));
+                "release-1", Map.of());
     }
 
     private GatewayExchange exchange(Map<String, List<String>> headers) {

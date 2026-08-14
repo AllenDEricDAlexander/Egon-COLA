@@ -1,7 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.bootstrap.repository.jpa;
 
 import jakarta.persistence.EntityManager;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
@@ -10,14 +9,12 @@ import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventP
 import top.egon.cola.platform.rbac3.admin.assignment.domain.po.UserRoleAssignmentPO;
 import top.egon.cola.platform.rbac3.admin.bootstrap.repository.PlatformAdminBootstrapRepository;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
-import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserCredentialPO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
 import top.egon.cola.platform.rbac3.admin.resource.domain.po.ApplicationPO;
 import top.egon.cola.platform.rbac3.admin.resource.domain.po.PermissionPO;
 import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePO;
 import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePermissionPO;
 
-import java.nio.CharBuffer;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -122,9 +119,6 @@ public class JpaPlatformAdminBootstrapRepository
             "system:role:create",
             "system:role:read",
             "system:role:update",
-            "system:session:logout",
-            "system:session:read",
-            "system:session:revoke",
             "system:tenant:manage",
             "system:tenant:read",
             "system:tenant:target",
@@ -147,14 +141,6 @@ public class JpaPlatformAdminBootstrapRepository
      * Meaning and usage: when reading, passing, or updating `idGenerator`, preserve `JpaPlatformAdminBootstrapRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
     private final LongIdGenerator idGenerator;
-    /**
-     * 字段 `passwordEncoder` 表示 `JpaPlatformAdminBootstrapRepository` 中与 `password Encoder` 相关的状态、依赖、配置或结果（声明类型 `PasswordEncoder`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `passwordEncoder` stores the `password Encoder`-related state, dependency, configuration, or result of `JpaPlatformAdminBootstrapRepository` (declared type `PasswordEncoder`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `passwordEncoder` 时应保持 `JpaPlatformAdminBootstrapRepository` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `passwordEncoder`, preserve `JpaPlatformAdminBootstrapRepository`'s lifecycle, immutability, and thread-safety constraints.
-     */
-    private final PasswordEncoder passwordEncoder;
     /**
      * 字段 `auditPort` 表示 `JpaPlatformAdminBootstrapRepository` 中与 `audit Port` 相关的状态、依赖、配置或结果（声明类型 `AuditPort`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `auditPort` stores the `audit Port`-related state, dependency, configuration, or result of `JpaPlatformAdminBootstrapRepository` (declared type `AuditPort`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -189,7 +175,6 @@ public class JpaPlatformAdminBootstrapRepository
      *
      * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param passwordEncoder 输入参数 `passwordEncoder`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param auditPort 输入参数 `auditPort`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param eventPort 输入参数 `eventPort`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
@@ -197,13 +182,11 @@ public class JpaPlatformAdminBootstrapRepository
     public JpaPlatformAdminBootstrapRepository(
             EntityManager entityManager,
             LongIdGenerator idGenerator,
-            PasswordEncoder passwordEncoder,
             AuditPort auditPort,
             AuthorizationEventPublisher eventPort,
             Clock clock) {
         this.entityManager = Objects.requireNonNull(entityManager, "entityManager");
         this.idGenerator = Objects.requireNonNull(idGenerator, "idGenerator");
-        this.passwordEncoder = Objects.requireNonNull(passwordEncoder, "passwordEncoder");
         this.auditPort = Objects.requireNonNull(auditPort, "auditPort");
         this.eventPort = Objects.requireNonNull(eventPort, "eventPort");
         this.clock = Objects.requireNonNull(clock, "clock");
@@ -217,15 +200,13 @@ public class JpaPlatformAdminBootstrapRepository
      * Usage: provide contract-compliant arguments before calling `bootstrap`, then continue the business flow using its result, exception, or side effect.
      *
      * @param tenantCode 输入参数 `tenantCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param username 输入参数 `username`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param password 输入参数 `password`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param identitySub 输入参数 `identitySub`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     @Override
     @Transactional
-    public void bootstrap(String tenantCode, String username, char[] password) {
+    public void bootstrap(String tenantCode, String identitySub) {
         String normalizedTenantCode = normalizeTenantCode(tenantCode);
-        String normalizedUsername = UserPO.normalize(username);
-        requirePassword(password);
+        String normalizedIdentitySub = required(identitySub, "identitySub");
         acquireLock();
         rejectExistingAdministrator(normalizedTenantCode);
         rejectExistingTenant(normalizedTenantCode);
@@ -262,12 +243,11 @@ public class JpaPlatformAdminBootstrapRepository
         }
 
         UserPO administrator = new UserPO(
-                userId, tenantId, normalizedUsername, username.trim(), ACTOR, now);
+                userId, tenantId, normalizedIdentitySub,
+                top.egon.cola.platform.rbac3.admin.identity.domain.enums.UserStatusEnum.ACTIVE,
+                ACTOR, now);
         administrator.advanceAuthorizationVersion(0, ACTOR, now);
         entityManager.persist(administrator);
-        entityManager.persist(new UserCredentialPO(
-                idGenerator.nextLongId(), tenantId, userId,
-                passwordEncoder.encode(CharBuffer.wrap(password)), true, ACTOR, now));
         UserRoleAssignmentPO assignment = new UserRoleAssignmentPO(
                 idGenerator.nextLongId(), tenantId, userId, roleId,
                 UserRoleAssignmentTypeEnum.DIRECT, now, null,
@@ -283,7 +263,7 @@ public class JpaPlatformAdminBootstrapRepository
                 tenantId.toString(), "PLATFORM_ADMIN_BOOTSTRAPPED", ACTOR,
                 "USER", userId.toString(), requestId, requestId,
                 Map.of("tenantCode", normalizedTenantCode,
-                        "username", normalizedUsername,
+                        "identitySub", normalizedIdentitySub,
                         "roleCode", ROLE_CODE), now));
         eventPort.enqueue(new AuthorizationEventVO(
                 tenantId.toString(), "USER", userId.toString(),
@@ -404,20 +384,11 @@ public class JpaPlatformAdminBootstrapRepository
         return normalized;
     }
 
-    /**
-     * 方法 `requirePassword` 按照 `JpaPlatformAdminBootstrapRepository` 的职责处理输入，完成 `require Password` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `requirePassword` processes its inputs according to `JpaPlatformAdminBootstrapRepository`'s responsibility, performs the `require Password` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `requirePassword` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `requirePassword`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param password 输入参数 `password`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     */
-    private static void requirePassword(char[] password) {
-        Objects.requireNonNull(password, "password");
-        if (password.length < 12 || password.length > 64) {
-            throw new IllegalArgumentException("password must contain 12 to 64 characters");
+    private static String required(String value, String name) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(name + " is required");
         }
+        return value.trim();
     }
 
     /**

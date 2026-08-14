@@ -4,23 +4,24 @@
 
 ## 拓扑与端口
 
-| 组件 | 地址 | 用途 |
-|---|---|---|
-| IdP Admin Web | `http://127.0.0.1:18121` | 统一登录入口和 IdP 管理界面 |
-| RBAC3 Admin Web | `http://127.0.0.1:18131` | RBAC3 管理界面 |
-| Gateway Admin Web | `http://127.0.0.1:18141` | 统一 SSO 登录后的 Gateway 管理界面 |
-| DDC Admin Web | `http://127.0.0.1:18152` | DDC 管理界面 |
-| IdP | `http://127.0.0.1:18120` | OAuth/OIDC、用户和会话 |
-| RBAC3 Admin | `http://127.0.0.1:18130` | 下游授权快照与角色激活 |
-| Gateway Admin | `http://127.0.0.1:18140` | Gateway/MCP 控制面 |
-| DDC Admin | `http://127.0.0.1:18150` | 配置、注册发现和发布通知 |
-| Gateway MCP A | `http://127.0.0.1:18180/mcp/unified-local` | Stable、RC 和 Legacy 公共入口 |
-| Gateway MCP B | `http://127.0.0.1:18184/mcp/unified-local` | 双节点会话与任务恢复验证入口 |
-| Mock Backend | `http://127.0.0.1:18160` | 统一身份 HTTP 验证夹具 |
-| MCP Provider | `http://127.0.0.1:18161` | 本地 Operation 调用夹具 |
-| Remote MCP | `http://127.0.0.1:18151` | Stable/RC 远端联邦夹具 |
+| 组件                | 地址                                         | 用途                                    |
+|-------------------|--------------------------------------------|---------------------------------------|
+| IdP Admin Web     | `http://127.0.0.1:18121`                   | 统一登录入口和 IdP 管理界面                      |
+| RBAC3 Admin Web   | `http://127.0.0.1:18131`                   | RBAC3 管理界面                            |
+| Gateway Admin Web | `http://127.0.0.1:18141`                   | 经 Gateway JWT Cookie 保护的 Gateway 管理界面 |
+| DDC Admin Web     | `http://127.0.0.1:18152`                   | DDC 管理界面                              |
+| IdP               | `http://127.0.0.1:18120`                   | OAuth/OIDC、USER AT/RT 签发与 RT 有效状态     |
+| RBAC3 Admin       | `http://127.0.0.1:18130`                   | 下游授权快照与角色激活                           |
+| Gateway Admin     | `http://127.0.0.1:18140`                   | Gateway/MCP 控制面                       |
+| DDC Admin         | `http://127.0.0.1:18150`                   | 配置、注册发现和发布通知                          |
+| Gateway MCP A     | `http://127.0.0.1:18180/mcp/unified-local` | Stable、RC 和 Legacy 公共入口               |
+| Gateway MCP B     | `http://127.0.0.1:18184/mcp/unified-local` | 双节点会话与任务恢复验证入口                        |
+| Mock Backend      | `http://127.0.0.1:18160`                   | 统一身份 HTTP 验证夹具                        |
+| MCP Provider      | `http://127.0.0.1:18161`                   | 本地 Operation 调用夹具                     |
+| Remote MCP        | `http://127.0.0.1:18151`                   | Stable/RC 远端联邦夹具                      |
 
-Gateway 只执行用户存在性、JWT 合法性等基础身份校验；业务系统继续自行解析 JWT，并从 RBAC3 拉取与缓存当前用户的授权快照。
+Gateway 只执行 USER JWT 合法性、过期恢复等基础身份校验，并在保护业务 Route 上执行外围 RBAC3 权限判断；业务系统继续使用 IdP
+Starter 本地校验同一个 USER AT，再从 RBAC3 拉取与缓存当前用户的授权快照。普通业务请求不会携带 Refresh Token。
 
 ## 前置条件
 
@@ -90,12 +91,12 @@ scripts/unified-platform/status-local-stack.sh
 
 ## 登录 Admin Web
 
-打开 `http://127.0.0.1:18141`，通过统一 IdP SSO 登录：
+打开 `http://127.0.0.1:18141`，通过 Gateway 公共登录 Route 登录：
 
 - 用户名：`alice`
 - 密码文件：`target/local-unified-platform/secrets/idp-admin.password`
 
-在本机终端读取密码：
+在本机终端读取密码（仅用于密码登录，不代表建立服务端 Session）：
 
 ```bash
 sed -n '1p' target/local-unified-platform/secrets/idp-admin.password
@@ -111,7 +112,8 @@ scripts/unified-platform/verify-local-stack.sh
 
 验收覆盖：
 
-- IdP SSO、tokenVersion 撤销和重新登录；
+- Gateway Cookie 登录、固定五分钟 USER AT、稳定不轮换 RT，以及 Logout/强制退出后删除 RT；旧 AT 只保留到原 `exp`，RT
+  刷新失败后必须重新登录；
 - RBAC3 角色激活、授权撤销传播及原 JWT 下的权限恢复；
 - DDC 注册、配置中断时 LKG 连续服务和恢复；
 - 注解托管的 MCP Operation 不依赖 Route，并在两个 Engine 上进入同一发布；
@@ -149,7 +151,8 @@ scripts/unified-platform/stop-local-stack.sh
 ## 常见排查
 
 - 某组件 `health=000`：查看 `target/local-unified-platform/logs/<component>.log`，然后重新执行启动脚本。
-- IdP 登录失败：确认用户名是 `alice`，密码来自当前运行时目录的限制文件；不要使用旧运行时目录中的副本。
+- IdP 登录失败：确认用户名是 `alice`，密码来自当前运行时目录的限制文件；不要使用旧运行时目录中的副本。浏览器身份只由 Gateway
+  Cookie 携带，不要向前端注入 USER AT/RT，也不要把 IdP 内部端口作为浏览器 API 地址。
 - 授权更新短暂未生效：本地 Gateway Engine 授权缓存 TTL 为 1 秒，先等待状态轮询；持续失败时检查 RBAC3 与两个 Engine 日志。
 - Remote MCP 调用失败：确认 `mcp-remote` 健康；深度验收会主动触发熔断，恢复后等待约 4 秒。
 - 发布失败：检查 Gateway Admin 日志和草稿校验响应；无效发布不得替换当前 LKG。

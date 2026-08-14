@@ -1,20 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.authorization.domain.vo;
 
-import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
-import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
-import top.egon.cola.platform.rbac3.contract.authorization.AuthorizationDecision;
-import top.egon.cola.platform.rbac3.contract.authorization.DataScopeDecision;
-import top.egon.cola.platform.rbac3.contract.authorization.Decision;
-import top.egon.cola.platform.rbac3.contract.authorization.FieldPolicyDecision;
-import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
-import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
-import java.time.Clock;
-import java.time.Instant;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
+import top.egon.cola.platform.rbac3.contract.authorization.UserAuthorizationSnapshot;
+
 import java.util.Objects;
-import java.util.Set;
 
 /**
      * 关联租户、IdP 主体、RBAC 用户与不可变授权快照的记录。
@@ -23,7 +11,7 @@ import java.util.Set;
      * @param tenantId 租户标识 / tenant identifier
      * @param identitySub IdP 稳定主体标识 / stable IdP subject
      * @param userId RBAC 用户标识 / RBAC user identifier
-     * @param snapshot 会话授权快照 / session authorization snapshot
+ * @param snapshot 用户授权快照 / user authorization snapshot
      * 语义与用法：将 `SnapshotRecordVO` 作为 `AuthorizationDecisionService` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
      * Semantics and usage: use `SnapshotRecordVO` as the responsibility boundary of `AuthorizationDecisionService`, following its existing construction, interface, or Spring-assembly mechanism.
      */
@@ -53,13 +41,13 @@ import java.util.Set;
              */
             String userId,
             /**
-             * 字段 `snapshot` 表示 `SnapshotRecordVO` 中与 `snapshot` 相关的状态、依赖、配置或结果（声明类型 `SessionAuthorizationSnapshot`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-             * Field `snapshot` stores the `snapshot`-related state, dependency, configuration, or result of `SnapshotRecordVO` (declared type `SessionAuthorizationSnapshot`); its lifecycle and value semantics are defined by its declared type and owning object.
+             * 字段 `snapshot` 表示 `SnapshotRecordVO` 中与 `snapshot` 相关的状态、依赖、配置或结果（声明类型 `UserAuthorizationSnapshot`）；其生命周期和取值含义由声明类型及所属对象共同确定。
+             * Field `snapshot` stores the `snapshot`-related state, dependency, configuration, or result of `SnapshotRecordVO` (declared type `UserAuthorizationSnapshot`); its lifecycle and value semantics are defined by its declared type and owning object.
              *
              * 含义与用法：读取、传递或更新 `snapshot` 时应保持 `SnapshotRecordVO` 的生命周期、不可变性和线程安全约束。
              * Meaning and usage: when reading, passing, or updating `snapshot`, preserve `SnapshotRecordVO`'s lifecycle, immutability, and thread-safety constraints.
              */
-            SessionAuthorizationSnapshot snapshot) {
+            UserAuthorizationSnapshot snapshot) {
 
         /**
          * 校验并规范化快照记录。
@@ -84,12 +72,12 @@ import java.util.Set;
          *
          * @param tenantId 租户标识 / tenant identifier
          * @param userId 用户标识，同时作为 IdP 主体 / user identifier, also used as IdP subject
-         * @param snapshot 会话授权快照 / session authorization snapshot
+         * @param snapshot 用户授权快照 / user authorization snapshot
          */
         public SnapshotRecordVO(
                 String tenantId,
                 String userId,
-                SessionAuthorizationSnapshot snapshot) {
+                UserAuthorizationSnapshot snapshot) {
             this(tenantId, userId, userId, snapshot);
         }
 

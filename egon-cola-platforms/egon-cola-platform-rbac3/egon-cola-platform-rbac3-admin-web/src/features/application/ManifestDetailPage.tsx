@@ -1,10 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, Button, Card, Descriptions, Form, Input, InputNumber, Modal, Space, Tag, Typography } from 'antd'
-import { PermissionGuard, useRbac3Session } from '@egon-cola/rbac3-react-sdk'
-import { useState } from 'react'
-import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '@egon-cola/admin-web-shared'
-import { applicationApi } from './application.api'
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
+import {Alert, Button, Card, Descriptions, Form, Input, InputNumber, Modal, Space, Tag, Typography} from 'antd'
+import {PermissionGuard, useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
+import {useState} from 'react'
+import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
+import {PageState} from '@egon-cola/admin-web-shared'
+import {applicationApi} from './application.api'
 
 export interface ManifestDetailPageProps {
   readonly manifestId: string
@@ -19,7 +19,7 @@ interface ActivationForm {
 }
 
 export const ManifestDetailPage = ({ manifestId }: ManifestDetailPageProps) => {
-  const { status } = useRbac3Session()
+    const {status} = useRbac3Authorization()
   const { effectiveTenantId } = useFeatureTenantContext()
   const api = applicationApi(useFeatureApi())
   const queryClient = useQueryClient()

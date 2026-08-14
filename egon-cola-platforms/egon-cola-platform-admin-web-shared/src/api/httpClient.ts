@@ -1,11 +1,10 @@
-import { ApiError } from './errors'
+import {ApiError} from './errors'
 
 export interface HttpClientConfig {
   readonly baseUrl: string
   readonly credentials: RequestCredentials
-  readonly onAuthError: () => Promise<string>
-  readonly onFatalAuthError: () => void
-  readonly getAccessToken?: () => string | null
+    /** Clears the local authorization UI; it must not refresh or inspect tokens. */
+    readonly onAuthError?: () => void
   readonly timeout?: number
 }
 
@@ -14,13 +13,11 @@ export interface HttpClient {
 }
 
 export const createHttpClient = (config: HttpClientConfig): HttpClient => {
-  const { baseUrl, credentials, onAuthError, onFatalAuthError, getAccessToken, timeout = 30_000 } = config
+    const {baseUrl, credentials, onAuthError, timeout = 30_000} = config
 
   const buildHeaders = (init?: RequestInit): Headers => {
     const headers = new Headers(init?.headers)
     headers.set('Accept', 'application/json')
-    const token = getAccessToken?.()
-    if (token) headers.set('Authorization', `Bearer ${token}`)
     if (shouldSetJsonContentType(init?.body) && !headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/json')
     }
@@ -51,21 +48,7 @@ export const createHttpClient = (config: HttpClientConfig): HttpClient => {
   const request = async <T>(path: string, init?: RequestInit & { signal?: AbortSignal }): Promise<T> => {
     const response = await doFetch(path, init)
     if (response.status === 401) {
-      try {
-        const newToken = await onAuthError()
-        const retryHeaders = new Headers(init?.headers)
-        retryHeaders.set('Authorization', `Bearer ${newToken}`)
-        const retryResponse = await doFetch(path, { ...init, headers: retryHeaders })
-        if (retryResponse.status === 401) {
-          onFatalAuthError()
-          throw new ApiError('Authentication failed after token refresh', 401, 'AUTH_FAILED')
-        }
-        return handleResponse<T>(retryResponse)
-      } catch (error) {
-        if (error instanceof ApiError) throw error
-        onFatalAuthError()
-        throw error
-      }
+        onAuthError?.()
     }
     return handleResponse<T>(response)
   }

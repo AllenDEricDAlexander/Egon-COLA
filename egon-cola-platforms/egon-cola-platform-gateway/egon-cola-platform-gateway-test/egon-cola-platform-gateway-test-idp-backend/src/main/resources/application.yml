@@ -52,7 +52,6 @@ egon:
           database: ${MOCK_BACKEND_REDIS_DATABASE:0}
         authorization:
           endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
-          service-credential-file: ${MOCK_BACKEND_RBAC3_SERVICE_CREDENTIAL_FILE:.runtime/unified-identity/mock-backend.service.jwt}
     component:
       id:
         enabled: false

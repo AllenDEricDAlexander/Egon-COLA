@@ -80,7 +80,6 @@ egon:
           password-file: ${GATEWAY_MCP_RBAC3_REDIS_PASSWORD_FILE:}
         authorization:
           endpoint: ${GATEWAY_MCP_RBAC3_AUTHORIZATION_ENDPOINT:}
-          service-credential-file: ${GATEWAY_MCP_RBAC3_SERVICE_CREDENTIAL_FILE:}
     component:
       rpc:
         tls:

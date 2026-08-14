@@ -4,8 +4,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthorizationPort;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
+import top.egon.cola.platform.rbac3.contract.auth.BootstrapView;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationBootstrapService;
 
 import java.util.Objects;
@@ -26,7 +26,7 @@ public class IdpAuthBootstrapController {
     }
 
     @GetMapping("/bootstrap")
-    public AuthorizationBootstrapService.BootstrapView bootstrap(
+    public BootstrapView bootstrap(
             @AuthenticationPrincipal IdentityPrincipal principal) {
         authorization.require(principal, "idp:bootstrap:read");
         return bootstrap.current();

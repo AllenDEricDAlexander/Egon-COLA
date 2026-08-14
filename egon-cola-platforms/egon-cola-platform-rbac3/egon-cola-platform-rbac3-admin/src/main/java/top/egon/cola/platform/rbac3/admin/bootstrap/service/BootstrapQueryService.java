@@ -1,16 +1,15 @@
 package top.egon.cola.platform.rbac3.admin.bootstrap.service;
 
+import top.egon.cola.platform.rbac3.admin.bootstrap.repository.BootstrapSnapshotRepository;
 import top.egon.cola.platform.rbac3.contract.auth.BootstrapView;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.util.Objects;
-import java.util.Optional;
-import top.egon.cola.platform.rbac3.admin.bootstrap.repository.BootstrapSnapshotRepository;
 
 /**
  * 类型 `BootstrapQueryService` 位于当前包内，是类型，用于承载 `Bootstrap Query Service` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
  * Type `BootstrapQueryService` is a type in its package and carries the responsibility, state, or contract for `Bootstrap Query Service`; callers normally use it through its public API, Spring assembly, or implementation relationship.
- * Exposes business bootstrap data only for a session with active roles.
+ * Exposes business bootstrap data only for a user with active roles.
  */
 public final class BootstrapQueryService {
 
@@ -45,11 +44,11 @@ public final class BootstrapQueryService {
      *
      * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param userId 输入参数 `userId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param sessionId 输入参数 `sessionId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param identitySub 输入参数 `identitySub`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    public BootstrapView query(String tenantId, String userId, String sessionId) {
-        return snapshotSource.find(tenantId, userId, sessionId)
+    public BootstrapView query(String tenantId, String userId, String identitySub) {
+        return snapshotSource.find(tenantId, userId, identitySub)
                 .filter(view -> !view.activeRoleContexts().isEmpty())
                 .orElseThrow(() -> new Rbac3RuleViolation("ROLE_ACTIVATION_REQUIRED"));
     }

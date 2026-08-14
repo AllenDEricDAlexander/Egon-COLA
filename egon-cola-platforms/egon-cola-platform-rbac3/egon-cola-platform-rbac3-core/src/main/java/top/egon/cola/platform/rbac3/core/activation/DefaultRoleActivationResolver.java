@@ -1,6 +1,6 @@
 package top.egon.cola.platform.rbac3.core.activation;
 
-import top.egon.cola.platform.rbac3.core.decision.SessionAuthorizationSnapshotBuilder;
+import top.egon.cola.platform.rbac3.core.decision.UserAuthorizationSnapshotBuilder;
 import top.egon.cola.platform.rbac3.core.hierarchy.RoleHierarchyValidator;
 import top.egon.cola.platform.rbac3.core.hierarchy.RoleNode;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
@@ -20,20 +20,20 @@ public final class DefaultRoleActivationResolver implements RoleActivationResolv
     private final RoleActivationCandidateResolver candidateResolver;
     private final UniqueActivationRootSpecification uniqueRoot;
     private final ApplicationRoleMutexSpecification mutex;
-    private final SessionAuthorizationSnapshotBuilder snapshotBuilder;
+    private final UserAuthorizationSnapshotBuilder snapshotBuilder;
 
     public DefaultRoleActivationResolver() {
         this(new RoleActivationCandidateResolver(),
                 new UniqueActivationRootSpecification(),
                 new ApplicationRoleMutexSpecification(),
-                new SessionAuthorizationSnapshotBuilder());
+                new UserAuthorizationSnapshotBuilder());
     }
 
     public DefaultRoleActivationResolver(
             RoleActivationCandidateResolver candidateResolver,
             UniqueActivationRootSpecification uniqueRoot,
             ApplicationRoleMutexSpecification mutex,
-            SessionAuthorizationSnapshotBuilder snapshotBuilder
+            UserAuthorizationSnapshotBuilder snapshotBuilder
     ) {
         this.candidateResolver = candidateResolver;
         this.uniqueRoot = uniqueRoot;
@@ -82,12 +82,12 @@ public final class DefaultRoleActivationResolver implements RoleActivationResolv
 
         var snapshot = snapshotBuilder.build(normalizedRoots, input.hierarchy(),
                 input.authorizationFacts(), input.authVersion(),
-                input.sessionVersion() + 1, input.policyVersion());
+                input.authVersion() + 1, input.policyVersion());
         var normalizedApplicationRoots = new TreeMap<String, Set<String>>();
         rootsByApplication.forEach((application, roots) -> normalizedApplicationRoots.put(
                 application, Collections.unmodifiableSet(new TreeSet<>(roots))));
         ActiveRoleSet activeRoleSet = new ActiveRoleSet(
-                input.tenantId(), input.userId(), input.sessionId(),
+                input.tenantId(), input.userId(),
                 normalizedApplicationRoots, snapshot.checksum());
 
         var evidence = new TreeSet<String>();

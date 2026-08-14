@@ -360,8 +360,7 @@ public interface AuthorizationService {
             identity = Objects.requireNonNull(identity, "identity");
             snapshot = Objects.requireNonNull(snapshot, "snapshot");
             if (!identity.subject().equals(snapshot.identitySub())
-                    || !identity.tenantId().equals(snapshot.tenantId())
-                    || !identity.sessionId().equals(snapshot.sessionId())) {
+                    || !identity.tenantId().equals(snapshot.tenantId())) {
                 throw new RuntimeUnavailableException(
                         "AUTHORIZATION_IDENTITY_MISMATCH", identity);
             }

@@ -11,7 +11,6 @@ public record AuthorizationDecision(
         String subjectId,
         String permissionCode,
         long authVersion,
-        long sessionVersion,
         long policyVersion,
         List<String> evidenceIds,
         Instant decidedAt
@@ -24,7 +23,6 @@ public record AuthorizationDecision(
         subjectId = required(subjectId, "subjectId");
         permissionCode = required(permissionCode, "permissionCode");
         nonNegative(authVersion, "authVersion");
-        nonNegative(sessionVersion, "sessionVersion");
         nonNegative(policyVersion, "policyVersion");
         evidenceIds = List.copyOf(Objects.requireNonNull(
                 evidenceIds,

@@ -4,11 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const auth = vi.hoisted(() => ({
   loading: false,
-  session: undefined,
+    authorization: undefined,
   error: undefined,
   login: vi.fn(),
   logout: vi.fn(),
-  refreshSession: vi.fn(),
 }))
 
 vi.mock('./AuthContext', () => ({ useAuth: () => auth }))
@@ -36,7 +35,7 @@ afterEach(() => {
 })
 
 describe('gateway admin login', () => {
-  it('offers only unified SSO and never renders token inputs', async () => {
+    it('uses the Gateway cookie login flow and never renders token inputs', async () => {
     const { LoginPage } = await import('./LoginPage')
     render(<MemoryRouter><LoginPage /></MemoryRouter>)
 
@@ -45,11 +44,18 @@ describe('gateway admin login', () => {
     fireEvent.change(screen.getByLabelText('租户 ID'), {
       target: { value: 'tenant-a' },
     })
-    fireEvent.click(screen.getByRole('button', { name: '使用统一身份登录' }))
+        fireEvent.change(screen.getByLabelText('用户名'), {
+            target: {value: 'admin'},
+        })
+        fireEvent.change(screen.getByLabelText('密码'), {
+            target: {value: 'secret'},
+        })
+        fireEvent.click(screen.getByRole('button', {name: /登\s*录/}))
 
     await waitFor(() => expect(auth.login).toHaveBeenCalledWith(
       'tenant-a',
-      '/dashboard',
+        'admin',
+        'secret',
     ))
   })
 })

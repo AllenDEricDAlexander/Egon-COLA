@@ -1,10 +1,10 @@
-import { PermissionGuard, useRbac3Session } from '@egon-cola/rbac3-react-sdk'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Button, Card, Descriptions, Form, Input, Modal, Tag } from 'antd'
-import { useState } from 'react'
-import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '@egon-cola/admin-web-shared'
-import { roleApi } from './role.api'
+import {PermissionGuard, useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
+import {Button, Card, Descriptions, Form, Input, Modal, Tag} from 'antd'
+import {useState} from 'react'
+import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
+import {PageState} from '@egon-cola/admin-web-shared'
+import {roleApi} from './role.api'
 
 export interface RolePermissionPageProps {
   readonly roleId: string
@@ -17,7 +17,7 @@ interface PermissionForm {
 }
 
 export const RolePermissionPage = ({ roleId }: RolePermissionPageProps) => {
-  const { status } = useRbac3Session()
+    const {status} = useRbac3Authorization()
   const { effectiveTenantId } = useFeatureTenantContext()
   const api = roleApi(useFeatureApi())
   const queryClient = useQueryClient()

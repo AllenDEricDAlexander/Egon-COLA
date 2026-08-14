@@ -142,7 +142,6 @@ export const UserListPage = () => {
               },
                 {title: '登录失败', dataIndex: 'failedLoginCount', width: 90},
                 {title: '最后登录', dataIndex: 'lastLoginAt', render: (v?: string) => v ?? '-'},
-                {title: 'Token 版本', dataIndex: 'tokenVersion', width: 100},
                 {
                     title: '操作', width: 260,
                     render: (_: unknown, row: IdentityUserVO) => (

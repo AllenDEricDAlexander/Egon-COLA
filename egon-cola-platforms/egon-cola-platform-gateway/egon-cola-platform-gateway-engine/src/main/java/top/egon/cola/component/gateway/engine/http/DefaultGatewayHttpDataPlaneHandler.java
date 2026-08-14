@@ -23,9 +23,9 @@ import top.egon.cola.component.gateway.core.provider.ProviderProtocolType;
 import top.egon.cola.component.gateway.core.route.CompiledHttpRouteIndex;
 import top.egon.cola.component.gateway.core.route.HttpRouteMatch;
 import top.egon.cola.component.gateway.engine.balance.ProviderSelectionHandle;
+import top.egon.cola.component.gateway.engine.cors.RuntimeCorsPolicy;
 import top.egon.cola.component.gateway.engine.discovery.ProviderCallOutcome;
 import top.egon.cola.component.gateway.engine.discovery.ProviderCallOutcomeRecorder;
-import top.egon.cola.component.gateway.engine.cors.RuntimeCorsPolicy;
 import top.egon.cola.component.gateway.engine.http.buffer.GatewayDataBufferOwnership;
 import top.egon.cola.component.gateway.engine.http.logging.GatewayBodyLogEvent;
 import top.egon.cola.component.gateway.engine.http.logging.GatewayBodyLogTap;
@@ -38,9 +38,9 @@ import top.egon.cola.component.gateway.engine.observability.GatewayCallAccessLog
 import top.egon.cola.component.gateway.engine.observability.GatewayCallCompletionListener;
 import top.egon.cola.component.gateway.engine.observability.GatewayCallObservation;
 import top.egon.cola.component.gateway.engine.observability.GatewayTelemetry;
+import top.egon.cola.component.gateway.engine.rpc.HttpRpcUpstreamAdapter;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityException;
 import top.egon.cola.component.gateway.engine.security.TrustedIdentitySanitizer;
-import top.egon.cola.component.gateway.engine.rpc.HttpRpcUpstreamAdapter;
 import top.egon.cola.component.gateway.engine.traffic.GatewayRequestResourceGuard;
 import top.egon.cola.component.gateway.engine.traffic.GatewayResourceLimits;
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficContext;
@@ -51,8 +51,8 @@ import top.egon.cola.component.gateway.engine.transport.GatewayCommitGuard;
 import top.egon.cola.component.gateway.engine.transport.GatewayCommitPoint;
 import top.egon.cola.component.gateway.engine.transport.GatewayTransportDispatcher;
 import top.egon.cola.component.gateway.engine.websocket.GatewayPreparedWebSocketSession;
-import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketHandshakeResult;
 import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketFrameType;
+import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketHandshakeResult;
 import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketObserver;
 import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketPeer;
 import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketProxy;
@@ -1450,7 +1450,9 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 match.route().transportPolicy()
                         .authorizationForwardingAllowed(),
                 provider.serviceKey().protocolType()
-                        == ProviderProtocolType.HTTP
+                        == ProviderProtocolType.HTTP,
+                security.routeSecurityType()
+                        == top.egon.cola.component.gateway.core.security.GatewayRouteSecurityType.PUBLIC_PROTOCOL
         );
         Mono<GatewayOutboundHttpResponse> invocation;
         if (provider.serviceKey().protocolType()
@@ -1680,7 +1682,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
             GatewayTelemetry.AttemptTrace attemptTrace,
             GatewayHttpSecurityProcessor.Outcome security,
             boolean authorizationForwardingAllowed,
-            boolean forwardHttpCredential) {
+            boolean forwardHttpCredential,
+            boolean publicProtocol) {
         Map<String, List<String>> sanitized =
                 identitySanitizer.sanitizeHttp(
                 source,
@@ -1689,6 +1692,10 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 authorizationForwardingAllowed
         );
         Map<String, List<String>> result = new LinkedHashMap<>(sanitized);
+        if (publicProtocol) {
+            protocolCookie(source).ifPresent(cookie ->
+                    result.put("cookie", List.of(cookie)));
+        }
         restoreOriginalBearer(result, security, forwardHttpCredential);
         result.put(
                 "traceparent",
@@ -1705,6 +1712,61 @@ public final class DefaultGatewayHttpDataPlaneHandler
             );
         }
         return Map.copyOf(result);
+    }
+
+    private static final Set<String> PROTOCOL_COOKIE_NAMES = Set.of(
+            "__host-egon_user_at",
+            "__host-egon_user_rt",
+            "egon_user_at_local",
+            "egon_user_rt_local"
+    );
+
+    private static java.util.Optional<String> protocolCookie(
+            Map<String, List<String>> source) {
+        List<String> values = source.entrySet().stream()
+                .filter(entry -> "cookie".equalsIgnoreCase(entry.getKey()))
+                .flatMap(entry -> entry.getValue().stream())
+                .toList();
+        List<String> allowed = new java.util.ArrayList<>();
+        for (String value : values) {
+            if (value == null) {
+                continue;
+            }
+            for (String part : value.split(";")) {
+                String candidate = part.trim();
+                int equals = candidate.indexOf('=');
+                if (equals <= 0) {
+                    continue;
+                }
+                String name = candidate.substring(0, equals).trim();
+                if (PROTOCOL_COOKIE_NAMES.contains(name.toLowerCase(
+                        java.util.Locale.ROOT))) {
+                    allowed.add(candidate);
+                }
+            }
+        }
+        return allowed.isEmpty()
+                ? java.util.Optional.empty()
+                : java.util.Optional.of(String.join("; ", allowed));
+    }
+
+    private GatewayOutboundHttpResponse withSecurityHeaders(
+            GatewayOutboundHttpResponse response,
+            Map<String, List<String>> securityHeaders) {
+        if (securityHeaders == null || securityHeaders.isEmpty()) {
+            return response;
+        }
+        Map<String, List<String>> merged = new LinkedHashMap<>(
+                response.headers());
+        securityHeaders.forEach((name, values) -> merged.merge(
+                name.toLowerCase(java.util.Locale.ROOT),
+                List.copyOf(values),
+                (existing, replacement) -> {
+                    List<String> combined = new java.util.ArrayList<>(existing);
+                    combined.addAll(replacement);
+                    return List.copyOf(combined);
+                }));
+        return response.withHeadersAndBody(merged, response.body());
     }
 
     /**
@@ -1744,12 +1806,20 @@ public final class DefaultGatewayHttpDataPlaneHandler
             int status,
             String code,
             String traceId) {
+        return error(status, code, traceId, Map.of());
+    }
+
+    private GatewayOutboundHttpResponse error(
+            int status,
+            String code,
+            String traceId,
+            Map<String, List<String>> extraHeaders) {
         String body = "{\"success\":false,\"code\":\""
                 + code
                 + "\",\"traceId\":\""
                 + traceId
                 + "\"}";
-        return new GatewayOutboundHttpResponse(
+        GatewayOutboundHttpResponse response = new GatewayOutboundHttpResponse(
                 status,
                 Map.of(
                         "content-type",
@@ -1761,6 +1831,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                         ))
                 )
         );
+        return withSecurityHeaders(response, extraHeaders);
     }
 
     /**
@@ -2395,6 +2466,9 @@ public final class DefaultGatewayHttpDataPlaneHandler
                     observation,
                     permit
             )
+                    .map(response -> withSecurityHeaders(
+                            response,
+                            security.responseHeaders()))
                     .map(cors::decorate)
                     .flatMap(response -> Mono.from(respond(response)));
         }
@@ -2415,7 +2489,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
                         error(
                                 rejected.httpStatus(),
                                 rejected.code(),
-                                trace.traceId()
+                                trace.traceId(),
+                                rejected.responseHeaders()
                         ),
                         observation,
                         "SECURITY",
@@ -2751,7 +2826,9 @@ public final class DefaultGatewayHttpDataPlaneHandler
                     match.route().transportPolicy()
                             .authorizationForwardingAllowed(),
                     provider.serviceKey().protocolType()
-                            == ProviderProtocolType.HTTP
+                            == ProviderProtocolType.HTTP,
+                    security.routeSecurityType()
+                            == top.egon.cola.component.gateway.core.security.GatewayRouteSecurityType.PUBLIC_PROTOCOL
             );
             GatewayWebSocketProxyContext context =
                     new GatewayWebSocketProxyContext(

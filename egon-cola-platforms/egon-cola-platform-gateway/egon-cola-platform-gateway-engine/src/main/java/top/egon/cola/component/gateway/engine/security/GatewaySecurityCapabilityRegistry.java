@@ -4,6 +4,7 @@ import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.gateway.core.security.GatewayAuthenticationProvider;
 import top.egon.cola.component.gateway.core.security.GatewayAuthorizationProvider;
 import top.egon.cola.component.gateway.core.security.GatewayCredentialExtractor;
+import top.egon.cola.component.gateway.core.security.GatewayCredentialRecoveryProvider;
 import top.egon.cola.component.gateway.core.security.GatewayIdentityMapper;
 import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
 
@@ -53,6 +54,8 @@ public final class GatewaySecurityCapabilityRegistry {
      */
     private final Map<String, GatewayIdentityMapper> identityMappers;
 
+    private final Map<String, GatewayCredentialRecoveryProvider> recoveries;
+
     /**
      * 中文说明：创建 {@code GatewaySecurityCapabilityRegistry} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
      * English summary: Creates an instance of {@code GatewaySecurityCapabilityRegistry} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
@@ -67,7 +70,8 @@ public final class GatewaySecurityCapabilityRegistry {
             Collection<GatewayCredentialExtractor> extractors,
             Collection<GatewayAuthenticationProvider> authentications,
             Collection<GatewayAuthorizationProvider> authorizations,
-            Collection<GatewayIdentityMapper> identityMappers) {
+            Collection<GatewayIdentityMapper> identityMappers,
+            Collection<GatewayCredentialRecoveryProvider> recoveries) {
         this.extractors = index(
                 extractors,
                 GatewayCredentialExtractor::extractorId,
@@ -88,6 +92,22 @@ public final class GatewaySecurityCapabilityRegistry {
                 GatewayIdentityMapper::mapperId,
                 "identity mapper"
         );
+        this.recoveries = index(
+                recoveries,
+                GatewayCredentialRecoveryProvider::providerId,
+                "credential recovery provider"
+        );
+    }
+
+    /**
+     * Compatibility constructor for applications without a recovery provider.
+     */
+    public GatewaySecurityCapabilityRegistry(
+            Collection<GatewayCredentialExtractor> extractors,
+            Collection<GatewayAuthenticationProvider> authentications,
+            Collection<GatewayAuthorizationProvider> authorizations,
+            Collection<GatewayIdentityMapper> identityMappers) {
+        this(extractors, authentications, authorizations, identityMappers, Set.of());
     }
 
     /**
@@ -99,6 +119,7 @@ public final class GatewaySecurityCapabilityRegistry {
      */
     public static GatewaySecurityCapabilityRegistry empty() {
         return new GatewaySecurityCapabilityRegistry(
+                Set.of(),
                 Set.of(),
                 Set.of(),
                 Set.of(),
@@ -144,6 +165,9 @@ public final class GatewaySecurityCapabilityRegistry {
                                 + protocols
                 );
             }
+        }
+        if (policy.credentialRecoveryProviderId() != null) {
+            recovery(policy.credentialRecoveryProviderId());
         }
     }
 
@@ -193,6 +217,10 @@ public final class GatewaySecurityCapabilityRegistry {
      */
     public GatewayIdentityMapper identityMapper(String id) {
         return required(identityMappers, id, "identity mapper");
+    }
+
+    public GatewayCredentialRecoveryProvider recovery(String id) {
+        return required(recoveries, id, "credential recovery provider");
     }
 
     /**

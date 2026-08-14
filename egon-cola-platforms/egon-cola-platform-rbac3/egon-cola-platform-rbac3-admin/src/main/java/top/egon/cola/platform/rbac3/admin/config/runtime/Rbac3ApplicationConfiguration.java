@@ -1,73 +1,59 @@
 package top.egon.cola.platform.rbac3.admin.config.runtime;
 
-import top.egon.cola.platform.rbac3.admin.runtime.repository.jpa.JpaAuthorizationFenceRepository;
-import top.egon.cola.platform.rbac3.admin.bootstrap.repository.BootstrapSnapshotRepository;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
-import org.springframework.core.env.Profiles;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaRoleActivationFactRepository;
+import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaUserActiveRoleRepository;
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaRoleActivationFactRepository;
-import top.egon.cola.platform.rbac3.admin.activation.repository.jpa.JpaSessionActiveRoleRepository;
-import top.egon.cola.platform.rbac3.admin.auth.repository.LoginStateDataRepository;
-import top.egon.cola.platform.rbac3.admin.auth.repository.LoginStateRepository;
-import top.egon.cola.platform.rbac3.admin.auth.service.DefaultLoginStateService;
-import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentFacade;
-import top.egon.cola.platform.rbac3.admin.assignment.repository.jpa.JpaAssignmentRepository;
 import top.egon.cola.platform.rbac3.admin.assignment.repository.jdbc.PostgresqlAssignmentLockRepository;
-import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
+import top.egon.cola.platform.rbac3.admin.assignment.repository.jpa.JpaAssignmentRepository;
+import top.egon.cola.platform.rbac3.admin.assignment.service.AssignmentFacade;
+import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
 import top.egon.cola.platform.rbac3.admin.audit.repository.internal.AuditCursorCodec;
 import top.egon.cola.platform.rbac3.admin.audit.repository.jdbc.PostgresqlAuditRepository;
-import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
+import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
 import top.egon.cola.platform.rbac3.admin.authorization.repository.jpa.JpaAuthorizationRuleRepository;
-import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
-import top.egon.cola.platform.rbac3.admin.bootstrap.service.Rbac3DevelopmentAuthorizationContextInitializer;
+import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.bootstrap.controller.cli.Rbac3PlatformAdminBootstrapCli;
+import top.egon.cola.platform.rbac3.admin.bootstrap.repository.BootstrapSnapshotRepository;
+import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.PlatformAdminBootstrapService;
 import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
 import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3SecurityProperties;
-import top.egon.cola.platform.rbac3.admin.constraint.service.ConstraintFacade;
 import top.egon.cola.platform.rbac3.admin.constraint.repository.jpa.JpaConstraintRepository;
-import top.egon.cola.platform.rbac3.admin.identity.repository.IdentityMappingRepository;
-import top.egon.cola.platform.rbac3.admin.identity.service.IdentityMappingFacade;
-import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
+import top.egon.cola.platform.rbac3.admin.constraint.service.ConstraintFacade;
+import top.egon.cola.platform.rbac3.admin.identity.repository.IdentityMembershipRepository;
+import top.egon.cola.platform.rbac3.admin.identity.service.IdentityMembershipFacade;
 import top.egon.cola.platform.rbac3.admin.management.repository.jpa.JpaManagementPolicyRepository;
-import top.egon.cola.platform.rbac3.admin.participation.service.ParticipationFacade;
+import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
 import top.egon.cola.platform.rbac3.admin.participation.repository.jdbc.PostgresqlParticipationRepository;
+import top.egon.cola.platform.rbac3.admin.participation.service.ParticipationFacade;
+import top.egon.cola.platform.rbac3.admin.resource.repository.ComponentKeyRegistry;
+import top.egon.cola.platform.rbac3.admin.resource.repository.jpa.JpaResourceManifestRepository;
 import top.egon.cola.platform.rbac3.admin.resource.service.ApplicationResourceFacade;
 import top.egon.cola.platform.rbac3.admin.resource.service.ManifestFacade;
-import top.egon.cola.platform.rbac3.admin.resource.repository.jpa.JpaResourceManifestRepository;
-import top.egon.cola.platform.rbac3.admin.role.service.RoleFacade;
 import top.egon.cola.platform.rbac3.admin.role.repository.jpa.JpaRoleRepository;
-import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationFenceService;
-import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationMutationCoordinator;
-import top.egon.cola.platform.rbac3.admin.runtime.service.IdempotencyService;
-import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeQueryService;
+import top.egon.cola.platform.rbac3.admin.role.service.RoleFacade;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.MutationWorkDTO;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.jpa.JpaAuthorizationMutationRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.jpa.JpaAuthorizationPublicationGuardRepository;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.jpa.JpaIdempotencyRepository;
-import top.egon.cola.platform.rbac3.admin.session.service.SessionFacade;
-import top.egon.cola.platform.rbac3.admin.session.service.AuthorizationContextFacade;
-import top.egon.cola.platform.rbac3.admin.session.service.SessionSecurityEventRecorder;
-import top.egon.cola.platform.rbac3.admin.session.repository.jpa.JpaSessionRepository;
-import top.egon.cola.platform.rbac3.admin.session.repository.jpa.JpaAuthorizationContextRepository;
-import top.egon.cola.platform.rbac3.admin.simulation.service.AuthorizationSimulationService;
-import top.egon.cola.platform.rbac3.admin.simulation.repository.jdbc.PostgresqlRoleImpactRepository;
-import top.egon.cola.platform.rbac3.admin.runtime.service.SessionSnapshotProjector;
-import top.egon.cola.platform.rbac3.admin.runtime.service.LoginRuntimeProjectionFactory;
-import top.egon.cola.platform.rbac3.admin.runtime.service.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.redis.RedisAuthorizationRuntimeRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationMutationCoordinator;
 import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationMutationRecoveryService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationPublicationGuardService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.IdempotencyService;
 import top.egon.cola.platform.rbac3.admin.runtime.service.Rbac3RuntimeProjectionRecovery;
+import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeQueryService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.SystemAuthorizationSnapshotService;
+import top.egon.cola.platform.rbac3.admin.runtime.service.UserAuthorizationSnapshotProjector;
+import top.egon.cola.platform.rbac3.admin.simulation.repository.jdbc.PostgresqlRoleImpactRepository;
+import top.egon.cola.platform.rbac3.admin.simulation.service.AuthorizationSimulationService;
 import top.egon.cola.platform.rbac3.core.delegation.ManagementPolicyDecisionService;
 import top.egon.cola.platform.rbac3.core.runtime.Rbac3RuntimeKeyFactory;
 
@@ -75,11 +61,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
-import java.time.Duration;
 import java.util.Set;
-import top.egon.cola.platform.rbac3.admin.session.domain.vo.ActiveMembershipVO;
-import top.egon.cola.platform.rbac3.admin.resource.repository.ComponentKeyRegistry;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.MutationWorkDTO;
 
 /**
  * 类型 `Rbac3ApplicationConfiguration` 位于当前包内，是类型，用于承载 `Rbac3 Application Configuration` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -88,20 +70,6 @@ import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.MutationWorkDTO;
  */
 @Configuration(proxyBeanMethods = false)
 public class Rbac3ApplicationConfiguration {
-
-    /**
-     * 方法 `rbac3PasswordEncoder` 按照 `Rbac3ApplicationConfiguration` 的职责处理输入，完成 `rbac3 Password Encoder` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `rbac3PasswordEncoder` processes its inputs according to `Rbac3ApplicationConfiguration`'s responsibility, performs the `rbac3 Password Encoder` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `rbac3PasswordEncoder` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `rbac3PasswordEncoder`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Bean
-    PasswordEncoder rbac3PasswordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
 
     /**
      * 方法 `rbac3RuntimePolicy` 按照 `Rbac3ApplicationConfiguration` 的职责处理输入，完成 `rbac3 Runtime Policy` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
@@ -132,32 +100,9 @@ public class Rbac3ApplicationConfiguration {
         return new Rbac3RuntimeKeyFactory();
     }
 
-    /**
-     * 方法 `sessionSnapshotProjector` 按照 `Rbac3ApplicationConfiguration` 的职责处理输入，完成 `session Snapshot Projector` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `sessionSnapshotProjector` processes its inputs according to `Rbac3ApplicationConfiguration`'s responsibility, performs the `session Snapshot Projector` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `sessionSnapshotProjector` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `sessionSnapshotProjector`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
     @Bean
-    SessionSnapshotProjector sessionSnapshotProjector() {
-        return new SessionSnapshotProjector();
-    }
-
-    /**
-     * 方法 `loginRuntimeProjectionFactory` 按照 `Rbac3ApplicationConfiguration` 的职责处理输入，完成 `login Runtime Projection Factory` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `loginRuntimeProjectionFactory` processes its inputs according to `Rbac3ApplicationConfiguration`'s responsibility, performs the `login Runtime Projection Factory` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `loginRuntimeProjectionFactory` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `loginRuntimeProjectionFactory`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Bean
-    LoginRuntimeProjectionFactory loginRuntimeProjectionFactory() {
-        return new LoginRuntimeProjectionFactory();
+    UserAuthorizationSnapshotProjector userAuthorizationSnapshotProjector() {
+        return new UserAuthorizationSnapshotProjector();
     }
 
     /**
@@ -184,13 +129,6 @@ public class Rbac3ApplicationConfiguration {
      * @param candidates 角色激活候选服务；role-activation candidate service
      * @return 登录状态边界；login-state boundary
      */
-    @Bean
-    LoginStateRepository loginStateRepository(
-            LoginStateDataRepository stateData,
-            RoleActivationCandidateService candidates) {
-        return new DefaultLoginStateService(stateData, candidates);
-    }
-
     /**
      * 方法 `roleActivationFacade` 按照 `Rbac3ApplicationConfiguration` 的职责处理输入，完成 `role Activation Facade` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
      * Method `roleActivationFacade` processes its inputs according to `Rbac3ApplicationConfiguration`'s responsibility, performs the `role Activation Facade` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
@@ -209,8 +147,8 @@ public class Rbac3ApplicationConfiguration {
     @Bean
     RoleActivationFacade roleActivationFacade(
             JpaRoleActivationFactRepository factStore,
-            JpaSessionActiveRoleRepository transaction,
-            SessionSnapshotProjector projector,
+            JpaUserActiveRoleRepository transaction,
+            UserAuthorizationSnapshotProjector projector,
             RedisAuthorizationRuntimeRepository runtimeStore,
             Rbac3RuntimePolicy runtimePolicy,
             Clock clock) {
@@ -263,10 +201,10 @@ public class Rbac3ApplicationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Bean
-    AuthorizationFenceService authorizationFenceService(
-            JpaAuthorizationFenceRepository store,
+    AuthorizationPublicationGuardService authorizationFenceService(
+            JpaAuthorizationPublicationGuardRepository store,
             Clock clock) {
-        return new AuthorizationFenceService(store, clock);
+        return new AuthorizationPublicationGuardService(store, clock);
     }
 
     /**
@@ -287,7 +225,7 @@ public class Rbac3ApplicationConfiguration {
     @Bean
     AuthorizationMutationCoordinator authorizationMutationCoordinator(
             JpaAuthorizationMutationRepository repository,
-            AuthorizationFenceService fenceService,
+            AuthorizationPublicationGuardService fenceService,
             Rbac3RuntimeProjectionRecovery projectionRecovery,
             TransactionTemplate transactionTemplate,
             LongIdGenerator idGenerator,
@@ -421,10 +359,9 @@ public class Rbac3ApplicationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Bean
-    IdentityMappingFacade identityMappingFacade(
-            IdentityMappingRepository identities,
-            LongIdGenerator idGenerator) {
-        return new IdentityMappingFacade(identities, idGenerator::nextLongId);
+    IdentityMembershipFacade identityMembershipFacade(
+            IdentityMembershipRepository identities) {
+        return new IdentityMembershipFacade(identities);
     }
 
     /**
@@ -439,21 +376,6 @@ public class Rbac3ApplicationConfiguration {
      * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    @Bean
-    AuthorizationContextFacade authorizationContextFacade(
-            IdentityMappingFacade identities,
-            JpaAuthorizationContextRepository contexts,
-            LongIdGenerator idGenerator) {
-        return new AuthorizationContextFacade(
-                (tenantId, identitySub) -> identities.resolve(
-                                identitySub, tenantId, "rbac3-authorization")
-                        .map(membership -> new ActiveMembershipVO(
-                                membership.tenantId(), membership.identitySub(),
-                                membership.rbac3UserId(), membership.authVersion(),
-                                membership.policyVersion())),
-                contexts, idGenerator::nextLongId);
-    }
-
     /**
      * 方法 `systemAuthorizationSnapshotService` 按照 `Rbac3ApplicationConfiguration` 的职责处理输入，完成 `system Authorization Snapshot Service` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
      * Method `systemAuthorizationSnapshotService` processes its inputs according to `Rbac3ApplicationConfiguration`'s responsibility, performs the `system Authorization Snapshot Service` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
@@ -471,79 +393,9 @@ public class Rbac3ApplicationConfiguration {
      */
     @Bean
     SystemAuthorizationSnapshotService systemAuthorizationSnapshotService(
-            AuthorizationContextFacade contexts,
             RedisAuthorizationRuntimeRepository snapshots,
-            RoleActivationCandidateService candidates,
-            RoleActivationFacade activator,
-            Clock clock,
-            Environment environment) {
-        boolean autoActivate = developmentRoleAutoActivationEnabled(environment);
-        return new SystemAuthorizationSnapshotService(
-                contexts::open,
-                snapshots,
-                clock,
-                new Rbac3DevelopmentAuthorizationContextInitializer(
-                        autoActivate, candidates, activator));
-    }
-
-    /**
-     * 方法 `developmentRoleAutoActivationEnabled` 按照 `Rbac3ApplicationConfiguration` 的职责处理输入，完成 `development Role Auto Activation Enabled` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `developmentRoleAutoActivationEnabled` processes its inputs according to `Rbac3ApplicationConfiguration`'s responsibility, performs the `development Role Auto Activation Enabled` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `developmentRoleAutoActivationEnabled` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `developmentRoleAutoActivationEnabled`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param environment 输入参数 `environment`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    boolean developmentRoleAutoActivationEnabled(Environment environment) {
-        boolean developmentBootstrap = environment.getProperty(
-                "egon.rbac3.development-bootstrap.enabled",
-                Boolean.class,
-                false);
-        return environment.acceptsProfiles(Profiles.of("local"))
-                && developmentBootstrap && environment.getProperty(
-                "egon.rbac3.development-bootstrap.auto-activate-local-admin-roles",
-                Boolean.class,
-                false);
-    }
-
-    /**
-     * 方法 `sessionFacade` 按照 `Rbac3ApplicationConfiguration` 的职责处理输入，完成 `session Facade` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `sessionFacade` processes its inputs according to `Rbac3ApplicationConfiguration`'s responsibility, performs the `session Facade` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `sessionFacade` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `sessionFacade`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param store 输入参数 `store`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param runtimePolicy 输入参数 `runtimePolicy`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Bean
-    SessionFacade sessionFacade(
-            LongIdGenerator idGenerator,
-            JpaSessionRepository store,
-            Rbac3RuntimePolicy runtimePolicy) {
-        return new SessionFacade(idGenerator, store, runtimePolicy);
-    }
-
-    /**
-     * 方法 `sessionSecurityEventRecorder` 按照 `Rbac3ApplicationConfiguration` 的职责处理输入，完成 `session Security Event Recorder` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `sessionSecurityEventRecorder` processes its inputs according to `Rbac3ApplicationConfiguration`'s responsibility, performs the `session Security Event Recorder` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `sessionSecurityEventRecorder` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `sessionSecurityEventRecorder`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param auditPort 输入参数 `auditPort`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param eventPort 输入参数 `eventPort`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Bean
-    SessionSecurityEventRecorder sessionSecurityEventRecorder(
-            AuditPort auditPort,
-            AuthorizationEventPublisher eventPort) {
-        return new SessionSecurityEventRecorder(auditPort, eventPort);
+            Clock clock) {
+        return new SystemAuthorizationSnapshotService(snapshots, clock);
     }
 
     /**

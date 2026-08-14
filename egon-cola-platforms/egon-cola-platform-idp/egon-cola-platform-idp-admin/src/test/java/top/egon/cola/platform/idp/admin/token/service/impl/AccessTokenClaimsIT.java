@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import top.egon.cola.platform.idp.contract.AuthenticationContext;
 import top.egon.cola.platform.idp.contract.PrincipalType;
 import top.egon.cola.platform.idp.core.token.AccessTokenClaims;
 import top.egon.cola.platform.idp.core.token.RefreshTokenClaims;
@@ -30,8 +31,7 @@ class AccessTokenClaimsIT {
             .minusSeconds(5)
             .truncatedTo(ChronoUnit.SECONDS);
     private static final String ISSUER = "https://idp.example.test";
-    private static final String RESOURCE =
-            "https://api.egon.internal/prod/platform/gateway";
+    private static final String AUDIENCE = "platform";
 
     private RSAPublicKey publicKey;
     private RSAPrivateKey privateKey;
@@ -58,16 +58,12 @@ class AccessTokenClaimsIT {
                 PrincipalType.USER,
                 "alice-sub",
                 "tenant-a",
-                "sid-1",
-                "gateway-admin-web",
                 "jti-1",
-                7L,
-                9L,
-                RESOURCE,
-                "nonce-1",
+                AUDIENCE,
                 NOW,
                 NOW,
-                NOW.plusSeconds(900)
+                NOW.plusSeconds(300),
+                AuthenticationContext.password()
         ));
         Jwt jwt = tokens.jwtDecoder().decode(token);
 
@@ -77,14 +73,16 @@ class AccessTokenClaimsIT {
         assertEquals(ISSUER, jwt.getIssuer().toString());
         assertEquals("alice-sub", jwt.getSubject());
         assertEquals("tenant-a", jwt.getClaimAsString("tid"));
-        assertEquals("sid-1", jwt.getClaimAsString("sid"));
-        assertEquals("gateway-admin-web",
-                jwt.getClaimAsString("client_id"));
-        assertEquals(7L, ((Number) jwt.getClaim("token_version")).longValue());
         assertEquals("USER", jwt.getClaimAsString("principal_type"));
-        assertEquals(9L,
-                ((Number) jwt.getClaim("resource_version")).longValue());
-        assertEquals(List.of(RESOURCE), jwt.getAudience());
+        assertEquals("jti-1", jwt.getId());
+        assertEquals(List.of(AUDIENCE), jwt.getAudience());
+        assertEquals("PASSWORD", jwt.getClaimAsString("acr"));
+        assertEquals(NOW, (Instant) jwt.getClaim("auth_time"));
+        assertEquals(NOW.plusSeconds(300), jwt.getExpiresAt());
+        assertNull(jwt.getClaim("sid"));
+        assertNull(jwt.getClaim("client_id"));
+        assertNull(jwt.getClaim("token_version"));
+        assertNull(jwt.getClaim("resource_version"));
         assertNull(jwt.getClaim("roles"));
         assertNull(jwt.getClaim("permissions"));
         assertNull(jwt.getClaim("data_scopes"));
@@ -97,16 +95,8 @@ class AccessTokenClaimsIT {
         RefreshTokenClaims expected = new RefreshTokenClaims(
                 "alice-sub",
                 "tenant-a",
-                "sid-1",
-                "gateway-admin-web",
-                "family-1",
                 "refresh-jti-1",
-                0L,
-                7L,
-                "platform-gateway-prod",
-                RESOURCE,
-                9L,
-                "nonce-1",
+                NOW,
                 NOW,
                 NOW.plusSeconds(3_600)
         );
@@ -117,14 +107,12 @@ class AccessTokenClaimsIT {
         Jwt jwt = decoder.decode(token);
 
         assertEquals("refresh", jwt.getClaimAsString("token_use"));
-        assertEquals("refresh-jti-1", jwt.getClaimAsString("token_id"));
-        assertEquals(List.of("gateway-admin-web"), jwt.getAudience());
-        assertEquals("platform-gateway-prod",
-                jwt.getClaimAsString("resource_server_id"));
-        assertEquals(RESOURCE, jwt.getClaimAsString("resource"));
-        assertEquals(9L,
-                ((Number) jwt.getClaim("resource_version")).longValue());
-        assertEquals(0L, ((Number) jwt.getClaim("generation")).longValue());
+        assertEquals("refresh-jti-1", jwt.getId());
+        assertEquals("alice-sub", jwt.getSubject());
+        assertEquals("tenant-a", jwt.getClaimAsString("tid"));
+        assertNull(jwt.getAudience());
+        assertNull(jwt.getClaim("resource"));
+        assertNull(jwt.getClaim("resource_version"));
         assertEquals(expected, tokens.verifyRefresh(token));
         assertThrows(TokenException.class, () -> tokens.verifyRefresh(
                 token.substring(0, token.length() - 2) + "xx"

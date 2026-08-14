@@ -1,6 +1,6 @@
 /**
- * 保存 OAuth 客户端注册实体和服务端 SSO 会话对象。
+ * 保存 OAuth 客户端注册实体。
  *
- * <p>Contains OAuth client-registration entities and server-side SSO session objects.</p>
+ * <p>Contains OAuth client-registration entities.</p>
  */
 package top.egon.cola.platform.idp.admin.oauth.domain.pojo;

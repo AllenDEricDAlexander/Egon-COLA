@@ -23,7 +23,6 @@ import top.egon.cola.platform.idp.starter.security.IdpJwtVerifier;
 import top.egon.cola.platform.idp.starter.security.ServiceScopeAuthorization;
 import top.egon.cola.platform.idp.starter.state.IdentityOAuthClientStateReader;
 import top.egon.cola.platform.idp.starter.state.IdentityResourceServerStateReader;
-import top.egon.cola.platform.idp.starter.state.IdentityUserStateReader;
 
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -64,7 +63,6 @@ class IdpStarterAutoConfigurationTest {
     @Test
     void providesIdentityOnlyFilterBeforeRbac3Filter() {
         contextRunner.run(context -> {
-            assertThat(context).hasSingleBean(IdentityUserStateReader.class);
             assertThat(context).hasSingleBean(
                     IdentityResourceServerStateReader.class);
             assertThat(context).hasSingleBean(

@@ -1,12 +1,11 @@
 import '@testing-library/jest-dom/vitest'
-import { act, render, screen, waitFor } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
-import type { BootstrapView, Rbac3Client } from '../types'
-import { InMemoryAccessTokenStore } from '../auth/InMemoryAccessTokenStore'
-import { Rbac3Provider } from '../provider/Rbac3Provider'
-import { ActionGuard } from './ActionGuard'
-import { FieldGuard } from './FieldGuard'
-import { PermissionGuard } from './PermissionGuard'
+import {act, render, screen, waitFor} from '@testing-library/react'
+import {describe, expect, it} from 'vitest'
+import type {BootstrapView, Rbac3Client} from '../types'
+import {Rbac3Provider} from '../provider/Rbac3Provider'
+import {ActionGuard} from './ActionGuard'
+import {FieldGuard} from './FieldGuard'
+import {PermissionGuard} from './PermissionGuard'
 
 const bootstrap = {
   permissions: ['orders:read'],
@@ -23,9 +22,24 @@ const bootstrap = {
 } as unknown as BootstrapView
 
 const client = {
-  refresh: async () => ({ roleActivationRequired: false, accessToken: 'token' }),
+    getActivationCandidates: async () => ({applications: []}),
+    getActiveRoles: async () => ({
+        activeRoles: [],
+        activationRequired: false,
+        authVersion: 1,
+        policyVersion: 1,
+        snapshotChecksum: 'sum'
+    }),
+    replaceActiveRoles: async () => ({
+        activeRoles: [],
+        changed: false,
+        authVersion: 1,
+        policyVersion: 1,
+        activationRequired: false,
+        snapshotChecksum: 'sum'
+    }),
   getBootstrap: async () => bootstrap,
-} as Rbac3Client
+} as unknown as Rbac3Client
 
 describe('RBAC3 guards', () => {
   it('hides permissions by default until bootstrap is ready', async () => {
@@ -38,7 +52,7 @@ describe('RBAC3 guards', () => {
     } as Rbac3Client
 
     render(
-      <Rbac3Provider client={delayedClient} accessTokenStore={new InMemoryAccessTokenStore()}>
+        <Rbac3Provider client={delayedClient}>
         <PermissionGuard permission="orders:read">visible</PermissionGuard>
       </Rbac3Provider>,
     )
@@ -51,7 +65,7 @@ describe('RBAC3 guards', () => {
 
   it('does not expose a write escape hatch', async () => {
     render(
-      <Rbac3Provider client={client} accessTokenStore={new InMemoryAccessTokenStore()}>
+        <Rbac3Provider client={client}>
         <ActionGuard permission="orders:write">write</ActionGuard>
       </Rbac3Provider>,
     )
@@ -61,7 +75,7 @@ describe('RBAC3 guards', () => {
 
   it('uses server-masked values and never masks a plaintext value in the browser', async () => {
     render(
-      <Rbac3Provider client={client} accessTokenStore={new InMemoryAccessTokenStore()}>
+        <Rbac3Provider client={client}>
         <FieldGuard
           policyKey="orders:detail"
           fieldCode="accountNo"

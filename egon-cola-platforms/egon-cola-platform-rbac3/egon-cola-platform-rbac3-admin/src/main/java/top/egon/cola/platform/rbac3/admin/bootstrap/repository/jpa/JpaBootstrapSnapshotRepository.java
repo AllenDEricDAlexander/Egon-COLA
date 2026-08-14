@@ -50,9 +50,9 @@ public class JpaBootstrapSnapshotRepository implements BootstrapSnapshotReposito
     public Optional<BootstrapView> find(
             String tenantId,
             String userId,
-            String sessionId) {
+            String identitySub) {
         UserPO user = requireUser(Long.valueOf(tenantId), Long.valueOf(userId));
-        var record = runtimeStore.load(tenantId, sessionId);
+        var record = runtimeStore.load(tenantId, identitySub);
         if (!userId.equals(record.userId())) {
             return Optional.empty();
         }
@@ -88,12 +88,12 @@ public class JpaBootstrapSnapshotRepository implements BootstrapSnapshotReposito
                 .orElse(null);
         return Optional.of(new BootstrapView(
                 new BootstrapView.User(
-                        userId, tenantId, user.getUsername(), user.getDisplayName()),
+                        userId, tenantId, user.getIdentitySub(), user.getStatus().name()),
                 contexts, permissions,
                 resources(resources, "APP"), resources(resources, "MENU"),
                 resources(resources, "ROUTE"), resources(resources, "ACTION"),
-                fieldPolicies, defaultApplication, defaultRoute, sessionId,
-                snapshot.authVersion(), snapshot.sessionVersion(),
+                fieldPolicies, defaultApplication, defaultRoute,
+                snapshot.authVersion(),
                 snapshot.policyVersion()));
     }
 

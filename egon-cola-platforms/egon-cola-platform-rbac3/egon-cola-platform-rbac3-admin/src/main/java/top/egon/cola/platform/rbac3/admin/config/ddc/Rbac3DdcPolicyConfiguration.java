@@ -10,10 +10,10 @@ import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.ApplyObserver;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.DdcConfigClientStatusRepository;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.Rbac3DdcPolicyApplier;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.ApplyObserver;
 
 /**
  * 类型 `Rbac3DdcPolicyConfiguration` 位于当前包内，是类型，用于承载 `Rbac3 Ddc Policy Configuration` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -142,15 +142,7 @@ public class Rbac3DdcPolicyConfiguration {
             ApplyObserver observer) {
         return () -> {
             register(registry, policy, observer,
-                    AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY, 0);
-            register(registry, policy, observer,
                     AtomicRbac3RuntimePolicy.MAXIMUM_ACTIVE_ROOTS_KEY, 0);
-            register(registry, policy, observer,
-                    AtomicRbac3RuntimePolicy.REFRESH_TOKEN_TTL_KEY, 10);
-            register(registry, policy, observer,
-                    AtomicRbac3RuntimePolicy.SESSION_ABSOLUTE_TIMEOUT_KEY, 20);
-            register(registry, policy, observer,
-                    AtomicRbac3RuntimePolicy.SESSION_IDLE_TIMEOUT_KEY, 30);
         };
     }
 

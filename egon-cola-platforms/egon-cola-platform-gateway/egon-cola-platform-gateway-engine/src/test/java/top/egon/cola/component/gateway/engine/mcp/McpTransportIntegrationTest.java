@@ -3,7 +3,6 @@ package top.egon.cola.component.gateway.engine.mcp;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
@@ -212,7 +211,6 @@ class McpTransportIntegrationTest {
                 "callerId", "user-1",
                 "tenantId", "tenant-1",
                 "idp.client-id", "client-1",
-                "identity.session-id", "login-session-1",
                 "identity.token-id", "token-1"
         );
     }

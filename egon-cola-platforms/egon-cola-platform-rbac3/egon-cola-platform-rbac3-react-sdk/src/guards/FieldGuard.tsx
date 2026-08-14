@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react'
-import { useRbac3Session } from '../hooks/useRbac3Session'
+import type {ReactNode} from 'react'
+import {useRbac3Authorization} from '../hooks/useRbac3Authorization'
 
 export interface FieldGuardProps {
   readonly policyKey: string
@@ -19,7 +19,7 @@ export const FieldGuard = ({
   fallback = null,
   render,
 }: FieldGuardProps) => {
-  const { status, bootstrap } = useRbac3Session()
+    const {status, bootstrap} = useRbac3Authorization()
   if (status !== 'READY' || bootstrap === null) {
     return fallback
   }

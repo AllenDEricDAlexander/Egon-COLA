@@ -17,7 +17,6 @@ public record ActivationAuthorizationSnapshot(
         Set<String> resourceCodes,
         String landingRouteCode,
         long authVersion,
-        long sessionVersion,
         long policyVersion,
         String checksum
 ) {

@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpErrorCode;
-import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimePrompt;
+import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
 import top.egon.cola.component.gateway.core.mcp.security.McpApprovalPort;
 import top.egon.cola.component.gateway.core.mcp.security.McpAuthorizationPort;
 import top.egon.cola.component.gateway.mcp.protocol.McpProtocolException;
@@ -173,6 +173,23 @@ class McpSecurityGateTest {
         )).block());
     }
 
+    @Test
+    void userAudienceCanSupplyMcpProtocolClientWithoutUserClientClaim() {
+        McpSecurityGate.IdentityContext context =
+                McpSecurityGate.IdentityContext.from(Map.of(
+                        "identity.issuer", "https://idp.internal",
+                        "identity.subject", "alice-sub",
+                        "identity.tenant-id", "tenant-a",
+                        "idp.audience", "platform",
+                        "idp.token-id", "token-1",
+                        "idp.resource-uri", "https://resource.egon.top/gateway-mcp",
+                        "idp.issued-at", NOW.minusSeconds(30).toString(),
+                        "idp.expires-at", NOW.plusSeconds(300).toString()
+                ));
+
+        assertEquals("platform", context.clientId());
+    }
+
     private void authorize(
             McpSecurityGate gate,
             McpRuntimeTool tool,
@@ -204,10 +221,8 @@ class McpSecurityGateTest {
                 "https://idp.internal",
                 "alice-sub",
                 "tenant-a",
-                "session-1",
                 "finance-web",
                 "token-1",
-                2L,
                 "https://resource.egon.top/gateway-mcp",
                 NOW.minusSeconds(30),
                 NOW.plusSeconds(300),

@@ -197,7 +197,9 @@ public final class RuleBackedHttpGatewaySecurityProcessor
                 .map(result -> new Outcome(
                         result.trustedIdentity(),
                         result.fieldsToRemove(),
-                        result.forwardingCredential()
+                        result.forwardingCredential(),
+                        result.responseHeaders(),
+                        result.routeSecurityType()
                 ));
     }
 

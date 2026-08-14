@@ -23,7 +23,6 @@ public record DataScopeDecision(
         String directorySnapshotVersion,
         long decisionVersion,
         long authVersion,
-        long sessionVersion,
         long policyVersion,
         List<String> evidenceIds,
         Instant decidedAt
@@ -63,7 +62,6 @@ public record DataScopeDecision(
         );
         nonNegative(decisionVersion, "decisionVersion");
         nonNegative(authVersion, "authVersion");
-        nonNegative(sessionVersion, "sessionVersion");
         nonNegative(policyVersion, "policyVersion");
         evidenceIds = List.copyOf(Objects.requireNonNull(
                 evidenceIds,

@@ -1,13 +1,24 @@
 package top.egon.cola.platform.rbac3.admin.authorization.service;
 
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.dto.DecisionRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.dto.ResourceAccessRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.enums.AuthorizationDecisionDecisionTypeEnum;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.AuthorizationDecisionSubjectVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.DecisionBundleVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.FenceVerificationVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.ResourceAccessDecisionVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.SnapshotRecordVO;
+import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.TokenVersionsVO;
+import top.egon.cola.platform.rbac3.admin.authorization.repository.AuthorizationSnapshotRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.repository.FenceVerifier;
+import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.AuthorizationDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.DataScopeDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.Decision;
 import top.egon.cola.platform.rbac3.contract.authorization.FieldPolicyDecision;
-import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
+import top.egon.cola.platform.rbac3.contract.authorization.UserAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Clock;
@@ -17,21 +28,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import top.egon.cola.platform.rbac3.admin.authorization.repository.AuthorizationSnapshotRepository;
-import top.egon.cola.platform.rbac3.admin.authorization.repository.FenceVerifier;
-import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.SnapshotRecordVO;
-import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.AuthorizationDecisionSubjectVO;
-import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.TokenVersionsVO;
-import top.egon.cola.platform.rbac3.admin.authorization.domain.dto.DecisionRequestDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.DecisionBundleVO;
-import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.FenceVerificationVO;
-import top.egon.cola.platform.rbac3.admin.authorization.domain.dto.ResourceAccessRequestDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.ResourceAccessDecisionVO;
-import top.egon.cola.platform.rbac3.admin.authorization.domain.enums.AuthorizationDecisionDecisionTypeEnum;
 
 /**
- * 基于单个不可变会话授权快照提供远程授权判定门面。
- * Remote authorization-decision facade over one immutable session authorization snapshot.
+ * 基于单个不可变用户授权快照提供远程授权判定门面。
+ * Remote authorization-decision facade over one immutable user authorization snapshot.
  * 语义与用法：将 `AuthorizationDecisionService` 作为 `当前包` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
  * Semantics and usage: use `AuthorizationDecisionService` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
@@ -42,7 +42,7 @@ public final class AuthorizationDecisionService {
      * Meaning and usage: when reading, passing, or updating `snapshotSource`, preserve `AuthorizationDecisionService`'s lifecycle, immutability, and thread-safety constraints.
      */
     private final AuthorizationSnapshotRepository snapshotSource;
-    /** 会话传播 Fence 校验器。 / Session propagation-fence verifier.
+    /** 用户授权传播 Fence 校验器。 / User authorization propagation-fence verifier.
      * 含义与用法：读取、传递或更新 `fenceVerifier` 时应保持 `AuthorizationDecisionService` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `fenceVerifier`, preserve `AuthorizationDecisionService`'s lifecycle, immutability, and thread-safety constraints.
      */
@@ -58,7 +58,7 @@ public final class AuthorizationDecisionService {
      * Creates the authorization-decision service.
      *
      * @param snapshotSource 授权快照来源 / authorization snapshot source
-     * @param fenceVerifier 会话 Fence 校验器 / session-fence verifier
+     * @param fenceVerifier 用户授权 Fence 校验器 / user-authorization fence verifier
      * @param clock 审计时钟 / audit clock
      * 用法：通过 `AuthorizationDecisionService` 的构造入口创建实例，不绕过构造器建立的校验和初始化约束。
      * Usage: create the instance through `AuthorizationDecisionService`'s constructor entry point and do not bypass the validation and initialization constraints established there.
@@ -85,7 +85,7 @@ public final class AuthorizationDecisionService {
             DecisionRequestDTO request) {
         requireServiceTenant(caller, request.subject().tenantId());
         requireApplication(caller, request.resource().applicationCode());
-        requireUnfenced(request.subject().tenantId(), request.subject().sessionId());
+        requireUnfenced(request.subject().tenantId(), request.subject().identitySub());
         SnapshotRecordVO snapshot = load(request.subject());
         return evaluateConsistentSnapshot(snapshot, request, Set.of(), Set.of());
     }
@@ -109,15 +109,15 @@ public final class AuthorizationDecisionService {
             ResourceAccessRequestDTO request) {
         Objects.requireNonNull(request, "request");
         requireResourceDecisionTenant(caller, request.tenantId());
-        if (fenceVerifier.isFenced(request.tenantId(), request.sessionId())) {
+        if (fenceVerifier.isFenced(request.tenantId(), request.identitySub())) {
             return resourceAccessDeny("AUTH_PROPAGATION_PENDING", null);
         }
         SnapshotRecordVO record;
         try {
-            record = snapshotSource.load(request.tenantId(), request.sessionId());
+            record = snapshotSource.load(request.tenantId(), request.identitySub());
         } catch (Rbac3RuleViolation violation) {
-            if (isInactiveIdentitySession(violation.reasonCode())) {
-                return resourceAccessDeny("IDENTITY_SESSION_INACTIVE", null);
+            if (isInactiveIdentity(violation.reasonCode())) {
+                return resourceAccessDeny("IDENTITY_INACTIVE", null);
             }
             if ("AUTH_PROPAGATION_PENDING".equals(violation.reasonCode())) {
                 return resourceAccessDeny("AUTH_PROPAGATION_PENDING", null);
@@ -126,8 +126,8 @@ public final class AuthorizationDecisionService {
         }
         if (!record.tenantId().equals(request.tenantId())
                 || !record.identitySub().equals(request.identitySub())
-                || !record.snapshot().sessionId().equals(request.sessionId())) {
-            return resourceAccessDeny("IDENTITY_SESSION_INACTIVE", null);
+                || !record.snapshot().identitySub().equals(request.identitySub())) {
+            return resourceAccessDeny("IDENTITY_INACTIVE", null);
         }
         AppAuthorizationContext application = record.snapshot().appContexts().stream()
                 .filter(context -> context.applicationCode().equals(
@@ -144,17 +144,17 @@ public final class AuthorizationDecisionService {
     }
 
     /**
-     * 判断规则异常是否表示用户身份、成员关系或会话已经不可用。
-     * Determines whether a rule violation represents an inactive identity, membership, or session.
+     * 判断规则异常是否表示用户身份或成员关系已经不可用。
+     * Determines whether a rule violation represents an inactive identity or membership.
      *
      * @param reasonCode RBAC3 原因码 / RBAC3 reason code
      * @return 若主体上下文不可用则为 {@code true} / {@code true} when the subject context is inactive
-     * 用法：调用 `isInactiveIdentitySession` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `isInactiveIdentitySession`, then continue the business flow using its result, exception, or side effect.
+     * 用法：调用 `isInactiveIdentity` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `isInactiveIdentity`, then continue the business flow using its result, exception, or side effect.
      */
-    private boolean isInactiveIdentitySession(String reasonCode) {
+    private boolean isInactiveIdentity(String reasonCode) {
         return "RESOURCE_NOT_FOUND".equals(reasonCode)
-                || "SESSION_INVALIDATED".equals(reasonCode);
+                || "IDENTITY_INVALIDATED".equals(reasonCode);
     }
 
     /**
@@ -169,7 +169,7 @@ public final class AuthorizationDecisionService {
      */
     private ResourceAccessDecisionVO resourceAccessDeny(
             String reasonCode,
-            SessionAuthorizationSnapshot snapshot) {
+            UserAuthorizationSnapshot snapshot) {
         return resourceAccessDecision(Decision.DENY, reasonCode, snapshot);
     }
 
@@ -187,11 +187,10 @@ public final class AuthorizationDecisionService {
     private ResourceAccessDecisionVO resourceAccessDecision(
             Decision decision,
             String reasonCode,
-            SessionAuthorizationSnapshot snapshot) {
+            UserAuthorizationSnapshot snapshot) {
         return new ResourceAccessDecisionVO(
                 decision, reasonCode,
                 snapshot == null ? null : snapshot.authVersion(),
-                snapshot == null ? null : snapshot.sessionVersion(),
                 snapshot == null ? null : snapshot.policyVersion(),
                 clock.instant());
     }
@@ -216,23 +215,23 @@ public final class AuthorizationDecisionService {
     }
 
     /**
-     * 读取仅包含调用服务绑定应用的会话授权快照。
-     * Loads a session authorization snapshot containing only the caller-bound application.
+     * 读取仅包含调用服务绑定应用的用户授权快照。
+     * Loads a user authorization snapshot containing only the caller-bound application.
      *
      * @param caller 已认证调用服务 / authenticated calling service
      * @param tenantId 租户标识 / tenant identifier
-     * @param sessionId 会话标识 / session identifier
-     * @return 应用受限的会话快照 / application-bound session snapshot
+     * @param identitySub IdP 稳定主体标识 / stable IdP subject
+     * @return 应用受限的用户快照 / application-bound user snapshot
      * 用法：调用 `snapshot` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
      * Usage: provide contract-compliant arguments before calling `snapshot`, then continue the business flow using its result, exception, or side effect.
      */
-    public SessionAuthorizationSnapshot snapshot(
+    public UserAuthorizationSnapshot snapshot(
             ServiceIdentityPrincipal caller,
             String tenantId,
-            String sessionId) {
+            String identitySub) {
         requireServiceTenant(caller, tenantId);
-        requireUnfenced(tenantId, sessionId);
-        return boundSnapshot(caller, tenantId, sessionId);
+        requireUnfenced(tenantId, identitySub);
+        return boundSnapshot(caller, tenantId, identitySub);
     }
 
     /**
@@ -241,36 +240,37 @@ public final class AuthorizationDecisionService {
      *
      * @param caller 已认证调用服务 / authenticated calling service
      * @param tenantId 租户标识 / tenant identifier
-     * @param sessionId 会话标识 / session identifier
+     * @param identitySub IdP 稳定主体标识 / stable IdP subject
      * @return 单应用授权快照 / single-application authorization snapshot
      * 用法：调用 `boundSnapshot` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
      * Usage: provide contract-compliant arguments before calling `boundSnapshot`, then continue the business flow using its result, exception, or side effect.
      */
-    private SessionAuthorizationSnapshot boundSnapshot(
+    private UserAuthorizationSnapshot boundSnapshot(
             ServiceIdentityPrincipal caller,
             String tenantId,
-            String sessionId) {
-        SnapshotRecordVO record = snapshotSource.load(tenantId, required(sessionId, "sessionId"));
+            String identitySub) {
+        SnapshotRecordVO record = snapshotSource.load(tenantId, required(identitySub, "identitySub"));
         if (!record.tenantId().equals(tenantId)
-                || !record.snapshot().sessionId().equals(sessionId)) {
+                || !record.snapshot().identitySub().equals(identitySub)) {
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }
         AppAuthorizationContext application = application(
                 record.snapshot(), caller.sourceAppCode());
-        return new SessionAuthorizationSnapshot(
-                record.snapshot().sessionId(), record.snapshot().authVersion(),
-                record.snapshot().sessionVersion(), record.snapshot().policyVersion(),
+        return new UserAuthorizationSnapshot(
+                record.snapshot().systemCode(), record.snapshot().tenantId(),
+                record.snapshot().identitySub(), record.snapshot().rbacUserId(),
+                record.snapshot().authVersion(), record.snapshot().policyVersion(),
                 List.of(application), record.snapshot().checksum(),
-                record.snapshot().generatedAt());
+                record.snapshot().generatedAt(), record.snapshot().expiresAt());
     }
 
     /**
-     * 校验指定会话是否仍处于授权传播 Fence 中。
-     * Verifies whether the specified session is still behind an authorization propagation fence.
+     * 校验指定用户主体是否仍处于授权传播 Fence 中。
+     * Verifies whether the specified user subject is still behind an authorization propagation fence.
      *
      * @param caller 已认证调用服务 / authenticated calling service
      * @param tenantId 租户标识 / tenant identifier
-     * @param sessionId 会话标识 / session identifier
+     * @param identitySub IdP 稳定主体标识 / stable IdP subject
      * @return Fence 判定 / fence decision
      * 用法：调用 `verifyFence` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
      * Usage: provide contract-compliant arguments before calling `verifyFence`, then continue the business flow using its result, exception, or side effect.
@@ -278,29 +278,29 @@ public final class AuthorizationDecisionService {
     public FenceVerificationVO verifyFence(
             ServiceIdentityPrincipal caller,
             String tenantId,
-            String sessionId) {
+            String identitySub) {
         requireServiceTenant(caller, tenantId);
-        boundSnapshot(caller, tenantId, sessionId);
-        boolean fenced = fenceVerifier.isFenced(tenantId, sessionId);
+        boundSnapshot(caller, tenantId, identitySub);
+        boolean fenced = fenceVerifier.isFenced(tenantId, identitySub);
         return new FenceVerificationVO(
                 fenced ? Decision.DENY : Decision.ALLOW,
                 fenced ? "AUTH_PROPAGATION_PENDING" : "ALLOW",
-                sessionId,
+                identitySub,
                 clock.instant());
     }
 
     /**
-     * 要求会话不存在传播 Fence。
-     * Requires the session to be free of a propagation fence.
+     * 要求用户主体不存在传播 Fence。
+     * Requires the user subject to be free of a propagation fence.
      *
      * @param tenantId 租户标识 / tenant identifier
-     * @param sessionId 会话标识 / session identifier
+     * @param identitySub IdP 稳定主体标识 / stable IdP subject
      * 用法：调用 `requireUnfenced` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
      * Usage: provide contract-compliant arguments before calling `requireUnfenced`, then continue the business flow using its result, exception, or side effect.
      */
-    private void requireUnfenced(String tenantId, String sessionId) {
+    private void requireUnfenced(String tenantId, String identitySub) {
         if (fenceVerifier.isFenced(
-                required(tenantId, "tenantId"), required(sessionId, "sessionId"))) {
+                required(tenantId, "tenantId"), required(identitySub, "identitySub"))) {
             throw new Rbac3RuleViolation("AUTH_PROPAGATION_PENDING");
         }
     }
@@ -357,8 +357,8 @@ public final class AuthorizationDecisionService {
                 allowed ? Decision.ALLOW : Decision.DENY,
                 allowed ? "ALLOW" : "PERMISSION_DENIED",
                 record.tenantId(), record.userId(), request.permissionCode(),
-                record.snapshot().authVersion(), record.snapshot().sessionVersion(),
-                record.snapshot().policyVersion(), application.effectiveRoleIds(), now);
+                record.snapshot().authVersion(), record.snapshot().policyVersion(),
+                application.effectiveRoleIds(), now);
         if (!allowed) {
             return new DecisionBundleVO(function, null, null, record.snapshot().checksum());
         }
@@ -387,7 +387,7 @@ public final class AuthorizationDecisionService {
      * Usage: provide contract-compliant arguments before calling `load`, then continue the business flow using its result, exception, or side effect.
      */
     private SnapshotRecordVO load(AuthorizationDecisionSubjectVO subject) {
-        SnapshotRecordVO record = snapshotSource.load(subject.tenantId(), subject.sessionId());
+        SnapshotRecordVO record = snapshotSource.load(subject.tenantId(), subject.identitySub());
         validateSubject(record, subject);
         return record;
     }
@@ -404,14 +404,14 @@ public final class AuthorizationDecisionService {
     private void validateSubject(SnapshotRecordVO record, AuthorizationDecisionSubjectVO subject) {
         if (!record.tenantId().equals(subject.tenantId())
                 || !record.userId().equals(subject.userId())
-                || !record.snapshot().sessionId().equals(subject.sessionId())) {
+                || !record.snapshot().identitySub().equals(subject.identitySub())) {
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }
     }
 
     /**
-     * 校验 Token 携带的三个授权版本与快照一致。
-     * Validates all three token authorization versions against the snapshot.
+     * 校验 Token 携带的授权版本与快照一致。
+     * Validates the token authorization versions against the snapshot.
      *
      * @param snapshot 当前授权快照 / current authorization snapshot
      * @param versions Token 授权版本 / token authorization versions
@@ -419,13 +419,10 @@ public final class AuthorizationDecisionService {
      * Usage: provide contract-compliant arguments before calling `validateVersions`, then continue the business flow using its result, exception, or side effect.
      */
     private void validateVersions(
-            SessionAuthorizationSnapshot snapshot,
+            UserAuthorizationSnapshot snapshot,
             TokenVersionsVO versions) {
         if (snapshot.authVersion() != versions.authVersion()) {
             throw new Rbac3RuleViolation("AUTH_VERSION_MISMATCH");
-        }
-        if (snapshot.sessionVersion() != versions.sessionVersion()) {
-            throw new Rbac3RuleViolation("SESSION_VERSION_MISMATCH");
         }
         if (snapshot.policyVersion() != versions.policyVersion()) {
             throw new Rbac3RuleViolation("POLICY_VERSION_MISMATCH");
@@ -433,17 +430,17 @@ public final class AuthorizationDecisionService {
     }
 
     /**
-     * 从会话快照中读取指定应用上下文。
-     * Finds the requested application context in a session snapshot.
+     * 从用户授权快照中读取指定应用上下文。
+     * Finds the requested application context in a user authorization snapshot.
      *
-     * @param snapshot 会话授权快照 / session authorization snapshot
+     * @param snapshot 用户授权快照 / user authorization snapshot
      * @param applicationCode 应用编码 / application code
      * @return 应用授权上下文 / application authorization context
      * 用法：调用 `application` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
      * Usage: provide contract-compliant arguments before calling `application`, then continue the business flow using its result, exception, or side effect.
      */
     private AppAuthorizationContext application(
-            SessionAuthorizationSnapshot snapshot,
+            UserAuthorizationSnapshot snapshot,
             String applicationCode) {
         return snapshot.appContexts().stream()
                 .filter(context -> context.applicationCode().equals(applicationCode))
@@ -471,7 +468,7 @@ public final class AuthorizationDecisionService {
                 request.permissionCode(), "NONE", false, Set.of(), false,
                 Set.of(), false, Set.of(), false, null, "UNKNOWN",
                 record.snapshot().policyVersion(), record.snapshot().authVersion(),
-                record.snapshot().sessionVersion(), record.snapshot().policyVersion(),
+                record.snapshot().policyVersion(),
                 List.of(), now);
     }
 
@@ -494,8 +491,8 @@ public final class AuthorizationDecisionService {
                 Decision.DENY, "FIELD_ACCESS_DENIED", record.tenantId(), record.userId(),
                 request.permissionCode(), request.resource().applicationCode(),
                 request.resource().resourceCode(), Map.of(),
-                record.snapshot().authVersion(), record.snapshot().sessionVersion(),
-                record.snapshot().policyVersion(), List.of(), now);
+                record.snapshot().authVersion(), record.snapshot().policyVersion(),
+                List.of(), now);
     }
 
     /**

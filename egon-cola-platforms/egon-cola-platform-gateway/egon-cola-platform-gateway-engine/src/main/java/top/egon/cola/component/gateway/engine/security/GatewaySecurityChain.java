@@ -6,13 +6,14 @@ import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.gateway.core.context.GatewayPrincipal;
 import top.egon.cola.component.gateway.core.exchange.GatewayExchange;
 import top.egon.cola.component.gateway.core.security.AuthenticationDecision;
+import top.egon.cola.component.gateway.core.security.AuthenticationFailure;
 import top.egon.cola.component.gateway.core.security.AuthenticationMode;
 import top.egon.cola.component.gateway.core.security.AuthorizationDecision;
 import top.egon.cola.component.gateway.core.security.AuthorizationDecisionMode;
 import top.egon.cola.component.gateway.core.security.CredentialExtractionResult;
 import top.egon.cola.component.gateway.core.security.CredentialForwardingMode;
+import top.egon.cola.component.gateway.core.security.CredentialRecoveryResult;
 import top.egon.cola.component.gateway.core.security.GatewayAuthContext;
-import top.egon.cola.component.gateway.core.security.GatewayAuthenticationProvider;
 import top.egon.cola.component.gateway.core.security.GatewayCredential;
 import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
 import top.egon.cola.component.gateway.core.security.SecurityDecision;
@@ -23,6 +24,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
@@ -93,13 +95,17 @@ public final class GatewaySecurityChain {
                     ),
                     policy,
                     Set.of(),
-                    null
+                    null,
+                    Map.of()
             )
-                    : extract(exchange, policy)
+                    : extract(exchange, initialContext, policy)
                     .flatMap(extraction -> authenticate(
                             initialContext,
                             policy,
-                            extraction
+                            extraction,
+                            exchange,
+                            false,
+                            Map.of()
                     ));
         });
         return execution.timeout(timeout)
@@ -124,10 +130,12 @@ public final class GatewaySecurityChain {
      */
     private Mono<Extraction> extract(
             GatewayExchange exchange,
+            GatewayAuthContext context,
             GatewaySecurityPolicy policy) {
         return Flux.fromIterable(policy.credentialExtractorIds())
                 .concatMap(id -> Mono.from(capabilities.extractor(id).extract(
                         exchange,
+                        context,
                         policy
                 )).switchIfEmpty(Mono.error(
                         GatewaySecurityException.providerError()
@@ -180,12 +188,20 @@ public final class GatewaySecurityChain {
     private Mono<GatewaySecurityResult> authenticate(
             GatewayAuthContext initialContext,
             GatewaySecurityPolicy policy,
-            Extraction extraction) {
+            Extraction extraction,
+            GatewayExchange exchange,
+            boolean recoveryAttempt,
+            Map<String, List<String>> responseHeaders) {
         if (extraction.credentials().isEmpty()) {
             if (policy.authenticationMode()
                     == AuthenticationMode.REQUIRED) {
-                return Mono.error(
-                        GatewaySecurityException.authenticationRequired()
+                return recoverOrFail(
+                        initialContext,
+                        policy,
+                        exchange,
+                        AuthenticationFailure.MISSING,
+                        extraction.fieldsToRemove(),
+                        recoveryAttempt
                 );
             }
             return authorizeAndMap(
@@ -194,7 +210,8 @@ public final class GatewaySecurityChain {
                     ),
                     policy,
                     extraction.fieldsToRemove(),
-                    null
+                    null,
+                    responseHeaders
             );
         }
         Set<String> types = extraction.credentials().stream()
@@ -238,8 +255,71 @@ public final class GatewaySecurityChain {
                                 credentialContext.withPrincipal(principal),
                                 policy,
                                 extraction.fieldsToRemove(),
-                                forwardable(policy, extraction.credentials())
-                        )));
+                                forwardable(policy, extraction.credentials()),
+                                responseHeaders
+                        )))
+                .onErrorResume(
+                        AuthenticationFailureException.class,
+                        failure -> recoverOrFail(
+                                initialContext,
+                                policy,
+                                exchange,
+                                failure.failure,
+                                extraction.fieldsToRemove(),
+                                recoveryAttempt
+                        ));
+
+    }
+
+    private Mono<GatewaySecurityResult> recoverOrFail(
+            GatewayAuthContext context,
+            GatewaySecurityPolicy policy,
+            GatewayExchange exchange,
+            AuthenticationFailure failure,
+            Set<String> fieldsToRemove,
+            boolean recoveryAttempt) {
+        if (recoveryAttempt
+                || policy.credentialRecoveryProviderId() == null
+                || (failure != AuthenticationFailure.MISSING
+                && failure != AuthenticationFailure.EXPIRED)) {
+            return Mono.error(failure == AuthenticationFailure.MISSING
+                    ? GatewaySecurityException.authenticationRequired()
+                    : GatewaySecurityException.authenticationFailed());
+        }
+        return Mono.from(capabilities.recovery(
+                        policy.credentialRecoveryProviderId()).recover(
+                        context,
+                        exchange,
+                        failure
+                ))
+                .switchIfEmpty(Mono.just(CredentialRecoveryResult.failed()))
+                .flatMap(result -> {
+                    if (result.outcome()
+                            == CredentialRecoveryResult.Outcome.FAILED) {
+                        return Mono.error(GatewaySecurityException.providerError());
+                    }
+                    if (result.outcome()
+                            != CredentialRecoveryResult.Outcome.RECOVERED) {
+                        return Mono.error(GatewaySecurityException.authenticationFailed(
+                                result.responseHeaders()));
+                    }
+                    Set<String> removals = new LinkedHashSet<>(fieldsToRemove);
+                    removals.addAll(result.fieldsToRemove());
+                    return authenticate(
+                            context,
+                            policy,
+                            new Extraction(
+                                    List.of(result.credential()),
+                                    Set.copyOf(removals)
+                            ),
+                            exchange,
+                            true,
+                            result.responseHeaders()
+                    );
+                })
+                .onErrorMap(
+                        error -> !(error instanceof GatewaySecurityException),
+                        error -> GatewaySecurityException.providerError());
     }
 
     /**
@@ -282,9 +362,8 @@ public final class GatewaySecurityChain {
                 );
             }
             if (decision.decision() == SecurityDecision.DENY) {
-                return Mono.error(
-                        GatewaySecurityException.authenticationFailed()
-                );
+                return Mono.error(new AuthenticationFailureException(
+                        decision.failure()));
             }
             if (decision.decision() == SecurityDecision.ALLOW) {
                 if (principal != null
@@ -320,7 +399,8 @@ public final class GatewaySecurityChain {
             GatewayAuthContext context,
             GatewaySecurityPolicy policy,
             Set<String> removals,
-            GatewayCredential forwardingCredential) {
+            GatewayCredential forwardingCredential,
+            Map<String, List<String>> responseHeaders) {
         return Flux.fromIterable(policy.authorizationProviderIds())
                 .concatMap(id -> Mono.from(
                         capabilities.authorization(id).authorize(context)
@@ -335,7 +415,9 @@ public final class GatewaySecurityChain {
                                     context,
                                     identity,
                                     removals,
-                                    forwardingCredential
+                                    forwardingCredential,
+                                    responseHeaders
+                                    , policy.routeSecurityType()
                             ));
                 });
     }
@@ -446,5 +528,17 @@ public final class GatewaySecurityChain {
              */
             Set<String> fieldsToRemove
     ) {
+    }
+
+    private static final class AuthenticationFailureException
+            extends RuntimeException {
+
+        private final AuthenticationFailure failure;
+
+        private AuthenticationFailureException(AuthenticationFailure failure) {
+            this.failure = failure == null
+                    ? AuthenticationFailure.INVALID
+                    : failure;
+        }
     }
 }

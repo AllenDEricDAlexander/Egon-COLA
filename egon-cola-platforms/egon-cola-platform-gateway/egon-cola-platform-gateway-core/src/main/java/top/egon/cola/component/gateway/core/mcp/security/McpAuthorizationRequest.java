@@ -9,10 +9,8 @@ public record McpAuthorizationRequest(
         String issuer,
         String subjectId,
         String tenantId,
-        String sessionId,
         String clientId,
         String tokenId,
-        long tokenVersion,
         String resourceUri,
         Instant issuedAt,
         Instant expiresAt,
@@ -26,10 +24,8 @@ public record McpAuthorizationRequest(
         issuer = required(issuer, "issuer");
         subjectId = required(subjectId, "subjectId");
         tenantId = required(tenantId, "tenantId");
-        sessionId = required(sessionId, "sessionId");
         clientId = required(clientId, "clientId");
         tokenId = required(tokenId, "tokenId");
-        nonNegative(tokenVersion, "tokenVersion");
         resourceUri = required(resourceUri, "resourceUri");
         issuedAt = Objects.requireNonNull(issuedAt, "issuedAt");
         expiresAt = Objects.requireNonNull(expiresAt, "expiresAt");

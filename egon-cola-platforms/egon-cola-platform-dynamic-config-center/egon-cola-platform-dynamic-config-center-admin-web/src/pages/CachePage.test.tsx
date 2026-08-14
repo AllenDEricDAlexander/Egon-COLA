@@ -1,7 +1,7 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { setDdcTokenProvider, setDdcUnauthorizedHandler } from '../api/client'
-import { renderWithQueryClient } from '../test/renderWithQueryClient'
+import {fireEvent, screen, waitFor} from '@testing-library/react'
+import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {setDdcUnauthorizedHandler} from '../api/client'
+import {renderWithQueryClient} from '../test/renderWithQueryClient'
 import CachePage from './CachePage'
 
 const record = (data: unknown) => ({
@@ -51,7 +51,6 @@ const chooseScopeValue = (input: HTMLElement, value: string) => {
 
 describe('CachePage', () => {
   beforeEach(() => {
-    setDdcTokenProvider(() => 'token')
     setDdcUnauthorizedHandler(() => {})
     vi.stubGlobal('fetch', vi.fn((input, init) => {
       const url = String(input)

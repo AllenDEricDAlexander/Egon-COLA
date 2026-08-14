@@ -28,6 +28,7 @@ import java.util.Locale;
 import top.egon.cola.platform.rbac3.admin.directory.domain.enums.OrgUnitUnitTypeEnum;
 import top.egon.cola.platform.rbac3.admin.directory.domain.enums.OrgUnitStatusEnum;
 import top.egon.cola.platform.rbac3.admin.directory.domain.enums.PositionStatusEnum;
+import top.egon.cola.platform.rbac3.admin.directory.domain.enums.UserPositionSnapshotStatusEnum;
 import top.egon.cola.platform.rbac3.admin.tenant.domain.enums.TenantStatusEnum;
 import top.egon.cola.platform.rbac3.admin.identity.domain.enums.UserStatusEnum;
 import top.egon.cola.platform.rbac3.admin.directory.repository.DirectoryQueryRepository;
@@ -178,20 +179,24 @@ public class JpaDirectoryQueryRepository implements DirectoryQueryRepository {
         Long requiredPosition = nullableLong(positionId, "POSITION_ID_INVALID");
         String predicates = " where u.tenantId = :tenantId";
         if (normalizedQuery != null) {
-            predicates += " and (lower(u.username) like :query or lower(u.displayName) like :query)";
+            predicates += " and lower(u.identitySub) like :query";
         }
         if (requiredStatus != null) {
             predicates += " and u.status = :status";
         }
         if (requiredOrgUnit != null) {
-            predicates += " and u.primaryOrgUnitId = :orgUnitId";
+            predicates += " and exists (select up.id from UserPositionSnapshotEntity up"
+                    + " where up.tenantId = u.tenantId and up.userId = u.id"
+                    + " and up.orgUnitId = :orgUnitId and up.status = :assignmentStatus)";
         }
         if (requiredPosition != null) {
-            predicates += " and u.primaryPositionId = :positionId";
+            predicates += " and exists (select up.id from UserPositionSnapshotEntity up"
+                    + " where up.tenantId = u.tenantId and up.userId = u.id"
+                    + " and up.positionId = :positionId and up.status = :assignmentStatus)";
         }
         var dataQuery = entityManager.createQuery(
                 "select u from UserEntity u" + predicates
-                        + " order by u.normalizedUsername, u.id", UserPO.class);
+                        + " order by u.identitySub, u.id", UserPO.class);
         var countQuery = entityManager.createQuery(
                 "select count(u) from UserEntity u" + predicates, Long.class);
         dataQuery.setParameter("tenantId", Long.valueOf(tenantId));
@@ -212,6 +217,10 @@ public class JpaDirectoryQueryRepository implements DirectoryQueryRepository {
         if (requiredPosition != null) {
             dataQuery.setParameter("positionId", requiredPosition);
             countQuery.setParameter("positionId", requiredPosition);
+        }
+        if (requiredOrgUnit != null || requiredPosition != null) {
+            dataQuery.setParameter("assignmentStatus", UserPositionSnapshotStatusEnum.ACTIVE);
+            countQuery.setParameter("assignmentStatus", UserPositionSnapshotStatusEnum.ACTIVE);
         }
         List<UserDirectoryVO> items = dataQuery
                 .setFirstResult(Math.multiplyExact(page, size))
@@ -383,10 +392,8 @@ public class JpaDirectoryQueryRepository implements DirectoryQueryRepository {
      */
     private UserDirectoryVO userView(UserPO user) {
         return new UserDirectoryVO(
-                user.getId().toString(), user.getUsername(), user.getDisplayName(),
-                user.getStatus().name(), user.getAuthVersion(),
-                stringId(user.getPrimaryOrgUnitId()), stringId(user.getPrimaryPositionId()),
-                user.getDirectorySnapshotVersion());
+                user.getId().toString(), user.getIdentitySub(),
+                user.getStatus().name(), user.getAuthVersion());
     }
 
 /**

@@ -2,6 +2,7 @@ package top.egon.cola.platform.idp.starter.security;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.TestingAuthenticationToken;
+import top.egon.cola.platform.idp.contract.AuthenticationContext;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 
@@ -62,13 +63,11 @@ class ServiceScopeAuthorizationTest {
         return new IdentityPrincipal(
                 "identity-1",
                 "tenant-1",
-                "session-1",
-                "gateway-admin",
                 "token-1",
-                7L,
-                Set.of("https://api.example/prod/permission/rbac3"),
+                Set.of("egon-platform"),
                 issuedAt,
-                issuedAt.plusSeconds(300)
+                issuedAt.plusSeconds(300),
+                AuthenticationContext.of("PASSWORD", issuedAt)
         );
     }
 }

@@ -1,112 +1,9 @@
 package top.egon.cola.component.gateway.admin.config;
 
 
-import top.egon.cola.component.gateway.admin.application.controller.*;
-import top.egon.cola.component.gateway.admin.application.domain.dto.*;
-import top.egon.cola.component.gateway.admin.application.domain.exception.*;
-import top.egon.cola.component.gateway.admin.application.domain.po.*;
-import top.egon.cola.component.gateway.admin.application.domain.vo.*;
-import top.egon.cola.component.gateway.admin.application.repository.*;
-import top.egon.cola.component.gateway.admin.application.service.*;
-import top.egon.cola.component.gateway.admin.auth.controller.*;
-import top.egon.cola.component.gateway.admin.auth.domain.vo.*;
-import top.egon.cola.component.gateway.admin.auth.service.*;
-import top.egon.cola.component.gateway.admin.bootstrap.*;
-import top.egon.cola.component.gateway.admin.catalog.controller.*;
-import top.egon.cola.component.gateway.admin.catalog.domain.dto.*;
-import top.egon.cola.component.gateway.admin.catalog.domain.enums.*;
-import top.egon.cola.component.gateway.admin.catalog.domain.po.*;
-import top.egon.cola.component.gateway.admin.catalog.domain.vo.*;
-import top.egon.cola.component.gateway.admin.catalog.repository.*;
-import top.egon.cola.component.gateway.admin.catalog.repository.jdbc.*;
-import top.egon.cola.component.gateway.admin.catalog.service.*;
-import top.egon.cola.component.gateway.admin.config.*;
-import top.egon.cola.component.gateway.admin.config.properties.*;
-import top.egon.cola.component.gateway.admin.credential.controller.*;
-import top.egon.cola.component.gateway.admin.credential.domain.dto.*;
-import top.egon.cola.component.gateway.admin.credential.domain.po.*;
-import top.egon.cola.component.gateway.admin.credential.domain.vo.*;
-import top.egon.cola.component.gateway.admin.credential.repository.*;
-import top.egon.cola.component.gateway.admin.credential.repository.jdbc.*;
-import top.egon.cola.component.gateway.admin.credential.service.*;
-import top.egon.cola.component.gateway.admin.group.controller.*;
-import top.egon.cola.component.gateway.admin.group.domain.dto.*;
-import top.egon.cola.component.gateway.admin.group.domain.po.*;
-import top.egon.cola.component.gateway.admin.group.domain.vo.*;
-import top.egon.cola.component.gateway.admin.group.repository.*;
-import top.egon.cola.component.gateway.admin.group.service.*;
-import top.egon.cola.component.gateway.admin.mcp.controller.*;
-import top.egon.cola.component.gateway.admin.mcp.domain.dto.*;
-import top.egon.cola.component.gateway.admin.mcp.domain.enums.*;
-import top.egon.cola.component.gateway.admin.mcp.domain.exception.*;
-import top.egon.cola.component.gateway.admin.mcp.domain.po.*;
-import top.egon.cola.component.gateway.admin.mcp.domain.vo.*;
-import top.egon.cola.component.gateway.admin.mcp.repository.*;
-import top.egon.cola.component.gateway.admin.mcp.repository.filesystem.*;
-import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.*;
-import top.egon.cola.component.gateway.admin.mcp.service.*;
-import top.egon.cola.component.gateway.admin.observability.controller.*;
-import top.egon.cola.component.gateway.admin.observability.controller.message.*;
-import top.egon.cola.component.gateway.admin.observability.controller.scheduled.*;
-import top.egon.cola.component.gateway.admin.observability.domain.dto.*;
-import top.egon.cola.component.gateway.admin.observability.domain.enums.*;
-import top.egon.cola.component.gateway.admin.observability.domain.po.*;
-import top.egon.cola.component.gateway.admin.observability.domain.vo.*;
-import top.egon.cola.component.gateway.admin.observability.repository.*;
-import top.egon.cola.component.gateway.admin.observability.repository.jdbc.*;
-import top.egon.cola.component.gateway.admin.observability.service.*;
-import top.egon.cola.component.gateway.admin.release.controller.*;
-import top.egon.cola.component.gateway.admin.release.controller.scheduled.*;
-import top.egon.cola.component.gateway.admin.release.domain.*;
-import top.egon.cola.component.gateway.admin.release.domain.dto.*;
-import top.egon.cola.component.gateway.admin.release.domain.enums.*;
-import top.egon.cola.component.gateway.admin.release.domain.po.*;
-import top.egon.cola.component.gateway.admin.release.domain.vo.*;
-import top.egon.cola.component.gateway.admin.release.repository.*;
-import top.egon.cola.component.gateway.admin.release.repository.jdbc.*;
-import top.egon.cola.component.gateway.admin.release.service.*;
-import top.egon.cola.component.gateway.admin.reporting.controller.openapi.*;
-import top.egon.cola.component.gateway.admin.reporting.controller.scheduled.*;
-import top.egon.cola.component.gateway.admin.reporting.domain.dto.*;
-import top.egon.cola.component.gateway.admin.reporting.domain.po.*;
-import top.egon.cola.component.gateway.admin.reporting.domain.vo.*;
-import top.egon.cola.component.gateway.admin.reporting.repository.*;
-import top.egon.cola.component.gateway.admin.reporting.repository.jdbc.*;
-import top.egon.cola.component.gateway.admin.reporting.service.*;
-import top.egon.cola.component.gateway.admin.routing.controller.*;
-import top.egon.cola.component.gateway.admin.routing.domain.*;
-import top.egon.cola.component.gateway.admin.routing.domain.dto.*;
-import top.egon.cola.component.gateway.admin.routing.domain.po.*;
-import top.egon.cola.component.gateway.admin.routing.domain.vo.*;
-import top.egon.cola.component.gateway.admin.routing.repository.*;
-import top.egon.cola.component.gateway.admin.routing.repository.jdbc.*;
-import top.egon.cola.component.gateway.admin.routing.service.*;
-import top.egon.cola.component.gateway.admin.rule.domain.dto.*;
-import top.egon.cola.component.gateway.admin.rule.domain.vo.*;
-import top.egon.cola.component.gateway.admin.rule.service.*;
-import top.egon.cola.component.gateway.admin.runtime.controller.*;
-import top.egon.cola.component.gateway.admin.runtime.domain.dto.*;
-import top.egon.cola.component.gateway.admin.runtime.domain.vo.*;
-import top.egon.cola.component.gateway.admin.runtime.service.*;
-import top.egon.cola.component.gateway.admin.scope.controller.*;
-import top.egon.cola.component.gateway.admin.scope.domain.*;
-import top.egon.cola.component.gateway.admin.scope.domain.dto.*;
-import top.egon.cola.component.gateway.admin.scope.domain.vo.*;
-import top.egon.cola.component.gateway.admin.scope.service.*;
-import top.egon.cola.component.gateway.admin.shared.controller.*;
-import top.egon.cola.component.gateway.admin.shared.domain.*;
-import top.egon.cola.component.gateway.admin.shared.domain.enums.*;
-import top.egon.cola.component.gateway.admin.shared.domain.exception.*;
-import top.egon.cola.component.gateway.admin.shared.domain.po.*;
-import top.egon.cola.component.gateway.admin.shared.domain.vo.*;
-import top.egon.cola.component.gateway.admin.shared.repository.*;
-import top.egon.cola.component.gateway.admin.shared.repository.jdbc.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -114,12 +11,6 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtException;
-import org.springframework.security.oauth2.jwt.JwtValidators;
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
@@ -127,9 +18,7 @@ import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFi
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.Map;
-import javax.crypto.spec.SecretKeySpec;
 
 /**
  * 中文说明：{@code GatewayAdminSecurityConfiguration} 是配置类，位于当前 Gateway 模块的相关包中，负责网关管理端安全配置相关的职责与边界。
@@ -140,6 +29,16 @@ import javax.crypto.spec.SecretKeySpec;
 @Configuration(proxyBeanMethods = false)
 @EnableMethodSecurity
 public class GatewayAdminSecurityConfiguration {
+
+    /**
+     * Creates the narrow SERVICE-scope adapter used by Gateway Admin control-plane calls.
+     *
+     * @return service-scope authority adapter
+     */
+    @Bean
+    public GatewayAdminServiceAuthorityFilter gatewayAdminServiceAuthorityFilter() {
+        return new GatewayAdminServiceAuthorityFilter();
+    }
 
     /**
      * 中文说明：执行 网关管理端安全过滤器Chain 操作；该方法是 {@code GatewayAdminSecurityConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -157,10 +56,13 @@ public class GatewayAdminSecurityConfiguration {
             HttpSecurity http,
             ObjectMapper objectMapper,
             ObjectProvider<IdpBearerAuthenticationFilter> idpFilters,
-            ObjectProvider<Rbac3BearerAuthenticationFilter> rbac3Filters)
+            ObjectProvider<Rbac3BearerAuthenticationFilter> rbac3Filters,
+            ObjectProvider<GatewayAdminServiceAuthorityFilter> serviceAuthorityFilters)
             throws Exception {
         IdpBearerAuthenticationFilter idpFilter = idpFilters.getIfAvailable();
         Rbac3BearerAuthenticationFilter rbac3Filter = rbac3Filters.getIfAvailable();
+        GatewayAdminServiceAuthorityFilter serviceAuthorityFilter =
+                serviceAuthorityFilters.getIfAvailable();
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
@@ -184,109 +86,20 @@ public class GatewayAdminSecurityConfiguration {
                                 writeSecurityError(response, objectMapper,
                                         HttpServletResponse.SC_FORBIDDEN,
                                         "GATEWAY_ADMIN_CAPABILITY_REQUIRED")));
-        if (idpFilter != null && rbac3Filter != null) {
+        if (idpFilter != null && rbac3Filter != null
+                && serviceAuthorityFilter != null) {
             http.addFilterBefore(idpFilter, AnonymousAuthenticationFilter.class);
-            http.addFilterAfter(rbac3Filter, IdpBearerAuthenticationFilter.class);
-        } else if (idpFilter == null && rbac3Filter == null) {
-            http.oauth2ResourceServer(oauth2 -> oauth2
-                    .jwt(jwt -> jwt.jwtAuthenticationConverter(
-                            new GatewayAdminJwtAuthenticationConverter()))
-                    .authenticationEntryPoint((request, response, error) ->
-                            writeSecurityError(response, objectMapper,
-                                    HttpServletResponse.SC_UNAUTHORIZED,
-                                    "GATEWAY_ADMIN_AUTHENTICATION_REQUIRED"))
-                    .accessDeniedHandler((request, response, error) ->
-                            writeSecurityError(response, objectMapper,
-                                    HttpServletResponse.SC_FORBIDDEN,
-                                    "GATEWAY_ADMIN_CAPABILITY_REQUIRED")));
+            http.addFilterAfter(
+                    serviceAuthorityFilter,
+                    IdpBearerAuthenticationFilter.class);
+            http.addFilterAfter(
+                    rbac3Filter,
+                    GatewayAdminServiceAuthorityFilter.class);
         } else {
             throw new IllegalStateException(
-                    "IdP and RBAC3 authentication filters must be configured together");
+                    "IdP, Gateway service, and RBAC3 authentication filters must be configured together");
         }
         return http.build();
-    }
-
-    /**
-     * 中文说明：执行 网关管理端JwtDecoder 操作；该方法是 {@code GatewayAdminSecurityConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway admin jwt decoder operation; this method is the invocation entry point on {@code GatewayAdminSecurityConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayAdminSecurityConfiguration.gatewayAdminJwtDecoder(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param jwkSetUri 参数 jwkSetUri；parameter jwk set uri。
-     * @param issuer 参数 issuer；parameter issuer。
-     * @param hmacSecretBase64 参数 hmacSecretBase64；parameter hmac secret base64。
-     * @return 返回 网关管理端JwtDecoder 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    @ConditionalOnMissingBean(JwtDecoder.class)
-    @ConditionalOnProperty(
-            prefix = "egon.cola.platform.idp",
-            name = "enabled",
-            havingValue = "false",
-            matchIfMissing = true)
-    public JwtDecoder gatewayAdminJwtDecoder(
-            @Value("${gateway.admin.security.jwk-set-uri:}")
-            String jwkSetUri,
-            @Value("${gateway.admin.security.issuer:}")
-            String issuer,
-            @Value("${gateway.admin.security.hmac-secret-base64:}")
-            String hmacSecretBase64) {
-        if (jwkSetUri == null || jwkSetUri.isBlank()) {
-            return hmacDecoder(hmacSecretBase64, issuer);
-        }
-        NimbusJwtDecoder decoder = NimbusJwtDecoder
-                .withJwkSetUri(jwkSetUri.trim())
-                .build();
-        if (issuer != null && !issuer.isBlank()) {
-            decoder.setJwtValidator(
-                    JwtValidators.createDefaultWithIssuer(issuer.trim())
-            );
-        }
-        return decoder;
-    }
-
-    /**
-     * 中文说明：执行 hmacDecoder 操作；该方法是 {@code GatewayAdminSecurityConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the hmac decoder operation; this method is the invocation entry point on {@code GatewayAdminSecurityConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayAdminSecurityConfiguration.hmacDecoder(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param hmacSecretBase64 参数 hmacSecretBase64；parameter hmac secret base64。
-     * @param issuer 参数 issuer；parameter issuer。
-     * @return 返回 hmacDecoder 的处理结果；returns the result of the operation.
-     */
-    private JwtDecoder hmacDecoder(
-            String hmacSecretBase64,
-            String issuer) {
-        if (hmacSecretBase64 == null || hmacSecretBase64.isBlank()) {
-            return token -> {
-                throw new JwtException(
-                        "gateway admin JWT decoder is not configured"
-                );
-            };
-        }
-        byte[] secret;
-        try {
-            secret = Base64.getDecoder().decode(hmacSecretBase64.trim());
-        } catch (IllegalArgumentException failure) {
-            throw new IllegalArgumentException(
-                    "gateway admin HMAC secret is not valid Base64",
-                    failure
-            );
-        }
-        if (secret.length < 32) {
-            throw new IllegalArgumentException(
-                    "gateway admin HMAC secret must contain at least 32 bytes"
-            );
-        }
-        NimbusJwtDecoder decoder = NimbusJwtDecoder
-                .withSecretKey(new SecretKeySpec(secret, "HmacSHA256"))
-                .macAlgorithm(MacAlgorithm.HS256)
-                .build();
-        if (issuer != null && !issuer.isBlank()) {
-            decoder.setJwtValidator(
-                    JwtValidators.createDefaultWithIssuer(issuer.trim())
-            );
-        }
-        return decoder;
     }
 
     /**

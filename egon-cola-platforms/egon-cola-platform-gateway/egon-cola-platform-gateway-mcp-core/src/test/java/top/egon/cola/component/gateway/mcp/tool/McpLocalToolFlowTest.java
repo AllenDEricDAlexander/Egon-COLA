@@ -9,11 +9,11 @@ import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuleContent;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeServer;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
+import top.egon.cola.component.gateway.core.mcp.security.McpApprovalPort;
+import top.egon.cola.component.gateway.core.mcp.security.McpAuthorizationPort;
 import top.egon.cola.component.gateway.core.operation.GatewayInvocationResult;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvocation;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvoker;
-import top.egon.cola.component.gateway.core.mcp.security.McpApprovalPort;
-import top.egon.cola.component.gateway.core.mcp.security.McpAuthorizationPort;
 import top.egon.cola.component.gateway.mcp.rule.McpRuleCompiler;
 import top.egon.cola.component.gateway.mcp.security.McpSecurityGate;
 import top.egon.cola.component.gateway.mcp.server.McpRequestContext;
@@ -191,10 +191,8 @@ class McpLocalToolFlowTest {
                         Map.entry("clientIp", "127.0.0.1"),
                         Map.entry("traceparent", "00-trace-parent"),
                         Map.entry("idp.issuer", "https://idp.internal"),
-                        Map.entry("idp.session-id", "session-1"),
                         Map.entry("idp.client-id", "finance-web"),
                         Map.entry("idp.token-id", "token-1"),
-                        Map.entry("idp.token-version", "2"),
                         Map.entry("idp.resource-uri",
                                 "https://resource.egon.top/gateway-mcp"),
                         Map.entry(

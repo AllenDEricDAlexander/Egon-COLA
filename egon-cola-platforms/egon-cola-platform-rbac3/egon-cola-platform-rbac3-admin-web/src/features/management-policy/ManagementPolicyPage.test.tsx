@@ -1,18 +1,18 @@
-import { InMemoryAccessTokenStore, Rbac3Provider, type Rbac3Client } from '@egon-cola/rbac3-react-sdk'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
-import type { PropsWithChildren } from 'react'
-import { describe, expect, it } from 'vitest'
-import { FeatureApiProvider, type FeatureApiClient } from '../shared/FeatureApi'
-import { ManagementPolicyPage } from './ManagementPolicyPage'
+import {type Rbac3Client, Rbac3Provider} from '@egon-cola/rbac3-react-sdk'
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
+import {render, screen, waitFor} from '@testing-library/react'
+import type {PropsWithChildren} from 'react'
+import {describe, expect, it} from 'vitest'
+import {type FeatureApiClient, FeatureApiProvider} from '../shared/FeatureApi'
+import {ManagementPolicyPage} from './ManagementPolicyPage'
 
 const wrapper = ({ children }: PropsWithChildren) => {
   const sdk = {
-    refresh: async () => ({ accessToken: 'access', roleActivationRequired: false }),
     getBootstrap: async () => ({
-      user: { id: '7', tenantId: '9' },
+        user: {id: '7', tenantId: '9', identitySub: 'policy-test', status: 'ACTIVE'},
       permissions: ['system:management-policy:read', 'system:management-policy:manage'],
       fieldPolicies: {}, activeRoleContexts: [], apps: [], menus: [], routes: [], actions: [],
+        defaultApplicationCode: null, defaultRoute: null, authVersion: 1, policyVersion: 1,
     }),
   } as unknown as Rbac3Client
   const api: FeatureApiClient = { request: async <T,>() => [{
@@ -24,7 +24,7 @@ const wrapper = ({ children }: PropsWithChildren) => {
   }] as T }
   return (
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <Rbac3Provider client={sdk} accessTokenStore={new InMemoryAccessTokenStore()}>
+        <Rbac3Provider client={sdk}>
         <FeatureApiProvider client={api}>{children}</FeatureApiProvider>
       </Rbac3Provider>
     </QueryClientProvider>

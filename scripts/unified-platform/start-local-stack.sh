@@ -15,8 +15,9 @@ ddc_web_dir="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platfor
 gateway_engine_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/target/egon-cola-platform-gateway-engine-exec.jar"
 mcp_provider_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-mcp-provider/target/gateway-test-mcp-provider-exec.jar"
 mcp_remote_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-mcp-remote/target/gateway-test-mcp-remote-exec.jar"
-gateway_admin_token_file="${unified_platform_secret_dir}/gateway-admin.access.jwt"
-idp_admin_token_file="${unified_platform_secret_dir}/idp-admin.access.jwt"
+gateway_control_plane_service_token_file="${unified_platform_secret_dir}/gateway-admin-control-plane.service.jwt"
+default_cookie_jar="${unified_platform_runtime_dir}/browser.default.cookies"
+mcp_user_token_file="${unified_platform_runtime_dir}/mcp-user.at"
 gateway_group_file="${unified_platform_runtime_dir}/gateway-group.id"
 default_tenant_id=
 
@@ -60,11 +61,13 @@ export UNIFIED_IDENTITY_SKIP_BUILD="${UNIFIED_PLATFORM_SKIP_BUILD:-false}"
 export UNIFIED_IDENTITY_DEFER_GATEWAY_RELEASE=true
 
 prepare_admin_web_login_environments() {
-  local token_file="${unified_platform_secret_dir}/idp-admin.access.jwt"
-  [[ -s "${token_file}" ]] \
-    || unified_platform_fail "default tenant access token is unavailable"
-  default_tenant_id="$(jq -Rer \
-    'split(".")[1] | @base64d | fromjson | .tid' <"${token_file}")"
+  local userinfo
+  [[ -s "${default_cookie_jar}" ]] \
+    || unified_platform_fail "default tenant Gateway cookie jar is unavailable"
+  userinfo="$(curl --max-time 10 -fsS -b "${default_cookie_jar}" \
+    "${GATEWAY_BASE_URL}/oauth2/userinfo")" \
+    || unified_platform_fail "Gateway USER cookie could not resolve /oauth2/userinfo"
+  default_tenant_id="$(jq -er '.tid' <<<"${userinfo}")"
   [[ "${default_tenant_id}" =~ ^[1-9][0-9]*$ ]] \
     || unified_platform_fail "default tenant access token has an invalid tenant ID"
   unified_platform_write_frontend_login_env \
@@ -80,11 +83,11 @@ prepare_admin_web_login_environments() {
 gateway_api() {
   local method="$1" path="$2" body="${3:-}" idempotency_key="${4:-}"
   local response_file status response
-  [[ -s "${gateway_admin_token_file}" ]] \
-    || unified_platform_fail "Gateway Admin access token is unavailable"
+  [[ -s "${gateway_control_plane_service_token_file}" ]] \
+    || unified_platform_fail "Gateway control-plane SERVICE token is unavailable"
   response_file="$(mktemp "${unified_platform_runtime_dir}/gateway-api.XXXXXX")"
   local arguments=(--max-time 30 -sS -X "${method}"
-    -H "Authorization: Bearer $(<"${gateway_admin_token_file}")"
+    -H "Authorization: Bearer $(<"${gateway_control_plane_service_token_file}")"
     -H 'Content-Type: application/json')
   if [[ -n "${idempotency_key}" ]]; then
     arguments+=(-H "Idempotency-Key: ${idempotency_key}")
@@ -104,10 +107,8 @@ gateway_api() {
 }
 
 issue_mcp_user_token() {
-  UNIFIED_IDENTITY_OAUTH_CLIENT_ID=mock-backend \
-  UNIFIED_IDENTITY_OAUTH_TENANT=tenant-b \
-  UNIFIED_IDENTITY_OAUTH_RESOURCE_URI=https://api.egon.internal/local/identity/gateway-test-mcp-provider \
-  UNIFIED_IDENTITY_OAUTH_TOKEN_FILE="${unified_platform_secret_dir}/mcp-tenant-b.access.jwt" \
+  UNIFIED_IDENTITY_TENANT=tenant-b \
+  UNIFIED_IDENTITY_ACCESS_TOKEN_FILE="${mcp_user_token_file}" \
     "${legacy_script}" issue-user-token
 }
 
@@ -117,20 +118,20 @@ ensure_mcp_user_delegation() {
   if issue_mcp_user_token >/dev/null 2>&1; then
     return
   fi
-  [[ -s "${idp_admin_token_file}" ]] \
-    || unified_platform_fail "IdP Admin access token is unavailable"
+  [[ -s "${default_cookie_jar}" ]] \
+    || unified_platform_fail "default tenant Gateway cookie jar is unavailable"
   response_file="$(mktemp "${unified_platform_runtime_dir}/idp-api.XXXXXX")"
   resource_response="$(curl --max-time 30 -fsS \
-    -H "Authorization: Bearer $(<"${idp_admin_token_file}")" \
-    "${IDP_BASE_URL}/api/v1/identity/resource-servers/${resource_id}")" \
+    -b "${default_cookie_jar}" \
+    "${GATEWAY_BASE_URL}/api/v1/identity/resource-servers/${resource_id}")" \
     || unified_platform_fail "MCP provider Resource is unavailable"
   resource_version="$(jq -er '.version' <<<"${resource_response}")"
   body="$(jq -cn --argjson version "${resource_version}" \
     '{grantType:"USER_DELEGATION",tenantId:null,allowedScopes:[],expectedResourceVersion:$version,expectedGrantVersion:null}')"
   status="$(curl --max-time 30 -sS -o "${response_file}" -w '%{http_code}' \
-    -X PUT -H "Authorization: Bearer $(<"${idp_admin_token_file}")" \
+    -X PUT -b "${default_cookie_jar}" \
     -H 'Content-Type: application/json' -d "${body}" \
-    "${IDP_BASE_URL}/api/v1/identity/clients/mock-backend/resources/${resource_id}")"
+    "${GATEWAY_BASE_URL}/api/v1/identity/clients/mock-backend/resources/${resource_id}")"
   if [[ ! "${status}" =~ ^2[0-9][0-9]$ ]]; then
     body="$(<"${response_file}")"
     rm -f "${response_file}"
@@ -259,7 +260,7 @@ write_extra_service_env_files() {
 }
 
 initialize_mcp_provider_application() {
-  local applications application_id application credential
+  local applications application_id application credential access_file secret_file
   applications="$(gateway_api GET \
     '/api/v1/gateway/admin/applications?bizCode=identity&namespace=default&env=local&appCode=gateway-test-mcp-provider')"
   application_id="$(jq -r '.[0].id // empty' <<<"${applications}")"
@@ -268,17 +269,18 @@ initialize_mcp_provider_application() {
       '{"bizCode":"identity","applicationCode":"gateway-test-mcp-provider","displayName":"Gateway MCP Local Provider","env":"local","namespace":"default","description":"Host-local MCP Operation fixture"}')"
     application_id="$(jq -er '.id' <<<"${application}")"
   fi
-  credential="$(gateway_api POST \
-    "/api/v1/gateway/admin/applications/${application_id}/credentials" '{}')"
-  jq -er '.accessKey' <<<"${credential}" \
-    >"${unified_platform_secret_dir}/mcp-provider-report.access-key"
-  jq -er '.secret' <<<"${credential}" \
-    >"${unified_platform_secret_dir}/mcp-provider-report.secret"
+  access_file="${unified_platform_secret_dir}/mcp-provider-report.access-key"
+  secret_file="${unified_platform_secret_dir}/mcp-provider-report.secret"
+  if [[ ! -s "${access_file}" || ! -s "${secret_file}" ]]; then
+    credential="$(gateway_api POST \
+      "/api/v1/gateway/admin/applications/${application_id}/credentials" '{}')"
+    jq -er '.accessKey' <<<"${credential}" >"${access_file}"
+    jq -er '.secret' <<<"${credential}" >"${secret_file}"
+  fi
   printf '%s' "${application_id}" \
     >"${unified_platform_runtime_dir}/mcp-provider-application.id"
   chmod 600 \
-    "${unified_platform_secret_dir}/mcp-provider-report.access-key" \
-    "${unified_platform_secret_dir}/mcp-provider-report.secret" \
+    "${access_file}" "${secret_file}" \
     "${unified_platform_runtime_dir}/mcp-provider-application.id"
   unified_platform_write_env "${unified_platform_env_dir}/mcp-provider.env" \
     GATEWAY_REPORT_ACCESS_KEY \
@@ -406,7 +408,7 @@ ensure_app_artifact() {
     revision="$(draft_revision "${group_id}")"
     response_file="$(mktemp "${unified_platform_runtime_dir}/artifact-api.XXXXXX")"
     status="$(curl --max-time 30 -sS -o "${response_file}" -w '%{http_code}' \
-      -H "Authorization: Bearer $(<"${gateway_admin_token_file}")" \
+    -H "Authorization: Bearer $(<"${gateway_control_plane_service_token_file}")" \
       -H 'Idempotency-Key: unified-local-artifact-v1' \
       --form-string "gatewayGroupId=${group_id}" \
       --form-string "appCode=$(jq -r '.artifact.appCode' "${release_fixture}")" \
@@ -639,7 +641,7 @@ wait_mcp_endpoint() {
 
 start_admin_web() {
   local name="$1" web_dir="$2" vite="$3" web_url="$4"
-  local client_id="$5" proxy_name="$6" proxy_url="$7" port resource
+  local web_label="$5" proxy_name="$6" proxy_url="$7" port
   if unified_platform_process_running "${name}"; then
     return
   fi
@@ -647,28 +649,10 @@ start_admin_web() {
     || unified_platform_fail \
       "${name} dependencies are missing; run npm install in ${web_dir}"
   port="${web_url##*:}"
-  case "${client_id}" in
-    idp-admin-web)
-      resource=https://api.egon.internal/local/permission/idp
-      ;;
-    rbac3-admin-web)
-      resource=https://api.egon.internal/local/permission/rbac3
-      ;;
-    gateway-admin-web)
-      resource=https://api.egon.internal/local/platform/gateway-admin
-      ;;
-    ddc-admin-web)
-      resource=https://api.egon.internal/local/platform/ddc
-      ;;
-    *) unified_platform_fail "unknown Admin OAuth client: ${client_id}" ;;
-  esac
   (
     cd "${web_dir}"
     export "${proxy_name}=${proxy_url}"
-    export VITE_IDP_ISSUER="${IDP_BASE_URL}"
-    export VITE_IDP_CLIENT_ID="${client_id}"
-    export VITE_IDP_RESOURCE="${resource}"
-    export VITE_IDP_REDIRECT_URI="${web_url}/oauth/callback"
+    export VITE_GATEWAY_ORIGIN="${GATEWAY_BASE_URL}"
     export VITE_DEFAULT_TENANT_ID="${default_tenant_id}"
     exec nohup "${vite}" \
       --config "${web_dir}/vite.config.ts" \
@@ -681,7 +665,6 @@ start_admin_web() {
 
 unified_platform_stage "preparing and starting IdP, RBAC3, DDC, Gateway A and mock backend"
 "${legacy_script}" start
-"${legacy_script}" refresh-tokens
 prepare_admin_web_login_environments
 
 package_mcp_fixtures
@@ -725,16 +708,16 @@ wait_mcp_endpoint gateway-engine-b "${GATEWAY_ENGINE_B_PUBLIC_URL}"
 unified_platform_stage "starting four Admin Web applications"
 start_admin_web idp-admin-web "${idp_web_dir}" \
   "${idp_web_dir}/node_modules/.bin/vite" "${IDP_ADMIN_WEB_URL}" \
-  idp-admin-web IDP_ADMIN_PROXY "${IDP_BASE_URL}"
+  idp-admin-web IDP_ADMIN_PROXY "${GATEWAY_BASE_URL}"
 start_admin_web rbac3-admin-web "${rbac3_web_dir}" \
   "${rbac3_root_dir}/node_modules/.bin/vite" "${RBAC3_ADMIN_WEB_URL}" \
-  rbac3-admin-web RBAC3_ADMIN_PROXY "${RBAC3_BASE_URL}"
+  rbac3-admin-web RBAC3_ADMIN_PROXY "${GATEWAY_BASE_URL}"
 start_admin_web gateway-admin-web "${gateway_web_dir}" \
   "${gateway_web_dir}/node_modules/.bin/vite" "${GATEWAY_ADMIN_WEB_URL}" \
-  gateway-admin-web GATEWAY_ADMIN_PROXY "${GATEWAY_ADMIN_BASE_URL}"
+  gateway-admin-web GATEWAY_ADMIN_PROXY "${GATEWAY_BASE_URL}"
 start_admin_web ddc-admin-web "${ddc_web_dir}" \
   "${ddc_web_dir}/node_modules/.bin/vite" "${DDC_ADMIN_WEB_URL}" \
-  ddc-admin-web DDC_ADMIN_PROXY "${DDC_BASE_URL}"
+  ddc-admin-web DDC_ADMIN_PROXY "${GATEWAY_BASE_URL}"
 
 printf 'Unified platform local stack is running in %s.\n' \
   "${unified_platform_runtime_dir}"

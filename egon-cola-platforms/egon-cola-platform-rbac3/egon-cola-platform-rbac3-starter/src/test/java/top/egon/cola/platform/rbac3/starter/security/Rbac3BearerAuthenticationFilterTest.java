@@ -7,6 +7,7 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
+import top.egon.cola.platform.idp.contract.AuthenticationContext;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.idp.starter.security.IdpAuthenticationToken;
@@ -101,7 +102,7 @@ class Rbac3BearerAuthenticationFilterTest {
         SecurityContextHolder.getContext().setAuthentication(
                 new IdpAuthenticationToken(principal()));
         var request = new MockHttpServletRequest(
-                "GET", "/internal/v1/authorization/contexts/tenant-a/sid-1");
+                "GET", "/internal/v1/authorization/snapshots/current?systemCode=finance");
         var chain = new MockFilterChain();
 
         filter.doFilter(request, new MockHttpServletResponse(), chain);
@@ -156,14 +157,15 @@ class Rbac3BearerAuthenticationFilterTest {
 
     private IdentityPrincipal principal() {
         return new IdentityPrincipal(
-                "alice-sub", "tenant-a", "sid-1", "finance-web", "token-1",
-                2, Set.of("finance"), NOW.minusSeconds(30), NOW.plusSeconds(300));
+                "alice-sub", "tenant-a", "token-1", Set.of("finance"),
+                NOW.minusSeconds(30), NOW.plusSeconds(300),
+                AuthenticationContext.password());
     }
 
     private SystemAuthorizationSnapshot snapshot() {
         return new SystemAuthorizationSnapshot(
-                "tenant-a", "alice-sub", "101", "sid-1", "finance",
-                7, 3, 11, List.of("role-1"), Set.of("payment:read"),
+                "tenant-a", "alice-sub", "101", "finance",
+                7, 11, List.of("role-1"), Set.of("payment:read"),
                 Map.of(), Map.of(), "sha256:sid-1", NOW, NOW.plusSeconds(300));
     }
 }

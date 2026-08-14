@@ -10,23 +10,24 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefinitionContributor;
-import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
+import top.egon.cola.platform.idp.starter.security.UserAccessTokenVerifier;
 import top.egon.cola.platform.rbac3.admin.audit.controller.AuditController;
+import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
+import top.egon.cola.platform.rbac3.admin.authorization.controller.InternalAuthorizationController;
 import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
+import top.egon.cola.platform.rbac3.admin.participation.controller.ParticipationController;
 import top.egon.cola.platform.rbac3.admin.participation.service.ParticipationFacade;
+import top.egon.cola.platform.rbac3.admin.runtime.controller.RuntimeController;
 import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeQueryService;
-import top.egon.cola.platform.rbac3.admin.simulation.service.AuthorizationSimulationService;
-import top.egon.cola.platform.rbac3.admin.simulation.controller.AuthorizationSimulationController;
 import top.egon.cola.platform.rbac3.admin.runtime.service.SystemAuthorizationSnapshotService;
+import top.egon.cola.platform.rbac3.admin.simulation.controller.AuthorizationSimulationController;
+import top.egon.cola.platform.rbac3.admin.simulation.service.AuthorizationSimulationService;
 
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import top.egon.cola.platform.rbac3.admin.authorization.controller.InternalAuthorizationController;
-import top.egon.cola.platform.rbac3.admin.participation.controller.ParticipationController;
-import top.egon.cola.platform.rbac3.admin.runtime.controller.RuntimeController;
 
 @WebMvcTest(
         controllers = {
@@ -53,6 +54,9 @@ class Rbac3DecisionRuntimeGatewayDiscoveryTest {
 
     @MockitoBean
     private SystemAuthorizationSnapshotService systemAuthorizationSnapshotService;
+
+    @MockitoBean
+    private UserAccessTokenVerifier userAccessTokenVerifier;
 
     @MockitoBean
     private ParticipationFacade participationFacade;
@@ -85,9 +89,9 @@ class Rbac3DecisionRuntimeGatewayDiscoveryTest {
 
         assertThat(methods.get(InternalAuthorizationController.class.getName()))
                 .contains(
-                        "GET /internal/v1/authorization/contexts/{tenantId}/{sessionId}",
-                        "GET /internal/v1/authorization/sessions/{sessionId}/snapshot",
+                        "GET /internal/v1/authorization/snapshots/current",
                         "POST /internal/v1/authorization/decisions",
+                        "POST /internal/v1/authorization/resource-access-decisions",
                         "POST /internal/v1/authorization/fences/verify");
         assertThat(methods.get(ParticipationController.class.getName()))
                 .contains(

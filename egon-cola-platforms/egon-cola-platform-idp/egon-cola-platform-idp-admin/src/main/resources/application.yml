@@ -79,7 +79,6 @@ egon.cola.platform:
       database: ${IDP_AUTHORIZATION_REDIS_DATABASE:0}
     authorization:
       endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT}
-      service-credential-file: ${IDP_RBAC3_SERVICE_CREDENTIAL_FILE}
 
 egon:
   idp:
@@ -187,3 +186,18 @@ egon:
             heartbeat-interval-seconds: 10
             fail-fast: true
       gateway:
+        reporting:
+          enabled: ${IDP_GATEWAY_REPORTING_ENABLED:true}
+          admin-base-url: ${GATEWAY_ADMIN_BASE_URL:}
+          biz-code: ${IDP_RESOURCE_BIZ_CODE:permission}
+          application-code: ${IDP_RESOURCE_APP_CODE:idp}
+          application-name: IdP Identity Admin
+          env: ${DEPLOYMENT_ENV:local}
+          namespace: ${DEPLOYMENT_NAMESPACE:default}
+          artifact-version: ${IDP_ARTIFACT_VERSION:local}
+          build-id: ${IDP_BUILD_ID:local}
+          declared-hosts: ${IDP_DECLARED_HOSTS:127.0.0.1}
+          fail-fast: true
+          access-key: ${GATEWAY_REPORT_ACCESS_KEY:}
+          secret-key: ${GATEWAY_REPORT_SECRET_KEY:}
+          state-file: ${GATEWAY_REPORT_STATE_FILE:}

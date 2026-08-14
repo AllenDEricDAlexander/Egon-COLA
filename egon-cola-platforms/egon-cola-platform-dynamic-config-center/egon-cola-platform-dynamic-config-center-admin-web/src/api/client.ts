@@ -1,15 +1,8 @@
-import type { PageResultRecord, ResultEnvelope } from './types'
-import { oauthClient } from '../auth/AuthContext'
+import type {PageResultRecord, ResultEnvelope} from './types'
 
-type TokenProvider = () => string
 type UnauthorizedHandler = () => void
 
-let tokenProvider: TokenProvider = () => ''
 let unauthorizedHandler: UnauthorizedHandler = () => {}
-
-export const setDdcTokenProvider = (provider: TokenProvider): void => {
-  tokenProvider = provider
-}
 
 export const setDdcUnauthorizedHandler = (handler: UnauthorizedHandler): void => {
   unauthorizedHandler = handler
@@ -57,32 +50,22 @@ const requestEnvelope = async (
   options: DdcRequestOptions,
 ): Promise<ResultEnvelope & Record<string, unknown>> => {
   const headers = new Headers()
-  headers.set('Authorization', `Bearer ${tokenProvider()}`)
   let body: string | undefined
   if (options.body !== undefined) {
     headers.set('Content-Type', 'application/json')
     body = JSON.stringify(options.body)
   }
-  const request = () => fetch(path, {
+    const request = () => fetch(`${import.meta.env.VITE_GATEWAY_ORIGIN ?? ''}${path}`, {
     method: options.method ?? 'GET',
     headers,
     body,
+        credentials: 'include',
     signal: options.signal,
   })
 
   let response: Response
   try {
     response = await request()
-    if (response.status === 401) {
-      try {
-        headers.set('Authorization', `Bearer ${await oauthClient.refresh()}`)
-        response = await request()
-      } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          throw error
-        }
-      }
-    }
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw error

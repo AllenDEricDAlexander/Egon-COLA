@@ -4,6 +4,8 @@ import org.springframework.beans.factory.ObjectProvider;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ApplyFailureVO;
+import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.DdcConfigClientStatusVO;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -12,8 +14,6 @@ import java.util.HexFormat;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ApplyFailureVO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.DdcConfigClientStatusVO;
 
 /**
  * 类型 `DdcConfigClientStatusRepository` 位于当前包内，是类型，用于承载 `Ddc Config Client Status Service` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -109,15 +109,15 @@ public final class DdcConfigClientStatusRepository {
     public DdcConfigClientStatusVO status() {
         DdcRuntimeCoordinator runtime = coordinator.get();
         String state = runtime == null ? "UNKNOWN" : runtime.state().name();
-        Optional<DdcLeaseSession> session = runtime == null
+        Optional<DdcLeaseSession> lease = runtime == null
                 ? Optional.empty()
                 : runtime.currentSession().filter(value -> value.role() == DdcLeaseRole.CONFIG_CLIENT);
         ApplyFailureVO failure = policy.lastApplyFailure().orElse(null);
         return new DdcConfigClientStatusVO(
                 state,
-                session.map(DdcLeaseSession::instanceId).orElse(null),
-                session.map(DdcLeaseSession::leaseId).map(this::fingerprint).orElse(null),
-                session.map(DdcLeaseSession::leaseExpireAt).orElse(null),
+                lease.map(DdcLeaseSession::instanceId).orElse(null),
+                lease.map(DdcLeaseSession::leaseId).map(this::fingerprint).orElse(null),
+                lease.map(DdcLeaseSession::leaseExpireAt).orElse(null),
                 policy.current().configVersions(),
                 failure == null ? null : failure.key(),
                 failure == null ? null : failure.targetVersion(),

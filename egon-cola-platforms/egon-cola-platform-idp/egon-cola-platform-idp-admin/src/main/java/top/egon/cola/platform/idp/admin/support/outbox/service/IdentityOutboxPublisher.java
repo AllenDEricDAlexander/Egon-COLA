@@ -122,36 +122,8 @@ public class IdentityOutboxPublisher
         return json(Map.of(
                 "subject", subject,
                 "status", state.status().name(),
-                "tokenVersion", state.tokenVersion(),
                 "updatedAt", state.updatedAt().toString()
         ));
-    }
-
-    @Override
-    @Transactional
-    public void revokeFamilies(
-            String identitySub,
-            long tokenVersion,
-            String reason
-    ) {
-        String subject = subject(identitySub);
-        if (tokenVersion < 0L) {
-            throw new IllegalArgumentException("invalid tokenVersion");
-        }
-        String safeReason = eventValue(reason, "reason");
-        Instant now = clock.instant();
-        refreshTokens.revokeSubject(subject, safeReason, now);
-        persistOutbox(
-                subject,
-                "IDENTITY_REFRESH_FAMILIES_REVOKED",
-                json(Map.of(
-                        "subject", subject,
-                        "tokenVersion", tokenVersion,
-                        "reason", safeReason,
-                        "occurredAt", now.toString()
-                )),
-                now
-        );
     }
 
     @Override
@@ -165,14 +137,10 @@ public class IdentityOutboxPublisher
                 event.sourceBucket(),
                 "sourceBucket"
         );
-        if (event.tokenVersion() < 0L) {
-            throw new IllegalArgumentException("invalid tokenVersion");
-        }
         Map<String, Object> attributes = new LinkedHashMap<>();
         attributes.put("subject", subject);
         attributes.put("reason", reason);
         attributes.put("sourceBucket", sourceBucket);
-        attributes.put("tokenVersion", event.tokenVersion());
         attributes.put("occurredAt", event.occurredAt().toString());
         String payload = json(attributes);
         audits.save(IdentityAuditLogEntity.record(

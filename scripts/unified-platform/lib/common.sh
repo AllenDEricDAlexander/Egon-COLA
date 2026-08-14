@@ -159,7 +159,7 @@ unified_platform_local_build_id() {
 unified_platform_write_frontend_login_env() {
   local web_dir="$1" tenant_id="$2"
   local file="${web_dir}/.env.local"
-  local marker='# Managed by scripts/unified-platform for local SSO.'
+  local marker='# Managed by scripts/unified-platform for Gateway USER cookies.'
   [[ "${tenant_id}" =~ ^[1-9][0-9]*$ ]] \
     || unified_platform_fail "default tenant ID must be a positive integer"
   [[ -d "${web_dir}" ]] \

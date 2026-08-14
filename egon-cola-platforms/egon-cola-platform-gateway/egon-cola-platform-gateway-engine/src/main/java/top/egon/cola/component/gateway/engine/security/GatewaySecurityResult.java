@@ -2,8 +2,11 @@ package top.egon.cola.component.gateway.engine.security;
 
 import top.egon.cola.component.gateway.core.security.GatewayAuthContext;
 import top.egon.cola.component.gateway.core.security.GatewayCredential;
+import top.egon.cola.component.gateway.core.security.GatewayRouteSecurityType;
 import top.egon.cola.component.gateway.core.security.TrustedIdentity;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -45,7 +48,9 @@ public record GatewaySecurityResult(
          *
          * 用法 / Usage: 该字段通过 {@code GatewaySecurityResult} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewaySecurityResult}; do not couple callers to its representation when the owning type exposes an API.
          */
-        GatewayCredential forwardingCredential
+        GatewayCredential forwardingCredential,
+        Map<String, List<String>> responseHeaders,
+        GatewayRouteSecurityType routeSecurityType
 ) {
 
     /**
@@ -68,6 +73,14 @@ public record GatewaySecurityResult(
                 fieldsToRemove,
                 "fieldsToRemove"
         ));
+        responseHeaders = Map.copyOf(Objects.requireNonNull(
+                responseHeaders,
+                "responseHeaders"
+        ));
+        routeSecurityType = Objects.requireNonNull(
+                routeSecurityType,
+                "routeSecurityType"
+        );
     }
 
     /**
@@ -85,6 +98,25 @@ public record GatewaySecurityResult(
             Set<String> fieldsToRemove
     ) {
         this(context, trustedIdentity, fieldsToRemove, null);
+    }
+
+    public GatewaySecurityResult(
+            GatewayAuthContext context,
+            TrustedIdentity trustedIdentity,
+            Set<String> fieldsToRemove,
+            GatewayCredential forwardingCredential) {
+        this(context, trustedIdentity, fieldsToRemove, forwardingCredential,
+                Map.of(), GatewayRouteSecurityType.BUSINESS_PROTECTED);
+    }
+
+    public GatewaySecurityResult(
+            GatewayAuthContext context,
+            TrustedIdentity trustedIdentity,
+            Set<String> fieldsToRemove,
+            GatewayCredential forwardingCredential,
+            Map<String, List<String>> responseHeaders) {
+        this(context, trustedIdentity, fieldsToRemove, forwardingCredential,
+                responseHeaders, GatewayRouteSecurityType.BUSINESS_PROTECTED);
     }
 
     /**

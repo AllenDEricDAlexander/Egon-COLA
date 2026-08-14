@@ -1,6 +1,7 @@
 package top.egon.cola.platform.rbac3.starter.cache;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.platform.idp.contract.AuthenticationContext;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.starter.client.Rbac3AuthorizationClient;
@@ -32,7 +33,7 @@ class SingleFlightSnapshotLoaderTest {
         Rbac3AuthorizationClient client = (systemCode, principal) -> {
             fetches.incrementAndGet();
             release.await();
-            return AuthorizationSnapshotCacheTest.snapshot(principal.sessionId());
+            return AuthorizationSnapshotCacheTest.snapshot(principal.subject());
         };
         SingleFlightSnapshotLoader loader = new SingleFlightSnapshotLoader(
                 cache, client, "finance", Duration.ofMinutes(5), clock);
@@ -59,8 +60,8 @@ class SingleFlightSnapshotLoaderTest {
         var clock = new AuthorizationSnapshotCacheTest.MutableClock(NOW);
         var store = new AuthorizationSnapshotCacheTest.InMemoryStore(clock);
         var cache = new AuthorizationSnapshotCache(store, clock, Duration.ofSeconds(5));
-        var key = new AuthorizationSnapshotCache.Key("finance", "tenant-a", "sid-1");
-        cache.put(key, AuthorizationSnapshotCacheTest.snapshot("sid-1"),
+        var key = new AuthorizationSnapshotCache.Key("finance", "tenant-a", "alice-sub");
+        cache.put(key, AuthorizationSnapshotCacheTest.snapshot("alice-sub"),
                 Duration.ofSeconds(1));
         clock.advance(Duration.ofSeconds(2));
         SingleFlightSnapshotLoader loader = new SingleFlightSnapshotLoader(
@@ -78,7 +79,7 @@ class SingleFlightSnapshotLoaderTest {
     }
 
     @Test
-    void waiterWithDifferentSubjectCannotReuseAnotherSubjectsFlight() throws Exception {
+    void differentSubjectsUseDifferentFlightsAndRemainBound() throws Exception {
         var clock = new AuthorizationSnapshotCacheTest.MutableClock(NOW);
         var cache = new AuthorizationSnapshotCache(
                 new AuthorizationSnapshotCacheTest.InMemoryStore(clock),
@@ -88,13 +89,14 @@ class SingleFlightSnapshotLoaderTest {
         Rbac3AuthorizationClient client = (systemCode, principal) -> {
             entered.countDown();
             release.await();
-            return AuthorizationSnapshotCacheTest.snapshot(principal.sessionId());
+            return AuthorizationSnapshotCacheTest.snapshot(principal.subject());
         };
         SingleFlightSnapshotLoader loader = new SingleFlightSnapshotLoader(
                 cache, client, "finance", Duration.ofMinutes(5), clock);
         IdentityPrincipal anotherSubject = new IdentityPrincipal(
-                "bob-sub", "tenant-a", "sid-1", "finance-web", "token-2",
-                2, Set.of("finance"), NOW.minusSeconds(30), NOW.plusSeconds(300));
+                "bob-sub", "tenant-a", "token-2", Set.of("finance"),
+                NOW.minusSeconds(30), NOW.plusSeconds(300),
+                AuthenticationContext.password());
 
         try (var executor = Executors.newFixedThreadPool(2)) {
             var owner = executor.submit(() -> loader.load(principal()));
@@ -103,10 +105,7 @@ class SingleFlightSnapshotLoaderTest {
             release.countDown();
 
             assertThat(owner.get().identitySub()).isEqualTo("alice-sub");
-            assertThatThrownBy(waiter::get)
-                    .hasCauseInstanceOf(
-                            Rbac3AuthorizationClient.AuthorizationDeniedException.class)
-                    .hasRootCauseMessage("RBAC3_AUTHORIZATION_BINDING_MISMATCH");
+            assertThat(waiter.get().identitySub()).isEqualTo("bob-sub");
         }
     }
 
@@ -143,7 +142,7 @@ class SingleFlightSnapshotLoaderTest {
                 failingStore, ClockHolder.clock(), Duration.ofSeconds(5));
         var loader = new SingleFlightSnapshotLoader(
                 cache,
-                (systemCode, principal) -> AuthorizationSnapshotCacheTest.snapshot("sid-1"),
+                (systemCode, principal) -> AuthorizationSnapshotCacheTest.snapshot("alice-sub"),
                 "finance", Duration.ofMinutes(5), ClockHolder.clock());
 
         assertThatThrownBy(() -> loader.load(principal()))
@@ -155,8 +154,9 @@ class SingleFlightSnapshotLoaderTest {
 
     private IdentityPrincipal principal() {
         return new IdentityPrincipal(
-                "alice-sub", "tenant-a", "sid-1", "finance-web", "token-1",
-                2, Set.of("finance"), NOW.minusSeconds(30), NOW.plusSeconds(300));
+                "alice-sub", "tenant-a", "token-1", Set.of("finance"),
+                NOW.minusSeconds(30), NOW.plusSeconds(300),
+                AuthenticationContext.password());
     }
 
     private static final class ClockHolder {

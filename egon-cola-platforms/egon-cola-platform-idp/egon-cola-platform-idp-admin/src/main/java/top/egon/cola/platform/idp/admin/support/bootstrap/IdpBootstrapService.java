@@ -86,7 +86,6 @@ public class IdpBootstrapService implements IdpBootstrapRunner.BootstrapPort {
                     normalizedUsername,
                     displayUsername,
                     IdentityUserStatus.ACTIVE,
-                    0L,
                     0,
                     null,
                     null,

@@ -7,6 +7,26 @@ export type ResultEnvelope = {
   timestamp: number
 }
 
+export type AuthorizationBootstrap = {
+    user: {
+        id: string
+        tenantId: string
+        identitySub: string
+        status: string
+    }
+    activeRoleContexts: readonly unknown[]
+    permissions: readonly string[]
+    apps: readonly unknown[]
+    menus: readonly unknown[]
+    routes: readonly unknown[]
+    actions: readonly unknown[]
+    fieldPolicies: Readonly<Record<string, unknown>>
+    defaultApplicationCode: string | null
+    defaultRoute: string | null
+    authVersion: number
+    policyVersion: number
+}
+
 export type ResultRecord<T> = ResultEnvelope & { data: T }
 
 export type PageMetaRecord = {

@@ -1,7 +1,7 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { setDdcTokenProvider, setDdcUnauthorizedHandler } from '../api/client'
-import { renderWithQueryClient } from '../test/renderWithQueryClient'
+import {fireEvent, screen, waitFor} from '@testing-library/react'
+import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {setDdcUnauthorizedHandler} from '../api/client'
+import {renderWithQueryClient} from '../test/renderWithQueryClient'
 import NamespacesPage from './NamespacesPage'
 
 const record = (data: unknown) => ({
@@ -82,7 +82,6 @@ const mockEndpoints = (pageResponse: () => Response): void => {
 
 describe('NamespacesPage', () => {
   beforeEach(() => {
-    setDdcTokenProvider(() => 'token')
     setDdcUnauthorizedHandler(() => {})
     vi.stubGlobal('fetch', vi.fn())
   })

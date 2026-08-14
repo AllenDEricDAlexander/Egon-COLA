@@ -60,11 +60,9 @@ public class IdpStarterProperties {
     private URI resourceUri;
 
     /**
-     * IdP 用户实时状态在 Redis 中使用的键前缀。
-     *
-     * <p>Redis key prefix used for current IdP user-state projections.</p>
+     * Fixed platform audience accepted by stateless USER access-token verification.
      */
-    private String userStateKeyPrefix = "identity:v1:user:";
+    private String platformAudience = "platform";
 
     /**
      * Resource Server 运行态投影在 Redis 中使用的键前缀。
@@ -227,26 +225,12 @@ public class IdpStarterProperties {
         this.resourceUri = resourceUri;
     }
 
-    /**
-     * 返回用户实时状态的 Redis 键前缀。
-     *
-     * <p>Returns the Redis key prefix for current user state.</p>
-     *
-     * @return Redis 键前缀；Redis key prefix
-     */
-    public String getUserStateKeyPrefix() {
-        return userStateKeyPrefix;
+    public String getPlatformAudience() {
+        return platformAudience;
     }
 
-    /**
-     * 设置用户实时状态的 Redis 键前缀。
-     *
-     * <p>Sets the Redis key prefix for current user state.</p>
-     *
-     * @param userStateKeyPrefix Redis 键前缀；Redis key prefix
-     */
-    public void setUserStateKeyPrefix(String userStateKeyPrefix) {
-        this.userStateKeyPrefix = userStateKeyPrefix;
+    public void setPlatformAudience(String platformAudience) {
+        this.platformAudience = platformAudience;
     }
 
     /**
@@ -330,7 +314,7 @@ public class IdpStarterProperties {
         required(jwkSetUri, "jwkSetUri");
         required(resourceServerId, "resourceServerId");
         resource(resourceUri, "resourceUri");
-        required(userStateKeyPrefix, "userStateKeyPrefix");
+        required(platformAudience, "platformAudience");
         required(resourceStateKeyPrefix, "resourceStateKeyPrefix");
         required(oauthClientStateKeyPrefix, "oauthClientStateKeyPrefix");
     }

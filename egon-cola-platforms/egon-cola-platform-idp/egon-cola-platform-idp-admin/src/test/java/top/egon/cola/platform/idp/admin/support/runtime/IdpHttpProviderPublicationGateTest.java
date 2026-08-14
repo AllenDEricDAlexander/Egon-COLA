@@ -5,19 +5,19 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.web.context.WebServerApplicationContext;
 import org.springframework.boot.web.context.WebServerInitializedEvent;
 import org.springframework.boot.web.server.WebServer;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
+import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
-import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
-import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
-import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 
 import java.time.Instant;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -98,7 +98,7 @@ class IdpHttpProviderPublicationGateTest {
         assertThatThrownBy(() -> missingSession.onApplicationEvent(
                 mock(ApplicationReadyEvent.class)
         )).isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("session is missing");
+                .hasMessageContaining("lease is missing");
 
         IdpHttpProviderPublicationGate wrongPort =
                 new IdpHttpProviderPublicationGate(

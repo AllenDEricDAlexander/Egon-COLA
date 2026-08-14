@@ -1,26 +1,26 @@
 import {
-  ApiOutlined,
-  AppstoreOutlined,
-  AuditOutlined,
-  DashboardOutlined,
-  DeploymentUnitOutlined,
-  EyeOutlined,
-  KeyOutlined,
-  LogoutOutlined,
-  RobotOutlined,
-  ShareAltOutlined,
+    ApiOutlined,
+    AppstoreOutlined,
+    AuditOutlined,
+    DashboardOutlined,
+    DeploymentUnitOutlined,
+    EyeOutlined,
+    KeyOutlined,
+    LogoutOutlined,
+    RobotOutlined,
+    ShareAltOutlined,
 } from '@ant-design/icons'
-import { Badge, Space } from 'antd'
-import { useQueryClient } from '@tanstack/react-query'
+import {Badge, Space} from 'antd'
+import {useQueryClient} from '@tanstack/react-query'
 import {
-  EnterpriseLayout,
-  type EnterpriseLayoutConfig,
-  type EnterpriseNavigationItem,
+    EnterpriseLayout,
+    type EnterpriseLayoutConfig,
+    type EnterpriseNavigationItem,
 } from '@egon-cola/admin-web-shared'
-import { Outlet, useNavigate } from 'react-router-dom'
-import { version } from '../../package.json'
-import { useAuth } from '../auth/AuthContext'
-import { useCapability, type Capability } from '../app/capabilities'
+import {Outlet, useNavigate} from 'react-router-dom'
+import {version} from '../../package.json'
+import {useAuth} from '../auth/AuthContext'
+import {type Capability, useCapability} from '../app/capabilities'
 
 // 平台自己的导航数据，由 capability 过滤后交给统一 Header。
 const navigation: Array<{
@@ -94,9 +94,9 @@ export const AdminLayout = () => {
         <Badge status="processing" text="Admin API" />
       </Space>
     ),
-    user: auth.session
+      user: auth.authorization
       ? {
-          name: auth.session.displayName,
+              name: auth.authorization.user.identitySub,
           menu: [
             {
               key: 'logout',

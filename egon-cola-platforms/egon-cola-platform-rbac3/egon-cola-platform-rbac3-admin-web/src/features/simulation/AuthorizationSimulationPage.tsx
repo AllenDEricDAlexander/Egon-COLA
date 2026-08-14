@@ -1,9 +1,9 @@
-import { PermissionGuard, useRbac3Session } from '@egon-cola/rbac3-react-sdk'
-import { useMutation } from '@tanstack/react-query'
-import { Alert, Button, Card, Col, Descriptions, Form, Input, Row, Space, Tag, Typography } from 'antd'
-import { useFeatureApi } from '../shared/FeatureApi'
-import { PageState } from '@egon-cola/admin-web-shared'
-import { simulationApi, type AuthorizationSimulationCommand, type SimulationDecisionBundle } from './simulation.api'
+import {PermissionGuard, useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
+import {useMutation} from '@tanstack/react-query'
+import {Alert, Button, Card, Col, Descriptions, Form, Input, Row, Space, Tag, Typography} from 'antd'
+import {useFeatureApi} from '../shared/FeatureApi'
+import {PageState} from '@egon-cola/admin-web-shared'
+import {type AuthorizationSimulationCommand, simulationApi, type SimulationDecisionBundle} from './simulation.api'
 
 interface SimulationForm {
   readonly permissionCode: string
@@ -16,18 +16,22 @@ interface SimulationForm {
 const permissionList = (value?: string) => value?.split(',').map((item) => item.trim()).filter(Boolean) ?? []
 
 export const AuthorizationSimulationPage = () => {
-  const { bootstrap } = useRbac3Session()
+    const {bootstrap} = useRbac3Authorization()
   const api = simulationApi(useFeatureApi())
   const simulation = useMutation({
     mutationFn: (form: SimulationForm) => {
       if (!bootstrap) throw new Error('BOOTSTRAP_REQUIRED')
       const command: AuthorizationSimulationCommand = {
         decisionRequest: {
-          subject: { tenantId: bootstrap.user.tenantId, userId: bootstrap.user.id, sessionId: bootstrap.sessionId },
+            subject: {
+                tenantId: bootstrap.user.tenantId,
+                userId: bootstrap.user.id,
+                identitySub: bootstrap.user.identitySub
+            },
           permissionCode: form.permissionCode,
           resource: { applicationCode: form.applicationCode, resourceCode: form.resourceCode },
           requestedDecisions: ['FUNCTION', 'DATA_SCOPE', 'FIELD', 'PARTICIPATION', 'FENCE'],
-          tokenVersions: { authVersion: bootstrap.authVersion, sessionVersion: bootstrap.sessionVersion, policyVersion: bootstrap.policyVersion },
+            tokenVersions: {authVersion: bootstrap.authVersion, policyVersion: bootstrap.policyVersion},
         },
         hypothesis: { addedPermissions: permissionList(form.addedPermissions), removedPermissions: permissionList(form.removedPermissions) },
         at: new Date().toISOString(),
@@ -37,7 +41,7 @@ export const AuthorizationSimulationPage = () => {
   })
   return (
     <Card title="授权模拟">
-      <Alert type="info" showIcon message="模拟固定在一个一致快照上，仅返回判断和证据，不修改角色、权限、会话或业务数据。" />
+        <Alert type="info" showIcon message="模拟固定在一个一致快照上，仅返回判断和证据，不修改角色、权限或业务数据。"/>
       <Form<SimulationForm> layout="vertical" onFinish={simulation.mutate} style={{ marginTop: 16 }}>
         <Row gutter={16}>
           <Col span={8}><Form.Item name="permissionCode" label="Permission Code" rules={[{ required: true }]}><Input aria-label="Permission Code" /></Form.Item></Col>
@@ -59,7 +63,6 @@ export const AuthorizationSimulationPage = () => {
             </Row>
             <Descriptions bordered column={4}>
               <Descriptions.Item label="Auth Version">{simulation.data.authVersion}</Descriptions.Item>
-              <Descriptions.Item label="Session Version">{simulation.data.sessionVersion}</Descriptions.Item>
               <Descriptions.Item label="Policy Version">{simulation.data.policyVersion}</Descriptions.Item>
               <Descriptions.Item label="结果过期">{simulation.data.expiresAt}</Descriptions.Item>
               <Descriptions.Item label="Snapshot Checksum" span={4}>{simulation.data.snapshotChecksum}</Descriptions.Item>

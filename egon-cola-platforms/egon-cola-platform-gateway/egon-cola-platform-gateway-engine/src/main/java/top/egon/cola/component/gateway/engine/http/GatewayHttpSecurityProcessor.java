@@ -5,8 +5,11 @@ import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 import top.egon.cola.component.gateway.core.http.NormalizedHttpRequest;
 import top.egon.cola.component.gateway.core.route.HttpRouteMatch;
 import top.egon.cola.component.gateway.core.security.GatewayCredential;
+import top.egon.cola.component.gateway.core.security.GatewayRouteSecurityType;
 import top.egon.cola.component.gateway.core.security.TrustedIdentity;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -67,7 +70,9 @@ public interface GatewayHttpSecurityProcessor {
              *
              * 用法 / Usage: 该字段通过 {@code GatewayHttpSecurityProcessor.Outcome} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayHttpSecurityProcessor.Outcome}; do not couple callers to its representation when the owning type exposes an API.
              */
-            GatewayCredential forwardingCredential
+            GatewayCredential forwardingCredential,
+            Map<String, List<String>> responseHeaders,
+            GatewayRouteSecurityType routeSecurityType
     ) {
 
         /**
@@ -88,6 +93,14 @@ public interface GatewayHttpSecurityProcessor {
                     fieldsToRemove,
                     "fieldsToRemove"
             ));
+            responseHeaders = Map.copyOf(Objects.requireNonNull(
+                    responseHeaders,
+                    "responseHeaders"
+            ));
+            routeSecurityType = Objects.requireNonNull(
+                    routeSecurityType,
+                    "routeSecurityType"
+            );
         }
 
         /**
@@ -102,7 +115,25 @@ public interface GatewayHttpSecurityProcessor {
                 TrustedIdentity trustedIdentity,
                 Set<String> fieldsToRemove
         ) {
-            this(trustedIdentity, fieldsToRemove, null);
+            this(trustedIdentity, fieldsToRemove, null, Map.of(),
+                    GatewayRouteSecurityType.BUSINESS_PROTECTED);
+        }
+
+        public Outcome(
+                TrustedIdentity trustedIdentity,
+                Set<String> fieldsToRemove,
+                GatewayCredential forwardingCredential) {
+            this(trustedIdentity, fieldsToRemove, forwardingCredential, Map.of(),
+                    GatewayRouteSecurityType.BUSINESS_PROTECTED);
+        }
+
+        public Outcome(
+                TrustedIdentity trustedIdentity,
+                Set<String> fieldsToRemove,
+                GatewayCredential forwardingCredential,
+                Map<String, List<String>> responseHeaders) {
+            this(trustedIdentity, fieldsToRemove, forwardingCredential,
+                    responseHeaders, GatewayRouteSecurityType.BUSINESS_PROTECTED);
         }
 
         /**
@@ -113,7 +144,8 @@ public interface GatewayHttpSecurityProcessor {
          * @return 返回 anonymous 的处理结果；returns the result of the operation.
          */
         public static Outcome anonymous() {
-            return new Outcome(TrustedIdentity.empty(), Set.of(), null);
+            return new Outcome(TrustedIdentity.empty(), Set.of(), null, Map.of(),
+                    GatewayRouteSecurityType.PUBLIC_PROTOCOL);
         }
     }
 }

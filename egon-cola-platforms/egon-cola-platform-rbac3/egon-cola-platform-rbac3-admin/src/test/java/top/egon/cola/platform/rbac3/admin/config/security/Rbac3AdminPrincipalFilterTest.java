@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
+import top.egon.cola.platform.idp.contract.AuthenticationContext;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
@@ -17,9 +18,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.Rbac3AdminAuthenticationToken;
-import top.egon.cola.platform.rbac3.admin.config.security.Rbac3AdminPrincipalFilter;
 
 class Rbac3AdminPrincipalFilterTest {
 
@@ -33,12 +31,11 @@ class Rbac3AdminPrincipalFilterTest {
     @Test
     void projectsStarterContextWithoutReadingAuthorizationClaims() throws Exception {
         IdentityPrincipal identity = new IdentityPrincipal(
-                "alice-sub", "tenant-a", "sid-1", "rbac3-admin-web",
-                "token-1", 2, Set.of("rbac3-admin-web"),
-                NOW, NOW.plusSeconds(900));
+                "alice-sub", "tenant-a", "token-1", Set.of("rbac3-admin-web"),
+                NOW, NOW.plusSeconds(900), AuthenticationContext.of("PASSWORD", NOW));
         SystemAuthorizationSnapshot snapshot = new SystemAuthorizationSnapshot(
-                "tenant-a", "alice-sub", "101", "sid-1", "rbac3-admin",
-                7, 8, 9, List.of("role-1"),
+                "tenant-a", "alice-sub", "101", "rbac3-admin",
+                7, 9, List.of("role-1"),
                 Set.of("system:bootstrap:read", "system:platform:admin"),
                 Map.of(), Map.of(), "sha256:rbac3", NOW, NOW.plusSeconds(900));
         var runtime = new AuthorizationService.RuntimeAuthorizationContext(
@@ -55,8 +52,8 @@ class Rbac3AdminPrincipalFilterTest {
                                 .getPrincipal()));
 
         assertThat(principal.get()).isEqualTo(new CurrentRbac3Principal(
-                "tenant-a", "alice-sub", "101", "sid-1",
-                7, 8, 9,
+                "tenant-a", "alice-sub", "101",
+                7, 9,
                 Set.of("system:bootstrap:read", "system:platform:admin"), true));
         assertThat(SecurityContextHolder.getContext().getAuthentication())
                 .isInstanceOf(Rbac3AdminAuthenticationToken.class);

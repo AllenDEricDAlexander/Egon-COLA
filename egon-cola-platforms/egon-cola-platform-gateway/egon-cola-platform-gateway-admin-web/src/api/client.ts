@@ -1,8 +1,7 @@
-import type { AdminErrorBody } from './types'
-import { createLogicalTrace, traceHeaders, type LogicalTrace } from './trace'
-import { oauthClient, tokenStore } from '../auth/AuthContext'
+import type {AdminErrorBody} from './types'
+import {createLogicalTrace, type LogicalTrace, traceHeaders} from './trace'
 
-const API_BASE_URL = import.meta.env.VITE_GATEWAY_ADMIN_API_BASE_URL ?? ''
+const API_BASE_URL = import.meta.env.VITE_GATEWAY_ORIGIN ?? ''
 const CONTRACT_VERSION = 'v1'
 
 const traceIdFromTraceparent = (value: string | null): string | undefined => {
@@ -76,8 +75,6 @@ export const apiRequest = async <T>(
   const headers = new Headers(request.headers)
   headers.set('Accept', 'application/json')
   headers.set('X-Gateway-Contract-Version', CONTRACT_VERSION)
-  const accessToken = tokenStore.get()?.accessToken
-  if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
   Object.entries(traceHeaders(trace)).forEach(([name, value]) => headers.set(name, value))
   if (request.idempotencyKey) {
     headers.set('Idempotency-Key', request.idempotencyKey)
@@ -90,23 +87,12 @@ export const apiRequest = async <T>(
     body = JSON.stringify(request.body)
   }
   try {
-    let response = await fetch(`${API_BASE_URL}${path}`, {
+      const response = await fetch(`${API_BASE_URL}${path}`, {
       ...request,
+          credentials: 'include',
       body,
       headers,
     })
-    if (response.status === 401 && accessToken) {
-      try {
-        headers.set('Authorization', `Bearer ${await oauthClient.refresh()}`)
-        response = await fetch(`${API_BASE_URL}${path}`, {
-          ...request,
-          body,
-          headers,
-        })
-      } catch {
-        tokenStore.clear()
-      }
-    }
     if (!response.ok) {
       throw await decodeError(response)
     }

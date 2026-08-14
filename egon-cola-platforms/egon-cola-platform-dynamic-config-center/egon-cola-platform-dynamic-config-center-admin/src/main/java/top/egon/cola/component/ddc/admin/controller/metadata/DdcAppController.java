@@ -15,11 +15,20 @@ import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.ddc.admin.model.entity.DdcAppEntity;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcAppService;
 import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
+import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
+import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/ddc/apps")
+@GatewayInterfaceGroup(
+        businessDomainCode = "platform",
+        businessDomainName = "平台治理域",
+        entityDomainCode = "ddc-admin",
+        entityDomainName = "Dynamic Config Center 管理实体域",
+        code = "ddc-admin-ddc-app-controller",
+        name = "DdcAppController 管理接口组")
 public class DdcAppController {
 
     private final DdcAppService appService;
@@ -28,6 +37,7 @@ public class DdcAppController {
         this.appService = appService;
     }
 
+    @GatewayOperation(externalAccessible = true)
     @GetMapping
     public ResultRecord<List<DdcAppEntity>> list(
             @RequestParam(value = "bizCode", required = false) String bizCode,
@@ -38,6 +48,7 @@ public class DdcAppController {
                 bizCode, namespaceCode, env, keyword));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @GetMapping("/page")
     public PageResultRecord<DdcAppEntity> page(
             @RequestParam(value = "bizCode", required = false) String bizCode,
@@ -49,16 +60,19 @@ public class DdcAppController {
                 bizCode, namespaceCode, env, keyword, pageQuery));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @GetMapping("/{id}")
     public ResultRecord<DdcAppEntity> detail(@PathVariable("id") String id) {
         return ResultRecord.success(appService.findById(id).orElse(null));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @PostMapping
     public ResultRecord<DdcAppEntity> save(@RequestBody DdcAppEntity request) {
         return ResultRecord.success(appService.save(request));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @PutMapping("/{id}")
     public ResultRecord<DdcAppEntity> update(
             @PathVariable("id") String id,
@@ -66,12 +80,14 @@ public class DdcAppController {
         return ResultRecord.success(appService.update(id, request));
     }
 
+    @GatewayOperation(externalAccessible = true)
     @DeleteMapping("/{id}")
     public ResultRecord<Void> delete(@PathVariable("id") String id) {
         appService.delete(id);
         return ResultRecord.success(null);
     }
 
+    @GatewayOperation(externalAccessible = true)
     @PutMapping("/{id}/enabled")
     public ResultRecord<DdcAppEntity> setEnabled(
             @PathVariable("id") String id,

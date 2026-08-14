@@ -1,15 +1,14 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ConfigProvider, Result } from 'antd'
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
+import {ConfigProvider, Result} from 'antd'
 import zhCN from 'antd/locale/zh_CN'
-import { lazy, Suspense } from 'react'
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
-import { CapabilityProvider } from './capabilities'
-import { AuthProvider } from '../auth/AuthContext'
-import { CallbackPage } from '../auth/CallbackPage'
-import { LoginPage } from '../auth/LoginPage'
-import { RequireAuth, RequireCapability } from '../auth/RouteGuards'
-import { LoadingBlock } from '../components/QueryState'
-import { AdminLayout } from '../layouts/AdminLayout'
+import {lazy, Suspense} from 'react'
+import {createBrowserRouter, Navigate, RouterProvider} from 'react-router-dom'
+import {CapabilityProvider} from './capabilities'
+import {AuthProvider} from '../auth/AuthContext'
+import {LoginPage} from '../auth/LoginPage'
+import {RequireAuth, RequireCapability} from '../auth/RouteGuards'
+import {LoadingBlock} from '../components/QueryState'
+import {AdminLayout} from '../layouts/AdminLayout'
 
 const DashboardPage = lazy(() =>
   import('../features/dashboard/DashboardPage').then((module) => ({
@@ -89,7 +88,6 @@ const McpRemoteProvidersPage = lazy(() =>
 
 const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
-  { path: '/oauth/callback', element: <CallbackPage /> },
   {
     path: '/',
     element: (

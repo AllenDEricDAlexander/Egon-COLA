@@ -1,9 +1,9 @@
-import { useRbac3Session } from '@egon-cola/rbac3-react-sdk'
-import { useQuery } from '@tanstack/react-query'
-import { Card, Table, Tabs, Tag, Typography } from 'antd'
-import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '@egon-cola/admin-web-shared'
-import { constraintApi, type SodSetView } from './constraint.api'
+import {useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
+import {useQuery} from '@tanstack/react-query'
+import {Card, Table, Tabs, Tag, Typography} from 'antd'
+import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
+import {PageState} from '@egon-cola/admin-web-shared'
+import {constraintApi, type SodSetView} from './constraint.api'
 
 export interface DsdRoleSelection {
   readonly roleId: string
@@ -24,7 +24,7 @@ export const validateDsdRoleSelection = (
 }
 
 export const ConstraintPage = () => {
-  const { status } = useRbac3Session()
+    const {status} = useRbac3Authorization()
   const { effectiveTenantId } = useFeatureTenantContext()
   const api = constraintApi(useFeatureApi())
   const tenant = effectiveTenantId ?? 'none'

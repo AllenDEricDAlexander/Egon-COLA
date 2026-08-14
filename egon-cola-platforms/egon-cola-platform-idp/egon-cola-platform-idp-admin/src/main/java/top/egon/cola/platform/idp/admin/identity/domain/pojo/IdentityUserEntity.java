@@ -33,9 +33,6 @@ public class IdentityUserEntity {
     @Column(nullable = false, length = 32)
     private IdentityUserStatus status;
 
-    @Column(name = "token_version", nullable = false)
-    private long tokenVersion;
-
     @Column(name = "failed_login_count", nullable = false)
     private int failedLoginCount;
 
@@ -78,7 +75,6 @@ public class IdentityUserEntity {
         normalizedUsername = user.normalizedUsername();
         displayName = user.displayName();
         status = user.status();
-        tokenVersion = user.tokenVersion();
         failedLoginCount = user.failedLoginCount();
         lockedUntil = user.lockedUntil();
         lastLoginAt = user.lastLoginAt();
@@ -93,7 +89,6 @@ public class IdentityUserEntity {
                 normalizedUsername,
                 displayName,
                 status,
-                tokenVersion,
                 failedLoginCount,
                 lockedUntil,
                 lastLoginAt,

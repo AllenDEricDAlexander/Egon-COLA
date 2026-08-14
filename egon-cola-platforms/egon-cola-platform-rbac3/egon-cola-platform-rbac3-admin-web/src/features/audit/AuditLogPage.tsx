@@ -1,11 +1,11 @@
-import { useRbac3Session } from '@egon-cola/rbac3-react-sdk'
-import { useQuery } from '@tanstack/react-query'
-import { Button, Card, Col, Form, Input, Row, Select, Space, Table, Tag, Typography } from 'antd'
-import { useState } from 'react'
-import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '@egon-cola/admin-web-shared'
-import { AuditDetailDrawer } from './AuditDetailDrawer'
-import { auditApi, type AuditFilter, type AuditView } from './audit.api'
+import {useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
+import {useQuery} from '@tanstack/react-query'
+import {Button, Card, Col, Form, Input, Row, Select, Space, Table, Tag, Typography} from 'antd'
+import {useState} from 'react'
+import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
+import {PageState} from '@egon-cola/admin-web-shared'
+import {AuditDetailDrawer} from './AuditDetailDrawer'
+import {auditApi, type AuditFilter, type AuditView} from './audit.api'
 
 const makeInitialFilter = (): AuditFilter => {
   const now = new Date()
@@ -14,7 +14,7 @@ const makeInitialFilter = (): AuditFilter => {
 }
 
 export const AuditLogPage = () => {
-  const { status } = useRbac3Session()
+    const {status} = useRbac3Authorization()
   const { effectiveTenantId } = useFeatureTenantContext()
   const api = auditApi(useFeatureApi())
   const [filter, setFilter] = useState<AuditFilter>(makeInitialFilter)

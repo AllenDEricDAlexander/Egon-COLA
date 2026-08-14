@@ -1,63 +1,26 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type PropsWithChildren,
-} from 'react'
-import {
-  createOAuthClient,
-  createTokenStore,
-  createHttpClient,
-  type OAuthClient,
-  type AuthTokens,
-} from '@egon-cola/admin-web-shared'
-import type { AuthorizationBootstrap } from '../api/types'
+import {createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState,} from 'react'
+import {createGatewayAuthClient, createHttpClient,} from '@egon-cola/admin-web-shared'
+import type {AuthorizationBootstrap} from '../api/types'
 
-const requiredEnv = (key: string): string => {
-  const value = (import.meta.env as Record<string, string>)[key]
-  if (!value) throw new Error(`${key} is required`)
-  return value
-}
+const gatewayOrigin = import.meta.env.VITE_GATEWAY_ORIGIN ?? ''
 
-const tokenStore = createTokenStore()
-
-const oauthClient: OAuthClient = createOAuthClient({
-  issuer: requiredEnv('VITE_IDP_ISSUER'),
-  clientId: requiredEnv('VITE_IDP_CLIENT_ID'),
-  resource: requiredEnv('VITE_IDP_RESOURCE'),
-  redirectUri: (import.meta.env as Record<string, string>).VITE_IDP_REDIRECT_URI
-    ?? `${window.location.origin}/oauth/callback`,
-  tokenStore,
-}, {
-  fetch: globalThis.fetch.bind(globalThis),
-  storage: window.sessionStorage,
-  randomValues: (target: Uint8Array<ArrayBuffer>) => crypto.getRandomValues(target),
-  digest: (value: Uint8Array<ArrayBuffer>) => crypto.subtle.digest('SHA-256', value),
-  navigate: (url: string) => { window.location.assign(url) },
-  now: () => Date.now(),
-})
-
+const gatewayAuth = createGatewayAuthClient({baseUrl: gatewayOrigin})
 const httpClient = createHttpClient({
-  baseUrl: (import.meta.env as Record<string, string>).VITE_IDP_API_BASE_URL ?? '',
+    baseUrl: gatewayOrigin,
   credentials: 'include',
-  getAccessToken: () => tokenStore.get()?.accessToken ?? null,
-  onAuthError: () => oauthClient.refresh(),
-  onFatalAuthError: () => {
-    tokenStore.clear()
-    window.location.assign('/login')
-  },
+    onAuthError: () => undefined,
 })
 
-export { oauthClient, httpClient }
+export {gatewayAuth, httpClient}
 
 interface AuthContextValue {
   readonly loading: boolean
   readonly bootstrap?: AuthorizationBootstrap
-  readonly login: (tenantId: string, returnTo?: string) => Promise<void>
+    readonly login: (
+        tenantId: string,
+        username: string,
+        password: string,
+    ) => Promise<void>
   readonly logout: () => Promise<void>
 }
 
@@ -66,69 +29,37 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [loading, setLoading] = useState(true)
   const [bootstrap, setBootstrap] = useState<AuthorizationBootstrap>()
-  const [tokens, setTokens] = useState<AuthTokens | null>(tokenStore.get())
-  const refreshAttempted = useRef(false)
-  const refreshInFlight = useRef<Promise<string> | undefined>(undefined)
 
-  const login = useCallback(async (tenantId: string, returnTo = '/') => {
-    await oauthClient.beginAuthorization(tenantId, returnTo)
+    const login = useCallback(async (
+        tenantId: string,
+        username: string,
+        password: string,
+    ) => {
+        setLoading(true)
+        await gatewayAuth.login({tenantId, username, password})
+        setBootstrap(await gatewayAuth.bootstrap<AuthorizationBootstrap>())
+        setLoading(false)
   }, [])
 
   const logout = useCallback(async () => {
-    await oauthClient.revoke()
+      await gatewayAuth.logout()
     setBootstrap(undefined)
   }, [])
 
-  useEffect(() => tokenStore.subscribe(setTokens), [])
-
   useEffect(() => {
     let active = true
-    const initialize = async () => {
-      if (!tokens) {
+      void gatewayAuth.bootstrap<AuthorizationBootstrap>()
+          .then((value) => {
+              if (active) setBootstrap(value)
+          })
+          .catch(() => {
         if (active) setBootstrap(undefined)
-        if (window.location.pathname === '/oauth/callback') {
-          if (active) setLoading(false)
-          return
-        }
-        if (!refreshAttempted.current) {
-          refreshAttempted.current = true
-          refreshInFlight.current = oauthClient.refresh()
-        }
-        const refresh = refreshInFlight.current
-        if (!refresh) {
-          if (active) setLoading(false)
-          return
-        }
-        if (active) setLoading(true)
-        try {
-          await refresh
-          if (active && !tokenStore.get()) setLoading(false)
-        } catch {
-          if (active) setLoading(false)
-        } finally {
-          if (refreshInFlight.current === refresh) refreshInFlight.current = undefined
-        }
-        return
-      }
-      if (active) setLoading(true)
-      try {
-        const value = await httpClient.request<AuthorizationBootstrap>('/api/v1/auth/bootstrap')
-        if (active) setBootstrap(value)
-      } catch {
-        if (!active) return
-        tokenStore.clear()
-        setBootstrap(undefined)
-        if (window.location.pathname !== '/login') {
-          window.history.replaceState({}, '', '/login')
-          window.dispatchEvent(new PopStateEvent('popstate'))
-        }
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-    void initialize()
+          })
+          .finally(() => {
+              if (active) setLoading(false)
+          })
     return () => { active = false }
-  }, [tokens])
+  }, [])
 
   const value = useMemo(
     () => ({ loading, bootstrap, login, logout }),

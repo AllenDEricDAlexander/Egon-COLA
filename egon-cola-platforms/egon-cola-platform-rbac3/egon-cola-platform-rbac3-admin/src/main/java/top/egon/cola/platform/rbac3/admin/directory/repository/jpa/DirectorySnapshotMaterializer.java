@@ -5,9 +5,19 @@ import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.platform.rbac3.admin.directory.domain.UserPositionKey;
+import top.egon.cola.platform.rbac3.admin.directory.domain.dto.PositionInputDTO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.dto.UserPositionInputDTO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.enums.OrgUnitStatusEnum;
+import top.egon.cola.platform.rbac3.admin.directory.domain.enums.OrgUnitUnitTypeEnum;
+import top.egon.cola.platform.rbac3.admin.directory.domain.enums.PositionStatusEnum;
+import top.egon.cola.platform.rbac3.admin.directory.domain.enums.UserPositionSnapshotStatusEnum;
 import top.egon.cola.platform.rbac3.admin.directory.domain.po.OrgUnitPO;
 import top.egon.cola.platform.rbac3.admin.directory.domain.po.PositionPO;
 import top.egon.cola.platform.rbac3.admin.directory.domain.po.UserPositionSnapshotPO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.vo.MaterializationResultVO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.vo.ResolvedUnitVO;
+import top.egon.cola.platform.rbac3.admin.directory.domain.vo.SnapshotModelVO;
 import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
@@ -21,16 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import top.egon.cola.platform.rbac3.admin.directory.domain.vo.MaterializationResultVO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.UserPositionKey;
-import top.egon.cola.platform.rbac3.admin.directory.domain.vo.SnapshotModelVO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.vo.ResolvedUnitVO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.dto.PositionInputDTO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.dto.UserPositionInputDTO;
-import top.egon.cola.platform.rbac3.admin.directory.domain.enums.OrgUnitUnitTypeEnum;
-import top.egon.cola.platform.rbac3.admin.directory.domain.enums.OrgUnitStatusEnum;
-import top.egon.cola.platform.rbac3.admin.directory.domain.enums.PositionStatusEnum;
-import top.egon.cola.platform.rbac3.admin.directory.domain.enums.UserPositionSnapshotStatusEnum;
 
 /**
  * 类型 `DirectorySnapshotMaterializer` 位于当前包内，是类型，用于承载 `Directory Snapshot Materializer` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -341,14 +341,7 @@ public class DirectorySnapshotMaterializer {
             Set<AssignmentSignature> nextAssignments = nextByUser.getOrDefault(
                     userId, Set.of());
             boolean changed = !previousAssignments.equals(nextAssignments);
-            AssignmentSignature primary = nextAssignments.stream()
-                    .filter(AssignmentSignature::primary)
-                    .findFirst().orElse(null);
-            user.applyDirectorySnapshot(
-                    snapshotVersion,
-                    primary == null ? null : primary.orgUnitId(),
-                    primary == null ? null : primary.positionId(),
-                    changed, actorId, now);
+            user.applyAuthorizationChange(changed, actorId, now);
             if (changed) {
                 affectedUsers++;
             }

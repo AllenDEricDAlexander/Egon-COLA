@@ -10,6 +10,7 @@ import top.egon.cola.platform.idp.core.port.IdentityUserStatePort;
 import top.egon.cola.platform.idp.core.port.IdentityUserStore;
 import top.egon.cola.platform.idp.core.port.PasswordCredentialStore;
 import top.egon.cola.platform.idp.core.port.PasswordHashPort;
+import top.egon.cola.platform.idp.core.port.RefreshTokenStore;
 
 /**
  * 装配统一身份认证领域所需的核心门面及动态安全策略。
@@ -26,6 +27,7 @@ public class IdentityConfig {
             PasswordHashPort passwordHashes,
             IdentityUserStatePort states,
             IdentitySecurityEventPort securityEvents,
+            RefreshTokenStore refreshTokens,
             IdpRuntimePolicy runtimePolicy
     ) {
         return IdentityFacade.dynamicPolicy(
@@ -34,6 +36,7 @@ public class IdentityConfig {
                 passwordHashes,
                 states,
                 securityEvents,
+                refreshTokens,
                 new UsernameNormalizer(),
                 () -> runtimePolicy.current().maximumLoginFailures(),
                 () -> runtimePolicy.current().loginLockDuration()

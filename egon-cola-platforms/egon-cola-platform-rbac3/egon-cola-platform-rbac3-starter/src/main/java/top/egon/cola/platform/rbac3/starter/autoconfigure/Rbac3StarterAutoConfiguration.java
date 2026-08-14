@@ -13,12 +13,12 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterAutoConfiguration;
 import top.egon.cola.platform.idp.starter.admission.OwnerOnlyPrivateKeyLoader;
 import top.egon.cola.platform.idp.starter.admission.PrivateKeyJwtAssertionFactory;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterAutoConfiguration;
 import top.egon.cola.platform.idp.starter.security.IdpJwtVerifier;
-import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationBootstrapService;
+import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
 import top.egon.cola.platform.rbac3.starter.authorization.DefaultAuthorizationService;
 import top.egon.cola.platform.rbac3.starter.cache.AuthorizationSnapshotCache;
 import top.egon.cola.platform.rbac3.starter.cache.RedisAuthorizationSnapshotCache;
@@ -118,38 +118,6 @@ public class Rbac3StarterAutoConfiguration {
         return new AuthorizationSnapshotCache(
                 store, clock,
                 properties.getAuthorization().getNearCacheTtl());
-    }
-
-    /**
-     * 方法 `rbac3AuthorizationClient` 按照 `Rbac3StarterAutoConfiguration` 的职责处理输入，完成 `rbac3 Authorization Client` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `rbac3AuthorizationClient` processes its inputs according to `Rbac3StarterAutoConfiguration`'s responsibility, performs the `rbac3 Authorization Client` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `rbac3AuthorizationClient` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `rbac3AuthorizationClient`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param objectMapper 输入参数 `objectMapper`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param properties 输入参数 `properties`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Bean
-    @ConditionalOnProperty(
-            prefix = "egon.cola.platform.rbac3.authorization",
-            name = {"endpoint", "service-credential-file"})
-    @ConditionalOnProperty(
-            prefix = "egon.cola.platform.rbac3.authorization.service-token",
-            name = "enabled",
-            havingValue = "false",
-            matchIfMissing = true)
-    @ConditionalOnMissingBean
-    public Rbac3AuthorizationClient rbac3AuthorizationClient(
-            ObjectMapper objectMapper,
-            Rbac3StarterProperties properties) {
-        var authorization = properties.getAuthorization();
-        return new HttpRbac3AuthorizationClient(
-                URI.create(required(authorization.getEndpoint(), "authorization.endpoint")),
-                Path.of(required(authorization.getServiceCredentialFile(),
-                        "authorization.serviceCredentialFile")),
-                authorization.getFetchTimeout(), objectMapper);
     }
 
     /**

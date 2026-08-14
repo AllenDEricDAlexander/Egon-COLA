@@ -1,10 +1,10 @@
-import { useQuery } from '@tanstack/react-query'
-import { Button, Card, Descriptions, Input, Space, Tag } from 'antd'
-import { useState } from 'react'
-import { useRbac3Session } from '@egon-cola/rbac3-react-sdk'
-import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '@egon-cola/admin-web-shared'
-import { directoryApi } from './directory.api'
+import {useQuery} from '@tanstack/react-query'
+import {Button, Card, Descriptions, Input, Space, Tag} from 'antd'
+import {useState} from 'react'
+import {useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
+import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
+import {PageState} from '@egon-cola/admin-web-shared'
+import {directoryApi} from './directory.api'
 
 export interface UserDirectoryPageProps {
   readonly initialUserId?: string
@@ -13,7 +13,7 @@ export interface UserDirectoryPageProps {
 export const UserDirectoryPage = ({ initialUserId = '' }: UserDirectoryPageProps) => {
   const [draftUserId, setDraftUserId] = useState(initialUserId)
   const [userId, setUserId] = useState(initialUserId)
-  const { status } = useRbac3Session()
+    const {status} = useRbac3Authorization()
   const { effectiveTenantId } = useFeatureTenantContext()
   const api = directoryApi(useFeatureApi())
   const query = useQuery({

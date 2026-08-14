@@ -1,14 +1,14 @@
-import { PermissionGuard, useRbac3Session } from '@egon-cola/rbac3-react-sdk'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Button, Card, Popconfirm, Space, Table, Tag, Typography } from 'antd'
-import { useState } from 'react'
-import { useFeatureApi, useFeatureTenantContext } from '../shared/FeatureApi'
-import { PageState } from '@egon-cola/admin-web-shared'
-import { ManagementPolicyEditor } from './ManagementPolicyEditor'
-import { managementPolicyApi, type ManagementPolicyView, type SaveManagementPolicyCommand } from './managementPolicy.api'
+import {PermissionGuard, useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
+import {Button, Card, Popconfirm, Space, Table, Tag, Typography} from 'antd'
+import {useState} from 'react'
+import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
+import {PageState} from '@egon-cola/admin-web-shared'
+import {ManagementPolicyEditor} from './ManagementPolicyEditor'
+import {managementPolicyApi, type ManagementPolicyView, type SaveManagementPolicyCommand} from './managementPolicy.api'
 
 export const ManagementPolicyPage = () => {
-  const { status } = useRbac3Session()
+    const {status} = useRbac3Authorization()
   const { effectiveTenantId } = useFeatureTenantContext()
   const api = managementPolicyApi(useFeatureApi())
   const queryClient = useQueryClient()

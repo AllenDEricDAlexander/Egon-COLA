@@ -9,9 +9,8 @@ import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.gateway.core.context.GatewayPrincipal;
 import top.egon.cola.component.gateway.core.security.AuthorizationDecision;
 import top.egon.cola.component.gateway.core.security.GatewayAuthContext;
-import top.egon.cola.platform.rbac3.contract.auth.Rbac3TokenClaims;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
-import top.egon.cola.platform.rbac3.contract.authorization.SessionAuthorizationSnapshot;
+import top.egon.cola.platform.rbac3.contract.authorization.UserAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.core.runtime.Rbac3RuntimeKeyFactory;
 
 import java.time.Clock;
@@ -40,7 +39,6 @@ class Rbac3GatewayRuntimeSnapshotReaderTest {
         Fixture fixture = fixture();
         fixture.values().put(mappingKey(), mapping());
 
-        fixture.reader().verifySession(tokenClaims());
         AuthorizationDecision decision = fixture.reader().authorize(context());
 
         assertThat(decision).isEqualTo(AuthorizationDecision.allow());
@@ -65,38 +63,50 @@ class Rbac3GatewayRuntimeSnapshotReaderTest {
     void rejectsVersionDriftFencesAndRedisFailures() {
         Fixture versionDrift = fixture();
         versionDrift.values().put(keys.authVersion("7", "9"), 4L);
-        assertThatThrownBy(() -> versionDrift.reader().verifySession(tokenClaims()))
+        assertThatThrownBy(() -> versionDrift.reader().authorize(context()))
                 .isInstanceOf(
                         Rbac3GatewayRuntimeSnapshotReader.RuntimeUnavailableException.class)
                 .hasMessage("RBAC3_RUNTIME_VERSION_MISMATCH");
 
         Fixture fenced = fixture();
-        fenced.existingKeys().add(keys.sessionFence("7", "99"));
-        assertThatThrownBy(() -> fenced.reader().verifySession(tokenClaims()))
+        fenced.existingKeys().add(keys.authorizationPublicationGuard("7", "9"));
+        assertThatThrownBy(() -> fenced.reader().authorize(context()))
                 .isInstanceOf(
                         Rbac3GatewayRuntimeSnapshotReader.RuntimeUnavailableException.class)
-                .hasMessage("RBAC3_SESSION_FENCED");
+                .hasMessage("RBAC3_AUTHORIZATION_PUBLICATION_PENDING");
 
         Fixture unavailable = fixture();
-        unavailable.values().put(keys.session("7", "99"),
+        unavailable.values().put(keys.user("7", "9"),
                 new IllegalStateException("redis timeout"));
-        assertThatThrownBy(() -> unavailable.reader().verifySession(tokenClaims()))
+        assertThatThrownBy(() -> unavailable.reader().authorize(context()))
                 .isInstanceOf(
                         Rbac3GatewayRuntimeSnapshotReader.RuntimeUnavailableException.class)
                 .hasMessage("RBAC3_AUTHORIZATION_RUNTIME_UNAVAILABLE");
+    }
+
+    @Test
+    void requiresAnAuthenticatedIdpUserPrincipal() {
+        Fixture fixture = fixture();
+        GatewayAuthContext serviceContext = context().withPrincipal(
+                new GatewayPrincipal("service", "SERVICE", "7", null,
+                        true, Map.of()));
+
+        assertThat(fixture.reader().authorize(serviceContext))
+                .isEqualTo(AuthorizationDecision.deny(
+                        "RBAC3_USER_PRINCIPAL_REQUIRED"));
     }
 
     private Fixture fixture() {
         Map<String, Object> values = new HashMap<>();
         Set<String> existingKeys = new HashSet<>();
         List<String> requestedKeys = new ArrayList<>();
-        values.put(keys.session("7", "99"),
-                new Rbac3GatewayRuntimeSnapshotReader.RuntimeSession(
-                        "7", "9", "99", "ACTIVE", 3, 4, 5,
+        values.put(keys.user("7", "9"),
+                new Rbac3GatewayRuntimeSnapshotReader.RuntimeUserAuthorization(
+                        "7", "9", "9", "ACTIVE", 3, 5,
                         NOW.plusSeconds(300)));
         values.put(keys.authVersion("7", "9"), 3L);
         values.put(keys.policyVersion("7"), 5L);
-        values.put(keys.snapshot("7", "99", 4), snapshot());
+        values.put(keys.snapshot("7", "9", 3), snapshot());
 
         RedissonClient redisson = mock(RedissonClient.class);
         when(redisson.<Object>getBucket(anyString())).thenAnswer(invocation -> {
@@ -123,13 +133,15 @@ class Rbac3GatewayRuntimeSnapshotReaderTest {
                 values, existingKeys, requestedKeys);
     }
 
-    private SessionAuthorizationSnapshot snapshot() {
+    private UserAuthorizationSnapshot snapshot() {
         AppAuthorizationContext app = new AppAuthorizationContext(
                 "11", "orders", List.of("root"), List.of("assignment"),
                 List.of("root", "child"), Set.of("order:read"),
                 Map.of(), Map.of(), List.of(), "/orders");
-        return new SessionAuthorizationSnapshot(
-                "99", 3, 4, 5, List.of(app), "checksum", NOW);
+        return new UserAuthorizationSnapshot(
+                "rbac3-admin", "7", "9", "9", 3, 5,
+                List.of(app), "checksum", NOW.minusSeconds(1),
+                NOW.plusSeconds(300));
     }
 
     private Rbac3GatewayRuntimeSnapshotReader.OperationPermissionMapping mapping() {
@@ -142,20 +154,10 @@ class Rbac3GatewayRuntimeSnapshotReaderTest {
         return keys.operationMapping("7", "definition-7", "operation-9", 5);
     }
 
-    private Rbac3TokenClaims tokenClaims() {
-        return new Rbac3TokenClaims(
-                "issuer", List.of("orders"), "9", "7", "99",
-                3, 4, 5, "jti-1", NOW.minusSeconds(1),
-                NOW.minusSeconds(1), NOW.plusSeconds(300), "kid-1");
-    }
-
     private GatewayAuthContext context() {
         GatewayPrincipal principal = new GatewayPrincipal(
-                "9", "USER", "7", null, true, Map.of(
-                "rbac3.session-id", "99",
-                "rbac3.auth-version", "3",
-                "rbac3.session-version", "4",
-                "rbac3.policy-version", "5"));
+                "9", "USER", "7", null, true,
+                Map.of("idp.token-id", "token-1"));
         return new GatewayAuthContext(
                 AccessZone.PUBLIC, GatewayProtocol.HTTP,
                 "operation-9", "route-1", "rbac3-required-v1",

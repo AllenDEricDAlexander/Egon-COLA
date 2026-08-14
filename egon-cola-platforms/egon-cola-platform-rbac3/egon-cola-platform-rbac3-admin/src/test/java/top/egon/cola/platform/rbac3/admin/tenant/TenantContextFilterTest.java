@@ -9,15 +9,15 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.tenant.controller.filter.TenantContextFilter;
+import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;
+import top.egon.cola.platform.rbac3.admin.tenant.service.TenantContextResolver;
 
 import java.net.URI;
 import java.time.Instant;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import top.egon.cola.platform.rbac3.admin.tenant.domain.TenantContext;
-import top.egon.cola.platform.rbac3.admin.tenant.controller.filter.TenantContextFilter;
-import top.egon.cola.platform.rbac3.admin.tenant.service.TenantContextResolver;
 
 class TenantContextFilterTest {
 
@@ -58,7 +58,7 @@ class TenantContextFilterTest {
     @Test
     void allowsExplicitPlatformTargetOnlyWithPermission() throws Exception {
         authenticate(new CurrentRbac3Principal(
-                "platform", "user-1", "session-1", 1, 1, 1,
+                "platform", "user-1", "user-1", 1, 1,
                 Set.of("system:tenant:target"), true));
         MockHttpServletRequest request = request("/api/v1/platform/tenants/users");
         request.addHeader("X-RBAC3-Target-Tenant", "tenant-2");
@@ -114,7 +114,7 @@ class TenantContextFilterTest {
 
     private CurrentRbac3Principal principal(String tenantId, Set<String> permissions) {
         return new CurrentRbac3Principal(
-                tenantId, "user-1", "session-1", 1, 1, 1,
+                tenantId, "user-1", "user-1", 1, 1,
                 permissions, false);
     }
 }

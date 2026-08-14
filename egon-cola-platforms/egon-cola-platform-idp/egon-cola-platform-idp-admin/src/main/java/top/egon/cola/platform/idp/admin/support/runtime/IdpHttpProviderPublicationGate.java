@@ -4,11 +4,11 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.web.context.WebServerInitializedEvent;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
-import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
-import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
-import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
+import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
+import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -108,12 +108,12 @@ public final class IdpHttpProviderPublicationGate
         if (coordinator.state() != DdcRuntimeState.READY) {
             throw new IllegalStateException("DDC config client is not ready");
         }
-        boolean sessionPresent = coordinator.currentSession()
+        boolean leasePresent = coordinator.currentSession()
                 .filter(session -> session.role() == DdcLeaseRole.CONFIG_CLIENT)
                 .isPresent();
-        if (!sessionPresent) {
+        if (!leasePresent) {
             throw new IllegalStateException(
-                    "DDC config client session is missing"
+                    "DDC config client lease is missing"
             );
         }
     }

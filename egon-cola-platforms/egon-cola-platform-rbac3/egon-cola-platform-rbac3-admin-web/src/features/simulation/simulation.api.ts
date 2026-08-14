@@ -1,4 +1,4 @@
-import type { FeatureApiClient } from '../shared/FeatureApi'
+import type {FeatureApiClient} from '../shared/FeatureApi'
 
 export interface SimulationDecision {
   readonly decision: string
@@ -15,18 +15,17 @@ export interface AuthorizationSimulationView {
   readonly current: SimulationDecisionBundle
   readonly hypothetical: SimulationDecisionBundle
   readonly authVersion: number
-  readonly sessionVersion: number
   readonly policyVersion: number
   readonly snapshotChecksum: string
   readonly expiresAt: string
 }
 export interface AuthorizationSimulationCommand {
   readonly decisionRequest: {
-    readonly subject: { readonly tenantId: string; readonly userId: string; readonly sessionId: string }
+      readonly subject: { readonly tenantId: string; readonly userId: string; readonly identitySub: string }
     readonly permissionCode: string
     readonly resource: { readonly applicationCode: string; readonly resourceCode: string }
     readonly requestedDecisions: readonly string[]
-    readonly tokenVersions: { readonly authVersion: number; readonly sessionVersion: number; readonly policyVersion: number }
+      readonly tokenVersions: { readonly authVersion: number; readonly policyVersion: number }
   }
   readonly hypothesis: { readonly addedPermissions: readonly string[]; readonly removedPermissions: readonly string[] }
   readonly at: string

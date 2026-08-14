@@ -28,7 +28,6 @@ import top.egon.cola.component.gateway.mcp.transport.McpSubscriptionEventStore;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -605,7 +604,12 @@ public final class McpEngineHttpHandler {
                 server.serverCode(),
                 identity(identity, "callerId", "identity.subject"),
                 identity(identity, "tenantId", "identity.tenant-id"),
-                identity(identity, "idp.client-id", "identity.client-id"),
+                identity(
+                        identity,
+                        "idp.client-id",
+                        "idp.audience",
+                        "identity.client-id"
+                ),
                 clock.instant()
         );
         return Mono.from(sessions.create(session, sessionTtl))
@@ -654,6 +658,7 @@ public final class McpEngineHttpHandler {
                     )) && session.clientId().equals(identity(
                             identity,
                             "idp.client-id",
+                            "idp.audience",
                             "identity.client-id"
                     ));
                     if (!matches) {

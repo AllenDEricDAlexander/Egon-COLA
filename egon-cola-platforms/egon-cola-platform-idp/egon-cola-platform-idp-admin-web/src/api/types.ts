@@ -1,17 +1,26 @@
 // ─── Auth Bootstrap ───────────────────────────────────────────────
 export interface AuthorizationBootstrap {
-  readonly identitySub: string
-  readonly tenantId: string
-  readonly sessionId: string
-  readonly rbac3UserId: string
-  readonly systemCode: string
+    readonly user: {
+        readonly id: string
+        readonly tenantId: string
+        readonly identitySub: string
+        readonly status: string
+    }
+    readonly activeRoleContexts: readonly {
+        readonly applicationCode: string
+        readonly activationRoot: { readonly roleId: string }
+        readonly effectiveRoleIds: readonly string[]
+    }[]
   readonly permissions: readonly string[]
-  readonly activeRoleIds: readonly string[]
+    readonly apps: readonly unknown[]
+    readonly menus: readonly unknown[]
+    readonly routes: readonly unknown[]
+    readonly actions: readonly unknown[]
+    readonly fieldPolicies: Readonly<Record<string, unknown>>
+    readonly defaultApplicationCode: string | null
+    readonly defaultRoute: string | null
   readonly authVersion: number
-  readonly contextVersion: number
   readonly policyVersion: number
-  readonly generatedAt: string
-  readonly expiresAt: string
 }
 
 // ─── Identity Users ──────────────────────────────────────────────
@@ -20,7 +29,6 @@ export interface IdentityUserVO {
   readonly username: string
   readonly displayName: string
   readonly status: string
-  readonly tokenVersion: number
   readonly failedLoginCount: number
   readonly lockedUntil?: string
   readonly lastLoginAt?: string
@@ -35,7 +43,6 @@ export interface ResetPasswordVO {
     readonly subject: string
   readonly oneTimePassword: string
     readonly mustChangePassword: boolean
-    readonly tokenVersion: number
 }
 
 export interface CreateIdentityUserDTO {

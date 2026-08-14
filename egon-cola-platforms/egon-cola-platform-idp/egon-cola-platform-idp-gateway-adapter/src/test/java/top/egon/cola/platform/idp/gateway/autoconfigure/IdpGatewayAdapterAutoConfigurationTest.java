@@ -51,6 +51,7 @@ class IdpGatewayAdapterAutoConfigurationTest {
                         "egon.cola.platform.idp.gateway.enabled=true",
                         "egon.cola.platform.idp.gateway.issuer=https://idp.local",
                         "egon.cola.platform.idp.gateway.jwk-set-uri=https://idp.local/oauth2/jwks",
+                        "egon.cola.platform.idp.gateway.idp-refresh-uri=https://idp.local/oauth2/token",
                         "egon.cola.platform.idp.gateway.runtime.redis-enabled=false")
                 .withBean("idpGatewayRedissonClient", RedissonClient.class,
                         () -> mock(RedissonClient.class))
@@ -61,7 +62,7 @@ class IdpGatewayAdapterAutoConfigurationTest {
                     assertThat(context).doesNotHaveBean(
                             GatewayAuthorizationProvider.class);
                     assertThat(context.getBean(GatewayCredentialExtractor.class)
-                            .extractorId()).isEqualTo("idp-bearer");
+                            .extractorId()).isEqualTo("idp-user-cookie");
                     assertThat(context.getBean(GatewayAuthenticationProvider.class)
                             .providerId()).isEqualTo("idp-jwt");
                     assertThat(context.getBean(GatewayIdentityMapper.class)
@@ -101,6 +102,7 @@ class IdpGatewayAdapterAutoConfigurationTest {
             properties.setEnabled(true);
             properties.setIssuer(issuer);
             properties.setJwkSetUri(issuer + "/oauth2/jwks");
+            properties.setIdpRefreshUri(issuer + "/oauth2/token");
             JwtDecoder decoder = new IdpGatewayAdapterAutoConfiguration()
                     .idpGatewayJwtDecoder(properties);
             Instant now = Instant.now();

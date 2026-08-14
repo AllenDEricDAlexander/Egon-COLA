@@ -28,7 +28,6 @@ class ActivationContractTest {
         ReplaceActiveRolesResult result = new ReplaceActiveRolesResult(
                 roles,
                 true,
-                4L,
                 6L,
                 9L,
                 false,
@@ -41,10 +40,9 @@ class ActivationContractTest {
         assertEquals(Set.of(
                 "activeRoles",
                 "changed",
-                "contextVersion",
                 "authVersion",
                 "policyVersion",
-                "bootstrapRequired",
+                "activationRequired",
                 "snapshotChecksum"
         ), fieldNames(json));
         assertEquals(
@@ -60,14 +58,13 @@ class ActivationContractTest {
     }
 
     @Test
-    void replacementResultRejectsInvalidVersionsAndToken() {
+    void replacementResultRejectsInvalidVersions() {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new ReplaceActiveRolesResult(
                         List.of(applicationRoles()),
                         true,
                         -1L,
-                        1L,
                         1L,
                         false,
                         "sha256:snapshot"
@@ -111,23 +108,19 @@ class ActivationContractTest {
     void activeRoleViewKeepsItsExactGetFieldsAndRoundTrips()
             throws Exception {
         ActiveRoleSetView view = new ActiveRoleSetView(
-                "40001",
                 List.of(applicationRoles()),
                 false,
                 43L,
                 3L,
-                18L,
                 "sha256:snapshot"
         );
 
         JsonNode json = objectMapper.valueToTree(view);
 
         assertEquals(Set.of(
-                "sessionId",
                 "activeRoles",
                 "activationRequired",
                 "authVersion",
-                "sessionVersion",
                 "policyVersion",
                 "snapshotChecksum"
         ), fieldNames(json));

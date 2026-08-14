@@ -47,9 +47,6 @@ public class OAuthUserInfoController {
         return new OAuthUserInfoVO(
                 identity.subject(),
                 identity.tenantId(),
-                identity.sessionId(),
-                identity.clientId(),
-                identity.tokenVersion(),
                 identity.audience()
         );
     }

@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.platform.rbac3.contract.auth.BootstrapView;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationBootstrapService;
 import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 
@@ -69,7 +70,7 @@ public class Rbac3AuthBootstrapController {
     @GatewayOperation(name = "rbac3-unified-auth-bootstrap-v1",
             summary = "查询RBAC3管理端统一身份启动上下文",
             externalAccessible = false, tags = {"rbac3", "identity"})
-    public AuthorizationBootstrapService.BootstrapView bootstrap() {
+    public BootstrapView bootstrap() {
         return bootstrap.current();
     }
 }

@@ -29,14 +29,15 @@ verify() {
   local migrations
   local admin_root="${RBAC3_MODULE_ROOT}/egon-cola-platform-rbac3-admin"
   local production_yaml="${admin_root}/src/main/resources/application.yml"
-  local declarations="${admin_root}/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcValueDeclarations.java"
-  local metrics="${admin_root}/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3IntegrationMetrics.java"
-  local integration_config="${admin_root}/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3PlatformIntegrationConfiguration.java"
-  local catalog_test="${admin_root}/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3GatewayDocumentCatalogContractTest.java"
+  local declarations="${admin_root}/src/main/java/top/egon/cola/platform/rbac3/admin/config/ddc/Rbac3DdcValueDeclarations.java"
+  local metrics="${admin_root}/src/main/java/top/egon/cola/platform/rbac3/admin/config/ddc/Rbac3IntegrationMetrics.java"
+  local integration_config="${admin_root}/src/main/java/top/egon/cola/platform/rbac3/admin/config/runtime/Rbac3PlatformIntegrationConfiguration.java"
+  local catalog_contract="${admin_root}/src/test/resources/contracts/rbac3-gateway-catalog-semantic-baseline.json"
   migrations="$(find "${RBAC3_MODULE_ROOT}" -path '*/src/main/resources/db/migration/V*__*.sql' -type f | wc -l | tr -d ' ')"
-  [[ "${migrations}" == '2' ]] || rbac3_die "expected the immutable V1 and additive V2 RBAC3 migrations, found ${migrations}"
+  [[ "${migrations}" == '5' ]] || rbac3_die "expected the RBAC3 V1 through V5 migration chain, found ${migrations}"
   [[ -f "${RBAC3_MODULE_ROOT}/egon-cola-platform-rbac3-admin/src/main/resources/db/migration/V1__create_rbac3_schema.sql" ]]
   [[ -f "${RBAC3_MODULE_ROOT}/egon-cola-platform-rbac3-admin/src/main/resources/db/migration/V2__add_session_strong_authentication_time.sql" ]]
+  [[ -f "${RBAC3_MODULE_ROOT}/egon-cola-platform-rbac3-admin/src/main/resources/db/migration/V5__remove_sessions_and_minimize_authorization_user.sql" ]]
   [[ ! -e "${RBAC3_MODULE_ROOT}/egon-cola-platform-rbac3-test" ]] \
     || rbac3_die "an independent RBAC3 test module is forbidden"
 
@@ -54,19 +55,14 @@ verify() {
     || rbac3_die "RBAC3 must own the DDC-gated HTTP provider ready listener"
 
   local config_key
-  for config_key in \
-      rbac3.access-token-ttl-seconds \
-      rbac3.refresh-token-ttl-seconds \
-      rbac3.session-idle-timeout-seconds \
-      rbac3.session-absolute-timeout-seconds \
-      rbac3.maximum-active-roots; do
+  for config_key in rbac3.maximum-active-roots; do
     local declaration_count
-    declaration_count="$(rg -F -o "value = \"${config_key}:" "${declarations}" | wc -l | tr -d ' ')"
+    declaration_count="$(rg -F -o "value = \"\${${config_key}:" "${declarations}" | wc -l | tr -d ' ')"
     [[ "${declaration_count}" == '1' ]] \
       || rbac3_die "${config_key} must have exactly one DDC declaration"
   done
-  [[ "$(rg -o 'refreshable = false' "${declarations}" | wc -l | tr -d ' ')" == '5' ]] \
-    || rbac3_die "all five RBAC3 DDC declarations must disable reflective refresh"
+  [[ "$(rg -o 'refreshable = false' "${declarations}" | wc -l | tr -d ' ')" == '1' ]] \
+    || rbac3_die "the RBAC3 DDC declaration must disable reflective refresh"
 
   local metric_name
   for metric_name in \
@@ -80,9 +76,9 @@ verify() {
   rg -Fq 'APPLY_STATUSES = Set.of("success", "failed")' "${metrics}" \
     || rbac3_die "DDC apply metric status labels must use the fixed whitelist"
   rg -Fq 'AtomicRbac3RuntimePolicy.CONFIG_KEYS.contains(key)' "${metrics}" \
-    || rbac3_die "DDC apply metric keys must use the five-key whitelist"
-  [[ -f "${catalog_test}" ]] \
-    || rbac3_die "Gateway document catalog contract test is missing"
+    || rbac3_die "DDC apply metric keys must use the fixed whitelist"
+  [[ -f "${catalog_contract}" ]] \
+    || rbac3_die "Gateway document catalog contract baseline is missing"
 
   if rg -ni 'localhost|127\.0\.0\.1' "${production_yaml}"; then
     rbac3_die "production application.yml must not contain a local endpoint fallback"
@@ -99,10 +95,9 @@ verify() {
       --glob 'src/main/**' "${RBAC3_MODULE_ROOT}"; then
     rbac3_die "forbidden workflow semantics were found in production code"
   fi
-  if rg -n 'egon-cola-platform-rbac3-starter' \
-      "${RBAC3_MODULE_ROOT}/egon-cola-platform-rbac3-admin/pom.xml"; then
-    rbac3_die "Admin must not depend on Starter"
-  fi
+  # Admin hosts the control-plane PEP for its own management endpoints, so it
+  # intentionally consumes the RBAC3 Starter. The runtime libraries still
+  # must not depend back on the Admin application below.
   if rg -n 'egon-cola-platform-rbac3-admin' \
       "${RBAC3_MODULE_ROOT}/egon-cola-platform-rbac3-starter/pom.xml" \
       "${RBAC3_MODULE_ROOT}/egon-cola-platform-rbac3-gateway-adapter/pom.xml"; then
@@ -116,9 +111,14 @@ verify() {
   rg -Uq 'CONFIG_CLIENT.*HTTP_PROVIDER|HTTP_PROVIDER.*CONFIG_CLIENT' \
     "${RBAC3_MODULE_ROOT}/docs/architecture.md" \
     || rbac3_die "architecture.md must document the two independent DDC leases"
-  rg -q 'rbac3.access-token-ttl-seconds' \
+  rg -q 'rbac3.maximum-active-roots' \
     "${RBAC3_MODULE_ROOT}/docs/operations-runbook.md" \
-    || rbac3_die "operations-runbook.md must document all DDC policy keys"
+    || rbac3_die "operations-runbook.md must document the DDC policy key"
+  if rg -n 'RBAC3_JWT_|access-token-ttl-seconds|refresh-token-ttl-seconds|session-idle-timeout-seconds|session-absolute-timeout-seconds' \
+      "${admin_root}/src/main/java" "${admin_root}/src/main/resources/application.yml" \
+      "${admin_root}/src/main/resources/application-local.yml"; then
+    rbac3_die "RBAC3 runtime must not retain personnel JWT or Session timeout configuration"
+  fi
   rg -q 'DDC Config Client' \
     "${RBAC3_MODULE_ROOT}/docs/verification-evidence-template.md" \
     || rbac3_die "verification template must record the DDC Config Client fact"

@@ -1,137 +1,79 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type PropsWithChildren,
-} from 'react'
-import {
-  createOAuthClient,
-  createTokenStore,
-  createHttpClient,
-  type OAuthClient,
-  type AuthTokens,
-} from '@egon-cola/admin-web-shared'
-import type { AdminSession } from '../api/types'
+import {createContext, type PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState,} from 'react'
+import {createGatewayAuthClient, createHttpClient,} from '@egon-cola/admin-web-shared'
+import type {AuthorizationBootstrap} from '../api/types'
 
-const requiredEnv = (key: string): string => {
-  const value = (import.meta.env as Record<string, string>)[key]
-  if (!value) throw new Error(`${key} is required`)
-  return value
-}
-
-const tokenStore = createTokenStore()
-
-const oauthClient: OAuthClient = createOAuthClient({
-  issuer: requiredEnv('VITE_IDP_ISSUER'),
-  clientId: requiredEnv('VITE_IDP_CLIENT_ID'),
-  resource: requiredEnv('VITE_IDP_RESOURCE'),
-  redirectUri: (import.meta.env as Record<string, string>).VITE_IDP_REDIRECT_URI
-    ?? `${window.location.origin}/oauth/callback`,
-  tokenStore,
-}, {
-  fetch: globalThis.fetch.bind(globalThis),
-  storage: window.sessionStorage,
-  randomValues: (target: Uint8Array<ArrayBuffer>) => crypto.getRandomValues(target),
-  digest: (value: Uint8Array<ArrayBuffer>) => crypto.subtle.digest('SHA-256', value),
-  navigate: (url: string) => { window.location.assign(url) },
-  now: () => Date.now(),
-})
-
+const gatewayOrigin = import.meta.env.VITE_GATEWAY_ORIGIN ?? ''
+const gatewayAuth = createGatewayAuthClient({baseUrl: gatewayOrigin})
 const httpClient = createHttpClient({
-  baseUrl: (import.meta.env as Record<string, string>).VITE_GATEWAY_ADMIN_API_BASE_URL ?? '',
+    baseUrl: gatewayOrigin,
   credentials: 'include',
-  getAccessToken: () => tokenStore.get()?.accessToken ?? null,
-  onAuthError: () => oauthClient.refresh(),
-  onFatalAuthError: () => {
-    tokenStore.clear()
-    window.location.assign('/login')
-  },
+    onAuthError: () => undefined,
 })
 
-export { oauthClient, httpClient, tokenStore }
+export {gatewayAuth, httpClient}
 
 type AuthState = {
   loading: boolean
-  session?: AdminSession
+    authorization?: AuthorizationBootstrap
   error?: string
-  login: (tenantId: string, returnTo?: string) => Promise<void>
+    login: (tenantId: string, username: string, password: string) => Promise<void>
   logout: () => Promise<void>
-  refreshSession: () => Promise<void>
+    refreshAuthorization: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined)
 
 export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [loading, setLoading] = useState(true)
-  const [session, setSession] = useState<AdminSession>()
+    const [authorization, setAuthorization] = useState<AuthorizationBootstrap>()
   const [error, setError] = useState<string>()
-  const [tokens, setTokens] = useState<AuthTokens | null>(tokenStore.get())
 
-  const clearSession = useCallback(() => {
-    tokenStore.clear()
-    setSession(undefined)
-    setLoading(false)
+    const refreshAuthorization = useCallback(async () => {
+        const value = await gatewayAuth.bootstrap<AuthorizationBootstrap>()
+        setAuthorization(value)
   }, [])
 
-  const logout = useCallback(async () => {
-    await oauthClient.revoke()
-    setSession(undefined)
-    setLoading(false)
-  }, [])
+    const login = useCallback(async (
+        tenantId: string,
+        username: string,
+        password: string,
+    ) => {
+        setLoading(true)
+        setError(undefined)
+        try {
+            await gatewayAuth.login({tenantId, username, password})
+            await refreshAuthorization()
+        } catch (failure) {
+            setError(failure instanceof Error ? failure.message : '登录失败')
+            throw failure
+        } finally {
+            setLoading(false)
+        }
+    }, [refreshAuthorization])
 
-  const refreshSession = useCallback(async () => {
-    setSession(await httpClient.request<AdminSession>('/api/v1/gateway/admin/session'))
+    const logout = useCallback(async () => {
+        await gatewayAuth.logout()
+        setAuthorization(undefined)
   }, [])
-
-  const login = useCallback(async (tenantId: string, returnTo = '/dashboard') => {
-    setError(undefined)
-    await oauthClient.beginAuthorization(tenantId, returnTo)
-  }, [])
-
-  useEffect(() => tokenStore.subscribe(setTokens), [])
 
   useEffect(() => {
     let active = true
-    const initialize = async () => {
-      if (!tokens) {
-        if (active) { setSession(undefined); setLoading(false) }
-        return
-      }
-      try {
-        const value = await httpClient.request<AdminSession>('/api/v1/gateway/admin/session')
-        if (active) setSession(value)
-      } catch (failure) {
-        if (!active) return
-        tokenStore.clear()
-        setSession(undefined)
-        if (window.location.pathname === '/oauth/callback') {
-          setError(failure instanceof Error ? failure.message : '统一身份登录失败')
-        }
-      } finally {
+      void gatewayAuth.bootstrap<AuthorizationBootstrap>()
+          .then((value) => {
+              if (active) setAuthorization(value)
+          })
+          .catch(() => {
+              if (active) setAuthorization(undefined)
+          })
+          .finally(() => {
         if (active) setLoading(false)
-      }
-    }
-    void initialize()
+          })
     return () => { active = false }
-  }, [tokens])
-
-  // Proactive token refresh
-  useEffect(() => {
-    const stored = tokenStore.get()
-    if (!stored?.expiresAt || !session) return
-    const delay = Math.max(1_000, Date.parse(stored.expiresAt) - Date.now() - 60_000)
-    const timer = window.setTimeout(() => {
-      void oauthClient.refresh().then(refreshSession).catch(clearSession)
-    }, delay)
-    return () => window.clearTimeout(timer)
-  }, [clearSession, refreshSession, session])
+  }, [])
 
   const value = useMemo(
-    () => ({ loading, session, error, login, logout, refreshSession }),
-    [error, loading, login, logout, refreshSession, session],
+      () => ({loading, authorization, error, login, logout, refreshAuthorization}),
+      [authorization, error, loading, login, logout, refreshAuthorization],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

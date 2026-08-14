@@ -22,6 +22,7 @@ import top.egon.cola.platform.idp.core.port.IdentityUserStatePort;
 import top.egon.cola.platform.idp.core.port.IdentityUserStore;
 import top.egon.cola.platform.idp.core.port.PasswordCredentialStore;
 import top.egon.cola.platform.idp.core.port.PasswordHashPort;
+import top.egon.cola.platform.idp.core.port.RefreshTokenStore;
 
 import java.security.SecureRandom;
 import java.time.Clock;
@@ -42,6 +43,7 @@ public class IdentityUserServiceImpl implements IdentityUserService {
     private final PasswordHashPort passwordHashes;
     private final IdentityUserStatePort states;
     private final IdentitySecurityEventPort securityEvents;
+    private final RefreshTokenStore refreshTokens;
     private final LongIdGenerator ids;
     private final UsernameNormalizer normalizer;
     private final Clock clock;
@@ -55,6 +57,7 @@ public class IdentityUserServiceImpl implements IdentityUserService {
             PasswordHashPort passwordHashes,
             IdentityUserStatePort states,
             IdentitySecurityEventPort securityEvents,
+            RefreshTokenStore refreshTokens,
             LongIdGenerator ids
     ) {
         this(
@@ -64,6 +67,7 @@ public class IdentityUserServiceImpl implements IdentityUserService {
                 passwordHashes,
                 states,
                 securityEvents,
+                refreshTokens,
                 ids,
                 new UsernameNormalizer(),
                 Clock.systemUTC(),
@@ -78,6 +82,7 @@ public class IdentityUserServiceImpl implements IdentityUserService {
             PasswordHashPort passwordHashes,
             IdentityUserStatePort states,
             IdentitySecurityEventPort securityEvents,
+            RefreshTokenStore refreshTokens,
             LongIdGenerator ids,
             UsernameNormalizer normalizer,
             Clock clock,
@@ -95,6 +100,7 @@ public class IdentityUserServiceImpl implements IdentityUserService {
                 securityEvents,
                 "securityEvents"
         );
+        this.refreshTokens = Objects.requireNonNull(refreshTokens, "refreshTokens");
         this.ids = Objects.requireNonNull(ids, "ids");
         this.normalizer = Objects.requireNonNull(normalizer, "normalizer");
         this.clock = Objects.requireNonNull(clock, "clock");
@@ -130,7 +136,6 @@ public class IdentityUserServiceImpl implements IdentityUserService {
                 normalized,
                 required(command.displayName(), "displayName"),
                 IdentityUserStatus.ACTIVE,
-                0L,
                 0,
                 null,
                 null,
@@ -185,6 +190,8 @@ public class IdentityUserServiceImpl implements IdentityUserService {
         );
         users.save(updated, current.version());
         if (revoke) {
+            refreshTokens.revokeSubject(
+                    updated.id(), "USER_DISABLED", clock.instant());
             publish(
                     updated,
                     "IDENTITY_USER_DISABLED",
@@ -218,6 +225,7 @@ public class IdentityUserServiceImpl implements IdentityUserService {
         }
         IdentityUser revoked = current.revokeSecurityState();
         users.save(revoked, current.version());
+        refreshTokens.revokeSubject(revoked.id(), "PASSWORD_RESET", now);
         publish(
                 revoked,
                 "IDENTITY_PASSWORD_RESET",
@@ -227,8 +235,7 @@ public class IdentityUserServiceImpl implements IdentityUserService {
         return new ResetPasswordVO(
                 revoked.id(),
                 oneTimePassword,
-                true,
-                revoked.tokenVersion()
+                true
         );
     }
 
@@ -238,6 +245,8 @@ public class IdentityUserServiceImpl implements IdentityUserService {
         IdentityUser current = user(identitySub);
         IdentityUser revoked = current.revokeSecurityState();
         users.save(revoked, current.version());
+        refreshTokens.revokeSubject(
+                revoked.id(), "ADMIN_REVOKE_ALL", clock.instant());
         publish(
                 revoked,
                 "IDENTITY_TOKEN_REVOKED",
@@ -254,15 +263,11 @@ public class IdentityUserServiceImpl implements IdentityUserService {
             Instant now
     ) {
         states.publish(state(user, now));
-        if (user.tokenVersion() > 0L) {
-            states.revokeFamilies(user.id(), user.tokenVersion(), reason);
-        }
         securityEvents.append(new IdentitySecurityEvent(
                 eventType,
                 user.id(),
                 reason,
                 "ADMIN_API",
-                user.tokenVersion(),
                 now
         ));
     }
@@ -292,7 +297,6 @@ public class IdentityUserServiceImpl implements IdentityUserService {
         return new IdentityUserState(
                 user.id(),
                 IdentityUserState.Status.valueOf(user.status().name()),
-                user.tokenVersion(),
                 now
         );
     }
@@ -303,7 +307,6 @@ public class IdentityUserServiceImpl implements IdentityUserService {
                 user.username(),
                 user.displayName(),
                 user.status().name(),
-                user.tokenVersion(),
                 user.failedLoginCount(),
                 user.lockedUntil(),
                 user.lastLoginAt(),

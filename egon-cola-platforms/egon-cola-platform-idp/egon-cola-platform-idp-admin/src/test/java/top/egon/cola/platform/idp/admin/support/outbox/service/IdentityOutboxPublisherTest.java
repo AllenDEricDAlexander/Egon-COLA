@@ -63,7 +63,6 @@ class IdentityOutboxPublisherTest {
         publisher.publish(new IdentityUserState(
                 "alice-sub",
                 IdentityUserState.Status.ACTIVE,
-                4L,
                 NOW
         ));
 
@@ -75,7 +74,7 @@ class IdentityOutboxPublisherTest {
         IdentityOutboxEventEntity event = captureOutbox();
         assertThat(event.getEventType()).isEqualTo("IDENTITY_USER_STATE_CHANGED");
         assertThat(event.getPayload())
-                .contains("alice-sub", "tokenVersion", "4")
+                .contains("alice-sub", "ACTIVE", "updatedAt")
                 .doesNotContain("password", "refreshToken");
     }
 
@@ -84,7 +83,6 @@ class IdentityOutboxPublisherTest {
         publisher.project(new IdentityUserState(
                 "alice-sub",
                 IdentityUserState.Status.ACTIVE,
-                4L,
                 NOW
         ));
 
@@ -93,26 +91,16 @@ class IdentityOutboxPublisherTest {
     }
 
     @Test
-    void revocationRevokesRefreshFamiliesAndAppendsAuditAndOutbox() {
-        publisher.revokeFamilies(
-                "alice-sub",
-                5L,
-                "PASSWORD_CHANGED"
-        );
+    void securityEventAppendsAuditAndOutboxWithoutTokenStateMutation() {
         publisher.append(new IdentitySecurityEvent(
                 "IDENTITY_TOKEN_REVOKED",
                 "alice-sub",
                 "PASSWORD_CHANGED",
                 "SELF_SERVICE",
-                5L,
                 NOW
         ));
 
-        verify(refreshTokens).revokeSubject(
-                eq("alice-sub"),
-                eq("PASSWORD_CHANGED"),
-                any(Instant.class)
-        );
+        verifyNoInteractions(refreshTokens);
         verify(audits).save(any(IdentityAuditLogEntity.class));
         IdentityOutboxEventEntity event = captureOutbox();
         assertThat(event.getAggregateId()).isEqualTo("alice-sub");

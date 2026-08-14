@@ -4,7 +4,9 @@ import top.egon.cola.platform.rbac3.admin.activation.domain.vo.RuntimePublicatio
 import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.PublishCommandDTO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.PublishResultVO;
 
-/** 会话授权运行时发布端口。 Session authorization runtime publication port. */
+/**
+ * 用户授权运行时发布端口。 User authorization runtime publication port.
+ */
 public interface RuntimePublicationRepository {
 
     /**

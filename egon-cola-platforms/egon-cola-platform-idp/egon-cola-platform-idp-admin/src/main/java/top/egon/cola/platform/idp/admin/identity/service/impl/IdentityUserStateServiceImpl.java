@@ -49,7 +49,6 @@ public class IdentityUserStateServiceImpl implements IdentityUserStateService {
             projection.project(new IdentityUserState(
                     user.id(),
                     IdentityUserState.Status.valueOf(user.status().name()),
-                    user.tokenVersion(),
                     now
             ));
         }

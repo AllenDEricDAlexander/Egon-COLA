@@ -22,7 +22,6 @@ class IdentityEntityMappingTest {
                 "alice",
                 "Alice A",
                 IdentityUserStatus.LOCKED,
-                7L,
                 3,
                 NOW.plusSeconds(300),
                 NOW.minusSeconds(60),

@@ -76,11 +76,8 @@ public class JpaAuthorizationMutationRepository implements
                 Long.valueOf(scope.tenantId()),
                 "USER".equals(scope.scopeType())
                         ? Long.valueOf(scope.scopeId()) : null,
-                "SESSION".equals(scope.scopeType())
-                        ? Long.valueOf(scope.scopeId()) : null,
                 AuthorizationMutationScopeTypeEnum.valueOf(scope.scopeType()),
-                scope.commandId(), versions.oldSessionVersion(),
-                versions.newSessionVersion(), versions.oldAuthVersion(),
+                scope.commandId(), versions.oldAuthVersion(),
                 versions.newAuthVersion(), versions.oldPolicyVersion(),
                 versions.newPolicyVersion(), scope.actorId(), record.createdAt()));
     }
@@ -295,7 +292,6 @@ public class JpaAuthorizationMutationRepository implements
             AuthorizationMutationPO mutation) {
         String scopeId = switch (mutation.getScopeType()) {
             case USER -> String.valueOf(mutation.getUserId());
-            case SESSION -> String.valueOf(mutation.getSessionId());
             case TENANT -> String.valueOf(mutation.getTenantId());
         };
         return new MutationVO(
@@ -320,7 +316,6 @@ public class JpaAuthorizationMutationRepository implements
             AuthorizationMutationPO mutation) {
         String scopeId = switch (mutation.getScopeType()) {
             case USER -> String.valueOf(mutation.getUserId());
-            case SESSION -> String.valueOf(mutation.getSessionId());
             case TENANT -> String.valueOf(mutation.getTenantId());
         };
         return new MutationWorkDTO(

@@ -8,12 +8,10 @@ import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DefaultRoleActivationResolverTest {
 
@@ -112,8 +110,8 @@ class DefaultRoleActivationResolverTest {
                         new AuthorizationRuleFacts.PermissionBinding("report", "payment:report")
                 ), List.of(), List.of(), List.of(), List.of()
         );
-        return new RoleActivationInput("tenant", "user", "session", requested,
-                assignments, hierarchy, dsdSets, facts, 7, 3, 11,
+        return new RoleActivationInput("tenant", "user", requested,
+                assignments, hierarchy, dsdSets, facts, 7, 3,
                 Instant.parse("2026-07-30T00:00:00Z"));
     }
 

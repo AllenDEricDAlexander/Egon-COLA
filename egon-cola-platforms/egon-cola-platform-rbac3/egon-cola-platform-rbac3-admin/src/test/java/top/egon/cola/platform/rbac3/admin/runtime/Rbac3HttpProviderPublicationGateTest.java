@@ -5,12 +5,12 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.web.context.WebServerApplicationContext;
 import org.springframework.boot.web.context.WebServerInitializedEvent;
 import org.springframework.boot.web.server.WebServer;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
+import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
+import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
-import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
-import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
-import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.platform.rbac3.admin.runtime.service.Rbac3HttpProviderPublicationGate;
 
 import java.time.Instant;
@@ -57,7 +57,7 @@ class Rbac3HttpProviderPublicationGateTest {
     }
 
     @Test
-    void failsClosedWhenDdcIsNotReadyOrHasNoConfigClientSession() {
+    void failsClosedWhenDdcIsNotReadyOrHasNoConfigClientLease() {
         DdcRuntimeCoordinator coordinator = mock(DdcRuntimeCoordinator.class);
         when(coordinator.state()).thenReturn(DdcRuntimeState.RECOVERING);
         when(coordinator.currentSession()).thenReturn(Optional.empty());
@@ -74,7 +74,7 @@ class Rbac3HttpProviderPublicationGateTest {
         when(coordinator.state()).thenReturn(DdcRuntimeState.READY);
         assertThatThrownBy(() -> gate.onApplicationEvent(mock(ApplicationReadyEvent.class)))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("DDC config client session is missing");
+                .hasMessageContaining("DDC config client lease is missing");
     }
 
     @Test

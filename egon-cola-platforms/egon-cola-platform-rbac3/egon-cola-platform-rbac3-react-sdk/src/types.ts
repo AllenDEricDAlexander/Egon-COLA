@@ -1,13 +1,6 @@
 export type BigintId = string
 export type InstantString = string
 
-export type SessionStatus =
-  | 'ACTIVE'
-  | 'LOGGED_OUT'
-  | 'REVOKED'
-  | 'EXPIRED'
-  | 'COMPROMISED'
-
 export type Decision = 'ALLOW' | 'DENY' | 'INDETERMINATE'
 
 export type FieldAccessLevel = 'NONE' | 'MASKED_READ' | 'READ' | 'WRITE'
@@ -18,7 +11,6 @@ export type Rbac3State =
   | 'ACTIVATION_REQUIRED'
   | 'REPLACING_ACTIVE_ROLES'
   | 'READY'
-  | 'REFRESHING_VERSION'
   | 'AUTHENTICATION_REQUIRED'
   | 'FORBIDDEN_NO_ROUTE'
   | 'ERROR_RETRYABLE'
@@ -36,30 +28,24 @@ export interface ApplicationActiveRoles {
 }
 
 export interface ActiveRoleSetView {
-  readonly sessionId: BigintId
   readonly activeRoles: readonly ApplicationActiveRoles[]
   readonly activationRequired: boolean
   readonly authVersion: number
-  readonly sessionVersion: number
   readonly policyVersion: number
   readonly snapshotChecksum: string
 }
 
 export interface ReplaceActiveRolesRequest {
   readonly roleIds: readonly BigintId[]
-  readonly expectedSessionVersion: number
+    readonly expectedAuthVersion: number
 }
 
 export interface ReplaceActiveRolesResult {
   readonly activeRoles: readonly ApplicationActiveRoles[]
   readonly changed: boolean
-  readonly sessionVersion: number
   readonly authVersion: number
   readonly policyVersion: number
-  readonly accessToken: string
-  readonly expiresIn: number
-  readonly refreshTokenRotated: boolean
-  readonly bootstrapRequired: boolean
+    readonly activationRequired: boolean
   readonly snapshotChecksum: string
 }
 
@@ -95,67 +81,11 @@ export interface RoleActivationCandidateView {
   readonly calculatedAt: InstantString
 }
 
-export interface Rbac3TokenClaims {
-  readonly iss: string
-  readonly aud: readonly string[]
-  readonly sub: BigintId
-  readonly tid: BigintId
-  readonly sid: BigintId
-  readonly av: number
-  readonly sv: number
-  readonly pv: number
-  readonly jti: string
-  readonly iat: InstantString
-  readonly nbf: InstantString
-  readonly exp: InstantString
-  readonly kid: string
-}
-
-export interface LoginRequestDevice {
-  readonly deviceId: string
-  readonly deviceName: string
-}
-
-export interface LoginRequest {
-  readonly tenantCode: string
-  readonly username: string
-  readonly password: string
-  readonly device: LoginRequestDevice
-}
-
-export interface LoginResult {
-  readonly tokenType: string
-  readonly accessToken: string
-  readonly expiresIn: number
-  readonly refreshToken: string | null
-  readonly refreshExpiresIn: number
-  readonly sessionId: BigintId
-  readonly roleActivationRequired: boolean
-  readonly activationCandidateCount: number
-  readonly activationCandidatesUrl: string
-  readonly bootstrapRequired: boolean
-}
-
-export interface RefreshResult {
-  readonly tokenType: string
-  readonly accessToken: string
-  readonly expiresIn: number
-  readonly refreshToken: string | null
-  readonly refreshExpiresIn: number
-  readonly sessionId: BigintId
-  readonly authVersion: number
-  readonly sessionVersion: number
-  readonly policyVersion: number
-  readonly roleActivationRequired: boolean
-  readonly activationReasonCode: string | null
-  readonly bootstrapRequired: boolean
-}
-
 export interface BootstrapUser {
   readonly id: BigintId
-  readonly tenantId: BigintId
-  readonly username: string
-  readonly displayName: string
+    readonly tenantId: string
+    readonly identitySub: string
+    readonly status: string
 }
 
 export interface BootstrapActiveRoleContext {
@@ -177,20 +107,17 @@ export interface BootstrapView {
   readonly fieldPolicies: Readonly<Record<string, FieldPolicyDecision>>
   readonly defaultApplicationCode: string | null
   readonly defaultRoute: string | null
-  readonly sessionId: BigintId
   readonly authVersion: number
-  readonly sessionVersion: number
   readonly policyVersion: number
 }
 
 export interface AuthorizationDecision {
   readonly decision: Decision
   readonly reasonCode: string
-  readonly tenantId: BigintId
-  readonly subjectId: BigintId
+    readonly tenantId: string
+    readonly subjectId: string
   readonly permissionCode: string
   readonly authVersion: number
-  readonly sessionVersion: number
   readonly policyVersion: number
   readonly evidenceIds: readonly BigintId[]
   readonly decidedAt: InstantString
@@ -203,8 +130,8 @@ export interface PermissionRequest {
 export interface DataScopeDecision {
   readonly decision: Decision
   readonly reasonCode: string
-  readonly tenantId: BigintId
-  readonly subjectId: BigintId
+    readonly tenantId: string
+    readonly subjectId: string
   readonly permissionCode: string
   readonly scopeType: string
   readonly allInTenant: boolean
@@ -218,7 +145,6 @@ export interface DataScopeDecision {
   readonly directorySnapshotVersion: string
   readonly decisionVersion: number
   readonly authVersion: number
-  readonly sessionVersion: number
   readonly policyVersion: number
   readonly evidenceIds: readonly BigintId[]
   readonly decidedAt: InstantString
@@ -232,14 +158,13 @@ export interface FieldAccess {
 export interface FieldPolicyDecision {
   readonly decision: Decision
   readonly reasonCode: string
-  readonly tenantId: BigintId
-  readonly subjectId: BigintId
+    readonly tenantId: string
+    readonly subjectId: string
   readonly permissionCode: string
   readonly applicationCode: string
   readonly resourceCode: string
   readonly fields: Readonly<Record<string, FieldAccess>>
   readonly authVersion: number
-  readonly sessionVersion: number
   readonly policyVersion: number
   readonly evidenceIds: readonly BigintId[]
   readonly decidedAt: InstantString
@@ -248,8 +173,8 @@ export interface FieldPolicyDecision {
 export interface OperationSodDecision {
   readonly decision: Decision
   readonly reasonCode: string
-  readonly tenantId: BigintId
-  readonly subjectId: BigintId
+    readonly tenantId: string
+    readonly subjectId: string
   readonly permissionCode: string
   readonly applicationCode: string
   readonly businessResource: string
@@ -257,7 +182,6 @@ export interface OperationSodDecision {
   readonly actionCode: string
   readonly conflictingActionCodes: readonly string[]
   readonly authVersion: number
-  readonly sessionVersion: number
   readonly policyVersion: number
   readonly evidenceIds: readonly BigintId[]
   readonly decidedAt: InstantString
@@ -266,16 +190,14 @@ export interface OperationSodDecision {
 export interface AuthorizationFenceDecision {
   readonly decision: Decision
   readonly reasonCode: string
-  readonly tenantId: BigintId
-  readonly subjectId: BigintId
+    readonly tenantId: string
+    readonly subjectId: string
   readonly permissionCode: string
-  readonly sessionId: BigintId
   readonly snapshotChecksum: string
   readonly businessResource: string
   readonly businessId: string
   readonly traceId: string
   readonly authVersion: number
-  readonly sessionVersion: number
   readonly policyVersion: number
   readonly evidenceIds: readonly BigintId[]
   readonly decidedAt: InstantString
@@ -295,14 +217,17 @@ export interface AppAuthorizationContext {
   readonly landingRouteCode: string | null
 }
 
-export interface SessionAuthorizationSnapshot {
-  readonly sessionId: BigintId
+export interface UserAuthorizationSnapshot {
+    readonly systemCode: string
+    readonly tenantId: string
+    readonly identitySub: string
+    readonly rbacUserId: string
   readonly authVersion: number
-  readonly sessionVersion: number
   readonly policyVersion: number
   readonly appContexts: readonly AppAuthorizationContext[]
   readonly checksum: string
   readonly generatedAt: InstantString
+    readonly expiresAt: InstantString
 }
 
 export interface ManifestResource {
@@ -418,8 +343,6 @@ export interface Rbac3Client {
     request: ReplaceActiveRolesRequest,
   ): Promise<ReplaceActiveRolesResult>
   getBootstrap(): Promise<BootstrapView>
-  refresh(): Promise<RefreshResult>
-  logout(): Promise<void>
 }
 
 export interface ApiEnvelope<T> {

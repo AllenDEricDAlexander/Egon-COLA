@@ -16,7 +16,14 @@ egon:
           password-file: ${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/secrets/redis.password}
         authorization:
           endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
-          service-credential-file: ${DDC_RBAC3_SERVICE_CREDENTIAL_FILE:.runtime/unified-identity/ddc-admin.service.jwt}
+          service-token:
+            enabled: ${DDC_RBAC3_SERVICE_TOKEN_ENABLED:false}
+            token-endpoint: ${DDC_RBAC3_SERVICE_TOKEN_TOKEN_ENDPOINT:http://127.0.0.1:18120/oauth2/token}
+            client-id: ${DDC_RBAC3_SERVICE_TOKEN_CLIENT_ID:}
+            key-id: ${DDC_RBAC3_SERVICE_TOKEN_KEY_ID:}
+            private-key-file: ${DDC_RBAC3_SERVICE_TOKEN_PRIVATE_KEY_FILE:}
+            resource-uri: ${DDC_RBAC3_SERVICE_TOKEN_RESOURCE_URI:}
+            scopes: ${DDC_RBAC3_SERVICE_TOKEN_SCOPES:}
     component:
       ddc:
         admin:
@@ -25,3 +32,10 @@ egon:
       rpc:
         tls:
           development-plaintext: true
+      gateway:
+        reporting:
+          enabled: ${DDC_GATEWAY_REPORTING_ENABLED:false}
+          env: local
+          namespace: default
+          application-code: ddc
+          artifact-version: local

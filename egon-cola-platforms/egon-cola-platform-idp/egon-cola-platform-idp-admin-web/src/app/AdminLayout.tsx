@@ -1,16 +1,16 @@
-import { Breadcrumb, Tag } from 'antd'
-import type { ItemType } from 'antd/es/breadcrumb/Breadcrumb'
-import { HomeOutlined, LogoutOutlined } from '@ant-design/icons'
+import {Breadcrumb, Tag} from 'antd'
+import type {ItemType} from 'antd/es/breadcrumb/Breadcrumb'
+import {HomeOutlined, LogoutOutlined} from '@ant-design/icons'
 import {
     EnterpriseLayout,
-    usePermission,
     type EnterpriseLayoutConfig,
     type EnterpriseNavigationItem,
+    usePermission,
 } from '@egon-cola/admin-web-shared'
-import { type PropsWithChildren, useMemo } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '../auth/AuthContext'
-import { version } from '../../package.json'
+import {type PropsWithChildren, useMemo} from 'react'
+import {useLocation, useNavigate} from 'react-router-dom'
+import {useAuth} from '../auth/AuthContext'
+import {version} from '../../package.json'
 
 interface NavItem {
     key: string
@@ -73,12 +73,12 @@ export const AdminLayout = ({ children }: PropsWithChildren) => {
         platformName: '统一身份平台',
         navigation,
         actions: auth.bootstrap
-            ? <Tag color="blue">{auth.bootstrap.tenantId}</Tag>
+            ? <Tag color="blue">{auth.bootstrap.user.tenantId}</Tag>
             : undefined,
         user: auth.bootstrap
             ? {
-                name: auth.bootstrap.identitySub,
-                description: `Tenant: ${auth.bootstrap.tenantId}`,
+                name: auth.bootstrap.user.identitySub,
+                description: `Tenant: ${auth.bootstrap.user.tenantId}`,
                 menu: [
                     {
                         key: 'logout',

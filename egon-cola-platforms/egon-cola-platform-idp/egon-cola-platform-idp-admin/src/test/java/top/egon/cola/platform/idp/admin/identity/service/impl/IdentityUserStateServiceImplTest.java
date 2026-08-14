@@ -24,8 +24,8 @@ class IdentityUserStateServiceImplTest {
         IdentityUserStateServiceImpl service =
                 new IdentityUserStateServiceImpl(
                         () -> List.of(
-                                user("alice", IdentityUserStatus.ACTIVE, 4L),
-                                user("bob", IdentityUserStatus.DISABLED, 7L)
+                                user("alice", IdentityUserStatus.ACTIVE),
+                                user("bob", IdentityUserStatus.DISABLED)
                         ),
                         projected::add,
                         Clock.fixed(NOW, ZoneOffset.UTC)
@@ -38,20 +38,17 @@ class IdentityUserStateServiceImplTest {
                 .extracting(
                         IdentityUserState::subject,
                         IdentityUserState::status,
-                        IdentityUserState::tokenVersion,
                         IdentityUserState::updatedAt
                 )
                 .containsExactly(
                         org.assertj.core.groups.Tuple.tuple(
                                 "alice",
                                 IdentityUserState.Status.ACTIVE,
-                                4L,
                                 NOW
                         ),
                         org.assertj.core.groups.Tuple.tuple(
                                 "bob",
                                 IdentityUserState.Status.DISABLED,
-                                7L,
                                 NOW
                         )
                 );
@@ -59,8 +56,7 @@ class IdentityUserStateServiceImplTest {
 
     private IdentityUser user(
             String id,
-            IdentityUserStatus status,
-            long tokenVersion
+            IdentityUserStatus status
     ) {
         return new IdentityUser(
                 id,
@@ -68,7 +64,6 @@ class IdentityUserStateServiceImplTest {
                 id,
                 id,
                 status,
-                tokenVersion,
                 0,
                 null,
                 null,

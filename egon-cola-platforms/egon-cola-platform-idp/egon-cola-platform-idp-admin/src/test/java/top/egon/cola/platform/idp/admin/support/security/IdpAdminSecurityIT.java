@@ -14,6 +14,7 @@ import top.egon.cola.platform.idp.admin.identity.domain.vo.IdentityUserVO;
 import top.egon.cola.platform.idp.admin.identity.service.IdentityUserService;
 import top.egon.cola.platform.idp.admin.resource.controller.ResourceServerController;
 import top.egon.cola.platform.idp.admin.resource.service.ResourceServerService;
+import top.egon.cola.platform.idp.contract.AuthenticationContext;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 
 import java.time.Instant;
@@ -113,7 +114,7 @@ class IdpAdminSecurityIT {
         when(users.update(eq("1001"), any())).thenReturn(
                 new IdentityUserVO(
                         "1001", "alice", "Alice", "DISABLED",
-                        1L, 0, null, null, 2L
+                        0, null, null, 2L
                 )
         );
 
@@ -160,13 +161,11 @@ class IdpAdminSecurityIT {
                 .IdpAdminAuthenticationToken(new IdentityPrincipal(
                 "admin-sub",
                 "tenant-a",
-                "session-a",
-                "idp-admin-web",
                 "token-a",
-                3L,
                 java.util.Set.of("idp-admin"),
                 Instant.parse("2026-08-02T00:00:00Z"),
-                Instant.parse("2026-08-02T00:15:00Z")
+                Instant.parse("2026-08-02T00:15:00Z"),
+                AuthenticationContext.password()
         ), "raw-token"));
     }
 }

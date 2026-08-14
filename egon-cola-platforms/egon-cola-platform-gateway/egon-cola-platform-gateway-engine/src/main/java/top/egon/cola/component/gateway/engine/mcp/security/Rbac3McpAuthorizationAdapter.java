@@ -5,6 +5,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import top.egon.cola.component.gateway.core.mcp.security.McpAuthorizationPort;
 import top.egon.cola.component.gateway.core.mcp.security.McpAuthorizationRequest;
+import top.egon.cola.platform.idp.contract.AuthenticationContext;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.starter.cache.SingleFlightSnapshotLoader;
@@ -90,14 +91,14 @@ public final class Rbac3McpAuthorizationAdapter
             McpAuthorizationRequest request,
             SystemAuthorizationSnapshot snapshot) {
         if (snapshot.authVersion() < request.minimumAuthVersion()
-                || snapshot.contextVersion()
+                || snapshot.policyVersion()
                 < request.minimumContextVersion()
                 || snapshot.policyVersion()
                 < request.minimumPolicyVersion()) {
             return Decision.denied(
                     "RBAC3_SNAPSHOT_FENCED",
                     snapshot.authVersion(),
-                    snapshot.contextVersion(),
+                    snapshot.policyVersion(),
                     snapshot.policyVersion()
             );
         }
@@ -107,13 +108,13 @@ public final class Rbac3McpAuthorizationAdapter
             return Decision.denied(
                     "RBAC3_PERMISSION_DENIED",
                     snapshot.authVersion(),
-                    snapshot.contextVersion(),
+                    snapshot.policyVersion(),
                     snapshot.policyVersion()
             );
         }
         return Decision.allowed(
                 snapshot.authVersion(),
-                snapshot.contextVersion(),
+                snapshot.policyVersion(),
                 snapshot.policyVersion()
         );
     }
@@ -130,13 +131,11 @@ public final class Rbac3McpAuthorizationAdapter
         return new IdentityPrincipal(
                 request.subjectId(),
                 request.tenantId(),
-                request.sessionId(),
-                request.clientId(),
                 request.tokenId(),
-                request.tokenVersion(),
-                java.util.Set.of(request.resourceUri()),
+                java.util.Set.of("platform"),
                 request.issuedAt(),
-                request.expiresAt()
+                request.expiresAt(),
+                AuthenticationContext.password()
         );
     }
 }

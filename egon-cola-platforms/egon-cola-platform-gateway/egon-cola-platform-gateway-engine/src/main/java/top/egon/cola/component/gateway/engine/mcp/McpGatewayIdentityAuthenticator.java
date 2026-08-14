@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.engine.mcp;
 
 import reactor.core.publisher.Mono;
+import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeServer;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.gateway.core.context.GatewayContext;
@@ -21,7 +22,6 @@ import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
 import top.egon.cola.component.gateway.core.security.SecurityFailureMode;
 import top.egon.cola.component.gateway.engine.security.GatewaySecurityChain;
 import top.egon.cola.component.gateway.mcp.transport.McpHttpRequest;
-import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeServer;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -52,7 +52,7 @@ public final class McpGatewayIdentityAuthenticator
             new GatewaySecurityPolicy(
                     "gateway-mcp-idp",
                     AuthenticationMode.REQUIRED,
-                    List.of("idp-bearer"),
+                    List.of("idp-user-cookie"),
                     List.of("idp-jwt"),
                     List.of(),
                     AuthorizationDecisionMode.ALL_ALLOW,

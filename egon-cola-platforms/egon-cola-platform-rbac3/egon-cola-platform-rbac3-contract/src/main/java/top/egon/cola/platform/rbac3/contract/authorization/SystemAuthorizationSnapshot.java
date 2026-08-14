@@ -6,15 +6,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-/** Immutable authorization facts for one system within an IdP session. */
+/**
+ * Immutable authorization facts for one USER subject and system.
+ */
 public record SystemAuthorizationSnapshot(
         String tenantId,
         String identitySub,
         String rbac3UserId,
-        String sessionId,
         String systemCode,
         long authVersion,
-        long contextVersion,
         long policyVersion,
         List<String> activeRoleIds,
         Set<String> permissions,
@@ -29,10 +29,8 @@ public record SystemAuthorizationSnapshot(
         tenantId = required(tenantId, "tenantId");
         identitySub = required(identitySub, "identitySub");
         rbac3UserId = required(rbac3UserId, "rbac3UserId");
-        sessionId = required(sessionId, "sessionId");
         systemCode = required(systemCode, "systemCode");
         nonNegative(authVersion, "authVersion");
-        nonNegative(contextVersion, "contextVersion");
         nonNegative(policyVersion, "policyVersion");
         activeRoleIds = List.copyOf(Objects.requireNonNull(activeRoleIds, "activeRoleIds"));
         permissions = Set.copyOf(Objects.requireNonNull(permissions, "permissions"));

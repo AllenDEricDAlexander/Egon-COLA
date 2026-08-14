@@ -34,6 +34,11 @@ rbac3_database="${UNIFIED_IDENTITY_RBAC3_DATABASE:-egon_rbac3_unified_identity_l
 gateway_database="${UNIFIED_IDENTITY_GATEWAY_DATABASE:-egon_gateway_local}"
 ddc_database="${UNIFIED_IDENTITY_DDC_DATABASE:-egon_ddc_local}"
 service_tenant_id="${UNIFIED_IDENTITY_SERVICE_TENANT_ID:-default}"
+# USER tokens stay in the Gateway-managed cookie jar for the browser path.  These
+# variables are deliberately process-local and are used only while bootstrapping
+# or running an explicit command-line verification.
+ddc_admin_access_token=""
+pre_logout_access_token=""
 
 idp_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/target/egon-cola-platform-idp-admin-exec.jar"
 rbac3_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/target/egon-cola-platform-rbac3-admin-exec.jar"
@@ -49,8 +54,8 @@ Usage: ./scripts/unified-identity-local.sh <command>
 Commands:
   prepare  Check host dependencies, create named databases/secrets, and package jars
   start    Start and bootstrap DDC, IdP, RBAC3, Gateway, and the mock backend
-  refresh-tokens  Refresh local OAuth tokens and rebuild both tenant snapshots
-  issue-user-token  Issue one local USER token from explicit environment inputs
+  sync-local-credentials  Refresh local SERVICE credentials and USER cookie snapshots
+  issue-user-token  Issue one local USER Access Token from explicit inputs
   verify   Execute the host-local unified identity acceptance checks
   status   Show exact managed process and health status
   stop     Gracefully stop only processes recorded by this harness
@@ -219,17 +224,17 @@ write_runtime_secrets() {
   write_pending_service_credential "${secret_dir}/idp-admin.service.jwt"
   write_pending_service_credential "${secret_dir}/rbac3-admin.service.jwt"
   write_pending_service_credential "${secret_dir}/gateway-admin.service.jwt"
+  write_pending_service_credential "${secret_dir}/gateway-admin-control-plane.service.jwt"
   write_pending_service_credential "${secret_dir}/gateway-engine.service.jwt"
   write_pending_service_credential "${secret_dir}/ddc-admin.service.jwt"
   write_pending_service_credential "${secret_dir}/mock-backend.service.jwt"
   write_pending_service_credential "${secret_dir}/mcp-provider.service.jwt"
-  printf 'Bearer %s' "$(<"${secret_dir}/idp-admin.service.jwt")" \
-    >"${secret_dir}/idp-rbac3.authorization"
-  chmod 600 "${secret_dir}/idp-rbac3.authorization"
 }
 
 oauth_service_token() {
   local client_id="$1" key_id="$2" key_stem="$3" output="$4"
+  local resource="${5:-https://api.egon.internal/local/permission/rbac3}"
+  local scopes="${6:-service:authorization:decide service:authorization:snapshot service:identity:resolve}"
   local now expires assertion_id header payload unsigned signature assertion
   local response_file status token_endpoint
   token_endpoint="${idp_url}/oauth2/token"
@@ -258,10 +263,9 @@ oauth_service_token() {
       client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer \
     --data-urlencode "client_assertion=${assertion}" \
     --data-urlencode \
-      resource=https://api.egon.internal/local/permission/rbac3 \
+      "resource=${resource}" \
     --data-urlencode "tenant_id=${service_tenant_id}" \
-    --data-urlencode \
-      'scope=service:authorization:decide service:authorization:snapshot service:identity:resolve' \
+    --data-urlencode "scope=${scopes}" \
     "${token_endpoint}")"
   [[ "${status}" == "200" ]] || fail \
     "IdP Client Credentials failed for ${client_id} with HTTP ${status}: $(<"${response_file}")"
@@ -277,6 +281,10 @@ refresh_service_tokens() {
     "${secret_dir}/rbac3-admin.service.jwt"
   oauth_service_token gateway-admin-service gateway-admin-local gateway-admin \
     "${secret_dir}/gateway-admin.service.jwt"
+  oauth_service_token gateway-admin-service gateway-admin-local gateway-admin \
+    "${secret_dir}/gateway-admin-control-plane.service.jwt" \
+    https://api.egon.internal/local/platform/gateway-admin \
+    'gateway:read gateway:applications:write gateway:catalog:write gateway:credentials:write gateway:drafts:write gateway:groups:write gateway:mcp:approve gateway:mcp:read gateway:mcp:runtime:read gateway:mcp:test gateway:mcp:write gateway:releases:write'
   oauth_service_token gateway-engine-service gateway-engine-local gateway-engine \
     "${secret_dir}/gateway-engine.service.jwt"
   oauth_service_token ddc-service ddc-local ddc \
@@ -285,9 +293,6 @@ refresh_service_tokens() {
     "${secret_dir}/mock-backend.service.jwt"
   oauth_service_token mcp-provider-service mcp-provider-local mcp-provider \
     "${secret_dir}/mcp-provider.service.jwt"
-  printf 'Bearer %s' "$(<"${secret_dir}/idp-admin.service.jwt")" \
-    >"${secret_dir}/idp-rbac3.authorization"
-  chmod 600 "${secret_dir}/idp-rbac3.authorization"
 }
 
 properties_escape() {
@@ -472,7 +477,6 @@ write_service_env_files() {
   write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_DATABASE 10
   write_env "${file}" DDC_AUTHORIZATION_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
   write_env "${file}" DDC_AUTHORIZATION_REDIS_DATABASE 8
-  write_env "${file}" DDC_RBAC3_SERVICE_CREDENTIAL_FILE "${secret_dir}/ddc-admin.service.jwt"
   write_env "${file}" DDC_ADMIN_JWT_ISSUER "${idp_url}"
   write_env "${file}" DDC_RESOURCE_SERVER_ID platform-ddc-local
   write_env "${file}" DDC_RESOURCE_URI \
@@ -490,6 +494,12 @@ write_service_env_files() {
   write_env "${file}" DDC_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/ddc-registry.secret")"
   write_env "${file}" DDC_RPC_MANAGEMENT_ACCESS_KEY "$(<"${secret_dir}/ddc-management.access-key")"
   write_env "${file}" DDC_RPC_MANAGEMENT_SECRET_KEY "$(<"${secret_dir}/ddc-management.secret")"
+  write_env "${file}" DDC_GATEWAY_REPORTING_ENABLED false
+  write_env "${file}" GATEWAY_ADMIN_BASE_URL "${gateway_admin_url}"
+  write_env "${file}" DDC_RESOURCE_BIZ_CODE platform
+  write_env "${file}" DDC_RESOURCE_APP_CODE ddc
+  write_env "${file}" DDC_DECLARED_HOSTS 127.0.0.1
+  write_env "${file}" GATEWAY_REPORT_STATE_FILE "${runtime_dir}/ddc-gateway-report.json"
 
   file="$(new_env_file idp)"
   common_identity_env "${file}"
@@ -511,8 +521,8 @@ write_service_env_files() {
   write_env "${file}" IDP_SIGNING_PRIVATE_KEY_FILE "${secret_dir}/idp-private.pem"
   write_env "${file}" IDP_SIGNING_PUBLIC_KEY_FILE "${secret_dir}/idp-public.pem"
   write_env "${file}" IDP_RBAC3_BASE_URL "${rbac3_url}"
-  write_env "${file}" IDP_RBAC3_AUTHORIZATION_HEADER_FILE "${secret_dir}/idp-rbac3.authorization"
-  write_env "${file}" IDP_RBAC3_SERVICE_CREDENTIAL_FILE "${secret_dir}/idp-admin.service.jwt"
+  write_tenant_aware_rbac3_service_token_env "${file}" \
+    idp-service idp-local "${secret_dir}/idp-private.pem"
   write_env "${file}" IDP_RBAC3_SERVICE_CLIENT_ID idp-service
   write_env "${file}" IDP_RBAC3_SERVICE_KEY_ID idp-local
   write_env "${file}" IDP_RBAC3_SERVICE_PRIVATE_KEY_FILE \
@@ -563,6 +573,12 @@ write_service_env_files() {
   write_env "${file}" DDC_REGISTRY_REDIS_PORT "${redis_port}"
   write_env "${file}" DDC_REGISTRY_REDIS_PASSWORD "${redis_password}"
   write_env "${file}" DDC_REGISTRY_REDIS_DATABASE 10
+  write_env "${file}" IDP_GATEWAY_REPORTING_ENABLED false
+  write_env "${file}" GATEWAY_ADMIN_BASE_URL "${gateway_admin_url}"
+  write_env "${file}" IDP_RESOURCE_BIZ_CODE permission
+  write_env "${file}" IDP_RESOURCE_APP_CODE idp
+  write_env "${file}" IDP_DECLARED_HOSTS 127.0.0.1
+  write_env "${file}" GATEWAY_REPORT_STATE_FILE "${runtime_dir}/idp-gateway-report.json"
 
   file="$(new_env_file rbac3)"
   common_identity_env "${file}"
@@ -606,7 +622,6 @@ write_service_env_files() {
   write_env "${file}" RBAC3_RUNTIME_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
   write_env "${file}" RBAC3_RUNTIME_REDIS_DATABASE 8
   write_env "${file}" RBAC3_RUNTIME_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
-  write_env "${file}" RBAC3_ADMIN_SERVICE_CREDENTIAL_FILE "${secret_dir}/rbac3-admin.service.jwt"
   write_env "${file}" RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED true
   write_env "${file}" RBAC3_AUTHORIZATION_SERVICE_TOKEN_TOKEN_ENDPOINT \
     "${idp_url}/oauth2/token"
@@ -619,11 +634,6 @@ write_service_env_files() {
     https://api.egon.internal/local/permission/rbac3
   write_env "${file}" RBAC3_AUTHORIZATION_SERVICE_TOKEN_SCOPES \
     'service:authorization:decide service:authorization:snapshot service:identity:resolve'
-  write_env "${file}" RBAC3_JWT_PRIVATE_KEY_FILE "${secret_dir}/rbac3-private.pem"
-  write_env "${file}" RBAC3_JWT_PUBLIC_KEY_FILE "${secret_dir}/rbac3-public.pem"
-  write_env "${file}" RBAC3_JWT_PUBLIC_KEY_LOCATION "file:${secret_dir}/rbac3-public.pem"
-  write_env "${file}" RBAC3_JWT_ISSUER "${rbac3_url}"
-  write_env "${file}" RBAC3_JWT_AUDIENCES rbac3-local
   write_env "${file}" RBAC3_AUDIT_CURSOR_SECRET_FILE "${secret_dir}/rbac3-audit.secret"
   write_env "${file}" RBAC3_SNOWFLAKE_MACHINE_ID 33
   write_env "${file}" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED true
@@ -631,6 +641,12 @@ write_service_env_files() {
   write_env "${file}" RBAC3_DEVELOPMENT_TENANT_CODES default,tenant-b
   write_env "${file}" RBAC3_DEVELOPMENT_USERNAME alice
   write_env "${file}" SPRING_FLYWAY_ENABLED true
+  write_env "${file}" RBAC3_GATEWAY_REPORTING_ENABLED false
+  write_env "${file}" GATEWAY_ADMIN_BASE_URL "${gateway_admin_url}"
+  write_env "${file}" RBAC3_RESOURCE_BIZ_CODE permission
+  write_env "${file}" RBAC3_RESOURCE_APP_CODE rbac3
+  write_env "${file}" RBAC3_DECLARED_HOSTS 127.0.0.1
+  write_env "${file}" GATEWAY_REPORT_STATE_FILE "${runtime_dir}/rbac3-gateway-report.json"
 
   file="$(new_env_file gateway-admin)"
   common_identity_env "${file}"
@@ -644,7 +660,6 @@ write_service_env_files() {
   write_env "${file}" EGON_COLA_COMPONENT_ID_MACHINE_ID 34
   write_env "${file}" GATEWAY_AUTHORIZATION_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
   write_env "${file}" GATEWAY_AUTHORIZATION_REDIS_DATABASE 8
-  write_env "${file}" GATEWAY_RBAC3_SERVICE_CREDENTIAL_FILE "${secret_dir}/gateway-admin.service.jwt"
   write_env "${file}" GATEWAY_ADMIN_RESOURCE_SERVER_ID \
     platform-gateway-admin-local
   write_env "${file}" GATEWAY_ADMIN_RESOURCE_URI \
@@ -668,6 +683,12 @@ write_service_env_files() {
   write_env "${file}" GATEWAY_ADMIN_DDC_TARGET_BIZ_CODE identity
   write_env "${file}" GATEWAY_ADMIN_DDC_TARGET_APP_CODE gateway-engine-default
   write_env "${file}" GATEWAY_ADMIN_DEFINITION_RECONCILE_DELAY 1000
+  write_env "${file}" GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED false
+  write_env "${file}" GATEWAY_ADMIN_BASE_URL "${gateway_admin_url}"
+  write_env "${file}" GATEWAY_ADMIN_RESOURCE_BIZ_CODE platform
+  write_env "${file}" GATEWAY_ADMIN_RESOURCE_APP_CODE gateway-admin
+  write_env "${file}" GATEWAY_ADMIN_DECLARED_HOSTS 127.0.0.1
+  write_env "${file}" GATEWAY_REPORT_STATE_FILE "${runtime_dir}/gateway-admin-gateway-report.json"
 
   file="$(new_env_file mock-backend)"
   common_identity_env "${file}"
@@ -677,7 +698,6 @@ write_service_env_files() {
   write_env "${file}" MOCK_BACKEND_PORT 18160
   write_env "${file}" MOCK_BACKEND_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
   write_env "${file}" MOCK_BACKEND_REDIS_DATABASE 8
-  write_env "${file}" MOCK_BACKEND_RBAC3_SERVICE_CREDENTIAL_FILE "${secret_dir}/mock-backend.service.jwt"
   write_env "${file}" MOCK_BACKEND_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
     "${secret_dir}/mock-backend-private.pem"
   write_env "${file}" MOCK_BACKEND_RESOURCE_ADMISSION_RPC_TARGET \
@@ -745,8 +765,6 @@ write_service_env_files() {
   write_env "${file}" GATEWAY_MCP_RBAC3_REDIS_DATABASE 8
   write_env "${file}" GATEWAY_MCP_RBAC3_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
   write_env "${file}" GATEWAY_MCP_RBAC3_AUTHORIZATION_ENDPOINT "${rbac3_url}"
-  write_env "${file}" GATEWAY_MCP_RBAC3_SERVICE_CREDENTIAL_FILE \
-    "${secret_dir}/gateway-engine.service.jwt"
   write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_CACHE_TTL 1s
   write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_MAXIMUM_JITTER 0s
   write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_NEAR_CACHE_TTL 0s
@@ -794,6 +812,10 @@ package_applications() {
 }
 
 write_application_build_ids() {
+  write_env "${env_dir}/idp.env" IDP_BUILD_ID "$(local_build_id "${idp_jar}")"
+  write_env "${env_dir}/rbac3.env" RBAC3_BUILD_ID "$(local_build_id "${rbac3_jar}")"
+  write_env "${env_dir}/gateway-admin.env" GATEWAY_ADMIN_BUILD_ID "$(local_build_id "${gateway_admin_jar}")"
+  write_env "${env_dir}/ddc.env" DDC_BUILD_ID "$(local_build_id "${ddc_jar}")"
   write_env "${env_dir}/mock-backend.env" \
     MOCK_BACKEND_BUILD_ID "$(local_build_id "${mock_jar}")"
 }
@@ -892,166 +914,117 @@ resolve_existing_service_tenant_id() {
   fi
 }
 
-oauth_login() {
-  local cookie_jar="${runtime_dir}/browser.cookies" origin csrf status
-  local csrf_headers login_headers
-  origin=http://127.0.0.1:18121
-  csrf_headers="$(mktemp "${runtime_dir}/login-csrf.XXXXXX")"
-  login_headers="$(mktemp "${runtime_dir}/login.XXXXXX")"
-  csrf="$(curl -fsS -D "${csrf_headers}" \
-    -c "${cookie_jar}" -b "${cookie_jar}" -H "Origin: ${origin}" \
+cookie_jar_for_tenant() {
+  local tenant="$1"
+  [[ "${tenant}" =~ ^[a-z0-9][a-z0-9-]{0,62}$ ]] \
+    || fail "unsafe tenant code: ${tenant}"
+  printf '%s/browser.%s.cookies' "${runtime_dir}" "${tenant}"
+}
+
+access_token_from_cookie() {
+  local cookie_jar="$1" token
+  [[ -s "${cookie_jar}" ]] || fail "missing USER cookie jar: ${cookie_jar}"
+  token="$(awk '$0 !~ /^#/ && ($6 == "__Host-egon_user_at" || $6 == "egon_user_at_local") { value=$7 } END { print value }' "${cookie_jar}")"
+  [[ "${token}" =~ ^[^.[:space:]]+\.[^.[:space:]]+\.[^.[:space:]]+$ ]] \
+    || fail "USER Access Token cookie is missing from ${cookie_jar}"
+  printf '%s' "${token}"
+}
+
+idp_bootstrap_login() {
+  local tenant="$1" cookie_jar csrf status
+  cookie_jar="$(cookie_jar_for_tenant "${tenant}")"
+  csrf="$(curl -fsS -c "${cookie_jar}" -b "${cookie_jar}" \
     "${idp_url}/oauth2/login/csrf" | jq -er '.token')"
-  require_browser_cors "${csrf_headers}" "${origin}" "IdP login CSRF"
-  status="$(curl -sS -D "${login_headers}" \
-    -o "${runtime_dir}/login.response" -w '%{http_code}' \
+  status="$(curl -sS -o "${runtime_dir}/login.response" -w '%{http_code}' \
     -c "${cookie_jar}" -b "${cookie_jar}" \
-    -H "Origin: ${origin}" \
     -H 'Content-Type: application/json' -H "X-IDP-CSRF: ${csrf}" \
-    -d "$(jq -cn --arg password "$(<"${secret_dir}/idp-admin.password")" \
-      '{username:"alice",password:$password}')" \
+    -d "$(jq -cn --arg tenantId "$(rbac3_tenant_id "${tenant}")" \
+      --arg password "$(<"${secret_dir}/idp-admin.password")" \
+      '{tenantId:$tenantId,username:"alice",password:$password}')" \
     "${idp_url}/oauth2/login")"
   [[ "${status}" == "200" ]] || fail \
-    "IdP login failed with HTTP ${status}: $(<"${runtime_dir}/login.response")"
-  require_browser_cors "${login_headers}" "${origin}" "IdP password login"
-  rm -f "${csrf_headers}" "${login_headers}"
+    "IdP bootstrap login failed with HTTP ${status}: $(<"${runtime_dir}/login.response")"
 }
 
-response_header() {
-  local headers="$1" name="$2"
-  awk -v name="${name}" '
-    {
-      line=$0
-      sub(/\r$/, "", line)
-      prefix=name ":"
-      if (tolower(substr(line, 1, length(prefix))) == tolower(prefix)) {
-        value=substr(line, length(prefix) + 1)
-        sub(/^[[:space:]]+/, "", value)
-      }
-    }
-    END {print value}
-  ' "${headers}"
-}
-
-require_browser_cors() {
-  local headers="$1" origin="$2" context="$3"
-  local allowed_origin allow_credentials
-  allowed_origin="$(response_header "${headers}" Access-Control-Allow-Origin)"
-  allow_credentials="$(response_header \
-    "${headers}" Access-Control-Allow-Credentials)"
-  [[ "${allowed_origin}" == "${origin}" ]] || fail \
-    "${context} did not allow browser origin ${origin}"
-  [[ "${allow_credentials}" == "true" ]] || fail \
-    "${context} did not allow browser credentials for ${origin}"
-}
-
-oauth_token() {
-  local client_id="$1" tenant="$2" output="$3" resource_override="${4:-}"
-  local redirect_uri origin resource verifier challenge state headers code response status tenant_id
-  case "${client_id}" in
-    idp-admin-web)
-      origin=http://127.0.0.1:18121
-      redirect_uri=${origin}/oauth/callback
-      resource=https://api.egon.internal/local/permission/idp
-      ;;
-    rbac3-admin-web)
-      origin=http://127.0.0.1:18131
-      redirect_uri=${origin}/oauth/callback
-      resource=https://api.egon.internal/local/permission/rbac3
-      ;;
-    gateway-admin-web)
-      origin=http://127.0.0.1:18141
-      redirect_uri=${origin}/oauth/callback
-      resource=https://api.egon.internal/local/platform/gateway-admin
-      ;;
-    ddc-admin-web)
-      origin=http://127.0.0.1:18152
-      redirect_uri=${origin}/oauth/callback
-      resource=https://api.egon.internal/local/platform/ddc
-      ;;
-    mock-backend)
-      origin=
-      redirect_uri=http://127.0.0.1:18161/oauth/callback
-      resource=https://api.egon.internal/local/identity/mock-backend
-      ;;
-    *) fail "unknown local OAuth client: ${client_id}" ;;
-  esac
-  if [[ -n "${resource_override}" ]]; then
-    resource="${resource_override}"
-  fi
-  verifier="$(openssl rand -base64 48 | tr '+/' '-_' | tr -d '=\n')"
-  challenge="$(printf '%s' "${verifier}" | openssl dgst -binary -sha256 | base64url)"
-  state="$(openssl rand -hex 16)"
-  tenant_id="$(rbac3_tenant_id "${tenant}")"
-  headers="$(mktemp "${runtime_dir}/authorize.XXXXXX")"
-  status="$(curl -sS -D "${headers}" -o "${runtime_dir}/authorize.response" \
-    -w '%{http_code}' -c "${runtime_dir}/browser.cookies" \
-    -b "${runtime_dir}/browser.cookies" -G "${idp_url}/oauth2/authorize" \
-    --data-urlencode response_type=code --data-urlencode "client_id=${client_id}" \
-    --data-urlencode "redirect_uri=${redirect_uri}" --data-urlencode "tenant_id=${tenant_id}" \
-    --data-urlencode "resource=${resource}" \
-    --data-urlencode "state=${state}" --data-urlencode "nonce=${state}" \
-    --data-urlencode "code_challenge=${challenge}" \
-    --data-urlencode code_challenge_method=S256)"
-  [[ "${status}" == "302" ]] || fail \
-    "IdP authorization failed with HTTP ${status}: $(<"${runtime_dir}/authorize.response")"
-  code="$(sed -n 's/^[Ll]ocation:.*[?&]code=\([^&[:space:]]*\).*/\1/p' "${headers}" | tail -1)"
-  rm -f "${headers}"
-  [[ -n "${code}" ]] || fail "IdP did not return an authorization code for ${client_id}/${tenant}"
-  headers="$(mktemp "${runtime_dir}/token.XXXXXX")"
-  local -a token_arguments=(-D "${headers}")
-  if [[ -n "${origin}" ]]; then
-    token_arguments+=(-H "Origin: ${origin}")
-  fi
-  status="$(curl "${token_arguments[@]}" \
-    -sS -o "${runtime_dir}/token.response" -w '%{http_code}' \
-    -c "${runtime_dir}/browser.cookies" -b "${runtime_dir}/browser.cookies" -X POST \
-    -H 'Content-Type: application/x-www-form-urlencoded' \
-    --data-urlencode grant_type=authorization_code \
-    --data-urlencode "client_id=${client_id}" --data-urlencode "code=${code}" \
-    --data-urlencode "code_verifier=${verifier}" \
-    --data-urlencode "resource=${resource}" \
-    --data-urlencode "redirect_uri=${redirect_uri}" "${idp_url}/oauth2/token")"
+gateway_login() {
+  local tenant="$1" cookie_jar csrf status
+  cookie_jar="$(cookie_jar_for_tenant "${tenant}")"
+  csrf="$(curl -fsS -c "${cookie_jar}" -b "${cookie_jar}" \
+    "${gateway_url}/oauth2/login/csrf" | jq -er '.token')"
+  status="$(curl -sS -o "${runtime_dir}/login.response" -w '%{http_code}' \
+    -c "${cookie_jar}" -b "${cookie_jar}" \
+    -H 'Content-Type: application/json' -H "X-IDP-CSRF: ${csrf}" \
+    -d "$(jq -cn --arg tenantId "$(rbac3_tenant_id "${tenant}")" \
+      --arg password "$(<"${secret_dir}/idp-admin.password")" \
+      '{tenantId:$tenantId,username:"alice",password:$password}')" \
+    "${gateway_url}/oauth2/login")"
   [[ "${status}" == "200" ]] || fail \
-    "IdP token exchange failed with HTTP ${status}: $(<"${runtime_dir}/token.response")"
-  if [[ -n "${origin}" ]]; then
-    require_browser_cors \
-      "${headers}" "${origin}" "IdP token exchange for ${client_id}"
+    "Gateway login failed with HTTP ${status}: $(<"${runtime_dir}/login.response")"
+}
+
+platform_user_login() {
+  local tenant="${1:-default}"
+  if process_running gateway-engine; then
+    gateway_login "${tenant}"
+  else
+    idp_bootstrap_login "${tenant}"
   fi
-  rm -f "${headers}"
-  response="$(<"${runtime_dir}/token.response")"
-  jq -er '.access_token' <<<"${response}" >"${output}"
-  chmod 600 "${output}"
+}
+
+gateway_refresh() {
+  local tenant="$1" cookie_jar="${2:-}" status
+  [[ -n "${cookie_jar}" ]] || cookie_jar="$(cookie_jar_for_tenant "${tenant}")"
+  status="$(curl -sS -o "${runtime_dir}/refresh.response" -w '%{http_code}' \
+    -c "${cookie_jar}" -b "${cookie_jar}" -X POST \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    --data-urlencode grant_type=refresh_token "${gateway_url}/oauth2/token")"
+  [[ "${status}" == "200" ]] || fail \
+    "Gateway USER refresh failed with HTTP ${status}: $(<"${runtime_dir}/refresh.response")"
+}
+
+gateway_logout() {
+  local tenant="$1" cookie_jar="${2:-}" status
+  [[ -n "${cookie_jar}" ]] || cookie_jar="$(cookie_jar_for_tenant "${tenant}")"
+  status="$(curl -sS -o "${runtime_dir}/logout.response" -w '%{http_code}' \
+    -c "${cookie_jar}" -b "${cookie_jar}" -X POST \
+    "${gateway_url}/oauth2/logout")"
+  [[ "${status}" == "204" ]] || fail \
+    "Gateway logout failed with HTTP ${status}: $(<"${runtime_dir}/logout.response")"
+}
+
+user_access_token_for_tenant() {
+  local tenant="$1" cookie_jar token
+  cookie_jar="$(cookie_jar_for_tenant "${tenant}")"
+  if ! token="$(access_token_from_cookie "${cookie_jar}" 2>/dev/null)"; then
+    platform_user_login "${tenant}"
+    token="$(access_token_from_cookie "${cookie_jar}")"
+  fi
+  printf '%s' "${token}"
 }
 
 command_issue_user_token() {
-  local client_id="${UNIFIED_IDENTITY_OAUTH_CLIENT_ID:-}"
-  local tenant="${UNIFIED_IDENTITY_OAUTH_TENANT:-}"
-  local resource="${UNIFIED_IDENTITY_OAUTH_RESOURCE_URI:-}"
-  local output="${UNIFIED_IDENTITY_OAUTH_TOKEN_FILE:-}"
+  local tenant="${UNIFIED_IDENTITY_TENANT:-}"
+  local output="${UNIFIED_IDENTITY_ACCESS_TOKEN_FILE:-}" token
   process_running idp || fail "idp is not running; run start first"
   process_running rbac3 || fail "rbac3 is not running; run start first"
-  [[ -n "${client_id}" ]] || fail \
-    "UNIFIED_IDENTITY_OAUTH_CLIENT_ID is required"
-  [[ -n "${tenant}" ]] || fail \
-    "UNIFIED_IDENTITY_OAUTH_TENANT is required"
-  [[ "${resource}" =~ ^https?:// ]] || fail \
-    "UNIFIED_IDENTITY_OAUTH_RESOURCE_URI must be an absolute HTTP URI"
-  [[ -n "${output}" ]] || fail \
-    "UNIFIED_IDENTITY_OAUTH_TOKEN_FILE is required"
-  [[ -s "${runtime_dir}/browser.cookies" ]] || oauth_login
-  oauth_token "${client_id}" "${tenant}" "${output}" "${resource}"
+  [[ -n "${tenant}" ]] || fail "UNIFIED_IDENTITY_TENANT is required"
+  [[ -n "${output}" ]] || fail "UNIFIED_IDENTITY_ACCESS_TOKEN_FILE is required"
+  token="$(user_access_token_for_tenant "${tenant}")"
+  printf '%s' "${token}" >"${output}"
+  chmod 600 "${output}"
 }
 
 activate_roles() {
-  local token_file="$1" include_mock="$2" candidates current role_ids version request status
+  local access_token="$1" include_mock="$2" candidates current role_ids version request status
+  [[ -n "${access_token}" ]] || fail "USER Access Token is required for role activation"
   status="$(curl -sS -o "${runtime_dir}/activation-candidates.response" \
-    -w '%{http_code}' -H "Authorization: Bearer $(<"${token_file}")" \
+    -w '%{http_code}' -H "Authorization: Bearer ${access_token}" \
     "${rbac3_url}/api/rbac3/v1/auth/role-activation-candidates")"
   [[ "${status}" == "200" ]] || fail \
     "RBAC3 activation candidates failed with HTTP ${status}: $(<"${runtime_dir}/activation-candidates.response")"
   candidates="$(<"${runtime_dir}/activation-candidates.response")"
   status="$(curl -sS -o "${runtime_dir}/role-activations.response" \
-    -w '%{http_code}' -H "Authorization: Bearer $(<"${token_file}")" \
+    -w '%{http_code}' -H "Authorization: Bearer ${access_token}" \
     "${rbac3_url}/api/rbac3/v1/auth/role-activations")"
   [[ "${status}" == "200" ]] || fail \
     "RBAC3 current activation failed with HTTP ${status}: $(<"${runtime_dir}/role-activations.response")"
@@ -1066,23 +1039,26 @@ activate_roles() {
       | .rootRoleId] | unique' <<<"${candidates}")"
   fi
   [[ "$(jq 'length' <<<"${role_ids}")" -gt 0 ]] || fail "RBAC3 returned no activation candidates"
-  version="$(jq -er '.data.sessionVersion' <<<"${current}")"
+  version="$(jq -er '.data.authVersion' <<<"${current}")"
   request="$(jq -cn --argjson roles "${role_ids}" --argjson version "${version}" \
-    '{roleIds:$roles,expectedContextVersion:$version}')"
+    '{roleIds:$roles,expectedAuthVersion:$version}')"
   status="$(curl -sS -o "${runtime_dir}/role-activation-update.response" \
     -w '%{http_code}' -X PUT -H 'Content-Type: application/json' \
-    -H "Authorization: Bearer $(<"${token_file}")" -d "${request}" \
+    -H "Authorization: Bearer ${access_token}" -d "${request}" \
     "${rbac3_url}/api/rbac3/v1/auth/role-activations")"
   [[ "${status}" == "200" ]] || fail \
     "RBAC3 role activation failed with HTTP ${status}: $(<"${runtime_dir}/role-activation-update.response")"
 }
 
 gateway_api() {
-  local method="$1" path="$2" body="${3:-}"
+  local method="$1" path="$2" body="${3:-}" idempotency_key="${4:-}"
   local response_file status response
   local arguments=(-sS -X "${method}" \
-    -H "Authorization: Bearer $(<"${secret_dir}/gateway-admin.access.jwt")" \
+    -H "Authorization: Bearer $(<"${secret_dir}/gateway-admin-control-plane.service.jwt")" \
     -H 'Content-Type: application/json')
+  if [[ -n "${idempotency_key}" ]]; then
+    arguments+=(-H "Idempotency-Key: ${idempotency_key}")
+  fi
   if [[ -n "${body}" ]]; then
     arguments+=(-d "${body}")
   fi
@@ -1099,8 +1075,10 @@ gateway_api() {
 ddc_api() {
   local method="$1" path="$2" body="${3:-}"
   local response_file status response
+  [[ -n "${ddc_admin_access_token}" ]] \
+    || fail "USER Access Token is required for DDC Admin bootstrap"
   local arguments=(-sS -X "${method}" \
-    -H "Authorization: Bearer $(<"${secret_dir}/ddc-admin.access.jwt")" \
+    -H "Authorization: Bearer ${ddc_admin_access_token}" \
     -H 'Content-Type: application/json')
   if [[ -n "${body}" ]]; then
     arguments+=(-d "${body}")
@@ -1116,7 +1094,8 @@ ddc_api() {
 }
 
 initialize_ddc_topology() {
-  local response biz_code biz_name app_code
+  local access_token="$1" response biz_code biz_name app_code
+  ddc_admin_access_token="${access_token}"
   response="$(ddc_api GET '/api/v1/ddc/envs?keyword=local')"
   if ! jq -e '.data[] | select(.envCode == "local")' \
       <<<"${response}" >/dev/null; then
@@ -1201,97 +1180,252 @@ wait_ddc_provider_registration() {
   fail "${biz_code}/${app_code} did not register an online DDC HTTP Provider lease"
 }
 
-initialize_gateway_control_plane() {
-  local applications application app_id credential groups group group_id
-  applications="$(gateway_api GET '/api/v1/gateway/admin/applications?bizCode=identity&namespace=default&env=local&appCode=mock-backend')"
-  app_id="$(jq -r '.[0].id // empty' <<<"${applications}")"
+gateway_application_id_file() {
+  case "$1" in
+    idp|rbac3|gateway-admin|ddc|mock-backend) ;;
+    *) fail "unsupported Gateway reporting application: $1" ;;
+  esac
+  printf '%s/gateway-application.%s.id' "${runtime_dir}" "$1"
+}
+
+gateway_report_access_key_file() {
+  printf '%s/gateway-report-%s.access-key' "${secret_dir}" "$1"
+}
+
+gateway_report_secret_file() {
+  printf '%s/gateway-report-%s.secret' "${secret_dir}" "$1"
+}
+
+configure_gateway_reporter() {
+  local app_code="$1" access_file secret_file env_file enabled_key
+  access_file="$(gateway_report_access_key_file "${app_code}")"
+  secret_file="$(gateway_report_secret_file "${app_code}")"
+  case "${app_code}" in
+    idp) env_file="${env_dir}/idp.env"; enabled_key=IDP_GATEWAY_REPORTING_ENABLED ;;
+    rbac3) env_file="${env_dir}/rbac3.env"; enabled_key=RBAC3_GATEWAY_REPORTING_ENABLED ;;
+    gateway-admin) env_file="${env_dir}/gateway-admin.env"; enabled_key=GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED ;;
+    ddc) env_file="${env_dir}/ddc.env"; enabled_key=DDC_GATEWAY_REPORTING_ENABLED ;;
+    mock-backend) env_file="${env_dir}/mock-backend.env"; enabled_key=MOCK_BACKEND_GATEWAY_REPORTING_ENABLED ;;
+    *) fail "unsupported Gateway reporting application: ${app_code}" ;;
+  esac
+  write_env "${env_file}" GATEWAY_REPORT_ACCESS_KEY "$(<"${access_file}")"
+  write_env "${env_file}" GATEWAY_REPORT_SECRET_KEY "$(<"${secret_file}")"
+  write_env "${env_file}" "${enabled_key}" true
+}
+
+ensure_gateway_reporting_application() {
+  local biz_code="$1" app_code="$2" display_name="$3"
+  local applications application app_id credential access_file secret_file
+  applications="$(gateway_api GET "/api/v1/gateway/admin/applications?bizCode=${biz_code}&namespace=default&env=local&appCode=${app_code}")"
+  app_id="$(jq -r --arg app "${app_code}" \
+    '.[] | select(.applicationCode == $app) | .id' <<<"${applications}" | head -1)"
   if [[ -z "${app_id}" ]]; then
     application="$(gateway_api POST /api/v1/gateway/admin/applications \
-      '{"bizCode":"identity","applicationCode":"mock-backend","displayName":"Unified Identity Mock Backend","env":"local","namespace":"default","description":"Host-local unified identity verification"}')"
+      "$(jq -cn --arg biz "${biz_code}" --arg app "${app_code}" \
+        --arg display "${display_name}" \
+        '{bizCode:$biz,applicationCode:$app,displayName:$display,env:"local",namespace:"default",description:"Host-local unified identity Gateway catalog provider"}')")"
     app_id="$(jq -er '.id' <<<"${application}")"
   fi
-  credential="$(gateway_api POST "/api/v1/gateway/admin/applications/${app_id}/credentials" '{}')"
-  jq -er '.accessKey' <<<"${credential}" >"${secret_dir}/gateway-report.access-key"
-  jq -er '.secret' <<<"${credential}" >"${secret_dir}/gateway-report.secret"
-  printf '%s' "${app_id}" >"${runtime_dir}/gateway-application.id"
+  access_file="$(gateway_report_access_key_file "${app_code}")"
+  secret_file="$(gateway_report_secret_file "${app_code}")"
+  if [[ ! -s "${access_file}" || ! -s "${secret_file}" ]]; then
+    credential="$(gateway_api POST "/api/v1/gateway/admin/applications/${app_id}/credentials" '{}')"
+    jq -er '.accessKey' <<<"${credential}" >"${access_file}"
+    jq -er '.secret' <<<"${credential}" >"${secret_file}"
+    chmod 600 "${access_file}" "${secret_file}"
+  fi
+  printf '%s' "${app_id}" >"$(gateway_application_id_file "${app_code}")"
+  chmod 600 "$(gateway_application_id_file "${app_code}")"
+  configure_gateway_reporter "${app_code}"
+}
+
+initialize_gateway_control_plane() {
+  local groups group group_id
+  ensure_gateway_reporting_application permission idp "IdP Identity Admin"
+  ensure_gateway_reporting_application permission rbac3 "RBAC3 Permission Admin"
+  ensure_gateway_reporting_application platform gateway-admin "Gateway Admin"
+  ensure_gateway_reporting_application platform ddc "Dynamic Config Center Admin"
+  ensure_gateway_reporting_application identity mock-backend "Unified Identity Mock Backend"
 
   groups="$(gateway_api GET '/api/v1/gateway/admin/gateway-groups?env=local&namespace=default')"
   group_id="$(jq -r '.[] | select(.gatewayGroupCode == "default") | .id' <<<"${groups}" | head -1)"
   if [[ -z "${group_id}" ]]; then
     group="$(gateway_api POST /api/v1/gateway/admin/gateway-groups \
-      '{"gatewayGroupCode":"default","displayName":"Unified Identity Local Gateway","env":"local","namespace":"default","description":"Host-local unified identity verification"}')"
+      '{"gatewayGroupCode":"default","displayName":"Unified Identity Local Gateway","env":"local","namespace":"default","description":"Host-local unified identity Gateway route group"}')"
     group_id="$(jq -er '.id' <<<"${group}")"
   fi
   printf '%s' "${group_id}" >"${runtime_dir}/gateway-group.id"
-  chmod 600 "${secret_dir}/gateway-report.access-key" \
-    "${secret_dir}/gateway-report.secret" "${runtime_dir}/gateway-application.id" \
-    "${runtime_dir}/gateway-group.id"
-  write_env "${env_dir}/mock-backend.env" GATEWAY_REPORT_ACCESS_KEY \
-    "$(<"${secret_dir}/gateway-report.access-key")"
-  write_env "${env_dir}/mock-backend.env" GATEWAY_REPORT_SECRET_KEY \
-    "$(<"${secret_dir}/gateway-report.secret")"
+  printf '%s' "$(<"$(gateway_application_id_file mock-backend)")" \
+    >"${runtime_dir}/gateway-application.id"
+  chmod 600 "${runtime_dir}/gateway-group.id" "${runtime_dir}/gateway-application.id"
 }
 
-wait_gateway_catalog() {
-  local app_id response
-  app_id="$(<"${runtime_dir}/gateway-application.id")"
+wait_gateway_catalog_for_app() {
+  local app_code="$1" app_id response
+  app_id="$(<"$(gateway_application_id_file "${app_code}")")"
   for ((attempt = 1; attempt <= 60; attempt++)); do
-    response="$(gateway_api GET "/api/v1/gateway/admin/applications/${app_id}/catalog" || true)"
-    if jq -e '.. | objects | select(.methodIdentity? == "GET /api/mock/read" and .lifecycleStatus? == "ACTIVE")' \
+    response="$(gateway_api GET \
+      "/api/v1/gateway/admin/applications/${app_id}/catalog" || true)"
+    if jq -e '.. | objects | select(.protocol? == "HTTP" and .lifecycleStatus? == "ACTIVE")' \
         <<<"${response}" >/dev/null 2>&1; then
       return
     fi
     sleep 1
   done
-  fail "mock backend Gateway catalog did not become active"
+  fail "${app_code} Gateway catalog did not become active"
+}
+
+wait_gateway_catalog() {
+  local app_code
+  for app_code in idp rbac3 gateway-admin ddc mock-backend; do
+    wait_gateway_catalog_for_app "${app_code}"
+  done
+}
+
+gateway_catalog_operations() {
+  local app_code app_id catalog part_file combined_file
+  combined_file="${runtime_dir}/gateway-catalog-operations.jsonl"
+  : >"${combined_file}"
+  for app_code in idp rbac3 gateway-admin ddc mock-backend; do
+    app_id="$(<"$(gateway_application_id_file "${app_code}")")"
+    catalog="$(gateway_api GET \
+      "/api/v1/gateway/admin/applications/${app_id}/catalog")"
+    part_file="$(mktemp "${runtime_dir}/gateway-catalog.XXXXXX")"
+    jq -c --arg app "${app_code}" \
+      '[.. | objects | select(.id? and .methodIdentity? and .protocol?)
+       | . + {reportedApplication:$app}]' <<<"${catalog}" >"${part_file}"
+    jq -c '.' "${part_file}" >>"${combined_file}"
+    rm -f "${part_file}"
+  done
+  jq -s 'map(.[]) | unique_by(.id)' "${combined_file}"
+}
+
+route_id_for_operation() {
+  printf '%s' "$1" | openssl dgst -sha256 -r \
+    | awk '{print "unified-" substr($1, 1, 32)}'
 }
 
 publish_gateway_routes() {
   local defer_release="${1:-false}"
-  local app_id group_id catalog draft revision route operation_id response validation release
-  app_id="$(<"${runtime_dir}/gateway-application.id")"
+  local group_id operations draft revision response validation release
+  local security ids policy_id route_type auth_mode forward recovery
+  local extractors auth_providers authz_providers operation_id method_identity app_code
+  local method path route_id route_content desired_policy
   group_id="$(<"${runtime_dir}/gateway-group.id")"
-  catalog="$(gateway_api GET "/api/v1/gateway/admin/applications/${app_id}/catalog")"
+  operations="$(gateway_catalog_operations | jq '
+    map(select(.protocol == "HTTP" and .externalAccessible == true
+      and .lifecycleStatus == "ACTIVE"))
+    | map(. + {securityType:
+      (if .reportedApplication == "idp" and (
+        .methodIdentity == "GET /oauth2/login/csrf"
+        or .methodIdentity == "POST /oauth2/login"
+        or .methodIdentity == "POST /oauth2/token"
+        or .methodIdentity == "POST /oauth2/revoke"
+        or .methodIdentity == "POST /oauth2/logout"
+        or .methodIdentity == "GET /.well-known/oauth-authorization-server"
+        or .methodIdentity == "GET /oauth2/jwks")
+       then "PUBLIC_PROTOCOL"
+       elif .reportedApplication == "idp" and (
+        .methodIdentity == "GET /oauth2/userinfo"
+        or .methodIdentity == "POST /oauth2/step-up")
+       then "IDENTITY_PROTECTED"
+       else "BUSINESS_PROTECTED" end)})')"
+  printf '%s' "${operations}" >"${runtime_dir}/gateway-operations.json"
   draft="$(gateway_api GET "/api/v1/gateway/admin/gateway-groups/${group_id}/draft")"
   revision="$(jq -er '.revision' <<<"${draft}")"
-  if ! jq -e '
-      .policies[]
-      | select(
-          .policyId == "identity-basic"
-          and .policyType == "SECURITY"
-          and .policyScope == "GLOBAL"
-          and .enabled == true
-          and .content.authenticationMode == "REQUIRED"
-          and .content.credentialExtractorIds == ["idp-bearer"]
-          and .content.authenticationProviderIds == ["idp-jwt"]
-          and .content.authorizationProviderIds == []
+
+  if jq -e '.policies[]? | select(.policyId == "identity-basic" and .policyScope == "GLOBAL")' \
+      <<<"${draft}" >/dev/null; then
+    response="$(gateway_api DELETE \
+      "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/policies/identity-basic" \
+      "$(jq -cn --argjson revision "${revision}" \
+        '{expectedRevision:$revision,idempotencyKey:("unified-remove-identity-basic-" + ($revision | tostring)),changeReason:"Replace legacy global policy with operation-scoped stateless policies"}')")"
+    revision="$(jq -er '.revision' <<<"${response}")"
+    draft="$(gateway_api GET "/api/v1/gateway/admin/gateway-groups/${group_id}/draft")"
+  fi
+
+  for security in PUBLIC_PROTOCOL IDENTITY_PROTECTED BUSINESS_PROTECTED; do
+    ids="$(jq -c --arg security "${security}" \
+      '[.[] | select(.securityType == $security) | .id] | sort' \
+      <<<"${operations}")"
+    [[ "$(jq 'length' <<<"${ids}")" -gt 0 ]] || continue
+    case "${security}" in
+      PUBLIC_PROTOCOL)
+        policy_id=unified-public-protocol
+        route_type=PUBLIC_PROTOCOL; auth_mode=NONE; forward=NONE; recovery=null
+        extractors='[]'; auth_providers='[]'; authz_providers='[]' ;;
+      IDENTITY_PROTECTED)
+        policy_id=unified-identity-protected
+        route_type=IDENTITY_PROTECTED; auth_mode=REQUIRED; forward=ORIGINAL_BEARER; recovery='"idp-user-refresh"'
+        extractors='["idp-user-cookie"]'; auth_providers='["idp-jwt"]'; authz_providers='[]' ;;
+      BUSINESS_PROTECTED)
+        policy_id=unified-business-protected
+        route_type=BUSINESS_PROTECTED; auth_mode=REQUIRED; forward=ORIGINAL_BEARER; recovery='"idp-user-refresh"'
+        extractors='["idp-user-cookie"]'; auth_providers='["idp-jwt"]'; authz_providers='["rbac3-permission"]' ;;
+    esac
+    if ! jq -e --arg policy "${policy_id}" --arg routeType "${route_type}" \
+        --arg authMode "${auth_mode}" --arg forward "${forward}" \
+        --argjson ids "${ids}" --argjson extractors "${extractors}" \
+        --argjson authProviders "${auth_providers}" \
+        --argjson authzProviders "${authz_providers}" \
+        --argjson recovery "${recovery}" '
+        .policies[]? | select(
+          .policyId == $policy and .policyScope == "OPERATION" and .enabled == true
+          and .content.routeSecurityType == $routeType
+          and .content.authenticationMode == $authMode
+          and .content.credentialExtractorIds == $extractors
+          and .content.authenticationProviderIds == $authProviders
+          and .content.authorizationProviderIds == $authzProviders
+          and .content.operationIds == $ids
+          and .content.credentialRecoveryProviderId == $recovery
           and .content.decisionMode == "ALL_ALLOW"
-          and .content.identityMapperId == null
           and .content.providerTimeoutMs == 1000
           and .content.failureMode == "FAIL_CLOSED"
-          and .content.credentialForwardingMode == "ORIGINAL_BEARER"
+          and .content.credentialForwardingMode == $forward
         )' <<<"${draft}" >/dev/null; then
-    response="$(gateway_api PUT "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/policies/identity-basic" \
-      "$(jq -cn --argjson revision "${revision}" \
-        '{policyType:"SECURITY",policyScope:"GLOBAL",content:{authenticationMode:"REQUIRED",credentialExtractorIds:["idp-bearer"],authenticationProviderIds:["idp-jwt"],authorizationProviderIds:[],decisionMode:"ALL_ALLOW",providerTimeoutMs:1000,failureMode:"FAIL_CLOSED",credentialForwardingMode:"ORIGINAL_BEARER"},enabled:true,expectedRevision:$revision,idempotencyKey:("unified-identity-security-" + ($revision | tostring)),changeReason:"Gateway validates identity and forwards the authenticated bearer for downstream authorization"}')")"
-    revision="$(jq -er '.revision' <<<"${response}")"
-  fi
-  for route in read admin; do
-    operation_id="$(jq -r --arg method "GET /api/mock/${route}" \
-      '.. | objects | select(.methodIdentity? == $method) | .id' \
-      <<<"${catalog}" | head -1)"
-    [[ -n "${operation_id}" ]] || fail "missing reported mock ${route} operation"
-    if jq -e --arg route "mock-${route}" --arg operation "${operation_id}" \
-        '.routes[] | select(.routeId == $route and .operationId == $operation and .enabled == true and .content.host == "*" and .content.httpMethod == "GET" and .content.pathPattern == ("/api/mock/" + ($route | sub("^mock-"; ""))))' \
-        <<<"${draft}" >/dev/null; then
+      desired_policy="$(jq -cn --argjson ids "${ids}" \
+        --arg routeType "${route_type}" --arg authMode "${auth_mode}" \
+        --arg forward "${forward}" --argjson extractors "${extractors}" \
+        --argjson authProviders "${auth_providers}" \
+        --argjson authzProviders "${authz_providers}" \
+        --argjson recovery "${recovery}" --argjson revision "${revision}" \
+        --arg policy "${policy_id}" \
+        '{policyType:"SECURITY",policyScope:"OPERATION",content:{operationIds:$ids,routeSecurityType:$routeType,authenticationMode:$authMode,credentialExtractorIds:$extractors,authenticationProviderIds:$authProviders,authorizationProviderIds:$authzProviders,credentialRecoveryProviderId:$recovery,decisionMode:"ALL_ALLOW",providerTimeoutMs:1000,failureMode:"FAIL_CLOSED",credentialForwardingMode:$forward},enabled:true,expectedRevision:$revision,idempotencyKey:("unified-policy-" + $policy + "-" + ($revision | tostring)),changeReason:"Publish operation-scoped stateless identity and RBAC3 Gateway policies"}')"
+      response="$(gateway_api PUT \
+        "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/policies/${policy_id}" \
+        "${desired_policy}")"
+      revision="$(jq -er '.revision' <<<"${response}")"
+      draft="$(gateway_api GET "/api/v1/gateway/admin/gateway-groups/${group_id}/draft")"
+    fi
+  done
+
+  while IFS=$'\t' read -r operation_id method_identity app_code; do
+    [[ -n "${operation_id}" && -n "${method_identity}" ]] || continue
+    method="${method_identity%% *}"
+    path="${method_identity#* }"
+    route_id="$(route_id_for_operation "${operation_id}")"
+    if jq -e --arg route "${route_id}" --arg operation "${operation_id}" \
+        --arg method "${method}" --arg path "${path}" '
+        .routes[]? | select(.routeId == $route and .operationId == $operation
+          and .enabled == true and .content.host == "*"
+          and .content.httpMethod == $method
+          and .content.pathPattern == $path
+          and .content.accessZones == ["PUBLIC"])' <<<"${draft}" >/dev/null; then
       continue
     fi
-    response="$(gateway_api PUT "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/routes/mock-${route}" \
-      "$(jq -cn --arg operation "${operation_id}" --arg route "${route}" \
-        --argjson revision "${revision}" \
-        '{operationId:$operation,content:{host:"*",httpMethod:"GET",pathPattern:("/api/mock/" + $route),accessZones:["PUBLIC"],priority:100},enabled:true,expectedRevision:$revision,idempotencyKey:("unified-identity-" + $route + "-" + ($revision | tostring)),changeReason:"Unified identity local route"}')")"
+    route_content="$(jq -cn --arg operation "${operation_id}" \
+      --arg method "${method}" --arg path "${path}" \
+      '{operationId:$operation,content:{host:"*",httpMethod:$method,pathPattern:$path,accessZones:["PUBLIC"],priority:100},enabled:true}')"
+    response="$(gateway_api PUT \
+      "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/routes/${route_id}" \
+      "$(jq -cn --argjson route "${route_content}" --argjson revision "${revision}" \
+        --arg operation "${operation_id}" \
+        '$route + {expectedRevision:$revision,idempotencyKey:("unified-route-" + $operation + "-" + ($revision | tostring)),changeReason:"Publish reported HTTP operation from the real provider catalog"}')")"
     revision="$(jq -er '.revision' <<<"${response}")"
-  done
+    draft="$(gateway_api GET "/api/v1/gateway/admin/gateway-groups/${group_id}/draft")"
+  done < <(jq -r '.[] | [.id,.methodIdentity,.reportedApplication] | @tsv' \
+    <<<"${operations}")
+
   if [[ "${defer_release}" == "true" ]]; then
     return
   fi
@@ -1300,7 +1434,7 @@ publish_gateway_routes() {
     || fail "Gateway draft validation failed: ${validation}"
   release="$(gateway_api POST "/api/v1/gateway/admin/gateway-groups/${group_id}/releases" \
     "$(jq -cn --argjson revision "${revision}" \
-      '{expectedDraftRevision:$revision,changeReason:"Unified identity local release"}')")"
+      '{expectedDraftRevision:$revision,changeReason:"Unified identity real catalog route release"}')")"
   jq -e '.status == "SUCCESS"' <<<"${release}" >/dev/null \
     || fail "Gateway release did not succeed: ${release}"
   jq -er '.releaseId' <<<"${release}" >"${runtime_dir}/gateway-release.id"
@@ -1322,7 +1456,7 @@ wait_gateway_route() {
 
 command_start() {
   command_prepare
-  local idp_argument subject tenant_b_id
+  local idp_argument subject tenant_b_id rbac3_access_token ddc_access_token
   stage "starting DDC"
   start_process ddc "${env_dir}/ddc.env" "${ddc_jar}"
   wait_http ddc "${ddc_url}/actuator/health/readiness"
@@ -1372,15 +1506,15 @@ command_start() {
   wait_http idp "${idp_url}/actuator/health/readiness"
   refresh_service_tokens
 
-  stage "establishing IdP SSO session"
-  oauth_login
-  stage "issuing RBAC3 admin token"
-  oauth_token rbac3-admin-web default "${secret_dir}/rbac3-default.access.jwt"
+  stage "establishing the default-tenant USER cookie"
+  platform_user_login
+  stage "loading the default-tenant USER Access Token from its Gateway cookie"
+  rbac3_access_token="$(user_access_token_for_tenant default)"
   stage "activating non-mock roles"
-  activate_roles "${secret_dir}/rbac3-default.access.jwt" false
+  activate_roles "${rbac3_access_token}" false
   stage "initializing DDC unified identity topology"
-  oauth_token ddc-admin-web default "${secret_dir}/ddc-admin.access.jwt"
-  initialize_ddc_topology
+  ddc_access_token="$(user_access_token_for_tenant default)"
+  initialize_ddc_topology "${ddc_access_token}"
 
   stage "restarting IdP and RBAC3 with admitted DDC publication"
   stop_process rbac3
@@ -1391,23 +1525,44 @@ command_start() {
   start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}"
   wait_http rbac3 "${rbac3_url}/actuator/health/readiness"
 
-  stage "restoring the local SSO and RBAC3 activation context"
-  oauth_login
-  oauth_token rbac3-admin-web default "${secret_dir}/rbac3-default.access.jwt"
-  activate_roles "${secret_dir}/rbac3-default.access.jwt" false
-  oauth_token ddc-admin-web default "${secret_dir}/ddc-admin.access.jwt"
+  stage "restoring the USER cookie and RBAC3 activation context"
+  platform_user_login
+  rbac3_access_token="$(user_access_token_for_tenant default)"
+  activate_roles "${rbac3_access_token}" false
   wait_ddc_provider_registration permission idp idp-admin
   wait_ddc_provider_registration permission rbac3 rbac3-admin
   stage "starting Gateway Engine DDC client"
   start_process gateway-engine "${env_dir}/gateway-engine.env" "${gateway_engine_jar}"
   wait_http gateway-engine http://127.0.0.1:18182/actuator/health/readiness
-  stage "issuing Gateway admin token"
-  oauth_token gateway-admin-web default "${secret_dir}/gateway-admin.access.jwt"
 
   stage "starting Gateway Admin"
   start_process gateway-admin "${env_dir}/gateway-admin.env" "${gateway_admin_jar}"
   wait_http gateway-admin "${gateway_admin_url}/actuator/health/readiness"
   initialize_gateway_control_plane
+
+  stage "restarting providers with real Gateway catalog reporting"
+  # Gateway Admin is the reporting control plane, so it first remains available with its own
+  # reporting disabled while DDC, IdP, and RBAC3 publish their real HTTP catalogs.
+  write_env "${env_dir}/gateway-admin.env" \
+    GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED false
+  stop_process gateway-admin
+  stop_process rbac3
+  stop_process idp
+  stop_process ddc
+  start_process gateway-admin "${env_dir}/gateway-admin.env" "${gateway_admin_jar}"
+  wait_http gateway-admin "${gateway_admin_url}/actuator/health/readiness"
+  start_process ddc "${env_dir}/ddc.env" "${ddc_jar}"
+  wait_http ddc "${ddc_url}/actuator/health/readiness"
+  start_process idp "${env_dir}/idp.env" "${idp_jar}"
+  wait_http idp "${idp_url}/actuator/health/readiness"
+  refresh_service_tokens
+  start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}"
+  wait_http rbac3 "${rbac3_url}/actuator/health/readiness"
+  write_env "${env_dir}/gateway-admin.env" \
+    GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED true
+  stop_process gateway-admin
+  start_process gateway-admin "${env_dir}/gateway-admin.env" "${gateway_admin_jar}"
+  wait_http gateway-admin "${gateway_admin_url}/actuator/health/readiness"
 
   stage "starting mock backend"
   start_process mock-backend "${env_dir}/mock-backend.env" "${mock_jar}"
@@ -1424,164 +1579,132 @@ command_start() {
 }
 
 command_refresh_tokens() {
+  local default_access_token tenant_b_access_token
   process_running idp || fail "idp is not running; run start first"
   process_running rbac3 || fail "rbac3 is not running; run start first"
   service_tenant_id="$(rbac3_tenant_id default)"
 
   stage "refreshing IdP-owned service credentials"
   refresh_service_tokens
-  stage "refreshing local OAuth SSO session"
-  oauth_login
-  oauth_token idp-admin-web default "${secret_dir}/idp-admin.access.jwt"
-  oauth_token rbac3-admin-web default "${secret_dir}/rbac3-default.access.jwt"
-  activate_roles "${secret_dir}/rbac3-default.access.jwt" true
-  oauth_token gateway-admin-web default "${secret_dir}/gateway-admin.access.jwt"
-  oauth_token ddc-admin-web default "${secret_dir}/ddc-admin.access.jwt"
-  oauth_token mock-backend default "${secret_dir}/default.access.jwt"
+  stage "refreshing local USER cookies and authorization snapshots"
+  platform_user_login
+  default_access_token="$(user_access_token_for_tenant default)"
+  activate_roles "${default_access_token}" true
 
-  oauth_token rbac3-admin-web tenant-b \
-    "${secret_dir}/rbac3-tenant-b.access.jwt"
-  activate_roles "${secret_dir}/rbac3-tenant-b.access.jwt" true
-  oauth_token mock-backend tenant-b "${secret_dir}/tenant-b.access.jwt"
-  stage "local OAuth tokens and authorization snapshots are current"
+  platform_user_login tenant-b
+  tenant_b_access_token="$(user_access_token_for_tenant tenant-b)"
+  activate_roles "${tenant_b_access_token}" true
+  stage "local USER Access Token cookies and authorization snapshots are current"
 }
 
 http_status() {
-  local url="$1" token_file="$2"
+  local url="$1" access_token="$2"
   curl -sS -o /dev/null -w '%{http_code}' \
-    -H "Authorization: Bearer $(<"${token_file}")" "${url}"
+    -H "Authorization: Bearer ${access_token}" "${url}"
 }
 
-refresh_replay_check() {
-  local old_cookie="${runtime_dir}/refresh-replay.cookies"
-  local first_response="${runtime_dir}/refresh-first.response"
-  local first_status replay_status
-  cp "${runtime_dir}/browser.cookies" "${old_cookie}"
-  first_status="$(curl -sS -o "${first_response}" -w '%{http_code}' \
-    -c "${runtime_dir}/browser.cookies" \
-    -b "${runtime_dir}/browser.cookies" -X POST \
+stable_refresh_check() {
+  local tenant=default cookie_jar old_cookie before after revoked_status
+  cookie_jar="$(cookie_jar_for_tenant "${tenant}")"
+  old_cookie="${runtime_dir}/refresh-stable-before.cookies"
+  before="$(access_token_from_cookie "${cookie_jar}")"
+  cp "${cookie_jar}" "${old_cookie}"
+  gateway_refresh "${tenant}" "${cookie_jar}"
+  after="$(access_token_from_cookie "${cookie_jar}")"
+  [[ "${before}" != "${after}" ]] \
+    || fail "USER refresh did not issue a new five-minute Access Token"
+
+  gateway_refresh "${tenant}" "${old_cookie}"
+  [[ "$(access_token_from_cookie "${old_cookie}")" != "${before}" ]] \
+    || fail "stable Refresh Token did not remain usable for a second refresh"
+  pre_logout_access_token="${after}"
+  gateway_logout "${tenant}" "${cookie_jar}"
+  revoked_status="$(curl -sS -o "${runtime_dir}/refresh-after-logout.response" \
+    -w '%{http_code}' -c "${old_cookie}" -b "${old_cookie}" -X POST \
     -H 'Content-Type: application/x-www-form-urlencoded' \
-    --data-urlencode grant_type=refresh_token --data-urlencode client_id=mock-backend \
-    --data-urlencode \
-      resource=https://api.egon.internal/local/identity/mock-backend \
-    "${idp_url}/oauth2/token")"
-  [[ "${first_status}" == "200" ]] || fail \
-    "initial refresh failed with HTTP ${first_status}: $(<"${first_response}")"
-  jq -er '.access_token' "${first_response}" >"${secret_dir}/pre-replay.access.jwt"
-  replay_status="$(curl -sS -o "${runtime_dir}/refresh-replay.response" -w '%{http_code}' \
-    -b "${old_cookie}" -X POST -H 'Content-Type: application/x-www-form-urlencoded' \
-    --data-urlencode grant_type=refresh_token --data-urlencode client_id=mock-backend \
-    --data-urlencode \
-      resource=https://api.egon.internal/local/identity/mock-backend \
-    "${idp_url}/oauth2/token")"
-  [[ "${replay_status}" == "400" ]] || fail "refresh replay was not rejected"
-  cp "${secret_dir}/pre-replay.access.jwt" "${secret_dir}/revoked.access.jwt"
-  for ((attempt = 1; attempt <= 20; attempt++)); do
-    if [[ "$(http_status "${gateway_url}/api/mock/read" "${secret_dir}/revoked.access.jwt")" == "401" ]]; then
-      return
-    fi
-    sleep 1
-  done
-  fail "refresh replay did not revoke the old access token at Gateway"
-}
-
-disable_identity_check() {
-  local subject record display_name version request status
-  subject="$(identity_subject)"
-  [[ "${subject}" =~ ^[A-Za-z0-9._~-]{1,64}$ ]] \
-    || fail "IdP bootstrap subject is unsafe"
-  record="$(psql_command "${idp_database}" -AtF $'\t' -c \
-    "select display_name, version from identity_user where id = '${subject}'")"
-  IFS=$'\t' read -r display_name version <<<"${record}"
-  [[ -n "${display_name}" && "${version}" =~ ^[0-9]+$ ]] \
-    || fail "IdP bootstrap identity cannot be loaded"
-  oauth_token idp-admin-web default "${secret_dir}/idp-admin.access.jwt"
-  request="$(jq -cn --arg displayName "${display_name}" \
-    --argjson expectedVersion "${version}" \
-    '{displayName:$displayName,status:"DISABLED",expectedVersion:$expectedVersion}')"
-  status="$(curl -sS -o "${runtime_dir}/identity-disable.response" \
-    -w '%{http_code}' -X PATCH -H 'Content-Type: application/json' \
-    -H "Authorization: Bearer $(<"${secret_dir}/idp-admin.access.jwt")" \
-    -d "${request}" "${idp_url}/api/v1/identity/users/${subject}")"
-  [[ "${status}" == "200" ]] || fail \
-    "IdP identity disable failed with HTTP ${status}: $(<"${runtime_dir}/identity-disable.response")"
-  for ((attempt = 1; attempt <= 20; attempt++)); do
-    if [[ "$(http_status "${gateway_url}/api/mock/read" \
-        "${secret_dir}/tenant-b.access.jwt")" == "401" ]]; then
-      break
-    fi
-    sleep 1
-  done
-  [[ "$(http_status "${gateway_url}/api/mock/read" \
-      "${secret_dir}/tenant-b.access.jwt")" == "401" ]] \
-    || fail "disabled identity access token was not rejected at Gateway"
-
-  psql_command "${idp_database}" -c \
-    "update identity_user set status = 'ACTIVE', version = version + 1, updated_at = now() where id = '${subject}' and status = 'DISABLED'" \
-    >/dev/null
-  [[ "$(psql_command "${idp_database}" -Atqc \
-      "select status from identity_user where id = '${subject}'")" == "ACTIVE" ]] \
-    || fail "development identity could not be restored after disable check"
-  stop_process idp
-  start_process idp "${env_dir}/idp.env" "${idp_jar}"
-  wait_http idp "${idp_url}/actuator/health/readiness"
+    --data-urlencode grant_type=refresh_token "${gateway_url}/oauth2/token")"
+  [[ "${revoked_status}" != "200" ]] \
+    || fail "Refresh Token remained usable after Gateway logout"
 }
 
 command_verify() {
-  local status
+  local status subject_before subject_tenant_b token_claims
+  local rbac3_access_token default_access_token tenant_b_access_token
+  local verify_token_dir mvn_status
   for name in ddc idp rbac3 gateway-admin mock-backend gateway-engine; do
     process_running "${name}" || fail "${name} is not running; run start first"
   done
-  oauth_login
-  oauth_token rbac3-admin-web default \
-    "${secret_dir}/rbac3-default.access.jwt"
-  activate_roles "${secret_dir}/rbac3-default.access.jwt" false
-  oauth_token mock-backend default "${secret_dir}/mock-before-activation.access.jwt"
+  platform_user_login
+  rbac3_access_token="$(user_access_token_for_tenant default)"
+  activate_roles "${rbac3_access_token}" false
+  default_access_token="$(user_access_token_for_tenant default)"
   status="$(http_status "${gateway_url}/api/mock/admin" \
-    "${secret_dir}/mock-before-activation.access.jwt")"
+    "${default_access_token}")"
   [[ "${status}" == "403" ]] || fail \
     "downstream permission denial must be 403 before mock role activation; got ${status}"
-  activate_roles "${secret_dir}/rbac3-default.access.jwt" true
+  activate_roles "${rbac3_access_token}" true
   for ((attempt = 1; attempt <= 20; attempt++)); do
-    if [[ "$(http_status "${gateway_url}/api/mock/admin" "${secret_dir}/mock-before-activation.access.jwt")" == "200" ]]; then
+    if [[ "$(http_status "${gateway_url}/api/mock/admin" "${default_access_token}")" == "200" ]]; then
       break
     fi
     sleep 1
   done
-  [[ "$(http_status "${gateway_url}/api/mock/admin" "${secret_dir}/mock-before-activation.access.jwt")" == "200" ]] \
+  [[ "$(http_status "${gateway_url}/api/mock/admin" "${default_access_token}")" == "200" ]] \
     || fail "role activation did not authorize the unchanged access token"
 
-  oauth_token rbac3-admin-web tenant-b "${secret_dir}/rbac3-tenant-b.access.jwt"
-  activate_roles "${secret_dir}/rbac3-tenant-b.access.jwt" true
-  oauth_token mock-backend tenant-b "${secret_dir}/tenant-b.access.jwt"
-  [[ "$(http_status "${gateway_url}/api/mock/read" "${secret_dir}/tenant-b.access.jwt")" == "200" ]] \
+  platform_user_login tenant-b
+  tenant_b_access_token="$(user_access_token_for_tenant tenant-b)"
+  activate_roles "${tenant_b_access_token}" true
+  [[ "$(http_status "${gateway_url}/api/mock/read" "${tenant_b_access_token}")" == "200" ]] \
     || fail "tenant-b token did not reach the backend"
-  [[ "$(jq -Rr 'split(".")[1] | @base64d | fromjson | .sid' \
-      <"${secret_dir}/mock-before-activation.access.jwt")" == \
-      "$(jq -Rr 'split(".")[1] | @base64d | fromjson | .sid' \
-      <"${secret_dir}/tenant-b.access.jwt")" ]] \
-    || fail "tenant switch changed the stable SSO session"
+  subject_before="$(jq -Rer 'split(".")[1] | @base64d | fromjson | .sub' \
+    <<<"${default_access_token}")"
+  subject_tenant_b="$(jq -Rer 'split(".")[1] | @base64d | fromjson | .sub' \
+    <<<"${tenant_b_access_token}")"
+  [[ "${subject_before}" == "${subject_tenant_b}" ]] \
+    || fail "tenant switch changed the USER identity subject"
+  for token_claims in "${default_access_token}" "${tenant_b_access_token}"; do
+    jq -Rre 'split(".")[1] | @base64d | fromjson
+      | ((.principal_type // "USER") == "USER"
+        and (has("sid") | not)
+        and (has("client_id") | not)
+        and (has("token_version") | not))' <<<"${token_claims}" >/dev/null 2>&1 \
+      || fail "USER Access Token contains a session or client lifecycle claim"
+  done
 
-  disable_identity_check
-  oauth_token mock-backend default "${secret_dir}/default.access.jwt"
-  refresh_replay_check
-  oauth_token mock-backend default "${secret_dir}/default.access.jwt"
-  oauth_token mock-backend tenant-b "${secret_dir}/tenant-b.access.jwt"
-  [[ "$(http_status "${gateway_url}/api/mock/read" "${secret_dir}/default.access.jwt")" == "200" ]] \
-    || fail "fresh access token failed after replay revocation"
-  [[ "$(http_status "${gateway_url}/api/mock/read" "${secret_dir}/tenant-b.access.jwt")" == "200" ]] \
-    || fail "fresh tenant-b token failed after replay revocation"
+  platform_user_login default
+  default_access_token="$(user_access_token_for_tenant default)"
+  stable_refresh_check
+  platform_user_login default
+  default_access_token="$(user_access_token_for_tenant default)"
+  platform_user_login tenant-b
+  tenant_b_access_token="$(user_access_token_for_tenant tenant-b)"
+  [[ "$(http_status "${gateway_url}/api/mock/read" "${default_access_token}")" == "200" ]] \
+    || fail "fresh access token failed after stable refresh and logout"
+  [[ "$(http_status "${gateway_url}/api/mock/read" "${tenant_b_access_token}")" == "200" ]] \
+    || fail "fresh tenant-b token failed after stable refresh and logout"
 
+  verify_token_dir="$(mktemp -d "${runtime_dir}/verify-tokens.XXXXXX")"
+  chmod 700 "${verify_token_dir}"
+  printf '%s' "${default_access_token}" >"${verify_token_dir}/default.at"
+  printf '%s' "${tenant_b_access_token}" >"${verify_token_dir}/tenant-b.at"
+  printf '%s' "${pre_logout_access_token}" >"${verify_token_dir}/pre-logout.at"
+  chmod 600 "${verify_token_dir}"/*.at
   UNIFIED_IDENTITY_LIVE=true \
   UNIFIED_IDENTITY_GATEWAY_URL="${gateway_url}" \
   UNIFIED_IDENTITY_MOCK_URL="${mock_url}" \
-  UNIFIED_IDENTITY_DEFAULT_TOKEN_FILE="${secret_dir}/default.access.jwt" \
-  UNIFIED_IDENTITY_TENANT_B_TOKEN_FILE="${secret_dir}/tenant-b.access.jwt" \
-  UNIFIED_IDENTITY_REVOKED_TOKEN_FILE="${secret_dir}/revoked.access.jwt" \
+  UNIFIED_IDENTITY_DEFAULT_TOKEN_FILE="${verify_token_dir}/default.at" \
+  UNIFIED_IDENTITY_TENANT_B_TOKEN_FILE="${verify_token_dir}/tenant-b.at" \
+  UNIFIED_IDENTITY_PRE_LOGOUT_TOKEN_FILE="${verify_token_dir}/pre-logout.at" \
     "${repo_root}/mvnw" -B -ntp -f "${repo_root}/pom.xml" \
       -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite \
       -am -Dtest=UnifiedIdentityTopologyIT,UnifiedIdentityRevocationIT,UnifiedIdentityTenantSwitchIT \
-      -Dsurefire.failIfNoSpecifiedTests=false test
+      -Dsurefire.failIfNoSpecifiedTests=false test || mvn_status=$?
+  if [[ -n "${mvn_status:-}" ]]; then
+    rm -rf "${verify_token_dir}"
+    return "${mvn_status}"
+  fi
+  rm -rf "${verify_token_dir}"
   echo "Unified identity host-local verification passed."
 }
 
@@ -1637,7 +1760,7 @@ case "${1:---help}" in
   --help|-h|help) usage ;;
   prepare) command_prepare ;;
   start) command_start ;;
-  refresh-tokens) command_refresh_tokens ;;
+  sync-local-credentials) command_refresh_tokens ;;
   issue-user-token) command_issue_user_token ;;
   verify) command_verify ;;
   status) command_status ;;

@@ -1,13 +1,13 @@
-import { InMemoryAccessTokenStore, Rbac3Provider, Rbac3RequestError, type Rbac3Client } from '@egon-cola/rbac3-react-sdk'
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
-import { AuthenticationShell } from './AuthenticationShell'
+import {type Rbac3Client, Rbac3Provider, Rbac3RequestError} from '@egon-cola/rbac3-react-sdk'
+import {render, screen} from '@testing-library/react'
+import {MemoryRouter} from 'react-router-dom'
+import {describe, expect, it} from 'vitest'
+import {AuthenticationShell} from './AuthenticationShell'
 
 describe('authentication shell', () => {
   it('offers unified SSO without local username, password, or token fields', async () => {
     const client = {
-      refresh: async () => {
+        getBootstrap: async () => {
         throw new Rbac3RequestError({
           status: 401,
           code: 'AUTHENTICATION_REQUIRED',
@@ -18,7 +18,7 @@ describe('authentication shell', () => {
     } as unknown as Rbac3Client
     render(
       <MemoryRouter>
-        <Rbac3Provider client={client} accessTokenStore={new InMemoryAccessTokenStore()}>
+          <Rbac3Provider client={client}>
           <AuthenticationShell><div>READY CONTENT</div></AuthenticationShell>
         </Rbac3Provider>
       </MemoryRouter>,
