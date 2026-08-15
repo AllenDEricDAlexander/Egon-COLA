@@ -2,6 +2,9 @@ package top.egon.cola.platform.rbac3.admin.iam.role.activation;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.admin.iam.role.activation.service.RoleActivationCandidateService;
+import top.egon.cola.platform.rbac3.admin.iam.role.activation.domain.vo.ActivationFactsVO;
+import top.egon.cola.platform.rbac3.admin.iam.role.activation.domain.vo.ApplicationFactVO;
+import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleEligibilityService;
 import top.egon.cola.platform.rbac3.core.activation.AuthorizationRuleFacts;
 import top.egon.cola.platform.rbac3.core.activation.DsdSetFact;
 import top.egon.cola.platform.rbac3.core.activation.EligibleAssignmentFact;
@@ -15,8 +18,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import top.egon.cola.platform.rbac3.admin.iam.role.activation.domain.vo.ActivationFactsVO;
-import top.egon.cola.platform.rbac3.admin.iam.role.activation.domain.vo.ApplicationFactVO;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class RoleActivationCandidateServiceTest {
 
@@ -64,6 +67,30 @@ class RoleActivationCandidateServiceTest {
         assertThat(result.basedOnAuthVersion()).isEqualTo(3);
         assertThat(result.basedOnPolicyVersion()).isEqualTo(8);
         assertThat(result.basedOnDirectorySnapshotVersion()).isEqualTo("directory:12");
+    }
+
+    @Test
+    void omitsCandidatesWhenTheApplicationBusinessGrantIsNoLongerEffective() {
+        RoleHierarchy hierarchy = new RoleHierarchy(
+                List.of(role("10", "1", "FINANCE_ROOT", RoleNode.RiskLevel.MEDIUM)),
+                List.of());
+        var facts = new ActivationFactsVO(
+                "7", "9", hierarchy,
+                List.of(assignment("101", "9", "10")),
+                List.of(),
+                new AuthorizationRuleFacts(
+                        List.of(), List.of(), List.of(), List.of(), List.of()),
+                3, 8, "directory:12",
+                Map.of("1", new ApplicationFactVO("1", "finance", "Finance")),
+                Map.of("10", "Finance"));
+        RoleEligibilityService eligibility = mock(RoleEligibilityService.class);
+        when(eligibility.isEffective("7", "9", "1", NOW)).thenReturn(false);
+
+        var result = new RoleActivationCandidateService(
+                (tenantId, userId, databaseNow) -> facts, eligibility)
+                .candidates("7", "9", NOW);
+
+        assertThat(result.applications()).isEmpty();
     }
 
     private static RoleNode role(

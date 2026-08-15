@@ -13,6 +13,7 @@ import top.egon.cola.platform.rbac3.admin.iam.role.assignment.domain.vo.LockExec
 import top.egon.cola.platform.rbac3.admin.iam.role.assignment.repository.AssignmentFactRepository;
 import top.egon.cola.platform.rbac3.admin.iam.role.assignment.repository.AssignmentLock;
 import top.egon.cola.platform.rbac3.admin.iam.role.assignment.repository.RoleAssignmentRepository;
+import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleEligibilityService;
 import top.egon.cola.platform.rbac3.admin.management.domain.dto.ManagementPolicyRequestDTO;
 import top.egon.cola.platform.rbac3.admin.management.service.ManagementPolicyFacade;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.ExpectedVersionsVO;
@@ -79,6 +80,8 @@ public final class AssignmentFacade {
      * Meaning and usage: when reading, passing, or updating `mutationCoordinator`, preserve `AssignmentFacade`'s lifecycle, immutability, and thread-safety constraints.
      */
     private final AuthorizationMutationCoordinator mutationCoordinator;
+    /** Current Business/Application eligibility gate for role assignment. */
+    private final RoleEligibilityService roleEligibility;
     /**
      * 字段 `ssdSpecification` 表示 `AssignmentFacade` 中与 `ssd Specification` 相关的状态、依赖、配置或结果（声明类型 `SsdSpecification`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `ssdSpecification` stores the `ssd Specification`-related state, dependency, configuration, or result of `AssignmentFacade` (declared type `SsdSpecification`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -126,6 +129,19 @@ public final class AssignmentFacade {
             RoleAssignmentRepository assignmentStore,
             AuthorizationMutationCoordinator mutationCoordinator
     ) {
+        this(managementPolicyFacade, factSource, assignmentLock, assignmentStore,
+                mutationCoordinator, null);
+    }
+
+    /** Creates the assignment facade with the current Business/Application gate. */
+    public AssignmentFacade(
+            ManagementPolicyFacade managementPolicyFacade,
+            AssignmentFactRepository factSource,
+            AssignmentLock assignmentLock,
+            RoleAssignmentRepository assignmentStore,
+            AuthorizationMutationCoordinator mutationCoordinator,
+            RoleEligibilityService roleEligibility
+    ) {
         this.managementPolicyFacade = Objects.requireNonNull(
                 managementPolicyFacade, "managementPolicyFacade");
         this.factSource = Objects.requireNonNull(factSource, "factSource");
@@ -133,6 +149,7 @@ public final class AssignmentFacade {
         this.assignmentStore = Objects.requireNonNull(assignmentStore, "assignmentStore");
         this.mutationCoordinator = Objects.requireNonNull(
                 mutationCoordinator, "mutationCoordinator");
+        this.roleEligibility = roleEligibility;
     }
 
     /**
@@ -147,6 +164,7 @@ public final class AssignmentFacade {
      */
     public AssignmentResultVO assign(RoleAssignmentDTO request) {
         AssignmentFactsVO initial = factSource.load(request);
+        requireEligibleRole(request);
         int assignmentDays = assignmentDays(request.validFrom(), request.validTo());
         String managementPolicyId = managementPolicyFacade.authorize(
                 new ManagementPolicyRequestDTO(
@@ -174,6 +192,7 @@ public final class AssignmentFacade {
                                 request.tenantId(), initial.activationRootRoleId(),
                                 cardinality.scopeType(), cardinality.scopeId(), () -> {
                                     AssignmentFactsVO locked = factSource.load(request);
+                                    requireEligibleRole(request);
                                     validateRules(locked, request.roleId());
                                     return mutationCoordinator.execute(
                                             new MutationScopeVO(
@@ -196,6 +215,14 @@ public final class AssignmentFacade {
         return new AssignmentResultVO(
                 mutation.value(), mutation.mutationId(), mutation.completed(),
                 mutation.reasonCode(), mutation.versions().newAuthVersion());
+    }
+
+    private void requireEligibleRole(RoleAssignmentDTO request) {
+        if (roleEligibility != null) {
+            roleEligibility.requireEffectiveRole(
+                    request.tenantId(), request.targetUserId(), request.roleId(),
+                    request.databaseNow());
+        }
     }
 
     /**

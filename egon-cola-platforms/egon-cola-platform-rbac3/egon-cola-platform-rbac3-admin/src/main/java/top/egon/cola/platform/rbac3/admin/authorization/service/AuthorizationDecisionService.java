@@ -13,6 +13,7 @@ import top.egon.cola.platform.rbac3.admin.authorization.domain.vo.TokenVersionsV
 import top.egon.cola.platform.rbac3.admin.authorization.repository.AuthorizationSnapshotRepository;
 import top.egon.cola.platform.rbac3.admin.authorization.repository.FenceVerifier;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleEligibilityService;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.AuthorizationDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.DataScopeDecision;
@@ -52,6 +53,8 @@ public final class AuthorizationDecisionService {
      * Meaning and usage: when reading, passing, or updating `clock`, preserve `AuthorizationDecisionService`'s lifecycle, immutability, and thread-safety constraints.
      */
     private final Clock clock;
+    /** Live Business/Application eligibility gate used before snapshot decisions. */
+    private final RoleEligibilityService roleEligibility;
 
     /**
      * 创建授权判定服务。
@@ -67,9 +70,19 @@ public final class AuthorizationDecisionService {
             AuthorizationSnapshotRepository snapshotSource,
             FenceVerifier fenceVerifier,
             Clock clock) {
+        this(snapshotSource, fenceVerifier, clock, null);
+    }
+
+    /** Creates the decision service with the live Business/Application eligibility gate. */
+    public AuthorizationDecisionService(
+            AuthorizationSnapshotRepository snapshotSource,
+            FenceVerifier fenceVerifier,
+            Clock clock,
+            RoleEligibilityService roleEligibility) {
         this.snapshotSource = Objects.requireNonNull(snapshotSource, "snapshotSource");
         this.fenceVerifier = Objects.requireNonNull(fenceVerifier, "fenceVerifier");
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.roleEligibility = roleEligibility;
     }
 
     /**
@@ -87,6 +100,12 @@ public final class AuthorizationDecisionService {
         requireApplication(caller, request.resource().applicationCode());
         requireUnfenced(request.subject().tenantId(), request.subject().identitySub());
         SnapshotRecordVO snapshot = load(request.subject());
+        validateVersions(snapshot.snapshot(), request.tokenVersions());
+        if (roleEligibility != null && !roleEligibility.isEffectiveApplicationCode(
+                request.subject().tenantId(), request.subject().userId(),
+                request.resource().applicationCode(), clock.instant())) {
+            return applicationBindingDeny(snapshot, request);
+        }
         return evaluateConsistentSnapshot(snapshot, request, Set.of(), Set.of());
     }
 
@@ -128,6 +147,11 @@ public final class AuthorizationDecisionService {
                 || !record.identitySub().equals(request.identitySub())
                 || !record.snapshot().identitySub().equals(request.identitySub())) {
             return resourceAccessDeny("IDENTITY_INACTIVE", null);
+        }
+        if (roleEligibility != null && !roleEligibility.isEffectiveApplicationCode(
+                request.tenantId(), record.userId(),
+                request.rbacApplicationCode(), clock.instant())) {
+            return resourceAccessDeny("APPLICATION_BINDING_DENIED", record.snapshot());
         }
         AppAuthorizationContext application = record.snapshot().appContexts().stream()
                 .filter(context -> context.applicationCode().equals(
@@ -193,6 +217,23 @@ public final class AuthorizationDecisionService {
                 snapshot == null ? null : snapshot.authVersion(),
                 snapshot == null ? null : snapshot.policyVersion(),
                 clock.instant());
+    }
+
+    private DecisionBundleVO applicationBindingDeny(
+            SnapshotRecordVO record,
+            DecisionRequestDTO request) {
+        AuthorizationDecision function = new AuthorizationDecision(
+                Decision.DENY,
+                "APPLICATION_BINDING_DENIED",
+                record.tenantId(),
+                record.userId(),
+                request.permissionCode(),
+                record.snapshot().authVersion(),
+                record.snapshot().policyVersion(),
+                List.of(),
+                clock.instant());
+        return new DecisionBundleVO(
+                function, null, null, record.snapshot().checksum());
     }
 
     /**

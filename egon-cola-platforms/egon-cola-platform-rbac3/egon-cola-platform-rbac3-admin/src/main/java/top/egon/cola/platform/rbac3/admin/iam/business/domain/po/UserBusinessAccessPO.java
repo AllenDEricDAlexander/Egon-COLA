@@ -89,6 +89,29 @@ public class UserBusinessAccessPO extends TenantScopedPO {
         markUpdated(actorId, now);
     }
 
+    /** Replaces the MANUAL grant facts while preserving its optimistic version. */
+    public void replace(
+            UserBusinessAccessStatusEnum nextStatus,
+            Instant nextValidFrom,
+            Instant nextValidTo,
+            String nextReason,
+            String nextTicketNo,
+            long expectedVersion,
+            String actorId,
+            Instant now) {
+        Objects.requireNonNull(nextStatus, "nextStatus");
+        validateWindow(nextValidFrom, nextValidTo);
+        if (getVersion() != expectedVersion) {
+            throw new IllegalStateException("business access version conflict");
+        }
+        status = nextStatus;
+        validFrom = nextValidFrom;
+        validTo = nextValidTo;
+        reason = nextReason;
+        ticketNo = nextTicketNo;
+        markUpdated(actorId, now);
+    }
+
     public boolean isEffective(Instant at) {
         return status == UserBusinessAccessStatusEnum.ACTIVE
                 && !at.isBefore(validFrom)

@@ -43,9 +43,12 @@ import top.egon.cola.platform.rbac3.admin.iam.resource.manifest.service.Manifest
 import top.egon.cola.platform.rbac3.admin.iam.business.service.BusinessCatalogService;
 import top.egon.cola.platform.rbac3.admin.iam.business.service.DdcCatalogGateway;
 import top.egon.cola.platform.rbac3.admin.iam.business.service.RpcDdcCatalogGateway;
+import top.egon.cola.platform.rbac3.admin.iam.business.service.UserBusinessAccessFacade;
+import top.egon.cola.platform.rbac3.admin.iam.business.repository.UserBusinessAccessRepository;
 import top.egon.cola.platform.rbac3.admin.iam.application.service.ApplicationScopeFacade;
 import top.egon.cola.platform.rbac3.admin.iam.role.repository.jpa.JpaRoleRepository;
 import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleFacade;
+import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleEligibilityService;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.MutationWorkDTO;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
@@ -61,6 +64,7 @@ import top.egon.cola.platform.rbac3.admin.runtime.service.Rbac3RuntimeProjection
 import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeQueryService;
 import top.egon.cola.platform.rbac3.admin.runtime.service.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.admin.runtime.service.UserAuthorizationSnapshotProjector;
+import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.simulation.repository.jdbc.PostgresqlRoleImpactRepository;
 import top.egon.cola.platform.rbac3.admin.simulation.service.AuthorizationSimulationService;
 import top.egon.cola.platform.rbac3.core.delegation.ManagementPolicyDecisionService;
@@ -110,8 +114,9 @@ public class Rbac3ApplicationConfiguration {
     }
 
     @Bean
-    UserAuthorizationSnapshotProjector userAuthorizationSnapshotProjector() {
-        return new UserAuthorizationSnapshotProjector();
+    UserAuthorizationSnapshotProjector userAuthorizationSnapshotProjector(
+            RoleEligibilityService roleEligibility) {
+        return new UserAuthorizationSnapshotProjector(roleEligibility);
     }
 
     /**
@@ -126,8 +131,9 @@ public class Rbac3ApplicationConfiguration {
      */
     @Bean
     RoleActivationCandidateService roleActivationCandidateService(
-            JpaRoleActivationFactRepository factStore) {
-        return new RoleActivationCandidateService(factStore);
+            JpaRoleActivationFactRepository factStore,
+            RoleEligibilityService roleEligibility) {
+        return new RoleActivationCandidateService(factStore, roleEligibility);
     }
 
     /**
@@ -270,9 +276,11 @@ public class Rbac3ApplicationConfiguration {
             ManagementPolicyFacade policyFacade,
             JpaAssignmentRepository repository,
             PostgresqlAssignmentLockRepository lockStore,
-            AuthorizationMutationCoordinator mutationCoordinator) {
+            AuthorizationMutationCoordinator mutationCoordinator,
+            RoleEligibilityService roleEligibility) {
         return new AssignmentFacade(
-                policyFacade, repository, lockStore, repository, mutationCoordinator);
+                policyFacade, repository, lockStore, repository,
+                mutationCoordinator, roleEligibility);
     }
 
     /**
@@ -418,6 +426,16 @@ public class Rbac3ApplicationConfiguration {
         return new ApplicationScopeFacade(catalog, repository);
     }
 
+    @Bean
+    UserBusinessAccessFacade userBusinessAccessFacade(
+            UserBusinessAccessRepository repository,
+            DdcCatalogGateway catalog,
+            AuthorizationMutationCoordinator mutationCoordinator,
+            DatabaseClock databaseClock) {
+        return new UserBusinessAccessFacade(
+                repository, catalog, mutationCoordinator, databaseClock);
+    }
+
     /**
      * 方法 `identityMappingFacade` 按照 `Rbac3ApplicationConfiguration` 的职责处理输入，完成 `identity Mapping Facade` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
      * Method `identityMappingFacade` processes its inputs according to `Rbac3ApplicationConfiguration`'s responsibility, performs the `identity Mapping Facade` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
@@ -515,8 +533,10 @@ public class Rbac3ApplicationConfiguration {
     @Bean
     AuthorizationDecisionService authorizationDecisionService(
             RedisAuthorizationRuntimeRepository runtimeStore,
-            Clock clock) {
-        return new AuthorizationDecisionService(runtimeStore, runtimeStore, clock);
+            Clock clock,
+            RoleEligibilityService roleEligibility) {
+        return new AuthorizationDecisionService(
+                runtimeStore, runtimeStore, clock, roleEligibility);
     }
 
     /**

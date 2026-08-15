@@ -22,6 +22,7 @@ import java.util.TreeSet;
 import top.egon.cola.platform.rbac3.admin.iam.role.activation.repository.RoleActivationFactRepository;
 import top.egon.cola.platform.rbac3.admin.iam.role.activation.domain.vo.ActivationFactsVO;
 import top.egon.cola.platform.rbac3.admin.iam.role.activation.domain.vo.ApplicationFactVO;
+import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleEligibilityService;
 
 /**
  * 类型 `RoleActivationCandidateService` 位于当前包内，是类型，用于承载 `Role Activation Candidate Service` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -46,6 +47,8 @@ public final class RoleActivationCandidateService {
      * Meaning and usage: when reading, passing, or updating `candidateResolver`, preserve `RoleActivationCandidateService`'s lifecycle, immutability, and thread-safety constraints.
      */
     private final RoleActivationCandidateResolver candidateResolver;
+    /** Business/Application eligibility used to keep revoked contexts out of candidates. */
+    private final RoleEligibilityService roleEligibility;
 
     /**
      * 构造器 `RoleActivationCandidateService` 用于创建并初始化 `RoleActivationCandidateService` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -57,7 +60,14 @@ public final class RoleActivationCandidateService {
      * @param factSource 输入参数 `factSource`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public RoleActivationCandidateService(RoleActivationFactRepository factSource) {
-        this(factSource, new RoleActivationCandidateResolver());
+        this(factSource, new RoleActivationCandidateResolver(), null);
+    }
+
+    /** Creates the candidate service with the current Business/Application gate. */
+    public RoleActivationCandidateService(
+            RoleActivationFactRepository factSource,
+            RoleEligibilityService roleEligibility) {
+        this(factSource, new RoleActivationCandidateResolver(), roleEligibility);
     }
 
     /**
@@ -74,9 +84,18 @@ public final class RoleActivationCandidateService {
             RoleActivationFactRepository factSource,
             RoleActivationCandidateResolver candidateResolver
     ) {
+        this(factSource, candidateResolver, null);
+    }
+
+    RoleActivationCandidateService(
+            RoleActivationFactRepository factSource,
+            RoleActivationCandidateResolver candidateResolver,
+            RoleEligibilityService roleEligibility
+    ) {
         this.factSource = Objects.requireNonNull(factSource, "factSource");
         this.candidateResolver = Objects.requireNonNull(
                 candidateResolver, "candidateResolver");
+        this.roleEligibility = roleEligibility;
     }
 
     /**
@@ -103,6 +122,10 @@ public final class RoleActivationCandidateService {
         for (Map.Entry<String, Set<String>> entry : assignmentIdsByRoot.entrySet()) {
             String rootId = entry.getKey();
             RoleNode root = facts.hierarchy().requireNode(rootId);
+            if (roleEligibility != null && !roleEligibility.isEffective(
+                    tenantId, userId, root.applicationId(), databaseNow)) {
+                continue;
+            }
             rootsByApplication.computeIfAbsent(
                     root.applicationId(), ignored -> new ArrayList<>()).add(
                     candidate(rootId, entry.getValue(), facts, databaseNow));

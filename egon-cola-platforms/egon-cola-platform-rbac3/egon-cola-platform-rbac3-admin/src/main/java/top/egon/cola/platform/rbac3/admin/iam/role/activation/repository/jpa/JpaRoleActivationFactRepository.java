@@ -1,6 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.iam.role.activation.repository.jpa;
 
 import jakarta.persistence.EntityManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.platform.rbac3.contract.authorization.FieldAccessLevel;
@@ -26,6 +27,7 @@ import top.egon.cola.platform.rbac3.admin.iam.role.activation.repository.interna
 import top.egon.cola.platform.rbac3.admin.iam.role.activation.repository.RoleActivationFactRepository;
 import top.egon.cola.platform.rbac3.admin.iam.role.activation.domain.vo.ActivationFactsVO;
 import top.egon.cola.platform.rbac3.admin.iam.role.activation.domain.vo.ApplicationFactVO;
+import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleEligibilityService;
 
 /**
  * 类型 `JpaRoleActivationFactRepository` 位于当前包内，是类型，用于承载 `Role Activation Fact Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -44,6 +46,7 @@ public class JpaRoleActivationFactRepository
      * Meaning and usage: when reading, passing, or updating `entityManager`, preserve `JpaRoleActivationFactRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
     private final EntityManager entityManager;
+    private final RoleEligibilityService roleEligibility;
 
     /**
      * 构造器 `JpaRoleActivationFactRepository` 用于创建并初始化 `JpaRoleActivationFactRepository` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -55,7 +58,15 @@ public class JpaRoleActivationFactRepository
      * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public JpaRoleActivationFactRepository(EntityManager entityManager) {
+        this(entityManager, null);
+    }
+
+    @Autowired
+    public JpaRoleActivationFactRepository(
+            EntityManager entityManager,
+            RoleEligibilityService roleEligibility) {
         this.entityManager = entityManager;
+        this.roleEligibility = roleEligibility;
     }
 
     /**
@@ -102,11 +113,19 @@ public class JpaRoleActivationFactRepository
                 """, Map.of("tenantId", tenant));
         var nodes = new ArrayList<RoleNode>();
         var names = new TreeMap<String, String>();
+        var eligibleApplications = new TreeMap<String, Boolean>();
         for (Object[] row : roleRows) {
             String roleId = text(row[0]);
+            String applicationId = text(row[1]);
+            if (roleEligibility != null && !eligibleApplications.computeIfAbsent(
+                    applicationId,
+                    id -> roleEligibility.isEffective(
+                            tenantId, userId, id, databaseNow))) {
+                continue;
+            }
             nodes.add(new RoleNode(
                     roleId,
-                    text(row[1]),
+                    applicationId,
                     text(row[2]),
                     "ACTIVE".equals(text(row[4])),
                     RoleNode.RiskLevel.valueOf(text(row[5])),
@@ -121,6 +140,9 @@ public class JpaRoleActivationFactRepository
                  where tenant_id = :tenantId
                 """, Map.of("tenantId", tenant)).stream()
                 .map(row -> new RoleEdge(text(row[0]), text(row[1])))
+                .filter(edge -> roleEligibility == null
+                        || (nodes.stream().anyMatch(node -> node.id().equals(edge.seniorRoleId()))
+                        && nodes.stream().anyMatch(node -> node.id().equals(edge.juniorRoleId()))))
                 .toList();
         RoleHierarchy hierarchy = new RoleHierarchy(nodes, edges);
 
@@ -136,6 +158,8 @@ public class JpaRoleActivationFactRepository
                         EligibleAssignmentFact.Status.valueOf(text(row[3])),
                         instant(row[4]),
                         row[5] == null ? null : instant(row[5])))
+                .filter(assignment -> roleEligibility == null
+                        || hierarchy.nodes().containsKey(assignment.roleId()))
                 .toList();
 
         Map<String, ApplicationFactVO> applications =

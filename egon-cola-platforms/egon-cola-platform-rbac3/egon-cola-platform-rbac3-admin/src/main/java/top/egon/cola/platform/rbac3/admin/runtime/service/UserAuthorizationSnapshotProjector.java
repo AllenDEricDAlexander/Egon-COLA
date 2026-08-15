@@ -1,6 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.runtime.service;
 
 import top.egon.cola.platform.rbac3.admin.iam.role.activation.domain.vo.ApplicationFactVO;
+import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleEligibilityService;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.ProjectionCommandDTO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.RuntimeUserAuthorizationVO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.UserSnapshotProjectionVO;
@@ -28,6 +29,17 @@ import java.util.TreeSet;
  */
 public final class UserAuthorizationSnapshotProjector {
 
+    private final RoleEligibilityService roleEligibility;
+
+    public UserAuthorizationSnapshotProjector() {
+        this(null);
+    }
+
+    /** Creates a projector that drops contexts without an effective Business grant. */
+    public UserAuthorizationSnapshotProjector(RoleEligibilityService roleEligibility) {
+        this.roleEligibility = roleEligibility;
+    }
+
     /**
      * 方法 `project` 按照 `UserAuthorizationSnapshotProjector` 的职责处理输入，完成 `project` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
      * Method `project` processes its inputs according to `UserAuthorizationSnapshotProjector`'s responsibility, performs the `project` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
@@ -42,8 +54,13 @@ public final class UserAuthorizationSnapshotProjector {
         RoleActivationResolution resolution = command.resolution();
         var contexts = new ArrayList<AppAuthorizationContext>();
         resolution.activeRoleSet().rootsByApplication().forEach(
-                (applicationId, roots) -> contexts.add(appContext(
-                        applicationId, roots, command)));
+                (applicationId, roots) -> {
+                    AppAuthorizationContext context = appContext(
+                            applicationId, roots, command);
+                    if (context != null) {
+                        contexts.add(context);
+                    }
+                });
         contexts.sort(java.util.Comparator.comparing(
                 AppAuthorizationContext::applicationCode));
         UserAuthorizationSnapshot snapshot = new UserAuthorizationSnapshot(
@@ -85,6 +102,11 @@ public final class UserAuthorizationSnapshotProjector {
             Set<String> roots,
             ProjectionCommandDTO command
     ) {
+        if (roleEligibility != null && !roleEligibility.isEffective(
+                command.tenantId(), command.userId(), applicationId,
+                command.generatedAt())) {
+            return null;
+        }
         var facts = command.facts();
         var snapshot = command.resolution().snapshot();
         var effectiveRoles = new TreeSet<String>();
