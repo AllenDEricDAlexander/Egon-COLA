@@ -12,8 +12,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import top.egon.cola.platform.rbac3.core.runtime.Rbac3RuntimeKeyFactory;
 import top.egon.cola.platform.rbac3.gateway.runtime.Rbac3GatewayRedissonConfiguration;
-import top.egon.cola.platform.rbac3.gateway.runtime.Rbac3GatewayRuntimeSnapshotReader;
-import top.egon.cola.platform.rbac3.gateway.security.Rbac3PermissionAuthorizationProvider;
+import top.egon.cola.platform.rbac3.gateway.runtime.Rbac3GatewayScopeSnapshotReader;
+import top.egon.cola.platform.rbac3.gateway.security.Rbac3BizAppScopeAuthorizationProvider;
 import top.egon.cola.platform.rbac3.gateway.security.Rbac3ReservedHeaderSanitizer;
 
 import java.time.Clock;
@@ -24,7 +24,7 @@ import java.time.Clock;
  * <p>Authentication is deliberately absent here. The IdP Gateway adapter
  * authenticates the IdP-issued access token and supplies a
  * {@code GatewayPrincipal}; this adapter only reads RBAC3's published runtime
- * authorization projection and evaluates permissions.</p>
+ * authorization scope projection and evaluates the target BIZ and APP.</p>
  */
 @AutoConfiguration
 @EnableConfigurationProperties(Rbac3GatewayAdapterProperties.class)
@@ -56,23 +56,23 @@ public class Rbac3GatewayAdapterAutoConfiguration {
     @Bean
     @ConditionalOnBean(name = "rbac3RuntimeRedissonClient")
     @ConditionalOnMissingBean
-    public Rbac3GatewayRuntimeSnapshotReader rbac3GatewayRuntimeSnapshotReader(
+    public Rbac3GatewayScopeSnapshotReader rbac3GatewayScopeSnapshotReader(
             @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
             ObjectMapper objectMapper,
             Rbac3RuntimeKeyFactory keyFactory,
             @Qualifier("rbac3GatewayClock") Clock clock
     ) {
-        return new Rbac3GatewayRuntimeSnapshotReader(
+        return new Rbac3GatewayScopeSnapshotReader(
                 redisson, objectMapper, keyFactory, clock);
     }
 
     @Bean
-    @ConditionalOnBean(Rbac3GatewayRuntimeSnapshotReader.class)
+    @ConditionalOnBean(Rbac3GatewayScopeSnapshotReader.class)
     @ConditionalOnMissingBean
-    public Rbac3PermissionAuthorizationProvider
-            rbac3PermissionAuthorizationProvider(
-                    Rbac3GatewayRuntimeSnapshotReader runtime
+    public Rbac3BizAppScopeAuthorizationProvider
+            rbac3BizAppScopeAuthorizationProvider(
+                    Rbac3GatewayScopeSnapshotReader runtime
             ) {
-        return new Rbac3PermissionAuthorizationProvider(runtime::authorize);
+        return new Rbac3BizAppScopeAuthorizationProvider(runtime::authorize);
     }
 }

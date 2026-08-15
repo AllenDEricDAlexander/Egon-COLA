@@ -9,7 +9,7 @@ import top.egon.cola.component.gateway.core.context.GatewayPrincipal;
 import top.egon.cola.component.gateway.core.security.AuthorizationDecision;
 import top.egon.cola.component.gateway.core.security.GatewayAuthContext;
 import top.egon.cola.component.gateway.core.security.SecurityDecision;
-import top.egon.cola.platform.rbac3.gateway.security.Rbac3PermissionAuthorizationProvider;
+import top.egon.cola.platform.rbac3.gateway.security.Rbac3BizAppScopeAuthorizationProvider;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -31,7 +31,7 @@ class GatewayHotPathBudgetTest {
     void oneGatewayDecisionPerRequestAndNoAdminOrDatabaseClientInHotPath()
             throws Exception {
         AtomicInteger calls = new AtomicInteger();
-        var provider = new Rbac3PermissionAuthorizationProvider(context -> {
+        var provider = new Rbac3BizAppScopeAuthorizationProvider(context -> {
             calls.incrementAndGet();
             return AuthorizationDecision.allow();
         });
@@ -49,7 +49,8 @@ class GatewayHotPathBudgetTest {
                     .flatMap(path -> lines(path).stream())
                     .filter(line -> List.of(
                                     "EntityManager", "JdbcTemplate", "WebClient",
-                                    "RestClient", "rbac3-admin")
+                                    "RestClient", "rbac3-admin",
+                                    "operationMapping(", "permissions()")
                             .stream().anyMatch(line::contains))
                     .toList();
             assertEquals(List.of(), violations);
@@ -59,7 +60,7 @@ class GatewayHotPathBudgetTest {
     @Test
     void calibratedEnvironmentMayEnforceReactiveDecisionBudget() {
         Assumptions.assumeTrue(Boolean.getBoolean("rbac3.performance.enforce"));
-        var provider = new Rbac3PermissionAuthorizationProvider(
+        var provider = new Rbac3BizAppScopeAuthorizationProvider(
                 ignored -> AuthorizationDecision.allow());
 
         Instant started = Instant.now();
