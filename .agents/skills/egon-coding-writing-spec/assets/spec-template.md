@@ -84,6 +84,14 @@ Document the repository's actual programming languages and versions, frameworks,
 | --- | --- | --- | --- |
 | Language/runtime | `<...>` | `<manifest/path>` | `<...>` |
 
+### 6.1 Java three-layer applicability
+
+For Java package design, record whether the affected module already uses or the user explicitly selected the supported traditional three-layer profile. Cite the base package and existing evidence. Do not silently migrate an existing DDD, COLA, hexagonal, or custom structure; record the mismatch as an open major decision when structural change is required.
+
+| Architecture profile | Base package | Evidence or explicit decision | Existing deviations | Design action |
+| --- | --- | --- | --- | --- |
+| Traditional Three-Layer / Other | `<base package>` | `<paths or DEC-*>` | `<None or exact deviations>` | `<apply profile / preserve current structure / ask user>` |
+
 ## 7. Architecture Design
 
 ### 7.1 Architecture overview
@@ -95,6 +103,8 @@ Describe the selected design and why it fits the current architecture.
 | Module/component | Responsibility | Inputs/outputs | Dependencies | Requirements |
 | --- | --- | --- | --- | --- |
 | `<name>` | `<single responsibility>` | `<contracts>` | `<allowed dependencies>` | `REQ-001` |
+
+For a Java three-layer design, include `biz.controller`, `biz.service`, `biz.service.impl`, `biz.dao`, `biz.config`, `biz.utils`, and `biz.domain`. Controllers depend on Service interfaces and transport/data objects, never directly on DAO or `service.impl`. Concrete implementations under `service.impl` implement the Service interfaces, orchestrate business behavior and transaction boundaries, and compose DAO/collaborators. DAO owns persistence access rather than business policy. Config owns technical wiring, and Utils remains stateless and business-neutral.
 
 ### 7.3 Call chain, control flow, and data flow
 
@@ -117,8 +127,18 @@ Use a Mermaid diagram when it materially clarifies three or more components. The
 ### 8.2 Target tree
 
 ```text
-<exact CREATE / MODIFY / DELETE files and packages; do not put implementation order here>
+<base-package>/biz
+├── controller
+├── service
+│   └── impl
+├── dao
+├── config
+├── utils
+└── domain
+    └── <only justified POJO role packages and files>
 ```
+
+Expand this skeleton into exact CREATE / MODIFY / DELETE file paths and packages; do not put implementation order here. `impl` must remain nested under `service`. Omit unused optional packages rather than creating empty layers or every possible POJO suffix package.
 
 ### 8.3 Package and file responsibilities
 
@@ -145,23 +165,25 @@ For every applicable contract, define:
 
 Use repository-language signature or payload pseudocode where useful, but do not write a complete production implementation.
 
-## 10. Entity and Domain Model Design
+## 10. POJO and Data Model Design
 
 ### 10.1 POJO role classification and class necessity
 
-Classify every proposed Java object by its repository-defined semantic role. State the exact local meaning of ambiguous `DO`, `VO`, or `Entity` terms. `POJO` is an umbrella term, DAO is an access component rather than a data carrier, `VO` means View Object when that is the repository convention, and DDD Value Objects use domain-concept names.
+Classify every proposed Java object by its repository-defined semantic role. State the exact local meaning of ambiguous `DO`, `VO`, or `Entity` terms. `POJO` is an umbrella term, DAO is an access component rather than a data carrier, and `VO` means View Object in this profile.
 
 | Object/path | Selected role | Owner/boundary and consumers | Why a distinct class is necessary or reuse is safe | Mapping owner | Requirements |
 | --- | --- | --- | --- | --- | --- |
-| `<Type>` | PO / DTO / View Object / BO / Entity / Query / Command / Request / Response / Form / Param / PageQuery / PageResult / DDD Value Object | `<owner and crossings>` | `<concrete semantic difference or safe reuse evidence>` | `<mapper/factory/constructor or None>` | `REQ-001` |
+| `<Type>` | PO / DO / DTO / View Object / BO / ORM Entity / Query / Command / Request / Response / Form / Param / PageQuery / PageResult | `<owner and crossings>` | `<concrete semantic difference or safe reuse evidence>` | `<mapper/factory/constructor or None>` | `REQ-001` |
 
 Do not create parallel PO/DO/Entity/BO/DTO/VO/Request/Response types merely because architectural layers exist. Add a class only for a real ownership, contract, validation/exposure, lifecycle/invariant, persistence, projection, pagination, or independent-versioning boundary. Do not expose a persistence object as a public contract merely to reduce the class count.
 
-### 10.2 Aggregates, entities, DDD value objects, and invariants
+### 10.2 Persistence objects, ORM entities, and business data objects
 
-| Model | Kind | Ownership/lifecycle | Invariants | Persistence | Requirements |
+| Model | Kind | Ownership/lifecycle | Validation and state rules | Persistence | Requirements |
 | --- | --- | --- | --- | --- | --- |
-| `<name>` | Aggregate / Entity / Value Object | `<owner>` | `<rules>` | `<table/none>` | `REQ-001` |
+| `<name>` | PO / ORM Entity / BO / Other justified role | `<owner>` | `<rules>` | `<table/none>` | `REQ-001` |
+
+Do not introduce Aggregate, Domain Service, Repository Port, or DDD Value Object concepts in the current traditional three-layer profile.
 
 ### 10.3 Field design
 
@@ -175,9 +197,9 @@ Define mappings only between semantically distinct types. Name the conversion ow
 
 ### 10.5 Reuse, inheritance, and composition decisions
 
-For entity inheritance, document the `is-a` or common-lifecycle reason, inherited fields/invariants, ORM table/discriminator/proxy behavior, identity and equality, serialization, migration, compatibility, and tests. Entity inheritance is allowed but not mandatory; prefer composition when no substitutable entity relationship exists.
+For PO or ORM Entity inheritance, document the `is-a` or common-lifecycle reason, inherited fields and state rules, ORM table/discriminator/proxy behavior, identity and equality, serialization, migration, compatibility, and tests. Persistence inheritance is allowed but not mandatory; prefer composition when no substitutable persistence relationship exists.
 
-Concrete application/domain/business services must use composition and delegation by default. Do not introduce a business `BaseService` or service inheritance tree merely for code reuse. Any framework-mandated or existing Template Method exception must explain why composition is insufficient and how substitutability and testability remain safe.
+Concrete classes under `biz.service.impl` must use composition and delegation by default. Do not introduce a business `BaseService` or Service inheritance tree merely for code reuse. Any framework-mandated or existing Template Method exception must explain why composition is insufficient and how substitutability and testability remain safe.
 
 ### 10.6 State transitions and lifecycle
 
@@ -222,11 +244,11 @@ If the repository has no affected frontend, write `N/A` with repository evidence
 
 ### 13.2 Rejected patterns and simpler alternative
 
-Record why Strategy, Template Method, Factory, Adapter, Facade, State, Observer, Command, Specification, Domain Service, or another candidate is unnecessary when direct design is clearer.
+Record why Strategy, Template Method, Factory, Adapter, Facade, State, Observer, Command, Specification, or another candidate is unnecessary when direct design is clearer.
 
 ### 13.3 Architecture principles
 
-Explain applicable choices around cohesion, coupling, dependency direction/inversion, information hiding, SOLID, DDD/hexagonal/layered/CQRS/event-driven ideas, YAGNI, testability, and maintainability. Explicitly show how the model avoids class explosion and how business services use composition over inheritance. Do not claim a principle without showing how paths and dependencies enforce it.
+Explain applicable choices around cohesion, coupling, information hiding, SOLID, YAGNI, testability, and maintainability. Show the three-layer dependency direction explicitly: Controller to Service interface, `service.impl` to DAO/domain objects, and DAO to persistence objects. Explicitly show how the model avoids class explosion and how concrete Service implementations use composition over inheritance. Do not claim a principle without showing how paths and dependencies enforce it.
 
 ## 14. Test Design
 
@@ -288,7 +310,7 @@ Confirm paths, symbols, consumers, commands, language/framework choices, migrati
 
 ### 20.3 Cross-section consistency
 
-Confirm architecture, file tree, interfaces, fields, entity state, schema, page flows, failure semantics, security, compatibility, tests, and traceability describe one design.
+Confirm architecture, file tree, interfaces, fields, POJO/entity state, schema, page flows, failure semantics, security, compatibility, tests, and traceability describe one design.
 
 ### 20.4 Relationship and effective-design review
 

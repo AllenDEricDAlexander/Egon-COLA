@@ -42,7 +42,6 @@ REQUIRED_HEADINGS = [
     "## 7. Architecture Design",
     "## 8. Package Structure and Code File Tree",
     "## 9. Interface Definitions",
-    "## 10. Entity and Domain Model Design",
     "## 11. Database Design",
     "## 12. Frontend Page Design",
     "## 13. Design Patterns and Architecture Principles",
@@ -53,6 +52,12 @@ REQUIRED_HEADINGS = [
     "## 18. Risks and Open Questions",
     "## 19. Traceability Matrix",
     "## 20. Review and Acceptance",
+]
+REQUIRED_HEADING_ALTERNATIVES = [
+    (
+        "## 10. POJO and Data Model Design",
+        "## 10. Entity and Domain Model Design",
+    ),
 ]
 PLACEHOLDER_PATTERNS = [
     re.compile(r"\b(?:TBD|TODO|FIXME|XXX)\b", re.IGNORECASE),
@@ -179,6 +184,10 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
     for heading in REQUIRED_HEADINGS:
         if heading not in text:
             errors.append(f"Missing required section: {heading}")
+
+    for alternatives in REQUIRED_HEADING_ALTERNATIVES:
+        if not any(heading in text for heading in alternatives):
+            errors.append(f"Missing required section: one of {', '.join(alternatives)}")
 
     requirements = sorted(set(re.findall(r"\bREQ-\d{3}\b", text)))
     if not requirements:

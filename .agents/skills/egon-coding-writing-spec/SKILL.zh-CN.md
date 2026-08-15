@@ -1,6 +1,6 @@
 ---
 name: egon-coding-writing-spec
-description: 当编码任务在实施计划之前需要基于仓库现状编写系统架构、概要设计、详细设计、RFC 风格规格或获批设计基线时使用。
+description: 当编码任务在实施计划之前需要基于仓库现状编写系统架构、概要设计、详细设计、RFC 风格规格或获批设计基线时使用。当前 Java 分包设计只支持传统三层结构：biz.controller、biz.service、嵌套的 biz.service.impl、biz.dao、biz.config、biz.utils 和 biz.domain。
 ---
 
 # EGON 编码 Spec 编写
@@ -41,7 +41,8 @@ Spec 定义的是**必须构建什么，以及该设计为什么自洽**。它�
 11. 所有适用层次都要达到详细设计深度：精确路径/包、符号、契约、字段、状态规则、schema、页面状态、测试用例、兼容与失败语义。不要编写完整生产实现。
 12. 交付前必须对照原始用户需求和当前仓库复核。内部缺陷自行修复，只把仍未解决的重大决策交给用户。
 13. Java 对象必须按照真实边界和生命周期职责分类。遵循 `references/pojo-modeling.zh-CN.md`；不能把 POJO/PO/DO/DTO/VO/BO/Entity/Query/Command/Request/Response/Form/Param/PageQuery/PageResult 当成必须并列创建的类清单。
-14. 防止类爆炸。每个独立对象和 Mapper 都必须有具体语义依据。实体只有在仓库惯例和生命周期依据充分时才能继承；具体业务 Service 默认采用组合与委托，不采用继承。
+14. 防止类爆炸。每个独立对象和 Mapper 都必须有具体语义依据。PO/ORM Entity 只有在仓库惯例和生命周期依据充分时才能继承；具体业务 Service 默认采用组合与委托，不采用继承。
+15. Java 分包设计必须读取 `references/three-layer-architecture.zh-CN.md`，并只使用当前已规范的传统三层结构：`biz.controller`、`biz.service`、`biz.service.impl`、`biz.dao`、`biz.config`、`biz.utils` 和 `biz.domain`。本 skill 明确扩展前，不得设计 DDD 或 COLA 分包。现有仓库采用其他架构时，应保持现状，并在提出结构迁移前询问用户。
 
 ## 歧义与决策边界
 
@@ -101,9 +102,9 @@ Spec 定义的是**必须构建什么，以及该设计为什么自洽**。它�
    - 推断小缺口并记录有影响的假设。
 5. **设计方案**
    - 至少评估一个直接遵循仓库惯例的方案，以及任何实质不同且可行的替代方案。
-   - 明确考虑 Strategy、Template Method、Factory、Adapter、Facade、State、Observer、Command、Specification、Domain Service 等合适模式。
+   - 明确考虑 Strategy、Template Method、Factory、Adapter、Facade、State、Observer、Command、Specification 等合适模式。
    - 只有模式确实解决变化点、耦合、生命周期、编排或可测试性问题时才采用；否则记录为什么直接设计更清晰且避免过度设计。
-   - 阅读 `references/pojo-modeling.zh-CN.md`。按语义职责分类每个拟议 Java 对象，执行类必要性检验，记录安全复用或必需映射，并分别评估实体继承与 Service 组合。
+   - Java 工作必须阅读 `references/three-layer-architecture.zh-CN.md` 和 `references/pojo-modeling.zh-CN.md`。确认传统三层架构适用门禁，保持 `impl` 位于 `service` 下，按语义职责分类每个拟议对象，执行类必要性检验，并分别评估持久化继承与 Service 组合。
 6. **编写 Spec**
    - 复制 `assets/spec-template.md`，用仓库真实内容填满所有章节。
    - 可使用精确签名、字段表、状态转换、文件树和伪代码阐明设计，但不能写生产级完整方法体。
@@ -125,13 +126,13 @@ Spec 定义的是**必须构建什么，以及该设计为什么自洽**。它�
 4. **需求与验收标准**——原子化 `REQ-*` 和可观察结果。
 5. **约束、假设与决策**——已确认约束、`ASM-*`、已决事项和开放阻塞项。
 6. **项目技术上下文**——当前语言/框架/构建/模块/持久化/前端/测试事实。
-7. **架构设计**——边界、职责、依赖、数据/控制流、事务、并发、一致性、失败处理和可观测性。
-8. **分包结构与代码文件树**——现有相关树、目标树、精确新增/修改/删除路径、符号、职责和需求映射。这是目标设计，不是实施顺序。
+7. **架构设计**——边界、职责、依赖、数据/控制流、事务、并发、一致性、失败处理和可观测性。对当前支持的 Java 三层结构，必须定义 Controller、Service 接口、`service.impl`、DAO、Config、Utils 和 POJO 的职责及允许依赖。
+8. **分包结构与代码文件树**——现有相关树、选定的三层目标树、精确新增/修改/删除路径、符号、职责和需求映射。`biz.service.impl` 必须嵌套在 `biz.service` 下。这是目标设计，不是实施顺序。
 9. **接口定义**——HTTP/RPC/事件/内部契约、签名、字段语义、校验、错误、鉴权、幂等、版本与兼容。
-10. **实体与领域模型设计**——仓库定义的 POJO 职责、对象所有权/边界、类必要性决策、聚合/实体/DDD 值对象、DTO/Command/Query/View Object/PO、字段类型、可空性、不变量、状态转换、映射和安全复用。必须区分 View Object 与 DDD Value Object，并说明有歧义的 `DO` 或 `Entity` 在当前仓库中的准确含义。
+10. **POJO 与数据模型设计**——仓库定义的 POJO 职责、对象所有权/边界、类必要性决策、持久化对象或 ORM Entity、DTO/Command/Query/View Object/BO、字段类型、可空性、校验、状态转换、映射、继承和安全复用。不得要求 DDD 聚合、领域服务、仓储端口或值对象。
 11. **数据库设计**——表/列/类型/默认值/约束/索引/查询模式、迁移形态、历史数据处理、事务/锁/审计、回滚与兼容。如果仓库规范要求新增迁移，绝不能修改旧迁移。
 12. **前端页面设计**——路由、导航、权限、布局/组件树、用户流程、表单规则、API/状态映射、loading/empty/error/disabled/denied 状态、可访问性、响应式和关键文案。
-13. **设计模式与架构理念**——采用/拒绝的模式、变化点、简洁性检验和与现有架构的一致性；按需说明内聚、耦合、依赖方向、信息隐藏、SOLID、YAGNI、实体继承安全性和业务 Service 的组合优于继承。
+13. **设计模式与架构理念**——采用/拒绝的模式、变化点、简洁性检验和与三层架构的一致性；按需说明 Controller 到 Service 的依赖、Service 到 DAO 的编排、内聚、耦合、信息隐藏、SOLID、YAGNI、持久化继承安全性和 `service.impl` 类的组合优于继承。
 14. **测试设计**——行为与不变量的单元测试，以及适用的集成、契约、Mapper/Repository、组件和端到端测试；定义测试数据、边界、失败场景、预期断言、工具和需求映射。
 15. **非功能与横切设计**——安全、租户、隐私、性能、容量、缓存、审计、日志、指标、追踪、运维和可维护性。
 16. **兼容、迁移、发布与回滚**。
@@ -161,9 +162,12 @@ Spec 定义的是**必须构建什么，以及该设计为什么自洽**。它�
 | 只列包名，不列文件树与职责 | 增加精确目标路径、操作、符号、职责和 `REQ-*` 映射 |
 | 接口、实体、schema、UI 和测试不一致 | 通过字段/状态/需求追踪修复 |
 | 默认在每层都创建 PO/DO/Entity/BO/DTO/VO/Request/Response | 执行类必要性检验；语义完全相同且复用安全时复用，只保留有依据的边界类型 |
-| 使用 `DO`、`VO` 或 `Entity` 却不说明仓库语义 | 明确准确职责；仓库用 `VO` 表示 View Object 时，DDD Value Object 使用领域概念命名 |
+| 使用 `DO`、`VO` 或 `Entity` 却不说明仓库语义 | 明确准确职责；当前规范中 `VO` 表示 View Object，`Entity` 必须说明持久化/ORM 语义 |
 | 为减少类数量而把持久化对象直接作为公开契约 | 持久化关注点留在边界内部，只创建确有必要的传输/展示类型 |
 | 为复用代码给业务 Service 设计基类继承树 | 组合显式协作者；只有合理的现有框架扩展契约才允许继承 |
+| 把 `impl` 与 `service` 平级 | 把实现移动到 `biz.service.impl` |
+| 在当前规范中引入聚合、领域服务、仓储端口或 COLA 分层 | 删除暂缓的 DDD/COLA 结构，使用已批准的传统三层分包 |
+| Controller 直接访问 DAO 或 `service.impl` | 依赖 Service 接口，并把持久化隐藏在实现内部 |
 | 只写模式名，没有变化点 | 拒绝该模式，或说明它解决的具体问题 |
 | 把集成测试当作单测设计 | 定义隔离的单元行为，并分开更高层测试 |
 | 删除不适用章节 | 保留章节并写有证据的 `N/A` |
@@ -171,4 +175,4 @@ Spec 定义的是**必须构建什么，以及该设计为什么自洽**。它�
 
 ## Skill 维护
 
-修改本 skill 时，必须用 `references/acceptance-scenarios.md` 进行场景复核，并保持 `SKILL.md`、`references/pojo-modeling.md` 与中文审核内容同步。
+修改本 skill 时，必须用 `references/acceptance-scenarios.md` 进行场景复核，并保持 `SKILL.md`、`references/three-layer-architecture.md`、`references/pojo-modeling.md` 与中文审核内容同步。
