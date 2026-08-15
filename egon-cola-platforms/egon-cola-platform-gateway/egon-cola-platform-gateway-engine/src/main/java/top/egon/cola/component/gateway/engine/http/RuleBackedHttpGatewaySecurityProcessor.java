@@ -212,48 +212,11 @@ public final class RuleBackedHttpGatewaySecurityProcessor
      * @return 返回 安全Attributes 的处理结果；returns the result of the operation.
      */
     static java.util.Map<String, String> securityAttributes(HttpRouteMatch route) {
-        java.util.Map<String, String> metadata = route.route().metadata();
-        java.util.Map<String, String> attributes = new java.util.LinkedHashMap<>();
         ProviderServiceKey upstream = route.route().upstream();
-        attributes.put("idp.biz-code", upstream.bizCode());
-        attributes.put("idp.app-code", upstream.appCode());
-        attributes.put("idp.env", upstream.env());
-        copy(metadata, attributes, "applicationCode", "rbac3.application-code");
-        copy(metadata, attributes, "definitionSetId", "rbac3.definition-set-id");
-        if (!attributes.containsKey("rbac3.definition-set-id")) {
-            copy(metadata, attributes, "gateway.definition-set-id",
-                    "rbac3.definition-set-id");
-        }
-        copy(metadata, attributes, "mappingVersion", "rbac3.mapping-version");
-        if (!attributes.containsKey("rbac3.mapping-version")) {
-            copy(metadata, attributes, "publishedVersion", "rbac3.mapping-version");
-        }
-        if (!attributes.containsKey("rbac3.mapping-version")) {
-            copy(metadata, attributes, "definitionVersion", "rbac3.mapping-version");
-        }
-        return java.util.Map.copyOf(attributes);
-    }
-
-    /**
-     * 中文说明：执行 copy 操作；该方法是 {@code RuleBackedHttpGatewaySecurityProcessor} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the copy operation; this method is the invocation entry point on {@code RuleBackedHttpGatewaySecurityProcessor} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code RuleBackedHttpGatewaySecurityProcessor.copy(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param source 参数 source；parameter source。
-     * @param target 参数 target；parameter target。
-     * @param sourceName 参数 sourceName；parameter source name。
-     * @param targetName 参数 targetName；parameter target name。
-     */
-    private static void copy(
-            java.util.Map<String, String> source,
-            java.util.Map<String, String> target,
-            String sourceName,
-            String targetName
-    ) {
-        String value = source.get(sourceName);
-        if (value != null && !value.isBlank()) {
-            target.put(targetName, value.trim());
-        }
+        return java.util.Map.of(
+                "idp.biz-code", upstream.bizCode(),
+                "idp.app-code", upstream.appCode(),
+                "idp.env", upstream.env());
     }
 
     /**

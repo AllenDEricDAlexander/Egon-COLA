@@ -752,6 +752,13 @@ write_service_env_files() {
   write_env "${file}" IDP_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
   write_env "${file}" IDP_REDIS_DATABASE 8
   write_env "${file}" IDP_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
+  write_env "${file}" GATEWAY_RBAC3_SCOPE_ENABLED true
+  write_env "${file}" GATEWAY_RBAC3_SCOPE_REDIS_ADDRESS \
+    "redis://${redis_host}:${redis_port}"
+  write_env "${file}" GATEWAY_RBAC3_SCOPE_REDIS_DATABASE 8
+  write_env "${file}" GATEWAY_RBAC3_SCOPE_REDIS_PASSWORD_FILE \
+    "${secret_dir}/redis.password"
+  write_env "${file}" GATEWAY_RBAC3_SCOPE_REDIS_TIMEOUT 2s
   write_env "${file}" GATEWAY_POSTGRES_URL "jdbc:postgresql://${postgres_host}:${postgres_port}/${gateway_database}"
   write_env "${file}" GATEWAY_POSTGRES_USER "${postgres_user}"
   write_env "${file}" GATEWAY_POSTGRES_PASSWORD "${postgres_password_value}"
@@ -1361,7 +1368,7 @@ publish_gateway_routes() {
       BUSINESS_PROTECTED)
         policy_id=unified-business-protected
         route_type=BUSINESS_PROTECTED; auth_mode=REQUIRED; forward=ORIGINAL_BEARER; recovery='"idp-user-refresh"'
-        extractors='["idp-user-cookie"]'; auth_providers='["idp-jwt"]'; authz_providers='["rbac3-permission"]' ;;
+        extractors='["idp-user-cookie"]'; auth_providers='["idp-jwt"]'; authz_providers='["rbac3-biz-app-scope"]' ;;
     esac
     if ! jq -e --arg policy "${policy_id}" --arg routeType "${route_type}" \
         --arg authMode "${auth_mode}" --arg forward "${forward}" \

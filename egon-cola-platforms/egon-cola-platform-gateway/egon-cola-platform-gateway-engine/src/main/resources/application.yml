@@ -80,6 +80,14 @@ egon:
           password-file: ${GATEWAY_MCP_RBAC3_REDIS_PASSWORD_FILE:}
         authorization:
           endpoint: ${GATEWAY_MCP_RBAC3_AUTHORIZATION_ENDPOINT:}
+        gateway:
+          enabled: ${GATEWAY_RBAC3_SCOPE_ENABLED:true}
+          runtime:
+            redis-enabled: ${GATEWAY_RBAC3_SCOPE_ENABLED:true}
+            redis-address: ${GATEWAY_RBAC3_SCOPE_REDIS_ADDRESS:redis://127.0.0.1:6379}
+            database: ${GATEWAY_RBAC3_SCOPE_REDIS_DATABASE:8}
+            password-file: ${GATEWAY_RBAC3_SCOPE_REDIS_PASSWORD_FILE:}
+            timeout: ${GATEWAY_RBAC3_SCOPE_REDIS_TIMEOUT:2s}
     component:
       rpc:
         tls:

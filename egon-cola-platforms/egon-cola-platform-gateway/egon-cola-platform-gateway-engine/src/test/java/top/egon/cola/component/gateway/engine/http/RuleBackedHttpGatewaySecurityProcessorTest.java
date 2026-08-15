@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class RuleBackedHttpGatewaySecurityProcessorTest {
 
     @Test
-    void bindsIdpResourceScopeToMatchedUpstream() {
+    void usesOnlyServerRouteBizAppIdentityForAuthorization() {
         RuntimeHttpRoute route = new RuntimeHttpRoute(
                 "route-1", "orders.get", "group-1",
                 Set.of(AccessZone.INTERNAL), "api.internal",
@@ -26,16 +26,19 @@ class RuleBackedHttpGatewaySecurityProcessorTest {
                         ProviderProtocolType.HTTP, "orders-api", "default",
                         "v1", "http"),
                 Set.of("identity"), 0, GatewayResponseMode.TRANSPARENT,
-                Map.of("applicationCode", "orders-admin")
+                Map.of(
+                        "applicationCode", "orders-admin",
+                        "definitionSetId", "definition-1",
+                        "mappingVersion", "5")
         );
 
         Map<String, String> attributes =
                 RuleBackedHttpGatewaySecurityProcessor.securityAttributes(
                         new HttpRouteMatch(route, Map.of("id", "1")));
 
-        assertEquals("commerce", attributes.get("idp.biz-code"));
-        assertEquals("orders", attributes.get("idp.app-code"));
-        assertEquals("prod", attributes.get("idp.env"));
-        assertEquals("orders-admin", attributes.get("rbac3.application-code"));
+        assertEquals(Map.of(
+                "idp.biz-code", "commerce",
+                "idp.app-code", "orders",
+                "idp.env", "prod"), attributes);
     }
 }
