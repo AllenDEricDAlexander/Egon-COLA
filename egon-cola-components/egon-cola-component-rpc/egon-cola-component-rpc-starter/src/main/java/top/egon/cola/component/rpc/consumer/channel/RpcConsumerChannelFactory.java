@@ -23,6 +23,10 @@ public class RpcConsumerChannelFactory {
     }
 
     public ManagedChannel create(RpcGatewayEndpoint endpoint) {
+        return create((RpcEndpoint) endpoint);
+    }
+
+    public ManagedChannel create(RpcEndpoint endpoint) {
         NettyChannelBuilder builder = NettyChannelBuilder.forAddress(
                 endpoint.host(),
                 endpoint.port()

@@ -1,10 +1,15 @@
-package top.egon.cola.component.rpc.consumer.gateway;
+package top.egon.cola.component.rpc.consumer.provider;
 
 import top.egon.cola.component.rpc.consumer.channel.RpcEndpoint;
 
 import java.time.Instant;
 
-public record RpcGatewayEndpoint(
+/**
+ * 一个可直连 RPC Provider 的有效租约端点。
+ *
+ * <p>One leased endpoint for a directly reachable RPC Provider.
+ */
+public record RpcProviderEndpoint(
         String instanceId,
         String leaseId,
         String host,
@@ -13,14 +18,14 @@ public record RpcGatewayEndpoint(
         Instant leaseExpireAt
 ) implements RpcEndpoint {
 
-    public RpcGatewayEndpoint {
+    public RpcProviderEndpoint {
         String normalizedInstanceId = normalize(instanceId);
         String normalizedLeaseId = normalize(leaseId);
         String normalizedHost = normalize(host);
         if (normalizedInstanceId == null
                 || normalizedLeaseId == null) {
             throw new IllegalArgumentException(
-                    "RPC Gateway lease identity is required"
+                    "RPC Provider lease identity is required"
             );
         }
         if (normalizedHost == null
@@ -28,17 +33,17 @@ public record RpcGatewayEndpoint(
                 || "::".equals(normalizedHost)
                 || "[::]".equals(normalizedHost)) {
             throw new IllegalArgumentException(
-                    "RPC Gateway host must be routable"
+                    "RPC Provider host must be routable"
             );
         }
         if (port <= 0 || port > 65535) {
             throw new IllegalArgumentException(
-                    "RPC Gateway port is invalid"
+                    "RPC Provider port is invalid"
             );
         }
         if (leaseExpireAt == null) {
             throw new IllegalArgumentException(
-                    "RPC Gateway lease expiry is required"
+                    "RPC Provider lease expiry is required"
             );
         }
         instanceId = normalizedInstanceId;
@@ -47,8 +52,7 @@ public record RpcGatewayEndpoint(
     }
 
     public boolean activeAt(Instant now) {
-        return leaseExpireAt != null
-                && leaseExpireAt.isAfter(now);
+        return leaseExpireAt.isAfter(now);
     }
 
     private static String normalize(String value) {
