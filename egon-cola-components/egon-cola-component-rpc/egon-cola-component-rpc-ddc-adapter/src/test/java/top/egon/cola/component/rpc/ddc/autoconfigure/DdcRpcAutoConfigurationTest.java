@@ -15,6 +15,7 @@ import top.egon.cola.component.ddc.autoconfigure.DdcRedisAutoConfiguration;
 import top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfiguration;
 import top.egon.cola.component.ddc.service.registry.DdcRegistrySnapshotLoader;
 import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayDirectory;
+import top.egon.cola.component.rpc.consumer.provider.RpcProviderDirectory;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentityProvider;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
@@ -99,6 +100,7 @@ class DdcRpcAutoConfigurationTest {
                             .hasSingleBean(DdcRegistrySnapshotLoader.class)
                             .hasSingleBean(RpcProviderRegistry.class)
                             .hasSingleBean(RpcGatewayDirectory.class)
+                            .hasSingleBean(RpcProviderDirectory.class)
                             .hasSingleBean(RpcProcessIdentityProvider.class);
                     assertThat(context).doesNotHaveBean(DdcConfigClient.class);
                 });

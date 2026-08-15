@@ -23,6 +23,7 @@ import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.service.registry.DdcRegistrySnapshotLoader;
 import top.egon.cola.component.rpc.config.EgonRpcAutoConfig;
 import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayDirectory;
+import top.egon.cola.component.rpc.consumer.provider.RpcProviderDirectory;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentityProvider;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
@@ -201,6 +202,14 @@ public class DdcRpcAutoConfiguration {
             DdcProperties properties) {
         return new DdcRpcGatewayDirectory(
                 client, properties.getBizCode(), properties.getAppCode());
+    }
+
+    @Bean
+    @ConditionalOnBean(DdcServiceRegistryClient.class)
+    @ConditionalOnMissingBean(RpcProviderDirectory.class)
+    public RpcProviderDirectory ddcRpcProviderDirectory(
+            DdcServiceRegistryClient client) {
+        return new DdcRpcProviderDirectory(client);
     }
 
     private RpcProcessIdentity directIdentity(
