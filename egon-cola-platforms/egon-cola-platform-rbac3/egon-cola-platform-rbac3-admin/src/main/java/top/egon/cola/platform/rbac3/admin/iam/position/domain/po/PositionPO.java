@@ -307,6 +307,31 @@ public class PositionPO extends TenantScopedPO {
         }
     }
 
+    /** Updates the mutable fields owned by a MANUAL position record. */
+    public void updateManually(
+            String nextName,
+            Long nextOrgUnitId,
+            String nextExternalId,
+            Instant nextValidFrom,
+            Instant nextValidTo,
+            long expectedVersion,
+            String actorId,
+            Instant now) {
+        requireManualSource();
+        if (getVersion() != expectedVersion) {
+            throw new IllegalStateException("position version conflict");
+        }
+        if (nextValidTo != null && !nextValidTo.isAfter(nextValidFrom)) {
+            throw new IllegalArgumentException("validTo must be after validFrom");
+        }
+        name = required(nextName, "nextName");
+        orgUnitId = Objects.requireNonNull(nextOrgUnitId, "nextOrgUnitId");
+        externalId = nextExternalId;
+        validFrom = Objects.requireNonNull(nextValidFrom, "nextValidFrom");
+        validTo = nextValidTo;
+        markUpdated(actorId, now);
+    }
+
     /**
      * 方法 `getId` 按照 `PositionPO` 的职责处理输入，完成 `get Id` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
      * Method `getId` processes its inputs according to `PositionPO`'s responsibility, performs the `get Id` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.

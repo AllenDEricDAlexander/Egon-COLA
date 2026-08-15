@@ -10,6 +10,7 @@ import top.egon.cola.platform.rbac3.admin.iam.position.snapshot.domain.dto.Posit
 import top.egon.cola.platform.rbac3.admin.iam.position.snapshot.domain.dto.UserPositionInputDTO;
 import top.egon.cola.platform.rbac3.admin.iam.organization.domain.enums.OrgUnitStatusEnum;
 import top.egon.cola.platform.rbac3.admin.iam.organization.domain.enums.OrgUnitUnitTypeEnum;
+import top.egon.cola.platform.rbac3.admin.iam.organization.domain.enums.DirectorySourceTypeEnum;
 import top.egon.cola.platform.rbac3.admin.iam.position.domain.enums.PositionStatusEnum;
 import top.egon.cola.platform.rbac3.admin.iam.position.snapshot.domain.enums.UserPositionSnapshotStatusEnum;
 import top.egon.cola.platform.rbac3.admin.iam.organization.domain.po.OrgUnitPO;
@@ -148,7 +149,9 @@ public class DirectorySnapshotMaterializer {
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                 .getResultList();
         Map<String, OrgUnitPO> byCode = new HashMap<>();
-        existing.forEach(unit -> byCode.put(unit.getCode(), unit));
+        existing.stream()
+                .filter(unit -> unit.getSourceType() == DirectorySourceTypeEnum.DIRECTORY_SNAPSHOT)
+                .forEach(unit -> byCode.put(unit.getCode(), unit));
 
         Map<String, Long> providerIds = new LinkedHashMap<>();
         Set<String> incomingCodes = new HashSet<>();
@@ -156,6 +159,11 @@ public class DirectorySnapshotMaterializer {
             Long parentId = input.parentId() == null ? null : providerIds.get(input.parentId());
             if (input.parentId() != null && parentId == null) {
                 throw new Rbac3RuleViolation("DIRECTORY_ORG_REFERENCE_MISSING");
+            }
+            if (existing.stream().anyMatch(unit ->
+                    unit.getSourceType() == DirectorySourceTypeEnum.MANUAL
+                            && unit.getCode().equals(input.code()))) {
+                throw new Rbac3RuleViolation("DIRECTORY_MANUAL_ORG_CODE_CONFLICT");
             }
             OrgUnitUnitTypeEnum unitType = OrgUnitUnitTypeEnum.valueOf(input.type());
             OrgUnitPO current = byCode.get(input.code());
@@ -182,6 +190,7 @@ public class DirectorySnapshotMaterializer {
             providerIds.put(input.id(), current.getId());
         }
         existing.stream()
+                .filter(unit -> unit.getSourceType() == DirectorySourceTypeEnum.DIRECTORY_SNAPSHOT)
                 .filter(unit -> !incomingCodes.contains(unit.getCode()))
                 .filter(unit -> unit.inactivate(actorId, now))
                 .forEach(ignored -> counter.inactivated++);
@@ -219,7 +228,9 @@ public class DirectorySnapshotMaterializer {
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                 .getResultList();
         Map<String, PositionPO> byCode = new HashMap<>();
-        existing.forEach(position -> byCode.put(position.getCode(), position));
+        existing.stream()
+                .filter(position -> position.getSourceType() == DirectorySourceTypeEnum.DIRECTORY_SNAPSHOT)
+                .forEach(position -> byCode.put(position.getCode(), position));
 
         Map<String, Long> providerIds = new LinkedHashMap<>();
         Set<String> incomingCodes = new HashSet<>();
@@ -227,6 +238,11 @@ public class DirectorySnapshotMaterializer {
             Long orgUnitId = unitIds.get(input.orgUnitId());
             if (orgUnitId == null) {
                 throw new Rbac3RuleViolation("DIRECTORY_POSITION_ORG_MISSING");
+            }
+            if (existing.stream().anyMatch(position ->
+                    position.getSourceType() == DirectorySourceTypeEnum.MANUAL
+                            && position.getCode().equals(input.code()))) {
+                throw new Rbac3RuleViolation("DIRECTORY_MANUAL_POSITION_CODE_CONFLICT");
             }
             PositionPO current = byCode.get(input.code());
             if (current == null) {
@@ -251,6 +267,7 @@ public class DirectorySnapshotMaterializer {
             providerIds.put(input.id(), current.getId());
         }
         existing.stream()
+                .filter(position -> position.getSourceType() == DirectorySourceTypeEnum.DIRECTORY_SNAPSHOT)
                 .filter(position -> !incomingCodes.contains(position.getCode()))
                 .filter(position -> position.inactivate(actorId, now))
                 .forEach(ignored -> counter.inactivated++);

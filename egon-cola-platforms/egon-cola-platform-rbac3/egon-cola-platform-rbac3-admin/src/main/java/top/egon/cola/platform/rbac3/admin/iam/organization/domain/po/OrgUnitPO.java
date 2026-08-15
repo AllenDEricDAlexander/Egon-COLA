@@ -387,6 +387,40 @@ public class OrgUnitPO extends TenantScopedPO {
         }
     }
 
+    /** Updates the mutable fields owned by a MANUAL organization record. */
+    public void updateManually(
+            OrgUnitUnitTypeEnum nextType,
+            String nextName,
+            Long nextParentId,
+            String nextPath,
+            int nextDepth,
+            String nextExternalId,
+            Instant nextValidFrom,
+            Instant nextValidTo,
+            long expectedVersion,
+            String actorId,
+            Instant now) {
+        requireManualSource();
+        if (getVersion() != expectedVersion) {
+            throw new IllegalStateException("organization unit version conflict");
+        }
+        if (nextDepth < 0 || nextDepth > MAX_DEPTH) {
+            throw new IllegalArgumentException("depth must be between 0 and 20");
+        }
+        if (nextValidTo != null && !nextValidTo.isAfter(nextValidFrom)) {
+            throw new IllegalArgumentException("validTo must be after validFrom");
+        }
+        unitType = Objects.requireNonNull(nextType, "nextType");
+        name = required(nextName, "nextName");
+        parentId = nextParentId;
+        path = required(nextPath, "nextPath");
+        depth = nextDepth;
+        externalId = nextExternalId;
+        validFrom = Objects.requireNonNull(nextValidFrom, "nextValidFrom");
+        validTo = nextValidTo;
+        markUpdated(actorId, now);
+    }
+
     /**
      * 方法 `getId` 按照 `OrgUnitPO` 的职责处理输入，完成 `get Id` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
      * Method `getId` processes its inputs according to `OrgUnitPO`'s responsibility, performs the `get Id` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.

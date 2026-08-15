@@ -408,7 +408,7 @@ public class JpaDirectoryQueryRepository implements DirectoryQueryRepository {
      */
     private OrgUnitVO orgUnitView(OrgUnitPO unit) {
         return new OrgUnitVO(
-                unit.getId().toString(), unit.getSnapshotId().toString(),
+                unit.getId().toString(), stringId(unit.getSnapshotId()),
                 unit.getUnitType().name(), unit.getCode(), unit.getName(),
                 stringId(unit.getParentId()), unit.getPath(), unit.getDepth(),
                 unit.getStatus().name());
@@ -426,7 +426,7 @@ public class JpaDirectoryQueryRepository implements DirectoryQueryRepository {
      */
     private PositionVO positionView(PositionPO position) {
         return new PositionVO(
-                position.getId().toString(), position.getSnapshotId().toString(),
+                position.getId().toString(), stringId(position.getSnapshotId()),
                 position.getCode(), position.getName(), position.getOrgUnitId().toString(),
                 position.getStatus().name());
     }

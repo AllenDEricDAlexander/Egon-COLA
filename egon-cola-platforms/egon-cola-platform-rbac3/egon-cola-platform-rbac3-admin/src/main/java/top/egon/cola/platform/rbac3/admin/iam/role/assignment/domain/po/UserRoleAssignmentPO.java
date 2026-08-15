@@ -203,7 +203,9 @@ public class UserRoleAssignmentPO extends TenantScopedPO {
      * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public void revoke(String actorId, Instant now) {
-        if (status != UserRoleAssignmentStatusEnum.ACTIVE && status != UserRoleAssignmentStatusEnum.SUSPENDED) {
+        if (status != UserRoleAssignmentStatusEnum.PENDING
+                && status != UserRoleAssignmentStatusEnum.ACTIVE
+                && status != UserRoleAssignmentStatusEnum.SUSPENDED) {
             throw new IllegalStateException("assignment is not revocable");
         }
         status = UserRoleAssignmentStatusEnum.REVOKED;

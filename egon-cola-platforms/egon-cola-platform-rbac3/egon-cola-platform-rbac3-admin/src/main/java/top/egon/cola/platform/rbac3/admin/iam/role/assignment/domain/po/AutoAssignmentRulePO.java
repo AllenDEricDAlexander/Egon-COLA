@@ -173,5 +173,37 @@ public class AutoAssignmentRulePO extends TenantScopedPO {
         return value.trim();
     }
 
+    public Long getId() {
+        return id;
+    }
+
+    public String getRuleCode() {
+        return ruleCode;
+    }
+
+    public AutoAssignmentRuleMatchTypeEnum getMatchType() {
+        return matchType;
+    }
+
+    public Long getMatchReferenceId() {
+        return matchReferenceId;
+    }
+
+    public Long getRoleId() {
+        return roleId;
+    }
+
+    public AutoAssignmentRuleStatusEnum getStatus() {
+        return status;
+    }
+
+    public Instant getValidFrom() {
+        return validFrom;
+    }
+
+    public Instant getValidTo() {
+        return validTo;
+    }
+
 
     }
