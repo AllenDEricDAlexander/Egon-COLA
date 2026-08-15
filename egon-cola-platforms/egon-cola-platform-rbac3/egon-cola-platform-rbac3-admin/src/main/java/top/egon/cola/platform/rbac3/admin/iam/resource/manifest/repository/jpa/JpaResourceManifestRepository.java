@@ -25,10 +25,13 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import top.egon.cola.platform.rbac3.admin.iam.resource.repository.internal.TypedResource;
 import top.egon.cola.platform.rbac3.admin.iam.resource.manifest.domain.vo.ActivationMutation;
-import top.egon.cola.platform.rbac3.admin.iam.resource.repository.ApplicationResourceRepository;
+import top.egon.cola.platform.rbac3.admin.iam.application.domain.vo.ApplicationAuthorizationScopeVO;
+import top.egon.cola.platform.rbac3.admin.iam.application.domain.enums.ApplicationStatusEnum;
+import top.egon.cola.platform.rbac3.admin.iam.business.service.ApplicationCatalogEntry;
 import top.egon.cola.platform.rbac3.admin.iam.application.domain.vo.ApplicationVO;
 import top.egon.cola.platform.rbac3.admin.iam.resource.domain.vo.ResourceVO;
 import top.egon.cola.platform.rbac3.admin.iam.resource.manifest.domain.vo.ManifestVO;
@@ -56,7 +59,7 @@ import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.AuthorizationEventVO
 @Repository
 public class JpaResourceManifestRepository implements
         ResourceManifestRepository,
-        ApplicationResourceRepository {
+        top.egon.cola.platform.rbac3.admin.iam.application.repository.ApplicationResourceRepository {
 
     /**
      * 字段 `entityManager` 表示 `JpaResourceManifestRepository` 中与 `entity Manager` 相关的状态、依赖、配置或结果（声明类型 `EntityManager`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -314,6 +317,166 @@ public class JpaResourceManifestRepository implements
                         application.getStatus().name(),
                         application.getVersion()))
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ApplicationAuthorizationScopeVO> authorizationScopes(Long tenantId) {
+        return entityManager.createQuery("""
+                        select a from ApplicationEntity a
+                         where a.tenantId = :tenantId
+                         order by a.displayPriority, a.applicationCode
+                        """, ApplicationPO.class)
+                .setParameter("tenantId", requireTenant(tenantId))
+                .getResultList()
+                .stream()
+                .map(this::toAuthorizationScope)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<ApplicationAuthorizationScopeVO> authorizationScope(
+            Long tenantId,
+            Long applicationId) {
+        ApplicationPO application = entityManager.find(
+                ApplicationPO.class,
+                Objects.requireNonNull(applicationId, "applicationId"));
+        if (application == null
+                || !requireTenant(tenantId).equals(application.getTenantId())) {
+            return Optional.empty();
+        }
+        return Optional.of(toAuthorizationScope(application));
+    }
+
+    @Override
+    @Transactional
+    public ApplicationAuthorizationScopeVO admit(
+            Long tenantId,
+            ApplicationCatalogEntry catalog,
+            int displayPriority,
+            String actorId) {
+        Objects.requireNonNull(catalog, "catalog");
+        ApplicationPO application = new ApplicationPO(
+                idGenerator.nextLongId(),
+                requireTenant(tenantId),
+                catalog.ddcApplicationId(),
+                catalog.ddcBusinessId(),
+                catalog.appCode(),
+                catalog.appName(),
+                displayPriority,
+                actorId,
+                databaseClock.transactionNow());
+        entityManager.persist(application);
+        return toAuthorizationScope(application);
+    }
+
+    @Override
+    @Transactional
+    public ApplicationAuthorizationScopeVO changeStatus(
+            Long tenantId,
+            Long applicationId,
+            String status,
+            long expectedVersion,
+            String actorId) {
+        ApplicationPO application = requireApplication(
+                tenantId, applicationId, LockModeType.PESSIMISTIC_WRITE);
+        application.changeStatus(
+                parseStatus(status), expectedVersion, actorId,
+                databaseClock.transactionNow());
+        return toAuthorizationScope(application);
+    }
+
+    @Override
+    @Transactional
+    public void remove(
+            Long tenantId,
+            Long applicationId,
+            long expectedVersion,
+            String actorId) {
+        ApplicationPO application = requireApplication(
+                tenantId, applicationId, LockModeType.PESSIMISTIC_WRITE);
+        if (application.getVersion() != expectedVersion) {
+            throw new IllegalStateException("application version conflict");
+        }
+        if (hasAuthorizationDependencies(requireTenant(tenantId), application.getId())) {
+            throw new IllegalStateException(
+                    "application has authorization dependencies");
+        }
+        entityManager.remove(application);
+    }
+
+    private ApplicationPO requireApplication(
+            Long tenantId,
+            Long applicationId,
+            LockModeType lockMode) {
+        Long tenant = requireTenant(tenantId);
+        ApplicationPO application = entityManager.find(
+                ApplicationPO.class,
+                Objects.requireNonNull(applicationId, "applicationId"),
+                lockMode);
+        if (application == null || !tenant.equals(application.getTenantId())) {
+            throw new IllegalStateException("application scope not found");
+        }
+        return application;
+    }
+
+    private ApplicationAuthorizationScopeVO toAuthorizationScope(
+            ApplicationPO application) {
+        return new ApplicationAuthorizationScopeVO(
+                application.getId().toString(),
+                application.getDdcBusinessId(),
+                application.getDdcApplicationId(),
+                null,
+                application.getApplicationCode(),
+                application.getApplicationName(),
+                application.getStatus().name(),
+                application.getDisplayPriority(),
+                application.getVersion());
+    }
+
+    private static ApplicationStatusEnum parseStatus(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("status is required");
+        }
+        try {
+            return ApplicationStatusEnum.valueOf(value.trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("unsupported application status", exception);
+        }
+    }
+
+    private boolean hasAuthorizationDependencies(Long tenantId, Long applicationId) {
+        Object result = entityManager.createNativeQuery("""
+                        select exists (select 1 from rbac3_role
+                            where tenant_id = :tenantId and application_id = :applicationId)
+                            or exists (select 1 from rbac3_permission
+                            where tenant_id = :tenantId and application_id = :applicationId)
+                            or exists (select 1 from rbac3_resource
+                            where tenant_id = :tenantId and application_id = :applicationId)
+                            or exists (select 1 from rbac3_resource_manifest
+                            where tenant_id = :tenantId and application_id = :applicationId)
+                            or exists (select 1 from rbac3_service_principal
+                            where tenant_id = :tenantId and application_id = :applicationId)
+                            or exists (select 1 from rbac3_service_permission
+                            where tenant_id = :tenantId and application_id = :applicationId)
+                            or exists (select 1 from rbac3_sod_set
+                            where tenant_id = :tenantId and application_id = :applicationId)
+                            or exists (select 1 from rbac3_user_active_role
+                            where tenant_id = :tenantId and application_id = :applicationId)
+                            or exists (select 1 from rbac3_operation_sod_rule
+                            where tenant_id = :tenantId and application_id = :applicationId)
+                            or exists (select 1 from rbac3_business_participation
+                            where tenant_id = :tenantId and application_id = :applicationId)
+                        """)
+                .setParameter("tenantId", tenantId)
+                .setParameter("applicationId", applicationId)
+                .getSingleResult();
+        return Boolean.TRUE.equals(result);
+    }
+
+    private static Long requireTenant(Long tenantId) {
+        return Objects.requireNonNull(tenantId, "tenantId");
     }
 
     /**

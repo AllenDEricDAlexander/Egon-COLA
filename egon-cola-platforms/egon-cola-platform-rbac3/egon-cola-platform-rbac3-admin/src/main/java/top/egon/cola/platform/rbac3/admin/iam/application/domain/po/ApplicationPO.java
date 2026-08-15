@@ -194,6 +194,27 @@ public class ApplicationPO extends TenantScopedPO {
         markUpdated(actorId, now);
     }
 
+    /** Changes the local authorization-scope status with optimistic concurrency. */
+    public boolean changeStatus(
+            ApplicationStatusEnum nextStatus,
+            long expectedVersion,
+            String actorId,
+            Instant now) {
+        Objects.requireNonNull(nextStatus, "nextStatus");
+        if (expectedVersion < 0L) {
+            throw new IllegalArgumentException("expectedVersion must not be negative");
+        }
+        if (getVersion() != expectedVersion) {
+            throw new IllegalStateException("application version conflict");
+        }
+        if (status == nextStatus) {
+            return false;
+        }
+        status = nextStatus;
+        markUpdated(actorId, now);
+        return true;
+    }
+
     /**
      * 方法 `getId` 按照 `ApplicationPO` 的职责处理输入，完成 `get Id` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
      * Method `getId` processes its inputs according to `ApplicationPO`'s responsibility, performs the `get Id` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
@@ -239,6 +260,10 @@ public class ApplicationPO extends TenantScopedPO {
      */
     public String getApplicationName() {
         return applicationName;
+    }
+
+    public int getDisplayPriority() {
+        return displayPriority;
     }
 
     /**

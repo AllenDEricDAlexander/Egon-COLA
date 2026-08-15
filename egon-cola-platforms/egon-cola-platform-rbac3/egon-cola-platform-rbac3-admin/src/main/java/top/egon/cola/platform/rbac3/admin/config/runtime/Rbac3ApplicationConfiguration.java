@@ -1,9 +1,14 @@
 package top.egon.cola.platform.rbac3.admin.config.runtime;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.ddc.api.client.DdcManagementClient;
+import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
+import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
 import top.egon.cola.platform.rbac3.admin.iam.role.activation.repository.jpa.JpaRoleActivationFactRepository;
 import top.egon.cola.platform.rbac3.admin.iam.role.activation.repository.jpa.JpaUserActiveRoleRepository;
 import top.egon.cola.platform.rbac3.admin.iam.role.activation.service.RoleActivationCandidateService;
@@ -35,6 +40,10 @@ import top.egon.cola.platform.rbac3.admin.iam.resource.repository.ComponentKeyRe
 import top.egon.cola.platform.rbac3.admin.iam.resource.manifest.repository.jpa.JpaResourceManifestRepository;
 import top.egon.cola.platform.rbac3.admin.iam.resource.service.ApplicationResourceFacade;
 import top.egon.cola.platform.rbac3.admin.iam.resource.manifest.service.ManifestFacade;
+import top.egon.cola.platform.rbac3.admin.iam.business.service.BusinessCatalogService;
+import top.egon.cola.platform.rbac3.admin.iam.business.service.DdcCatalogGateway;
+import top.egon.cola.platform.rbac3.admin.iam.business.service.RpcDdcCatalogGateway;
+import top.egon.cola.platform.rbac3.admin.iam.application.service.ApplicationScopeFacade;
 import top.egon.cola.platform.rbac3.admin.iam.role.repository.jpa.JpaRoleRepository;
 import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleFacade;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.MutationWorkDTO;
@@ -345,6 +354,68 @@ public class Rbac3ApplicationConfiguration {
     ApplicationResourceFacade applicationResourceFacade(
             JpaResourceManifestRepository repository) {
         return new ApplicationResourceFacade(repository);
+    }
+
+    @Bean(name = "rbac3DdcManagementClientHandle", destroyMethod = "close")
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.ddc",
+            name = "enabled",
+            havingValue = "true")
+    DdcRpcClientHandle<DdcManagementClient> rbac3DdcManagementClientHandle(
+            DdcRpcClientFactory factory) {
+        return factory.managementClient();
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.ddc",
+            name = "enabled",
+            havingValue = "true")
+    DdcCatalogGateway rbac3DdcCatalogGateway(
+            DdcRpcClientHandle<DdcManagementClient> handle) {
+        return new RpcDdcCatalogGateway(handle.client());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(DdcCatalogGateway.class)
+    DdcCatalogGateway unavailableDdcCatalogGateway() {
+        return new DdcCatalogGateway() {
+            @Override
+            public java.util.Optional<top.egon.cola.platform.rbac3.admin.iam.business.service.BusinessCatalogEntry>
+                    findBusiness(String ddcBusinessId) {
+                return java.util.Optional.empty();
+            }
+
+            @Override
+            public java.util.List<top.egon.cola.platform.rbac3.admin.iam.business.service.BusinessCatalogEntry>
+                    listBusinesses(String keyword) {
+                return java.util.List.of();
+            }
+
+            @Override
+            public java.util.Optional<top.egon.cola.platform.rbac3.admin.iam.business.service.ApplicationCatalogEntry>
+                    findApplication(String ddcApplicationId) {
+                return java.util.Optional.empty();
+            }
+
+            @Override
+            public java.util.List<top.egon.cola.platform.rbac3.admin.iam.business.service.ApplicationCatalogEntry>
+                    listApplications(String ddcBusinessId, String keyword) {
+                return java.util.List.of();
+            }
+        };
+    }
+
+    @Bean
+    BusinessCatalogService businessCatalogService(DdcCatalogGateway catalog) {
+        return new BusinessCatalogService(catalog);
+    }
+
+    @Bean
+    ApplicationScopeFacade applicationScopeFacade(
+            DdcCatalogGateway catalog,
+            JpaResourceManifestRepository repository) {
+        return new ApplicationScopeFacade(catalog, repository);
     }
 
     /**
