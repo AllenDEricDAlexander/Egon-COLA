@@ -205,7 +205,8 @@ public final class DdcRpcServerInterceptor implements ServerInterceptor {
                  MANAGEMENT_TASK_READ,
                  MANAGEMENT_INSTANCE_READ,
                  MANAGEMENT_SCOPE_READ,
-                 MANAGEMENT_REGISTRY_READ -> false;
+                 MANAGEMENT_REGISTRY_READ,
+                 MANAGEMENT_CATALOG_READ -> false;
             default -> true;
         };
     }

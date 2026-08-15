@@ -15,6 +15,7 @@ import top.egon.cola.component.ddc.error.DdcErrorStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class DdcBizService {
@@ -42,6 +43,13 @@ public class DdcBizService {
                 trimmed, trimmed);
     }
 
+    public List<DdcBizEntity> list(String keyword, Boolean enabled) {
+        return list(keyword).stream()
+                .filter(value -> enabled == null
+                        || enabled.equals(Boolean.TRUE.equals(value.getEnabled())))
+                .toList();
+    }
+
     public Page<DdcBizEntity> page(String keyword, PageQuery pageQuery) {
         return bizRepository.search(
                 optional(keyword),
@@ -55,6 +63,13 @@ public class DdcBizService {
 
     public DdcBizEntity findByBizCode(String bizCode) {
         return require(bizCode);
+    }
+
+    public Optional<DdcBizEntity> findById(String id) {
+        if (id == null || id.isBlank()) {
+            return Optional.empty();
+        }
+        return bizRepository.findById(id);
     }
 
     @Transactional

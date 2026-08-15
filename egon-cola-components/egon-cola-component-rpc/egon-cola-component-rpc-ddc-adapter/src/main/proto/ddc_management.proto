@@ -267,8 +267,10 @@ message GetAppResponse {
 }
 
 message ListAppsRequest {
-  optional string ddc_business_id = 1;
-  optional string biz_code = 2;
+  oneof business_selector {
+    string ddc_business_id = 1;
+    string biz_code = 2;
+  }
   optional string keyword = 3;
   optional bool enabled = 4;
 }

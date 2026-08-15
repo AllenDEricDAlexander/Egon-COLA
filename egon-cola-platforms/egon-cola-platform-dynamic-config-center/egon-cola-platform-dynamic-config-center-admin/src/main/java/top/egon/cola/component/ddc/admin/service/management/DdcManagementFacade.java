@@ -3,11 +3,14 @@ package top.egon.cola.component.ddc.admin.service.management;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
+import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.ddc.admin.model.dto.DdcConfigCreateRequest;
 import top.egon.cola.component.ddc.admin.model.dto.DdcPublishRequest;
 import top.egon.cola.component.ddc.admin.model.entity.DdcInstanceEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishAckEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.ddc.admin.model.entity.DdcAppEntity;
+import top.egon.cola.component.ddc.admin.model.entity.DdcBizEntity;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVO;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishAckRepository;
@@ -15,6 +18,8 @@ import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
 import top.egon.cola.component.ddc.admin.service.lease.DdcInstanceAdminService;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcNamespaceEnvAppBindingService;
+import top.egon.cola.component.ddc.admin.service.metadata.DdcAppService;
+import top.egon.cola.component.ddc.admin.service.metadata.DdcBizService;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
 import top.egon.cola.component.ddc.admin.service.registry.DdcServiceRegistryService;
@@ -24,6 +29,11 @@ import top.egon.cola.component.ddc.model.management.DdcManagementConfigClientIns
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigDeleteRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigUpsertRequest;
+import top.egon.cola.component.ddc.model.management.DdcManagementApp;
+import top.egon.cola.component.ddc.model.management.DdcManagementAppQuery;
+import top.egon.cola.component.ddc.model.management.DdcManagementBiz;
+import top.egon.cola.component.ddc.model.management.DdcManagementBizLookup;
+import top.egon.cola.component.ddc.model.management.DdcManagementBizQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementInstanceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
@@ -50,6 +60,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -74,7 +85,41 @@ public class DdcManagementFacade {
 
     private final DdcNamespaceEnvAppBindingService bindingService;
 
+    private final DdcBizService bizService;
+
+    private final DdcAppService appService;
+
     @Autowired
+    public DdcManagementFacade(
+            DdcConfigService configService,
+            DdcPublishService publishService,
+            DdcPublishTaskRepository publishTaskRepository,
+            DdcPublishAckRepository publishAckRepository,
+            DdcInstanceAdminService instanceAdminService,
+            DdcServiceRegistryService registryService,
+            DdcScopeGate scopeGate,
+            DdcNamespaceEnvAppBindingRepository bindingRepository,
+            DdcNamespaceEnvAppBindingService bindingService,
+            DdcBizService bizService,
+            DdcAppService appService
+    ) {
+        this.configService = configService;
+        this.publishService = publishService;
+        this.publishTaskRepository = publishTaskRepository;
+        this.publishAckRepository = publishAckRepository;
+        this.instanceAdminService = instanceAdminService;
+        this.registryService = registryService;
+        this.scopeGate = scopeGate;
+        this.bindingRepository = bindingRepository;
+        this.bindingService = bindingService;
+        this.bizService = bizService;
+        this.appService = appService;
+    }
+
+    /**
+     * 保留仅管理面旧构造器，供不需要目录能力的单元测试使用。
+     * / Retains the management-only constructor for tests that do not use the catalog.
+     */
     public DdcManagementFacade(
             DdcConfigService configService,
             DdcPublishService publishService,
@@ -86,15 +131,88 @@ public class DdcManagementFacade {
             DdcNamespaceEnvAppBindingRepository bindingRepository,
             DdcNamespaceEnvAppBindingService bindingService
     ) {
-        this.configService = configService;
-        this.publishService = publishService;
-        this.publishTaskRepository = publishTaskRepository;
-        this.publishAckRepository = publishAckRepository;
-        this.instanceAdminService = instanceAdminService;
-        this.registryService = registryService;
-        this.scopeGate = scopeGate;
-        this.bindingRepository = bindingRepository;
-        this.bindingService = bindingService;
+        this(
+                configService,
+                publishService,
+                publishTaskRepository,
+                publishAckRepository,
+                instanceAdminService,
+                registryService,
+                scopeGate,
+                bindingRepository,
+                bindingService,
+                null,
+                null
+        );
+    }
+
+    public Optional<DdcManagementBiz> getBiz(DdcManagementBizLookup lookup) {
+        require(lookup, "business lookup");
+        if (bizService == null) {
+            return Optional.empty();
+        }
+        DdcBizEntity entity;
+        if (lookup.id() != null && !lookup.id().isBlank()) {
+            entity = bizService.findById(lookup.id()).orElse(null);
+        } else if (lookup.bizCode() != null && !lookup.bizCode().isBlank()) {
+            entity = findBizByCode(lookup.bizCode());
+        } else {
+            throw new DdcAdminException(
+                    "business id or bizCode is required");
+        }
+        return Optional.ofNullable(entity).map(this::business);
+    }
+
+    public List<DdcManagementBiz> listBizs(DdcManagementBizQuery query) {
+        require(query, "business query");
+        if (bizService == null) {
+            return List.of();
+        }
+        return bizService.list(query.keyword(), query.enabled()).stream()
+                .map(this::business)
+                .toList();
+    }
+
+    public Optional<DdcManagementApp> getApp(String ddcApplicationId) {
+        requireText(ddcApplicationId, "ddcApplicationId");
+        if (appService == null || bizService == null) {
+            return Optional.empty();
+        }
+        return appService.findById(ddcApplicationId)
+                .flatMap(app -> Optional.ofNullable(findBizByCode(app.getBizCode()))
+                        .map(biz -> application(app, biz)));
+    }
+
+    public List<DdcManagementApp> listApps(DdcManagementAppQuery query) {
+        require(query, "application query");
+        if (appService == null || bizService == null) {
+            return List.of();
+        }
+        String bizCode = query.bizCode();
+        DdcBizEntity selectedBiz = null;
+        if (query.businessId() != null && !query.businessId().isBlank()) {
+            selectedBiz = bizService.findById(query.businessId()).orElse(null);
+            if (selectedBiz == null) {
+                return List.of();
+            }
+            if (bizCode != null && !bizCode.isBlank()
+                    && !bizCode.equals(selectedBiz.getBizCode())) {
+                return List.of();
+            }
+            bizCode = selectedBiz.getBizCode();
+        } else if (bizCode != null && !bizCode.isBlank()) {
+            selectedBiz = findBizByCode(bizCode);
+            if (selectedBiz == null) {
+                return List.of();
+            }
+        }
+        DdcBizEntity fixedBiz = selectedBiz;
+        return appService.list(bizCode, query.keyword(), query.enabled()).stream()
+                .map(value -> fixedBiz != null
+                        ? application(value, fixedBiz)
+                        : application(value, findBizByCode(value.getBizCode())))
+                .filter(Objects::nonNull)
+                .toList();
     }
 
     public DdcManagementConfig findConfig(DdcManagementConfigQuery query) {
@@ -319,6 +437,43 @@ public class DdcManagementFacade {
                 snapshot.revision(),
                 snapshot.observedAt(),
                 snapshot.instances().stream().map(this::serviceInstance).toList()
+        );
+    }
+
+    private DdcBizEntity findBizByCode(String bizCode) {
+        if (bizCode == null || bizCode.isBlank()) {
+            return null;
+        }
+        try {
+            return bizService.findByBizCode(bizCode);
+        } catch (CommonException notFound) {
+            return null;
+        }
+    }
+
+    private DdcManagementBiz business(DdcBizEntity value) {
+        return new DdcManagementBiz(
+                value.getId(),
+                value.getBizCode(),
+                value.getBizName(),
+                Boolean.TRUE.equals(value.getEnabled())
+        );
+    }
+
+    private DdcManagementApp application(
+            DdcAppEntity value,
+            DdcBizEntity business) {
+        if (value == null || business == null) {
+            return null;
+        }
+        return new DdcManagementApp(
+                value.getId(),
+                business.getId(),
+                business.getBizCode(),
+                value.getAppCode(),
+                value.getAppName(),
+                Boolean.TRUE.equals(value.getEnabled()),
+                Boolean.TRUE.equals(business.getEnabled())
         );
     }
 

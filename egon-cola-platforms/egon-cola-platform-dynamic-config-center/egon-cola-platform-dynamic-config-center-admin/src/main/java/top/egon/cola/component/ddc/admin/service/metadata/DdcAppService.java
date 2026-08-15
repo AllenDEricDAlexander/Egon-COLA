@@ -73,6 +73,16 @@ public class DdcAppService {
                 trimmedKeyword, trimmedKeyword);
     }
 
+    public List<DdcAppEntity> list(
+            String bizCode,
+            String keyword,
+            Boolean enabled) {
+        return list(bizCode, null, null, keyword).stream()
+                .filter(value -> enabled == null
+                        || enabled.equals(Boolean.TRUE.equals(value.getEnabled())))
+                .toList();
+    }
+
     public Page<DdcAppEntity> page(
             String bizCode,
             String namespaceCode,

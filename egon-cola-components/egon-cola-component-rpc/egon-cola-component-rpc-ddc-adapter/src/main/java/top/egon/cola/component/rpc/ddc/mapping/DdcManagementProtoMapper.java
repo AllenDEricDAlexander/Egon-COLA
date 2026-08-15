@@ -84,14 +84,18 @@ public final class DdcManagementProtoMapper {
 
     public GetBizRequest toGetBizRequest(DdcManagementBizLookup value) {
         require(value, "business lookup");
-        var builder = GetBizRequest.newBuilder();
-        if (value.id() != null && !value.id().isBlank()) {
-            builder.setDdcBusinessId(value.id());
-        } else if (value.bizCode() != null && !value.bizCode().isBlank()) {
-            builder.setBizCode(value.bizCode());
-        } else {
+        boolean hasId = value.id() != null && !value.id().isBlank();
+        boolean hasBizCode = value.bizCode() != null
+                && !value.bizCode().isBlank();
+        if (hasId == hasBizCode) {
             throw new IllegalArgumentException(
-                    "business id or bizCode is required");
+                    "exactly one business id or bizCode is required");
+        }
+        var builder = GetBizRequest.newBuilder();
+        if (hasId) {
+            builder.setDdcBusinessId(value.id());
+        } else {
+            builder.setBizCode(value.bizCode());
         }
         return common.checked(builder.build());
     }
@@ -189,10 +193,17 @@ public final class DdcManagementProtoMapper {
     public ListAppsRequest toListAppsRequest(DdcManagementAppQuery value) {
         require(value, "application query");
         var builder = ListAppsRequest.newBuilder();
-        if (value.businessId() != null && !value.businessId().isBlank()) {
-            builder.setDdcBusinessId(value.businessId());
+        boolean hasBusinessId = value.businessId() != null
+                && !value.businessId().isBlank();
+        boolean hasBizCode = value.bizCode() != null
+                && !value.bizCode().isBlank();
+        if (hasBusinessId == hasBizCode) {
+            throw new IllegalArgumentException(
+                    "exactly one business id or bizCode is required");
         }
-        if (value.bizCode() != null && !value.bizCode().isBlank()) {
+        if (hasBusinessId) {
+            builder.setDdcBusinessId(value.businessId());
+        } else {
             builder.setBizCode(value.bizCode());
         }
         set(builder::setKeyword, value.keyword());
@@ -204,9 +215,14 @@ public final class DdcManagementProtoMapper {
 
     public DdcManagementAppQuery fromListAppsRequest(ListAppsRequest value) {
         common.checked(value);
-        String businessId = value.hasDdcBusinessId()
-                ? value.getDdcBusinessId() : null;
-        String bizCode = value.hasBizCode() ? value.getBizCode() : null;
+        String businessId = null;
+        String bizCode = null;
+        switch (value.getBusinessSelectorCase()) {
+            case DDC_BUSINESS_ID -> businessId = value.getDdcBusinessId();
+            case BIZ_CODE -> bizCode = value.getBizCode();
+            case BUSINESSSELECTOR_NOT_SET -> throw new IllegalArgumentException(
+                    "exactly one business id or bizCode is required");
+        }
         return new DdcManagementAppQuery(
                 businessId,
                 bizCode,

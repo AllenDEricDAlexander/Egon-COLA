@@ -5,12 +5,16 @@ import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishAckEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.ddc.admin.model.entity.DdcAppEntity;
+import top.egon.cola.component.ddc.admin.model.entity.DdcBizEntity;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVO;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
 import top.egon.cola.component.ddc.admin.service.lease.DdcInstanceAdminService;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcNamespaceEnvAppBindingService;
+import top.egon.cola.component.ddc.admin.service.metadata.DdcAppService;
+import top.egon.cola.component.ddc.admin.service.metadata.DdcBizService;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
 import top.egon.cola.component.ddc.admin.service.registry.DdcServiceRegistryService;
@@ -19,6 +23,11 @@ import top.egon.cola.component.ddc.model.management.DdcManagementConfig;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigDeleteRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigUpsertRequest;
+import top.egon.cola.component.ddc.model.management.DdcManagementApp;
+import top.egon.cola.component.ddc.model.management.DdcManagementAppQuery;
+import top.egon.cola.component.ddc.model.management.DdcManagementBiz;
+import top.egon.cola.component.ddc.model.management.DdcManagementBizLookup;
+import top.egon.cola.component.ddc.model.management.DdcManagementBizQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishStatus;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishTask;
 import top.egon.cola.component.ddc.model.management.DdcManagementScopeQuery;
@@ -48,12 +57,18 @@ class DdcManagementFacadeTest {
 
     private DdcNamespaceEnvAppBindingService bindingService;
 
+    private DdcBizService bizService;
+
+    private DdcAppService appService;
+
     @BeforeEach
     void setUp() {
         configService = mock(DdcConfigService.class);
         publishTaskRepository = mock(DdcPublishTaskRepository.class);
         publishAckRepository = mock(DdcPublishAckRepository.class);
         bindingService = mock(DdcNamespaceEnvAppBindingService.class);
+        bizService = mock(DdcBizService.class);
+        appService = mock(DdcAppService.class);
         facade = new DdcManagementFacade(
                 configService,
                 mock(DdcPublishService.class),
@@ -63,8 +78,63 @@ class DdcManagementFacadeTest {
                 mock(DdcServiceRegistryService.class),
                 mock(DdcScopeGate.class),
                 null,
-                bindingService
+                bindingService,
+                bizService,
+                appService
         );
+    }
+
+    @Test
+    void projectsBusinessAndApplicationCatalogWithParentStatus() {
+        DdcBizEntity biz = new DdcBizEntity();
+        biz.setId("business-1");
+        biz.setBizCode("retail");
+        biz.setBizName("Retail");
+        biz.setEnabled(false);
+        DdcAppEntity app = new DdcAppEntity();
+        app.setId("app-1");
+        app.setBizCode("retail");
+        app.setAppCode("order");
+        app.setAppName("Order");
+        app.setEnabled(true);
+
+        when(bizService.findById("business-1")).thenReturn(Optional.of(biz));
+        when(bizService.findByBizCode("retail")).thenReturn(biz);
+        when(appService.findById("app-1")).thenReturn(Optional.of(app));
+        when(appService.list("retail", "order", true))
+                .thenReturn(List.of(app));
+
+        assertThat(facade.getBiz(new DdcManagementBizLookup("business-1", null)))
+                .contains(new DdcManagementBiz("business-1", "retail", "Retail", false));
+        assertThat(facade.getApp("app-1"))
+                .contains(new DdcManagementApp(
+                        "app-1", "business-1", "retail", "order", "Order",
+                        true, false));
+        assertThat(facade.listApps(new DdcManagementAppQuery(
+                "business-1", null, "order", true)))
+                .containsExactly(new DdcManagementApp(
+                        "app-1", "business-1", "retail", "order", "Order",
+                        true, false));
+        verify(appService).list("retail", "order", true);
+    }
+
+    @Test
+    void filtersBusinessCatalogByEnabledState() {
+        DdcBizEntity enabled = new DdcBizEntity();
+        enabled.setId("business-1");
+        enabled.setBizCode("retail");
+        enabled.setBizName("Retail");
+        enabled.setEnabled(true);
+        DdcBizEntity disabled = new DdcBizEntity();
+        disabled.setId("business-2");
+        disabled.setBizCode("legacy");
+        disabled.setBizName("Legacy");
+        disabled.setEnabled(false);
+        when(bizService.list("retail", true)).thenReturn(List.of(enabled));
+
+        assertThat(facade.listBizs(new DdcManagementBizQuery("retail", true)))
+                .containsExactly(new DdcManagementBiz(
+                        "business-1", "retail", "Retail", true));
     }
 
     @Test

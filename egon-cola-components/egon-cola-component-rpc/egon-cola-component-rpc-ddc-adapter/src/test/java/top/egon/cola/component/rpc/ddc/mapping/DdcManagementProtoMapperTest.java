@@ -233,9 +233,14 @@ class DdcManagementProtoMapperTest {
                 mapper.toBizsResponse(List.of(biz)))).containsExactly(biz);
 
         DdcManagementAppQuery appQuery = new DdcManagementAppQuery(
-                "business-1", "retail", "order", false);
+                "business-1", null, "order", false);
         assertThat(mapper.fromListAppsRequest(mapper.toListAppsRequest(appQuery)))
                 .isEqualTo(appQuery);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() ->
+                mapper.toListAppsRequest(new DdcManagementAppQuery(
+                        null, null, null, true)))
+                .isInstanceOf(IllegalArgumentException.class);
 
         DdcManagementApp app = new DdcManagementApp(
                 "app-1", "business-1", "retail", "order", "Order", true,

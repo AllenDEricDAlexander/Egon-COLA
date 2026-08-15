@@ -17,6 +17,10 @@ import top.egon.cola.component.rpc.ddc.contract.proto.v1.DeleteConfigRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DeleteConfigResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.FindConfigRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.FindConfigResponse;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetAppRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetAppResponse;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetBizRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetBizResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetConfigClientsRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetConfigClientsResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetInstancesRequest;
@@ -27,6 +31,10 @@ import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetScopeBindingsRequest
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetScopeBindingsResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetServiceKeysRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetServiceKeysResponse;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.ListAppsRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.ListAppsResponse;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.ListBizsRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.ListBizsResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.PublishConfigRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.PublishConfigResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.RetryPublishTaskRequest;
@@ -78,6 +86,34 @@ public class DdcManagementRpcProvider implements DdcManagementRpc {
         this.facade = facade;
         this.revocations = revocations;
         this.mapper = mapper;
+    }
+
+    @Override
+    public GetBizResponse getBiz(GetBizRequest request) {
+        DdcServicePrincipal.current();
+        return mapper.toBizResponse(facade.getBiz(
+                mapper.fromGetBizRequest(request)));
+    }
+
+    @Override
+    public ListBizsResponse listBizs(ListBizsRequest request) {
+        DdcServicePrincipal.current();
+        return mapper.toBizsResponse(facade.listBizs(
+                mapper.fromListBizsRequest(request)));
+    }
+
+    @Override
+    public GetAppResponse getApp(GetAppRequest request) {
+        DdcServicePrincipal.current();
+        return mapper.toAppResponse(facade.getApp(
+                mapper.fromGetAppRequest(request)));
+    }
+
+    @Override
+    public ListAppsResponse listApps(ListAppsRequest request) {
+        DdcServicePrincipal.current();
+        return mapper.toAppsResponse(facade.listApps(
+                mapper.fromListAppsRequest(request)));
     }
 
     @Override

@@ -512,7 +512,8 @@ egon:
                   MANAGEMENT_CONFIG_WRITE, MANAGEMENT_PUBLISH,
                   MANAGEMENT_TASK_READ, MANAGEMENT_TASK_RETRY,
                   MANAGEMENT_INSTANCE_READ, MANAGEMENT_SCOPE_READ,
-                  MANAGEMENT_REGISTRY_READ]
+                  MANAGEMENT_REGISTRY_READ,
+                  MANAGEMENT_CATALOG_READ]
           publish:
             dispatch-timeout-ms: 5000
             default-timeout-ms: 30000

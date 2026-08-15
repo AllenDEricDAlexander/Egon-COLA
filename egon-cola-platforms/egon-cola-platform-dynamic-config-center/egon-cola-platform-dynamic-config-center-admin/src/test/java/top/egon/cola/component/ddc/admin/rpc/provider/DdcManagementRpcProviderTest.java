@@ -16,6 +16,11 @@ import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishStatus;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishTask;
 import top.egon.cola.component.ddc.model.management.DdcManagementScopeQuery;
+import top.egon.cola.component.ddc.model.management.DdcManagementApp;
+import top.egon.cola.component.ddc.model.management.DdcManagementAppQuery;
+import top.egon.cola.component.ddc.model.management.DdcManagementBiz;
+import top.egon.cola.component.ddc.model.management.DdcManagementBizLookup;
+import top.egon.cola.component.ddc.model.management.DdcManagementBizQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceCatalog;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceKey;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceQuery;
@@ -30,6 +35,7 @@ import top.egon.cola.component.rpc.ddc.mapping.DdcManagementProtoMapper;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -198,6 +204,47 @@ class DdcManagementRpcProviderTest {
         verify(facade).getServiceKeys(services);
         verify(facade).getInstances(services);
         verify(revocations).revoke(revocation);
+    }
+
+    @Test
+    void mapsAndDelegatesReadOnlyBusinessCatalogMethods() {
+        DdcManagementFacade facade = mock(DdcManagementFacade.class);
+        DdcResourceAdmissionRevocationService revocations =
+                mock(DdcResourceAdmissionRevocationService.class);
+        DdcManagementProtoMapper mapper = new DdcManagementProtoMapper(
+                new DdcCommonProtoMapper(4 * 1024 * 1024), 1024 * 1024);
+        DdcManagementRpcProvider provider = new DdcManagementRpcProvider(
+                facade, revocations, mapper);
+        DdcManagementBiz biz = new DdcManagementBiz(
+                "business-1", "retail", "Retail", true);
+        DdcManagementApp app = new DdcManagementApp(
+                "app-1", "business-1", "retail", "order", "Order", true,
+                true);
+        DdcManagementBizLookup bizLookup = new DdcManagementBizLookup(
+                "business-1", null);
+        DdcManagementBizQuery bizQuery = new DdcManagementBizQuery("retail", true);
+        DdcManagementAppQuery appQuery = new DdcManagementAppQuery(
+                "business-1", null, "order", true);
+        when(facade.getBiz(bizLookup)).thenReturn(Optional.of(biz));
+        when(facade.listBizs(bizQuery)).thenReturn(List.of(biz));
+        when(facade.getApp("app-1")).thenReturn(Optional.of(app));
+        when(facade.listApps(appQuery)).thenReturn(List.of(app));
+
+        principal().bind(Context.current()).run(() -> {
+            assertThat(provider.getBiz(mapper.toGetBizRequest(bizLookup)))
+                    .isEqualTo(mapper.toBizResponse(Optional.of(biz)));
+            assertThat(provider.listBizs(mapper.toListBizsRequest(bizQuery)))
+                    .isEqualTo(mapper.toBizsResponse(List.of(biz)));
+            assertThat(provider.getApp(mapper.toGetAppRequest("app-1")))
+                    .isEqualTo(mapper.toAppResponse(Optional.of(app)));
+            assertThat(provider.listApps(mapper.toListAppsRequest(appQuery)))
+                    .isEqualTo(mapper.toAppsResponse(List.of(app)));
+        });
+
+        verify(facade).getBiz(bizLookup);
+        verify(facade).listBizs(bizQuery);
+        verify(facade).getApp("app-1");
+        verify(facade).listApps(appQuery);
     }
 
     private DdcServicePrincipal principal() {
