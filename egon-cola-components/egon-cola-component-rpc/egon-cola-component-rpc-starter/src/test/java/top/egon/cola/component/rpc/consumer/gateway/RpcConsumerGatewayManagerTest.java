@@ -161,7 +161,32 @@ class RpcConsumerGatewayManagerTest {
         manager.stop();
     }
 
+    @Test
+    void doesNotSubscribeWithoutGatewayReferences() {
+        SnapshotDirectory directory = new SnapshotDirectory();
+        RpcConsumerGatewayManager manager = managerWithoutDemand(
+                directory,
+                new StubChannelFactory()
+        );
+
+        manager.start();
+
+        assertThat(directory.subscribeCount).isZero();
+        assertThat(manager.state()).isEqualTo(RpcGatewayState.STOPPED);
+    }
+
     private RpcConsumerGatewayManager manager(
+            SnapshotDirectory directory,
+            StubChannelFactory channels) {
+        RpcConsumerGatewayManager manager = managerWithoutDemand(
+                directory,
+                channels
+        );
+        manager.registerDemand();
+        return manager;
+    }
+
+    private RpcConsumerGatewayManager managerWithoutDemand(
             SnapshotDirectory directory,
             StubChannelFactory channels) {
         EgonRpcProperties properties = new EgonRpcProperties();
@@ -259,10 +284,13 @@ class RpcConsumerGatewayManagerTest {
 
         private RpcGatewayQuery query;
 
+        private int subscribeCount;
+
         @Override
         public RpcGatewaySubscription subscribe(
                 RpcGatewayQuery query,
                 Consumer<RpcGatewaySnapshot> listener) {
+            subscribeCount++;
             this.query = query;
             this.listener = listener;
             listener.accept(snapshot);

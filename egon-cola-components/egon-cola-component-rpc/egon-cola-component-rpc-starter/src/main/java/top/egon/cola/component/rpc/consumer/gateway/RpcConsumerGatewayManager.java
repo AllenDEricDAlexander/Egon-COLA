@@ -40,6 +40,8 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
 
     private final AtomicLong roundRobinSequence = new AtomicLong();
 
+    private int demandCount;
+
     private volatile RpcGatewayState state = RpcGatewayState.STOPPED;
 
     private volatile List<ActiveGateway> activeGateways = List.of();
@@ -79,10 +81,24 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
         );
     }
 
+    public void registerDemand() {
+        synchronized (monitor) {
+            if (state != RpcGatewayState.STOPPED) {
+                throw new IllegalStateException(
+                        "RPC Gateway demand must be registered before startup"
+                );
+            }
+            demandCount++;
+        }
+    }
+
     @Override
     public void start() {
         synchronized (monitor) {
             if (state != RpcGatewayState.STOPPED) {
+                return;
+            }
+            if (demandCount == 0) {
                 return;
             }
             validateProperties();
@@ -167,6 +183,7 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
     }
 
     public ManagedChannel currentChannel(Set<ManagedChannel> excluded) {
+        startForProgrammaticDemand();
         expireGateways();
         List<ActiveGateway> candidates = activeGateways.stream()
                 .filter(gateway -> !excluded.contains(gateway.channel()))
@@ -183,6 +200,16 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
                 candidates.size()
         );
         return candidates.get(index).channel();
+    }
+
+    private void startForProgrammaticDemand() {
+        synchronized (monitor) {
+            if (state == RpcGatewayState.STOPPED
+                    && demandCount == 0) {
+                demandCount++;
+            }
+        }
+        start();
     }
 
     public void recordFailure(ManagedChannel failed) {

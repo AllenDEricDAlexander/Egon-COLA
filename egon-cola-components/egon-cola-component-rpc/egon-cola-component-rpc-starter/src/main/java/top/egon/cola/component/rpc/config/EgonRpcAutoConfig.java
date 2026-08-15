@@ -3,6 +3,7 @@ package top.egon.cola.component.rpc.config;
 import io.grpc.ServerInterceptor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -20,6 +21,10 @@ import top.egon.cola.component.rpc.consumer.proxy.EgonRpcReferenceBeanPostProces
 import top.egon.cola.component.rpc.consumer.gateway.GatewayRpcInvocationChannelProvider;
 import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelFactory;
 import top.egon.cola.component.rpc.consumer.gateway.RpcConsumerGatewayManager;
+import top.egon.cola.component.rpc.consumer.interceptor.RpcClientInterceptorFactory;
+import top.egon.cola.component.rpc.consumer.provider.RpcConsumerProviderManager;
+import top.egon.cola.component.rpc.consumer.provider.RpcProviderDirectory;
+import top.egon.cola.component.rpc.consumer.proxy.RpcDirectReferenceProxyFactory;
 import top.egon.cola.component.rpc.consumer.proxy.RpcConsumerProxyFactory;
 import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayDirectory;
 import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
@@ -170,13 +175,28 @@ public class EgonRpcAutoConfig {
             name = "enabled",
             havingValue = "true"
     )
+    @ConditionalOnMissingBean
+    public RpcConsumerChannelFactory rpcConsumerChannelFactory(
+            EgonRpcProperties properties) {
+        properties.getConsumer().validateSharedSettings();
+        return new RpcConsumerChannelFactory(transportSecurity(properties));
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.consumer",
+            name = "enabled",
+            havingValue = "true"
+    )
+    @ConditionalOnBean(RpcGatewayDirectory.class)
     public RpcConsumerGatewayManager rpcConsumerGatewayManager(
             RpcGatewayDirectory gatewayDirectory,
+            RpcConsumerChannelFactory channelFactory,
             EgonRpcProperties properties,
             RpcProcessIdentity processIdentity) {
         return new RpcConsumerGatewayManager(
                 gatewayDirectory,
-                new RpcConsumerChannelFactory(transportSecurity(properties)),
+                channelFactory,
                 properties,
                 processIdentity
         );
@@ -188,6 +208,7 @@ public class EgonRpcAutoConfig {
             name = "enabled",
             havingValue = "true"
     )
+    @ConditionalOnBean(RpcConsumerGatewayManager.class)
     public GatewayRpcInvocationChannelProvider
             gatewayRpcInvocationChannelProvider(
             RpcConsumerGatewayManager gatewayManager) {
@@ -200,6 +221,24 @@ public class EgonRpcAutoConfig {
             name = "enabled",
             havingValue = "true"
     )
+    @ConditionalOnBean(GatewayRpcInvocationChannelProvider.class)
+    public RpcConsumerProxyFactory rpcConsumerProxyFactory(
+            RpcContractValidator contractValidator,
+            GatewayRpcInvocationChannelProvider channelProvider,
+            RpcProcessIdentity processIdentity,
+            EgonRpcProperties properties,
+            ObjectProvider<RpcClientInterceptorFactory>
+                    interceptorFactories) {
+        return new RpcConsumerProxyFactory(
+                contractValidator,
+                channelProvider,
+                processIdentity,
+                new RpcStatusExceptionMapper(),
+                properties.getConsumer().getDefaultTimeoutMs(),
+                interceptorFactories.orderedStream().toList()
+        );
+    }
+
     public RpcConsumerProxyFactory rpcConsumerProxyFactory(
             RpcContractValidator contractValidator,
             GatewayRpcInvocationChannelProvider channelProvider,
@@ -220,9 +259,58 @@ public class EgonRpcAutoConfig {
             name = "enabled",
             havingValue = "true"
     )
+    @ConditionalOnBean(RpcProviderDirectory.class)
+    public RpcConsumerProviderManager rpcConsumerProviderManager(
+            RpcProviderDirectory providerDirectory,
+            RpcConsumerChannelFactory channelFactory,
+            EgonRpcProperties properties) {
+        return new RpcConsumerProviderManager(
+                providerDirectory,
+                channelFactory,
+                properties
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.consumer",
+            name = "enabled",
+            havingValue = "true"
+    )
+    @ConditionalOnBean(RpcConsumerProviderManager.class)
+    public RpcDirectReferenceProxyFactory rpcDirectReferenceProxyFactory(
+            RpcContractValidator contractValidator,
+            RpcConsumerProviderManager providerManager,
+            RpcProcessIdentity processIdentity,
+            EgonRpcProperties properties,
+            ObjectProvider<RpcClientInterceptorFactory>
+                    interceptorFactories) {
+        return new RpcDirectReferenceProxyFactory(
+                contractValidator,
+                providerManager,
+                processIdentity,
+                new RpcStatusExceptionMapper(),
+                properties.getConsumer().getDefaultTimeoutMs(),
+                interceptorFactories.orderedStream().toList()
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.consumer",
+            name = "enabled",
+            havingValue = "true"
+    )
     public EgonRpcReferenceBeanPostProcessor egonRpcReferenceBeanPostProcessor(
-            RpcConsumerProxyFactory proxyFactory) {
-        return new EgonRpcReferenceBeanPostProcessor(proxyFactory);
+            ObjectProvider<RpcConsumerProxyFactory> gatewayProxyFactory,
+            ObjectProvider<RpcConsumerGatewayManager> gatewayManager,
+            ObjectProvider<RpcDirectReferenceProxyFactory>
+                    directProxyFactory) {
+        return new EgonRpcReferenceBeanPostProcessor(
+                gatewayProxyFactory.getIfAvailable(),
+                gatewayManager.getIfAvailable(),
+                directProxyFactory.getIfAvailable()
+        );
     }
 
     private RpcTransportSecurity transportSecurity(

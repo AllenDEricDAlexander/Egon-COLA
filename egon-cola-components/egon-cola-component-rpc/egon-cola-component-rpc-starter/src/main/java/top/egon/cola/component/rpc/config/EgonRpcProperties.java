@@ -1,6 +1,8 @@
 package top.egon.cola.component.rpc.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.exception.EgonRpcException;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistrationMode;
 
 import java.util.LinkedHashMap;
@@ -307,6 +309,15 @@ public class EgonRpcProperties {
 
         public void setGatewayMaxAttempts(int gatewayMaxAttempts) {
             this.gatewayMaxAttempts = gatewayMaxAttempts;
+        }
+
+        public void validateSharedSettings() {
+            if (defaultTimeoutMs <= 0 || channelDrainTimeoutMs <= 0) {
+                throw new EgonRpcException(
+                        EgonRpcErrorCode.RPC_INVALID_CONTRACT,
+                        "RPC Consumer timeout settings must be positive"
+                );
+            }
         }
     }
 
