@@ -41,6 +41,50 @@ class Rbac3ModuleBoundaryTest {
         }
     }
 
+    @Test
+    void iamDomainsUseTheApprovedPackageRoots() throws Exception {
+        Path sourceRoot = Path.of(System.getProperty("basedir"))
+                .resolve("src/main/java/top/egon/cola/platform/rbac3/admin");
+        List<String> targetRoots = List.of(
+                "iam/tenant", "iam/user", "iam/business", "iam/application",
+                "iam/resource", "iam/resource/field", "iam/resource/manifest",
+                "iam/permission", "iam/role", "iam/role/assignment",
+                "iam/role/activation", "iam/role/inheritance",
+                "iam/organization", "iam/organization/snapshot",
+                "iam/position", "iam/position/snapshot", "iam/policy"
+        );
+        targetRoots.forEach(root -> assertTrue(
+                Files.isDirectory(sourceRoot.resolve(root)),
+                "missing IAM package root " + root));
+
+        List<String> oldRoots = List.of(
+                "tenant", "identity", "resource", "role", "assignment",
+                "activation", "directory", "constraint");
+        for (String root : oldRoots) {
+            Path directory = sourceRoot.resolve(root);
+            if (Files.exists(directory)) {
+                try (var files = Files.walk(directory)) {
+                    assertTrue(files.noneMatch(path -> path.toString().endsWith(".java")),
+                            "legacy IAM package still contains Java: " + root);
+                }
+            }
+        }
+
+        List<String> staleImports = new ArrayList<>();
+        try (var files = Files.walk(sourceRoot)) {
+            files.filter(path -> path.toString().endsWith(".java"))
+                    .forEach(path -> lines(path).stream()
+                            .filter(line -> line.contains(".admin.identity.")
+                                    || line.contains(".admin.directory.")
+                                    || line.contains(".admin.constraint.")
+                                    || line.contains(".admin.assignment.")
+                                    || line.contains(".admin.activation."))
+                            .map(line -> path + ": " + line.trim())
+                            .forEach(staleImports::add));
+        }
+        assertEquals(List.of(), staleImports);
+    }
+
     private static void assertNoSourceReference(
             Path root,
             List<String> forbidden) throws Exception {

@@ -16,7 +16,6 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -70,10 +69,9 @@ class AdminLayerBoundaryTest {
     void productionPackagesDoNotUseLegacyLayerNames() throws Exception {
         for (Path source : productionJavaSources()) {
             Path relative = adminSourceRoot().relativize(source);
-            boolean legacyLayer = StreamSupport.stream(
-                            relative.spliterator(), false)
-                    .map(Path::toString)
-                    .anyMatch(Set.of("application", "infrastructure")::contains);
+            boolean legacyLayer = relative.getNameCount() > 0
+                    && Set.of("application", "infrastructure")
+                    .contains(relative.getName(0).toString());
             assertThat(legacyLayer)
                     .as("target layer name for %s", source)
                     .isFalse();

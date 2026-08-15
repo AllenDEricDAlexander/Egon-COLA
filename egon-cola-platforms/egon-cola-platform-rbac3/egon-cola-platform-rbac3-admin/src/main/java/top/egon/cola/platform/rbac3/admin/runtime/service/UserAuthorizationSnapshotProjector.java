@@ -1,6 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.runtime.service;
 
-import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ApplicationFactVO;
+import top.egon.cola.platform.rbac3.admin.iam.role.activation.domain.vo.ApplicationFactVO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.ProjectionCommandDTO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.RuntimeUserAuthorizationVO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.UserSnapshotProjectionVO;

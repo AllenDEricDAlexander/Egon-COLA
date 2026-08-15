@@ -14,8 +14,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
 import top.egon.cola.platform.idp.starter.security.IdpEndpointAuthenticationPolicy;
-import top.egon.cola.platform.rbac3.admin.tenant.controller.filter.TenantContextFilter;
-import top.egon.cola.platform.rbac3.admin.tenant.service.TenantContextResolver;
+import top.egon.cola.platform.rbac3.admin.iam.tenant.controller.filter.TenantContextFilter;
+import top.egon.cola.platform.rbac3.admin.iam.tenant.service.TenantContextResolver;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFilter;
 
 import java.util.List;

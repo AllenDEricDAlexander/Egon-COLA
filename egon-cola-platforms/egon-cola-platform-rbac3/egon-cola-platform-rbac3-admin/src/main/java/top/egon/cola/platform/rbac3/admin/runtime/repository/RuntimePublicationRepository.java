@@ -1,6 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.runtime.repository;
 
-import top.egon.cola.platform.rbac3.admin.activation.domain.vo.RuntimePublicationVO;
+import top.egon.cola.platform.rbac3.admin.iam.role.activation.domain.vo.RuntimePublicationVO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.PublishCommandDTO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.PublishResultVO;
 

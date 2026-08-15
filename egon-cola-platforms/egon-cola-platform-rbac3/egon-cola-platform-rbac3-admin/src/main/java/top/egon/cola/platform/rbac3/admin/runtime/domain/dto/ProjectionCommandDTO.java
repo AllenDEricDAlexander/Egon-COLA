@@ -1,6 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.runtime.domain.dto;
 
-import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ActivationFactsVO;
+import top.egon.cola.platform.rbac3.admin.iam.role.activation.domain.vo.ActivationFactsVO;
 import top.egon.cola.platform.rbac3.core.activation.RoleActivationResolution;
 
 import java.time.Instant;

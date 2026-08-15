@@ -2,7 +2,7 @@ package top.egon.cola.platform.rbac3.admin.performance;
 
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.activation.service.RoleActivationCandidateService;
+import top.egon.cola.platform.rbac3.admin.iam.role.activation.service.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
 import top.egon.cola.platform.rbac3.core.activation.AuthorizationRuleFacts;
 import top.egon.cola.platform.rbac3.core.activation.EligibleAssignmentFact;
@@ -19,8 +19,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ActivationFactsVO;
-import top.egon.cola.platform.rbac3.admin.activation.domain.vo.ApplicationFactVO;
+import top.egon.cola.platform.rbac3.admin.iam.role.activation.domain.vo.ActivationFactsVO;
+import top.egon.cola.platform.rbac3.admin.iam.role.activation.domain.vo.ApplicationFactVO;
 import top.egon.cola.platform.rbac3.admin.audit.repository.AuditRepository;
 import top.egon.cola.platform.rbac3.admin.audit.domain.dto.QueryDTO;
 import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditVO;

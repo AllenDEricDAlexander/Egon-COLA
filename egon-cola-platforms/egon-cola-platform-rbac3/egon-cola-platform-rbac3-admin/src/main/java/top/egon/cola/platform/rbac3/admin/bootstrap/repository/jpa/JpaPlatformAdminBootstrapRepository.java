@@ -6,14 +6,14 @@ import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.po.UserRoleAssignmentPO;
+import top.egon.cola.platform.rbac3.admin.iam.role.assignment.domain.po.UserRoleAssignmentPO;
 import top.egon.cola.platform.rbac3.admin.bootstrap.repository.PlatformAdminBootstrapRepository;
-import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
-import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
-import top.egon.cola.platform.rbac3.admin.resource.domain.po.ApplicationPO;
-import top.egon.cola.platform.rbac3.admin.resource.domain.po.PermissionPO;
-import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePO;
-import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePermissionPO;
+import top.egon.cola.platform.rbac3.admin.iam.tenant.domain.po.TenantPO;
+import top.egon.cola.platform.rbac3.admin.iam.user.domain.po.UserPO;
+import top.egon.cola.platform.rbac3.admin.iam.application.domain.po.ApplicationPO;
+import top.egon.cola.platform.rbac3.admin.iam.permission.domain.po.PermissionPO;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.po.RolePO;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.po.RolePermissionPO;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -22,10 +22,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Pattern;
-import top.egon.cola.platform.rbac3.admin.resource.domain.enums.PermissionRiskLevelEnum;
-import top.egon.cola.platform.rbac3.admin.role.domain.enums.RoleTypeEnum;
-import top.egon.cola.platform.rbac3.admin.role.domain.enums.RoleRiskLevelEnum;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.enums.UserRoleAssignmentTypeEnum;
+import top.egon.cola.platform.rbac3.admin.iam.permission.domain.enums.PermissionRiskLevelEnum;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RoleTypeEnum;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RoleRiskLevelEnum;
+import top.egon.cola.platform.rbac3.admin.iam.role.assignment.domain.enums.UserRoleAssignmentTypeEnum;
 import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditEventVO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.AuthorizationEventVO;
 
@@ -244,7 +244,7 @@ public class JpaPlatformAdminBootstrapRepository
 
         UserPO administrator = new UserPO(
                 userId, tenantId, normalizedIdentitySub,
-                top.egon.cola.platform.rbac3.admin.identity.domain.enums.UserStatusEnum.ACTIVE,
+                top.egon.cola.platform.rbac3.admin.iam.user.domain.enums.UserStatusEnum.ACTIVE,
                 ACTOR, now);
         administrator.advanceAuthorizationVersion(0, ACTOR, now);
         entityManager.persist(administrator);

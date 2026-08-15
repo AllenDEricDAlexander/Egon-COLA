@@ -4,14 +4,14 @@ import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.po.UserRoleAssignmentPO;
+import top.egon.cola.platform.rbac3.admin.iam.role.assignment.domain.po.UserRoleAssignmentPO;
 import top.egon.cola.platform.rbac3.admin.bootstrap.domain.Rbac3DevelopmentTopology;
-import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
-import top.egon.cola.platform.rbac3.admin.identity.domain.po.UserPO;
-import top.egon.cola.platform.rbac3.admin.resource.domain.po.ApplicationPO;
-import top.egon.cola.platform.rbac3.admin.resource.domain.po.PermissionPO;
-import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePO;
-import top.egon.cola.platform.rbac3.admin.role.domain.po.RolePermissionPO;
+import top.egon.cola.platform.rbac3.admin.iam.tenant.domain.po.TenantPO;
+import top.egon.cola.platform.rbac3.admin.iam.user.domain.po.UserPO;
+import top.egon.cola.platform.rbac3.admin.iam.application.domain.po.ApplicationPO;
+import top.egon.cola.platform.rbac3.admin.iam.permission.domain.po.PermissionPO;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.po.RolePO;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.po.RolePermissionPO;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -21,12 +21,12 @@ import java.util.Map;
 import java.util.Objects;
 import top.egon.cola.platform.rbac3.admin.bootstrap.repository.DevelopmentBootstrapPort;
 import top.egon.cola.platform.rbac3.admin.bootstrap.domain.vo.ApplicationDefinitionVO;
-import top.egon.cola.platform.rbac3.admin.resource.domain.enums.PermissionRiskLevelEnum;
-import top.egon.cola.platform.rbac3.admin.role.domain.enums.RoleTypeEnum;
-import top.egon.cola.platform.rbac3.admin.role.domain.enums.RoleRiskLevelEnum;
-import top.egon.cola.platform.rbac3.admin.role.domain.enums.RolePermissionStatusEnum;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.enums.UserRoleAssignmentTypeEnum;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.enums.UserRoleAssignmentStatusEnum;
+import top.egon.cola.platform.rbac3.admin.iam.permission.domain.enums.PermissionRiskLevelEnum;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RoleTypeEnum;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RoleRiskLevelEnum;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RolePermissionStatusEnum;
+import top.egon.cola.platform.rbac3.admin.iam.role.assignment.domain.enums.UserRoleAssignmentTypeEnum;
+import top.egon.cola.platform.rbac3.admin.iam.role.assignment.domain.enums.UserRoleAssignmentStatusEnum;
 
 /**
  * 类型 `JpaDevelopmentTopologyBootstrapRepository` 位于当前包内，是类型，用于承载 `Postgresql Development Topology Bootstrap Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -143,7 +143,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
                     idGenerator.nextLongId(),
                     tenant.getId(),
                     normalizedIdentitySub,
-                    top.egon.cola.platform.rbac3.admin.identity.domain.enums.UserStatusEnum.ACTIVE,
+                    top.egon.cola.platform.rbac3.admin.iam.user.domain.enums.UserStatusEnum.ACTIVE,
                     ACTOR,
                     now
             );

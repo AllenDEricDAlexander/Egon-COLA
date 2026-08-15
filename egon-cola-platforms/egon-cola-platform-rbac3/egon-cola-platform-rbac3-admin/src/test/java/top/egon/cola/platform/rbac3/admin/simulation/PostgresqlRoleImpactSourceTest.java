@@ -2,8 +2,8 @@ package top.egon.cola.platform.rbac3.admin.simulation;
 
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
-import top.egon.cola.platform.rbac3.admin.role.service.RoleFacade;
+import top.egon.cola.platform.rbac3.admin.iam.tenant.domain.po.TenantPO;
+import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleFacade;
 import top.egon.cola.platform.rbac3.admin.simulation.repository.jdbc.PostgresqlRoleImpactRepository;
 
 import java.time.Instant;
@@ -12,7 +12,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import top.egon.cola.platform.rbac3.admin.role.domain.vo.RoleImpactVO;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleImpactVO;
 
 class PostgresqlRoleImpactSourceTest {
 

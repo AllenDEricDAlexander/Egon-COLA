@@ -18,11 +18,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import top.egon.cola.platform.rbac3.admin.directory.domain.enums.UserPositionSnapshotStatusEnum;
+import top.egon.cola.platform.rbac3.admin.iam.position.snapshot.domain.enums.UserPositionSnapshotStatusEnum;
 import top.egon.cola.platform.rbac3.admin.management.domain.dto.SavePolicyCommandDTO;
 import top.egon.cola.platform.rbac3.admin.management.domain.po.ManagementPolicySubjectPO;
 import top.egon.cola.platform.rbac3.admin.management.domain.po.ManagementPolicyScopePO;
-import top.egon.cola.platform.rbac3.admin.assignment.domain.enums.UserRoleAssignmentStatusEnum;
+import top.egon.cola.platform.rbac3.admin.iam.role.assignment.domain.enums.UserRoleAssignmentStatusEnum;
 import top.egon.cola.platform.rbac3.admin.management.repository.ManagementPolicyFactRepository;
 import top.egon.cola.platform.rbac3.admin.management.repository.ManagementPolicyControlRepository;
 import top.egon.cola.platform.rbac3.admin.management.domain.dto.SaveCommandDTO;
@@ -159,7 +159,7 @@ public class JpaManagementPolicyRepository implements
                         ManagementSubjectSubjectTypeEnum.POSITION)
                 .setParameter("assignmentStatus", UserRoleAssignmentStatusEnum.ACTIVE)
                 .setParameter("positionStatus",
-                        top.egon.cola.platform.rbac3.admin.directory.domain.enums
+                        top.egon.cola.platform.rbac3.admin.iam.position.snapshot.domain.enums
                                 .UserPositionSnapshotStatusEnum.ACTIVE)
                 .setParameter("subjectId", Long.valueOf(subjectId))
                 .getResultList();

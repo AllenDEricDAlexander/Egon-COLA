@@ -3,15 +3,15 @@ package top.egon.cola.platform.rbac3.admin.simulation.repository.jdbc;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.rbac3.admin.tenant.domain.po.TenantPO;
-import top.egon.cola.platform.rbac3.admin.role.repository.RoleImpactQuery;
+import top.egon.cola.platform.rbac3.admin.iam.tenant.domain.po.TenantPO;
+import top.egon.cola.platform.rbac3.admin.iam.role.repository.RoleImpactQuery;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
-import top.egon.cola.platform.rbac3.admin.role.domain.vo.RoleImpactVO;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleImpactVO;
 import top.egon.cola.platform.rbac3.admin.simulation.domain.vo.RoleImpactSnapshotVO;
 import top.egon.cola.platform.rbac3.admin.simulation.repository.RoleImpactRepository;
 

@@ -6,7 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
-import top.egon.cola.platform.rbac3.admin.constraint.domain.enums.OperationSodRuleStatusEnum;
+import top.egon.cola.platform.rbac3.admin.iam.policy.domain.enums.OperationSodRuleStatusEnum;
 import top.egon.cola.platform.rbac3.admin.participation.repository.OperationSodRuleRepository;
 import top.egon.cola.platform.rbac3.admin.participation.domain.vo.PriorActionRuleVO;
 
