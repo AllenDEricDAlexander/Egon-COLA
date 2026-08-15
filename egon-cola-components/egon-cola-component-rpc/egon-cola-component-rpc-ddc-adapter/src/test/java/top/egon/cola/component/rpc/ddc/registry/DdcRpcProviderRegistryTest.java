@@ -1,6 +1,7 @@
 package top.egon.cola.component.rpc.ddc.registry;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.model.lease.*;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
@@ -131,5 +132,84 @@ class DdcRpcProviderRegistryTest {
         verify(client).heartbeat(argThat(value -> value.getAdmissionTicket()
                 .equals("admission-ticket-2")));
         assertThat(calls).hasValue(2);
+    }
+
+    @Test
+    void registersRpcProviderWithoutGatewayDefinitionMetadata() {
+        DdcServiceRegistryClient client = mock(
+                DdcServiceRegistryClient.class
+        );
+        Instant now = Instant.parse("2026-08-09T00:00:00Z");
+        when(client.register(any())).thenReturn(new DdcLeaseSession(
+                "internal-instance",
+                "internal-lease",
+                DdcLeaseRole.RPC_PROVIDER,
+                45,
+                15,
+                now,
+                now.plusSeconds(45)
+        ));
+        DdcRpcProviderRegistry registry = new DdcRpcProviderRegistry(
+                client,
+                "trade",
+                "orders",
+                (biz, app, env, instance) -> new DdcAdmissionTicket(
+                        "admission.jwt.value",
+                        now.plusSeconds(30),
+                        "resource-order",
+                        URI.create("https://api.example/order"),
+                        1L,
+                        biz,
+                        app,
+                        env,
+                        instance,
+                        "kid-test"
+                )
+        );
+        RpcProviderRegistration registration = new RpcProviderRegistration(
+                new RpcServiceIdentity(
+                        "InternalOrderService",
+                        "internal",
+                        "2.1.0"
+                ),
+                new RpcProcessIdentity(
+                        "orders",
+                        "prod",
+                        "10.0.0.8",
+                        4123,
+                        "internal-instance"
+                ),
+                "10.0.0.8",
+                19091,
+                true,
+                Map.of("region", "cn-east-1"),
+                45,
+                15
+        );
+
+        registry.register(registration);
+
+        ArgumentCaptor<DdcServiceRegistration> captor =
+                ArgumentCaptor.forClass(DdcServiceRegistration.class);
+        verify(client).register(captor.capture());
+        DdcServiceRegistration captured = captor.getValue();
+        assertThat(captured.serviceKey().bizCode()).isEqualTo("trade");
+        assertThat(captured.serviceKey().appCode()).isEqualTo("orders");
+        assertThat(captured.serviceKey().env()).isEqualTo("prod");
+        assertThat(captured.serviceKey().serviceKind())
+                .isEqualTo(DdcServiceKind.RPC_PROVIDER);
+        assertThat(captured.serviceKey().serviceName())
+                .isEqualTo("InternalOrderService");
+        assertThat(captured.serviceKey().group()).isEqualTo("internal");
+        assertThat(captured.serviceKey().version()).isEqualTo("2.1.0");
+        assertThat(captured.serviceKey().protocol()).isEqualTo("grpc");
+        assertThat(captured.instanceId()).isEqualTo("internal-instance");
+        assertThat(captured.host()).isEqualTo("10.0.0.8");
+        assertThat(captured.port()).isEqualTo(19091);
+        assertThat(captured.secure()).isTrue();
+        assertThat(captured.metadata())
+                .containsExactlyEntriesOf(Map.of("region", "cn-east-1"));
+        assertThat(captured.leaseSeconds()).isEqualTo(45);
+        assertThat(captured.heartbeatIntervalSeconds()).isEqualTo(15);
     }
 }

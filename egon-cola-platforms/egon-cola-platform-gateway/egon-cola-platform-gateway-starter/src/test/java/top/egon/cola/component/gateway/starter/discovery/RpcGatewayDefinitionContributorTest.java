@@ -75,13 +75,65 @@ class RpcGatewayDefinitionContributorTest {
                 );
     }
 
+    @Test
+    void skipsRpcContractWithoutGatewayInterfaceGroup() throws Exception {
+        RpcContractDescriptor grouped = contract(
+                Contract.class,
+                "test.Catalog"
+        );
+        RpcContractDescriptor ungrouped = contract(
+                UngroupedContract.class,
+                "test.InternalCatalog"
+        );
+        RpcGatewayDefinitionContributor contributor =
+                new RpcGatewayDefinitionContributor(
+                        catalog(
+                                List.of(grouped, ungrouped),
+                                List.of(snapshot("test.Catalog"))
+                        ),
+                        properties()
+                );
+
+        List<GatewayDefinitionContributor.DiscoveredInterfaceGroup>
+                definitions = contributor.discover();
+
+        assertThat(definitions).singleElement().satisfies(definition -> {
+            assertThat(definition.interfaceGroup().code())
+                    .isEqualTo("rpc-orders");
+            assertThat(definition.interfaceGroup().attributes())
+                    .containsEntry("serviceName", "test.Catalog");
+            assertThat(definition.interfaceGroup().operations())
+                    .extracting(
+                            GatewayInterfaceDefinitionReport.Operation
+                                    ::methodIdentity
+                    )
+                    .containsExactly("test.Catalog/Lookup")
+                    .doesNotContain("test.InternalCatalog/Lookup");
+        });
+    }
+
     private GatewayInterfaceDefinitionReport.Operation operation(
             Class<?> contractType) throws Exception {
-        Method javaMethod = contractType.getDeclaredMethod("lookup", Type.class);
-        Descriptors.MethodDescriptor protoMethod = protoMethod();
         String serviceName = "test.Catalog";
-        String fullMethodName = serviceName + "/Lookup";
-        RpcContractDescriptor contract = new RpcContractDescriptor(
+        RpcContractDescriptor contract = contract(contractType, serviceName);
+        RpcContractSnapshot snapshot = snapshot(serviceName);
+        RpcGatewayDefinitionContributor contributor =
+                new RpcGatewayDefinitionContributor(
+                        catalog(List.of(contract), List.of(snapshot)),
+                        properties()
+                );
+        return contributor.discover().getFirst()
+                .interfaceGroup().operations().getFirst();
+    }
+
+    private RpcContractDescriptor contract(
+            Class<?> contractType,
+            String serviceName) throws Exception {
+        Method javaMethod = contractType.getDeclaredMethod(
+                "lookup",
+                Type.class
+        );
+        return new RpcContractDescriptor(
                 contractType,
                 serviceName,
                 "default",
@@ -89,13 +141,16 @@ class RpcGatewayDefinitionContributorTest {
                 List.of(new RpcMethodDescriptor(
                         javaMethod,
                         "Lookup",
-                        fullMethodName,
+                        serviceName + "/Lookup",
                         true,
                         null,
-                        protoMethod
+                        protoMethod()
                 ))
         );
-        RpcContractSnapshot snapshot = new RpcContractSnapshot(
+    }
+
+    private RpcContractSnapshot snapshot(String serviceName) {
+        return new RpcContractSnapshot(
                 serviceName,
                 "default",
                 "1.0.0",
@@ -105,28 +160,21 @@ class RpcGatewayDefinitionContributorTest {
                 "descriptor-sha",
                 List.of(new RpcMethodSnapshot(
                         "Lookup",
-                        fullMethodName,
+                        serviceName + "/Lookup",
                         "google.protobuf.Type",
                         "google.protobuf.Type",
                         RpcType.UNARY
                 ))
         );
-        RpcGatewayDefinitionContributor contributor =
-                new RpcGatewayDefinitionContributor(
-                        catalog(contract, snapshot),
-                        properties()
-                );
-        return contributor.discover().getFirst()
-                .interfaceGroup().operations().getFirst();
     }
 
     private RpcContractCatalog catalog(
-            RpcContractDescriptor contract,
-            RpcContractSnapshot snapshot) {
+            List<RpcContractDescriptor> contracts,
+            List<RpcContractSnapshot> snapshots) {
         return new RpcContractCatalog() {
             @Override
             public List<RpcContractDescriptor> contracts() {
-                return List.of(contract);
+                return contracts;
             }
 
             @Override
@@ -137,7 +185,7 @@ class RpcGatewayDefinitionContributorTest {
 
             @Override
             public List<RpcContractSnapshot> snapshots() {
-                return List.of(snapshot);
+                return snapshots;
             }
 
             @Override
@@ -239,6 +287,12 @@ class RpcGatewayDefinitionContributorTest {
                         shape = GatewaySchemaShape.OBJECT
                 )
         )
+        Type lookup(Type request);
+    }
+
+    private interface UngroupedContract {
+
+        @EgonRpcMethod(name = "Lookup", idempotent = true)
         Type lookup(Type request);
     }
 }
