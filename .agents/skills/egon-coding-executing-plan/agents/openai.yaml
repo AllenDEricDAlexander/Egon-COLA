@@ -1,0 +1,4 @@
+interface:
+  display_name: "EGON Coding Execute Plan"
+  short_description: "Execute an approved coding Plan step by step"
+  default_prompt: "Use $egon-coding-executing-plan to execute an approved coding Plan one committed Step at a time."
