@@ -1322,6 +1322,13 @@ public final class RpcGatewayForwarder {
                 ),
                 value
         ));
+        if (security.forwardingCredential() != null) {
+            result.put(
+                    RpcMetadataKeys.AUTHORIZATION,
+                    "Bearer " + security.forwardingCredential()
+                            .tokenReference()
+            );
+        }
         return result;
     }
 

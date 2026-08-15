@@ -29,6 +29,7 @@ import top.egon.cola.component.gateway.core.route.RuntimeHttpRoute;
 import top.egon.cola.component.gateway.engine.http.GatewayDataBufferTestSupport;
 import top.egon.cola.component.gateway.engine.rule.CompiledGatewayRules;
 import top.egon.cola.component.gateway.engine.rule.GatewayRuleJsonCodec;
+import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -40,6 +41,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HttpRpcUpstreamAdapterTest {
@@ -50,10 +52,6 @@ class HttpRpcUpstreamAdapterTest {
                 "test.EchoService/Echo"
         );
         AtomicReference<String> authorization = new AtomicReference<>();
-        Metadata.Key<String> authorizationKey = Metadata.Key.of(
-                "authorization",
-                Metadata.ASCII_STRING_MARSHALLER
-        );
         Server server = ServerBuilder.forPort(0)
                 .addService(ServerInterceptors.intercept(
                         ServerServiceDefinition
@@ -76,7 +74,7 @@ class HttpRpcUpstreamAdapterTest {
                                     Metadata headers,
                                     ServerCallHandler<ReqT, RespT> next) {
                                 authorization.set(headers.get(
-                                        authorizationKey
+                                        RpcMetadataKeys.AUTHORIZATION
                                 ));
                                 return next.startCall(call, headers);
                             }
@@ -158,6 +156,27 @@ class HttpRpcUpstreamAdapterTest {
 
             assertTrue(response.contains("\"value\": \"hello\""));
             assertEquals("Bearer local-jwt", authorization.get());
+
+            authorization.set("unexpected");
+            adapter.invoke(
+                            new HttpRouteMatch(route, Map.of()),
+                            provider(service, server.getPort()),
+                            new NormalizedHttpRequest(
+                                    "POST",
+                                    "api.test.local",
+                                    "/api/echo",
+                                    "/api/echo",
+                                    "",
+                                    Map.of()
+                            ),
+                            "{\"value\":\"anonymous\"}".getBytes(
+                                    StandardCharsets.UTF_8
+                            ),
+                            Map.of(),
+                            Duration.ofSeconds(2)
+                    )
+                    .block();
+            assertNull(authorization.get());
         } finally {
             channels.close();
             server.shutdownNow();

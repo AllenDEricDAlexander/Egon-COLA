@@ -179,7 +179,8 @@ public final class RuleBackedRpcGatewaySecurityProcessor
                 )
                 .map(result -> new Outcome(
                         result.trustedIdentity(),
-                        result.fieldsToRemove()
+                        result.fieldsToRemove(),
+                        result.forwardingCredential()
                 ));
     }
 

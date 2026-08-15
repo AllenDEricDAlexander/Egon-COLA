@@ -1450,7 +1450,9 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 match.route().transportPolicy()
                         .authorizationForwardingAllowed(),
                 provider.serviceKey().protocolType()
-                        == ProviderProtocolType.HTTP,
+                        == ProviderProtocolType.HTTP
+                        || provider.serviceKey().protocolType()
+                        == ProviderProtocolType.RPC,
                 security.routeSecurityType()
                         == top.egon.cola.component.gateway.core.security.GatewayRouteSecurityType.PUBLIC_PROTOCOL
         );
@@ -1696,7 +1698,11 @@ public final class DefaultGatewayHttpDataPlaneHandler
             protocolCookie(source).ifPresent(cookie ->
                     result.put("cookie", List.of(cookie)));
         }
-        restoreOriginalBearer(result, security, forwardHttpCredential);
+        restoreOriginalBearer(
+                result,
+                security,
+                authorizationForwardingAllowed && forwardHttpCredential
+        );
         result.put(
                 "traceparent",
                 List.of(attemptTrace.traceparent())
@@ -2826,7 +2832,9 @@ public final class DefaultGatewayHttpDataPlaneHandler
                     match.route().transportPolicy()
                             .authorizationForwardingAllowed(),
                     provider.serviceKey().protocolType()
-                            == ProviderProtocolType.HTTP,
+                            == ProviderProtocolType.HTTP
+                            || provider.serviceKey().protocolType()
+                            == ProviderProtocolType.RPC,
                     security.routeSecurityType()
                             == top.egon.cola.component.gateway.core.security.GatewayRouteSecurityType.PUBLIC_PROTOCOL
             );
