@@ -1,0 +1,161 @@
+---
+name: egon-coding-writing-spec
+description: Use when a coding task needs a repository-grounded system architecture, high-level design, detailed design, RFC-style specification, or an approved design baseline before implementation planning.
+---
+
+# EGON Coding Spec Writing
+
+## Purpose
+
+Turn a coding request and the current repository state into a reviewable system-architecture, high-level-design, or detailed-design specification. Write the artifact under `docs/egon/spec` before implementation planning or code changes.
+
+The specification defines **what must be built and why the design is coherent**. It is not an implementation sequence and must not start coding.
+
+## Scope and output contract
+
+- Use this skill only for coding work in an existing or newly initialized repository.
+- Ground every material technical statement in the current repository, an explicit user decision, or a cited predecessor specification.
+- Produce or revise specification documents and relationship metadata only. Do not produce a Plan, modify production code, apply migrations, or start the project.
+- Write the specification in the language requested by the user. If unspecified, follow the language used by the user and nearby repository documentation. Preserve source identifiers, code symbols, paths, schemas, and protocol names exactly.
+- Save every new specification as `docs/egon/spec/YYYY-MM-DD-HH-MM-ABSTRACT.md`.
+  - Use the user's/repository's local time at creation.
+  - Replace `ABSTRACT` with a concise lowercase ASCII kebab-case summary, normally 3–8 words.
+  - Example: `docs/egon/spec/2026-08-15-14-30-account-lockout-design.md`.
+  - Never overwrite a document with the same minute and abstract; choose a more specific abstract.
+- Start from `assets/spec-template.md`. Keep every numbered chapter. Write `N/A` with repository evidence and a reason when a chapter does not apply.
+
+## Non-negotiable rules
+
+1. Locate the repository root and read all applicable `AGENTS.md` files before designing.
+2. Inspect the relevant build manifests, modules, source packages, migrations, tests, frontend code, configuration, documentation, and existing `docs/egon/spec` documents. Search legacy design locations when they may contain authoritative decisions.
+3. Identify the actual programming languages, versions, frameworks, module boundaries, package conventions, architecture style, error model, persistence strategy, migration mechanism, frontend stack, and test tools. Follow existing patterns unless the specification explicitly justifies a change.
+4. Convert the original request into stable atomic requirements (`REQ-001`, `REQ-002`, ...), each with observable acceptance criteria and source wording.
+5. Do not silently decide a major ambiguity or repair a major requirement/design defect. Present repository evidence, impact, viable options, and a recommendation; ask the user to decide before finalizing affected design sections.
+6. Resolve small, local, reversible gaps with the smallest repository-consistent inference. Record consequential inferences as `ASM-*` with evidence and the impact if wrong; do not interrupt the user for ordinary naming, placement, or formatting choices.
+7. Use the same metadata header in every Spec. Use RFC-style `Amends`, `Supersedes`, `Depends On`, and `Related Specs` links to make the effective design traceable.
+8. Never silently rewrite an approved predecessor's normative design. Create a later Spec that names the earlier document and exact sections it changes. Metadata-only backlinks may be added when repository policy permits.
+9. A later Spec may fill gaps or correct earlier design. State whether the later document amends only named sections or supersedes the earlier document for a defined scope; unchanged predecessor sections remain effective.
+10. Do not mark a Spec `Accepted` without explicit user/decision-owner approval. An internally complete draft awaiting approval is `Review`; unresolved major decisions require `Draft` and a blocked conclusion.
+11. Design every applicable layer at detailed-design depth: exact paths/packages, symbols, contracts, fields, state rules, schema, page states, test cases, compatibility, and failure semantics. Do not invent full production implementations.
+12. Review the finished Spec against the original user request and the current repository before delivery. Fix internal defects yourself; surface only unresolved major decisions.
+
+## Ambiguity and decision boundary
+
+Read `references/ambiguity-policy.md` before asking questions.
+
+Ask the user when a wrong choice would materially change business behavior, scope, public API/RPC/event contracts, ownership boundaries, persistent data, migrations, security/permissions/tenancy, financial correctness, consistency/concurrency, technology selection, deployment topology, external dependencies, compatibility, or irreversible operations.
+
+When several major questions are discovered during one inspection pass, bundle the connected questions with options and consequences so the user can make one coherent decision. Do not repeatedly interrupt for newly discovered details that the repository can answer.
+
+Infer only when the gap is local, reversible, non-observable outside an already-decided contract, and strongly supported by repository convention.
+
+## RFC-style metadata and relationships
+
+Use this exact header field set in every Spec:
+
+| Field | Required meaning |
+| --- | --- |
+| Document | Current filename as a relative repository link or code value |
+| Status | `Draft`, `Review`, `Accepted`, `Implemented`, `Superseded`, or `Rejected` |
+| Type | `Feature`, `Refactor`, `Bugfix`, `Architecture`, or another clearly defined coding type |
+| Created | `YYYY-MM-DD HH:mm ZONE` |
+| Updated | `YYYY-MM-DD HH:mm ZONE` |
+| Owner | User, team, or decision owner |
+| Repository | Repository name |
+| Scope | Affected modules or bounded context |
+| Source Requirement | User request, issue, ticket, or linked brief |
+| Baseline Revision | Git commit/branch or explicit uncommitted-worktree snapshot |
+| Amends | Earlier Spec links plus exact sections partially changed, or `None` |
+| Supersedes | Earlier Spec links plus replaced scope, or `None` |
+| Depends On | Normative predecessor/dependency links plus exact sections, or `None` |
+| Related Specs | Non-normative contextual links, or `None` |
+| Related Plans | Plans implementing this Spec, or `None` |
+
+Relationship targets may be any repository design document, including legacy paths outside `docs/egon/spec`, when that document is still authoritative. Use relative Markdown links and exact section anchors/numbers. Resolve the effective design in this order:
+
+1. Start from the referenced base design.
+2. Exclude content superseded for the current scope.
+3. Apply accepted amendments in chronological order.
+4. Include normative dependencies.
+5. Stop and ask the user if accepted documents conflict without a governing relationship.
+
+Read `references/rfc-governance.md` for lifecycle and backlink rules.
+
+## Required design workflow
+
+1. **Reconstruct the request**
+   - Quote or accurately paraphrase the original goal, constraints, exclusions, and success criteria.
+   - Create the `REQ-*` inventory and identify missing decisions.
+2. **Inspect the repository**
+   - Record real files, symbols, consumers, call chains, schemas, pages, tests, and build commands.
+   - Separate repository/static evidence from assumptions and from unverified runtime claims.
+3. **Resolve design history**
+   - Search current and legacy Spec locations.
+   - Determine whether this Spec is new, amending, superseding, dependent, or merely related.
+4. **Handle ambiguity**
+   - Ask for major decisions before finalizing affected sections.
+   - Infer small gaps and record consequential assumptions.
+5. **Design the solution**
+   - Evaluate at least a direct repository-consistent design and any materially different viable alternative.
+   - Explicitly consider appropriate patterns such as Strategy, Template Method, Factory, Adapter, Facade, State, Observer, Command, Specification, or Domain Service.
+   - Select a pattern only when it resolves a real variation point, coupling problem, lifecycle, orchestration concern, or testability problem. Otherwise record why direct design is clearer and avoids over-engineering.
+6. **Write the Spec**
+   - Copy `assets/spec-template.md` and fill all chapters with repository-specific content.
+   - Use exact signatures, field tables, state transitions, file trees, and pseudocode where they clarify design; do not write production-ready method bodies.
+7. **Review and repair**
+   - Apply `references/review-checklist.md`.
+   - Repair omissions, contradictions, stale paths, vague placeholders, broken traceability, and unjustified scope expansion.
+8. **Validate and deliver**
+   - Run `scripts/validate_spec.py <spec-path> --strict`.
+   - Report the path, status, predecessor relationships, assumptions, and unresolved user decisions.
+   - Stop for user review. Do not write a Plan until the user explicitly requests planning against this Spec and any required approval gate is satisfied.
+
+## Required chapters and depth
+
+The template is normative. At minimum, the Spec must contain:
+
+1. **Summary** — problem, chosen direction, affected scope, and intended result.
+2. **Background and current state** — actual behavior, call chain, existing consumers, repository evidence, and gap.
+3. **Goals and non-goals** — explicit scope control.
+4. **Requirements and acceptance criteria** — atomic `REQ-*` items and observable outcomes.
+5. **Constraints, assumptions, and decisions** — confirmed constraints, `ASM-*`, resolved decisions, and open blockers.
+6. **Project technology context** — current language/framework/build/module/persistence/frontend/testing facts.
+7. **Architecture design** — boundaries, responsibilities, dependencies, data/control flow, transactions, concurrency, consistency, failure handling, and observability.
+8. **Package structure and code file tree** — current relevant tree, target tree, exact create/modify/delete paths, symbols, responsibilities, and requirement mapping. This is the target design, not implementation order.
+9. **Interface definitions** — HTTP/RPC/event/internal contracts, signatures, field semantics, validation, errors, auth, idempotency, versioning, and compatibility.
+10. **Entity and domain model design** — aggregates/entities/value objects/DTOs/commands/queries/VOs/POs, field types, nullability, invariants, state transitions, and mappings.
+11. **Database design** — tables/columns/types/defaults/constraints/indexes/query patterns, migration shape, historical-data handling, transaction/locking/audit, rollback, and compatibility. Never modify an existing migration when repository policy requires a new one.
+12. **Frontend page design** — routes, navigation, permissions, layout/component tree, user flows, form rules, API/state mapping, loading/empty/error/disabled/denied states, accessibility, responsiveness, and key copy.
+13. **Design patterns and architecture principles** — chosen/rejected patterns, variation point, simplicity test, and alignment with current architecture; include cohesion, coupling, dependency direction, information hiding, SOLID, and YAGNI trade-offs as applicable.
+14. **Test design** — unit tests for behavior and invariants plus applicable integration, contract, mapper/repository, component, and end-to-end tests; define test data, boundaries, failure cases, expected assertions, tools, and requirement mapping.
+15. **Non-functional and cross-cutting design** — security, tenancy, privacy, performance, capacity, caching, audit, logging, metrics, tracing, operations, and maintainability.
+16. **Compatibility, migration, rollout, and rollback**.
+17. **Alternatives and decisions** — evidence-backed trade-offs and rejected options.
+18. **Risks and open questions**.
+19. **Traceability matrix** — every `REQ-*` maps to design, contracts/models/pages as applicable, tests, and acceptance evidence; every proposed element maps back to a requirement or necessary infrastructure rationale.
+20. **Review and acceptance** — original-request fidelity, repository fidelity, cross-section consistency, relationship correctness, and final verdict.
+
+## Completion verdicts
+
+Use exactly one:
+
+- `PASS — Ready for user review`
+- `BLOCKED — User decision required`
+- `REVISE — Internal inconsistency found`
+
+`PASS` means the document is internally complete, not that the user has accepted it. `BLOCKED` must name the decisions required. Never claim implementation or runtime verification from a Spec-only task.
+
+## Common failures
+
+| Failure | Required correction |
+| --- | --- |
+| Restating the request without repository evidence | Inspect real code, contracts, data, UI, tests, and consumers first |
+| Choosing major semantics because one option seems obvious | Present evidence/options and ask the user |
+| Interrupting for names or reversible local details | Infer the smallest repository-consistent choice |
+| Silently editing an approved predecessor | Create an amending or superseding Spec with exact section links |
+| Listing packages without a file tree or responsibilities | Add exact target paths, operations, symbols, ownership, and `REQ-*` mapping |
+| Interfaces, entities, schema, UI, and tests disagree | Repair through field/state/requirement traceability |
+| Naming a design pattern without a variation point | Reject it or explain the concrete problem it solves |
+| Treating integration tests as unit-test design | Define isolated unit behavior and separate higher-level coverage |
+| Omitting a non-applicable chapter | Keep it and write evidence-backed `N/A` |
+| Writing implementation order or code | Stop at design; use `egon-coding-writing-plan` after review |
