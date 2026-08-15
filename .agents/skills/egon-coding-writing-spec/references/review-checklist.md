@@ -21,7 +21,13 @@
 
 - [ ] Architecture, target file tree, interfaces, fields, models, schema, pages, tests, rollout, and failure behavior describe the same system.
 - [ ] The target tree names exact Create/Modify/Delete paths, symbols, responsibilities, ownership, consumers, and requirement mapping.
-- [ ] Interface fields map through DTO/domain/persistence/frontend layers where applicable.
+- [ ] Interface fields trace through only the applicable, justified transport/domain/persistence/frontend roles; an inapplicable layer does not force a wrapper class.
+- [ ] Every proposed Java object has one repository-defined role, owner, boundary, consumers, and a concrete reason to exist or evidence that reuse is safe.
+- [ ] POJO is treated as an umbrella term; DAO/Repository/Mapper/Gateway types are treated as access components, not data carriers.
+- [ ] Ambiguous `DO`, `VO`, and `Entity` terminology is resolved explicitly; View Objects are not confused with DDD Value Objects.
+- [ ] The design does not mechanically create PO/DO/Entity/BO/DTO/VO/Request/Response variants for every layer.
+- [ ] Reused types have the same semantics, lifecycle, validation, exposure, and dependency direction; persistence objects do not leak into public contracts.
+- [ ] Every mapper/conversion crosses a real semantic boundary and has a named owner; no no-op mapping chain exists.
 - [ ] Entity invariants, state transitions, database constraints, transaction boundaries, locks, idempotency, and error semantics agree.
 - [ ] Frontend routes, permissions, components, user flows, states, validation, and copy agree with contracts.
 - [ ] Unit tests target isolated production behavior; higher-level tests have separate responsibilities.
@@ -32,6 +38,8 @@
 - [ ] Each selected pattern names the concrete variation point/problem, placement, and repository precedent.
 - [ ] Direct implementation was considered and rejected only for a concrete reason.
 - [ ] Rejected patterns and YAGNI trade-offs prevent needless interfaces, factories, handlers, or inheritance.
+- [ ] Entity inheritance, when selected, has an `is-a` or common-lifecycle justification and covers ORM, identity/equality, serialization, migration, compatibility, and test implications.
+- [ ] Concrete business services use composition/delegation by default; any inheritance is an explicit, repository-backed framework or Template Method exception rather than a code-reuse hierarchy.
 - [ ] Dependency direction, cohesion, coupling, information hiding, and testability match the stated architecture principles.
 
 ## RFC governance

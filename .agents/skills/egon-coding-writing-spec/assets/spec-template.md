@@ -147,21 +147,39 @@ Use repository-language signature or payload pseudocode where useful, but do not
 
 ## 10. Entity and Domain Model Design
 
-### 10.1 Aggregates, entities, value objects, and invariants
+### 10.1 POJO role classification and class necessity
+
+Classify every proposed Java object by its repository-defined semantic role. State the exact local meaning of ambiguous `DO`, `VO`, or `Entity` terms. `POJO` is an umbrella term, DAO is an access component rather than a data carrier, `VO` means View Object when that is the repository convention, and DDD Value Objects use domain-concept names.
+
+| Object/path | Selected role | Owner/boundary and consumers | Why a distinct class is necessary or reuse is safe | Mapping owner | Requirements |
+| --- | --- | --- | --- | --- | --- |
+| `<Type>` | PO / DTO / View Object / BO / Entity / Query / Command / Request / Response / Form / Param / PageQuery / PageResult / DDD Value Object | `<owner and crossings>` | `<concrete semantic difference or safe reuse evidence>` | `<mapper/factory/constructor or None>` | `REQ-001` |
+
+Do not create parallel PO/DO/Entity/BO/DTO/VO/Request/Response types merely because architectural layers exist. Add a class only for a real ownership, contract, validation/exposure, lifecycle/invariant, persistence, projection, pagination, or independent-versioning boundary. Do not expose a persistence object as a public contract merely to reduce the class count.
+
+### 10.2 Aggregates, entities, DDD value objects, and invariants
 
 | Model | Kind | Ownership/lifecycle | Invariants | Persistence | Requirements |
 | --- | --- | --- | --- | --- | --- |
 | `<name>` | Aggregate / Entity / Value Object | `<owner>` | `<rules>` | `<table/none>` | `REQ-001` |
 
-### 10.2 Field design
+### 10.3 Field design
 
 | Model.field | Type | Required/null/default | Validation and semantics | Source/mapping | Requirements |
 | --- | --- | --- | --- | --- | --- |
 | `<Type.field>` | `<language type>` | `<rules>` | `<meaning>` | `<DTO/PO/column>` | `REQ-001` |
 
-### 10.3 DTO, Command, Query, VO, PO, and mapper relationships
+### 10.4 Object flow and mapping relationships
 
-### 10.4 State transitions and lifecycle
+Define mappings only between semantically distinct types. Name the conversion owner and sensitive/derived/defaulted fields. Avoid no-op mapper chains. When data crosses three or more roles, include an object-flow diagram or complete field-mapping table.
+
+### 10.5 Reuse, inheritance, and composition decisions
+
+For entity inheritance, document the `is-a` or common-lifecycle reason, inherited fields/invariants, ORM table/discriminator/proxy behavior, identity and equality, serialization, migration, compatibility, and tests. Entity inheritance is allowed but not mandatory; prefer composition when no substitutable entity relationship exists.
+
+Concrete application/domain/business services must use composition and delegation by default. Do not introduce a business `BaseService` or service inheritance tree merely for code reuse. Any framework-mandated or existing Template Method exception must explain why composition is insufficient and how substitutability and testability remain safe.
+
+### 10.6 State transitions and lifecycle
 
 Define allowed transitions, guards, side effects, invalid transitions, and concurrency/version rules.
 
@@ -208,7 +226,7 @@ Record why Strategy, Template Method, Factory, Adapter, Facade, State, Observer,
 
 ### 13.3 Architecture principles
 
-Explain applicable choices around cohesion, coupling, dependency direction/inversion, information hiding, SOLID, DDD/hexagonal/layered/CQRS/event-driven ideas, YAGNI, testability, and maintainability. Do not claim a principle without showing how paths and dependencies enforce it.
+Explain applicable choices around cohesion, coupling, dependency direction/inversion, information hiding, SOLID, DDD/hexagonal/layered/CQRS/event-driven ideas, YAGNI, testability, and maintainability. Explicitly show how the model avoids class explosion and how business services use composition over inheritance. Do not claim a principle without showing how paths and dependencies enforce it.
 
 ## 14. Test Design
 
