@@ -29,6 +29,14 @@ public final class Rbac3RuntimeKeyFactory {
                 + ':' + authVersion;
     }
 
+    public String gatewayScope(String tenantId, String identitySub, long authVersion) {
+        if (authVersion < 0) {
+            throw new IllegalArgumentException("authVersion must not be negative");
+        }
+        return prefix(tenantId) + "gateway-scope:"
+                + segment(identitySub, "identitySub") + ':' + authVersion;
+    }
+
     public String authorizationPublicationGuard(String tenantId, String identitySub) {
         return prefix(tenantId) + "publication-guard:user:" + segment(identitySub, "identitySub");
     }

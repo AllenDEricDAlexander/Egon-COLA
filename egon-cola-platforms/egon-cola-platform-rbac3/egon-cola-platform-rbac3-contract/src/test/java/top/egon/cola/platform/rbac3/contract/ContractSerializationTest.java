@@ -6,6 +6,9 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.contract.activation.ReplaceActiveRolesRequest;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
+import top.egon.cola.platform.rbac3.contract.authorization.ApplicationAccessScope;
+import top.egon.cola.platform.rbac3.contract.authorization.BusinessAccessScope;
+import top.egon.cola.platform.rbac3.contract.authorization.GatewayBizAppScopeSnapshot;
 import top.egon.cola.platform.rbac3.contract.authorization.UserAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.contract.error.Rbac3ErrorCode;
 import top.egon.cola.platform.rbac3.contract.error.Rbac3ErrorResponse;
@@ -118,6 +121,26 @@ class ContractSerializationTest {
                 List.of(), "sha256:snapshot", generated, generated.plusSeconds(1)));
     }
 
+    @Test
+    void roundTripsGatewayBizAppScopeSnapshot() throws Exception {
+        GatewayBizAppScopeSnapshot snapshot = fixtureGatewayScope();
+
+        String json = objectMapper.writeValueAsString(snapshot);
+
+        assertEquals(snapshot, objectMapper.readValue(
+                json, GatewayBizAppScopeSnapshot.class));
+    }
+
+    @Test
+    void gatewayScopeContainsNoPermissionPayload() throws Exception {
+        String json = objectMapper.writeValueAsString(fixtureGatewayScope());
+
+        assertFalse(json.contains("permissions"));
+        assertFalse(json.contains("dataScopes"));
+        assertFalse(json.contains("fieldPolicies"));
+        assertFalse(json.contains("resources"));
+    }
+
     private UserAuthorizationSnapshot fixtureSnapshot() {
         Instant generated = Instant.parse("2026-07-30T08:00:00Z");
         return new UserAuthorizationSnapshot(
@@ -131,5 +154,23 @@ class ContractSerializationTest {
                 "71001", "finance-web", List.of("50001"), List.of("60001"),
                 List.of("50001", "50010"), Set.of("finance:payment:approve"),
                 Map.of(), Map.of(), List.of(), "payment-approvals");
+    }
+
+    private GatewayBizAppScopeSnapshot fixtureGatewayScope() {
+        Instant generated = Instant.parse("2026-07-30T08:00:00Z");
+        return new GatewayBizAppScopeSnapshot(
+                "tenant-a",
+                "subject-a",
+                "101",
+                43L,
+                3L,
+                List.of(new BusinessAccessScope(
+                        "business-1",
+                        "finance",
+                        List.of(new ApplicationAccessScope(
+                                "application-1", "finance-web")))),
+                "sha256:gateway-scope",
+                generated,
+                generated.plusSeconds(3600));
     }
 }

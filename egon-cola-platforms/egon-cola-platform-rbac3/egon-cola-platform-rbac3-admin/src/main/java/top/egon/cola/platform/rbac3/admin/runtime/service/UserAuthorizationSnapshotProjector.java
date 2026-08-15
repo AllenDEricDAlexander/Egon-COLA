@@ -1,23 +1,32 @@
 package top.egon.cola.platform.rbac3.admin.runtime.service;
 
 import top.egon.cola.platform.rbac3.admin.iam.role.activation.domain.vo.ApplicationFactVO;
+import top.egon.cola.platform.rbac3.admin.iam.role.service.EffectiveApplicationScope;
 import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleEligibilityService;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.ProjectionCommandDTO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.RuntimeUserAuthorizationVO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.UserSnapshotProjectionVO;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
+import top.egon.cola.platform.rbac3.contract.authorization.ApplicationAccessScope;
+import top.egon.cola.platform.rbac3.contract.authorization.BusinessAccessScope;
 import top.egon.cola.platform.rbac3.contract.authorization.DataScopeDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.Decision;
 import top.egon.cola.platform.rbac3.contract.authorization.FieldPolicyDecision;
+import top.egon.cola.platform.rbac3.contract.authorization.GatewayBizAppScopeSnapshot;
 import top.egon.cola.platform.rbac3.contract.authorization.UserAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.contract.manifest.ManifestResource;
 import top.egon.cola.platform.rbac3.core.activation.AuthorizationRuleFacts;
 import top.egon.cola.platform.rbac3.core.activation.RoleActivationResolution;
 import top.egon.cola.platform.rbac3.core.decision.DataScopeMerger;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -53,16 +62,35 @@ public final class UserAuthorizationSnapshotProjector {
     public UserSnapshotProjectionVO project(ProjectionCommandDTO command) {
         RoleActivationResolution resolution = command.resolution();
         var contexts = new ArrayList<AppAuthorizationContext>();
+        var businessIdsByCode = new TreeMap<String, String>();
+        var applicationsByBusinessCode =
+                new TreeMap<String, Map<String, ApplicationAccessScope>>();
         resolution.activeRoleSet().rootsByApplication().forEach(
                 (applicationId, roots) -> {
+                    Optional<EffectiveApplicationScope> effectiveScope =
+                            roleEligibility == null
+                                    ? Optional.empty()
+                                    : roleEligibility.resolveEffectiveScope(
+                                    command.tenantId(), command.userId(), applicationId,
+                                    command.generatedAt());
+                    if (roleEligibility != null && effectiveScope.isEmpty()) {
+                        return;
+                    }
                     AppAuthorizationContext context = appContext(
                             applicationId, roots, command);
-                    if (context != null) {
-                        contexts.add(context);
-                    }
+                    contexts.add(context);
+                    effectiveScope.ifPresent(scope -> addEffectiveScope(
+                            businessIdsByCode, applicationsByBusinessCode, scope));
                 });
         contexts.sort(java.util.Comparator.comparing(
                 AppAuthorizationContext::applicationCode));
+        List<BusinessAccessScope> businesses = businessIdsByCode.entrySet().stream()
+                .map(entry -> new BusinessAccessScope(
+                        entry.getValue(),
+                        entry.getKey(),
+                        new ArrayList<>(applicationsByBusinessCode
+                                .get(entry.getKey()).values())))
+                .toList();
         UserAuthorizationSnapshot snapshot = new UserAuthorizationSnapshot(
                 "rbac3-admin",
                 command.tenantId(),
@@ -82,7 +110,17 @@ public final class UserAuthorizationSnapshotProjector {
                 command.authVersion(),
                 command.policyVersion(),
                 command.expiresAt());
-        return new UserSnapshotProjectionVO(user, snapshot);
+        GatewayBizAppScopeSnapshot gatewayScope = new GatewayBizAppScopeSnapshot(
+                command.tenantId(),
+                command.identitySub(),
+                command.userId(),
+                command.authVersion(),
+                command.policyVersion(),
+                businesses,
+                gatewayScopeChecksum(command, businesses),
+                command.generatedAt(),
+                command.expiresAt());
+        return new UserSnapshotProjectionVO(user, snapshot, gatewayScope);
     }
 
     /**
@@ -102,11 +140,6 @@ public final class UserAuthorizationSnapshotProjector {
             Set<String> roots,
             ProjectionCommandDTO command
     ) {
-        if (roleEligibility != null && !roleEligibility.isEffective(
-                command.tenantId(), command.userId(), applicationId,
-                command.generatedAt())) {
-            return null;
-        }
         var facts = command.facts();
         var snapshot = command.resolution().snapshot();
         var effectiveRoles = new TreeSet<String>();
@@ -284,5 +317,60 @@ public final class UserAuthorizationSnapshotProjector {
         return result;
     }
 
+    private String gatewayScopeChecksum(
+            ProjectionCommandDTO command,
+            List<BusinessAccessScope> businesses) {
+        var canonical = new StringBuilder();
+        appendCanonical(canonical, command.tenantId());
+        appendCanonical(canonical, command.identitySub());
+        appendCanonical(canonical, command.userId());
+        appendCanonical(canonical, Long.toString(command.authVersion()));
+        appendCanonical(canonical, Long.toString(command.policyVersion()));
+        appendCanonical(canonical, command.generatedAt().toString());
+        appendCanonical(canonical, command.expiresAt().toString());
+        for (BusinessAccessScope business : businesses) {
+            appendCanonical(canonical, business.businessId());
+            appendCanonical(canonical, business.businessCode());
+            for (ApplicationAccessScope application : business.applications()) {
+                appendCanonical(canonical, application.applicationId());
+                appendCanonical(canonical, application.applicationCode());
+            }
+        }
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(canonical.toString().getBytes(StandardCharsets.UTF_8));
+            return "sha256:" + HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable", exception);
+        }
+    }
 
+    private void appendCanonical(StringBuilder target, String value) {
+        target.append(value.length()).append(':').append(value).append('|');
+    }
+
+    private void addEffectiveScope(
+            Map<String, String> businessIdsByCode,
+            Map<String, Map<String, ApplicationAccessScope>> applicationsByBusinessCode,
+            EffectiveApplicationScope scope) {
+        String previousBusinessId = businessIdsByCode.putIfAbsent(
+                scope.businessCode(), scope.businessId());
+        if (previousBusinessId != null
+                && !previousBusinessId.equals(scope.businessId())) {
+            throw new IllegalArgumentException(
+                    "businessCode maps to multiple DDC Business identifiers");
+        }
+        Map<String, ApplicationAccessScope> applications =
+                applicationsByBusinessCode.computeIfAbsent(
+                        scope.businessCode(), ignored -> new TreeMap<>());
+        ApplicationAccessScope previousApplication = applications.putIfAbsent(
+                scope.applicationCode(),
+                new ApplicationAccessScope(
+                        scope.applicationId(), scope.applicationCode()));
+        if (previousApplication != null
+                && !previousApplication.applicationId().equals(scope.applicationId())) {
+            throw new IllegalArgumentException(
+                    "applicationCode maps to multiple DDC Application identifiers");
+        }
+    }
 }

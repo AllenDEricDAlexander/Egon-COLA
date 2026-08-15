@@ -18,6 +18,7 @@ import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.PublishResultVO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.RuntimeUserAuthorizationVO;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.UserSnapshotProjectionVO;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.RuntimePublicationRepository;
+import top.egon.cola.platform.rbac3.contract.authorization.GatewayBizAppScopeSnapshot;
 import top.egon.cola.platform.rbac3.contract.authorization.UserAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 import top.egon.cola.platform.rbac3.core.runtime.Rbac3RuntimeKeyFactory;
@@ -76,13 +77,25 @@ public class RedisAuthorizationRuntimeRepository implements
                 command.projection(), "projection");
         RuntimeUserAuthorizationVO user = projection.user();
         UserAuthorizationSnapshot snapshot = projection.snapshot();
+        GatewayBizAppScopeSnapshot gatewayScope = projection.gatewayScope();
         if (!command.tenantId().equals(user.tenantId())
                 || !command.identitySub().equals(user.identitySub())
                 || !command.userId().equals(user.userId())
                 || command.authVersion() != user.authVersion()
                 || command.policyVersion() != user.policyVersion()
+                || !command.tenantId().equals(snapshot.tenantId())
                 || !command.identitySub().equals(snapshot.identitySub())
-                || !command.userId().equals(snapshot.rbacUserId())) {
+                || !command.userId().equals(snapshot.rbacUserId())
+                || command.authVersion() != snapshot.authVersion()
+                || command.policyVersion() != snapshot.policyVersion()
+                || !user.expiresAt().equals(snapshot.expiresAt())
+                || !command.tenantId().equals(gatewayScope.tenantId())
+                || !command.identitySub().equals(gatewayScope.identitySub())
+                || !command.userId().equals(gatewayScope.rbacUserId())
+                || command.authVersion() != gatewayScope.authVersion()
+                || command.policyVersion() != gatewayScope.policyVersion()
+                || !snapshot.generatedAt().equals(gatewayScope.generatedAt())
+                || !snapshot.expiresAt().equals(gatewayScope.expiresAt())) {
             throw new IllegalArgumentException("authorization publication identity mismatch");
         }
         String currentJson = bucket(keyFactory.user(
@@ -94,12 +107,14 @@ public class RedisAuthorizationRuntimeRepository implements
             }
         }
         Duration ttl = ttl(user.expiresAt());
+        bucket(keyFactory.snapshot(command.tenantId(), command.identitySub(),
+                command.authVersion())).set(json(snapshot), ttl);
+        bucket(keyFactory.gatewayScope(command.tenantId(), command.identitySub(),
+                command.authVersion())).set(json(gatewayScope), ttl);
         bucket(keyFactory.authVersion(command.tenantId(), command.userId()))
                 .set(Long.toString(command.authVersion()), ttl);
         bucket(keyFactory.policyVersion(command.tenantId()))
                 .set(Long.toString(command.policyVersion()), ttl);
-        bucket(keyFactory.snapshot(command.tenantId(), command.identitySub(),
-                command.authVersion())).set(json(snapshot), ttl);
         bucket(keyFactory.user(command.tenantId(), command.identitySub()))
                 .set(json(user), ttl);
         bucket(keyFactory.authorizationPublicationGuard(

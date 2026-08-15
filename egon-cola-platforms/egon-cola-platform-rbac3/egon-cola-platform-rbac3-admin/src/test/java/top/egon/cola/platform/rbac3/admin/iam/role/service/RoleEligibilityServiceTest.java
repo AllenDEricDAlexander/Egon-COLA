@@ -3,16 +3,19 @@ package top.egon.cola.platform.rbac3.admin.iam.role.service;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import top.egon.cola.platform.rbac3.admin.iam.business.repository.UserBusinessAccessRepository;
 import top.egon.cola.platform.rbac3.admin.iam.business.service.ApplicationCatalogEntry;
 import top.egon.cola.platform.rbac3.admin.iam.business.service.DdcCatalogGateway;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -60,6 +63,35 @@ class RoleEligibilityServiceTest {
     }
 
     @Test
+    void resolvesEffectiveApplicationScopeWithDdcBizAndAppIdentity() {
+        stubApplicationLookup();
+        when(businessAccessStore.effectiveBusinessIds(7L, 9L, NOW))
+                .thenReturn(Set.of("biz-1"));
+        when(catalog.findApplication("ddc-app-1")).thenReturn(Optional.of(
+                new ApplicationCatalogEntry(
+                        "ddc-app-1", "biz-1", "orders",
+                        "console", "Console", true, true)));
+
+        Optional<EffectiveApplicationScope> actual = service.resolveEffectiveScope(
+                "7", "9", "1", NOW);
+
+        assertThat(actual).contains(new EffectiveApplicationScope(
+                "biz-1", "orders", "ddc-app-1", "console"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidDdcScopes")
+    void rejectsDisabledOrMismatchedDdcScopes(ApplicationCatalogEntry entry) {
+        stubApplicationLookup();
+        when(businessAccessStore.effectiveBusinessIds(7L, 9L, NOW))
+                .thenReturn(Set.of("biz-1"));
+        when(catalog.findApplication("ddc-app-1")).thenReturn(Optional.of(entry));
+
+        assertThat(service.resolveEffectiveScope("7", "9", "1", NOW)).isEmpty();
+        assertThat(service.isEffective("7", "9", "1", NOW)).isFalse();
+    }
+
+    @Test
     void failsClosedWhenDdcLookupIsUnavailable() {
         stubApplicationLookup();
         when(businessAccessStore.effectiveBusinessIds(7L, 9L, NOW))
@@ -98,5 +130,21 @@ class RoleEligibilityServiceTest {
         when(applicationQuery.setParameter(anyString(), any())).thenReturn(applicationQuery);
         when(applicationQuery.getResultList()).thenReturn(Collections.singletonList(
                 new Object[]{1L, "ddc-app-1", "biz-1", "ACTIVE"}));
+    }
+
+    private static Stream<ApplicationCatalogEntry> invalidDdcScopes() {
+        return Stream.of(
+                new ApplicationCatalogEntry(
+                        "ddc-app-1", "biz-1", "orders",
+                        "console", "Console", false, true),
+                new ApplicationCatalogEntry(
+                        "ddc-app-1", "biz-1", "orders",
+                        "console", "Console", true, false),
+                new ApplicationCatalogEntry(
+                        "ddc-app-1", "biz-2", "orders",
+                        "console", "Console", true, true),
+                new ApplicationCatalogEntry(
+                        "ddc-app-2", "biz-1", "orders",
+                        "console", "Console", true, true));
     }
 }

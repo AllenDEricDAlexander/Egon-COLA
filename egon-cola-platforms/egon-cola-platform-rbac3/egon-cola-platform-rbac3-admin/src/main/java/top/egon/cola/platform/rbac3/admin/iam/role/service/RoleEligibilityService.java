@@ -45,28 +45,25 @@ public final class RoleEligibilityService {
             String userId,
             String applicationId,
             Instant at) {
+        return resolveEffectiveScope(tenantId, userId, applicationId, at).isPresent();
+    }
+
+    /**
+     * Resolves the effective DDC Business/Application identity for a local Application.
+     */
+    public Optional<EffectiveApplicationScope> resolveEffectiveScope(
+            String tenantId,
+            String userId,
+            String applicationId,
+            Instant at) {
         try {
             long tenant = Long.parseLong(required(tenantId, "tenantId"));
             long user = Long.parseLong(required(userId, "userId"));
             LocalApplication application = findApplication(tenant, applicationId)
                     .orElse(null);
-            if (application == null || !"ACTIVE".equals(application.status())) {
-                return false;
-            }
-            Set<String> businesses = businessAccessStore.effectiveBusinessIds(
-                    tenant, user, Objects.requireNonNull(at, "at"));
-            if (!businesses.contains(application.ddcBusinessId())) {
-                return false;
-            }
-            ApplicationCatalogEntry ddcApplication = catalog.findApplication(
-                            application.ddcApplicationId())
-                    .orElse(null);
-            return ddcApplication != null
-                    && ddcApplication.applicationEnabled()
-                    && ddcApplication.businessEnabled()
-                    && application.ddcBusinessId().equals(ddcApplication.ddcBusinessId());
+            return resolveEffectiveScope(tenant, user, application, at);
         } catch (RuntimeException unavailableOrInvalid) {
-            return false;
+            return Optional.empty();
         }
     }
 
@@ -78,10 +75,10 @@ public final class RoleEligibilityService {
             Instant at) {
         try {
             long tenant = Long.parseLong(required(tenantId, "tenantId"));
+            long user = Long.parseLong(required(userId, "userId"));
             LocalApplication application = findApplicationByCode(tenant, applicationCode)
                     .orElse(null);
-            return application != null && isEffective(
-                    tenantId, userId, Long.toString(application.id()), at);
+            return resolveEffectiveScope(tenant, user, application, at).isPresent();
         } catch (RuntimeException unavailableOrInvalid) {
             return false;
         }
@@ -127,6 +124,38 @@ public final class RoleEligibilityService {
                 .setParameter("applicationId", id)
                 .getResultList();
         return result.stream().findFirst().map(RoleEligibilityService::application);
+    }
+
+    private Optional<EffectiveApplicationScope> resolveEffectiveScope(
+            long tenantId,
+            long userId,
+            LocalApplication application,
+            Instant at) {
+        if (application == null || !"ACTIVE".equals(application.status())) {
+            return Optional.empty();
+        }
+        Set<String> businesses = businessAccessStore.effectiveBusinessIds(
+                tenantId, userId, Objects.requireNonNull(at, "at"));
+        if (!businesses.contains(application.ddcBusinessId())) {
+            return Optional.empty();
+        }
+        ApplicationCatalogEntry ddcApplication = catalog.findApplication(
+                        application.ddcApplicationId())
+                .orElse(null);
+        if (ddcApplication == null
+                || !ddcApplication.applicationEnabled()
+                || !ddcApplication.businessEnabled()
+                || !application.ddcApplicationId().equals(
+                ddcApplication.ddcApplicationId())
+                || !application.ddcBusinessId().equals(
+                ddcApplication.ddcBusinessId())) {
+            return Optional.empty();
+        }
+        return Optional.of(new EffectiveApplicationScope(
+                ddcApplication.ddcBusinessId(),
+                ddcApplication.bizCode(),
+                ddcApplication.ddcApplicationId(),
+                ddcApplication.appCode()));
     }
 
     private Optional<LocalApplication> findApplicationByCode(
