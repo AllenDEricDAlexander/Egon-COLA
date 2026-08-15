@@ -5,6 +5,10 @@ import top.egon.cola.component.rpc.annotation.EgonRpcService;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcManagementServiceGrpc;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DeleteConfigRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DeleteConfigResponse;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetAppRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetAppResponse;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetBizRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetBizResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.FindConfigRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.FindConfigResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetConfigClientsRequest;
@@ -17,6 +21,10 @@ import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetScopeBindingsRequest
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetScopeBindingsResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetServiceKeysRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetServiceKeysResponse;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.ListAppsRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.ListAppsResponse;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.ListBizsRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.ListBizsResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.PublishConfigRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.PublishConfigResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.RetryPublishTaskRequest;
@@ -36,6 +44,42 @@ import top.egon.cola.component.rpc.ddc.contract.proto.v1.UpsertConfigResponse;
         version = "1.0.0"
 )
 public interface DdcManagementRpc {
+
+    /**
+     * 查询单个业务域目录项。 / Gets one business-domain catalog entry.
+     *
+     * @param request 业务域定位请求 / business locator request
+     * @return 查询结果 / lookup result
+     */
+    @EgonRpcMethod(name = "GetBiz", idempotent = true)
+    GetBizResponse getBiz(GetBizRequest request);
+
+    /**
+     * 查询业务域目录。 / Lists business-domain catalog entries.
+     *
+     * @param request 业务域筛选请求 / business filter request
+     * @return 业务域集合 / business entries
+     */
+    @EgonRpcMethod(name = "ListBizs", idempotent = true)
+    ListBizsResponse listBizs(ListBizsRequest request);
+
+    /**
+     * 查询单个应用目录项。 / Gets one application catalog entry.
+     *
+     * @param request 应用定位请求 / application locator request
+     * @return 查询结果 / lookup result
+     */
+    @EgonRpcMethod(name = "GetApp", idempotent = true)
+    GetAppResponse getApp(GetAppRequest request);
+
+    /**
+     * 查询应用目录。 / Lists application catalog entries.
+     *
+     * @param request 应用筛选请求 / application filter request
+     * @return 应用集合 / application entries
+     */
+    @EgonRpcMethod(name = "ListApps", idempotent = true)
+    ListAppsResponse listApps(ListAppsRequest request);
 
     /**
      * 查询配置。 / Finds a configuration.

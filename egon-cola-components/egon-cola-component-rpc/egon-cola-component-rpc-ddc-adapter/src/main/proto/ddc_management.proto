@@ -21,6 +21,10 @@ service DdcManagementService {
   rpc GetScopeBindings(GetScopeBindingsRequest) returns (GetScopeBindingsResponse);
   rpc GetServiceKeys(GetServiceKeysRequest) returns (GetServiceKeysResponse);
   rpc GetInstances(GetInstancesRequest) returns (GetInstancesResponse);
+  rpc GetBiz(GetBizRequest) returns (GetBizResponse);
+  rpc ListBizs(ListBizsRequest) returns (ListBizsResponse);
+  rpc GetApp(GetAppRequest) returns (GetAppResponse);
+  rpc ListApps(ListAppsRequest) returns (ListAppsResponse);
 }
 
 message FindConfigRequest {
@@ -230,6 +234,64 @@ message DdcManagementServiceInstance {
   google.protobuf.Timestamp registered_at = 8;
   google.protobuf.Timestamp last_heartbeat_at = 9;
   google.protobuf.Timestamp expire_at = 10;
+}
+
+message GetBizRequest {
+  oneof selector {
+    string ddc_business_id = 1;
+    string biz_code = 2;
+  }
+}
+
+message GetBizResponse {
+  bool found = 1;
+  DdcManagementBiz biz = 2;
+}
+
+message ListBizsRequest {
+  optional string keyword = 1;
+  optional bool enabled = 2;
+}
+
+message ListBizsResponse {
+  repeated DdcManagementBiz businesses = 1;
+}
+
+message GetAppRequest {
+  string ddc_application_id = 1;
+}
+
+message GetAppResponse {
+  bool found = 1;
+  DdcManagementApp app = 2;
+}
+
+message ListAppsRequest {
+  optional string ddc_business_id = 1;
+  optional string biz_code = 2;
+  optional string keyword = 3;
+  optional bool enabled = 4;
+}
+
+message ListAppsResponse {
+  repeated DdcManagementApp applications = 1;
+}
+
+message DdcManagementBiz {
+  string id = 1;
+  string biz_code = 2;
+  string biz_name = 3;
+  bool enabled = 4;
+}
+
+message DdcManagementApp {
+  string id = 1;
+  string business_id = 2;
+  string biz_code = 3;
+  string app_code = 4;
+  string app_name = 5;
+  bool enabled = 6;
+  bool business_enabled = 7;
 }
 
 message GetInstancesResponse {

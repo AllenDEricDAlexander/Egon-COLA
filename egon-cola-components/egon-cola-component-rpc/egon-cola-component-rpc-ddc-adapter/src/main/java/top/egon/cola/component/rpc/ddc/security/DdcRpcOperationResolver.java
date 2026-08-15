@@ -65,6 +65,10 @@ public final class DdcRpcOperationResolver {
         values.put(MANAGEMENT + "GetScopeBindings", DdcRpcOperation.MANAGEMENT_SCOPE_READ);
         values.put(MANAGEMENT + "GetServiceKeys", DdcRpcOperation.MANAGEMENT_REGISTRY_READ);
         values.put(MANAGEMENT + "GetInstances", DdcRpcOperation.MANAGEMENT_REGISTRY_READ);
+        values.put(MANAGEMENT + "GetBiz", DdcRpcOperation.MANAGEMENT_CATALOG_READ);
+        values.put(MANAGEMENT + "ListBizs", DdcRpcOperation.MANAGEMENT_CATALOG_READ);
+        values.put(MANAGEMENT + "GetApp", DdcRpcOperation.MANAGEMENT_CATALOG_READ);
+        values.put(MANAGEMENT + "ListApps", DdcRpcOperation.MANAGEMENT_CATALOG_READ);
         return Map.copyOf(values);
     }
 }

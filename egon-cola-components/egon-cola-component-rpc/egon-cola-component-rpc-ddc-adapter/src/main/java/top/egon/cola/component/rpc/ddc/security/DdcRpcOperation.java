@@ -22,7 +22,8 @@ public enum DdcRpcOperation {
     MANAGEMENT_INSTANCE_READ,
     MANAGEMENT_ADMISSION_REVOKE,
     MANAGEMENT_SCOPE_READ,
-    MANAGEMENT_REGISTRY_READ;
+    MANAGEMENT_REGISTRY_READ,
+    MANAGEMENT_CATALOG_READ;
 
     /** 是否属于管理面操作。 / Whether this is a management-plane operation. */
     public boolean management() {

@@ -9,6 +9,10 @@ import top.egon.cola.component.rpc.ddc.contract.proto.v1.FindConfigResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetConfigClientsResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetPublishTaskResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetScopeBindingsResponse;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetBizResponse;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetAppResponse;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.ListBizsResponse;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.ListAppsResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.PublishConfigResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.RetryPublishTaskResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.UpsertConfigResponse;
@@ -88,5 +92,36 @@ class RpcDdcManagementClientTest {
         verify(rpc).retryPublishTask(argThat(request ->
                 request.getChangeId().equals("change-1")
                         && request.getRequestedOperator().equals("rpc-client")));
+    }
+
+    @Test
+    void readsBusinessAndApplicationCatalogThroughTheTypedClient() {
+        DdcManagementRpc rpc = mock(DdcManagementRpc.class);
+        DdcManagementProtoMapper mapper = new DdcManagementProtoMapper(
+                new DdcCommonProtoMapper(1024 * 1024), 1024 * 1024);
+        RpcDdcManagementClient client = new RpcDdcManagementClient(
+                rpc, mapper, new DdcRpcStatusExceptionMapper());
+        DdcManagementBiz biz = new DdcManagementBiz(
+                "business-1", "retail", "Retail", true);
+        DdcManagementApp app = new DdcManagementApp(
+                "app-1", "business-1", "retail", "order", "Order", true,
+                true);
+
+        when(rpc.getBiz(any())).thenReturn(GetBizResponse.newBuilder()
+                .setFound(true).setBiz(mapper.toBiz(biz)).build());
+        when(rpc.listBizs(any())).thenReturn(ListBizsResponse.newBuilder()
+                .addBusinesses(mapper.toBiz(biz)).build());
+        when(rpc.getApp(any())).thenReturn(GetAppResponse.newBuilder()
+                .setFound(true).setApp(mapper.toApp(app)).build());
+        when(rpc.listApps(any())).thenReturn(ListAppsResponse.newBuilder()
+                .addApplications(mapper.toApp(app)).build());
+
+        assertThat(client.getBiz(new DdcManagementBizLookup("business-1", null)))
+                .contains(biz);
+        assertThat(client.listBizs(new DdcManagementBizQuery(null, true)))
+                .containsExactly(biz);
+        assertThat(client.getApp("app-1")).contains(app);
+        assertThat(client.listApps(new DdcManagementAppQuery(
+                "business-1", null, null, true))).containsExactly(app);
     }
 }

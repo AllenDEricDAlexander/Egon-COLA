@@ -6,6 +6,11 @@ import top.egon.cola.component.ddc.model.management.DdcManagementConfigClientIns
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigDeleteRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigUpsertRequest;
+import top.egon.cola.component.ddc.model.management.DdcManagementApp;
+import top.egon.cola.component.ddc.model.management.DdcManagementAppQuery;
+import top.egon.cola.component.ddc.model.management.DdcManagementBiz;
+import top.egon.cola.component.ddc.model.management.DdcManagementBizLookup;
+import top.egon.cola.component.ddc.model.management.DdcManagementBizQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementInstanceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
@@ -207,5 +212,38 @@ class DdcManagementProtoMapperTest {
         assertThat(mapper.fromResourceAdmissionRevocationResponse(
                 mapper.toResourceAdmissionRevocationResponse(result)))
                 .isEqualTo(result);
+    }
+
+    @Test
+    void roundTripsBusinessAndApplicationCatalogQueriesAndResults() {
+        DdcManagementBizLookup lookup = new DdcManagementBizLookup(
+                "business-1", null);
+        assertThat(mapper.fromGetBizRequest(mapper.toGetBizRequest(lookup)))
+                .isEqualTo(lookup);
+
+        DdcManagementBizQuery bizQuery = new DdcManagementBizQuery(
+                "retail", true);
+        assertThat(mapper.fromListBizsRequest(mapper.toListBizsRequest(bizQuery)))
+                .isEqualTo(bizQuery);
+
+        DdcManagementBiz biz = new DdcManagementBiz(
+                "business-1", "retail", "Retail", true);
+        assertThat(mapper.fromBiz(mapper.toBiz(biz))).isEqualTo(biz);
+        assertThat(mapper.fromBizsResponse(
+                mapper.toBizsResponse(List.of(biz)))).containsExactly(biz);
+
+        DdcManagementAppQuery appQuery = new DdcManagementAppQuery(
+                "business-1", "retail", "order", false);
+        assertThat(mapper.fromListAppsRequest(mapper.toListAppsRequest(appQuery)))
+                .isEqualTo(appQuery);
+
+        DdcManagementApp app = new DdcManagementApp(
+                "app-1", "business-1", "retail", "order", "Order", true,
+                true);
+        assertThat(mapper.fromGetAppRequest(
+                mapper.toGetAppRequest("app-1"))).isEqualTo("app-1");
+        assertThat(mapper.fromApp(mapper.toApp(app))).isEqualTo(app);
+        assertThat(mapper.fromAppsResponse(
+                mapper.toAppsResponse(List.of(app)))).containsExactly(app);
     }
 }

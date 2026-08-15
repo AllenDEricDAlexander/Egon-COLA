@@ -5,6 +5,11 @@ import top.egon.cola.component.ddc.model.management.DdcManagementConfigClientIns
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigDeleteRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigUpsertRequest;
+import top.egon.cola.component.ddc.model.management.DdcManagementApp;
+import top.egon.cola.component.ddc.model.management.DdcManagementAppQuery;
+import top.egon.cola.component.ddc.model.management.DdcManagementBiz;
+import top.egon.cola.component.ddc.model.management.DdcManagementBizLookup;
+import top.egon.cola.component.ddc.model.management.DdcManagementBizQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementInstanceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
@@ -24,6 +29,38 @@ import java.util.Optional;
  * DDC 管理开放接口的类型化客户端契约。 / Typed client contract for the DDC management OpenAPI.
  */
 public interface DdcManagementClient {
+
+    /**
+     * 按标识或编码查询业务域目录项。 / Looks up a business catalog entry by id or code.
+     *
+     * @param lookup 业务域定位条件 / business locator
+     * @return 业务域目录项，未找到时为空 / catalog entry, or empty when absent
+     */
+    Optional<DdcManagementBiz> getBiz(DdcManagementBizLookup lookup);
+
+    /**
+     * 查询业务域目录。 / Lists business-domain catalog entries.
+     *
+     * @param query 业务域筛选条件 / business filters
+     * @return 业务域目录项 / catalog entries
+     */
+    List<DdcManagementBiz> listBizs(DdcManagementBizQuery query);
+
+    /**
+     * 按 DDC 应用标识查询应用目录项。 / Looks up an application by DDC id.
+     *
+     * @param ddcApplicationId DDC 应用标识 / DDC application identifier
+     * @return 应用目录项，未找到时为空 / catalog entry, or empty when absent
+     */
+    Optional<DdcManagementApp> getApp(String ddcApplicationId);
+
+    /**
+     * 查询应用目录。 / Lists application catalog entries.
+     *
+     * @param query 应用筛选条件 / application filters
+     * @return 应用目录项 / catalog entries
+     */
+    List<DdcManagementApp> listApps(DdcManagementAppQuery query);
 
     /**
      * 按完整配置作用域查找配置；不支持该能力的实现默认抛出异常。 /

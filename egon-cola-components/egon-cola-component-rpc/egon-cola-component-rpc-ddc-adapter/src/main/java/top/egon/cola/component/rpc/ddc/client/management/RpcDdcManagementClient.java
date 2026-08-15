@@ -29,6 +29,40 @@ public final class RpcDdcManagementClient implements DdcManagementClient {
     }
 
     @Override
+    public Optional<DdcManagementBiz> getBiz(DdcManagementBizLookup lookup) {
+        return invoke(DdcRpcOperation.MANAGEMENT_CATALOG_READ, () -> {
+            var response = rpc.getBiz(mapper.toGetBizRequest(lookup));
+            return response.getFound() && response.hasBiz()
+                    ? Optional.of(mapper.fromBiz(response.getBiz()))
+                    : Optional.empty();
+        });
+    }
+
+    @Override
+    public List<DdcManagementBiz> listBizs(DdcManagementBizQuery query) {
+        return invoke(DdcRpcOperation.MANAGEMENT_CATALOG_READ, () ->
+                mapper.fromBizsResponse(rpc.listBizs(
+                        mapper.toListBizsRequest(query))));
+    }
+
+    @Override
+    public Optional<DdcManagementApp> getApp(String ddcApplicationId) {
+        return invoke(DdcRpcOperation.MANAGEMENT_CATALOG_READ, () -> {
+            var response = rpc.getApp(mapper.toGetAppRequest(ddcApplicationId));
+            return response.getFound() && response.hasApp()
+                    ? Optional.of(mapper.fromApp(response.getApp()))
+                    : Optional.empty();
+        });
+    }
+
+    @Override
+    public List<DdcManagementApp> listApps(DdcManagementAppQuery query) {
+        return invoke(DdcRpcOperation.MANAGEMENT_CATALOG_READ, () ->
+                mapper.fromAppsResponse(rpc.listApps(
+                        mapper.toListAppsRequest(query))));
+    }
+
+    @Override
     public Optional<DdcManagementConfig> findConfig(DdcManagementConfigQuery query) {
         return invoke(DdcRpcOperation.MANAGEMENT_CONFIG_READ, () -> {
             var response = rpc.findConfig(mapper.toFindRequest(query));

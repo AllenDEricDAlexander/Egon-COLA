@@ -11,6 +11,8 @@ import top.egon.cola.component.rpc.ddc.contract.proto.v1.HeartbeatConfigClientRe
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.HeartbeatServiceRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.RegisterConfigClientRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.RegisterServiceRequest;
+import top.egon.cola.component.rpc.ddc.security.DdcRpcOperation;
+import top.egon.cola.component.rpc.ddc.security.DdcRpcOperationResolver;
 
 import java.util.List;
 
@@ -47,6 +49,16 @@ class DdcRpcContractDescriptorTest {
                 .findFieldByName("admission_ticket").getNumber()).isEqualTo(9);
         assertThat(HeartbeatServiceRequest.getDescriptor()
                 .findFieldByName("admission_ticket").getNumber()).isEqualTo(4);
+    }
+
+    @Test
+    void mapsBusinessCatalogMethodsToAReadOnlyManagementOperation() {
+        var operations = new DdcRpcOperationResolver().operationsByBareMethod();
+        assertThat(operations)
+                .containsEntry("GetBiz", DdcRpcOperation.MANAGEMENT_CATALOG_READ)
+                .containsEntry("ListBizs", DdcRpcOperation.MANAGEMENT_CATALOG_READ)
+                .containsEntry("GetApp", DdcRpcOperation.MANAGEMENT_CATALOG_READ)
+                .containsEntry("ListApps", DdcRpcOperation.MANAGEMENT_CATALOG_READ);
     }
 
     private void assertContract(

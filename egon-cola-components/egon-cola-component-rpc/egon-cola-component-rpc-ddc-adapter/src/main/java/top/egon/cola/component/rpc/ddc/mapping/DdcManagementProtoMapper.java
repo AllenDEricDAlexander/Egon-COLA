@@ -6,6 +6,11 @@ import top.egon.cola.component.ddc.model.management.DdcManagementConfigClientIns
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigDeleteRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigUpsertRequest;
+import top.egon.cola.component.ddc.model.management.DdcManagementApp;
+import top.egon.cola.component.ddc.model.management.DdcManagementAppQuery;
+import top.egon.cola.component.ddc.model.management.DdcManagementBiz;
+import top.egon.cola.component.ddc.model.management.DdcManagementBizLookup;
+import top.egon.cola.component.ddc.model.management.DdcManagementBizQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementInstanceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
@@ -31,6 +36,10 @@ import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcScope;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcScopeBinding;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcScopeBindingQuery;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.FindConfigRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetAppRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetAppResponse;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetBizRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetBizResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetConfigClientsRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetConfigClientsResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetInstancesRequest;
@@ -39,6 +48,10 @@ import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetScopeBindingsRequest
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetScopeBindingsResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetServiceKeysRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetServiceKeysResponse;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.ListAppsRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.ListAppsResponse;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.ListBizsRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.ListBizsResponse;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.PublishConfigRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.RevokeResourceAdmissionRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.RevokeResourceAdmissionResponse;
@@ -46,6 +59,7 @@ import top.egon.cola.component.rpc.ddc.contract.proto.v1.UpsertConfigRequest;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 /**
  * DDC 管理 Port 模型与 protobuf 请求响应之间的显式映射。
@@ -66,6 +80,194 @@ public final class DdcManagementProtoMapper {
         }
         this.common = common;
         this.maxConfigBytes = maxConfigBytes;
+    }
+
+    public GetBizRequest toGetBizRequest(DdcManagementBizLookup value) {
+        require(value, "business lookup");
+        var builder = GetBizRequest.newBuilder();
+        if (value.id() != null && !value.id().isBlank()) {
+            builder.setDdcBusinessId(value.id());
+        } else if (value.bizCode() != null && !value.bizCode().isBlank()) {
+            builder.setBizCode(value.bizCode());
+        } else {
+            throw new IllegalArgumentException(
+                    "business id or bizCode is required");
+        }
+        return common.checked(builder.build());
+    }
+
+    public DdcManagementBizLookup fromGetBizRequest(GetBizRequest value) {
+        common.checked(value);
+        return switch (value.getSelectorCase()) {
+            case DDC_BUSINESS_ID -> new DdcManagementBizLookup(
+                    value.getDdcBusinessId(), null);
+            case BIZ_CODE -> new DdcManagementBizLookup(
+                    null, value.getBizCode());
+            case SELECTOR_NOT_SET -> throw new IllegalArgumentException(
+                    "business selector is required");
+        };
+    }
+
+    public ListBizsRequest toListBizsRequest(DdcManagementBizQuery value) {
+        require(value, "business query");
+        var builder = ListBizsRequest.newBuilder();
+        set(builder::setKeyword, value.keyword());
+        if (value.enabled() != null) {
+            builder.setEnabled(value.enabled());
+        }
+        return common.checked(builder.build());
+    }
+
+    public DdcManagementBizQuery fromListBizsRequest(ListBizsRequest value) {
+        common.checked(value);
+        return new DdcManagementBizQuery(
+                value.hasKeyword() ? value.getKeyword() : null,
+                value.hasEnabled() ? value.getEnabled() : null
+        );
+    }
+
+    public top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcManagementBiz
+            toBiz(DdcManagementBiz value) {
+        require(value, "business");
+        return common.checked(
+                top.egon.cola.component.rpc.ddc.contract.proto.v1
+                        .DdcManagementBiz.newBuilder()
+                        .setId(DdcCommonProtoMapper.require(value.id(), "id"))
+                        .setBizCode(DdcCommonProtoMapper.require(
+                                value.bizCode(), "bizCode"))
+                        .setBizName(DdcCommonProtoMapper.require(
+                                value.bizName(), "bizName"))
+                        .setEnabled(value.enabled())
+                        .build());
+    }
+
+    public DdcManagementBiz fromBiz(
+            top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcManagementBiz value) {
+        common.checked(value);
+        return new DdcManagementBiz(
+                DdcCommonProtoMapper.require(value.getId(), "id"),
+                DdcCommonProtoMapper.require(value.getBizCode(), "bizCode"),
+                DdcCommonProtoMapper.require(value.getBizName(), "bizName"),
+                value.getEnabled()
+        );
+    }
+
+    public ListBizsResponse toBizsResponse(List<DdcManagementBiz> values) {
+        var builder = ListBizsResponse.newBuilder();
+        if (values != null) {
+            values.forEach(value -> builder.addBusinesses(toBiz(value)));
+        }
+        return common.checked(builder.build());
+    }
+
+    public List<DdcManagementBiz> fromBizsResponse(ListBizsResponse value) {
+        common.checked(value);
+        return value.getBusinessesList().stream()
+                .map(this::fromBiz).toList();
+    }
+
+    public GetBizResponse toBizResponse(Optional<DdcManagementBiz> value) {
+        require(value, "business lookup result");
+        var builder = GetBizResponse.newBuilder().setFound(value.isPresent());
+        value.ifPresent(biz -> builder.setBiz(toBiz(biz)));
+        return common.checked(builder.build());
+    }
+
+    public GetAppRequest toGetAppRequest(String ddcApplicationId) {
+        return common.checked(GetAppRequest.newBuilder()
+                .setDdcApplicationId(DdcCommonProtoMapper.require(
+                        ddcApplicationId, "ddcApplicationId"))
+                .build());
+    }
+
+    public String fromGetAppRequest(GetAppRequest value) {
+        common.checked(value);
+        return DdcCommonProtoMapper.require(
+                value.getDdcApplicationId(), "ddcApplicationId");
+    }
+
+    public ListAppsRequest toListAppsRequest(DdcManagementAppQuery value) {
+        require(value, "application query");
+        var builder = ListAppsRequest.newBuilder();
+        if (value.businessId() != null && !value.businessId().isBlank()) {
+            builder.setDdcBusinessId(value.businessId());
+        }
+        if (value.bizCode() != null && !value.bizCode().isBlank()) {
+            builder.setBizCode(value.bizCode());
+        }
+        set(builder::setKeyword, value.keyword());
+        if (value.enabled() != null) {
+            builder.setEnabled(value.enabled());
+        }
+        return common.checked(builder.build());
+    }
+
+    public DdcManagementAppQuery fromListAppsRequest(ListAppsRequest value) {
+        common.checked(value);
+        String businessId = value.hasDdcBusinessId()
+                ? value.getDdcBusinessId() : null;
+        String bizCode = value.hasBizCode() ? value.getBizCode() : null;
+        return new DdcManagementAppQuery(
+                businessId,
+                bizCode,
+                value.hasKeyword() ? value.getKeyword() : null,
+                value.hasEnabled() ? value.getEnabled() : null
+        );
+    }
+
+    public GetAppResponse toAppResponse(Optional<DdcManagementApp> value) {
+        require(value, "application lookup result");
+        var builder = GetAppResponse.newBuilder().setFound(value.isPresent());
+        value.ifPresent(app -> builder.setApp(toApp(app)));
+        return common.checked(builder.build());
+    }
+
+    public ListAppsResponse toAppsResponse(List<DdcManagementApp> values) {
+        var builder = ListAppsResponse.newBuilder();
+        if (values != null) {
+            values.forEach(value -> builder.addApplications(toApp(value)));
+        }
+        return common.checked(builder.build());
+    }
+
+    public DdcManagementApp fromApp(
+            top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcManagementApp value) {
+        common.checked(value);
+        return new DdcManagementApp(
+                DdcCommonProtoMapper.require(value.getId(), "id"),
+                DdcCommonProtoMapper.require(value.getBusinessId(), "businessId"),
+                DdcCommonProtoMapper.require(value.getBizCode(), "bizCode"),
+                DdcCommonProtoMapper.require(value.getAppCode(), "appCode"),
+                DdcCommonProtoMapper.require(value.getAppName(), "appName"),
+                value.getEnabled(),
+                value.getBusinessEnabled()
+        );
+    }
+
+    public top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcManagementApp
+            toApp(DdcManagementApp value) {
+        require(value, "application");
+        return common.checked(
+                top.egon.cola.component.rpc.ddc.contract.proto.v1
+                        .DdcManagementApp.newBuilder()
+                        .setId(DdcCommonProtoMapper.require(value.id(), "id"))
+                        .setBusinessId(DdcCommonProtoMapper.require(
+                                value.businessId(), "businessId"))
+                        .setBizCode(DdcCommonProtoMapper.require(
+                                value.bizCode(), "bizCode"))
+                        .setAppCode(DdcCommonProtoMapper.require(
+                                value.appCode(), "appCode"))
+                        .setAppName(DdcCommonProtoMapper.require(
+                                value.appName(), "appName"))
+                        .setEnabled(value.enabled())
+                        .setBusinessEnabled(value.businessEnabled())
+                        .build());
+    }
+
+    public List<DdcManagementApp> fromAppsResponse(ListAppsResponse value) {
+        common.checked(value);
+        return value.getApplicationsList().stream()
+                .map(this::fromApp).toList();
     }
 
     public FindConfigRequest toFindRequest(DdcManagementConfigQuery value) {
