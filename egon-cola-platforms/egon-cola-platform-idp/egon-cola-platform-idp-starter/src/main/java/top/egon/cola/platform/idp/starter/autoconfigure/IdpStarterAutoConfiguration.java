@@ -43,6 +43,8 @@ import top.egon.cola.platform.idp.starter.security.ServiceAccessTokenVerifier;
 import top.egon.cola.platform.idp.starter.security.UserAccessTokenVerifier;
 import top.egon.cola.platform.idp.starter.security.RetryingJwtDecoder;
 import top.egon.cola.platform.idp.starter.security.ServiceScopeAuthorization;
+import top.egon.cola.platform.idp.starter.security.rpc.IdpRpcBearerServerInterceptor;
+import top.egon.cola.platform.idp.starter.security.rpc.IdpRpcClientCredentialInterceptorFactory;
 import top.egon.cola.platform.idp.starter.state.IdentityOAuthClientStateReader;
 import top.egon.cola.platform.idp.starter.state.IdentityResourceServerStateReader;
 import top.egon.cola.platform.idp.starter.state.RedisIdentityOAuthClientStateReader;
@@ -351,6 +353,34 @@ public class IdpStarterAutoConfiguration {
     @ConditionalOnMissingBean
     public UserAccessTokenVerifier userAccessTokenVerifier(IdpJwtVerifier verifier) {
         return new UserAccessTokenVerifier(verifier);
+    }
+
+    /**
+     * Relays an already verified USER token from HTTP or RPC request context to downstream RPC.
+     *
+     * @return trusted RPC USER credential relay
+     */
+    @Bean
+    @ConditionalOnBean(UserAccessTokenVerifier.class)
+    @ConditionalOnMissingBean
+    public IdpRpcClientCredentialInterceptorFactory
+            idpRpcClientCredentialInterceptorFactory() {
+        return new IdpRpcClientCredentialInterceptorFactory();
+    }
+
+    /**
+     * Verifies an optional USER Bearer credential on RPC provider calls.
+     *
+     * @param verifier shared USER access-token verifier
+     * @return RPC USER Bearer server interceptor
+     */
+    @Bean
+    @ConditionalOnBean(UserAccessTokenVerifier.class)
+    @ConditionalOnMissingBean
+    public IdpRpcBearerServerInterceptor idpRpcBearerServerInterceptor(
+            UserAccessTokenVerifier verifier
+    ) {
+        return new IdpRpcBearerServerInterceptor(verifier);
     }
 
     /**

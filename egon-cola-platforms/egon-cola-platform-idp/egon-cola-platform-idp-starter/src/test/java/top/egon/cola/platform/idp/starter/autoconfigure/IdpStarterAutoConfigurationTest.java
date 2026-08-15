@@ -10,6 +10,7 @@ import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 import com.sun.net.httpserver.HttpServer;
+import io.grpc.ServerInterceptor;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -17,10 +18,14 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
+import top.egon.cola.component.rpc.consumer.interceptor.RpcClientInterceptorFactory;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
 import top.egon.cola.platform.idp.starter.admission.RpcResourceServerAdmissionClient;
 import top.egon.cola.platform.idp.starter.security.IdpJwtVerifier;
 import top.egon.cola.platform.idp.starter.security.ServiceScopeAuthorization;
+import top.egon.cola.platform.idp.starter.security.UserAccessTokenVerifier;
+import top.egon.cola.platform.idp.starter.security.rpc.IdpRpcBearerServerInterceptor;
+import top.egon.cola.platform.idp.starter.security.rpc.IdpRpcClientCredentialInterceptorFactory;
 import top.egon.cola.platform.idp.starter.state.IdentityOAuthClientStateReader;
 import top.egon.cola.platform.idp.starter.state.IdentityResourceServerStateReader;
 
@@ -70,6 +75,22 @@ class IdpStarterAutoConfigurationTest {
             assertThat(context).hasSingleBean(IdpJwtVerifier.class);
             assertThat(context).hasSingleBean(IdpBearerAuthenticationFilter.class);
             assertThat(context).hasSingleBean(ServiceScopeAuthorization.class);
+            assertThat(context).hasSingleBean(
+                    IdpRpcClientCredentialInterceptorFactory.class
+            );
+            assertThat(context).hasSingleBean(
+                    IdpRpcBearerServerInterceptor.class
+            );
+            assertThat(context.getBeansOfType(
+                    RpcClientInterceptorFactory.class
+            ).values()).anyMatch(
+                    IdpRpcClientCredentialInterceptorFactory.class::isInstance
+            );
+            assertThat(context.getBeansOfType(
+                    ServerInterceptor.class
+            ).values()).anyMatch(
+                    IdpRpcBearerServerInterceptor.class::isInstance
+            );
             FilterRegistrationBean<?> registration = context.getBean(
                     "idpBearerFilterRegistration",
                     FilterRegistrationBean.class);
@@ -78,12 +99,53 @@ class IdpStarterAutoConfigurationTest {
     }
 
     @Test
+    void honorsRpcSecurityAdapterOverrides() {
+        IdpRpcClientCredentialInterceptorFactory client =
+                new IdpRpcClientCredentialInterceptorFactory();
+        IdpRpcBearerServerInterceptor server =
+                new IdpRpcBearerServerInterceptor(
+                        mock(UserAccessTokenVerifier.class)
+                );
+
+        contextRunner
+                .withBean(
+                        IdpRpcClientCredentialInterceptorFactory.class,
+                        () -> client
+                )
+                .withBean(
+                        IdpRpcBearerServerInterceptor.class,
+                        () -> server
+                )
+                .run(context -> {
+                    assertThat(context).hasSingleBean(
+                            IdpRpcClientCredentialInterceptorFactory.class
+                    );
+                    assertThat(context).hasSingleBean(
+                            IdpRpcBearerServerInterceptor.class
+                    );
+                    assertThat(context.getBean(
+                            IdpRpcClientCredentialInterceptorFactory.class
+                    )).isSameAs(client);
+                    assertThat(context.getBean(
+                            IdpRpcBearerServerInterceptor.class
+                    )).isSameAs(server);
+                });
+    }
+
+    @Test
     void remainsDisabledByDefault() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         IdpStarterAutoConfiguration.class))
-                .run(context -> assertThat(context)
-                        .doesNotHaveBean(IdpJwtVerifier.class));
+                .run(context -> {
+                    assertThat(context).doesNotHaveBean(IdpJwtVerifier.class);
+                    assertThat(context).doesNotHaveBean(
+                            IdpRpcClientCredentialInterceptorFactory.class
+                    );
+                    assertThat(context).doesNotHaveBean(
+                            IdpRpcBearerServerInterceptor.class
+                    );
+                });
     }
 
     @Test

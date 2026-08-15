@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import top.egon.cola.platform.idp.starter.security.rpc.IdpRpcSecurityContext;
 
 import java.util.Objects;
 
@@ -29,11 +30,24 @@ public final class VerifiedUserTokenCarrier {
     }
 
     public static String current() {
-        RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
-        if (!(attributes instanceof ServletRequestAttributes servlet)) {
-            throw new IllegalStateException("verified USER access token is unavailable");
+        String token = currentOrNull();
+        if (token == null) {
+            throw new IllegalStateException(
+                    "verified USER access token is unavailable"
+            );
         }
-        return current(servlet.getRequest());
+        return token;
+    }
+
+    public static String currentOrNull() {
+        RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+        if (attributes instanceof ServletRequestAttributes servlet) {
+            Object value = servlet.getRequest().getAttribute(ATTRIBUTE);
+            if (value instanceof String token && !token.isBlank()) {
+                return token;
+            }
+        }
+        return IdpRpcSecurityContext.currentTokenOrNull();
     }
 
     public static void clear(HttpServletRequest request) {

@@ -25,6 +25,9 @@ public final class RpcMetadataKeys {
     public static final Metadata.Key<String> REQUEST_ID =
             ascii("x-egon-request-id");
 
+    public static final Metadata.Key<String> AUTHORIZATION =
+            ascii("authorization");
+
     public static final Metadata.Key<String> TRACEPARENT =
             ascii("traceparent");
 
