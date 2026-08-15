@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.util.Objects;
 import top.egon.cola.platform.rbac3.admin.directory.domain.enums.OrgUnitUnitTypeEnum;
 import top.egon.cola.platform.rbac3.admin.directory.domain.enums.OrgUnitStatusEnum;
+import top.egon.cola.platform.rbac3.admin.directory.domain.enums.DirectorySourceTypeEnum;
 
 /**
  * 类型 `OrgUnitPO` 位于当前包内，是类型，用于承载 `Org Unit Entity` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -50,8 +51,12 @@ public class OrgUnitPO extends TenantScopedPO {
      * 含义与用法：读取、传递或更新 `snapshotId` 时应保持 `OrgUnitPO` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `snapshotId`, preserve `OrgUnitPO`'s lifecycle, immutability, and thread-safety constraints.
      */
-    @Column(name = "snapshot_id", nullable = false)
+    @Column(name = "snapshot_id")
     private Long snapshotId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source_type", nullable = false, length = 32)
+    private DirectorySourceTypeEnum sourceType;
 
     /**
      * 字段 `unitType` 表示 `OrgUnitPO` 中与 `unit Type` 相关的状态、依赖、配置或结果（声明类型 `OrgUnitUnitTypeEnum`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -250,6 +255,7 @@ public class OrgUnitPO extends TenantScopedPO {
         this.id = Objects.requireNonNull(id, "id");
         setTenantId(Objects.requireNonNull(tenantId, "tenantId"));
         this.snapshotId = Objects.requireNonNull(snapshotId, "snapshotId");
+        this.sourceType = DirectorySourceTypeEnum.DIRECTORY_SNAPSHOT;
         this.unitType = Objects.requireNonNull(unitType, "unitType");
         this.code = required(code, "code");
         this.name = required(name, "name");
@@ -260,6 +266,46 @@ public class OrgUnitPO extends TenantScopedPO {
         this.externalId = externalId;
         this.validFrom = Objects.requireNonNull(validFrom, "validFrom");
         this.validTo = validTo;
+        markCreated(actorId, now);
+    }
+
+    public OrgUnitPO(
+            Long id,
+            Long tenantId,
+            DirectorySourceTypeEnum sourceType,
+            Long snapshotId,
+            OrgUnitUnitTypeEnum unitType,
+            String code,
+            String name,
+            Long parentId,
+            String path,
+            int depth,
+            String externalId,
+            Instant validFrom,
+            Instant validTo,
+            String actorId,
+            Instant now) {
+        this.sourceType = Objects.requireNonNull(sourceType, "sourceType");
+        if (depth < 0 || depth > MAX_DEPTH) {
+            throw new IllegalArgumentException("depth must be between 0 and 20");
+        }
+        if (validTo != null && !validTo.isAfter(validFrom)) {
+            throw new IllegalArgumentException("validTo must be after validFrom");
+        }
+        this.id = Objects.requireNonNull(id, "id");
+        setTenantId(Objects.requireNonNull(tenantId, "tenantId"));
+        this.snapshotId = snapshotId;
+        this.unitType = Objects.requireNonNull(unitType, "unitType");
+        this.code = required(code, "code");
+        this.name = required(name, "name");
+        this.parentId = parentId;
+        this.path = required(path, "path");
+        this.depth = depth;
+        this.status = OrgUnitStatusEnum.ACTIVE;
+        this.externalId = externalId;
+        this.validFrom = Objects.requireNonNull(validFrom, "validFrom");
+        this.validTo = validTo;
+        validateSourceState();
         markCreated(actorId, now);
     }
 
@@ -294,6 +340,7 @@ public class OrgUnitPO extends TenantScopedPO {
             Instant nextValidTo,
             String actorId,
             Instant now) {
+        requireDirectorySnapshotSource();
         if (nextDepth < 0 || nextDepth > MAX_DEPTH) {
             throw new IllegalArgumentException("depth must be between 0 and 20");
         }
@@ -333,6 +380,13 @@ public class OrgUnitPO extends TenantScopedPO {
         return true;
     }
 
+    public void inactivateManually(String actorId, Instant now) {
+        requireManualSource();
+        if (!inactivate(actorId, now)) {
+            throw new IllegalStateException("organization unit is not active");
+        }
+    }
+
     /**
      * 方法 `getId` 按照 `OrgUnitPO` 的职责处理输入，完成 `get Id` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
      * Method `getId` processes its inputs according to `OrgUnitPO`'s responsibility, performs the `get Id` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
@@ -357,6 +411,10 @@ public class OrgUnitPO extends TenantScopedPO {
      */
     public Long getSnapshotId() {
         return snapshotId;
+    }
+
+    public DirectorySourceTypeEnum getSourceType() {
+        return sourceType;
     }
 
     /**
@@ -505,6 +563,27 @@ public class OrgUnitPO extends TenantScopedPO {
             throw new IllegalArgumentException(fieldName + " is required");
         }
         return value.trim();
+    }
+
+    private void requireDirectorySnapshotSource() {
+        if (sourceType != DirectorySourceTypeEnum.DIRECTORY_SNAPSHOT) {
+            throw new IllegalStateException("manual organization unit cannot be materialized from a directory snapshot");
+        }
+    }
+
+    private void requireManualSource() {
+        if (sourceType != DirectorySourceTypeEnum.MANUAL) {
+            throw new IllegalStateException("directory snapshot organization unit is read-only for manual operations");
+        }
+    }
+
+    private void validateSourceState() {
+        if (sourceType == DirectorySourceTypeEnum.DIRECTORY_SNAPSHOT && snapshotId == null) {
+            throw new IllegalArgumentException("directory snapshot organization unit requires snapshotId");
+        }
+        if (sourceType == DirectorySourceTypeEnum.MANUAL && snapshotId != null) {
+            throw new IllegalArgumentException("manual organization unit cannot have snapshotId");
+        }
     }
 
 

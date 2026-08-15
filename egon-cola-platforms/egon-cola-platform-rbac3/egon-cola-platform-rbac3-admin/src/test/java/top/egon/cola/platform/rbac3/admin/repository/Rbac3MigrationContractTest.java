@@ -30,6 +30,8 @@ class Rbac3MigrationContractTest {
             "db/migration/V4__scope_session_identity_by_tenant.sql";
     private static final String STATELESS_IDENTITY_MIGRATION =
             "db/migration/V5__remove_sessions_and_minimize_authorization_user.sql";
+    private static final String DDC_AUTHORIZATION_SCOPE_MIGRATION =
+            "db/migration/V6__adopt_ddc_business_application_authorization_scope.sql";
     private static final Pattern TABLE_PATTERN = Pattern.compile(
             "create\\s+table\\s+(rbac3_[a-z0-9_]+)\\s*\\((.*?)\\);",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
@@ -104,7 +106,8 @@ class Rbac3MigrationContractTest {
             throws Exception {
         assertThat(listMigrationResources()).containsExactly(
                 MIGRATION, STRONG_AUTH_MIGRATION, IDP_MIGRATION,
-                TENANT_SESSION_MIGRATION, STATELESS_IDENTITY_MIGRATION);
+                TENANT_SESSION_MIGRATION, STATELESS_IDENTITY_MIGRATION,
+                DDC_AUTHORIZATION_SCOPE_MIGRATION);
         assertThat(resourceSql(STRONG_AUTH_MIGRATION))
                 .contains("add column strong_authenticated_at timestamptz")
                 .contains("ck_rbac3_session_strong_authentication_time");
@@ -121,6 +124,12 @@ class Rbac3MigrationContractTest {
                 .contains("drop table rbac3_user_credential")
                 .contains("add column identity_sub varchar(200) not null")
                 .contains("create table rbac3_user_active_role");
+        assertThat(resourceSql(DDC_AUTHORIZATION_SCOPE_MIGRATION).toLowerCase())
+                .contains("ddc_application_id varchar(64) not null")
+                .contains("ddc_business_id varchar(64) not null")
+                .contains("create table rbac3_user_business_access")
+                .contains("create table rbac3_user_org_assignment")
+                .contains("create table rbac3_user_position_assignment");
     }
 
     @Test

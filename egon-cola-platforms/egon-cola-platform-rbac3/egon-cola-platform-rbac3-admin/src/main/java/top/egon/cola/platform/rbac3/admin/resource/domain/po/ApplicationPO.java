@@ -33,6 +33,12 @@ public class ApplicationPO extends TenantScopedPO {
     @Id
     private Long id;
 
+    @Column(name = "ddc_application_id", nullable = false, length = 64)
+    private String ddcApplicationId;
+
+    @Column(name = "ddc_business_id", nullable = false, length = 64)
+    private String ddcBusinessId;
+
     /**
      * 字段 `applicationCode` 表示 `ApplicationPO` 中与 `application Code` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `applicationCode` stores the `application Code`-related state, dependency, configuration, or result of `ApplicationPO` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -122,6 +128,30 @@ public class ApplicationPO extends TenantScopedPO {
     public ApplicationPO(
             Long id,
             Long tenantId,
+            String ddcApplicationId,
+            String ddcBusinessId,
+            String applicationCode,
+            String applicationName,
+            int displayPriority,
+            String actorId,
+            Instant now) {
+        if (displayPriority < 0) {
+            throw new IllegalArgumentException("displayPriority must not be negative");
+        }
+        this.id = Objects.requireNonNull(id, "id");
+        setTenantId(Objects.requireNonNull(tenantId, "tenantId"));
+        this.ddcApplicationId = required(ddcApplicationId, "ddcApplicationId");
+        this.ddcBusinessId = required(ddcBusinessId, "ddcBusinessId");
+        this.applicationCode = required(applicationCode, "applicationCode");
+        this.applicationName = required(applicationName, "applicationName");
+        this.displayPriority = displayPriority;
+        this.status = ApplicationStatusEnum.ACTIVE;
+        markCreated(actorId, now);
+    }
+
+    public ApplicationPO(
+            Long id,
+            Long tenantId,
             String applicationCode,
             String applicationName,
             int displayPriority,
@@ -175,6 +205,14 @@ public class ApplicationPO extends TenantScopedPO {
      */
     public Long getId() {
         return id;
+    }
+
+    public String getDdcApplicationId() {
+        return ddcApplicationId;
+    }
+
+    public String getDdcBusinessId() {
+        return ddcBusinessId;
     }
 
     /**

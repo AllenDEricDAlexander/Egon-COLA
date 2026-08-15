@@ -47,12 +47,11 @@ class Rbac3FlywayPostgresqlIT {
                     .locations("classpath:db/migration")
                     .load();
 
-            assertThat(flyway.migrate().migrationsExecuted).isEqualTo(4);
+            assertThat(flyway.migrate().migrationsExecuted).isEqualTo(5);
             assertThat(flyway.migrate().migrationsExecuted).isZero();
             assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
 
             insertBoundaryFixtures(connection, schema);
-            assertTenantScopedSessionIdentityAccepted(connection, schema);
             assertCrossTenantAssignmentRejected(connection, schema);
             assertCrossApplicationInheritanceRejected(connection, schema);
             assertCrossApplicationServicePermissionRejected(connection, schema);
@@ -65,39 +64,6 @@ class Rbac3FlywayPostgresqlIT {
                 dropGeneratedSchema(url, user, password, schema);
             }
         }
-    }
-
-    private void assertTenantScopedSessionIdentityAccepted(
-            Connection connection,
-            String schema) throws SQLException {
-        execute(connection, schema, """
-                insert into rbac3_external_identity (
-                    id, tenant_id, provider_code, external_subject_id, identity_sub,
-                    user_id, status, version,
-                    created_at, created_by, updated_at, updated_by
-                ) values
-                    (901, 1, 'IDP', 'global-user', 'global-user', 100, 'ACTIVE', 0,
-                     now(), 'it', now(), 'it'),
-                    (902, 2, 'IDP', 'global-user', 'global-user', 200, 'ACTIVE', 0,
-                     now(), 'it', now(), 'it');
-
-                insert into rbac3_session (
-                    id, tenant_id, user_id, session_id, identity_sub, status,
-                    session_version, auth_version_at_issue, policy_version_at_issue,
-                    context_version, context_expires_at, activation_required,
-                    auth_strength, authenticated_at, last_seen_at,
-                    idle_expires_at, absolute_expires_at, version,
-                    created_at, created_by, updated_at, updated_by
-                ) values
-                    (910, 1, 100, 999, 'global-user', 'ACTIVE',
-                     0, 0, 0, 0, now() + interval '1 hour', true,
-                     'PASSWORD', now(), now(), now() + interval '30 minutes',
-                     now() + interval '1 hour', 0, now(), 'it', now(), 'it'),
-                    (920, 2, 200, 999, 'global-user', 'ACTIVE',
-                     0, 0, 0, 0, now() + interval '1 hour', true,
-                     'PASSWORD', now(), now(), now() + interval '30 minutes',
-                     now() + interval '1 hour', 0, now(), 'it', now(), 'it');
-                """);
     }
 
     private void insertBoundaryFixtures(Connection connection, String schema)
@@ -113,25 +79,25 @@ class Rbac3FlywayPostgresqlIT {
                      0, now(), 'it', now(), 'it');
 
                 insert into rbac3_application (
-                    id, tenant_id, application_code, application_name,
+                    id, tenant_id, ddc_application_id, ddc_business_id,
+                    application_code, application_name,
                     display_priority, status, version,
                     created_at, created_by, updated_at, updated_by
                 ) values
-                    (10, 1, 'app-one', 'App One', 100, 'ACTIVE', 0,
+                    (10, 1, 'ddc-app-one', 'ddc-biz-one', 'app-one', 'App One', 100, 'ACTIVE', 0,
                      now(), 'it', now(), 'it'),
-                    (11, 1, 'app-other', 'App Other', 200, 'ACTIVE', 0,
+                    (11, 1, 'ddc-app-other', 'ddc-biz-one', 'app-other', 'App Other', 200, 'ACTIVE', 0,
                      now(), 'it', now(), 'it'),
-                    (20, 2, 'app-two', 'App Two', 100, 'ACTIVE', 0,
+                    (20, 2, 'ddc-app-two', 'ddc-biz-two', 'app-two', 'App Two', 100, 'ACTIVE', 0,
                      now(), 'it', now(), 'it');
 
                 insert into rbac3_user (
-                    id, tenant_id, username, normalized_username, display_name,
-                    status, auth_version, directory_snapshot_version, version,
+                    id, tenant_id, identity_sub, status, auth_version, version,
                     created_at, created_by, updated_at, updated_by
                 ) values
-                    (100, 1, 'user-one', 'user-one', 'User One', 'ACTIVE', 0, 0, 0,
+                    (100, 1, 'user-one', 'ACTIVE', 0, 0,
                      now(), 'it', now(), 'it'),
-                    (200, 2, 'user-two', 'user-two', 'User Two', 'ACTIVE', 0, 0, 0,
+                    (200, 2, 'user-two', 'ACTIVE', 0, 0,
                      now(), 'it', now(), 'it');
 
                 insert into rbac3_role (
@@ -157,23 +123,24 @@ class Rbac3FlywayPostgresqlIT {
                      'LOW', 'ACTIVE', 0, now(), 'it', now(), 'it');
 
                 insert into rbac3_service_principal (
-                    id, tenant_id, service_code, application_code, display_name,
+                    id, tenant_id, service_code, application_code, application_id,
+                    display_name,
                     status, allowed_envs, allowed_namespaces, version,
                     created_at, created_by, updated_at, updated_by
                 ) values
-                    (6000, 1, 'service-one', 'app-one', 'Service One',
+                    (6000, 1, 'service-one', 'app-one', 10, 'Service One',
                      'ACTIVE', '[]'::jsonb, '[]'::jsonb, 0,
                      now(), 'it', now(), 'it'),
-                    (6001, 1, 'service-other', 'app-other', 'Service Other',
+                    (6001, 1, 'service-other', 'app-other', 11, 'Service Other',
                      'ACTIVE', '[]'::jsonb, '[]'::jsonb, 0,
                      now(), 'it', now(), 'it');
 
                 insert into rbac3_service_permission (
                     id, tenant_id, application_id, principal_id, permission_id,
-                    application_code, valid_from, version,
+                    valid_from, version,
                     created_at, created_by, updated_at, updated_by
                 ) values (
-                    6100, 1, 10, 6000, 5000, 'app-one', now(), 0,
+                    6100, 1, 10, 6000, 5000, now(), 0,
                     now(), 'it', now(), 'it'
                 );
 
@@ -226,20 +193,20 @@ class Rbac3FlywayPostgresqlIT {
                 );
 
                 insert into rbac3_org_unit (
-                    id, tenant_id, snapshot_id, unit_type, code, name, path,
+                    id, tenant_id, snapshot_id, source_type, unit_type, code, name, path,
                     depth, status, valid_from, version,
                     created_at, created_by, updated_at, updated_by
                 ) values (
-                    8100, 2, 8000, 'ORG', 'org-two', 'Org Two', '/org-two',
+                    8100, 2, 8000, 'DIRECTORY_SNAPSHOT', 'ORG', 'org-two', 'Org Two', '/org-two',
                     0, 'ACTIVE', now(), 0, now(), 'it', now(), 'it'
                 );
 
                 insert into rbac3_position (
-                    id, tenant_id, snapshot_id, code, name, org_unit_id,
+                    id, tenant_id, snapshot_id, source_type, code, name, org_unit_id,
                     status, valid_from, version,
                     created_at, created_by, updated_at, updated_by
                 ) values (
-                    8200, 2, 8000, 'position-two', 'Position Two', 8100,
+                    8200, 2, 8000, 'DIRECTORY_SNAPSHOT', 'position-two', 'Position Two', 8100,
                     'ACTIVE', now(), 0, now(), 'it', now(), 'it'
                 );
 
@@ -280,10 +247,10 @@ class Rbac3FlywayPostgresqlIT {
         assertThatThrownBy(() -> execute(connection, schema, """
                 insert into rbac3_service_permission (
                     id, tenant_id, application_id, principal_id, permission_id,
-                    application_code, valid_from, version,
+                    valid_from, version,
                     created_at, created_by, updated_at, updated_by
                 ) values (
-                    6200, 1, 11, 6000, 5100, 'app-other', now(), 0,
+                    6200, 1, 11, 6000, 5100, now(), 0,
                     now(), 'it', now(), 'it'
                 )
                 """))
@@ -293,10 +260,10 @@ class Rbac3FlywayPostgresqlIT {
         assertThatThrownBy(() -> execute(connection, schema, """
                 insert into rbac3_service_permission (
                     id, tenant_id, application_id, principal_id, permission_id,
-                    application_code, valid_from, version,
+                    valid_from, version,
                     created_at, created_by, updated_at, updated_by
                 ) values (
-                    6202, 1, 10, 6001, 5000, 'app-other', now(), 0,
+                    6202, 1, 10, 6001, 5000, now(), 0,
                     now(), 'it', now(), 'it'
                 )
                 """))
@@ -306,10 +273,10 @@ class Rbac3FlywayPostgresqlIT {
         assertThatThrownBy(() -> execute(connection, schema, """
                 insert into rbac3_service_permission (
                     id, tenant_id, application_id, principal_id, permission_id,
-                    application_code, valid_from, version,
+                    valid_from, version,
                     created_at, created_by, updated_at, updated_by
                 ) values (
-                    6201, 1, 10, 6000, 5100, 'app-one', now(), 0,
+                    6201, 1, 10, 6000, 5100, now(), 0,
                     now(), 'it', now(), 'it'
                 )
                 """))
