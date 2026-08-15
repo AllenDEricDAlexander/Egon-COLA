@@ -15,6 +15,10 @@ import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.CreateRoleCommandD
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.AssignPermissionCommandDTO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.AssignPermissionsCommandDTO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleMutationResultVO;
+import top.egon.cola.platform.rbac3.admin.iam.role.inheritance.domain.dto.InheritanceCommandDTO;
+import top.egon.cola.platform.rbac3.core.hierarchy.RoleNode;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RoleControlFacadeTest {
 
@@ -36,6 +40,16 @@ class RoleControlFacadeTest {
 
         assertEquals(List.of("72001", "72002"), controlStore.lastCommand.permissionIds());
         assertEquals("50001", result.resourceId());
+    }
+
+    @Test
+    void roleInheritanceRejectsRolesOutsideTheLocalApplication() {
+        RoleFacade facade = new RoleFacade(new ApplicationScopedHierarchyStore());
+
+        assertThatThrownBy(() -> facade.addInheritance(new InheritanceCommandDTO(
+                "10001", "71001", "50001", "50002", -1L, "actor")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("same local application");
     }
 
     private static final class RecordingControlStore implements RoleControlRepository {
@@ -65,7 +79,7 @@ class RoleControlFacadeTest {
         }
     }
 
-    private static final class EmptyHierarchyStore implements RoleHierarchyRepository {
+    private static class EmptyHierarchyStore implements RoleHierarchyRepository {
 
         @Override
         public <T> T withGraphLock(
@@ -87,6 +101,21 @@ class RoleControlFacadeTest {
 
         @Override
         public void rebuildClosure(String tenantId, String applicationId) {
+        }
+    }
+
+    private static final class ApplicationScopedHierarchyStore extends EmptyHierarchyStore {
+
+        @Override
+        public <T> T withGraphLock(
+                String tenantId,
+                String applicationId,
+                Function<RoleHierarchy, T> action) {
+            return action.apply(new RoleHierarchy(List.of(
+                    new RoleNode("50001", "71001", "SENIOR", true,
+                            RoleNode.RiskLevel.LOW, false, null, 0),
+                    new RoleNode("50002", "71002", "JUNIOR", true,
+                            RoleNode.RiskLevel.LOW, false, null, 0)), List.of()));
         }
     }
 }

@@ -247,6 +247,14 @@ public final class RoleFacade implements RoleImpactQuery {
         String juniorRoleId = command.juniorRoleId();
         RoleEdge edge = new RoleEdge(seniorRoleId, juniorRoleId);
         hierarchyStore.withGraphLock(tenantId, applicationId, current -> {
+            var senior = current.nodes().get(seniorRoleId);
+            var junior = current.nodes().get(juniorRoleId);
+            if (senior == null || junior == null
+                    || !applicationId.equals(senior.applicationId())
+                    || !applicationId.equals(junior.applicationId())) {
+                throw new IllegalArgumentException(
+                        "role inheritance requires roles from the same local application");
+            }
             hierarchyStore.assertRoleVersion(
                     tenantId, seniorRoleId, command.expectedRoleVersion());
             if (add && current.edges().contains(edge)

@@ -40,7 +40,7 @@ import top.egon.cola.platform.rbac3.admin.iam.organization.domain.vo.DirectoryPa
  * Tenant management HTTP entry point.
  */
 @RestController
-@RequestMapping("/api/rbac3/v1")
+@RequestMapping("/api/rbac3/v1/iam")
 @GatewayInterfaceGroup(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
@@ -77,7 +77,7 @@ public class TenantController {
      * @param size 输入参数 `size`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    @GetMapping("/platform/tenants")
+    @GetMapping("/tenants")
     @RequiresRbac3Permission(permission = "system:tenant:read")
     @GatewayOperation(
             name = "rbac3-platform-tenant-list-v1",
@@ -103,7 +103,7 @@ public class TenantController {
      * @param principal 输入参数 `principal`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    @PostMapping("/platform/tenants")
+    @PostMapping("/tenants")
     @RequiresRbac3Permission(permission = "system:tenant:manage")
     @GatewayOperation(
             name = "rbac3-platform-tenant-create-v1",
@@ -128,7 +128,7 @@ public class TenantController {
      * @param principal 输入参数 `principal`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    @PutMapping("/platform/tenants/{tenantId}/status")
+    @PutMapping("/tenants/{tenantId}/status")
     @RequiresRbac3Permission(permission = "system:tenant:manage")
     @GatewayOperation(
             name = "rbac3-platform-tenant-status-v1",
@@ -154,7 +154,7 @@ public class TenantController {
      * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    @GetMapping("/platform/tenants/{tenantId}")
+    @GetMapping("/tenants/{tenantId}")
     @RequiresRbac3Permission(permission = "system:tenant:read")
     @GatewayOperation(
             name = "rbac3-platform-tenant-get-v1",

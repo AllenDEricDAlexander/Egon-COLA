@@ -126,6 +126,18 @@ public class UserPO extends TenantScopedPO {
         return authVersion;
     }
 
+    public void updateIdentitySub(
+            String nextIdentitySub,
+            long expectedAuthVersion,
+            String actorId,
+            Instant now) {
+        if (authVersion != expectedAuthVersion) {
+            throw new IllegalStateException("user authorization version conflict");
+        }
+        identitySub = required(nextIdentitySub, "identitySub");
+        incrementAuthVersion(actorId, now);
+    }
+
     private static String required(String value, String field) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(field + " is required");
