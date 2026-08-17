@@ -46,6 +46,33 @@ The specification defines **what must be built and why the design is coherent**.
 18. Read `references/interface-contract-design.md` whenever interfaces exist. Assign one interface ID per atomic Method + URL or protocol operation; never group a CRUD family. Keep an inventory, then expand every ID with its exact URL or protocol symbol, complete request rules, actual response/error payloads, frontend-oriented logic, compatibility, and verification. HTTP JSON examples use documentation-only `jsonc`; every field requires a line-end meaning comment.
 19. Read `references/database-design.md` whenever persisted data is used or changed. Inventory and expand every affected table and index, including complete column semantics, real queries/access paths, index-order rationale, migration/history handling, transactions, locks, compatibility, verification, and rollback/forward-fix boundaries.
 
+## Mandatory reference loading and drafting passes
+
+Do not judge completeness by the line count of `SKILL.md` or the generated Spec. This file is the workflow entry point; the detailed operating rules live in references and the output template. Judge the result by evidence density, contract completeness, cross-section consistency, and whether another engineer can implement it without inventing design decisions.
+
+Read every applicable reference **completely before drafting the corresponding chapter**. Do not rely on the short summary in this file:
+
+| Situation | References that must be read completely |
+| --- | --- |
+| Every Spec | `references/ambiguity-policy.md`, `references/rfc-governance.md`, `references/complex-scenario-analysis.md`, `references/review-checklist.md`, and `assets/spec-template.md` |
+| Java design | `references/three-layer-architecture.md` and `references/pojo-modeling.md` |
+| Any HTTP/RPC/event/job/internal contract | `references/interface-contract-design.md` |
+| Any persisted read/write or schema dependency | `references/database-design.md` |
+
+For a Complex Spec, use four explicit passes. Preserve the resulting analysis in the Spec instead of collapsing it into a summary:
+
+1. **Discovery pass** — collect exact repository evidence, current call chains, consumers, data stores, configuration, tests, and predecessor decisions; mark evidence, inference, and unverified runtime behavior.
+2. **Scenario pass** — enumerate happy, alternative, validation, permission, empty, duplicate, concurrent, timeout, partial-failure, rollback, retry, and recovery paths that materially apply.
+3. **Design pass** — decide ownership, contracts, data flow, transaction/consistency boundaries, failure semantics, compatibility, files, models, schema, frontend states, and tests; derive each material decision from evidence.
+4. **Consistency pass** — compare requirements, diagrams, interfaces, POJOs, tables/indexes, pages, tests, rollout, and traceability field-by-field and state-by-state; repair contradictions before validation.
+
+Minimum depth is structural, not numerical padding:
+
+- a Complex Spec must contain at least two evidence/current-chain rows, three materially distinct scenario rows, three applicable quality/constraint rows, and two evidence-to-decision conclusion chains unless the affected subsection records `Depth exception:` followed by repository evidence proving that fewer real items exist;
+- every inventory contract must contain all required per-interface subsections, actual protocol identity, complete parameter rules, success and error outcomes, ordered consumer logic, and verification;
+- every inventory table must contain all required per-table subsections, a complete affected-column table, per-index justification tied to real access paths, migration/history handling, and consistency/recovery rules;
+- `N/A`, “same as existing,” “handled by framework,” class names, or links may replace detailed content only when the Spec cites the exact authoritative implementation/contract and explains why no new decision is needed.
+
 ## Ambiguity and decision boundary
 
 Read `references/ambiguity-policy.md` before asking questions.

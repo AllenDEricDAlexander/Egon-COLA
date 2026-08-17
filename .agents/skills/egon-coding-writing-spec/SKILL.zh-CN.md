@@ -48,6 +48,33 @@ Spec 定义的是**必须构建什么，以及该设计为什么自洽**。它�
 18. 存在接口时必须读取 `references/interface-contract-design.zh-CN.md`。一个原子 Method + URL 或协议操作分配一个接口 ID，禁止把 CRUD 接口族合并为一个 ID；先列清单，再逐个展开，写清准确 URL 或协议符号、完整入参规则、真实成功/错误载荷、面向前端的逻辑、兼容与验证。HTTP JSON 示例使用仅供文档的 `jsonc`，每个字段必须有行尾含义注释。
 19. 使用或修改持久化数据时必须读取 `references/database-design.zh-CN.md`。每张受影响表和每个索引都要先列清单再展开，包括完整字段语义、真实查询/访问路径、索引顺序依据、Migration/历史数据、事务、锁、兼容、验证和回滚/Forward Fix 边界。
 
+## 强制参考资料加载与分阶段写作
+
+不能根据 `SKILL.md` 或生成 Spec 的行数判断是否完整。本文件是工作流入口，详细操作规则位于 references 和输出模板中。应根据证据密度、契约完整度、跨章节一致性，以及另一位工程师能否在不自行发明设计决策的情况下实施来判断质量。
+
+编写对应章节前，必须**完整读取**所有适用参考资料，不能只依赖本文件中的简述：
+
+| 场景 | 必须完整读取的参考资料 |
+| --- | --- |
+| 所有 Spec | `references/ambiguity-policy.md`、`references/rfc-governance.md`、`references/complex-scenario-analysis.zh-CN.md`、`references/review-checklist.md` 和 `assets/spec-template.md` |
+| Java 设计 | `references/three-layer-architecture.zh-CN.md` 和 `references/pojo-modeling.zh-CN.md` |
+| 任意 HTTP/RPC/事件/Job/内部契约 | `references/interface-contract-design.zh-CN.md` |
+| 任意持久化读写或 Schema 依赖 | `references/database-design.zh-CN.md` |
+
+Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec 中，不能压缩成摘要：
+
+1. **发现轮**——收集准确仓库证据、现有调用链、消费者、数据存储、配置、测试和前置决策；区分证据、推断和未验证运行时行为。
+2. **场景轮**——枚举实际适用的成功、分支、校验、权限、空数据、重复、并发、超时、部分失败、回滚、重试和恢复路径。
+3. **设计轮**——确定所有权、契约、数据流、事务/一致性边界、失败语义、兼容、文件、模型、Schema、前端状态和测试；每项重要决策都从证据推导。
+4. **一致性轮**——逐字段、逐状态对比需求、图示、接口、POJO、表/索引、页面、测试、发布和追踪矩阵；校验前修复矛盾。
+
+最低深度是结构要求，不是凑字数：
+
+- Complex Spec 至少包含两条证据/现有链路、三个实质不同场景、三个适用质量/约束项和两条“证据到决策”结论链；如果真实项目确实更少，必须在对应小节写 `Depth exception:` 并给出证明元素更少的仓库依据；
+- 每个接口清单项必须包含全部逐接口子章节、真实协议身份、完整参数规则、成功与错误结果、有序调用方逻辑和验证；
+- 每张表清单项必须包含全部逐表子章节、完整受影响字段表、绑定真实访问路径的逐索引论证、Migration/历史数据处理和一致性/恢复规则；
+- `N/A`、“沿用现有”、“框架处理”、类名或链接只有在 Spec 引用准确权威实现/契约，并说明无需新决策的原因时，才能代替详细内容。
+
 ## 歧义与决策边界
 
 提问前读取 `references/ambiguity-policy.md`。

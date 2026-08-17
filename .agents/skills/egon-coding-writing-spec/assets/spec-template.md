@@ -31,11 +31,11 @@ In one to three paragraphs, state the problem, selected direction, affected scop
 
 ### 2.2 Repository evidence
 
-Name exact modules, paths, packages, symbols, call chains, consumers, contracts, tables, pages, configuration, tests, and predecessor Specs.
+Name exact modules, paths, packages, symbols, call chains, consumers, contracts, tables, pages, configuration, tests, and predecessor Specs. Classify every material statement so an inference or stale runtime observation cannot masquerade as a current repository fact.
 
-| Evidence | Current responsibility or behavior | Design significance |
-| --- | --- | --- |
-| `<path:line or symbol>` | `<observed fact>` | `<why it constrains the design>` |
+| Evidence ID | Classification | Exact path/symbol/decision/command | Observed fact | Design significance | Verification limit/freshness |
+| --- | --- | --- | --- | --- | --- |
+| `EVD-001` | Static repository / User decision / Inference / Runtime evidence | `<path:line, symbol, wording, or command>` | `<one observed fact>` | `<requirement/decision it constrains>` | `<what this does not prove, environment/date if runtime>` |
 
 ### 2.3 Problem statement and gap
 
@@ -72,6 +72,8 @@ Required for a Complex Spec. Include main, alternative, failure, retry, duplicat
 | Scenario | Actor/trigger | Preconditions | Main path | Alternative/failure path | Data/state change | Observable result | Requirements |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `<scenario>` | `<actor>` | `<conditions>` | `<flow>` | `<failure/recovery>` | `<changes>` | `<result>` | `REQ-001` |
+
+For Complex Specs, the minimum-depth validator expects two evidence/current-chain rows, three materially distinct scenario rows, three quality/constraint rows, and two conclusion chains. When the repository genuinely contains fewer real elements, write `Depth exception:` in the affected subsection and cite the exact evidence; never use it merely for brevity.
 
 ## 5. Constraints, Assumptions, and Decisions
 
@@ -203,13 +205,37 @@ sequenceDiagram
 
 #### 7.3.3 Transactions, consistency, concurrency, and idempotency
 
+| Concern/state change | Owner and boundary | Mechanism/isolation/lock | Concurrent or duplicate behavior | Commit/visibility point | Failure result | Requirements/tests |
+| --- | --- | --- | --- | --- | --- | --- |
+| `<mutable fact>` | `<Service/transaction/store>` | `<transaction/version/key>` | `<race/duplicate rule>` | `<when authoritative>` | `<rollback/conflict/unknown>` | `REQ-001 / TEST-001` |
+
+State who opens and joins each transaction, which writes are atomic, which external effects are not, how lost updates and duplicate requests are detected, and what the caller observes after a conflict or unknown outcome. “Transactional,” “eventually consistent,” and “idempotent” require exact boundaries and identities.
+
 #### 7.3.4 Failure semantics, recovery, and reconciliation
 
+| Failure point | Detection | Immediate control flow | Data/transaction state | Retry and idempotency | Caller/frontend result | Recovery/reconciliation owner | Verification |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `<failure>` | `<exception/code/timeout/metric>` | `<reject/rollback/degrade>` | `<none/partial/committed/unknown>` | `<who, what, key, limit>` | `<interface outcome/UI action>` | `<automatic/job/operator>` | `TEST-001 / <runtime evidence>` |
+
+Include each external boundary, asynchronous handoff, partial write, rollback failure, response loss after commit, retry exhaustion, stale cache/projection, and operator repair path that materially applies. Never use one generic “log and throw” row for unrelated failures.
+
 #### 7.3.5 Observability and operational boundaries
+
+| Signal/runbook | Emitting owner and point | Fields/dimensions | Sensitive-data rule | Success/failure threshold | Alert/dashboard/operator action | Verification boundary |
+| --- | --- | --- | --- | --- | --- | --- |
+| `<log/metric/trace/audit>` | `<component and lifecycle point>` | `<stable IDs, result, latency>` | `<mask/omit>` | `<expected or SLO>` | `<action and owner>` | `<static/integration/runtime>` |
+
+Define correlation propagation, stable operation/result/error dimensions, metric cardinality controls, audit ownership, alert conditions, reconciliation visibility, and what can only be verified after deployment. Logging an exception without an actionable identity or owner is not an operational design.
 
 #### 7.3.6 Conclusion evidence chain
 
 For each material Complex-Spec conclusion, record `Evidence -> Constraint/Requirement -> Decision -> Consequence/Trade-off -> Verification`. If any link depends on an unresolved major assumption, move it to §5.4 and use a blocked verdict.
+
+| Conclusion | Repository/user evidence | Constraint or requirement | Design decision | Consequence and trade-off | Verification and acceptance evidence |
+| --- | --- | --- | --- | --- | --- |
+| `<conclusion>` | `<path/symbol/decision>` | `REQ-001 / <constraint>` | `<selected design>` | `<benefit and cost>` | `TEST-001 / <observable evidence>` |
+
+A Complex Spec normally needs at least two rows covering different decision classes, for example ownership/contract and consistency/failure handling. Do not split one conclusion into cosmetic duplicates merely to satisfy the row count.
 
 ## 8. Package Structure and Code File Tree
 
@@ -439,9 +465,47 @@ If the repository has no affected frontend, write `N/A` with repository evidence
 - API mapping, state ownership, caching, invalidation, optimistic/pessimistic updates, and refresh behavior;
 - initial, loading, skeleton, empty, populated, partial, error, retry, disabled, read-only, and permission-denied states.
 
+### 12.1 Route, navigation, permission, and page ownership
+
+| Page | Route/deep link | Navigation entry | Owner | Permission/tenant guard | Unauthorized/missing behavior | Requirements |
+| --- | --- | --- | --- | --- | --- | --- |
+| `<page>` | `/exact/route` | `<menu/source page>` | `<frontend module>` | `<guard and context source>` | `<redirect/denied/not-found>` | `REQ-001` |
+
+### 12.2 Layout and component tree
+
+```text
+<Page>
+├── <Header / breadcrumb / actions>
+├── <Filter or Form>
+├── <Content / table / details>
+└── <Feedback / dialog / toast>
+```
+
+Name component ownership, props/events, local versus shared state, reuse of repository components, modal/drawer ownership, and which elements remain mounted across loading/error transitions. Do not invent a new design system.
+
+### 12.3 User flows, forms, and validation
+
+| Flow/action | Preconditions | Ordered interaction | Client validation | Server outcome | Success behavior | Failure/recovery behavior | Contract |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `<action>` | `<state/permission>` | `<click -> confirm -> request>` | `<field/cross-field rules>` | `<codes/states>` | `<refresh/navigation/focus>` | `<preserve/retry/error mapping>` | `API-001` |
+
+For every field, align label/copy, source, control type, required/default, validation trigger, trim/null/empty semantics, dependencies, disabled/read-only rule, sensitive display, submitted field, and server error mapping with Chapter 9.
+
+### 12.4 UI state and API/data mapping
+
 | Page/component | Route/entry | User action | API/contract | State/error behavior | Permission | Requirements |
 | --- | --- | --- | --- | --- | --- | --- |
 | `<name>` | `/...` | `<action>` | `API-001` | `<states>` | `<permission>` | `REQ-001` |
+
+| UI state | Entry condition | Visible components/copy | Enabled actions | Data/cache state | Exit transition | Test |
+| --- | --- | --- | --- | --- | --- | --- |
+| Initial / Loading / Empty / Populated / Partial / Validation error / Dependency error / Denied / Disabled | `<condition>` | `<exact behavior>` | `<actions>` | `<query/cache>` | `<next state>` | `TEST-001` |
+
+Map each displayed/submitted field to an exact interface field and state its formatting, enum label, null fallback, precision/timezone behavior, sort/filter semantics, cache key, invalidation trigger, stale-data behavior, and optimistic/pessimistic update rule.
+
+### 12.5 Accessibility, responsiveness, and interaction safety
+
+Define keyboard order/shortcuts, focus placement and restoration, accessible names/descriptions, validation announcement, table/form semantics, contrast/status communication, screen-size behavior, overflow, long text, localization expansion, double-submit prevention, confirmation for destructive actions, and unsaved-change behavior as applicable. Map each rule to a component test or explicitly identified manual verification boundary.
 
 ## 13. Design Patterns and Architecture Principles
 
