@@ -14,6 +14,8 @@ FILENAME_RE = re.compile(
 TITLE_RE = re.compile(r"\A#\s+\S.+$", re.MULTILINE)
 DATE_TIME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2}) \S+$")
 VALID_STATUSES = {"Draft", "Review", "Accepted", "Implemented", "Superseded", "Rejected"}
+VALID_COMPLEXITIES = {"Simple", "Complex"}
+CURRENT_TEMPLATE_VERSION = 2
 REQUIRED_FIELDS = [
     "Document",
     "Status",
@@ -74,6 +76,18 @@ VERDICTS = {
     "BLOCKED — User decision required",
     "REVISE — Internal inconsistency found",
 }
+CONTRACT_ID_RE = re.compile(r"\b(?:API|RPC|EVENT|MESSAGE|JOB|CLI|INTERNAL)-\d{3}\b")
+CONTRACT_DETAIL_HEADING_RE = re.compile(
+    r"(?m)^####\s+(?:9\.2\.\d+\s+)?(?P<id>(?:API|RPC|EVENT|MESSAGE|JOB|CLI|INTERNAL)-\d{3})\b"
+)
+JSONC_BLOCK_RE = re.compile(r"```jsonc\s*\n(?P<body>.*?)```", re.IGNORECASE | re.DOTALL)
+MERMAID_BLOCK_RE = re.compile(r"```mermaid\s*\n(?P<body>.*?)```", re.IGNORECASE | re.DOTALL)
+HTTP_METHOD_RE = re.compile(r"\b(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b")
+HTTP_ROUTE_RE = re.compile(r"(?<![A-Za-z0-9_])/(?:[A-Za-z0-9_{}.:?=&*\-]+/?)*")
+TABLE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_$]*(?:\.[A-Za-z_][A-Za-z0-9_$]*)?$")
+TABLE_DETAIL_HEADING_RE = re.compile(
+    r"(?m)^####\s+(?:11\.2\.\d+\s+)?`?(?P<name>[A-Za-z_][A-Za-z0-9_$]*(?:\.[A-Za-z_][A-Za-z0-9_$]*)?)`?\b"
+)
 
 
 def clean(value: str) -> str:
@@ -104,6 +118,131 @@ def section(text: str, heading: str) -> str:
     next_heading = re.search(r"(?m)^##\s+\d+\.", text[body_start:])
     end = body_start + next_heading.start() if next_heading else len(text)
     return text[body_start:end]
+
+
+def validate_commented_jsonc(contract_id: str, block: str) -> list[str]:
+    errors: list[str] = []
+    for line_number, line in enumerate(block.splitlines(), start=1):
+        if not re.match(r'^\s*"[^"]+"\s*:', line):
+            continue
+        if not re.search(r'(?:,|\{|\[|\}|\]|"|\d|true|false|null)\s*//\s*\S', line, re.IGNORECASE):
+            errors.append(
+                f"{contract_id} jsonc field lacks a line-end meaning comment "
+                f"(block line {line_number}): {line.strip()}"
+            )
+    return errors
+
+
+def markdown_inventory_names(text: str, header: str) -> set[str]:
+    names: set[str] = set()
+    for line in text.splitlines():
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if not cells:
+            continue
+        name = clean(cells[0])
+        if name == header or not TABLE_NAME_RE.fullmatch(name):
+            continue
+        names.add(name)
+    return names
+
+
+def validate_v2_content(text: str, fields: dict[str, str], status: str) -> list[str]:
+    errors: list[str] = []
+    complexity = clean(fields.get("Complexity", ""))
+    drivers = clean(fields.get("Complexity Drivers", ""))
+
+    if complexity not in VALID_COMPLEXITIES:
+        errors.append("Template Version 2 requires Complexity to be Simple or Complex")
+    if not drivers:
+        errors.append("Template Version 2 requires a non-empty Complexity Drivers field")
+    elif complexity == "Complex" and drivers.lower() == "none":
+        errors.append("A Complex Spec must name material Complexity Drivers")
+
+    required_v2_headings = [
+        "### 7.1 System Architecture Design",
+        "### 7.2 High-Level Design",
+        "### 7.3 Detailed Design",
+        "### 9.1 Interface Inventory",
+        "### 9.2 Per-interface Detailed Contracts",
+        "### 11.1 Table Inventory",
+        "### 11.2 Per-table Detailed Design",
+    ]
+    for heading in required_v2_headings:
+        if heading not in text:
+            errors.append(f"Template Version 2 is missing required subsection: {heading}")
+
+    architecture = section(text, "## 7. Architecture Design")
+    if complexity == "Complex":
+        mermaid_blocks = [match.group("body").lstrip() for match in MERMAID_BLOCK_RE.finditer(architecture)]
+        flowchart_count = sum(block.startswith("flowchart") for block in mermaid_blocks)
+        sequence_count = sum(block.startswith("sequenceDiagram") for block in mermaid_blocks)
+        if flowchart_count < 2:
+            errors.append("A Complex Spec requires separate Mermaid architecture and critical-flow flowcharts")
+        if sequence_count < 1:
+            errors.append("A Complex Spec requires a Mermaid sequenceDiagram swimlane view")
+
+    interfaces = section(text, "## 9. Interface Definitions")
+    detail_start = interfaces.find("### 9.2 Per-interface Detailed Contracts")
+    inventory_text = interfaces[:detail_start] if detail_start >= 0 else interfaces
+    detail_text = interfaces[detail_start:] if detail_start >= 0 else ""
+    inventory_ids = set(CONTRACT_ID_RE.findall(inventory_text))
+    detail_matches = list(CONTRACT_DETAIL_HEADING_RE.finditer(detail_text))
+    detail_ids = [match.group("id") for match in detail_matches]
+
+    for contract_id in sorted(inventory_ids):
+        count = detail_ids.count(contract_id)
+        if count != 1:
+            errors.append(
+                f"Interface inventory ID {contract_id} must have exactly one detailed heading; found {count}"
+            )
+    for contract_id in sorted(set(detail_ids) - inventory_ids):
+        errors.append(f"Detailed contract {contract_id} is absent from the interface inventory")
+
+    for line in inventory_text.splitlines():
+        api_ids = re.findall(r"\bAPI-\d{3}\b", line)
+        if not api_ids:
+            continue
+        methods = HTTP_METHOD_RE.findall(line)
+        routes = HTTP_ROUTE_RE.findall(line)
+        if len(api_ids) != 1 or len(methods) != 1 or len(routes) != 1:
+            errors.append(
+                "Each HTTP interface inventory row must contain exactly one API ID, one Method, "
+                f"and one URL; found ids={api_ids}, methods={methods}, urls={routes}"
+            )
+
+    for index, match in enumerate(detail_matches):
+        contract_id = match.group("id")
+        end = detail_matches[index + 1].start() if index + 1 < len(detail_matches) else len(detail_text)
+        contract_text = detail_text[match.start():end]
+        jsonc_blocks = [item.group("body") for item in JSONC_BLOCK_RE.finditer(contract_text)]
+        if contract_id.startswith("API-"):
+            if not re.search(r"\b(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+/\S+", contract_text):
+                errors.append(f"{contract_id} detailed contract lacks an HTTP method and URL")
+            if not jsonc_blocks and "No Content" not in contract_text:
+                errors.append(f"{contract_id} detailed contract lacks a jsonc response or explicit No Content outcome")
+        for block in jsonc_blocks:
+            errors.extend(validate_commented_jsonc(contract_id, block))
+            if status in {"Review", "Accepted", "Implemented", "Superseded"} and "..." in block:
+                errors.append(f"{contract_id} jsonc payload cannot contain an abbreviated ellipsis at Status {status}")
+
+    database = section(text, "## 11. Database Design")
+    table_detail_start = database.find("### 11.2 Per-table Detailed Design")
+    table_inventory = database[:table_detail_start] if table_detail_start >= 0 else database
+    table_detail = database[table_detail_start:] if table_detail_start >= 0 else ""
+    inventory_tables = markdown_inventory_names(table_inventory, "Table")
+    detail_tables = [match.group("name") for match in TABLE_DETAIL_HEADING_RE.finditer(table_detail)]
+    for table_name in sorted(inventory_tables):
+        count = detail_tables.count(table_name)
+        if count != 1:
+            errors.append(
+                f"Database inventory table {table_name} must have exactly one detailed heading; found {count}"
+            )
+    for table_name in sorted(set(detail_tables) - inventory_tables):
+        errors.append(f"Detailed database table {table_name} is absent from the table inventory")
+
+    return errors
 
 
 def validate_relation_links(path: Path, field: str, value: str) -> list[str]:
@@ -162,6 +301,20 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
     status = clean(fields.get("Status", ""))
     if status and status not in VALID_STATUSES:
         errors.append(f"Invalid Status '{status}'. Expected one of: {', '.join(sorted(VALID_STATUSES))}")
+
+    template_version = clean(fields.get("Template Version", ""))
+    if template_version:
+        if not template_version.isdigit():
+            errors.append(f"Template Version must be an integer: {template_version}")
+        elif int(template_version) != CURRENT_TEMPLATE_VERSION:
+            errors.append(
+                f"Unsupported Template Version {template_version}; expected {CURRENT_TEMPLATE_VERSION}"
+            )
+        else:
+            for field in ("Complexity", "Complexity Drivers"):
+                if field not in fields or not clean(fields[field]):
+                    errors.append(f"Template Version 2 requires header field: {field}")
+            errors.extend(validate_v2_content(text, fields, status))
 
     parsed_dates: dict[str, re.Match[str]] = {}
     for field in ("Created", "Updated"):

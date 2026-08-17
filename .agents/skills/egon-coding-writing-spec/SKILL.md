@@ -1,6 +1,6 @@
 ---
 name: egon-coding-writing-spec
-description: Use when a coding task needs a repository-grounded system architecture, high-level design, detailed design, RFC-style specification, or an approved design baseline before implementation planning. For Java package design, the current supported profile is the traditional three-layer structure with biz.controller, biz.service, nested biz.service.impl, biz.dao, biz.config, biz.utils, and biz.domain.
+description: Use when a coding task needs a repository-grounded system architecture, high-level design, detailed design, complex cross-module analysis, fully expanded interface contracts, database design, an RFC-style specification, or an approved design baseline before implementation planning. For Java package design, the current supported profile is the traditional three-layer structure with biz.controller, biz.service, nested biz.service.impl, biz.dao, biz.config, biz.utils, and biz.domain.
 ---
 
 # EGON Coding Spec Writing
@@ -22,7 +22,7 @@ The specification defines **what must be built and why the design is coherent**.
   - Replace `ABSTRACT` with a concise lowercase ASCII kebab-case summary, normally 3–8 words.
   - Example: `docs/egon/spec/2026-08-15-14-30-account-lockout-design.md`.
   - Never overwrite a document with the same minute and abstract; choose a more specific abstract.
-- Start from `assets/spec-template.md`. Keep every numbered chapter. Write `N/A` with repository evidence and a reason when a chapter does not apply.
+- Start from Template Version 2 in `assets/spec-template.md`. Keep every numbered chapter. Write `N/A` with repository evidence and a reason when a chapter does not apply.
 
 ## Non-negotiable rules
 
@@ -41,6 +41,10 @@ The specification defines **what must be built and why the design is coherent**.
 13. Classify Java objects by their actual boundary and lifecycle roles. Follow `references/pojo-modeling.md`; never treat POJO/PO/DO/DTO/VO/BO/Entity/Query/Command/Request/Response/Form/Param/PageQuery/PageResult as mandatory parallel classes.
 14. Prevent class explosion. Require a concrete semantic reason for every distinct object and mapper. PO/ORM Entity inheritance is allowed only with repository and lifecycle justification; concrete business services default to composition and delegation rather than inheritance.
 15. For Java package design, read `references/three-layer-architecture.md` and use only the traditional three-layer profile currently standardized by this skill: `biz.controller`, `biz.service`, `biz.service.impl`, `biz.dao`, `biz.config`, `biz.utils`, and `biz.domain`. Do not design DDD or COLA packages until this skill is explicitly extended. If the existing repository uses another architecture, preserve it and ask before proposing a structural migration.
+16. Classify every Spec as `Simple` or `Complex` using `references/complex-scenario-analysis.md`. For a Complex Spec, complete the evidence map, scenario matrix, ownership/consistency analysis, quality constraints, and evidence-to-decision conclusion chain before selecting the architecture. Do not burden a Simple Spec with ceremonial analysis.
+17. Split Chapter 7 into System Architecture Design, High-Level Design, and Detailed Design. A Complex Spec must contain an architecture Mermaid flowchart, a separate critical business/control flowchart, and a Mermaid swimlane/sequence view covering the main participants and important failure behavior.
+18. Read `references/interface-contract-design.md` whenever interfaces exist. Assign one interface ID per atomic Method + URL or protocol operation; never group a CRUD family. Keep an inventory, then expand every ID with its exact URL or protocol symbol, complete request rules, actual response/error payloads, frontend-oriented logic, compatibility, and verification. HTTP JSON examples use documentation-only `jsonc`; every field requires a line-end meaning comment.
+19. Read `references/database-design.md` whenever persisted data is used or changed. Inventory and expand every affected table and index, including complete column semantics, real queries/access paths, index-order rationale, migration/history handling, transactions, locks, compatibility, verification, and rollback/forward-fix boundaries.
 
 ## Ambiguity and decision boundary
 
@@ -59,8 +63,11 @@ Use this exact header field set in every Spec:
 | Field | Required meaning |
 | --- | --- |
 | Document | Current filename as a relative repository link or code value |
+| Template Version | `2` for the current template |
 | Status | `Draft`, `Review`, `Accepted`, `Implemented`, `Superseded`, or `Rejected` |
 | Type | `Feature`, `Refactor`, `Bugfix`, `Architecture`, or another clearly defined coding type |
+| Complexity | `Simple` or `Complex` |
+| Complexity Drivers | Material interaction/decision-risk drivers, or `None` for a Simple Spec |
 | Created | `YYYY-MM-DD HH:mm ZONE` |
 | Updated | `YYYY-MM-DD HH:mm ZONE` |
 | Owner | User, team, or decision owner |
@@ -86,9 +93,10 @@ Read `references/rfc-governance.md` for lifecycle and backlink rules.
 
 ## Required design workflow
 
-1. **Reconstruct the request**
+1. **Reconstruct and classify the request**
    - Quote or accurately paraphrase the original goal, constraints, exclusions, and success criteria.
    - Create the `REQ-*` inventory and identify missing decisions.
+   - Apply `references/complex-scenario-analysis.md`; record `Simple`/`Complex` and the concrete drivers.
 2. **Inspect the repository**
    - Record real files, symbols, consumers, call chains, schemas, pages, tests, and build commands.
    - Separate repository/static evidence from assumptions and from unverified runtime claims.
@@ -98,18 +106,23 @@ Read `references/rfc-governance.md` for lifecycle and backlink rules.
 4. **Handle ambiguity**
    - Ask for major decisions before finalizing affected sections.
    - Infer small gaps and record consequential assumptions.
-5. **Design the solution**
+5. **Analyze complex scenarios**
+   - For a Complex Spec, complete the evidence/current-chain map, scenario matrix, boundary/data ownership map, quality-attribute matrix, critical failures, and conclusion chains before choosing the architecture.
+   - For a Simple Spec, state why the lightweight path is sufficient and continue without invented complexity.
+6. **Design the solution**
    - Evaluate at least a direct repository-consistent design and any materially different viable alternative.
    - Explicitly consider appropriate patterns such as Strategy, Template Method, Factory, Adapter, Facade, State, Observer, Command, or Specification.
    - Select a pattern only when it resolves a real variation point, coupling problem, lifecycle, orchestration concern, or testability problem. Otherwise record why direct design is clearer and avoids over-engineering.
    - For Java work, read `references/three-layer-architecture.md` and `references/pojo-modeling.md`. Confirm the traditional three-layer applicability gate, keep `impl` under `service`, classify each proposed object by semantic role, apply the class-necessity test, and evaluate persistence inheritance separately from service composition.
-6. **Write the Spec**
+   - Read `references/interface-contract-design.md` and `references/database-design.md` when their chapters apply.
+7. **Write the Spec**
    - Copy `assets/spec-template.md` and fill all chapters with repository-specific content.
    - Use exact signatures, field tables, state transitions, file trees, and pseudocode where they clarify design; do not write production-ready method bodies.
-7. **Review and repair**
+   - Expand every interface and every affected table/index; do not stop at inventory tables.
+8. **Review and repair**
    - Apply `references/review-checklist.md`.
    - Repair omissions, contradictions, stale paths, vague placeholders, broken traceability, and unjustified scope expansion.
-8. **Validate and deliver**
+9. **Validate and deliver**
    - Run `scripts/validate_spec.py <spec-path> --strict`.
    - Report the path, status, predecessor relationships, assumptions, and unresolved user decisions.
    - Stop for user review. Do not write a Plan until the user explicitly requests planning against this Spec and any required approval gate is satisfied.
@@ -124,11 +137,11 @@ The template is normative. At minimum, the Spec must contain:
 4. **Requirements and acceptance criteria** — atomic `REQ-*` items and observable outcomes.
 5. **Constraints, assumptions, and decisions** — confirmed constraints, `ASM-*`, resolved decisions, and open blockers.
 6. **Project technology context** — current language/framework/build/module/persistence/frontend/testing facts.
-7. **Architecture design** — boundaries, responsibilities, dependencies, data/control flow, transactions, concurrency, consistency, failure handling, and observability. For the supported Java three-layer profile, define Controller, Service interface, `service.impl`, DAO, Config, Utils, and POJO responsibilities plus allowed dependencies.
+7. **Architecture design** — three explicit parts: System Architecture Design, High-Level Design, and Detailed Design. Define boundaries, responsibilities, dependencies, data/control flow, transactions, concurrency, consistency, failure handling, and observability. For a Complex Spec include the required architecture flowchart, critical-flow flowchart, and swimlane/sequence view. For the Java three-layer profile, define Controller, Service interface, `service.impl`, DAO, Config, Utils, and POJO responsibilities plus allowed dependencies.
 8. **Package structure and code file tree** — current relevant tree, the selected three-layer target tree, exact create/modify/delete paths, symbols, responsibilities, and requirement mapping. Keep `biz.service.impl` nested under `biz.service`. This is the target design, not implementation order.
-9. **Interface definitions** — HTTP/RPC/event/internal contracts, signatures, field semantics, validation, errors, auth, idempotency, versioning, and compatibility.
+9. **Interface definitions** — first provide the complete HTTP/RPC/event/internal inventory, then expand every interface ID. For HTTP include the verified method and URL, all path/query/header/body rules, full success/error `jsonc` payloads with a line-end comment on every field, frontend-oriented interface logic, auth/tenant/idempotency, versioning, compatibility, and tests. Apply equivalent protocol-specific depth to non-HTTP contracts.
 10. **POJO and data model design** — repository-defined POJO roles, object ownership/boundaries, class-necessity decisions, persistence objects or ORM entities, DTOs/commands/queries/View Objects/BOs, field types, nullability, validation, state transitions, mappings, inheritance, and safe reuse. Do not require DDD aggregates, domain services, repository ports, or value objects.
-11. **Database design** — tables/columns/types/defaults/constraints/indexes/query patterns, migration shape, historical-data handling, transaction/locking/audit, rollback, and compatibility. Never modify an existing migration when repository policy requires a new one.
+11. **Database design** — first inventory every affected table, then expand each table and each retained/added/changed/removed index. Define all relevant columns, native types, null/default/constraint semantics, relationships, real query/access patterns, index column order/selectivity/cost, migration and historical-data handling, transactions/locks/audit, verification, rollback, and compatibility. Never modify an existing migration when repository policy requires a new one.
 12. **Frontend page design** — routes, navigation, permissions, layout/component tree, user flows, form rules, API/state mapping, loading/empty/error/disabled/denied states, accessibility, responsiveness, and key copy.
 13. **Design patterns and architecture principles** — chosen/rejected patterns, variation point, simplicity test, and alignment with the three-layer architecture; include Controller-to-Service dependency, Service-to-DAO orchestration, cohesion, coupling, information hiding, SOLID, YAGNI, persistence-inheritance safety, and composition-over-inheritance for `service.impl` classes.
 14. **Test design** — unit tests for behavior and invariants plus applicable integration, contract, mapper/repository, component, and end-to-end tests; define test data, boundaries, failure cases, expected assertions, tools, and requirement mapping.
@@ -154,11 +167,16 @@ Use exactly one:
 | Failure | Required correction |
 | --- | --- |
 | Restating the request without repository evidence | Inspect real code, contracts, data, UI, tests, and consumers first |
+| Producing a weak conclusion for a complex scenario from one happy-path call chain | Build the scenario, ownership, failure, consistency, and quality-attribute analysis; derive each conclusion through evidence -> constraint -> decision -> consequence -> verification |
 | Choosing major semantics because one option seems obvious | Present evidence/options and ask the user |
 | Interrupting for names or reversible local details | Infer the smallest repository-consistent choice |
 | Silently editing an approved predecessor | Create an amending or superseding Spec with exact section links |
 | Listing packages without a file tree or responsibilities | Add exact target paths, operations, symbols, ownership, and `REQ-*` mapping |
 | Interfaces, entities, schema, UI, and tests disagree | Repair through field/state/requirement traceability |
+| Providing an interface inventory without expanding each contract | Add one detailed subsection per ID with exact route/symbol, request rules, response/error payloads, logic, consumers, compatibility, and tests |
+| Showing a response class name or abbreviated JSON | Show the actual full `jsonc` wire shape and add a line-end meaning comment to every field |
+| Listing tables or indexes without per-item design | Expand every table and index with columns, semantics, query/access evidence, index rationale, migration, locking, verification, and rollback |
+| Using a single decorative diagram for a complex architecture | Provide separate architecture, critical-flow, and swimlane Mermaid views that match contracts, data, failures, and dependency rules |
 | Creating PO/DO/Entity/BO/DTO/VO/Request/Response for every layer by default | Apply the class-necessity test; reuse semantically identical safe types and keep only justified boundaries |
 | Using ambiguous `DO`, `VO`, or `Entity` terminology without repository meaning | State the exact role; in the current profile, `VO` means View Object and `Entity` must have an explicit persistence/ORM meaning |
 | Reusing a persistence object as a public contract to reduce classes | Keep persistence concerns behind the boundary and create only the necessary transport/view type |
@@ -173,4 +191,4 @@ Use exactly one:
 
 ## Skill maintenance
 
-When changing this skill, run `references/acceptance-scenarios.md` as review cases and keep `SKILL.zh-CN.md`, `references/three-layer-architecture.zh-CN.md`, and `references/pojo-modeling.zh-CN.md` synchronized with the English operational contract.
+When changing this skill, run `references/acceptance-scenarios.md` as review cases and keep `SKILL.zh-CN.md` plus all `*.zh-CN.md` review mirrors synchronized with the English operational contract.
