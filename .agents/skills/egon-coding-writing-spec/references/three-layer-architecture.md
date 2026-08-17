@@ -54,7 +54,7 @@ utils -> no reverse dependency on controller/service/dao workflows
 
 ## Object placement
 
-Apply `pojo-modeling.md` before adding objects under `biz.domain`.
+Apply `references/pojo-modeling.md` before adding objects under `biz.domain`.
 
 - Use `po`, `entity`, or the repository's existing persistence term; do not create synonymous persistence models without a real boundary.
 - Use DTO, VO, BO, Query, Command, Request, Response, Form, Param, PageQuery, or PageResult only when its distinct semantics justify a class.

@@ -46,7 +46,7 @@ When several documents govern a task:
 4. Include normative dependencies.
 5. Treat unresolved conflicts as a major ambiguity and ask the user.
 
-Cite exact locations such as `[Identity baseline](../../superpowers/specs/2026-08-01-unified-identity-platform-design.md) §15.1`, not “the old spec.”
+Cite exact locations such as `docs/legacy/identity-design.md §15.1`, using the actual existing repository-relative path, not “the old spec.”
 
 ## Backlinks and immutability
 

@@ -1,6 +1,6 @@
 # Three-Layer POJO Role and Object-Model Design
 
-Read this reference before writing Spec Chapter 10 and the service-structure part of Chapter 13. It applies to the traditional three-layer profile defined by `three-layer-architecture.md`. Treat the names as semantic roles, not as a checklist that requires one class per row.
+Read this reference before writing Spec Chapter 10 and the service-structure part of Chapter 13. It applies to the traditional three-layer profile defined by `references/three-layer-architecture.md`. Treat the names as semantic roles, not as a checklist that requires one class per row.
 
 ## Canonical role vocabulary
 

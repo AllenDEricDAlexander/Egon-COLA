@@ -1,6 +1,6 @@
 # 最小设计与接口必要性
 
-> 本文件是 `minimal-design-and-interface-necessity.md` 的全中文审核镜像。选择架构元素或定案第 9 章之前必须读取，避免“文档完整”演变成不必要的 API、类、分层、表、缓存、Job 或网络往返。
+> 本文件是 `references/minimal-design-and-interface-necessity.md` 的全中文审核镜像。选择架构元素或定案第 9 章之前必须读取，避免“文档完整”演变成不必要的 API、类、分层、表、缓存、Job 或网络往返。
 
 ## 目录
 

@@ -1,6 +1,6 @@
 # 逐接口契约设计
 
-> 本文件是 `interface-contract-design.md` 的全中文审核镜像。第 9 章存在 HTTP、RPC、事件/消息、CLI、定时任务或内部 Service 契约时必须读取。接口清单只是索引，清单中的每一项都必须有完整展开章节。
+> 本文件是 `references/interface-contract-design.md` 的全中文审核镜像。第 9 章存在 HTTP、RPC、事件/消息、CLI、定时任务或内部 Service 契约时必须读取。接口清单只是索引，清单中的每一项都必须有完整展开章节。
 
 ## 目录
 
@@ -27,7 +27,7 @@
 
 ## 接口准入与必要性门禁
 
-分配新 ID 前读取 `minimal-design-and-interface-necessity.zh-CN.md`。不能仅因为调用方缺少另一个操作的请求字段就新增接口。
+分配新 ID 前执行已经加载的 `references/minimal-design-and-interface-necessity.zh-CN.md`。不能仅因为调用方缺少另一个操作的请求字段就新增接口。
 
 以下情况默认拒绝独立操作：
 

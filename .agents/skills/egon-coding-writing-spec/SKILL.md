@@ -24,6 +24,16 @@ The specification defines **what must be built and why the design is coherent**.
   - Never overwrite a document with the same minute and abstract; choose a more specific abstract.
 - Start from Template Version 3 in `assets/spec-template.md`. Keep every numbered chapter. Write `N/A` with repository evidence and a reason when a chapter does not apply. The validator continues to accept existing Version 2 Specs under their original contract.
 
+## Resource-integrity preflight
+
+Resolve the directory containing this `SKILL.md` as `<skill-root>`. Before reading any bundled reference, template, or helper script, run:
+
+```bash
+python3 <skill-root>/scripts/validate_skill_resources.py
+```
+
+`<skill-root>` is notation, not literal shell text: substitute the resolved absolute directory before executing the command. All bundled paths in this skill are relative to that directory and therefore start with `references/`, `assets/`, or `scripts/`; never resolve a bare filename relative to the repository root or the currently opened reference file. If the preflight reports a missing, escaping, ambiguous, or broken resource, stop before drafting, report the exact diagnostic to the user, and repair/reinstall the skill. Do not continue with a partial skill or silently substitute an invented resource.
+
 ## Non-negotiable rules
 
 1. Locate the repository root and read all applicable `AGENTS.md` files before designing.
@@ -231,4 +241,4 @@ Use exactly one:
 
 ## Skill maintenance
 
-When changing this skill, run `references/acceptance-scenarios.md` as review cases and keep `SKILL.zh-CN.md` plus all `*.zh-CN.md` review mirrors synchronized with the English operational contract.
+When changing this skill, first run the resource-integrity unit tests (`scripts/test_validate_skill_resources.py`) and preflight (`scripts/validate_skill_resources.py`), then run `references/acceptance-scenarios.md` as review cases and the applicable output validator. Keep `SKILL.zh-CN.md` plus all `*.zh-CN.md` review mirrors synchronized with the English operational contract. A change is not complete if any bundled resource is missing, uses an ambiguous bare path, escapes the skill root, or contains a broken local Markdown link.

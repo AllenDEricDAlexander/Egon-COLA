@@ -25,6 +25,16 @@ Plan 定义的是**先处理哪个文件、其中怎么写、接着处理哪个�
   - 同一分钟且摘要相同时不能覆盖旧文档，应使用更具体的摘要。
 - 必须以 `assets/plan-template.md` 中的 Plan Template Version 2 为模板，保留全部编号章节。不适用的章节写有证据的 `N/A`。校验器继续按旧契约接受既有无版本 Plan。
 
+## 资源完整性预检
+
+把本 `SKILL.md` 所在目录解析为 `<skill-root>`。读取任何内置参考资料、模板或辅助脚本前，必须运行：
+
+```bash
+python3 <skill-root>/scripts/validate_skill_resources.py
+```
+
+`<skill-root>` 只是记号，不是可直接执行的 shell 文本；运行命令前必须替换成解析得到的绝对目录。本 skill 的所有内置路径都以该目录为基准，因此必须以 `references/`、`assets/` 或 `scripts/` 开头；不得把裸文件名相对于仓库根目录或当前打开的 reference 文件解析。预检报告资源缺失、越界、歧义或本地 Markdown 链接失效时，必须在规划前停止，向用户报告准确诊断，并修复或重新安装 skill。不得带着不完整 skill 继续，也不得静默虚构替代资源。
+
 ## 不可违反的规则
 
 1. Plan 必须在 `Implements Spec` 中用仓库相对 Markdown 链接指定且只指定一个主目标，并在 `Effective Specs` 中列出完整有效集合：主 Spec、适用的已接受修订、规范性依赖和替代文档。
@@ -173,3 +183,7 @@ Plan 定义的是**先处理哪个文件、其中怎么写、接着处理哪个�
 | 遗漏迁移/配置/文档/权限/可观测性文件 | 把所有适用文件加入文件树与有序 Steps |
 | Plan 文件树无升级就偏离 Spec | 除非证据证明是语义不变重命名，否则回到 Spec |
 | 写完 Plan 就编码或启动运行时 | 停止并交付用户审核 |
+
+## Skill 维护
+
+修改本 skill 时，先运行资源完整性单元测试（`scripts/test_validate_skill_resources.py`）和预检（`scripts/validate_skill_resources.py`），再用 `references/acceptance-scenarios.md` 进行场景复核，并执行适用的输出校验器。必须保持 `SKILL.md` 和所有 `*.zh-CN.md` 审核镜像与英文运行契约同步。任何内置资源缺失、使用歧义裸路径、越出 skill 根目录或包含失效本地 Markdown 链接时，本次修改都不能算完成。

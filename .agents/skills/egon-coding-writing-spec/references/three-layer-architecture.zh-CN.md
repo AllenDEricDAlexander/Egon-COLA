@@ -1,6 +1,6 @@
 # 传统三层 Java 分包设计
 
-> 本文件是 `three-layer-architecture.md` 的全中文审核镜像。当前 skill 只规范这一种 Java 分包形式，DDD 和 COLA 分包暂缓。
+> 本文件是 `references/three-layer-architecture.md` 的全中文审核镜像。当前 skill 只规范这一种 Java 分包形式，DDD 和 COLA 分包暂缓。
 
 ## 适用门禁
 
@@ -54,7 +54,7 @@ utils -> 不反向依赖 controller/service/dao 流程
 
 ## 对象放置
 
-在 `biz.domain` 下增加对象前，必须执行 `pojo-modeling.zh-CN.md`。
+在 `biz.domain` 下增加对象前，必须执行 `references/pojo-modeling.zh-CN.md`。
 
 - 持久化对象使用 `po`、`entity` 或仓库已有术语；没有真实边界时不能创建同义持久化模型。
 - 只有独立语义确实需要时，才使用 DTO、VO、BO、Query、Command、Request、Response、Form、Param、PageQuery 或 PageResult。

@@ -23,6 +23,16 @@ The Plan defines **which file is handled first, what is written there, which fil
   - Never overwrite a same-minute/same-abstract document; choose a more specific abstract.
 - Start from Plan Template Version 2 in `assets/plan-template.md`. Keep all numbered chapters. Use evidence-backed `N/A` when a chapter does not apply. The validator continues to accept existing unversioned Plans under their legacy contract.
 
+## Resource-integrity preflight
+
+Resolve the directory containing this `SKILL.md` as `<skill-root>`. Before reading any bundled reference, template, or helper script, run:
+
+```bash
+python3 <skill-root>/scripts/validate_skill_resources.py
+```
+
+`<skill-root>` is notation, not literal shell text: substitute the resolved absolute directory before executing the command. All bundled paths in this skill are relative to that directory and therefore start with `references/`, `assets/`, or `scripts/`; never resolve a bare filename relative to the repository root or the currently opened reference file. If the preflight reports a missing, escaping, ambiguous, or broken resource, stop before planning, report the exact diagnostic to the user, and repair/reinstall the skill. Do not continue with a partial skill or silently substitute an invented resource.
+
 ## Non-negotiable rules
 
 1. A Plan must name exactly one primary target in `Implements Spec` using a repository-relative Markdown link. It must also list the complete `Effective Specs` set: the primary Spec plus applicable accepted amendments, normative dependencies, and replacements.
@@ -171,3 +181,7 @@ Use exactly one:
 | Omitting migration/config/docs/permission/observability files | Add every applicable file to the tree and ordered Steps |
 | Plan file tree differs from Spec without escalation | Return to the Spec unless it is a proven semantic-preserving rename |
 | Writing code or starting runtime after the Plan | Stop and deliver for user review |
+
+## Skill maintenance
+
+When changing this skill, first run the resource-integrity unit tests (`scripts/test_validate_skill_resources.py`) and preflight (`scripts/validate_skill_resources.py`), then run `references/acceptance-scenarios.md` as review cases and the applicable output validator. Keep `SKILL.zh-CN.md` plus all `*.zh-CN.md` review mirrors synchronized with the English operational contract. A change is not complete if any bundled resource is missing, uses an ambiguous bare path, escapes the skill root, or contains a broken local Markdown link.

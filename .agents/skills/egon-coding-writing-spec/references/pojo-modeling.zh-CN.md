@@ -1,6 +1,6 @@
 # 三层架构 POJO 职责与对象模型设计
 
-> 本文件是 `pojo-modeling.md` 的全中文审核镜像。编写 Spec 第 10 章和第 13 章的 Service 结构时使用，适用于 `three-layer-architecture.zh-CN.md` 定义的传统三层架构。以下名称表示语义职责，不是要求每一行都创建一个类的清单。
+> 本文件是 `references/pojo-modeling.md` 的全中文审核镜像。编写 Spec 第 10 章和第 13 章的 Service 结构时使用，适用于 `references/three-layer-architecture.zh-CN.md` 定义的传统三层架构。以下名称表示语义职责，不是要求每一行都创建一个类的清单。
 
 ## 标准职责词汇
 

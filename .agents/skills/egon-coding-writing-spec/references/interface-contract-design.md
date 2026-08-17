@@ -27,7 +27,7 @@ The inventory and detailed subsections must be bijective: no inventory item may 
 
 ## Interface entry and necessity gate
 
-Read `minimal-design-and-interface-necessity.md` before assigning a new ID. An interface is not justified merely because a caller lacks one of another operation's request fields.
+Apply the already loaded `references/minimal-design-and-interface-necessity.md` before assigning a new ID. An interface is not justified merely because a caller lacks one of another operation's request fields.
 
 Reject a separate operation by default when:
 
