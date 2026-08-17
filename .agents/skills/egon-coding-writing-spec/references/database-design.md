@@ -5,6 +5,7 @@ Read this reference whenever Chapter 11 affects persisted data or relies on exis
 ## Contents
 
 - [Database scope and inventory](#database-scope-and-inventory)
+- [Required Mermaid entity-relationship diagram](#required-mermaid-entity-relationship-diagram)
 - [Required per-table subsection](#required-per-table-subsection)
 - [Database drafting sequence](#database-drafting-sequence)
 - [Complete per-table worked example](#complete-per-table-worked-example)
@@ -22,6 +23,59 @@ List every created, altered, read, or written table:
 | --- | --- | --- | --- | --- | --- | --- |
 
 Every inventory table must have a detailed subsection. If no database is involved, keep Chapter 11 and write evidence-backed `N/A`.
+
+## Required Mermaid entity-relationship diagram
+
+When one or more relational tables are read, created, or changed, Chapter 11 must contain a Mermaid `erDiagram`. The ER diagram is the structural overview; it does not replace the table inventory, complete column design, constraints, access paths, indexes, migration, or transaction analysis.
+
+The diagram must:
+
+- include every table in the Chapter 11 inventory and the directly related existing table needed to explain cardinality or ownership;
+- use a stable Mermaid entity name and map it to the exact physical `schema.table` when names differ;
+- show relationship cardinality and an accurate business relationship label;
+- show primary keys, foreign keys, and material unique/business keys;
+- include relationship-driving and design-relevant attributes, while leaving exhaustive non-relational fields to the complete column table;
+- distinguish an existing unchanged neighbor from a created/changed table in adjacent prose or a mapping table;
+- agree with FK/application-enforced relationship decisions, optionality, tenant scope, lifecycle, and delete/orphan behavior;
+- avoid showing a relationship that is only guessed from similarly named columns.
+
+Use a mapping table when schema-qualified or renderer-safe names differ:
+
+| ER entity | Physical table | Scope/change | Authoritative owner | Notes |
+| --- | --- | --- | --- | --- |
+| `ORDERS` | `biz.orders` | Existing / Alter | Order module | `<tenant/lifecycle note>` |
+
+Illustrative syntax only:
+
+```mermaid
+erDiagram
+    CUSTOMERS ||--o{ ORDERS : places
+    ORDERS ||--|{ ORDER_ITEMS : contains
+
+    CUSTOMERS {
+        bigint id PK "customer identity"
+        bigint tenant_id "tenant scope"
+    }
+
+    ORDERS {
+        bigint id PK "order identity"
+        bigint tenant_id "tenant scope"
+        bigint customer_id FK "references customer"
+        varchar order_no UK "tenant business key"
+        varchar status "lifecycle state"
+    }
+
+    ORDER_ITEMS {
+        bigint id PK "line identity"
+        bigint order_id FK "owning order"
+        bigint product_id "product reference"
+        integer quantity "ordered units"
+    }
+```
+
+In the real Spec, state whether `CUSTOMERS -> ORDERS` and `ORDERS -> ORDER_ITEMS` are database-enforced FKs or application-enforced relationships, including tenant key participation and delete behavior. Mermaid `FK` notation alone does not make the constraint real.
+
+If no relational persistence is involved, retain the ER subsection and write `N/A` with repository evidence. For document, graph, key-value, or event storage, use the closest accurate Mermaid model only when it adds information; do not misrepresent it as a relational ER diagram.
 
 ## Required per-table subsection
 
@@ -104,10 +158,11 @@ Complete database design from evidence outward. Do not start by proposing a tabl
 1. **Establish the persistence baseline** — identify database dialect/version, schema, migration tool/path/version convention, ORM/mapper technology, naming/type conventions, transaction manager, soft-delete/tenant/audit conventions, and whether a live schema was verified.
 2. **Trace data ownership** — identify authoritative writer, readers, interface/model fields, lifecycle/state transitions, retention, expected volume/growth, and sensitive/audit classification.
 3. **Inspect current DDL and access paths** — read immutable migrations or schema definitions, PO/Entity mappings, Mapper/DAO SQL, generated-query methods, batch jobs, reports, and existing indexes/constraints. Source definitions and a live schema may differ; label the boundary.
-4. **Design columns and constraints** — use native types and state exact absence, default, precision, time, enum, tenant, audit, identity, uniqueness, relationship, and compatibility semantics.
-5. **Design from queries to indexes** — write the real query shape first, including equality/range/join/order/group/page behavior; only then select or reject an index and explain ordered keys, selectivity, coverage, overlap, and write/build cost.
-6. **Design migration and runtime coexistence** — profile existing data, order expand/backfill/validate/contract steps, define old/new application compatibility, lock duration, batching/restart, verification, rollback boundary, and forward fix.
-7. **Cross-check and test** — map every interface/model field to a column or intentional derived source; align transactions, errors, cache/events, frontend behavior, tests, and traceability.
+4. **Draw and verify the ER structure** — map physical tables to renderer-safe entities, draw actual cardinalities and material PK/FK/UK fields, then reconcile database- versus application-enforced relationships, optionality, tenant scope, and lifecycle.
+5. **Design columns and constraints** — use native types and state exact absence, default, precision, time, enum, tenant, audit, identity, uniqueness, relationship, and compatibility semantics.
+6. **Design from queries to indexes** — write the real query shape first, including equality/range/join/order/group/page behavior; only then select or reject an index and explain ordered keys, selectivity, coverage, overlap, and write/build cost.
+7. **Design migration and runtime coexistence** — profile existing data, order expand/backfill/validate/contract steps, define old/new application compatibility, lock duration, batching/restart, verification, rollback boundary, and forward fix.
+8. **Cross-check and test** — map every interface/model field to a column or intentional derived source; align the ER diagram, transactions, errors, cache/events, frontend behavior, tests, and traceability.
 
 Use this evidence ledger before selecting DDL:
 
@@ -127,6 +182,44 @@ This example demonstrates documentation depth only. It uses fictitious PostgreSQ
 | Table | Existing/new | Purpose and owner | Read/write paths | Change | Migration | Requirements |
 | --- | --- | --- | --- | --- | --- | --- |
 | `biz.orders` | Existing | Authoritative order header owned by Order module | `OrderDao#insert`, `OrderDao#findById`, `OrderDao#findPage` | Add idempotency identity and optimistic version | `classpath:db/V42__extend_orders_idempotency.sql` | `REQ-007`, `REQ-008` |
+| `biz.order_items` | Existing | Authoritative order lines owned by Order module | `OrderItemDao#batchInsert`, detail query | Read/write relationship validation; no column change in this example | Same migration only if a constraint/index changes; otherwise `None` | `REQ-007` |
+
+### Example ER diagram and physical mapping
+
+| ER entity | Physical table | Scope/change | Authoritative owner | Notes |
+| --- | --- | --- | --- | --- |
+| `CUSTOMERS` | `crm.customers` | Existing unchanged neighbor | Customer module | Referenced to explain tenant-scoped customer ownership |
+| `ORDERS` | `biz.orders` | Existing/altered | Order module | Inventory table expanded below |
+| `ORDER_ITEMS` | `biz.order_items` | Existing/read-write dependency | Order module | Inventory table that must receive its own per-table detail in a produced Spec |
+
+```mermaid
+erDiagram
+    CUSTOMERS ||--o{ ORDERS : places
+    ORDERS ||--|{ ORDER_ITEMS : contains
+
+    CUSTOMERS {
+        bigint id PK "customer identity"
+        bigint tenant_id "tenant scope"
+    }
+
+    ORDERS {
+        bigint id PK "order identity"
+        bigint tenant_id "tenant scope"
+        bigint customer_id FK "validated customer reference"
+        varchar order_no UK "tenant-visible business key"
+        varchar idempotency_key UK "tenant-scoped create identity"
+        bigint version "optimistic lock version"
+    }
+
+    ORDER_ITEMS {
+        bigint id PK "line identity"
+        bigint order_id FK "owning order"
+        bigint product_id "product reference"
+        integer quantity "ordered units"
+    }
+```
+
+This reference fully expands `biz.orders` to demonstrate the per-table structure. A produced Spec must repeat the same seven-part detail for `biz.order_items`; its inventory row and ER node cannot substitute for that detail.
 
 ### `biz.orders`
 
@@ -252,6 +345,7 @@ The real Spec must name the exact migration path, SQL/DDL pseudocode, pre/post v
 Before accepting a table detail, verify:
 
 - all seven required subsections exist in order and name the exact schema/table;
+- Chapter 11 contains one Mermaid `erDiagram` covering every inventory table, exact physical-name mapping, real cardinalities, relationship labels, and material PK/FK/UK attributes;
 - affected existing and all proposed columns include native type, precision/length, null, default, generation, constraints, meaning, mapping, and example;
 - primary/business/foreign relationships state ownership, optionality, tenant scope, update/delete/orphan behavior, and enforcement choice;
 - every index names an exact query/caller, ordered keys, selectivity evidence, sort/coverage role, overlap, write/storage/build/lock cost, and verification;
@@ -267,6 +361,7 @@ Line count is not a substitute. A read-only lookup against a proven stable table
 Return `REVISE` when any applies:
 
 - a table is listed but not expanded, or a column lacks type/null/default/meaning;
+- relational tables exist but the ER diagram is missing, omits an inventory table, invents a relationship, or contradicts keys/cardinality/optionality in the detailed design;
 - an interface/model field cannot be mapped to a column or intentional non-persistent source;
 - an index lacks a real query and column-order rationale;
 - uniqueness, soft-delete, tenant, time, money, or `NULL` semantics are ambiguous;

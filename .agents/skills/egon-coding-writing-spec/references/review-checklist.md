@@ -19,6 +19,15 @@
 - [ ] Every critical actor, consumer, source of truth, write owner, transaction boundary, and compatibility obligation is resolved or recorded as an open major decision.
 - [ ] Happy path, partial failure, retry, timeout, duplicate, concurrency, rollback, recovery, permission denial, and empty states are covered as applicable.
 
+## Requirements and use-case review
+
+- [ ] Chapter 4 identifies repository/user-evidenced `ACTOR-*` roles and stable `UC-*` actor goals rather than implementation classes or generic CRUD verbs.
+- [ ] Use cases are presented through a complete table or Mermaid `flowchart`; a visual form has a named system/module boundary and real actor-to-goal relationships.
+- [ ] Every use case states trigger, preconditions, main success outcome, material alternatives/failures, success/failure postconditions, requirements, contracts/pages, and tests, either in the artifact or adjacent detail.
+- [ ] Every material behavioral `REQ-*` maps to at least one use case; non-functional requirements name the use cases they constrain.
+- [ ] Use-case branches agree with the scenario matrix, permissions, interface outcomes, state transitions, database effects, frontend states, and test cases.
+- [ ] Pure refactors describe the developer/operational use case and preserved behavior rather than using an unexplained `N/A`.
+
 ## Repository fidelity
 
 - [ ] Applicable `AGENTS.md` instructions and repository status were checked.
@@ -74,6 +83,9 @@
 ## Database-design review
 
 - [ ] Chapter 11 inventories every created, altered, read, or written table and expands every inventory item in a detailed subsection.
+- [ ] When relational tables exist, Chapter 11 includes a Mermaid `erDiagram` covering every inventory table and the direct unchanged neighbors needed to explain ownership/cardinality.
+- [ ] Every ER entity maps to an exact physical table; relationships use correct cardinality and labels and identify material PK/FK/UK fields.
+- [ ] ER relationships agree with database- versus application-enforcement, optionality, tenant scope, lifecycle, update/delete behavior, orphan handling, PO/Entity mappings, and per-table constraints.
 - [ ] Every table detail contains all seven required subsections in order and states its exact schema/table, owner, authoritative writer, readers, lifecycle, tenant/retention, volume evidence, and source-vs-live verification boundary.
 - [ ] Every relevant column has database-native type, length/precision, null/default/generated semantics, constraints, meaning, mapping, and example.
 - [ ] Keys, relationships, tenant/soft-delete behavior, states, money/rounding, time zone, IDs, audit/version fields, and retention are explicit as applicable.

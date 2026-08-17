@@ -5,6 +5,7 @@
 ## 目录
 
 - [数据库范围与清单](#数据库范围与清单)
+- [必需 Mermaid 实体关系图](#必需-mermaid-实体关系图)
 - [每张表必需结构](#每张表必需结构)
 - [数据库编写顺序](#数据库编写顺序)
 - [完整逐表示例](#完整逐表示例)
@@ -22,6 +23,59 @@
 | --- | --- | --- | --- | --- | --- | --- |
 
 清单中的每张表都必须有独立详细章节。没有数据库影响时保留第 11 章，并写有证据的 `N/A`。
+
+## 必需 Mermaid 实体关系图
+
+读取、新建或修改一张及以上关系型表时，第 11 章必须包含 Mermaid `erDiagram`。ER 图是结构总览，不能替代表清单、完整字段、约束、访问路径、索引、Migration 或事务分析。
+
+ER 图必须：
+
+- 包含第 11 章清单中的每张表，以及解释基数或所有权所需的直接关联现有表；
+- 使用稳定 Mermaid Entity 名称；名称与真实物理 `schema.table` 不同时提供映射；
+- 展示关系基数和准确业务关系标签；
+- 展示主键、外键和重要唯一键/业务键；
+- 包含驱动关系及设计相关字段，全部非关系字段仍放在完整字段表中；
+- 在相邻正文或映射表区分“现有未修改邻表”和“本次新建/修改表”；
+- 与 FK/应用强制关系、可选性、租户范围、生命周期、删除/孤儿行为一致；
+- 不得仅根据同名字段猜测并画出关系。
+
+Schema 限定名称或渲染安全名称不同时使用映射表：
+
+| ER Entity | 物理表 | 范围/变更 | 权威所有者 | 说明 |
+| --- | --- | --- | --- | --- |
+| `ORDERS` | `biz.orders` | 已有 / 修改 | Order 模块 | `<租户/生命周期说明>` |
+
+以下只说明语法：
+
+```mermaid
+erDiagram
+    CUSTOMERS ||--o{ ORDERS : places
+    ORDERS ||--|{ ORDER_ITEMS : contains
+
+    CUSTOMERS {
+        bigint id PK "客户身份"
+        bigint tenant_id "租户范围"
+    }
+
+    ORDERS {
+        bigint id PK "订单身份"
+        bigint tenant_id "租户范围"
+        bigint customer_id FK "引用客户"
+        varchar order_no UK "租户业务键"
+        varchar status "生命周期状态"
+    }
+
+    ORDER_ITEMS {
+        bigint id PK "明细身份"
+        bigint order_id FK "所属订单"
+        bigint product_id "产品引用"
+        integer quantity "订购数量"
+    }
+```
+
+真实 Spec 必须说明 `CUSTOMERS -> ORDERS` 和 `ORDERS -> ORDER_ITEMS` 是数据库 FK 还是应用强制关系，包括租户 Key 和删除行为。Mermaid 中标记 `FK` 不代表数据库已经存在该约束。
+
+没有关系型持久化时保留 ER 小节，并根据仓库证据写 `N/A`。文档、图、键值或事件存储只有在确实增加信息时才使用最准确的 Mermaid 模型，不能伪装成关系 ER 图。
 
 ## 每张表必需结构
 
@@ -104,10 +158,11 @@
 1. **建立持久化基线**——识别数据库方言/版本、Schema、Migration 工具/路径/版本惯例、ORM/Mapper 技术、命名/类型惯例、事务管理器、软删除/租户/审计惯例，以及是否核对真实 Schema。
 2. **追踪数据所有权**——识别权威写入方、读取方、接口/模型字段、生命周期/状态变化、保留策略、预期数据量/增长和敏感/审计分类。
 3. **检查现有 DDL 与访问路径**——读取不可变 Migration/Schema、PO/Entity Mapping、Mapper/DAO SQL、生成查询方法、批处理、报表和已有索引/约束。源码定义与真实 Schema 可能不同，必须标注边界。
-4. **设计字段与约束**——使用原生类型，准确说明缺失、默认、精度、时间、枚举、租户、审计、身份、唯一、关系和兼容语义。
-5. **从查询设计索引**——先写真实查询形态，包括等值/范围/Join/排序/分组/分页；然后才选择或拒绝索引，并说明有序字段、选择性、覆盖、重叠和写入/构建成本。
-6. **设计 Migration 与运行时共存**——分析现有数据，安排 Expand/回填/验证/Contract 顺序，说明新旧应用兼容、锁时长、批次/重启、验证、回滚边界和 Forward Fix。
-7. **交叉检查与测试**——把每个接口/模型字段映射到列或明确派生来源；对齐事务、错误、缓存/事件、前端行为、测试和追踪。
+4. **绘制并验证 ER 结构**——把物理表映射到渲染安全 Entity，绘制真实基数和重要 PK/FK/UK 字段，再对齐数据库/应用强制关系、可选性、租户范围和生命周期。
+5. **设计字段与约束**——使用原生类型，准确说明缺失、默认、精度、时间、枚举、租户、审计、身份、唯一、关系和兼容语义。
+6. **从查询设计索引**——先写真实查询形态，包括等值/范围/Join/排序/分组/分页；然后才选择或拒绝索引，并说明有序字段、选择性、覆盖、重叠和写入/构建成本。
+7. **设计 Migration 与运行时共存**——分析现有数据，安排 Expand/回填/验证/Contract 顺序，说明新旧应用兼容、锁时长、批次/重启、验证、回滚边界和 Forward Fix。
+8. **交叉检查与测试**——把每个接口/模型字段映射到列或明确派生来源；对齐 ER 图、事务、错误、缓存/事件、前端行为、测试和追踪。
 
 选择 DDL 前先使用证据账本：
 
@@ -127,6 +182,44 @@
 | 表 | 已有/新增 | 用途与所有者 | 读写路径 | 变更 | Migration | 需求 |
 | --- | --- | --- | --- | --- | --- | --- |
 | `biz.orders` | 已有 | Order 模块所有的权威订单头 | `OrderDao#insert`、`OrderDao#findById`、`OrderDao#findPage` | 增加幂等身份与乐观版本 | `classpath:db/V42__extend_orders_idempotency.sql` | `REQ-007`、`REQ-008` |
+| `biz.order_items` | 已有 | Order 模块所有的权威订单明细 | `OrderItemDao#batchInsert`、详情查询 | 读写关系验证；示例中无字段变更 | 只有约束/索引变化时使用同一 Migration，否则 `None` | `REQ-007` |
+
+### 示例 ER 图与物理映射
+
+| ER Entity | 物理表 | 范围/变更 | 权威所有者 | 说明 |
+| --- | --- | --- | --- | --- |
+| `CUSTOMERS` | `crm.customers` | 现有未修改邻表 | Customer 模块 | 用于说明租户范围客户所有权 |
+| `ORDERS` | `biz.orders` | 已有/修改 | Order 模块 | 下方展开的清单表 |
+| `ORDER_ITEMS` | `biz.order_items` | 已有/读写依赖 | Order 模块 | 生产 Spec 中必须拥有逐表详情的清单表 |
+
+```mermaid
+erDiagram
+    CUSTOMERS ||--o{ ORDERS : places
+    ORDERS ||--|{ ORDER_ITEMS : contains
+
+    CUSTOMERS {
+        bigint id PK "客户身份"
+        bigint tenant_id "租户范围"
+    }
+
+    ORDERS {
+        bigint id PK "订单身份"
+        bigint tenant_id "租户范围"
+        bigint customer_id FK "已校验客户引用"
+        varchar order_no UK "租户可见业务键"
+        varchar idempotency_key UK "租户范围创建身份"
+        bigint version "乐观锁版本"
+    }
+
+    ORDER_ITEMS {
+        bigint id PK "明细身份"
+        bigint order_id FK "所属订单"
+        bigint product_id "产品引用"
+        integer quantity "订购数量"
+    }
+```
+
+本参考完整展开 `biz.orders`，用于展示逐表结构。生产 Spec 必须对 `biz.order_items` 重复相同的七段详情；清单行和 ER 节点不能替代逐表设计。
 
 ### `biz.orders`
 
@@ -252,6 +345,7 @@ LIMIT :limit;
 接受一张表的详情前，确认：
 
 - 七个必需子章节按顺序存在，并写出准确 Schema/表名；
+- 第 11 章包含一个覆盖所有清单表、准确物理名称映射、真实基数/关系标签和重要 PK/FK/UK 字段的 Mermaid `erDiagram`；
 - 受影响的已有字段和全部新增字段包含原生类型、精度/长度、可空、默认、生成、约束、含义、映射和示例；
 - 主键/业务键/外键关系说明所有权、可选、租户范围、更新/删除/孤儿行为和强制方式；
 - 每个索引包含准确 Query/调用者、有序 Key、选择性证据、排序/覆盖、重叠、写入/存储/构建/锁成本和验证；
@@ -267,6 +361,7 @@ LIMIT :limit;
 存在以下任一问题时返回 `REVISE`：
 
 - 表在清单中却没有展开，或字段缺少类型/可空/默认值/含义；
+- 存在关系型表但缺少 ER 图、ER 图遗漏清单表、虚构关系，或与详细设计中的 Key/基数/可选性矛盾；
 - 接口/模型字段无法映射到列或明确的非持久化来源；
 - 索引没有真实查询和字段顺序依据；
 - 唯一性、软删除、租户、时间、金额或 `NULL` 语义含糊；

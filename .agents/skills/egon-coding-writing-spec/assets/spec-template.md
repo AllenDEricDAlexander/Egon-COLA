@@ -75,6 +75,41 @@ Required for a Complex Spec. Include main, alternative, failure, retry, duplicat
 
 For Complex Specs, the minimum-depth validator expects two evidence/current-chain rows, three materially distinct scenario rows, three quality/constraint rows, and two conclusion chains. When the repository genuinely contains fewer real elements, write `Depth exception:` in the affected subsection and cite the exact evidence; never use it merely for brevity.
 
+### 4.2 Use-case analysis
+
+Read `references/requirements-use-case-analysis.md`. Identify real external roles/systems, then express actor goals with stable `ACTOR-*` and `UC-*` IDs. Use either a complete use-case table or a Mermaid `flowchart`; for complex or multi-actor behavior, prefer the visual system-boundary view plus concise detail. Do not draw Controller/Service/DAO calls as use cases.
+
+#### 4.2.1 Actor inventory
+
+| Actor ID | Actor/role | Goal and responsibility | Entry/channel | Permission/tenant context | Evidence |
+| --- | --- | --- | --- | --- | --- |
+| `ACTOR-001` | `<role/system>` | `<goal>` | `<page/API/event/job>` | `<context>` | `<path/symbol/user wording>` |
+
+#### 4.2.2 Use-case artifact
+
+Table form:
+
+| ID | Use case/goal | Primary actor | Supporting actors/systems | Trigger | Preconditions | Main success outcome | Alternatives/failures | Postconditions | Requirements | Interfaces/pages | Tests |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `UC-001` | `<action and goal>` | `ACTOR-001` | `<actors/systems>` | `<event>` | `<conditions>` | `<observable outcome>` | `<named branches>` | `<success/failure state>` | `REQ-001` | `API-001 / <page>` | `TEST-001` |
+
+Mermaid form, when it communicates actors and boundaries more clearly:
+
+```mermaid
+flowchart LR
+    Actor["ACTOR-001 Actor role"]
+    External["Supporting external system"]
+
+    subgraph Scope["Exact system/module boundary"]
+        UC001(["UC-001 Observable actor goal"])
+    end
+
+    Actor -->|"triggers"| UC001
+    UC001 -->|"uses/notifies"| External
+```
+
+Whichever form is selected, define the actor, trigger, preconditions, main success result, material alternative/failure outcomes, success/failure postconditions, and forward links to requirements, contracts/pages, models/tables, and tests. Add one `#### 4.2.x UC-NNN — Name` detail block when the chosen artifact cannot hold those semantics clearly.
+
 ## 5. Constraints, Assumptions, and Decisions
 
 ### 5.1 Confirmed constraints
@@ -404,6 +439,10 @@ Concrete classes under `biz.service.impl` must use composition and delegation by
 
 Define allowed transitions, guards, side effects, invalid transitions, and concurrency/version rules.
 
+### 10.7 Relational model consistency
+
+When relational persistence applies, map persistence objects/ORM entities and relationship fields to the exact Chapter 11 ER entities/tables and keys. Confirm cardinality, optionality, tenant scope, ownership, lifecycle, and cascade/orphan behavior agree with the Mermaid ER diagram and per-table constraints. If no relational model exists, write evidence-backed `N/A`.
+
 ## 11. Database Design
 
 Read `references/database-design.md`. If no database is read or changed, write evidence-backed `N/A` in the subsections. Otherwise use the repository's actual dialect, migration mechanism, naming, and access layer.
@@ -454,6 +493,33 @@ Define the exact new migration path/version, ordered DDL/data pseudocode, data p
 ##### Transaction, consistency, and recovery
 
 Define transaction owner, isolation/locks, concurrent writes, idempotency/deduplication, cache invalidation, event/outbox relationship, partial failure, audit, and reconciliation/repair.
+
+### 11.3 Entity-relationship diagram
+
+Relational persistence requires a Mermaid `erDiagram`. Include every table from §11.1 and any directly related existing neighbor needed to explain ownership/cardinality. Show actual relationships and material PK/FK/UK fields; do not invent an FK because columns share a name. The diagram complements rather than replaces §11.2.
+
+| ER entity | Physical table | Scope/change | Authoritative owner | Notes |
+| --- | --- | --- | --- | --- |
+| `TABLE_A` | `<schema.table_a>` | Existing / New / Alter / Read-only neighbor | `<module>` | `<tenant/lifecycle/enforcement>` |
+
+```mermaid
+erDiagram
+    TABLE_A ||--o{ TABLE_B : owns
+
+    TABLE_A {
+        bigint id PK "stable identity"
+        bigint tenant_id "tenant scope"
+        varchar business_key UK "business uniqueness"
+    }
+
+    TABLE_B {
+        bigint id PK "stable identity"
+        bigint table_a_id FK "references TABLE_A"
+        varchar state "lifecycle state"
+    }
+```
+
+State whether each depicted relationship is enforced by a database FK/constraint or by application logic, including optionality, tenant-key participation, update/delete behavior, and orphan handling. If Chapter 11 has no relational tables, write `N/A` with repository evidence instead of leaving a placeholder diagram.
 
 ## 12. Frontend Page Design
 
@@ -565,9 +631,9 @@ Record why the chosen design is preferable. Do not add alternatives merely to fi
 
 ## 19. Traceability Matrix
 
-| Requirement | Architecture/packages | Interface | Model/database | Frontend | Tests | Acceptance evidence |
-| --- | --- | --- | --- | --- | --- | --- |
-| `REQ-001` | `§7 / §8` | `API-001` | `<model/table or N/A>` | `<page or N/A>` | `TEST-001` | `§4 criterion` |
+| Requirement | Use case | Architecture/packages | Interface | Model/database | Frontend | Tests | Acceptance evidence |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `REQ-001` | `UC-001` | `§7 / §8` | `API-001` | `<model/table or N/A>` | `<page or N/A>` | `TEST-001` | `§4 criterion` |
 
 Every `REQ-*` must map to design, tests, and acceptance. Every proposed contract, model, file, page, migration, and test must map back to a requirement or documented necessary infrastructure rationale.
 
@@ -588,6 +654,8 @@ Confirm architecture, file tree, interfaces, fields, POJO/entity state, schema, 
 For a Complex Spec, confirm the evidence map, scenario matrix, architecture/high-level/detailed sections, Mermaid architecture/flow/swimlane diagrams, and conclusion chains cover the same critical paths and failure semantics.
 
 Confirm every interface inventory ID has one detailed contract with complete request rules, full commented success/error payloads, frontend logic, and field consistency. Confirm every database inventory table and index is expanded and tied to real models, queries, migrations, and tests.
+
+Confirm requirements analysis contains evidenced actors and `UC-*` goals in a complete table or Mermaid use-case view, and that use-case conditions/outcomes agree with scenarios, interfaces, data effects, frontend states, and tests. Confirm relational data design contains a Mermaid `erDiagram` covering every inventory table and agreeing with physical names, PK/FK/UK fields, cardinalities, optionality, and enforcement rules.
 
 ### 20.4 Relationship and effective-design review
 

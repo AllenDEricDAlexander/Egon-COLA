@@ -77,6 +77,8 @@ VERDICTS = {
     "REVISE — Internal inconsistency found",
 }
 CONTRACT_ID_RE = re.compile(r"\b(?:API|RPC|EVENT|MESSAGE|JOB|CLI|INTERNAL)-\d{3}\b")
+USE_CASE_ID_RE = re.compile(r"\bUC-\d{3}\b")
+ACTOR_ID_RE = re.compile(r"\bACTOR-\d{3}\b")
 CONTRACT_DETAIL_HEADING_RE = re.compile(
     r"(?m)^####\s+(?:9\.2\.\d+\s+)?(?P<id>(?:API|RPC|EVENT|MESSAGE|JOB|CLI|INTERNAL)-\d{3})\b"
 )
@@ -230,6 +232,7 @@ def validate_v2_content(text: str, fields: dict[str, str], status: str) -> list[
         errors.append("A Complex Spec must name material Complexity Drivers")
 
     required_v2_headings = [
+        "### 4.2 Use-case analysis",
         "### 7.1 System Architecture Design",
         "### 7.2 High-Level Design",
         "### 7.3 Detailed Design",
@@ -237,12 +240,38 @@ def validate_v2_content(text: str, fields: dict[str, str], status: str) -> list[
         "### 9.2 Per-interface Detailed Contracts",
         "### 11.1 Table Inventory",
         "### 11.2 Per-table Detailed Design",
+        "### 11.3 Entity-relationship diagram",
     ]
     for heading in required_v2_headings:
         if heading not in text:
             errors.append(f"Template Version 2 is missing required subsection: {heading}")
 
     architecture = section(text, "## 7. Architecture Design")
+
+    requirements = section(text, "## 4. Requirements and Acceptance Criteria")
+    use_case_analysis = heading_body(requirements, "### 4.2 Use-case analysis")
+    use_case_ids = sorted(set(USE_CASE_ID_RE.findall(use_case_analysis)))
+    actor_ids = sorted(set(ACTOR_ID_RE.findall(use_case_analysis)))
+    use_case_mermaid = [
+        match.group("body").lstrip()
+        for match in MERMAID_BLOCK_RE.finditer(use_case_analysis)
+        if match.group("body").lstrip().startswith("flowchart")
+    ]
+    has_use_case_table = "| ID | Use case/goal |" in use_case_analysis
+    if "### 4.2 Use-case analysis" in requirements:
+        if not use_case_ids:
+            errors.append("Use-case analysis requires at least one stable UC-NNN ID")
+        if not actor_ids:
+            errors.append("Use-case analysis requires at least one evidenced ACTOR-NNN ID")
+        if not has_use_case_table and not use_case_mermaid:
+            errors.append(
+                "Use-case analysis requires either the complete use-case table or a Mermaid flowchart view"
+            )
+        traceability = section(text, "## 19. Traceability Matrix")
+        for use_case_id in use_case_ids:
+            if use_case_id not in traceability:
+                errors.append(f"Use case absent from traceability matrix: {use_case_id}")
+
     if complexity == "Complex":
         required_complex_headings = [
             "### 2.4 Evidence and current-chain map",
@@ -379,6 +408,33 @@ def validate_v2_content(text: str, fields: dict[str, str], status: str) -> list[
             )
     for table_name in sorted(set(detail_tables) - inventory_tables):
         errors.append(f"Detailed database table {table_name} is absent from the table inventory")
+
+    er_design = heading_body(database, "### 11.3 Entity-relationship diagram")
+    er_blocks = [
+        match.group("body").lstrip()
+        for match in MERMAID_BLOCK_RE.finditer(er_design)
+        if match.group("body").lstrip().startswith("erDiagram")
+    ]
+    if inventory_tables:
+        if not er_blocks:
+            errors.append("Relational table inventory requires a Mermaid erDiagram in §11.3")
+        else:
+            for table_name in sorted(inventory_tables):
+                candidates = {table_name, table_name.split(".")[-1]}
+                covered = any(
+                    re.search(
+                        rf"(?<![A-Za-z0-9_$]){re.escape(candidate)}(?![A-Za-z0-9_$])",
+                        er_design,
+                        re.IGNORECASE,
+                    )
+                    for candidate in candidates
+                )
+                if not covered:
+                    errors.append(
+                        f"Entity-relationship design does not cover inventory table: {table_name}"
+                    )
+            if not any(re.search(r"\sPK(?:\s|\")", block) for block in er_blocks):
+                errors.append("Mermaid erDiagram must show material primary-key attributes")
 
     table_matches = list(TABLE_DETAIL_HEADING_RE.finditer(table_detail))
     for index, match in enumerate(table_matches):
