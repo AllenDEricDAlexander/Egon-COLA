@@ -65,6 +65,16 @@
 - [ ] Unit tests target isolated production behavior; higher-level tests have separate responsibilities.
 - [ ] Security, tenancy, compatibility, migration, observability, rollback, and operational concerns are covered or evidence-backed `N/A`.
 
+## Minimum-design and element-necessity review
+
+- [ ] The direct repository-consistent reuse/no-new-element option was evaluated before a more complex architecture.
+- [ ] Every new or materially expanded API, class, layer, table, cache, job, dependency, and frontend store/provider has one current requirement, an existing/direct alternative, its concrete inadequacy, added cost/failure modes, and an `Add/Keep/Merge/Remove` verdict.
+- [ ] No interface exists only to return values that the caller copies unchanged into another request or that the target backend can derive from identity, tenant, current resource, persisted relationship, configuration, or a stable business key.
+- [ ] Every selector/discovery interface has a real independent display/search/choice/audit/negotiation use case, server-owned variability, cache/version behavior, and command-time revalidation.
+- [ ] Critical-path before/after network calls, client states, server contracts/state, failure points, and TOCTOU behavior are explicit.
+- [ ] Speculative future reuse, pattern names, template completeness, or generic “decoupling” is not used as present necessity evidence.
+- [ ] When two options satisfy the same approved requirements, the option with fewer contracts, states, dependencies, calls, migration obligations, and operational burden is selected.
+
 ## Interface-contract review
 
 - [ ] Chapter 9 has a complete interface inventory and exactly one detailed subsection for every `API-*`, `RPC-*`, `EVENT-*`, `JOB-*`, or `INTERNAL-*` ID.
@@ -75,7 +85,7 @@
 - [ ] Response design expands the real wrapper and nested fields rather than using a class name, `...`, or undocumented inherited fields.
 - [ ] Error mappings name trigger condition, transport status, stable business code, retryability, response shape, and frontend handling.
 - [ ] Interface logic states preconditions, validation/permission order, main processing, transactions/data/external calls, side effects, failures, and frontend loading/refresh/retry/error/polling behavior.
-- [ ] Every interface detail contains the six required subsections in order; HTTP consumer logic explicitly covers all seven ordered behavior categories, using evidence-backed `N/A` only where a category truly does not apply.
+- [ ] Every interface detail contains the seven required subsections in order, beginning with necessity/interaction cost; HTTP consumer logic explicitly covers all seven ordered behavior categories, using evidence-backed `N/A` only where a category truly does not apply.
 - [ ] List endpoints define pagination/cursor base and limits, filter/null semantics, deterministic sort/tie-breaker, empty-page behavior, count/query cost, concurrent-change behavior, index, frontend states, and list-specific tests.
 - [ ] RPC/event/job/internal contracts use their exact symbols/topics and protocol semantics rather than fabricated HTTP URLs.
 - [ ] Interface fields, nullability, enums, time/precision, errors, POJOs, database columns, frontend usage, and tests agree.

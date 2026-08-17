@@ -15,7 +15,8 @@ TITLE_RE = re.compile(r"\A#\s+\S.+$", re.MULTILINE)
 DATE_TIME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2}) \S+$")
 VALID_STATUSES = {"Draft", "Review", "Accepted", "Implemented", "Superseded", "Rejected"}
 VALID_COMPLEXITIES = {"Simple", "Complex"}
-CURRENT_TEMPLATE_VERSION = 2
+CURRENT_TEMPLATE_VERSION = 3
+SUPPORTED_TEMPLATE_VERSIONS = {2, 3}
 REQUIRED_FIELDS = [
     "Document",
     "Status",
@@ -90,13 +91,17 @@ TABLE_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_$]*(?:\.[A-Za-z_][A-Za-z0-9_$]
 TABLE_DETAIL_HEADING_RE = re.compile(
     r"(?m)^####\s+(?:11\.2\.\d+\s+)?`?(?P<name>[A-Za-z_][A-Za-z0-9_$]*(?:\.[A-Za-z_][A-Za-z0-9_$]*)?)`?\b"
 )
-REQUIRED_CONTRACT_SUBHEADINGS = [
+REQUIRED_CONTRACT_SUBHEADINGS_V2 = [
     "##### Identity and purpose",
     "##### Request parameters",
     "##### Success response",
     "##### Error responses",
     "##### Interface logic for frontend and consumers",
     "##### Compatibility and verification",
+]
+REQUIRED_CONTRACT_SUBHEADINGS_V3 = [
+    "##### Necessity and interaction-cost decision",
+    *REQUIRED_CONTRACT_SUBHEADINGS_V2,
 ]
 REQUIRED_TABLE_SUBHEADINGS = [
     "##### Purpose, ownership, and lifecycle",
@@ -219,15 +224,20 @@ def markdown_inventory_names(text: str, header: str) -> set[str]:
     return names
 
 
-def validate_v2_content(text: str, fields: dict[str, str], status: str) -> list[str]:
+def validate_v2_content(
+    text: str,
+    fields: dict[str, str],
+    status: str,
+    template_version: int = CURRENT_TEMPLATE_VERSION,
+) -> list[str]:
     errors: list[str] = []
     complexity = clean(fields.get("Complexity", ""))
     drivers = clean(fields.get("Complexity Drivers", ""))
 
     if complexity not in VALID_COMPLEXITIES:
-        errors.append("Template Version 2 requires Complexity to be Simple or Complex")
+        errors.append(f"Template Version {template_version} requires Complexity to be Simple or Complex")
     if not drivers:
-        errors.append("Template Version 2 requires a non-empty Complexity Drivers field")
+        errors.append(f"Template Version {template_version} requires a non-empty Complexity Drivers field")
     elif complexity == "Complex" and drivers.lower() == "none":
         errors.append("A Complex Spec must name material Complexity Drivers")
 
@@ -242,11 +252,20 @@ def validate_v2_content(text: str, fields: dict[str, str], status: str) -> list[
         "### 11.2 Per-table Detailed Design",
         "### 11.3 Entity-relationship diagram",
     ]
+    if template_version >= 3:
+        required_v2_headings.insert(1, "### 7.0 Minimum-design baseline and element-necessity audit")
     for heading in required_v2_headings:
         if heading not in text:
-            errors.append(f"Template Version 2 is missing required subsection: {heading}")
+            errors.append(f"Template Version {template_version} is missing required subsection: {heading}")
 
     architecture = section(text, "## 7. Architecture Design")
+
+    minimum_design = heading_body(architecture, "### 7.0 Minimum-design baseline and element-necessity audit")
+    if template_version >= 3 and "### 7.0 Minimum-design baseline and element-necessity audit" in architecture:
+        if "| Proposed element | Change | Requirements |" not in minimum_design:
+            errors.append("Minimum-design baseline requires the element-necessity audit table")
+        if "| Path | Network calls | Client states |" not in minimum_design:
+            errors.append("Minimum-design baseline requires the interaction-cost comparison table")
 
     requirements = section(text, "## 4. Requirements and Acceptance Criteria")
     use_case_analysis = heading_body(requirements, "### 4.2 Use-case analysis")
@@ -345,11 +364,32 @@ def validate_v2_content(text: str, fields: dict[str, str], status: str) -> list[
         contract_id = match.group("id")
         end = detail_matches[index + 1].start() if index + 1 < len(detail_matches) else len(detail_text)
         contract_text = detail_text[match.start():end]
-        errors.extend(validate_ordered_subheadings(contract_id, contract_text, REQUIRED_CONTRACT_SUBHEADINGS))
-        for heading in REQUIRED_CONTRACT_SUBHEADINGS:
+        required_contract_subheadings = (
+            REQUIRED_CONTRACT_SUBHEADINGS_V3
+            if template_version >= 3
+            else REQUIRED_CONTRACT_SUBHEADINGS_V2
+        )
+        errors.extend(validate_ordered_subheadings(contract_id, contract_text, required_contract_subheadings))
+        for heading in required_contract_subheadings:
             body = heading_body(contract_text, heading)
             if heading in contract_text and len(re.sub(r"\s+", " ", body).strip()) < 40:
                 errors.append(f"{contract_id} subsection is too shallow: {heading}")
+        necessity = heading_body(contract_text, "##### Necessity and interaction-cost decision")
+        if template_version >= 3 and "##### Necessity and interaction-cost decision" in contract_text:
+            if "| Concern | Decision |" not in necessity:
+                errors.append(f"{contract_id} necessity subsection lacks the concern/decision table")
+            necessity_rows = [
+                "Change classification",
+                "Independent consumer goal",
+                "Parameter ownership and derivation",
+                "Direct/no-new-interface alternative",
+                "Caller use of result",
+                "Round trips and failure points",
+                "Verdict",
+            ]
+            for row in necessity_rows:
+                if row not in necessity:
+                    errors.append(f"{contract_id} necessity subsection lacks decision row: {row}")
         jsonc_blocks = [item.group("body") for item in JSONC_BLOCK_RE.finditer(contract_text)]
         if contract_id.startswith("API-"):
             if not re.search(r"\b(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+/\S+", contract_text):
@@ -520,15 +560,17 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
     if template_version:
         if not template_version.isdigit():
             errors.append(f"Template Version must be an integer: {template_version}")
-        elif int(template_version) != CURRENT_TEMPLATE_VERSION:
+        elif int(template_version) not in SUPPORTED_TEMPLATE_VERSIONS:
             errors.append(
-                f"Unsupported Template Version {template_version}; expected {CURRENT_TEMPLATE_VERSION}"
+                f"Unsupported Template Version {template_version}; supported: "
+                f"{', '.join(str(item) for item in sorted(SUPPORTED_TEMPLATE_VERSIONS))}"
             )
         else:
+            parsed_template_version = int(template_version)
             for field in ("Complexity", "Complexity Drivers"):
                 if field not in fields or not clean(fields[field]):
-                    errors.append(f"Template Version 2 requires header field: {field}")
-            errors.extend(validate_v2_content(text, fields, status))
+                    errors.append(f"Template Version {parsed_template_version} requires header field: {field}")
+            errors.extend(validate_v2_content(text, fields, status, parsed_template_version))
 
     parsed_dates: dict[str, re.Match[str]] = {}
     for field in ("Created", "Updated"):

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Document | `YYYY-MM-DD-HH-MM-abstract.md` |
-| Template Version | `2` |
+| Template Version | `3` |
 | Status | `Draft` |
 | Type | `Feature / Refactor / Bugfix / Architecture` |
 | Complexity | `Simple / Complex` |
@@ -149,6 +149,23 @@ For Java package design, record whether the affected module already uses or the 
 | Traditional Three-Layer / Other | `<base package>` | `<paths or DEC-*>` | `<None or exact deviations>` | `<apply profile / preserve current structure / ask user>` |
 
 ## 7. Architecture Design
+
+### 7.0 Minimum-design baseline and element-necessity audit
+
+Read `references/minimal-design-and-interface-necessity.md`. Start from the repository-consistent direct/reuse/no-new-element option. Inventory every new or materially expanded element and reject complexity that has no current requirement-backed advantage.
+
+| Proposed element | Change | Requirements | Existing/direct alternative | Concrete inadequacy of alternative | Added calls/state/coupling/failures/migration/operations | Verdict |
+| --- | --- | --- | --- | --- | --- | --- |
+| `<API/class/table/cache/job/layer/dependency/frontend store>` | New / Expand / Keep / Remove | `REQ-001` | `<reuse/derive/direct path>` | `<evidence-backed gap or None>` | `<costs>` | Add / Keep / Merge / Remove |
+
+Record the critical-path interaction comparison:
+
+| Path | Network calls | Client states | Server contracts/state | Failure and TOCTOU points | Additional user/business value |
+| --- | --- | --- | --- | --- | --- |
+| Direct baseline | `<count>` | `<states>` | `<elements>` | `<points>` | `<outcome>` |
+| Selected design | `<count>` | `<states>` | `<elements>` | `<points>` | `<why added complexity is required>` |
+
+The selected design must have the fewest moving parts among options satisfying the approved requirements. A Complex classification increases analysis depth, not architecture size.
 
 ### 7.1 System Architecture Design
 
@@ -312,15 +329,29 @@ Read `references/interface-contract-design.md`. Cover applicable HTTP, RPC, even
 
 Use one ID per atomic HTTP Method + URL or protocol operation. Split collection/detail/create/update/delete/status endpoints into separate IDs even when they share models or rules.
 
-| ID | Name/purpose | Kind | Consumer | Owner | Method + URL / symbol / topic | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
+| ID | Change/necessity verdict | Name/purpose | Kind | Consumer | Owner | Method + URL / symbol / topic | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `API-001` | `<purpose>` | HTTP | `<frontend/page>` | `<module>` | `POST /exact/path` | `<Request>` | `<actual wrapper>` | `<rules>` | `<model>` | `<rules>` | `REQ-001` |
+| `API-001` | Existing/Keep or New/Add after necessity audit | `<purpose>` | HTTP | `<frontend/page>` | `<module>` | `POST /exact/path` | `<Request>` | `<actual wrapper>` | `<rules>` | `<model>` | `<rules>` | `REQ-001` |
 
 ### 9.2 Per-interface Detailed Contracts
 
 Repeat §9.2.x for every inventory ID. Inventory and detail items must be one-to-one.
 
 #### 9.2.1 API-001 — <Interface name>
+
+##### Necessity and interaction-cost decision
+
+| Concern | Decision |
+| --- | --- |
+| Change classification | Existing / Modify / New / Remove |
+| Independent consumer goal | `<observable goal; not “frontend needs a parameter”>` |
+| Parameter ownership and derivation | `<true owner; what target derives from identity/context/resource/config>` |
+| Direct/no-new-interface alternative | `<reuse/merge/target extension/local data and why sufficient or insufficient>` |
+| Caller use of result | `<display/selection/branch/cache, or unchanged forwarding>` |
+| Round trips and failure points | `<before/after call count, client states, cache, retry, TOCTOU>` |
+| Verdict | Add / Keep / Merge / Remove, with requirement/evidence |
+
+Default to `Merge`, `Reuse`, or `Remove` when this interface only returns values copied unchanged into another request or values the target backend can safely derive. A separate selector/discovery contract requires an independent user-visible choice, shared dynamic catalog, or protocol-negotiation use case plus command-time revalidation.
 
 ##### Identity and purpose
 
@@ -617,11 +648,12 @@ Define source/binary/API/data compatibility, old clients and data, migration/bac
 
 ## 17. Alternatives and Decisions
 
-| Option | Advantages | Disadvantages/risks | Repository fit | Decision and rationale |
-| --- | --- | --- | --- | --- |
-| A | `<...>` | `<...>` | `<...>` | Selected / Rejected |
+| Option | New elements and interactions | Advantages | Disadvantages/risks | Repository fit | Decision and rationale |
+| --- | --- | --- | --- | --- | --- |
+| A — direct/reuse baseline | `<contracts/calls/state>` | `<...>` | `<...>` | `<...>` | Selected / Rejected |
+| B | `<contracts/calls/state>` | `<...>` | `<...>` | `<...>` | Selected / Rejected |
 
-Record why the chosen design is preferable. Do not add alternatives merely to fill the table.
+Record why the chosen design is preferable. If a more complex option is selected, identify the approved requirement the direct baseline cannot meet. Do not add alternatives merely to fill the table.
 
 ## 18. Risks and Open Questions
 
@@ -654,6 +686,8 @@ Confirm architecture, file tree, interfaces, fields, POJO/entity state, schema, 
 For a Complex Spec, confirm the evidence map, scenario matrix, architecture/high-level/detailed sections, Mermaid architecture/flow/swimlane diagrams, and conclusion chains cover the same critical paths and failure semantics.
 
 Confirm every interface inventory ID has one detailed contract with complete request rules, full commented success/error payloads, frontend logic, and field consistency. Confirm every database inventory table and index is expanded and tied to real models, queries, migrations, and tests.
+
+Confirm every proposed element has a necessity verdict, the direct/no-new-element baseline was evaluated first, and no fetch-then-forward interface exists solely to return parameters for another request. Confirm each retained selector/discovery operation has independent consumer value and command-time stale-selection revalidation.
 
 Confirm requirements analysis contains evidenced actors and `UC-*` goals in a complete table or Mermaid use-case view, and that use-case conditions/outcomes agree with scenarios, interfaces, data effects, frontend states, and tests. Confirm relational data design contains a Mermaid `erDiagram` covering every inventory table and agreeing with physical names, PK/FK/UK fields, cardinalities, optionality, and enforcement rules.
 

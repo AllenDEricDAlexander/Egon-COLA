@@ -1,6 +1,6 @@
 ---
 name: egon-coding-writing-spec
-description: Use when a coding task needs repository-grounded requirements and use-case analysis, system architecture, high-level design, detailed design, complex cross-module analysis, fully expanded interface contracts, Mermaid ER/database design, an RFC-style specification, or an approved design baseline before implementation planning. For Java package design, the current supported profile is the traditional three-layer structure with biz.controller, biz.service, nested biz.service.impl, biz.dao, biz.config, biz.utils, and biz.domain.
+description: Use when a coding task needs repository-grounded requirements and use-case analysis, minimum-coherent architecture, system architecture, high-level design, detailed design, complex cross-module analysis, necessary and fully expanded interface contracts, Mermaid ER/database design, an RFC-style specification, or an approved design baseline before implementation planning. For Java package design, the current supported profile is the traditional three-layer structure with biz.controller, biz.service, nested biz.service.impl, biz.dao, biz.config, biz.utils, and biz.domain.
 ---
 
 # EGON Coding Spec Writing
@@ -22,7 +22,7 @@ The specification defines **what must be built and why the design is coherent**.
   - Replace `ABSTRACT` with a concise lowercase ASCII kebab-case summary, normally 3–8 words.
   - Example: `docs/egon/spec/2026-08-15-14-30-account-lockout-design.md`.
   - Never overwrite a document with the same minute and abstract; choose a more specific abstract.
-- Start from Template Version 2 in `assets/spec-template.md`. Keep every numbered chapter. Write `N/A` with repository evidence and a reason when a chapter does not apply.
+- Start from Template Version 3 in `assets/spec-template.md`. Keep every numbered chapter. Write `N/A` with repository evidence and a reason when a chapter does not apply. The validator continues to accept existing Version 2 Specs under their original contract.
 
 ## Non-negotiable rules
 
@@ -47,6 +47,7 @@ The specification defines **what must be built and why the design is coherent**.
 19. Read `references/database-design.md` whenever persisted data is used or changed. Inventory and expand every affected table and index, including complete column semantics, real queries/access paths, index-order rationale, migration/history handling, transactions, locks, compatibility, verification, and rollback/forward-fix boundaries.
 20. Read `references/requirements-use-case-analysis.md` for every Spec. Requirements analysis must identify real actors and stable `UC-*` use cases with triggers, preconditions, main outcomes, alternatives/failures, postconditions, and traceability. Use a complete table or a Mermaid `flowchart`; prefer a Mermaid system-boundary view for complex or multi-actor behavior. Do not confuse use cases with Controller methods or architecture call chains.
 21. Whenever relational tables are read, created, or changed, add a Mermaid `erDiagram` covering every inventory table, directly relevant neighboring tables, actual cardinalities, relationship labels, and material PK/FK/UK fields. Map renderer-safe entity names to exact physical tables. The ER diagram complements rather than replaces per-table, per-column, per-index, migration, and transaction design.
+22. Read `references/minimal-design-and-interface-necessity.md` before selecting architecture elements or assigning interface IDs. Start from the direct reuse/no-new-element baseline. Every new or materially expanded API, RPC/event, class, layer, table, cache, job, dependency, or frontend store/provider must prove a current requirement that the simpler alternative cannot satisfy and must record its added calls, state, coupling, failure, migration, and operational cost. Reject fetch-then-forward interfaces whose result is only copied into another request when the target can derive or validate the value itself.
 
 ## Mandatory reference loading and drafting passes
 
@@ -56,7 +57,7 @@ Read every applicable reference **completely before drafting the corresponding c
 
 | Situation | References that must be read completely |
 | --- | --- |
-| Every Spec | `references/ambiguity-policy.md`, `references/rfc-governance.md`, `references/complex-scenario-analysis.md`, `references/requirements-use-case-analysis.md`, `references/review-checklist.md`, and `assets/spec-template.md` |
+| Every Spec | `references/ambiguity-policy.md`, `references/rfc-governance.md`, `references/complex-scenario-analysis.md`, `references/requirements-use-case-analysis.md`, `references/minimal-design-and-interface-necessity.md`, `references/review-checklist.md`, and `assets/spec-template.md` |
 | Java design | `references/three-layer-architecture.md` and `references/pojo-modeling.md` |
 | Any HTTP/RPC/event/job/internal contract | `references/interface-contract-design.md` |
 | Any persisted read/write or schema dependency | `references/database-design.md` |
@@ -65,13 +66,14 @@ For a Complex Spec, use four explicit passes. Preserve the resulting analysis in
 
 1. **Discovery pass** — collect exact repository evidence, current call chains, consumers, data stores, configuration, tests, and predecessor decisions; mark evidence, inference, and unverified runtime behavior.
 2. **Scenario pass** — enumerate happy, alternative, validation, permission, empty, duplicate, concurrent, timeout, partial-failure, rollback, retry, and recovery paths that materially apply.
-3. **Design pass** — decide ownership, contracts, data flow, transaction/consistency boundaries, failure semantics, compatibility, files, models, schema, frontend states, and tests; derive each material decision from evidence.
+3. **Design pass** — establish the reuse/direct/no-new-element baseline first; then decide only the necessary ownership, contracts, data flow, transaction/consistency boundaries, failure semantics, compatibility, files, models, schema, frontend states, and tests. Derive each material decision and complexity increase from evidence.
 4. **Consistency pass** — compare requirements, diagrams, interfaces, POJOs, tables/indexes, pages, tests, rollout, and traceability field-by-field and state-by-state; repair contradictions before validation.
 
 Minimum depth is structural, not numerical padding:
 
 - a Complex Spec must contain at least two evidence/current-chain rows, three materially distinct scenario rows, three applicable quality/constraint rows, and two evidence-to-decision conclusion chains unless the affected subsection records `Depth exception:` followed by repository evidence proving that fewer real items exist;
 - every Spec must contain evidenced actors and stable `UC-*` goals in either a complete table or Mermaid use-case view, with conditions, outcomes, postconditions, and forward traceability;
+- every proposed element must have an `Add/Keep/Merge/Remove` necessity verdict against a direct existing/reuse alternative; no new interface may exist only to fetch values that the caller forwards unchanged or the target can derive;
 - every inventory contract must contain all required per-interface subsections, actual protocol identity, complete parameter rules, success and error outcomes, ordered consumer logic, and verification;
 - every inventory table must contain all required per-table subsections, a complete affected-column table, per-index justification tied to real access paths, migration/history handling, and consistency/recovery rules;
 - every relational table inventory must be represented in a Mermaid `erDiagram` with physical-name mapping and relationship/key semantics consistent with the detailed design;
@@ -94,7 +96,7 @@ Use this exact header field set in every Spec:
 | Field | Required meaning |
 | --- | --- |
 | Document | Current filename as a relative repository link or code value |
-| Template Version | `2` for the current template |
+| Template Version | `3` for the current template; existing Version 2 documents remain valid under v2 rules |
 | Status | `Draft`, `Review`, `Accepted`, `Implemented`, `Superseded`, or `Rejected` |
 | Type | `Feature`, `Refactor`, `Bugfix`, `Architecture`, or another clearly defined coding type |
 | Complexity | `Simple` or `Complex` |
@@ -142,7 +144,7 @@ Read `references/rfc-governance.md` for lifecycle and backlink rules.
    - For a Complex Spec, complete the evidence/current-chain map, scenario matrix, boundary/data ownership map, quality-attribute matrix, critical failures, and conclusion chains before choosing the architecture.
    - For a Simple Spec, state why the lightweight path is sufficient and continue without invented complexity.
 6. **Design the solution**
-   - Evaluate at least a direct repository-consistent design and any materially different viable alternative.
+   - Apply `references/minimal-design-and-interface-necessity.md`. Evaluate the direct repository-consistent reuse/no-new-element design first and select a more complex option only when a current approved requirement proves the direct option insufficient.
    - Explicitly consider appropriate patterns such as Strategy, Template Method, Factory, Adapter, Facade, State, Observer, Command, or Specification.
    - Select a pattern only when it resolves a real variation point, coupling problem, lifecycle, orchestration concern, or testability problem. Otherwise record why direct design is clearer and avoids over-engineering.
    - For Java work, read `references/three-layer-architecture.md` and `references/pojo-modeling.md`. Confirm the traditional three-layer applicability gate, keep `impl` under `service`, classify each proposed object by semantic role, apply the class-necessity test, and evaluate persistence inheritance separately from service composition.
@@ -171,9 +173,9 @@ The template is normative. At minimum, the Spec must contain:
 4. **Requirements, acceptance criteria, and use-case analysis** — atomic `REQ-*` items and observable outcomes plus evidenced actors and `UC-*` goals. Use a complete use-case table or Mermaid `flowchart`; define triggers, preconditions, main/alternative/failure outcomes, postconditions, interfaces/pages, and tests.
 5. **Constraints, assumptions, and decisions** — confirmed constraints, `ASM-*`, resolved decisions, and open blockers.
 6. **Project technology context** — current language/framework/build/module/persistence/frontend/testing facts.
-7. **Architecture design** — three explicit parts: System Architecture Design, High-Level Design, and Detailed Design. Define boundaries, responsibilities, dependencies, data/control flow, transactions, concurrency, consistency, failure handling, and observability. For a Complex Spec include the required architecture flowchart, critical-flow flowchart, and swimlane/sequence view. For the Java three-layer profile, define Controller, Service interface, `service.impl`, DAO, Config, Utils, and POJO responsibilities plus allowed dependencies.
+7. **Architecture design** — begin with a minimum-design/element-necessity audit, then provide System Architecture Design, High-Level Design, and Detailed Design. Define boundaries, responsibilities, dependencies, data/control flow, transactions, concurrency, consistency, failure handling, and observability. For a Complex Spec include the required architecture flowchart, critical-flow flowchart, and swimlane/sequence view. For the Java three-layer profile, define Controller, Service interface, `service.impl`, DAO, Config, Utils, and POJO responsibilities plus allowed dependencies.
 8. **Package structure and code file tree** — current relevant tree, the selected three-layer target tree, exact create/modify/delete paths, symbols, responsibilities, and requirement mapping. Keep `biz.service.impl` nested under `biz.service`. This is the target design, not implementation order.
-9. **Interface definitions** — first provide the complete HTTP/RPC/event/internal inventory, then expand every interface ID. For HTTP include the verified method and URL, all path/query/header/body rules, full success/error `jsonc` payloads with a line-end comment on every field, frontend-oriented interface logic, auth/tenant/idempotency, versioning, compatibility, and tests. Apply equivalent protocol-specific depth to non-HTTP contracts.
+9. **Interface definitions** — first prove each interface's necessity and interaction cost, then provide the complete HTTP/RPC/event/internal inventory and expand every retained ID. For HTTP include the verified method and URL, all path/query/header/body rules, full success/error `jsonc` payloads with a line-end comment on every field, frontend-oriented interface logic, auth/tenant/idempotency, versioning, compatibility, and tests. Apply equivalent protocol-specific depth to non-HTTP contracts. A query used only to obtain another request's parameters is rejected unless it has independent user-visible selection/discovery/negotiation value.
 10. **POJO and data model design** — repository-defined POJO roles, object ownership/boundaries, class-necessity decisions, persistence objects or ORM entities, DTOs/commands/queries/View Objects/BOs, field types, nullability, validation, state transitions, mappings, inheritance, and safe reuse. Relational model relationships must agree with the ER diagram. Do not require DDD aggregates, domain services, repository ports, or value objects.
 11. **Database design** — first inventory every affected table, draw a Mermaid `erDiagram` covering all inventory tables and relevant direct neighbors, then expand each table and each retained/added/changed/removed index. Define cardinalities, PK/FK/UK fields, all relevant columns, native types, null/default/constraint semantics, relationships, real query/access patterns, index column order/selectivity/cost, migration and historical-data handling, transactions/locks/audit, verification, rollback, and compatibility. Never modify an existing migration when repository policy requires a new one.
 12. **Frontend page design** — routes, navigation, permissions, layout/component tree, user flows, form rules, API/state mapping, loading/empty/error/disabled/denied states, accessibility, responsiveness, and key copy.
@@ -181,7 +183,7 @@ The template is normative. At minimum, the Spec must contain:
 14. **Test design** — unit tests for behavior and invariants plus applicable integration, contract, mapper/repository, component, and end-to-end tests; define test data, boundaries, failure cases, expected assertions, tools, and requirement mapping.
 15. **Non-functional and cross-cutting design** — security, tenancy, privacy, performance, capacity, caching, audit, logging, metrics, tracing, operations, and maintainability.
 16. **Compatibility, migration, rollout, and rollback**.
-17. **Alternatives and decisions** — evidence-backed trade-offs and rejected options.
+17. **Alternatives and decisions** — compare the direct/no-new-element baseline with viable alternatives, including network calls, states, coupling, failures, migrations, operations, and evidence-backed rejection/selection.
 18. **Risks and open questions**.
 19. **Traceability matrix** — every `REQ-*` maps to design, contracts/models/pages as applicable, tests, and acceptance evidence; every proposed element maps back to a requirement or necessary infrastructure rationale.
 20. **Review and acceptance** — original-request fidelity, repository fidelity, cross-section consistency, relationship correctness, and final verdict.
@@ -209,6 +211,8 @@ Use exactly one:
 | Listing packages without a file tree or responsibilities | Add exact target paths, operations, symbols, ownership, and `REQ-*` mapping |
 | Interfaces, entities, schema, UI, and tests disagree | Repair through field/state/requirement traceability |
 | Providing an interface inventory without expanding each contract | Add one detailed subsection per ID with exact route/symbol, request rules, response/error payloads, logic, consumers, compatibility, and tests |
+| Adding an interface because another request needs a parameter | Determine parameter ownership first; derive it in the target backend, reuse current route/context/local data, or accept a stable business key. Keep a separate query only for a proven independent selection/discovery/negotiation use case |
+| Selecting a larger design because the template has more chapters | Apply the dominance rule and choose the direct option when it satisfies the same requirements with fewer contracts, states, dependencies, calls, and failure points |
 | Showing a response class name or abbreviated JSON | Show the actual full `jsonc` wire shape and add a line-end meaning comment to every field |
 | Listing tables or indexes without per-item design | Expand every table and index with columns, semantics, query/access evidence, index rationale, migration, locking, verification, and rollback |
 | Designing relational data without an ER diagram, or drawing an ER diagram that omits inventory tables | Add a Mermaid `erDiagram` with physical-name mapping, actual cardinalities/labels, and material PK/FK/UK fields; reconcile it with every table detail |

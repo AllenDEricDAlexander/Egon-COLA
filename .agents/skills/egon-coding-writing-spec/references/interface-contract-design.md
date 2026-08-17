@@ -5,6 +5,7 @@ Read this reference whenever Chapter 9 contains an HTTP, RPC, event/message, CLI
 ## Contents
 
 - [Contract inventory](#contract-inventory)
+- [Interface entry and necessity gate](#interface-entry-and-necessity-gate)
 - [Required per-interface subsection](#required-per-interface-subsection)
 - [Contract drafting sequence](#contract-drafting-sequence)
 - [Complete HTTP worked example](#complete-http-worked-example)
@@ -19,14 +20,45 @@ Assign stable IDs such as `API-001`, `RPC-001`, `EVENT-001`, `JOB-001`, or `INTE
 
 One ID represents one atomic protocol operation: one HTTP Method + URL, one RPC service method, one event/topic schema contract, one job, or one internal method. Do not group a CRUD family, several URLs, or collection/detail/status operations into one row; shared rules may be referenced after each operation remains independently specified.
 
-| ID | Name/purpose | Kind | Consumer | Owner | Method + URL / symbol / topic | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ID | Change/necessity verdict | Name/purpose | Kind | Consumer | Owner | Method + URL / symbol / topic | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 The inventory and detailed subsections must be bijective: no inventory item may lack details, and no detailed contract may be absent from the inventory.
+
+## Interface entry and necessity gate
+
+Read `minimal-design-and-interface-necessity.md` before assigning a new ID. An interface is not justified merely because a caller lacks one of another operation's request fields.
+
+Reject a separate operation by default when:
+
+- its result is copied unchanged into the next request;
+- the target operation can derive the value from authenticated identity, tenant context, route/current resource, persisted relationship, or server configuration;
+- the caller already owns the value through user input, current record, local registry, build artifact, or a prior business result;
+- it returns fixed enums/build-time metadata that should remain local;
+- it only performs a validation the command must repeat authoritatively;
+- it adds a preflight round trip without independent user-visible value.
+
+Keep or add a selector/discovery operation only when it proves an independent search/display/choice/audit/capability-negotiation goal, server-owned independent variability, shared reuse, bounded caching/versioning, and command-time stale-selection handling.
+
+For every interface record `Existing/Modify/New/Remove` and an `Add/Keep/Merge/Remove` verdict. A removed or merged candidate may remain in the design-audit table but must not appear as a retained contract ID in the final inventory.
 
 ## Required per-interface subsection
 
 Use one subsection per contract ID and keep the following structure.
+
+### 0. Necessity and interaction-cost decision
+
+| Concern | Decision |
+| --- | --- |
+| Change classification | Existing / Modify / New / Remove |
+| Independent consumer goal | Observable goal and real consumer |
+| Parameter ownership and derivation | True owner and target-side derivation/context |
+| Direct/no-new-interface alternative | Reuse, merge, target extension, stable key, or local data |
+| Caller use of result | Display/selection/branch/cache versus unchanged forwarding |
+| Round trips and failure points | Call count, client states, caching, retry, TOCTOU |
+| Verdict | Add / Keep / Merge / Remove with `REQ-*` and evidence |
+
+For an existing unchanged operation, cite its current consumer and independent responsibility. For a new operation, explain exactly why the direct alternative cannot satisfy an approved requirement.
 
 ### 1. Identity and purpose
 
@@ -111,14 +143,15 @@ Name existing consumers, backward-compatibility behavior, version/deprecation po
 
 ## Contract drafting sequence
 
-Complete every interface in this order. Do not copy a DTO and guess its wire shape.
+Complete every retained interface in this order. Do not copy a DTO and guess its wire shape.
 
+0. **Prove necessity** — evaluate reuse/merge/backend derivation/local-data alternatives, independent consumer value, interaction cost, and stale-value races. Remove fetch-then-forward candidates before documenting them as contracts.
 1. **Prove identity** — combine controller/class mapping, method mapping, context path, gateway prefix, API version, HTTP method, consumes/produces, and real consumer. For RPC/event/job/internal contracts, prove the corresponding protocol identity.
 2. **Prove wrappers and errors** — inspect the actual response wrapper, exception handler/error mapping, serialization configuration, enum/date/decimal behavior, and authorization filters/interceptors.
-3. **Trace inputs** — identify whether each value comes from Path, Query, Header, Cookie, Body, upload, authenticated principal, tenant context, server clock, configuration, or derived data. Never tell a caller to send a server-derived value.
+3. **Trace inputs** — identify whether each value comes from Path, Query, Header, Cookie, Body, upload, authenticated principal, tenant context, server clock, configuration, or derived data. Never tell a caller to send a server-derived value, including through a preceding parameter-fetch endpoint.
 4. **Trace outputs** — map each output field to database/model/calculation/configuration or dependency response. State masking, sorting, precision, nullability, and stability.
 5. **Write behavior** — describe validation and permission order, reads/writes, transaction, side effects, duplicate/concurrency semantics, failures, recovery, and frontend reaction.
-6. **Cross-check** — compare the contract with POJO fields, database columns/types, frontend client/types, tests/fixtures, predecessor Specs, compatibility, and rollout.
+6. **Cross-check** — compare the contract with POJO fields, database columns/types, frontend client/types, tests/fixtures, predecessor Specs, compatibility, rollout, and the minimum-design audit.
 
 Use an evidence worksheet before writing the public contract:
 
@@ -137,11 +170,23 @@ This example demonstrates required depth only. Its route, wrapper, fields, value
 
 ### Inventory row
 
-| ID | Name/purpose | Kind | Consumer | Owner | Method + URL | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `API-021` | Create order | HTTP | Order creation page | Order web module | `POST /api/v1/orders` | Headers + `CreateOrderRequest` | `ApiResponse<OrderResponse>` | Bearer principal; tenant from verified context | Stable HTTP + business codes | `Idempotency-Key`; v1 additive compatibility | `REQ-007`, `REQ-008` |
+| ID | Change/necessity verdict | Name/purpose | Kind | Consumer | Owner | Method + URL | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `API-021` | New/Add: direct create is the independent command; no parameter-preflight endpoint | Create order | HTTP | Order creation page | Order web module | `POST /api/v1/orders` | Headers + `CreateOrderRequest` | `ApiResponse<OrderResponse>` | Bearer principal; tenant from verified context | Stable HTTP + business codes | `Idempotency-Key`; v1 additive compatibility | `REQ-007`, `REQ-008` |
 
 ### API-021 — Create order
+
+#### Necessity and interaction-cost decision
+
+| Concern | Decision |
+| --- | --- |
+| Change classification | New create command |
+| Independent consumer goal | The order creation page submits one user-confirmed order and receives its stable result |
+| Parameter ownership and derivation | Frontend owns customer/item choices; backend derives tenant/actor, prices, initial state, and timestamps |
+| Direct/no-new-interface alternative | One create command is the direct baseline; no context/price/tenant preflight is added |
+| Caller use of result | Navigates to the created order and invalidates list cache; result is not forwarded to another command |
+| Round trips and failure points | One command RTT; same-key retry handles unknown outcome; authoritative references/prices are revalidated in the command |
+| Verdict | `Add` for `REQ-007`; any separate “get create parameters” endpoint is `Remove` |
 
 #### Identity and purpose
 
@@ -325,7 +370,8 @@ For every non-HTTP item, still use a stable detailed-subsection shape: identity/
 
 Before accepting one contract detail, verify all of the following:
 
-- its six required headings exist in order and contain repository-specific content;
+- its seven required headings exist in order and contain repository-specific content;
+- its necessity/interaction section proves `Add/Keep` against a direct alternative and rejects unchanged fetch-then-forward parameters;
 - HTTP identity contains exactly one method and one verified application route;
 - every request value has a location, type/format, required/null/default behavior, exact validation, meaning, example, and source;
 - request, success, and error bodies are complete where applicable, and every JSON field has a line-end meaning comment;
@@ -341,6 +387,7 @@ Do not use a minimum prose length as a substitute for these checks. A short `204
 Return `REVISE` when any applies:
 
 - an inventory contract has no detailed subsection;
+- a new interface has no independent consumer goal or exists only to fetch parameters for another request that can derive/reuse them;
 - one ID groups several Methods, URLs, RPC methods, or independently callable operations;
 - a URL, method, wrapper, field, error, permission, or consumer is inferred without evidence;
 - request parameters omit meaning or exact validation behavior;

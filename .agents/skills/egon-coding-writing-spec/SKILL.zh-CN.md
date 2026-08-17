@@ -1,6 +1,6 @@
 ---
 name: egon-coding-writing-spec
-description: 当编码任务在实施计划之前需要基于仓库现状编写需求与用例分析、系统架构、概要设计、详细设计、复杂跨模块分析、完整展开的接口契约、Mermaid ER/数据库设计、RFC 风格规格或获批设计基线时使用。当前 Java 分包设计只支持传统三层结构：biz.controller、biz.service、嵌套的 biz.service.impl、biz.dao、biz.config、biz.utils 和 biz.domain。
+description: 当编码任务在实施计划之前需要基于仓库现状编写需求与用例分析、最小自洽架构、系统架构、概要设计、详细设计、复杂跨模块分析、必要且完整展开的接口契约、Mermaid ER/数据库设计、RFC 风格规格或获批设计基线时使用。当前 Java 分包设计只支持传统三层结构：biz.controller、biz.service、嵌套的 biz.service.impl、biz.dao、biz.config、biz.utils 和 biz.domain。
 ---
 
 # EGON 编码 Spec 编写
@@ -24,7 +24,7 @@ Spec 定义的是**必须构建什么，以及该设计为什么自洽**。它�
   - `ABSTRACT` 替换为简洁的小写 ASCII kebab-case 摘要，通常为 3–8 个单词。
   - 示例：`docs/egon/spec/2026-08-15-14-30-account-lockout-design.md`。
   - 同一分钟且摘要相同时不得覆盖旧文档，应使用更具体的摘要。
-- 必须以 `assets/spec-template.md` 中的 Template Version 2 为模板，保留所有编号章节。不适用的章节写 `N/A`，并给出仓库证据和原因。
+- 必须以 `assets/spec-template.md` 中的 Template Version 3 为模板，保留所有编号章节。不适用的章节写 `N/A`，并给出仓库证据和原因。校验器继续按原 v2 契约接受既有 Version 2 Spec。
 
 ## 不可违反的规则
 
@@ -49,6 +49,7 @@ Spec 定义的是**必须构建什么，以及该设计为什么自洽**。它�
 19. 使用或修改持久化数据时必须读取 `references/database-design.zh-CN.md`。每张受影响表和每个索引都要先列清单再展开，包括完整字段语义、真实查询/访问路径、索引顺序依据、Migration/历史数据、事务、锁、兼容、验证和回滚/Forward Fix 边界。
 20. 每份 Spec 都必须读取 `references/requirements-use-case-analysis.zh-CN.md`。需求分析必须识别真实参与者和稳定 `UC-*` 用例，写清触发、前置条件、主要结果、分支/失败、后置条件和追踪。可使用完整表格或 Mermaid `flowchart`；复杂或多参与者行为优先使用带系统边界的 Mermaid 视图。不能把 Controller 方法或架构调用链当作用例。
 21. 读取、新建或修改关系型表时，必须增加 Mermaid `erDiagram`，覆盖清单中的每张表、直接相关邻表、真实基数、关系标签和重要 PK/FK/UK 字段。渲染安全 Entity 名称要映射到准确物理表。ER 图用于补充而不是替代逐表、逐字段、逐索引、Migration 和事务设计。
+22. 选择架构元素或分配接口 ID 前必须读取 `references/minimal-design-and-interface-necessity.zh-CN.md`。从复用现有/不新增元素的直接方案开始。每个新增或实质扩展的 API、RPC/事件、类、分层、表、缓存、Job、依赖或前端 Store/Provider，都必须证明当前需求无法由简单方案满足，并记录新增调用、状态、耦合、失败、迁移和运维成本。如果接口返回值只被原样复制到另一个请求，而目标端可以自行派生或校验，必须拒绝该“先查再转发”接口。
 
 ## 强制参考资料加载与分阶段写作
 
@@ -58,7 +59,7 @@ Spec 定义的是**必须构建什么，以及该设计为什么自洽**。它�
 
 | 场景 | 必须完整读取的参考资料 |
 | --- | --- |
-| 所有 Spec | `references/ambiguity-policy.md`、`references/rfc-governance.md`、`references/complex-scenario-analysis.zh-CN.md`、`references/requirements-use-case-analysis.zh-CN.md`、`references/review-checklist.md` 和 `assets/spec-template.md` |
+| 所有 Spec | `references/ambiguity-policy.md`、`references/rfc-governance.md`、`references/complex-scenario-analysis.zh-CN.md`、`references/requirements-use-case-analysis.zh-CN.md`、`references/minimal-design-and-interface-necessity.zh-CN.md`、`references/review-checklist.md` 和 `assets/spec-template.md` |
 | Java 设计 | `references/three-layer-architecture.zh-CN.md` 和 `references/pojo-modeling.zh-CN.md` |
 | 任意 HTTP/RPC/事件/Job/内部契约 | `references/interface-contract-design.zh-CN.md` |
 | 任意持久化读写或 Schema 依赖 | `references/database-design.zh-CN.md` |
@@ -67,13 +68,14 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 
 1. **发现轮**——收集准确仓库证据、现有调用链、消费者、数据存储、配置、测试和前置决策；区分证据、推断和未验证运行时行为。
 2. **场景轮**——枚举实际适用的成功、分支、校验、权限、空数据、重复、并发、超时、部分失败、回滚、重试和恢复路径。
-3. **设计轮**——确定所有权、契约、数据流、事务/一致性边界、失败语义、兼容、文件、模型、Schema、前端状态和测试；每项重要决策都从证据推导。
+3. **设计轮**——先建立复用/直接/不新增元素基线；然后只确定确有必要的所有权、契约、数据流、事务/一致性边界、失败语义、兼容、文件、模型、Schema、前端状态和测试；每项重要决策和复杂度增加都从证据推导。
 4. **一致性轮**——逐字段、逐状态对比需求、图示、接口、POJO、表/索引、页面、测试、发布和追踪矩阵；校验前修复矛盾。
 
 最低深度是结构要求，不是凑字数：
 
 - Complex Spec 至少包含两条证据/现有链路、三个实质不同场景、三个适用质量/约束项和两条“证据到决策”结论链；如果真实项目确实更少，必须在对应小节写 `Depth exception:` 并给出证明元素更少的仓库依据；
 - 每份 Spec 必须使用完整表格或 Mermaid 用例视图表达有证据的参与者和稳定 `UC-*` 目标，并写清条件、结果、后置条件和向后追踪；
+- 每个拟议元素必须相对现有/复用直接方案给出 `Add/Keep/Merge/Remove` 必要性结论；不能新增只用于查询调用方原样转发值或目标端可派生值的接口；
 - 每个接口清单项必须包含全部逐接口子章节、真实协议身份、完整参数规则、成功与错误结果、有序调用方逻辑和验证；
 - 每张表清单项必须包含全部逐表子章节、完整受影响字段表、绑定真实访问路径的逐索引论证、Migration/历史数据处理和一致性/恢复规则；
 - 每张关系型清单表必须出现在 Mermaid `erDiagram` 中，物理名称映射、关系与 Key 语义必须和详细设计一致；
@@ -96,7 +98,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 | 字段 | 必需含义 |
 | --- | --- |
 | Document | 当前文件名，使用仓库相对链接或代码值 |
-| Template Version | 当前模板固定为 `2` |
+| Template Version | 当前模板固定为 `3`；既有 Version 2 文档继续按 v2 规则有效 |
 | Status | `Draft`、`Review`、`Accepted`、`Implemented`、`Superseded` 或 `Rejected` |
 | Type | `Feature`、`Refactor`、`Bugfix`、`Architecture` 或清晰定义的其他编码类型 |
 | Complexity | `Simple` 或 `Complex` |
@@ -144,7 +146,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
    - Complex Spec 在选择架构前必须完成证据/现有链路图谱、场景矩阵、边界/数据所有权、质量属性、关键失败和结论证据链。
    - Simple Spec 说明轻量路径足够的原因，不得虚构复杂度。
 6. **设计方案**
-   - 至少评估一个直接遵循仓库惯例的方案，以及任何实质不同且可行的替代方案。
+   - 执行 `references/minimal-design-and-interface-necessity.zh-CN.md`。先评估直接遵循仓库、复用现有且不新增元素的方案；只有当前已批准需求证明其不足时，才选择更复杂方案。
    - 明确考虑 Strategy、Template Method、Factory、Adapter、Facade、State、Observer、Command、Specification 等合适模式。
    - 只有模式确实解决变化点、耦合、生命周期、编排或可测试性问题时才采用；否则记录为什么直接设计更清晰且避免过度设计。
    - Java 工作必须阅读 `references/three-layer-architecture.zh-CN.md` 和 `references/pojo-modeling.zh-CN.md`。确认传统三层架构适用门禁，保持 `impl` 位于 `service` 下，按语义职责分类每个拟议对象，执行类必要性检验，并分别评估持久化继承与 Service 组合。
@@ -173,9 +175,9 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 4. **需求、验收标准与用例分析**——原子化 `REQ-*`、可观察结果以及有证据的参与者和 `UC-*` 目标。使用完整用例表或 Mermaid `flowchart`，说明触发、前置条件、主/分支/失败结果、后置条件、接口/页面和测试。
 5. **约束、假设与决策**——已确认约束、`ASM-*`、已决事项和开放阻塞项。
 6. **项目技术上下文**——当前语言/框架/构建/模块/持久化/前端/测试事实。
-7. **架构设计**——明确分为系统架构设计、概要设计和详细设计，覆盖边界、职责、依赖、数据/控制流、事务、并发、一致性、失败处理和可观测性。Complex Spec 必须包含架构 Flowchart、关键流程 Flowchart 和泳道/Sequence Diagram。对 Java 三层结构，必须定义 Controller、Service 接口、`service.impl`、DAO、Config、Utils 和 POJO 的职责及允许依赖。
+7. **架构设计**——先完成最小设计/元素必要性审核，再明确分为系统架构设计、概要设计和详细设计，覆盖边界、职责、依赖、数据/控制流、事务、并发、一致性、失败处理和可观测性。Complex Spec 必须包含架构 Flowchart、关键流程 Flowchart 和泳道/Sequence Diagram。对 Java 三层结构，必须定义 Controller、Service 接口、`service.impl`、DAO、Config、Utils 和 POJO 的职责及允许依赖。
 8. **分包结构与代码文件树**——现有相关树、选定的三层目标树、精确新增/修改/删除路径、符号、职责和需求映射。`biz.service.impl` 必须嵌套在 `biz.service` 下。这是目标设计，不是实施顺序。
-9. **接口定义**——先给出完整 HTTP/RPC/事件/内部接口清单，再逐个展开接口 ID。HTTP 必须写经仓库验证的 Method 与 URL、全部 Path/Query/Header/Body 规则、成功/错误完整 `jsonc`（每字段行尾注释）、面向前端的接口逻辑、鉴权/租户/幂等、版本、兼容与测试；非 HTTP 契约使用对应协议达到同等深度。
+9. **接口定义**——先证明每个接口的必要性和交互成本，再给出完整 HTTP/RPC/事件/内部接口清单并逐个展开保留的 ID。HTTP 必须写经仓库验证的 Method 与 URL、全部 Path/Query/Header/Body 规则、成功/错误完整 `jsonc`（每字段行尾注释）、面向前端的接口逻辑、鉴权/租户/幂等、版本、兼容与测试；非 HTTP 契约使用对应协议达到同等深度。只用于获得另一个请求参数的查询必须拒绝，除非它具有独立用户可见的选择、发现或协商价值。
 10. **POJO 与数据模型设计**——仓库定义的 POJO 职责、对象所有权/边界、类必要性决策、持久化对象或 ORM Entity、DTO/Command/Query/View Object/BO、字段类型、可空性、校验、状态转换、映射、继承和安全复用。关系型模型关系必须与 ER 图一致。不得要求 DDD 聚合、领域服务、仓储端口或值对象。
 11. **数据库设计**——先列出所有受影响表，再绘制覆盖全部清单表和直接相关邻表的 Mermaid `erDiagram`，然后逐表、逐个保留/新增/修改/删除的索引展开。说明基数、PK/FK/UK 字段、相关字段、数据库原生类型、可空/默认/约束、关系、真实查询/访问模式、索引字段顺序/选择性/成本、Migration 与历史数据、事务/锁/审计、验证、回滚与兼容。如果仓库规范要求新增 Migration，绝不能修改旧文件。
 12. **前端页面设计**——路由、导航、权限、布局/组件树、用户流程、表单规则、API/状态映射、loading/empty/error/disabled/denied 状态、可访问性、响应式和关键文案。
@@ -183,7 +185,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 14. **测试设计**——行为与不变量的单元测试，以及适用的集成、契约、Mapper/Repository、组件和端到端测试；定义测试数据、边界、失败场景、预期断言、工具和需求映射。
 15. **非功能与横切设计**——安全、租户、隐私、性能、容量、缓存、审计、日志、指标、追踪、运维和可维护性。
 16. **兼容、迁移、发布与回滚**。
-17. **替代方案与决策**——基于证据的权衡和被拒方案。
+17. **替代方案与决策**——比较直接/不新增元素基线和可行替代方案，覆盖网络调用、状态、耦合、失败、迁移、运维，以及基于证据的拒绝/选择。
 18. **风险与开放问题**。
 19. **追踪矩阵**——每个 `REQ-*` 映射到设计、适用的契约/模型/页面、测试和验收证据；每个设计元素映射回需求或必要基础设施理由。
 20. **复核与验收**——原始需求符合性、仓库符合性、跨章节一致性、引用关系正确性和最终结论。
@@ -211,6 +213,8 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 | 只列包名，不列文件树与职责 | 增加精确目标路径、操作、符号、职责和 `REQ-*` 映射 |
 | 接口、实体、schema、UI 和测试不一致 | 通过字段/状态/需求追踪修复 |
 | 只有接口清单，没有逐个展开 | 每个 ID 增加独立详情，写清路由/符号、入参规则、成功/错误载荷、逻辑、消费者、兼容与测试 |
+| 因另一个请求需要参数而新增接口 | 先判断参数所有权；在目标后端派生、复用当前路由/上下文/本地数据，或接受稳定业务 Key。只有已证明独立选择/发现/协商用例时才保留查询 |
+| 因模板章节多就选择更大的设计 | 执行支配规则；同样满足需求时选择契约、状态、依赖、调用和失败点更少的直接方案 |
 | 用响应类名或省略 JSON 代替响应结构 | 展示真实完整 `jsonc` 传输结构，每个字段添加行尾含义注释 |
 | 只列出表或索引，没有逐项设计 | 每张表和每个索引展开字段、语义、查询/访问证据、索引依据、Migration、锁、验证与回滚 |
 | 关系型数据没有 ER 图，或 ER 图遗漏清单表 | 增加 Mermaid `erDiagram`，包含物理名称映射、真实基数/标签和重要 PK/FK/UK 字段，并与每张表详情对齐 |
