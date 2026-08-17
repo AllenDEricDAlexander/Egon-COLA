@@ -18,6 +18,8 @@ SOURCE_ID_RE = re.compile(
 )
 REQ_ID_RE = re.compile(r"\bREQ-\d{3}\b")
 VALID_STATUSES = {"Draft", "Review", "Ready", "In Progress", "Completed", "Blocked", "Superseded"}
+CURRENT_TEMPLATE_VERSION = 2
+SUPPORTED_TEMPLATE_VERSIONS = {2}
 REQUIRED_FIELDS = [
     "Document",
     "Status",
@@ -51,7 +53,7 @@ REQUIRED_HEADINGS = [
     "## 11. Risks, Blockers, and User Decisions",
     "## 12. Review and Acceptance",
 ]
-STEP_MARKERS = [
+STEP_MARKERS_V1 = [
     "- Requirements:",
     "- Dependencies:",
     "- Observable outcome:",
@@ -62,13 +64,38 @@ STEP_MARKERS = [
     "- Rollback:",
     "- Commit:",
 ]
-FILE_MARKERS = [
+STEP_MARKERS_V2 = [
+    *STEP_MARKERS_V1[:2],
+    "- Baseline state:",
+    *STEP_MARKERS_V1[2:3],
+    "- End state:",
+    "- Test-first gate:",
+    *STEP_MARKERS_V1[3:4],
+    "- Validation working directory:",
+    *STEP_MARKERS_V1[4:6],
+    "- Failure returns to:",
+    *STEP_MARKERS_V1[6:8],
+    "- Commit paths:",
+    *STEP_MARKERS_V1[8:],
+]
+FILE_MARKERS_V1 = [
     "- Purpose:",
     "- Symbols:",
     "- Why now:",
     "- Contract/signature changes:",
     "- Implementation pseudocode:",
     "- After this file:",
+]
+FILE_MARKERS_V2 = [
+    *FILE_MARKERS_V1[:2],
+    "- Repository evidence:",
+    "- Dependencies and consumers:",
+    *FILE_MARKERS_V1[2:4],
+    "- Input/output and state mapping:",
+    "- Error and edge behavior:",
+    *FILE_MARKERS_V1[4:5],
+    "- Verification contribution:",
+    *FILE_MARKERS_V1[5:],
 ]
 PLACEHOLDER_PATTERNS = [
     re.compile(r"\b(?:TBD|TODO|FIXME|XXX)\b", re.IGNORECASE),
@@ -218,6 +245,19 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
     if status and status not in VALID_STATUSES:
         errors.append(f"Invalid Status '{status}'. Expected one of: {', '.join(sorted(VALID_STATUSES))}")
 
+    template_version_value = clean(fields.get("Template Version", ""))
+    template_version: int | None = None
+    if template_version_value:
+        if not template_version_value.isdigit():
+            errors.append(f"Template Version must be an integer: {template_version_value}")
+        elif int(template_version_value) not in SUPPORTED_TEMPLATE_VERSIONS:
+            errors.append(
+                f"Unsupported Template Version {template_version_value}; supported: "
+                f"{', '.join(str(item) for item in sorted(SUPPORTED_TEMPLATE_VERSIONS))}"
+            )
+        else:
+            template_version = int(template_version_value)
+
     parsed_dates: dict[str, re.Match[str]] = {}
     for field in ("Created", "Updated"):
         value = clean(fields.get(field, ""))
@@ -238,6 +278,20 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
     for heading in REQUIRED_HEADINGS:
         if heading not in text:
             errors.append(f"Missing required section: {heading}")
+
+    if template_version == 2:
+        required_v2_headings = [
+            "### 4.5 Spec Simplicity and Implementation-necessity Audit",
+            "### 4.6 Change-unit Dependency Matrix",
+        ]
+        for heading in required_v2_headings:
+            if heading not in text:
+                errors.append(f"Template Version 2 is missing required subsection: {heading}")
+        strategy = section(text, "## 4. Implementation Strategy and Dependency Order")
+        if "| Spec element | Spec necessity verdict/section | Current repository evidence |" not in strategy:
+            errors.append("Template Version 2 requires the Spec simplicity/necessity audit table")
+        if "| Change unit | Requirements | Proof/RED point |" not in strategy:
+            errors.append("Template Version 2 requires the change-unit dependency matrix")
 
     implements_errors, primary_paths = validate_link_field(
         path, "Implements Spec", fields.get("Implements Spec", ""), require_link=True
@@ -287,9 +341,18 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
 
     step_requirements: set[str] = set()
     for step_number, step in steps:
-        for marker in STEP_MARKERS:
+        step_markers = STEP_MARKERS_V2 if template_version == 2 else STEP_MARKERS_V1
+        file_markers = FILE_MARKERS_V2 if template_version == 2 else FILE_MARKERS_V1
+        for marker in step_markers:
             if marker not in step:
                 errors.append(f"Step {step_number} missing required marker: {marker}")
+
+        if template_version == 2:
+            test_first = re.search(r"(?m)^- Test-first gate:\s*(.+)$", step)
+            if test_first and not re.match(r"(?:`)?(?:Required|Not applicable)\b", test_first.group(1), re.IGNORECASE):
+                errors.append(
+                    f"Step {step_number} Test-first gate must start with Required or Not applicable"
+                )
 
         coverage = re.search(r"(?m)^- Requirements:\s*(.+)$", step)
         covered = set(SOURCE_ID_RE.findall(coverage.group(1))) if coverage else set()
@@ -307,7 +370,7 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
                 f"{[number for number, _, _, _ in files]}"
             )
         for file_number, _operation, _file_path, block in files:
-            for marker in FILE_MARKERS:
+            for marker in file_markers:
                 if marker not in block:
                     errors.append(f"Step {step_number} File {file_number} missing marker: {marker}")
             pseudocode = re.search(
@@ -316,10 +379,28 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
             )
             if not pseudocode:
                 errors.append(f"Step {step_number} File {file_number} needs a fenced pseudocode block")
-            elif GENERIC_PSEUDOCODE.search(pseudocode.group(1)):
-                warnings.append(
-                    f"Step {step_number} File {file_number} contains generic, non-implementable pseudocode"
-                )
+            else:
+                pseudocode_body = pseudocode.group(1)
+                if GENERIC_PSEUDOCODE.search(pseudocode_body):
+                    warnings.append(
+                        f"Step {step_number} File {file_number} contains generic, non-implementable pseudocode"
+                    )
+                if template_version == 2:
+                    nonempty_lines = [line for line in pseudocode_body.splitlines() if line.strip()]
+                    if len(re.sub(r"\s+", " ", pseudocode_body).strip()) < 120 or len(nonempty_lines) < 3:
+                        errors.append(
+                            f"Step {step_number} File {file_number} pseudocode is too shallow for Template Version 2"
+                        )
+
+        if template_version == 2 and files:
+            commit_paths = re.search(r"(?m)^- Commit paths:\s*(.+)$", step)
+            if commit_paths:
+                commit_scope = commit_paths.group(1)
+                for _number, _operation, file_path, _block in files:
+                    if file_path not in commit_scope:
+                        errors.append(
+                            f"Step {step_number} Commit paths omits declared file: {file_path}"
+                        )
 
     if effective_requirements:
         missing = sorted(effective_requirements - step_requirements)

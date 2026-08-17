@@ -16,6 +16,14 @@
 - [ ] Architecture, package/file tree, interfaces, DTO/domain/PO mappings, schema, frontend states, permissions, error semantics, transactions, idempotency, observability, compatibility, migration, and rollout match the effective Specs.
 - [ ] Major defects/drift were escalated; `Plan Clarification` contains only small, reversible, evidence-backed details.
 
+## Spec simplicity and implementation-necessity audit
+
+- [ ] Every new/expanded API, class, layer, table, cache, job, page, dependency, and frontend state container maps to a Spec necessity verdict and current requirement.
+- [ ] Current repository evidence and the direct/reuse alternative were rechecked before assigning files.
+- [ ] No Step implements a fetch-then-forward API or caller-supplied context that the target can derive/validate; material findings return to the Spec rather than being “clarified.”
+- [ ] No speculative pattern, mapper, model, cache, abstraction, compatibility layer, or future extension appears without an approved present need.
+- [ ] The Plan exposes added interactions, states, files, failures, migrations, and operations instead of using implementation detail to hide complexity.
+
 ## Repository executability
 
 - [ ] Applicable `AGENTS.md`, current commit/branch, dirty worktree, and concurrent changes were inspected.
@@ -23,13 +31,15 @@
 - [ ] Existing paths and symbols were verified; new paths/names follow nearby style and module boundaries.
 - [ ] Consumers, registration/wiring, generated sources, build order, migrations, and cross-module dependencies are represented.
 - [ ] Exact commands come from repository build/scripts rather than guesses.
+- [ ] Every validation gate names its working directory, exact command/method and selectors/environment, expected exit/result, failure return point, and static/module/runtime boundary.
 - [ ] Unrelated work is protected by non-overlapping, path-limited scopes and commits.
 
 ## Step and pseudocode quality
 
-- [ ] Every Step has source requirements, dependencies, one observable outcome, ordered files, verification, expected result, completion criteria, rollback, and one commit.
-- [ ] Every file has operation, exact path, symbols, purpose, sequence reason, contract/signature changes, language-appropriate pseudocode, and after-file state.
+- [ ] Every Step has source requirements, dependencies, baseline/end state, one observable outcome, a `Required` or evidence-backed `Not applicable` test-first gate, ordered files, validation working directory, verification, expected result, completion criteria, rollback, exact commit paths, and one commit.
+- [ ] Every file has operation, exact path, symbols, purpose, repository evidence, dependencies/consumers, sequence reason, contract/signature changes, input/output/state mapping, error/edge behavior, language-appropriate pseudocode, verification contribution, and after-file state.
 - [ ] Pseudocode names real methods/types/fields/calls/branches/errors/transactions/assertions rather than generic actions.
+- [ ] Pseudocode is concrete enough to define control flow and mapping while leaving only syntax—not architecture or behavior choices—to implementation.
 - [ ] File order respects compilation, RED/GREEN, schema/data, contract publication, consumer, frontend/backend, configuration, and rollout dependencies.
 - [ ] Steps are independently verifiable and small enough for semantic commits.
 - [ ] Parallel steps have non-overlapping write scopes; sequential constraints are explicit.

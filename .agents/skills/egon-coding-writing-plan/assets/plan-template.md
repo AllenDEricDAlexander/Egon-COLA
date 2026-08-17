@@ -3,6 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Document | `YYYY-MM-DD-HH-MM-abstract.md` |
+| Template Version | `2` |
 | Status | `Draft` |
 | Created | `YYYY-MM-DD HH:mm ZONE` |
 | Updated | `YYYY-MM-DD HH:mm ZONE` |
@@ -72,15 +73,33 @@ Map each behavior to its RED test, minimum GREEN implementation, and permitted r
 
 Each Step normally produces one semantic, path-limited commit. Explain exceptions required by repository policy or inseparable cross-module compilation.
 
+### 4.5 Spec Simplicity and Implementation-necessity Audit
+
+Read `references/file-by-file-planning.md`. Verify the effective Spec before compiling its elements into files. Do not redesign here; return material defects to the Spec/user.
+
+| Spec element | Spec necessity verdict/section | Current repository evidence | Direct/reuse alternative | Interaction/implementation cost | Plan decision |
+| --- | --- | --- | --- | --- | --- |
+| `<API/class/table/cache/job/page/dependency>` | `<Spec link §...>` | `<path/symbol/consumer>` | `<reuse/derive/merge>` | `<calls/state/files/failures/operations>` | Implement / Already exists / Return to Spec |
+
+Explicitly check for fetch-then-forward APIs, caller-supplied values derivable from trusted context, speculative patterns/caches/layers, duplicate models/mappers, and direct alternatives that satisfy the same requirements. A material problem forces `REVISE` or `BLOCKED`; Plan detail is not justification.
+
+### 4.6 Change-unit Dependency Matrix
+
+| Change unit | Requirements | Proof/RED point | Compile/runtime prerequisites | Produces | Consumers/unblocks | Owning Step |
+| --- | --- | --- | --- | --- | --- | --- |
+| `<behavior/schema/contract/UI unit>` | `REQ-001` | `<test/gate>` | `<types/schema/previous Step>` | `<symbols/contracts/state>` | `<next files/Steps>` | Step 1 |
+
+Use this matrix to derive Step and file order. Do not group independent outcomes merely because they share a module.
+
 ## 5. Change File Tree
 
 ```text
 <complete target tree with CREATE / MODIFY / DELETE / RENAME / GENERATED markers>
 ```
 
-| Operation | Path | Symbols | Responsibility | Step | Requirements |
-| --- | --- | --- | --- | --- | --- |
-| CREATE / MODIFY / DELETE / RENAME / GENERATED | `<exact repository-relative path>` | `<symbols>` | `<single responsibility>` | Step 1 | `REQ-001` |
+| Operation | Path | Current evidence/symbol | Final symbols/state | Responsibility | Step | Requirements | Validation owner |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| CREATE / MODIFY / DELETE / RENAME / GENERATED | `<exact repository-relative path>` | `<path/symbol or absence/search evidence>` | `<exact final symbols/state>` | `<single responsibility>` | Step 1 | `REQ-001` | `<test/gate>` |
 
 Every affected file appears exactly once in this inventory. The tree must match the effective Spec or be covered by an evidence-backed `Plan Clarification` that preserves semantics.
 
@@ -119,15 +138,22 @@ Write `None` when no clarification is needed. Never place new business/design de
 
 - Requirements: `REQ-001`
 - Dependencies: `None / Step N`
+- Baseline state: `<current passing behavior/files and required committed predecessors>`
 - Observable outcome: `<behavior established by this Step>`
+- End state: `<exact contracts/files/tests now available and intentionally remaining work>`
+- Test-first gate: `Required — <expected RED reason> / Not applicable — <repository or technical evidence>`
 - Ordered files:
 
 #### File 1 — `CREATE path/to/FocusedBehaviorTest.java`
 
 - Purpose: Define the missing behavior before production implementation.
 - Symbols: `<test class and test method names>`
+- Repository evidence: `<existing test path, fixture, naming, assertion, and framework pattern>`
+- Dependencies and consumers: `<production symbol under test, fixtures, test runtime/module>`
 - Why now: This is the RED contract for the Step.
 - Contract/signature changes: `<test-visible production API and exact assertions>`
+- Input/output and state mapping: `<fixture fields/context -> call -> result/state/side effects>`
+- Error and edge behavior: `<invalid/missing/duplicate/concurrent/failure assertions and negative effects>`
 - Implementation pseudocode:
 
 ```java
@@ -139,14 +165,19 @@ void <behavior_name>() {
 }
 ```
 
+- Verification contribution: `<exact RED/GREEN test selector and what this file proves>`
 - After this file: The focused test compiles when possible and fails for the expected missing-behavior reason, not for a fixture or environment error.
 
 #### File 2 — `MODIFY path/to/ProductionType.java`
 
 - Purpose: Implement the minimum behavior required by File 1.
 - Symbols: `<class, method, field, annotation>`
+- Repository evidence: `<existing implementation path, neighboring method, transaction/error/style convention>`
+- Dependencies and consumers: `<callers, collaborators, DAO/client, configuration, downstream consumers>`
 - Why now: The RED test fixes the desired public behavior.
 - Contract/signature changes: `<exact method/field/error/transaction contract>`
+- Input/output and state mapping: `<trusted context/request/model/column -> result and state effects>`
+- Error and edge behavior: `<validation/permission/missing/duplicate/concurrency/dependency/rollback branches>`
 - Implementation pseudocode:
 
 ```java
@@ -159,14 +190,19 @@ void <behavior_name>() {
 }
 ```
 
+- Verification contribution: `<which focused/integration assertion observes this implementation>`
 - After this file: The focused test reaches GREEN with the smallest Spec-compliant implementation; no unrelated behavior changes.
 
 #### File 3 — `MODIFY path/to/WiringOrMappingFile.java`
 
 - Purpose: Connect the implementation to its existing entry point or consumer.
 - Symbols: `<configuration, mapper, controller, route, component>`
+- Repository evidence: `<existing registration/export/route/mapping pattern and path>`
+- Dependencies and consumers: `<implementation, DI/container/router/client/page/generated consumer>`
 - Why now: The behavior exists and can be wired without speculative abstractions.
 - Contract/signature changes: `<exact registration/mapping/prop/API change>`
+- Input/output and state mapping: `<source -> target mapping, defaults, nulls, frontend/server state>`
+- Error and edge behavior: `<missing registration, denied/error/loading/compatibility behavior>`
 - Implementation pseudocode:
 
 ```text
@@ -176,12 +212,16 @@ preserve <compatibility/error/permission branch>
 expose the behavior only through <Spec-defined entry point>
 ```
 
+- Verification contribution: `<call-path/contract/component test and assertion>`
 - After this file: The Step's complete call path is connected and ready for focused verification.
 
+- Validation working directory: `<exact repository/module path>`
 - Verification command: `<exact repository command targeting this Step>`
 - Expected result: `<test count, compilation result, generated diff, or observable contract>`
+- Failure returns to: `<File N / earlier Step / Spec decision, with trigger>`
 - Completion criteria: `<objective evidence for all Step requirements>`
 - Rollback: `<path-limited revert/forward-fix point, or N/A with reason>`
+- Commit paths: `<exact Step-owned repository-relative paths>`
 - Commit: `<type(scope): semantic summary>`
 
 ### Step 2 — <next imperative goal>
@@ -190,13 +230,13 @@ Repeat the same structure. Do not replace exact file order with “update servic
 
 ## 8. Test, Validation, and Quality Gates
 
-| Gate/order | Command or method | Scope | Expected result | Failure returns to | Requirements |
-| --- | --- | --- | --- | --- | --- |
-| RED for Step 1 | `<focused command>` | `<test>` | Fails for stated missing behavior | File 1 | `REQ-001` |
-| GREEN for Step 1 | `<focused command>` | `<test/module>` | Pass with no unexpected warnings | File 2/3 | `REQ-001` |
-| Static/format | `<command>` | `<paths/module>` | No errors | Owning Step | All |
-| Module regression | `<command>` | `<module>` | All relevant tests pass | Owning Step | All |
-| Full/integration/manual | `<command or explicit steps>` | `<system boundary>` | `<observable result>` | `<Step>` | `<IDs>` |
+| Gate/order | Working directory | Command or method | Scope | Expected result | Failure returns to | Requirements/runtime boundary |
+| --- | --- | --- | --- | --- | --- | --- |
+| RED for Step 1 | `<cwd>` | `<focused command>` | `<test>` | Fails for stated missing behavior | File 1 | `REQ-001`; module |
+| GREEN for Step 1 | `<cwd>` | `<focused command>` | `<test/module>` | Exit 0; named tests pass without unexpected warnings | File 2/3 | `REQ-001`; module |
+| Static/format | `<cwd>` | `<command>` | `<paths/module>` | Exit 0; no errors | Owning Step | All; static |
+| Module regression | `<cwd>` | `<command>` | `<module>` | All relevant tests pass | Owning Step | All; module |
+| Full/integration/manual | `<cwd/system>` | `<command or explicit steps>` | `<system boundary>` | `<observable result>` | `<Step>` | `<IDs>`; user-controlled runtime when applicable |
 
 State when to run focused, module, cross-module, full, migration, frontend, and manual/runtime gates. Do not claim runtime proof when the Plan only defines future validation.
 
@@ -232,9 +272,11 @@ Confirm that the Plan covers every effective requirement and preserves the user'
 
 Confirm the Plan does not redesign architecture, contracts, fields, state, schema, UI, tests, compatibility, or rollout. List every evidence-backed clarification.
 
+Confirm the Spec simplicity/necessity audit found no fetch-then-forward interface or other material overdesign. If it did, use `REVISE`/`BLOCKED` and identify the exact Spec sections rather than planning the flawed element.
+
 ### 12.3 Repository executability
 
-Confirm every path/symbol/command against the current baseline, exact dependency order, isolated write scope, intermediate compilability, and commit boundary.
+Confirm every path/symbol/command against the current baseline, exact dependency order, isolated write scope, per-file evidence/mapping/error behavior, intermediate RED/GREEN/compilability state, validation working directory, and exact commit boundary.
 
 ### 12.4 Test and release completeness
 

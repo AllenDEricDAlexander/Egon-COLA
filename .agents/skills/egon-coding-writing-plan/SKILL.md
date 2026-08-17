@@ -1,6 +1,6 @@
 ---
 name: egon-coding-writing-plan
-description: Use when a coding task has a specific reviewed or accepted specification and needs a repository-grounded, file-by-file implementation plan before code changes begin.
+description: Use when a coding task has a specific reviewed or accepted specification and needs a repository-grounded, implementation-ready, file-by-file plan with exact dependency order, repository-language pseudocode, intermediate states, validation commands, and per-Step commit scopes before code changes begin.
 ---
 
 # EGON Coding Plan Writing
@@ -21,7 +21,7 @@ The Plan defines **which file is handled first, what is written there, which fil
   - Replace `ABSTRACT` with a concise lowercase ASCII kebab-case summary, normally 3–8 words.
   - Example: `docs/egon/plan/2026-08-15-16-10-account-lockout-implementation.md`.
   - Never overwrite a same-minute/same-abstract document; choose a more specific abstract.
-- Start from `assets/plan-template.md`. Keep all numbered chapters. Use evidence-backed `N/A` when a chapter does not apply.
+- Start from Plan Template Version 2 in `assets/plan-template.md`. Keep all numbered chapters. Use evidence-backed `N/A` when a chapter does not apply. The validator continues to accept existing unversioned Plans under their legacy contract.
 
 ## Non-negotiable rules
 
@@ -40,6 +40,8 @@ The Plan defines **which file is handled first, what is written there, which fil
 13. Never modify an existing immutable Flyway migration. If the Spec requires one database change, plan exactly one new next-version migration unless the user explicitly approved a different migration decomposition.
 14. Review the finished Plan against both the original user requirements recorded by the Spec and the effective Spec design. Fix omissions and inconsistencies before delivery.
 15. Do not mark a Plan `Ready` without an explicitly accepted primary Spec and explicit user/decision-owner approval of the Plan. A complete Plan awaiting review is `Review`; a Spec or decision blocker requires `Draft` or `Blocked`.
+16. Read `references/file-by-file-planning.md` completely. Every Step must state baseline/end state, test-first applicability, exact ordered files, validation working directory, commit paths, and one semantic outcome. Every file must include current repository evidence, dependencies/consumers, input/output/state mapping, error/edge behavior, implementation-bearing pseudocode, verification contribution, and after-file state.
+17. Before planning files, perform a Spec simplicity and implementation-necessity audit. Do not silently compile an unjustified API, parameter-preflight flow, class, layer, table, cache, job, dependency, or page into implementation. When the direct/reuse alternative satisfies the same requirements or the Spec lacks a necessity decision, return `REVISE`/`BLOCKED` with evidence and exact Spec sections; do not redesign inside the Plan.
 
 ## Target Spec and effective-design resolution
 
@@ -68,12 +70,15 @@ Record a `Plan Clarification` only when the detail is local, reversible, not ext
 
 Do not disguise a redesign as a clarification.
 
+Treat overdesign as a material Spec defect when it changes public interaction count, client/server state, contract surface, failure points, operational cost, or implementation scope. In particular, reject a Plan that makes a caller fetch values only to forward them unchanged to a command that can derive or validate them.
+
 ## Required planning workflow
 
 1. **Lock the target Spec**
    - Record the primary path, status, revision, relations, approval evidence, and original source request.
 2. **Build the effective requirement set**
    - Extract every effective requirement, acceptance criterion, interface, field, state rule, table/page/test requirement, non-functional constraint, migration, and rollout condition.
+   - Map each approved design element to its Spec necessity verdict. For legacy Specs, perform the concise audit in `references/file-by-file-planning.md`; escalate material gaps rather than inventing justification.
 3. **Inspect the current repository baseline**
    - Verify actual files/symbols and identify already-complete, missing, moved, generated, or conflicting work.
    - Preserve unrelated dirty-worktree changes and plan path-limited commits.
@@ -88,6 +93,7 @@ Do not disguise a redesign as a clarification.
    - For each behavior, place the focused failing test before its production implementation.
    - For each file, write language/framework-specific pseudocode and the state after that file is completed.
    - End each Step with targeted verification, objective completion evidence, rollback, and one proposed commit.
+   - Record baseline/end state, test-first gate, validation working directory, and exact commit paths. Use every per-file field required by `references/file-by-file-planning.md`.
 8. **Write quality and release gates**
    - Use exact repository commands for focused tests, module tests, static checks, builds, integration/E2E/manual checks, migration validation, and final regression.
 9. **Review and repair**
@@ -101,17 +107,22 @@ Do not disguise a redesign as a clarification.
 
 Each Step must use this sequence contract:
 
-1. State requirements, dependencies, and one observable outcome.
+1. State requirements, dependencies, baseline state, one observable outcome, exact end state, and whether test-first is required or evidence-backed not applicable.
 2. List files in the exact order an implementer should handle them.
 3. For each file, provide:
    - `CREATE`, `MODIFY`, `DELETE`, `RENAME`, or `GENERATED` operation;
    - exact repository-relative path and affected symbols;
+   - current repository evidence for placement, symbol, style, and operation;
+   - callers, callees, imports/modules, generated sources, and runtime/compile consumers;
    - why this file occurs at this point in the sequence;
    - signatures/contracts/fields that must be added or changed;
+   - input/output/field/state mapping, including null/default/enum/time/precision and persistence/side effects;
+   - validation, permission, missing, duplicate, concurrent, dependency, rollback, and compatibility behavior as applicable;
    - language-appropriate pseudocode for control flow, mapping, persistence, errors, and tests;
+   - the exact test/gate to which this file contributes;
    - the expected intermediate repository state after this file.
-4. State the focused verification command and exact success result.
-5. State completion evidence, rollback point, and one semantic commit message.
+4. State the validation working directory, exact focused verification command, exact success result, and failure return point.
+5. State completion evidence, rollback point, exact commit paths, and one semantic commit message.
 
 Good Java pseudocode names annotations, method signatures, collaborators, transaction boundaries, domain calls, mapper/repository operations, exceptions, and assertions. Good TypeScript/React pseudocode names props/types, hooks/state, API calls, render branches, events, and component tests. Good SQL pseudocode names the new migration, DDL/DML, constraints, indexes, backfill, guards, and rollback/forward-fix limits.
 
@@ -122,8 +133,8 @@ Avoid placeholders such as “implement service,” “handle errors,” “upda
 1. **Summary** — target Spec, scope, implementation direction, and final evidence.
 2. **Target Spec and effective design** — exact relative links, status/revisions, relationships, approval, and source requirements.
 3. **Effective requirements and acceptance** — all source IDs/statements, exact Spec sections, acceptance, and implementation impact.
-4. **Implementation strategy and dependency order** — why the sequence works, test strategy, migration/compatibility constraints, parallelism, and commit boundaries.
-5. **Change file tree** — complete Create/Modify/Delete/Rename/Generated tree mapped to Steps and requirements.
+4. **Implementation strategy and dependency order** — Spec simplicity/necessity audit, why the sequence works, change-unit dependencies, test strategy, migration/compatibility constraints, parallelism, and commit boundaries.
+5. **Change file tree** — complete Create/Modify/Delete/Rename/Generated tree mapped to current evidence, exact symbols, final state, Steps, requirements, and validation owners.
 6. **Prerequisites, constraints, and Plan Clarifications** — commands, environments, immutable files/contracts, decisions, dirty-worktree precautions, and small evidence-backed inferences.
 7. **Ordered file-by-file implementation Steps** — exact path order and pseudocode contract above.
 8. **Test, validation, and quality gates** — RED/GREEN points, focused/module/full checks, expected results, and failure return points.
@@ -150,8 +161,11 @@ Use exactly one:
 | Requiring a numeric Spec ID instead of an exact path | Link the actual governing Spec and its effective relations |
 | Copying a stale target tree | Re-inspect current paths, symbols, consumers, and worktree state |
 | Treating a new API/table/page as a Plan clarification | Stop and amend the Spec with user approval |
+| Faithfully planning a fetch-then-forward or otherwise unjustified Spec element | Record repository/direct-alternative evidence and return `REVISE`/`BLOCKED` to the Spec; planning detail cannot substitute for necessity |
 | Listing phases without exact files | Expand each Step into strict file order and symbols |
 | Generic pseudocode such as “implement validation” | Name signatures, fields, branches, collaborators, errors, and assertions |
+| File blocks omit repository evidence, consumers, mapping, edge behavior, or after-file state | Complete every required field so execution needs no architecture or behavior decision |
+| Validation says only “run tests/build” | Add working directory, exact command/selectors/environment, expected exit/result, and failure return point |
 | Putting all tests after production code | Plan focused RED tests before each behavior implementation |
 | Guessing validation commands | Read repository scripts/build files and state objective pass criteria |
 | Omitting migration/config/docs/permission/observability files | Add every applicable file to the tree and ordered Steps |
