@@ -1423,3 +1423,36 @@ Plan逐项覆盖REQ-001–026，并按最新决定把资源上报固定为CI SER
 ### 12.5 Final verdict
 
 `PASS — Ready for user review`
+
+## 13. Execution evidence (2026-08-18)
+
+The approved plan was executed on `main` with one path-limited commit per implementation Step. No service, browser, Redis, PostgreSQL, DDC, IdP, Gateway, or live release pipeline was started.
+
+| Step | Commit | Evidence | Result |
+| --- | --- | --- | --- |
+| 1 | `18613bbc52d9e3631c4e11f2e79fe7c7ceba1ff7` | DDC focused V9/service tests | GREEN |
+| 2 | `794a0fffb35d9db23934d8bb41f6173ad0e75782` | Gateway/IdP focused tests | GREEN |
+| 3 | `b15121ce` | IdP RPC/RBAC identity compile/tests | GREEN |
+| 4 | `ec462180` | Contract/Starter/Admin authorization tests | GREEN; existing Admin boundary failures recorded below |
+| 5 | `f4151c84` | Jackson field authorization tests and Starter module tests | GREEN |
+| 6 | `1b777239` | Global catalog/TenantApplication migration and eligibility tests | GREEN |
+| 7 | `2839b1f7` | CI report, global CRUD, and focused Admin tests | GREEN |
+| 8 | `c00e4df7` | About/contract/Starter tests and IdP/RBAC compile | GREEN |
+| 9 | `ff66269b` | React SDK `npm test -- --run && npm run build` | GREEN; dist forbidden-string scan empty |
+| 10 | `7d44125b` | Shared `npm test -- --run && npm run typecheck` | GREEN |
+| 11 | `3cbc410b` | Admin Web Vitest 21 tests, CI Node tests 3, typecheck, lint, build, bundle/conformance guards | GREEN |
+| 12 | pending | Architecture test, Web conformance, strict Spec/Plan validators | In progress |
+
+### Execution deviations and decisions
+
+1. Step 7 necessarily updated adjacent global catalog PO/repository/event wiring while removing the deleted Manifest repository; this was required by the approved V7/global-catalog design and was committed with the report/CRUD step.
+2. The existing RBAC Admin controllers still contain legacy `ApiEnvelopeVO` signatures and several non-user `@AuthenticationPrincipal CurrentRbac3Principal` parameters. The Admin Web client accepts the legacy `data/meta` shape as a temporary read bridge, while About and new frontend contracts use `ResultRecord`. This is an explicit remaining gap against `REQ-008`/`REQ-023`; it is not claimed as completed by this execution.
+3. The About landing route is now populated from the selected `AppAuthorizationContext.landingRouteCode`; snapshots created by older compatibility constructors remain nullable and correctly fall back to the first permitted local route.
+4. The shared package build regenerates its ignored `dist` output and removes its local dependency directory in `postbuild`; no generated shared artifact was committed. Runtime/browser validation remains a user-started manual gate.
+
+### Step 12 validation boundary
+
+- `Rbac3AuthorizationArchitectureTest` passed with the focused Maven command.
+- `npm run verify:conformance` passed after the Admin Web build; the bundle guard found no CI report code, report scope, or service-token environment name.
+- The remaining legacy-envelope/principal gap is recorded above rather than hidden by the audit.
+- Strict Spec/Plan validators and final `git diff --check` remain the last pre-commit gates.

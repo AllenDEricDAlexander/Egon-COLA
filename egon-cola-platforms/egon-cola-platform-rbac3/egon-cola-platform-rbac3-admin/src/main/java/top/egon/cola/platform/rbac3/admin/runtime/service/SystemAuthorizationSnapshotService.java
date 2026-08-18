@@ -60,6 +60,8 @@ public final class SystemAuthorizationSnapshotService {
                 user.authVersion(),
                 user.policyVersion(),
                 app.effectiveRoleIds(),
+                null,
+                app.landingRouteCode(),
                 app.permissions(),
                 app.dataScopes(),
                 app.fieldPolicies(),

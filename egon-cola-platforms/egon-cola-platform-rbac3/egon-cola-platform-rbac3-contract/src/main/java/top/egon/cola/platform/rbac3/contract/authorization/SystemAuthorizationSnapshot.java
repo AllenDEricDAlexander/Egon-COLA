@@ -18,6 +18,7 @@ public record SystemAuthorizationSnapshot(
         long policyVersion,
         List<String> activeRoleIds,
         List<ActiveRoleDescriptor> activeRoles,
+        String landingRouteCode,
         Set<String> permissions,
         Map<String, DataScopeDecision> dataScopes,
         Map<String, FieldPolicyDecision> fieldPolicies,
@@ -37,6 +38,7 @@ public record SystemAuthorizationSnapshot(
         activeRoles = activeRoles == null
                 ? legacyRoles(activeRoleIds, systemCode)
                 : List.copyOf(activeRoles);
+        landingRouteCode = optional(landingRouteCode, "landingRouteCode");
         permissions = Set.copyOf(Objects.requireNonNull(permissions, "permissions"));
         dataScopes = Map.copyOf(Objects.requireNonNull(dataScopes, "dataScopes"));
         fieldPolicies = Map.copyOf(Objects.requireNonNull(fieldPolicies, "fieldPolicies"));
@@ -76,6 +78,41 @@ public record SystemAuthorizationSnapshot(
                 policyVersion,
                 activeRoleIds,
                 legacyRoles(activeRoleIds, systemCode),
+                null,
+                permissions,
+                dataScopes,
+                fieldPolicies,
+                checksum,
+                generatedAt,
+                expiresAt);
+    }
+
+    /** Compatibility constructor retaining the projected role descriptors without a landing route. */
+    public SystemAuthorizationSnapshot(
+            String tenantId,
+            String identitySub,
+            String rbac3UserId,
+            String systemCode,
+            long authVersion,
+            long policyVersion,
+            List<String> activeRoleIds,
+            List<ActiveRoleDescriptor> activeRoles,
+            Set<String> permissions,
+            Map<String, DataScopeDecision> dataScopes,
+            Map<String, FieldPolicyDecision> fieldPolicies,
+            String checksum,
+            Instant generatedAt,
+            Instant expiresAt) {
+        this(
+                tenantId,
+                identitySub,
+                rbac3UserId,
+                systemCode,
+                authVersion,
+                policyVersion,
+                activeRoleIds,
+                activeRoles,
+                null,
                 permissions,
                 dataScopes,
                 fieldPolicies,
@@ -99,6 +136,13 @@ public record SystemAuthorizationSnapshot(
     private static String required(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " is required");
+        }
+        return value.trim();
+    }
+
+    private static String optional(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            return null;
         }
         return value.trim();
     }

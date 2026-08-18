@@ -29,7 +29,7 @@ public final class Rbac3AboutService {
                 details.activeRoles(),
                 details.permissions(),
                 details.fieldPolicies(),
-                null,
+                details.snapshot().landingRouteCode(),
                 details.authVersion(),
                 details.policyVersion());
     }

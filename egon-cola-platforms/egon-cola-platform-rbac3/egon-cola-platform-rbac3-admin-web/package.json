@@ -11,6 +11,7 @@
     "test:report": "node --test scripts/report-rbac-resources.test.mjs",
     "report:resources": "node scripts/report-rbac-resources.mjs",
     "verify:bundle": "node scripts/verify-browser-bundle.mjs",
+    "verify:conformance": "node scripts/verify-rbac3-conformance.mjs",
     "lint": "eslint .",
     "e2e": "playwright test"
   },
