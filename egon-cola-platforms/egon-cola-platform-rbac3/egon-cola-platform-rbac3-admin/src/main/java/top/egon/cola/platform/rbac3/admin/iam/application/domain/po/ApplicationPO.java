@@ -6,7 +6,8 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import top.egon.cola.platform.rbac3.admin.shared.domain.po.TenantScopedPO;
+import jakarta.persistence.Transient;
+import top.egon.cola.platform.rbac3.admin.shared.domain.po.GlobalAuditedPO;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -21,7 +22,10 @@ import top.egon.cola.platform.rbac3.admin.iam.application.domain.enums.Applicati
  */
 @Entity(name = "ApplicationEntity")
 @Table(name = "rbac3_application")
-public class ApplicationPO extends TenantScopedPO {
+public class ApplicationPO extends GlobalAuditedPO {
+
+    /** Compatibility-only value for old service signatures; it is never persisted. */
+    private transient Long legacyTenantId;
 
     /**
      * 字段 `id` 表示 `ApplicationPO` 中与 `id` 相关的状态、依赖、配置或结果（声明类型 `Long`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -87,7 +91,7 @@ public class ApplicationPO extends TenantScopedPO {
      * 含义与用法：读取、传递或更新 `currentManifestId` 时应保持 `ApplicationPO` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `currentManifestId`, preserve `ApplicationPO`'s lifecycle, immutability, and thread-safety constraints.
      */
-    @Column(name = "current_manifest_id")
+    @Transient
     private Long currentManifestId;
 
     /**
@@ -97,7 +101,7 @@ public class ApplicationPO extends TenantScopedPO {
      * 含义与用法：读取、传递或更新 `currentManifestVersion` 时应保持 `ApplicationPO` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `currentManifestVersion`, preserve `ApplicationPO`'s lifecycle, immutability, and thread-safety constraints.
      */
-    @Column(name = "current_manifest_version")
+    @Transient
     private Long currentManifestVersion;
 
     /**
@@ -139,7 +143,7 @@ public class ApplicationPO extends TenantScopedPO {
             throw new IllegalArgumentException("displayPriority must not be negative");
         }
         this.id = Objects.requireNonNull(id, "id");
-        setTenantId(Objects.requireNonNull(tenantId, "tenantId"));
+        this.legacyTenantId = Objects.requireNonNull(tenantId, "tenantId");
         this.ddcApplicationId = required(ddcApplicationId, "ddcApplicationId");
         this.ddcBusinessId = required(ddcBusinessId, "ddcBusinessId");
         this.applicationCode = required(applicationCode, "applicationCode");
@@ -161,7 +165,7 @@ public class ApplicationPO extends TenantScopedPO {
             throw new IllegalArgumentException("displayPriority must not be negative");
         }
         this.id = Objects.requireNonNull(id, "id");
-        setTenantId(Objects.requireNonNull(tenantId, "tenantId"));
+        this.legacyTenantId = Objects.requireNonNull(tenantId, "tenantId");
         this.applicationCode = required(applicationCode, "applicationCode");
         this.applicationName = required(applicationName, "applicationName");
         this.displayPriority = displayPriority;
@@ -226,6 +230,12 @@ public class ApplicationPO extends TenantScopedPO {
      */
     public Long getId() {
         return id;
+    }
+
+    /** Compatibility accessor for code being migrated to TenantApplicationPO. */
+    @Transient
+    public Long getTenantId() {
+        return legacyTenantId;
     }
 
     public String getDdcApplicationId() {

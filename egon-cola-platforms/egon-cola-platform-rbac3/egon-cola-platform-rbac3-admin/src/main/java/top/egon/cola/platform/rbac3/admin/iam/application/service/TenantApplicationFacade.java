@@ -11,15 +11,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-/**
- * Coordinates DDC-backed Application admission and the local RBAC scope lifecycle.
- */
-public final class ApplicationScopeFacade {
+/** Coordinates tenant purchase/enablement against the global DDC-backed application catalog. */
+public final class TenantApplicationFacade {
 
     private final DdcCatalogGateway catalog;
     private final ApplicationResourceRepository applicationStore;
 
-    public ApplicationScopeFacade(
+    public TenantApplicationFacade(
             DdcCatalogGateway catalog,
             ApplicationResourceRepository applicationStore) {
         this.catalog = Objects.requireNonNull(catalog, "catalog");
@@ -48,7 +46,7 @@ public final class ApplicationScopeFacade {
         return applicationStore.authorizationScope(
                         Objects.requireNonNull(tenantId, "tenantId"),
                         Objects.requireNonNull(applicationId, "applicationId"))
-                .orElseThrow(() -> new IllegalStateException("application scope not found"));
+                .orElseThrow(() -> new IllegalStateException("tenant application not found"));
     }
 
     public ApplicationAuthorizationScopeVO changeStatus(

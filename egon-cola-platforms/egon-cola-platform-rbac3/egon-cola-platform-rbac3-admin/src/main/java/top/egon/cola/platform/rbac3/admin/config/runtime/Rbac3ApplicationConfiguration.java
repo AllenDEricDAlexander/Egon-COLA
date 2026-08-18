@@ -45,7 +45,7 @@ import top.egon.cola.platform.rbac3.admin.iam.business.service.DdcCatalogGateway
 import top.egon.cola.platform.rbac3.admin.iam.business.service.RpcDdcCatalogGateway;
 import top.egon.cola.platform.rbac3.admin.iam.business.service.UserBusinessAccessFacade;
 import top.egon.cola.platform.rbac3.admin.iam.business.repository.UserBusinessAccessRepository;
-import top.egon.cola.platform.rbac3.admin.iam.application.service.ApplicationScopeFacade;
+import top.egon.cola.platform.rbac3.admin.iam.application.service.TenantApplicationFacade;
 import top.egon.cola.platform.rbac3.admin.iam.role.repository.jpa.JpaRoleRepository;
 import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleFacade;
 import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleEligibilityService;
@@ -420,10 +420,10 @@ public class Rbac3ApplicationConfiguration {
     }
 
     @Bean
-    ApplicationScopeFacade applicationScopeFacade(
+    TenantApplicationFacade tenantApplicationFacade(
             DdcCatalogGateway catalog,
             JpaResourceManifestRepository repository) {
-        return new ApplicationScopeFacade(catalog, repository);
+        return new TenantApplicationFacade(catalog, repository);
     }
 
     @Bean

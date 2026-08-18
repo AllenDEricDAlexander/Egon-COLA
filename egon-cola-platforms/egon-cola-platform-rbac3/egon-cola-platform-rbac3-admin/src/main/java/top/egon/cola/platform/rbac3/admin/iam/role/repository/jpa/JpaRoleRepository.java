@@ -298,6 +298,10 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
             CreateRoleCommandDTO command,
             Instant ignoredNow) {
         Instant now = databaseClock.transactionNow();
+        requireActiveTenantApplication(
+                Long.valueOf(command.tenantId()),
+                Long.valueOf(command.applicationId()),
+                now);
         long roleId = idGenerator.nextLongId();
         closureStore.lockGraph(
                 Long.parseLong(command.tenantId()), Long.parseLong(command.applicationId()));
@@ -346,19 +350,20 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
             AssignPermissionCommandDTO command,
             Instant ignoredNow) {
         Instant now = databaseClock.transactionNow();
+        Long tenantId = Long.valueOf(command.tenantId());
+        Long applicationId = Long.valueOf(command.applicationId());
+        requireActiveTenantApplication(tenantId, applicationId, now);
         RolePO role = entityManager.find(
                 RolePO.class, Long.valueOf(command.roleId()), LockModeType.PESSIMISTIC_WRITE);
         PermissionPO permission = entityManager.find(
                 PermissionPO.class,
                 Long.valueOf(command.permissionId()),
                 LockModeType.PESSIMISTIC_WRITE);
-        Long applicationId = Long.valueOf(command.applicationId());
-        Long tenantId = Long.valueOf(command.tenantId());
         if (role == null || permission == null
                 || !role.getTenantId().equals(tenantId)
-                || !permission.getTenantId().equals(tenantId)
                 || !role.getApplicationId().equals(applicationId)
-                || !permission.getApplicationId().equals(applicationId)) {
+                || !permission.getApplicationId().equals(applicationId)
+                || permission.getStatus() != PermissionStatusEnum.ACTIVE) {
             throw new Rbac3RuleViolation("ROLE_APPLICATION_MISMATCH");
         }
         long assignmentId = idGenerator.nextLongId();
@@ -400,6 +405,7 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
         Instant now = databaseClock.transactionNow();
         Long tenantId = Long.valueOf(command.tenantId());
         Long applicationId = Long.valueOf(command.applicationId());
+        requireActiveTenantApplication(tenantId, applicationId, now);
         RolePO role = entityManager.find(
                 RolePO.class, Long.valueOf(command.roleId()), LockModeType.PESSIMISTIC_WRITE);
         if (role == null
@@ -412,12 +418,10 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
         }
         List<Long> permissionIds = command.permissionIds().stream().map(Long::valueOf).toList();
         List<PermissionPO> permissions = entityManager.createQuery("""
-                        select p from PermissionEntity p
-                         where p.tenantId = :tenantId
-                           and p.applicationId = :applicationId
+                select p from PermissionEntity p
+                         where p.applicationId = :applicationId
                            and p.id in :permissionIds
-                        """, PermissionPO.class)
-                .setParameter("tenantId", tenantId)
+                """, PermissionPO.class)
                 .setParameter("applicationId", applicationId)
                 .setParameter("permissionIds", permissionIds)
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE)
@@ -676,6 +680,28 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }
         return role;
+    }
+
+    private void requireActiveTenantApplication(
+            Long tenantId,
+            Long applicationId,
+            Instant at) {
+        Number count = (Number) entityManager.createNativeQuery("""
+                        select count(*)
+                          from rbac3_tenant_application
+                         where tenant_id = :tenantId
+                           and application_id = :applicationId
+                           and status = 'ACTIVE'
+                           and valid_from <= :at
+                           and (valid_to is null or valid_to > :at)
+                        """)
+                .setParameter("tenantId", tenantId)
+                .setParameter("applicationId", applicationId)
+                .setParameter("at", at)
+                .getSingleResult();
+        if (count.longValue() != 1L) {
+            throw new Rbac3RuleViolation("TENANT_APPLICATION_REQUIRED");
+        }
     }
 
     /**

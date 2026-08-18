@@ -32,6 +32,8 @@ class Rbac3MigrationContractTest {
             "db/migration/V5__remove_sessions_and_minimize_authorization_user.sql";
     private static final String DDC_AUTHORIZATION_SCOPE_MIGRATION =
             "db/migration/V6__adopt_ddc_business_application_authorization_scope.sql";
+    private static final String GLOBAL_CATALOG_MIGRATION =
+            "db/migration/V7__globalize_resource_catalog_and_remove_manifest.sql";
     private static final Pattern TABLE_PATTERN = Pattern.compile(
             "create\\s+table\\s+(rbac3_[a-z0-9_]+)\\s*\\((.*?)\\);",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
@@ -105,9 +107,9 @@ class Rbac3MigrationContractTest {
     void migrationHistoryKeepsV1ImmutableAndAddsStrongAuthenticationTimeInV2()
             throws Exception {
         assertThat(listMigrationResources()).containsExactly(
-                MIGRATION, STRONG_AUTH_MIGRATION, IDP_MIGRATION,
-                TENANT_SESSION_MIGRATION, STATELESS_IDENTITY_MIGRATION,
-                DDC_AUTHORIZATION_SCOPE_MIGRATION);
+            MIGRATION, STRONG_AUTH_MIGRATION, IDP_MIGRATION,
+            TENANT_SESSION_MIGRATION, STATELESS_IDENTITY_MIGRATION,
+                DDC_AUTHORIZATION_SCOPE_MIGRATION, GLOBAL_CATALOG_MIGRATION);
         assertThat(resourceSql(STRONG_AUTH_MIGRATION))
                 .contains("add column strong_authenticated_at timestamptz")
                 .contains("ck_rbac3_session_strong_authentication_time");
@@ -130,6 +132,42 @@ class Rbac3MigrationContractTest {
                 .contains("create table rbac3_user_business_access")
                 .contains("create table rbac3_user_org_assignment")
                 .contains("create table rbac3_user_position_assignment");
+    }
+
+    @Test
+    void V7SplitsGlobalCatalogFromTenantEntitlementsAndRemovesManifest()
+            throws IOException {
+        String sql = resourceSql(GLOBAL_CATALOG_MIGRATION);
+        String normalized = sql.toLowerCase();
+
+        assertThat(normalized)
+                .contains("drop column if exists tenant_id cascade")
+                .contains("create table rbac3_tenant_application")
+                .contains("unique (tenant_id, application_id)")
+                .contains("drop table if exists rbac3_resource_manifest cascade")
+                .contains("create unique index uk_rbac3_application_code_global")
+                .contains("create unique index uk_rbac3_permission_code_global")
+                .contains("create table rbac3_tenant_application")
+                .contains("source_type")
+                .contains("ci_report_checksum")
+                .contains("pending_validation");
+        assertThat(normalized)
+                .contains("foreign key (application_id) references rbac3_application(id)")
+                .contains("foreign key (permission_id) references rbac3_permission(id)")
+                .contains("foreign key (resource_id) references rbac3_resource(id)")
+                .contains("foreign key (field_definition_id) references rbac3_field_definition(id)");
+    }
+
+    @Test
+    void V7DoesNotReintroduceTenantColumnsToGlobalCatalog()
+            throws IOException {
+        String sql = resourceSql(GLOBAL_CATALOG_MIGRATION).toLowerCase();
+        assertThat(sql)
+                .contains("alter table rbac3_application drop column if exists tenant_id cascade")
+                .contains("alter table rbac3_permission drop column if exists tenant_id cascade")
+                .contains("alter table rbac3_resource drop column if exists tenant_id cascade")
+                .contains("alter table rbac3_permission_resource drop column if exists tenant_id cascade")
+                .contains("alter table rbac3_field_definition drop column if exists tenant_id cascade");
     }
 
     @Test

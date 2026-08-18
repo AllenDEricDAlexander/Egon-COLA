@@ -17,11 +17,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
-class ApplicationScopeFacadeTest {
+class TenantApplicationFacadeTest {
 
     private final DdcCatalogGateway catalog = mock(DdcCatalogGateway.class);
     private final ApplicationResourceRepository store = mock(ApplicationResourceRepository.class);
-    private final ApplicationScopeFacade facade = new ApplicationScopeFacade(catalog, store);
+    private final TenantApplicationFacade facade = new TenantApplicationFacade(catalog, store);
 
     @Test
     void admitLoadsDirectoryFactsFromDdcRatherThanTheRequest() {

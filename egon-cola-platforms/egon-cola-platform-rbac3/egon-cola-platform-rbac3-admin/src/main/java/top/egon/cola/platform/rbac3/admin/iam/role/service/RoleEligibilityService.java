@@ -59,7 +59,8 @@ public final class RoleEligibilityService {
         try {
             long tenant = Long.parseLong(required(tenantId, "tenantId"));
             long user = Long.parseLong(required(userId, "userId"));
-            LocalApplication application = findApplication(tenant, applicationId)
+            LocalApplication application = findApplication(
+                            tenant, applicationId, Objects.requireNonNull(at, "at"))
                     .orElse(null);
             return resolveEffectiveScope(tenant, user, application, at);
         } catch (RuntimeException unavailableOrInvalid) {
@@ -76,7 +77,8 @@ public final class RoleEligibilityService {
         try {
             long tenant = Long.parseLong(required(tenantId, "tenantId"));
             long user = Long.parseLong(required(userId, "userId"));
-            LocalApplication application = findApplicationByCode(tenant, applicationCode)
+            LocalApplication application = findApplicationByCode(
+                            tenant, applicationCode, Objects.requireNonNull(at, "at"))
                     .orElse(null);
             return resolveEffectiveScope(tenant, user, application, at).isPresent();
         } catch (RuntimeException unavailableOrInvalid) {
@@ -113,15 +115,25 @@ public final class RoleEligibilityService {
         }
     }
 
-    private Optional<LocalApplication> findApplication(long tenantId, String applicationId) {
+    private Optional<LocalApplication> findApplication(
+            long tenantId,
+            String applicationId,
+            Instant at) {
         long id = Long.parseLong(required(applicationId, "applicationId"));
         List<?> result = entityManager.createNativeQuery("""
                         select a.id, a.ddc_application_id, a.ddc_business_id, a.status
                           from rbac3_application a
-                         where a.tenant_id = :tenantId and a.id = :applicationId
+                          join rbac3_tenant_application ta
+                            on ta.application_id = a.id
+                           and ta.tenant_id = :tenantId
+                           and ta.status = 'ACTIVE'
+                           and ta.valid_from <= :at
+                           and (ta.valid_to is null or ta.valid_to > :at)
+                         where a.id = :applicationId
                         """)
                 .setParameter("tenantId", tenantId)
                 .setParameter("applicationId", id)
+                .setParameter("at", at)
                 .getResultList();
         return result.stream().findFirst().map(RoleEligibilityService::application);
     }
@@ -160,15 +172,23 @@ public final class RoleEligibilityService {
 
     private Optional<LocalApplication> findApplicationByCode(
             long tenantId,
-            String applicationCode) {
+            String applicationCode,
+            Instant at) {
         String code = required(applicationCode, "applicationCode");
         List<?> result = entityManager.createNativeQuery("""
                         select a.id, a.ddc_application_id, a.ddc_business_id, a.status
                           from rbac3_application a
-                         where a.tenant_id = :tenantId and a.application_code = :applicationCode
+                          join rbac3_tenant_application ta
+                            on ta.application_id = a.id
+                           and ta.tenant_id = :tenantId
+                           and ta.status = 'ACTIVE'
+                           and ta.valid_from <= :at
+                           and (ta.valid_to is null or ta.valid_to > :at)
+                         where a.application_code = :applicationCode
                         """)
                 .setParameter("tenantId", tenantId)
                 .setParameter("applicationCode", code)
+                .setParameter("at", at)
                 .getResultList();
         return result.stream().findFirst().map(RoleEligibilityService::application);
     }

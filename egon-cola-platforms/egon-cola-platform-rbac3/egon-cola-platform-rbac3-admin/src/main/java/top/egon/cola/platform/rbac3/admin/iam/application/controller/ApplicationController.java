@@ -19,7 +19,7 @@ import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permissio
 import top.egon.cola.platform.rbac3.admin.iam.application.domain.command.AdmitApplicationAuthorizationScopeCommand;
 import top.egon.cola.platform.rbac3.admin.iam.application.domain.command.ChangeApplicationAuthorizationScopeStatusCommand;
 import top.egon.cola.platform.rbac3.admin.iam.application.domain.vo.ApplicationAuthorizationScopeVO;
-import top.egon.cola.platform.rbac3.admin.iam.application.service.ApplicationScopeFacade;
+import top.egon.cola.platform.rbac3.admin.iam.application.service.TenantApplicationFacade;
 import top.egon.cola.platform.rbac3.admin.iam.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
@@ -42,13 +42,13 @@ import java.util.List;
         basePath = "/api/rbac3/v1")
 public final class ApplicationController {
 
-    private final ApplicationScopeFacade facade;
+    private final TenantApplicationFacade facade;
 
-    public ApplicationController(ApplicationScopeFacade facade) {
+    public ApplicationController(TenantApplicationFacade facade) {
         this.facade = facade;
     }
 
-    @PostMapping("/applications:admit")
+    @PostMapping("/tenant-applications")
     @RequiresRbac3Permission(permission = "system:application:manage")
     @GatewayOperation(
             name = "rbac3-application-scope-admit-v1",
@@ -62,7 +62,7 @@ public final class ApplicationController {
                 tenantId(), principal.userId(), command));
     }
 
-    @GetMapping("/applications")
+    @GetMapping("/tenant-applications")
     @RequiresRbac3Permission(permission = "system:application:read")
     @GatewayOperation(
             name = "rbac3-application-scope-list-v1",
@@ -73,7 +73,7 @@ public final class ApplicationController {
         return ApiEnvelopeVO.success(facade.applications(tenantId()));
     }
 
-    @GetMapping("/applications/{applicationId}")
+    @GetMapping("/tenant-applications/{applicationId}")
     @RequiresRbac3Permission(permission = "system:application:read")
     @GatewayOperation(
             name = "rbac3-application-scope-get-v1",
@@ -85,7 +85,7 @@ public final class ApplicationController {
         return ApiEnvelopeVO.success(facade.application(tenantId(), applicationId));
     }
 
-    @PutMapping("/applications/{applicationId}/status")
+    @PutMapping("/tenant-applications/{applicationId}/status")
     @RequiresRbac3Permission(permission = "system:application:manage")
     @GatewayOperation(
             name = "rbac3-application-scope-status-v1",
@@ -100,7 +100,7 @@ public final class ApplicationController {
                 tenantId(), applicationId, principal.userId(), command));
     }
 
-    @DeleteMapping("/applications/{applicationId}")
+    @DeleteMapping("/tenant-applications/{applicationId}")
     @RequiresRbac3Permission(permission = "system:application:manage")
     @GatewayOperation(
             name = "rbac3-application-scope-remove-v1",
