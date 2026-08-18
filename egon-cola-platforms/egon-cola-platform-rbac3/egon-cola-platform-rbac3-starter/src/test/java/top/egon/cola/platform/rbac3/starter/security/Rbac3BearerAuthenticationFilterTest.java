@@ -67,7 +67,9 @@ class Rbac3BearerAuthenticationFilterTest {
                         SecurityContextHolder.getContext().getAuthentication()
                                 .getPrincipal()));
 
-        assertThat(seenPrincipal).hasValue(principal);
+        assertThat(seenPrincipal.get()).isInstanceOf(Rbac3UserDetails.class);
+        assertThat(((Rbac3UserDetails) seenPrincipal.get()).identity())
+                .isEqualTo(principal);
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 
@@ -92,6 +94,7 @@ class Rbac3BearerAuthenticationFilterTest {
                 .containsExactlyInAnyOrder(
                         "RBAC3_payment:read", "CAP_payment:read");
         assertThat(seen.get().getName()).isEqualTo("alice-sub");
+        assertThat(seen.get().getPrincipal()).isInstanceOf(Rbac3UserDetails.class);
     }
 
     @Test

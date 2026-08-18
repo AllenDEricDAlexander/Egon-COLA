@@ -6,6 +6,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.contract.activation.ReplaceActiveRolesRequest;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
+import top.egon.cola.platform.rbac3.contract.authorization.ActiveRoleDescriptor;
 import top.egon.cola.platform.rbac3.contract.authorization.ApplicationAccessScope;
 import top.egon.cola.platform.rbac3.contract.authorization.BusinessAccessScope;
 import top.egon.cola.platform.rbac3.contract.authorization.GatewayBizAppScopeSnapshot;
@@ -38,6 +39,21 @@ class ContractSerializationTest {
         assertTrue(json.path("appContexts").isArray());
         assertFalse(json.has("sessionId"));
         assertFalse(json.has("sessionVersion"));
+    }
+
+    @Test
+    void activeRoleDescriptorCarriesOnlyStableRoleFacts() throws Exception {
+        ActiveRoleDescriptor descriptor = new ActiveRoleDescriptor(
+                "role-1", "finance-operator", "finance-web");
+
+        JsonNode json = objectMapper.readTree(
+                objectMapper.writeValueAsString(descriptor));
+
+        assertEquals("role-1", json.path("roleId").textValue());
+        assertEquals("finance-operator", json.path("roleCode").textValue());
+        assertEquals("finance-web", json.path("applicationCode").textValue());
+        assertFalse(json.has("permissions"));
+        assertFalse(json.has("tenantId"));
     }
 
     @Test

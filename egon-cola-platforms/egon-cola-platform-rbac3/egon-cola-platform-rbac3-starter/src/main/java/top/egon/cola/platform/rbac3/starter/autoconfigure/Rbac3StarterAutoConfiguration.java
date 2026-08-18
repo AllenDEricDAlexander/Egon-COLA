@@ -1,6 +1,7 @@
 package top.egon.cola.platform.rbac3.starter.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.aop.support.StaticMethodMatcherPointcut;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -12,6 +13,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.authorization.method.AuthorizationManagerBeforeMethodInterceptor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import top.egon.cola.platform.idp.starter.admission.OwnerOnlyPrivateKeyLoader;
 import top.egon.cola.platform.idp.starter.admission.PrivateKeyJwtAssertionFactory;
@@ -29,7 +31,8 @@ import top.egon.cola.platform.rbac3.starter.client.Rbac3AuthorizationClient;
 import top.egon.cola.platform.rbac3.starter.event.Rbac3AuthorizationInvalidationConsumer;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFilter;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3ContextAuthentication;
-import top.egon.cola.platform.rbac3.starter.security.Rbac3MethodAuthorizationAspect;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3MethodAuthorizationManager;
 import top.egon.cola.platform.rbac3.starter.web.Rbac3AuthorizationExceptionHandler;
 
 import java.net.URI;
@@ -56,6 +59,13 @@ import java.util.stream.Collectors;
         name = "enabled",
         havingValue = "true")
 public class Rbac3StarterAutoConfiguration {
+
+    /** Provides the request-scoped current USER accessor used by services. */
+    @Bean
+    @ConditionalOnMissingBean
+    public CurrentRbac3User currentRbac3User() {
+        return new CurrentRbac3User();
+    }
 
     /**
      * 方法 `rbac3Clock` 按照 `Rbac3StarterAutoConfiguration` 的职责处理输入，完成 `rbac3 Clock` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
@@ -345,11 +355,25 @@ public class Rbac3StarterAutoConfiguration {
      * @param authorizationService 输入参数 `authorizationService`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    @Bean
-    @ConditionalOnMissingBean
-    public Rbac3MethodAuthorizationAspect rbac3MethodAuthorizationAspect(
-            AuthorizationService authorizationService) {
-        return new Rbac3MethodAuthorizationAspect(authorizationService);
+    /**
+     * Registers the single Spring Method Security interceptor for RBAC3 declarations.
+     */
+    @Bean(name = "rbac3MethodAuthorizationInterceptor")
+    @ConditionalOnMissingBean(name = "rbac3MethodAuthorizationInterceptor")
+    public AuthorizationManagerBeforeMethodInterceptor
+            rbac3MethodAuthorizationInterceptor(
+                    AuthorizationService authorizationService) {
+        Rbac3MethodAuthorizationManager manager =
+                new Rbac3MethodAuthorizationManager(authorizationService);
+        StaticMethodMatcherPointcut pointcut = new StaticMethodMatcherPointcut() {
+            @Override
+            public boolean matches(
+                    java.lang.reflect.Method method,
+                    Class<?> targetClass) {
+                return manager.supports(method, targetClass);
+            }
+        };
+        return new AuthorizationManagerBeforeMethodInterceptor(pointcut, manager);
     }
 
     /**

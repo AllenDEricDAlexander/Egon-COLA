@@ -17,6 +17,7 @@ public record SystemAuthorizationSnapshot(
         long authVersion,
         long policyVersion,
         List<String> activeRoleIds,
+        List<ActiveRoleDescriptor> activeRoles,
         Set<String> permissions,
         Map<String, DataScopeDecision> dataScopes,
         Map<String, FieldPolicyDecision> fieldPolicies,
@@ -33,6 +34,9 @@ public record SystemAuthorizationSnapshot(
         nonNegative(authVersion, "authVersion");
         nonNegative(policyVersion, "policyVersion");
         activeRoleIds = List.copyOf(Objects.requireNonNull(activeRoleIds, "activeRoleIds"));
+        activeRoles = activeRoles == null
+                ? legacyRoles(activeRoleIds, systemCode)
+                : List.copyOf(activeRoles);
         permissions = Set.copyOf(Objects.requireNonNull(permissions, "permissions"));
         dataScopes = Map.copyOf(Objects.requireNonNull(dataScopes, "dataScopes"));
         fieldPolicies = Map.copyOf(Objects.requireNonNull(fieldPolicies, "fieldPolicies"));
@@ -42,6 +46,54 @@ public record SystemAuthorizationSnapshot(
         if (!expiresAt.isAfter(generatedAt)) {
             throw new IllegalArgumentException("expiresAt must be after generatedAt");
         }
+    }
+
+    /**
+     * Compatibility constructor for snapshots produced before role descriptors were projected.
+     * The legacy role ids remain available while the current system code is used as the
+     * application binding until the Admin projector supplies richer descriptors.
+     */
+    public SystemAuthorizationSnapshot(
+            String tenantId,
+            String identitySub,
+            String rbac3UserId,
+            String systemCode,
+            long authVersion,
+            long policyVersion,
+            List<String> activeRoleIds,
+            Set<String> permissions,
+            Map<String, DataScopeDecision> dataScopes,
+            Map<String, FieldPolicyDecision> fieldPolicies,
+            String checksum,
+            Instant generatedAt,
+            Instant expiresAt) {
+        this(
+                tenantId,
+                identitySub,
+                rbac3UserId,
+                systemCode,
+                authVersion,
+                policyVersion,
+                activeRoleIds,
+                legacyRoles(activeRoleIds, systemCode),
+                permissions,
+                dataScopes,
+                fieldPolicies,
+                checksum,
+                generatedAt,
+                expiresAt);
+    }
+
+    private static List<ActiveRoleDescriptor> legacyRoles(
+            List<String> roleIds,
+            String applicationCode) {
+        Objects.requireNonNull(roleIds, "activeRoleIds");
+        return roleIds.stream()
+                .map(roleId -> new ActiveRoleDescriptor(
+                        roleId,
+                        roleId,
+                        applicationCode))
+                .toList();
     }
 
     private static String required(String value, String fieldName) {
