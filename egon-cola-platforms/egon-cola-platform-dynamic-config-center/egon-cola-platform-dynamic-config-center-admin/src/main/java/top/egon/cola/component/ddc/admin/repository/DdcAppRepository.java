@@ -16,6 +16,8 @@ public interface DdcAppRepository extends JpaRepository<DdcAppEntity, String> {
 
     Optional<DdcAppEntity> findFirstByAppCodeOrderByBizCodeAsc(String appCode);
 
+    boolean existsByAppCode(String appCode);
+
     boolean existsByBizCodeAndAppCode(String bizCode, String appCode);
 
     boolean existsByBizCode(String bizCode);

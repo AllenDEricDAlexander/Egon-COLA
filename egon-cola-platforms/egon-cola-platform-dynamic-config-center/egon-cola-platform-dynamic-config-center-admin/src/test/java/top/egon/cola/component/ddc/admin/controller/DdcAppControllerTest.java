@@ -8,18 +8,29 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.web.servlet.MockMvc;
+import top.egon.cola.component.common.core.enums.ResultCode;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.ddc.admin.controller.metadata.DdcAppController;
 import top.egon.cola.component.ddc.admin.model.entity.DdcAppEntity;
+import top.egon.cola.component.ddc.admin.repository.DdcAppRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcBizRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcAppService;
+import top.egon.cola.component.ddc.admin.service.metadata.DdcNamespaceEnvAppBindingService;
+import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -104,5 +115,37 @@ class DdcAppControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value(DdcErrorStatus.APP_IN_USE.getCode()));
+    }
+
+    @Test
+    void saveRejectsAnApplicationCodeUsedByAnotherBusiness() {
+        DdcAppRepository appRepository = mock(DdcAppRepository.class);
+        DdcBizRepository bizRepository = mock(DdcBizRepository.class);
+        DdcNamespaceEnvAppBindingRepository bindingRepository =
+                mock(DdcNamespaceEnvAppBindingRepository.class);
+        DdcNamespaceEnvAppBindingService bindingService =
+                mock(DdcNamespaceEnvAppBindingService.class);
+        DdcScopeGate scopeGate = mock(DdcScopeGate.class);
+        DdcAppService service = new DdcAppService(
+                appRepository,
+                bizRepository,
+                bindingRepository,
+                bindingService,
+                scopeGate
+        );
+        DdcAppEntity request = app("shared-app");
+
+        when(bizRepository.existsByBizCode("pay-biz")).thenReturn(true);
+        when(appRepository.existsByAppCode("shared-app")).thenReturn(true);
+
+        CommonException exception = assertThrows(
+                CommonException.class,
+                () -> service.save(request)
+        );
+
+        assertEquals(ResultCode.CONCURRENCY_ERROR.getCode(), exception.getCode());
+        assertEquals(ResultCode.CONCURRENCY_ERROR.getStatus(), exception.getStatus());
+        assertEquals("app code already exists", exception.getMessage());
+        verify(appRepository, never()).save(any(DdcAppEntity.class));
     }
 }
