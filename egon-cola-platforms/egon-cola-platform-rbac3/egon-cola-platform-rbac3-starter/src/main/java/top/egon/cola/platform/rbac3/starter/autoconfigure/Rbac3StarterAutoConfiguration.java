@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.aop.support.StaticMethodMatcherPointcut;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -15,6 +16,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.authorization.method.AuthorizationManagerBeforeMethodInterceptor;
 import org.springframework.security.core.context.SecurityContextHolder;
+import top.egon.cola.component.common.desensitize.strategy.SensitiveStrategyRegistry;
 import top.egon.cola.platform.idp.starter.admission.OwnerOnlyPrivateKeyLoader;
 import top.egon.cola.platform.idp.starter.admission.PrivateKeyJwtAssertionFactory;
 import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterAutoConfiguration;
@@ -33,6 +35,7 @@ import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFi
 import top.egon.cola.platform.rbac3.starter.security.Rbac3ContextAuthentication;
 import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3MethodAuthorizationManager;
+import top.egon.cola.platform.rbac3.starter.field.Rbac3FieldJacksonModule;
 import top.egon.cola.platform.rbac3.starter.web.Rbac3AuthorizationExceptionHandler;
 
 import java.net.URI;
@@ -65,6 +68,18 @@ public class Rbac3StarterAutoConfiguration {
     @ConditionalOnMissingBean
     public CurrentRbac3User currentRbac3User() {
         return new CurrentRbac3User();
+    }
+
+    /** Registers the single response-side Jackson module for RBAC field decisions. */
+    @Bean
+    @ConditionalOnBean(ObjectMapper.class)
+    @ConditionalOnMissingBean(Rbac3FieldJacksonModule.class)
+    public Rbac3FieldJacksonModule rbac3FieldJacksonModule(
+            CurrentRbac3User currentUser,
+            ObjectProvider<SensitiveStrategyRegistry> registryProvider) {
+        SensitiveStrategyRegistry registry = registryProvider.getIfAvailable(
+                SensitiveStrategyRegistry::defaults);
+        return new Rbac3FieldJacksonModule(currentUser, registry);
     }
 
     /**
