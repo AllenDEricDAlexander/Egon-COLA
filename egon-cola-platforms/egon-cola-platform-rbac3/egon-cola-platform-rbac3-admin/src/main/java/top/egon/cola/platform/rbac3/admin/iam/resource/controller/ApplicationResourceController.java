@@ -6,17 +6,18 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.iam.resource.service.ApplicationResourceFacade;
+import top.egon.cola.platform.rbac3.admin.iam.resource.service.GlobalResourceCatalogService;
 import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
-import top.egon.cola.platform.rbac3.admin.iam.tenant.domain.TenantContext;
 
 import java.util.List;
 import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
@@ -24,6 +25,9 @@ import top.egon.cola.platform.rbac3.admin.iam.resource.domain.dto.ArchiveResourc
 import top.egon.cola.platform.rbac3.admin.iam.application.domain.vo.ApplicationVO;
 import top.egon.cola.platform.rbac3.admin.iam.resource.domain.vo.ResourceVO;
 import top.egon.cola.platform.rbac3.admin.iam.resource.domain.vo.ArchiveResultVO;
+import top.egon.cola.platform.rbac3.admin.iam.resource.field.domain.dto.ChangeFieldDefinitionStatusRequestDTO;
+import top.egon.cola.platform.rbac3.admin.iam.resource.field.domain.dto.CreateFieldDefinitionRequestDTO;
+import top.egon.cola.platform.rbac3.admin.iam.resource.field.domain.vo.FieldDefinitionVO;
 
 /**
  * 类型 `ApplicationResourceController` 位于当前包内，是类型，用于承载 `Application Resource Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -33,7 +37,7 @@ import top.egon.cola.platform.rbac3.admin.iam.resource.domain.vo.ArchiveResultVO
  * Semantics and usage: use `ApplicationResourceController` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
 @RestController
-@RequestMapping("/api/rbac3/v1")
+@RequestMapping("/api/rbac3/v1/iam/resource-catalog")
 @GatewayInterfaceGroup(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
@@ -55,7 +59,7 @@ public class ApplicationResourceController {
      * 含义与用法：读取、传递或更新 `facade` 时应保持 `ApplicationResourceController` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `facade`, preserve `ApplicationResourceController`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final ApplicationResourceFacade facade;
+    private final GlobalResourceCatalogService facade;
     /**
      * 字段 `databaseClock` 表示 `ApplicationResourceController` 中与 `database Clock` 相关的状态、依赖、配置或结果（声明类型 `DatabaseClock`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `databaseClock` stores the `database Clock`-related state, dependency, configuration, or result of `ApplicationResourceController` (declared type `DatabaseClock`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -76,7 +80,7 @@ public class ApplicationResourceController {
      * @param databaseClock 输入参数 `databaseClock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public ApplicationResourceController(
-            ApplicationResourceFacade facade,
+            GlobalResourceCatalogService facade,
             DatabaseClock databaseClock) {
         this.facade = facade;
         this.databaseClock = databaseClock;
@@ -99,7 +103,7 @@ public class ApplicationResourceController {
             externalAccessible = true,
             tags = {"rbac3", "application"})
     public ApiEnvelopeVO<List<ApplicationVO>> applications() {
-        return ApiEnvelopeVO.success(facade.applications(tenantId()));
+        return ApiEnvelopeVO.success(facade.applications());
     }
 
     /**
@@ -121,7 +125,40 @@ public class ApplicationResourceController {
             tags = {"rbac3", "resource"})
     public ApiEnvelopeVO<List<ResourceVO>> resources(
             @PathVariable String applicationId) {
-        return ApiEnvelopeVO.success(facade.resources(tenantId(), applicationId));
+        return ApiEnvelopeVO.success(facade.resources(applicationId));
+    }
+
+    @GetMapping("/applications/{applicationId}/fields")
+    @RequiresRbac3Permission(permission = "system:field-definition:read")
+    public ApiEnvelopeVO<List<FieldDefinitionVO>> fields(
+            @PathVariable String applicationId) {
+        return ApiEnvelopeVO.success(facade.fields(applicationId, null));
+    }
+
+    @GetMapping("/resources/{resourceId}/fields")
+    @RequiresRbac3Permission(permission = "system:field-definition:read")
+    public ApiEnvelopeVO<List<FieldDefinitionVO>> resourceFields(
+            @PathVariable String resourceId,
+            @RequestParam String applicationId) {
+        return ApiEnvelopeVO.success(facade.fields(applicationId, resourceId));
+    }
+
+    @PostMapping("/fields")
+    @RequiresRbac3Permission(permission = "system:field-definition:manage")
+    public ApiEnvelopeVO<FieldDefinitionVO> createField(
+            @Valid @RequestBody CreateFieldDefinitionRequestDTO command,
+            @AuthenticationPrincipal CurrentRbac3Principal principal) {
+        return ApiEnvelopeVO.success(facade.createField(command, principal.userId()));
+    }
+
+    @PutMapping("/fields/{fieldId}/status")
+    @RequiresRbac3Permission(permission = "system:field-definition:manage")
+    public ApiEnvelopeVO<FieldDefinitionVO> changeFieldStatus(
+            @PathVariable String fieldId,
+            @Valid @RequestBody ChangeFieldDefinitionStatusRequestDTO command,
+            @AuthenticationPrincipal CurrentRbac3Principal principal) {
+        return ApiEnvelopeVO.success(facade.changeFieldStatus(
+                fieldId, command, principal.userId()));
     }
 
     /**
@@ -148,24 +185,9 @@ public class ApplicationResourceController {
             @Valid @RequestBody ArchiveResourceRequestDTO request,
             @AuthenticationPrincipal CurrentRbac3Principal principal) {
         return ApiEnvelopeVO.success(facade.archive(
-                tenantId(),
                 resourceId,
                 request.expectedVersion(),
-                principal.userId(),
-                databaseClock.transactionNow()));
-    }
-
-    /**
-     * 方法 `tenantId` 按照 `ApplicationResourceController` 的职责处理输入，完成 `tenant Id` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `tenantId` processes its inputs according to `ApplicationResourceController`'s responsibility, performs the `tenant Id` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `tenantId` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `tenantId`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    private static String tenantId() {
-        return TenantContext.requireCurrent().effectiveTenantId();
+                principal.userId()));
     }
 
     }

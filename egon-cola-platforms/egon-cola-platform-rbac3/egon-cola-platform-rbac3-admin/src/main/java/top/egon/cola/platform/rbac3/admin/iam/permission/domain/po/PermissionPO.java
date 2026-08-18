@@ -6,7 +6,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import top.egon.cola.platform.rbac3.admin.shared.domain.po.TenantScopedPO;
+import top.egon.cola.platform.rbac3.admin.shared.domain.po.GlobalAuditedPO;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -22,7 +22,7 @@ import top.egon.cola.platform.rbac3.admin.iam.permission.domain.enums.Permission
  */
 @Entity(name = "PermissionEntity")
 @Table(name = "rbac3_permission")
-public class PermissionPO extends TenantScopedPO {
+public class PermissionPO extends GlobalAuditedPO {
 
     /**
      * 字段 `id` 表示 `PermissionPO` 中与 `id` 相关的状态、依赖、配置或结果（声明类型 `Long`）；其生命周期和取值含义由声明类型及所属对象共同确定。

@@ -43,7 +43,7 @@ public final class TransactionalOutboxAuthorizationEventPublisher
             Map.entry("RBAC3_USER_ACTIVE_ROLES_REPLACED",
                     "rbac3.role-activation.changed.v1"),
             Map.entry("ASSIGNMENT_CHANGED", "rbac3.assignment.changed.v1"),
-            Map.entry("RESOURCE_MANIFEST_ACTIVATED", "rbac3.manifest.activated.v1"),
+            Map.entry("RESOURCE_CATALOG_UPDATED", "rbac3.resource.catalog.updated.v1"),
             Map.entry("RESOURCE_ARCHIVED", "rbac3.role.policy-changed.v1"),
             Map.entry("ROLE_CREATED", "rbac3.role.policy-changed.v1"),
             Map.entry("ROLE_UPDATED", "rbac3.role.policy-changed.v1"),

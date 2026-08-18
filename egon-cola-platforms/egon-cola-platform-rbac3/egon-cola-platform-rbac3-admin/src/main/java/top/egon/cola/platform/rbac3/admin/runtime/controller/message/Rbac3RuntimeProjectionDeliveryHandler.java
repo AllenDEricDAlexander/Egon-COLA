@@ -36,7 +36,7 @@ public final class Rbac3RuntimeProjectionDeliveryHandler implements DeliveryHand
             "rbac3.role.policy-changed.v1",
             "rbac3.management-policy.changed.v1",
             "rbac3.role-activation.changed.v1",
-            "rbac3.manifest.activated.v1",
+            "rbac3.resource.catalog.updated.v1",
             "rbac3.authorization.mutation-committed.v1",
             "rbac3.participation.recorded.v1");
 

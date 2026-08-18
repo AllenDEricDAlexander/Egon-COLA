@@ -2,8 +2,6 @@ package top.egon.cola.platform.rbac3.contract.auth;
 
 import top.egon.cola.platform.rbac3.contract.activation.ActivationRoot;
 import top.egon.cola.platform.rbac3.contract.authorization.FieldPolicyDecision;
-import top.egon.cola.platform.rbac3.contract.manifest.ManifestResource;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -13,10 +11,10 @@ public record BootstrapView(
         User user,
         List<ActiveRoleContext> activeRoleContexts,
         Set<String> permissions,
-        List<ManifestResource> apps,
-        List<ManifestResource> menus,
-        List<ManifestResource> routes,
-        List<ManifestResource> actions,
+        List<String> apps,
+        List<String> menus,
+        List<String> routes,
+        List<String> actions,
         Map<String, FieldPolicyDecision> fieldPolicies,
         String defaultApplicationCode,
         String defaultRoute,

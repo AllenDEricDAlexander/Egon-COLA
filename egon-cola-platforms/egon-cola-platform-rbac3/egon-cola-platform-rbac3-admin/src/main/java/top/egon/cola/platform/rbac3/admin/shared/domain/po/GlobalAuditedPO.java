@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Transient;
 import jakarta.persistence.Version;
 
 import java.time.Instant;
@@ -11,6 +12,10 @@ import java.time.Instant;
 /** Common audit/version state for RBAC catalog rows that are not tenant-scoped. */
 @MappedSuperclass
 public abstract class GlobalAuditedPO {
+
+    /** Compatibility-only value for old constructor/service signatures; never persisted. */
+    @Transient
+    private Long legacyTenantId;
 
     @Version
     @Column(name = "version", nullable = false)
@@ -30,6 +35,22 @@ public abstract class GlobalAuditedPO {
 
     public long getVersion() {
         return version;
+    }
+
+    /**
+     * Compatibility accessor retained while tenant authorization facts migrate to
+     * TenantApplication. Global catalog rows do not persist this value.
+     */
+    public Long getTenantId() {
+        return legacyTenantId;
+    }
+
+    /** Compatibility mutator for old constructors; the value is intentionally transient. */
+    protected void setTenantId(Long tenantId) {
+        if (legacyTenantId != null && !legacyTenantId.equals(tenantId)) {
+            throw new IllegalStateException("tenantId is immutable");
+        }
+        legacyTenantId = tenantId;
     }
 
     public Instant getCreatedAt() {

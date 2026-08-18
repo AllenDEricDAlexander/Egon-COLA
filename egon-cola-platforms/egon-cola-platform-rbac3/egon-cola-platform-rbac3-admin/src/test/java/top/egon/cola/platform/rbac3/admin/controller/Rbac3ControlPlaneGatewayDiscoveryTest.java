@@ -13,8 +13,6 @@ import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefinitionContributor;
 import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.iam.policy.service.ConstraintFacade;
-import top.egon.cola.platform.rbac3.admin.iam.resource.service.ApplicationResourceFacade;
-import top.egon.cola.platform.rbac3.admin.iam.resource.manifest.service.ManifestFacade;
 import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleFacade;
 
 import java.util.Map;
@@ -24,14 +22,13 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import top.egon.cola.platform.rbac3.admin.iam.resource.controller.ApplicationResourceController;
-import top.egon.cola.platform.rbac3.admin.iam.resource.manifest.controller.ManifestController;
+import top.egon.cola.platform.rbac3.admin.iam.resource.service.GlobalResourceCatalogService;
 import top.egon.cola.platform.rbac3.admin.iam.role.controller.RolePermissionController;
 import top.egon.cola.platform.rbac3.admin.iam.policy.controller.ConstraintController;
 
 @WebMvcTest(
         controllers = {
                 ApplicationResourceController.class,
-                ManifestController.class,
                 RolePermissionController.class,
                 ConstraintController.class
         },
@@ -48,16 +45,13 @@ class Rbac3ControlPlaneGatewayDiscoveryTest {
     private ObjectMapper objectMapper;
 
     @MockitoBean
-    private ApplicationResourceFacade applicationResourceFacade;
-
-    @MockitoBean
-    private ManifestFacade manifestFacade;
-
-    @MockitoBean
     private RoleFacade roleFacade;
 
     @MockitoBean
     private ConstraintFacade constraintFacade;
+
+    @MockitoBean
+    private GlobalResourceCatalogService globalResourceCatalogService;
 
     @MockitoBean
     private DatabaseClock databaseClock;
@@ -85,23 +79,20 @@ class Rbac3ControlPlaneGatewayDiscoveryTest {
 
         assertEquals(Set.of(
                         ApplicationResourceController.class.getName(),
-                        ManifestController.class.getName(),
                         RolePermissionController.class.getName(),
                         ConstraintController.class.getName()),
                 methodsByController.keySet());
         assertTrue(methodsByController.get(ApplicationResourceController.class.getName())
-                .contains("GET /api/rbac3/v1/applications"));
-        assertTrue(methodsByController.get(ManifestController.class.getName())
-                .contains("POST /api/rbac3/v1/internal/resource-manifests"));
+                .contains("GET /api/rbac3/v1/iam/resource-catalog/applications"));
         assertTrue(methodsByController.get(RolePermissionController.class.getName())
                 .contains("POST /api/rbac3/v1/roles/{roleId}/permissions"));
         assertTrue(methodsByController.get(ConstraintController.class.getName())
-                .contains("POST /api/rbac3/v1/sod-sets"));
+                .contains("POST /api/rbac3/v1/iam/policies/sod-sets"));
         assertTrue(methodsByController.get(ConstraintController.class.getName())
-                .contains("POST /api/rbac3/v1/data-rules"));
+                .contains("POST /api/rbac3/v1/iam/policies/data-rules"));
         assertTrue(methodsByController.get(ConstraintController.class.getName())
-                .contains("POST /api/rbac3/v1/field-rules"));
+                .contains("POST /api/rbac3/v1/iam/policies/field-rules"));
         assertTrue(methodsByController.get(ConstraintController.class.getName())
-                .contains("POST /api/rbac3/v1/operation-sod-rules"));
+                .contains("POST /api/rbac3/v1/iam/policies/operation-sod-rules"));
     }
 }

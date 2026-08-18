@@ -6,9 +6,10 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import top.egon.cola.platform.rbac3.admin.shared.domain.po.TenantScopedPO;
+import top.egon.cola.platform.rbac3.admin.shared.domain.po.GlobalAuditedPO;
 
 import java.time.Instant;
 import java.util.Map;
@@ -25,7 +26,7 @@ import top.egon.cola.platform.rbac3.admin.iam.resource.domain.enums.ResourceStat
  */
 @Entity(name = "ResourceEntity")
 @Table(name = "rbac3_resource")
-public class ResourcePO extends TenantScopedPO {
+public class ResourcePO extends GlobalAuditedPO {
 
     /**
      * 字段 `id` 表示 `ResourcePO` 中与 `id` 相关的状态、依赖、配置或结果（声明类型 `Long`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -108,7 +109,7 @@ public class ResourcePO extends TenantScopedPO {
      * 含义与用法：读取、传递或更新 `sourceManifestId` 时应保持 `ResourcePO` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `sourceManifestId`, preserve `ResourcePO`'s lifecycle, immutability, and thread-safety constraints.
      */
-    @Column(name = "source_manifest_id")
+    @Transient
     private Long sourceManifestId;
     /**
      * 字段 `sourceBuildId` 表示 `ResourcePO` 中与 `source Build Id` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。

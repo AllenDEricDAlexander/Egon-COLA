@@ -14,7 +14,6 @@ import top.egon.cola.platform.rbac3.contract.authorization.Decision;
 import top.egon.cola.platform.rbac3.contract.authorization.FieldPolicyDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.GatewayBizAppScopeSnapshot;
 import top.egon.cola.platform.rbac3.contract.authorization.UserAuthorizationSnapshot;
-import top.egon.cola.platform.rbac3.contract.manifest.ManifestResource;
 import top.egon.cola.platform.rbac3.core.activation.AuthorizationRuleFacts;
 import top.egon.cola.platform.rbac3.core.activation.RoleActivationResolution;
 import top.egon.cola.platform.rbac3.core.decision.DataScopeMerger;
@@ -169,13 +168,10 @@ public final class UserAuthorizationSnapshotProjector {
         });
         Map<String, FieldPolicyDecision> fieldPolicies = fieldPolicies(
                 applicationId, permissions, command);
-        List<ManifestResource> resources = facts.authorizationFacts().resources().stream()
+        List<String> resourceCodes = facts.authorizationFacts().resources().stream()
                 .filter(resource -> permissions.contains(resource.requiredPermissionCode()))
                 .filter(resource -> snapshot.resourceCodes().contains(resource.code()))
-                .map(resource -> new ManifestResource(
-                        resource.code(), null, resource.code(), null,
-                        null, null, resource.requiredPermissionCode(), null,
-                        null, null, null, null, null, null, null, Map.of()))
+                .map(AuthorizationRuleFacts.ResourceFact::code)
                 .toList();
         ApplicationFactVO application =
                 facts.applications().get(applicationId);
@@ -197,7 +193,7 @@ public final class UserAuthorizationSnapshotProjector {
                 permissions,
                 scopes,
                 fieldPolicies,
-                resources,
+                resourceCodes,
                 landingRouteCode);
     }
 

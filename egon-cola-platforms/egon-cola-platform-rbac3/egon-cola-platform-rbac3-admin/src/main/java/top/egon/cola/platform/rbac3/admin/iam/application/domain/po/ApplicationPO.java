@@ -91,8 +91,6 @@ public class ApplicationPO extends GlobalAuditedPO {
      * 含义与用法：读取、传递或更新 `currentManifestId` 时应保持 `ApplicationPO` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `currentManifestId`, preserve `ApplicationPO`'s lifecycle, immutability, and thread-safety constraints.
      */
-    @Transient
-    private Long currentManifestId;
 
     /**
      * 字段 `currentManifestVersion` 表示 `ApplicationPO` 中与 `current Manifest Version` 相关的状态、依赖、配置或结果（声明类型 `Long`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -101,8 +99,6 @@ public class ApplicationPO extends GlobalAuditedPO {
      * 含义与用法：读取、传递或更新 `currentManifestVersion` 时应保持 `ApplicationPO` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `currentManifestVersion`, preserve `ApplicationPO`'s lifecycle, immutability, and thread-safety constraints.
      */
-    @Transient
-    private Long currentManifestVersion;
 
     /**
      * 构造器 `ApplicationPO` 用于创建并初始化 `ApplicationPO` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -185,18 +181,7 @@ public class ApplicationPO extends GlobalAuditedPO {
      * @param actorId 输入参数 `actorId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
-    public void activateManifest(
-            Long manifestId,
-            long manifestVersion,
-            String actorId,
-            Instant now) {
-        if (status != ApplicationStatusEnum.ACTIVE) {
-            throw new IllegalStateException("application is not active");
-        }
-        currentManifestId = Objects.requireNonNull(manifestId, "manifestId");
-        currentManifestVersion = manifestVersion;
-        markUpdated(actorId, now);
-    }
+
 
     /** Changes the local authorization-scope status with optimistic concurrency. */
     public boolean changeStatus(
@@ -298,9 +283,7 @@ public class ApplicationPO extends GlobalAuditedPO {
      *
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    public Long getCurrentManifestVersion() {
-        return currentManifestVersion;
-    }
+
 
     /**
      * 方法 `required` 按照 `ApplicationPO` 的职责处理输入，完成 `required` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。

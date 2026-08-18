@@ -11,7 +11,6 @@ import top.egon.cola.platform.rbac3.contract.activation.ActivationRoot;
 import top.egon.cola.platform.rbac3.contract.auth.BootstrapView;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.FieldPolicyDecision;
-import top.egon.cola.platform.rbac3.contract.manifest.ManifestResource;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.util.ArrayList;
@@ -59,11 +58,11 @@ public class JpaBootstrapSnapshotRepository implements BootstrapSnapshotReposito
         var snapshot = record.snapshot();
         var contexts = new ArrayList<BootstrapView.ActiveRoleContext>();
         var permissions = new LinkedHashSet<String>();
-        var resources = new ArrayList<ManifestResource>();
+        var resources = new ArrayList<String>();
         var fieldPolicies = new LinkedHashMap<String, FieldPolicyDecision>();
         for (AppAuthorizationContext context : snapshot.appContexts()) {
             permissions.addAll(context.permissions());
-            resources.addAll(context.resources());
+                resources.addAll(context.resourceCodes());
             fieldPolicies.putAll(context.fieldPolicies());
             for (String rootRoleId : context.activationRootRoleIds()) {
                 RolePO role = entityManager.find(RolePO.class, Long.valueOf(rootRoleId));
@@ -90,8 +89,7 @@ public class JpaBootstrapSnapshotRepository implements BootstrapSnapshotReposito
                 new BootstrapView.User(
                         userId, tenantId, user.getIdentitySub(), user.getStatus().name()),
                 contexts, permissions,
-                resources(resources, "APP"), resources(resources, "MENU"),
-                resources(resources, "ROUTE"), resources(resources, "ACTION"),
+                resources, resources, resources, resources,
                 fieldPolicies, defaultApplication, defaultRoute,
                 snapshot.authVersion(),
                 snapshot.policyVersion()));
@@ -106,13 +104,4 @@ public class JpaBootstrapSnapshotRepository implements BootstrapSnapshotReposito
         return user;
     }
 
-    /** 按资源类型筛选清单资源。 Filters manifest resources by resource type. */
-    private List<ManifestResource> resources(
-            List<ManifestResource> resources,
-            String type) {
-        return resources.stream()
-                .filter(resource -> type.equalsIgnoreCase(
-                        resource.metadata().getOrDefault("resourceType", "")))
-                .toList();
-    }
 }

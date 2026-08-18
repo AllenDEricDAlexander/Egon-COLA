@@ -52,7 +52,7 @@ import top.egon.cola.platform.rbac3.admin.iam.policy.domain.enums.ConstraintType
  * Semantics and usage: use `ConstraintController` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
 @RestController
-@RequestMapping("/api/rbac3/v1")
+@RequestMapping("/api/rbac3/v1/iam/policies")
 @GatewayInterfaceGroup(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",

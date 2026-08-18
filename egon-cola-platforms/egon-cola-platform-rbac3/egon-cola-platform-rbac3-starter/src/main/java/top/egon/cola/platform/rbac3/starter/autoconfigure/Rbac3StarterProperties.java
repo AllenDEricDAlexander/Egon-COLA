@@ -61,7 +61,6 @@ public class Rbac3StarterProperties {
      * 含义与用法：读取、传递或更新 `manifest` 时应保持 `Rbac3StarterProperties` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `manifest`, preserve `Rbac3StarterProperties`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private final Manifest manifest = new Manifest();
 
     /**
      * 方法 `isEnabled` 按照 `Rbac3StarterProperties` 的职责处理输入，完成 `is Enabled` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
@@ -176,9 +175,7 @@ public class Rbac3StarterProperties {
      *
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    public Manifest getManifest() {
-        return manifest;
-    }
+
 
     /**
      * 类型 `Runtime` 位于 `Rbac3StarterProperties` 内，是类型，用于承载 `Runtime` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -843,13 +840,13 @@ public class Rbac3StarterProperties {
         }
     }
 
-    /**
+    /*
      * 类型 `Manifest` 位于 `Rbac3StarterProperties` 内，是类型，用于承载 `Manifest` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
      * Type `Manifest` is a type inside `Rbac3StarterProperties` and carries the responsibility, state, or contract for `Manifest`; callers normally use it through its public API, Spring assembly, or implementation relationship.
      *
      * 语义与用法：将 `Manifest` 作为 `Rbac3StarterProperties` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
      * Semantics and usage: use `Manifest` as the responsibility boundary of `Rbac3StarterProperties`, following its existing construction, interface, or Spring-assembly mechanism.
-     */
+     * /
     public static class Manifest {
         /**
          * 字段 `reportingEnabled` 表示 `Manifest` 中与 `reporting Enabled` 相关的状态、依赖、配置或结果（声明类型 `boolean`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -857,7 +854,7 @@ public class Rbac3StarterProperties {
          *
          * 含义与用法：读取、传递或更新 `reportingEnabled` 时应保持 `Manifest` 的生命周期、不可变性和线程安全约束。
          * Meaning and usage: when reading, passing, or updating `reportingEnabled`, preserve `Manifest`'s lifecycle, immutability, and thread-safety constraints.
-         */
+         * /
         private boolean reportingEnabled;
 
         /**
@@ -868,7 +865,7 @@ public class Rbac3StarterProperties {
          * Usage: provide contract-compliant arguments before calling `isReportingEnabled`, then continue the business flow using its result, exception, or side effect.
          *
          * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-         */
+         * /
         public boolean isReportingEnabled() {
             return reportingEnabled;
         }
@@ -881,10 +878,11 @@ public class Rbac3StarterProperties {
          * Usage: provide contract-compliant arguments before calling `setReportingEnabled`, then continue the business flow using its result, exception, or side effect.
          *
          * @param reportingEnabled 输入参数 `reportingEnabled`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-         */
+         * /
         public void setReportingEnabled(boolean reportingEnabled) {
             this.reportingEnabled = reportingEnabled;
         }
 
     }
+    */
 }

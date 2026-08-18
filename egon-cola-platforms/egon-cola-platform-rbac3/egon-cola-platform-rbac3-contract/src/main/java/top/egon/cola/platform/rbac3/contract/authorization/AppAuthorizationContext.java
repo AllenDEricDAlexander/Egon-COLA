@@ -1,7 +1,5 @@
 package top.egon.cola.platform.rbac3.contract.authorization;
 
-import top.egon.cola.platform.rbac3.contract.manifest.ManifestResource;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -16,7 +14,7 @@ public record AppAuthorizationContext(
         Set<String> permissions,
         Map<String, DataScopeDecision> dataScopes,
         Map<String, FieldPolicyDecision> fieldPolicies,
-        List<ManifestResource> resources,
+        List<String> resourceCodes,
         String landingRouteCode
 ) {
 
@@ -53,10 +51,11 @@ public record AppAuthorizationContext(
                 code,
                 "fieldPolicies"
         ));
-        resources = List.copyOf(Objects.requireNonNull(
-                resources,
-                "resources"
+        resourceCodes = List.copyOf(Objects.requireNonNull(
+                resourceCodes,
+                "resourceCodes"
         ));
+        resourceCodes.forEach(code -> required(code, "resourceCodes"));
         landingRouteCode = optional(
                 landingRouteCode,
                 "landingRouteCode"

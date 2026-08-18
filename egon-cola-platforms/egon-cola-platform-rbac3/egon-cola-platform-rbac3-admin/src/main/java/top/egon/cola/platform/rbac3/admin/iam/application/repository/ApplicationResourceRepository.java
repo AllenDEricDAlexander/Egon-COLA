@@ -6,12 +6,8 @@ import top.egon.cola.platform.rbac3.admin.iam.business.service.ApplicationCatalo
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Application aggregate repository. It also exposes the existing resource-query
- * port so the manifest repository remains the single local Application store.
- */
-public interface ApplicationResourceRepository
-        extends top.egon.cola.platform.rbac3.admin.iam.resource.repository.ApplicationResourceRepository {
+/** Persistence port for tenant entitlement rows over the global application catalog. */
+public interface ApplicationResourceRepository {
 
     List<ApplicationAuthorizationScopeVO> authorizationScopes(Long tenantId);
 
