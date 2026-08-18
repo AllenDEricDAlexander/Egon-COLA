@@ -1441,7 +1441,7 @@ The approved plan was executed on `main` with one path-limited commit per implem
 | 9 | `ff66269b` | React SDK `npm test -- --run && npm run build` | GREEN; dist forbidden-string scan empty |
 | 10 | `7d44125b` | Shared `npm test -- --run && npm run typecheck` | GREEN |
 | 11 | `3cbc410b` | Admin Web Vitest 21 tests, CI Node tests 3, typecheck, lint, build, bundle/conformance guards | GREEN |
-| 12 | pending | Architecture test, Web conformance, strict Spec/Plan validators | In progress |
+| 12 | `8468cd76` | Architecture test, Web conformance, strict Spec/Plan validators | GREEN; remaining legacy-envelope/principal gap explicitly recorded |
 
 ### Execution deviations and decisions
 
@@ -1455,4 +1455,4 @@ The approved plan was executed on `main` with one path-limited commit per implem
 - `Rbac3AuthorizationArchitectureTest` passed with the focused Maven command.
 - `npm run verify:conformance` passed after the Admin Web build; the bundle guard found no CI report code, report scope, or service-token environment name.
 - The remaining legacy-envelope/principal gap is recorded above rather than hidden by the audit.
-- Strict Spec/Plan validators and final `git diff --check` remain the last pre-commit gates.
+- Strict Spec/Plan validators and final `git diff --check` passed before the Step 12 commit.
