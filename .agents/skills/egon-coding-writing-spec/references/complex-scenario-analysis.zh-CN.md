@@ -28,7 +28,7 @@
 
 否则标记为 `Simple`。在 Header 中记录 `Complexity` 和 `Complexity Drivers`。复杂度取决于决策风险和交互数量，不取决于文件数量。
 
-简单 Spec 仍要保证证据、契约、文件、数据库、测试和复核质量，但不得为了形式制造没有信息增量的矩阵、替代方案或抽象。
+简单 Spec 对每个 `Affected` 区域仍要保证完整证据、契约、文件、数据库、测试和复核质量；其他区域执行 `references/change-surface-and-proportional-depth.zh-CN.md` 的简洁 `Context-only`/`Unchanged` 写法。不得为了形式制造没有信息增量的矩阵、替代方案、抽象或全层设计。
 
 ## Complex Spec 必需分析
 
@@ -254,7 +254,7 @@ Complex Spec 的第 7 章必须包含三种 Mermaid 视图：
 
 节点使用真实模块/契约名称，必要时引用 `REQ-*`、接口 ID、表名或状态名。图示必须与正文一致，不能画出 Controller 直连 DAO 等禁止路径。
 
-Simple Spec 只使用真正提升理解的视图；省略的视图必须写有准确理由的 `N/A`，不能插入装饰图。
+Simple Spec 只使用真正提升理解的视图。已有但不变的架构写 `Unchanged` 或 `Context-only` 并说明准确原因；只有视图/关注点不适用时才写 `N/A`。不能插入装饰图。
 
 ## 复杂设计停止条件
 

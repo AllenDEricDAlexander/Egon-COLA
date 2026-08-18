@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Document | `YYYY-MM-DD-HH-MM-abstract.md` |
-| Template Version | `3` |
+| Template Version | `4` |
 | Status | `Draft` |
 | Type | `Feature / Refactor / Bugfix / Architecture` |
 | Complexity | `Simple / Complex` |
@@ -13,6 +13,8 @@
 | Owner | `<decision owner>` |
 | Repository | `<repository>` |
 | Scope | `<modules or bounded context>` |
+| Change Surface | `<exact files/layers/behaviors that change>` |
+| Affected Chapters | `<comma-separated §7 through §18 chapters receiving Affected detail>` |
 | Source Requirement | `<user request / issue / ticket / brief>` |
 | Baseline Revision | `<commit and branch, or explicit dirty-worktree snapshot>` |
 | Amends | `None` |
@@ -56,6 +58,23 @@ For a Complex Spec, trace every material entry/trigger through consumers, data, 
 ### 3.2 Non-goals
 
 Define explicit exclusions so scope cannot silently expand during planning or implementation.
+
+### 3.3 Change Surface and Design Depth
+
+Read `references/change-surface-and-proportional-depth.md`. Complexity and change surface are independent: `Simple`/`Complex` controls analysis depth, while the dispositions below control design breadth. Include every materially relevant area needed to locate the change and prove where it stops.
+
+| Area/layer | Disposition | Exact repository evidence | Changed or preserved behavior/contract | Required Spec treatment | Chapter(s) |
+| --- | --- | --- | --- | --- | --- |
+| `<DAO/Mapper query>` | Affected / Context-only / Unchanged / Not applicable | `<path:symbol>` | `<exact delta or preserved invariant>` | `<full design / concise boundary evidence / unchanged record / N/A>` | `§7, §8, §14` |
+
+Use exactly these dispositions:
+
+- `Affected` — fully design the changed code, contract, data/schema semantics, configuration, runtime behavior, or test responsibility.
+- `Context-only` — write only the evidence, relied-upon invariant, reason no modification is needed, and focused verification.
+- `Unchanged` — the area exists but is outside the change; write one concise unchanged record and no target design.
+- `Not applicable` — the area does not exist or is irrelevant; write evidence-backed `N/A`.
+
+The Header's `Affected Chapters` must equal the distinct chapter numbers carried by `Affected` rows. Keep all top-level chapters, but remove optional deep subsections and example tables/diagrams for areas not marked `Affected`. Do not treat reading or citing a layer as evidence that it changes.
 
 ## 4. Requirements and Acceptance Criteria
 
@@ -134,7 +153,7 @@ Whichever form is selected, define the actor, trigger, preconditions, main succe
 
 ## 6. Project Technology Context
 
-Document the repository's actual programming languages and versions, frameworks, build tools, module structure, architecture style, persistence and migration tools, frontend stack, test frameworks, deployment model, and applicable repository instructions. Cite evidence for each material fact.
+Document only the repository technologies and instructions that constrain the affected work or prove a stopping boundary: relevant languages/versions, frameworks, build tools, module/package style, persistence/migration mechanism, test tools, and deployment facts. Do not inventory the entire repository stack for a focused change.
 
 | Concern | Current choice | Repository evidence | Constraint on design |
 | --- | --- | --- | --- |
@@ -149,6 +168,8 @@ For Java package design, record whether the affected module already uses or the 
 | Traditional Three-Layer / Other | `<base package>` | `<paths or DEC-*>` | `<None or exact deviations>` | `<apply profile / preserve current structure / ask user>` |
 
 ## 7. Architecture Design
+
+Allocate this chapter using §3.3. Fully design affected collaboration and the minimum surrounding boundary needed for coherence. For a focused change, cite unchanged system/high-level context rather than redesigning every layer.
 
 ### 7.0 Minimum-design baseline and element-necessity audit
 
@@ -169,13 +190,13 @@ The selected design must have the fewest moving parts among options satisfying t
 
 ### 7.1 System Architecture Design
 
-Define the system context, current and target boundaries, actors, modules/services, data stores, external systems, trust/deployment boundaries, ownership, dependency direction, and why the selected architecture fits the repository.
+Define only the affected system context and the adjacent current boundaries needed to prove coherence: relevant actors, modules/services, data stores, external systems, trust/deployment boundaries, ownership, and dependency direction. Do not convert an unchanged surrounding system into target architecture work.
 
-For a Java three-layer design, include `biz.controller`, `biz.service`, `biz.service.impl`, `biz.dao`, `biz.config`, `biz.utils`, and `biz.domain`. Controllers depend on Service interfaces and transport/data objects, never directly on DAO or `service.impl`. Concrete implementations under `service.impl` own business orchestration and normal transaction boundaries. DAO owns persistence access rather than business policy. Config owns technical wiring, and Utils remains stateless and business-neutral.
+For affected Java three-layer areas, preserve the dependency rules among `biz.controller`, `biz.service`, `biz.service.impl`, `biz.dao`, `biz.config`, `biz.utils`, and `biz.domain`. Include only affected and boundary-proving components. A DAO-only change cites the unchanged Service/Controller boundary; it does not require a full-layer target design. Controllers still never depend directly on DAO or `service.impl`, and DAO still owns persistence access rather than business policy.
 
 #### 7.1.1 Architecture Mermaid view
 
-For a Complex Spec, use a Mermaid `flowchart` with real component/store/system names and direction-labelled edges. Show trust, deployment, or ownership boundaries with subgraphs when applicable. A Simple Spec may use `N/A` only with an exact reason.
+For a Complex Spec, use a Mermaid `flowchart` with real component/store/system names and direction-labelled edges. Show trust, deployment, or ownership boundaries with subgraphs when applicable. A focused Simple Spec omits this view when it adds no information and writes the matching `Context-only`, `Unchanged`, or evidence-backed `N/A` scope record instead.
 
 ```mermaid
 flowchart LR
@@ -299,6 +320,8 @@ A Complex Spec normally needs at least two rows covering different decision clas
 
 ### 8.2 Target tree
 
+For a focused Spec, show only exact affected files plus the minimum parent/context paths needed to locate them. Use the full skeleton below only when those layers are actually `Affected`; delete unused branches rather than documenting them as target work.
+
 ```text
 <base-package>/biz
 ├── controller
@@ -311,7 +334,7 @@ A Complex Spec normally needs at least two rows covering different decision clas
     └── <only justified POJO role packages and files>
 ```
 
-Expand this skeleton into exact CREATE / MODIFY / DELETE file paths and packages; do not put implementation order here. `impl` must remain nested under `service`. Omit unused optional packages rather than creating empty layers or every possible POJO suffix package.
+Expand only the affected subtree into exact CREATE / MODIFY / DELETE file paths and packages; do not put implementation order here. `impl` must remain nested under `service` when Service implementation work is affected. Never retain Controller, Service, DAO, Config, Utils, domain, frontend, or migration branches merely because the template shows them.
 
 ### 8.3 Package and file responsibilities
 
@@ -323,11 +346,11 @@ Explain moves or deletions, generated-file handling, registration/wiring ownersh
 
 ## 9. Interface Definitions
 
-Read `references/interface-contract-design.md`. Cover applicable HTTP, RPC, event/message, CLI, scheduled-job, and internal Service contracts.
+When §9 is `Affected`, read `references/interface-contract-design.md`, inventory every changed HTTP/RPC/event/message/CLI/scheduled-job/internal Service operation, and expand each contract completely. When §9 is `Context-only` or `Unchanged`, remove §§9.1–9.2 and write only the exact existing route/symbol, consumers, preserved request/response/error invariant, stopping reason, and focused regression evidence. Do not reproduce full JSON for an unchanged boundary.
 
 ### 9.1 Interface Inventory
 
-Use one ID per atomic HTTP Method + URL or protocol operation. Split collection/detail/create/update/delete/status endpoints into separate IDs even when they share models or rules.
+Required only when §9 is `Affected`. Use one ID per atomic HTTP Method + URL or protocol operation. Split collection/detail/create/update/delete/status endpoints into separate IDs even when they share models or rules.
 
 | ID | Change/necessity verdict | Name/purpose | Kind | Consumer | Owner | Method + URL / symbol / topic | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -432,6 +455,8 @@ Name consumers, version/deprecation behavior, compatibility constraints, contrac
 
 ## 10. POJO and Data Model Design
 
+When §10 is `Affected`, design only changed/new types, fields, mappings, lifecycle, or reuse decisions. When it is `Context-only` or `Unchanged`, remove §§10.1–10.7 and cite only the exact existing type/mapping and preserved invariant. Do not inventory every POJO role in the module.
+
 ### 10.1 POJO role classification and class necessity
 
 Classify every proposed Java object by its repository-defined semantic role. State the exact local meaning of ambiguous `DO`, `VO`, or `Entity` terms. `POJO` is an umbrella term, DAO is an access component rather than a data carrier, and `VO` means View Object in this profile.
@@ -476,7 +501,7 @@ When relational persistence applies, map persistence objects/ORM entities and re
 
 ## 11. Database Design
 
-Read `references/database-design.md`. If no database is read or changed, write evidence-backed `N/A` in the subsections. Otherwise use the repository's actual dialect, migration mechanism, naming, and access layer.
+When database schema, data semantics, constraints, indexes, migrations, transaction/locking behavior, or authoritative persistence ownership is `Affected`, read `references/database-design.md` and use the repository's actual dialect, migration mechanism, naming, and access layer. For a DAO query-only change with unchanged schema, remove §§11.1–11.3 and record the exact query/access path, relevant columns and existing index evidence, preserved schema/relationship invariant, and focused verification. If no database is relevant, write evidence-backed `N/A`.
 
 ### 11.1 Table Inventory
 
@@ -527,7 +552,7 @@ Define transaction owner, isolation/locks, concurrent writes, idempotency/dedupl
 
 ### 11.3 Entity-relationship diagram
 
-Relational persistence requires a Mermaid `erDiagram`. Include every table from §11.1 and any directly related existing neighbor needed to explain ownership/cardinality. Show actual relationships and material PK/FK/UK fields; do not invent an FK because columns share a name. The diagram complements rather than replaces §11.2.
+State `Relational model change: Yes` or `Relational model change: No — <exact evidence>`. An affected relational data model or relationship requires `Yes` and a Mermaid `erDiagram`. Include every affected table from §11.1 and any directly related existing neighbor needed to explain ownership/cardinality. Show actual relationships and material PK/FK/UK fields; do not invent an FK because columns share a name. Index-only, query-only, or transaction-only work may use evidence-backed `No` and omit the diagram. The diagram complements rather than replaces §11.2 when model design is affected.
 
 | ER entity | Physical table | Scope/change | Authoritative owner | Notes |
 | --- | --- | --- | --- | --- |
@@ -554,7 +579,7 @@ State whether each depicted relationship is enforced by a database FK/constraint
 
 ## 12. Frontend Page Design
 
-If the repository has no affected frontend, write `N/A` with repository evidence. Otherwise define:
+If frontend code/contract-visible behavior is `Affected`, define the following. If a frontend exists but remains unchanged, remove §§12.1–12.5 and write one evidence-backed `Unchanged` record. Use `N/A` only when no frontend concern exists.
 
 - route, navigation/menu entry, page ownership, permissions, tenant scope, and deep-link behavior;
 - page layout and component tree, responsive behavior, accessibility, focus/keyboard rules, and key copy;
@@ -606,6 +631,8 @@ Define keyboard order/shortcuts, focus placement and restoration, accessible nam
 
 ## 13. Design Patterns and Architecture Principles
 
+Apply this chapter only to affected variation points and dependency choices. For a direct DAO-only change with no new abstraction, record the rejected unnecessary patterns and the affected dependency invariant concisely; do not restate every project-wide principle.
+
 ### 13.1 Selected patterns
 
 | Pattern/principle | Concrete variation point or problem | Placement | Why direct code is insufficient | Repository alignment |
@@ -621,6 +648,8 @@ Record why Strategy, Template Method, Factory, Adapter, Facade, State, Observer,
 Explain applicable choices around cohesion, coupling, information hiding, SOLID, YAGNI, testability, and maintainability. Show the three-layer dependency direction explicitly: Controller to Service interface, `service.impl` to DAO/domain objects, and DAO to persistence objects. Explicitly show how the model avoids class explosion and how concrete Service implementations use composition over inheritance. Do not claim a principle without showing how paths and dependencies enforce it.
 
 ## 14. Test Design
+
+Design tests for affected behavior plus the smallest caller/contract regression needed to prove each `Context-only` or `Unchanged` boundary. Do not create full-stack test coverage merely because the architecture has more layers.
 
 ### 14.1 Unit tests
 
@@ -640,13 +669,15 @@ Cover happy paths, boundaries, invalid input, permissions, tenancy, retries/time
 
 ## 15. Non-functional and Cross-cutting Design
 
-Address applicable security, authorization, tenancy, privacy, secrets, performance, capacity, latency, caching, rate limiting, availability, audit, logging, metrics, tracing, alerting, internationalization, accessibility, operability, and maintainability. Give an evidence-backed `N/A` for materially relevant categories that do not apply.
+Address only materially affected security, authorization, tenancy, privacy, performance, capacity, latency, caching, availability, audit, observability, operability, accessibility, and maintainability concerns. For considered but unchanged concerns, cite the preserved invariant and verification boundary; use `N/A` only when not applicable.
 
 ## 16. Compatibility, Migration, Rollout, and Rollback
 
-Define source/binary/API/data compatibility, old clients and data, migration/backfill sequence, feature flags, deployment order, staged rollout, pre/post-deploy checks, rollback limits, and forward-fix strategy.
+Define only compatibility, migration, rollout, and rollback consequences created by the affected surface. A focused internal change should state which public/internal contracts, schema, callers, and deployment order remain unchanged, plus its focused rollback or revert boundary; do not invent a multi-stage rollout.
 
 ## 17. Alternatives and Decisions
+
+Compare alternatives only for the affected decision. For a focused Simple change, one direct option and one genuinely viable alternative are enough when an alternative adds decision information; otherwise state why no material alternative exists.
 
 | Option | New elements and interactions | Advantages | Disadvantages/risks | Repository fit | Decision and rationale |
 | --- | --- | --- | --- | --- | --- |
@@ -663,9 +694,9 @@ Record why the chosen design is preferable. If a more complex option is selected
 
 ## 19. Traceability Matrix
 
-| Requirement | Use case | Architecture/packages | Interface | Model/database | Frontend | Tests | Acceptance evidence |
+| Requirement | Use case | Affected area/chapter | Context-only or unchanged boundary | Interface/model/database/frontend | Tests | Acceptance evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `REQ-001` | `UC-001` | `§7 / §8` | `API-001` | `<model/table or N/A>` | `<page or N/A>` | `TEST-001` | `§4 criterion` |
+| `REQ-001` | `UC-001` | `<DAO query / §7, §8, §14>` | `<Service/API/schema invariant>` | `<affected element, Unchanged, or N/A>` | `TEST-001` | `§4 criterion` |
 
 Every `REQ-*` must map to design, tests, and acceptance. Every proposed contract, model, file, page, migration, and test must map back to a requirement or documented necessary infrastructure rationale.
 
@@ -689,7 +720,9 @@ Confirm every interface inventory ID has one detailed contract with complete req
 
 Confirm every proposed element has a necessity verdict, the direct/no-new-element baseline was evaluated first, and no fetch-then-forward interface exists solely to return parameters for another request. Confirm each retained selector/discovery operation has independent consumer value and command-time stale-selection revalidation.
 
-Confirm requirements analysis contains evidenced actors and `UC-*` goals in a complete table or Mermaid use-case view, and that use-case conditions/outcomes agree with scenarios, interfaces, data effects, frontend states, and tests. Confirm relational data design contains a Mermaid `erDiagram` covering every inventory table and agreeing with physical names, PK/FK/UK fields, cardinalities, optionality, and enforcement rules.
+Confirm requirements analysis contains evidenced actors and `UC-*` goals in a complete table or Mermaid use-case view, and that use-case conditions/outcomes agree with scenarios, interfaces, data effects, frontend states, and tests. When the relational model/relationships are affected, confirm the Mermaid `erDiagram` covers every affected inventory table and agrees with physical names, PK/FK/UK fields, cardinalities, optionality, and enforcement rules; otherwise confirm the unchanged-model evidence.
+
+Confirm the Header and §3.3 name the same affected chapters; every detailed target element belongs to an `Affected` row; every `Context-only` or `Unchanged` area contains only evidence, a preserved invariant, stopping reason, and focused verification; and no existing unchanged layer is mislabeled `N/A`.
 
 ### 20.4 Relationship and effective-design review
 

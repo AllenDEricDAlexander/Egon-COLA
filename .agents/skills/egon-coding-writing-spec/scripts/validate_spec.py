@@ -15,8 +15,9 @@ TITLE_RE = re.compile(r"\A#\s+\S.+$", re.MULTILINE)
 DATE_TIME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2}) \S+$")
 VALID_STATUSES = {"Draft", "Review", "Accepted", "Implemented", "Superseded", "Rejected"}
 VALID_COMPLEXITIES = {"Simple", "Complex"}
-CURRENT_TEMPLATE_VERSION = 3
-SUPPORTED_TEMPLATE_VERSIONS = {2, 3}
+CHANGE_SURFACE_DISPOSITIONS = {"Affected", "Context-only", "Unchanged", "Not applicable"}
+CURRENT_TEMPLATE_VERSION = 4
+SUPPORTED_TEMPLATE_VERSIONS = {2, 3, 4}
 REQUIRED_FIELDS = [
     "Document",
     "Status",
@@ -161,6 +162,11 @@ def heading_body(text: str, heading: str) -> str:
 
 def markdown_table_data_row_count(text: str, first_header_cell: str) -> int:
     """Count data rows in the first Markdown table with the requested first header."""
+    return len(markdown_table_rows(text, first_header_cell))
+
+
+def markdown_table_rows(text: str, first_header_cell: str) -> list[list[str]]:
+    """Return data rows from the first Markdown table with the requested first header."""
     lines = text.splitlines()
     for index, line in enumerate(lines):
         if not line.lstrip().startswith("|"):
@@ -170,16 +176,86 @@ def markdown_table_data_row_count(text: str, first_header_cell: str) -> int:
             continue
         separator_index = index + 1
         if separator_index >= len(lines) or not lines[separator_index].lstrip().startswith("|"):
-            return 0
-        count = 0
+            return []
+        rows: list[list[str]] = []
         for row in lines[separator_index + 1:]:
             if not row.lstrip().startswith("|"):
                 break
             row_cells = [cell.strip() for cell in row.strip().strip("|").split("|")]
             if row_cells and any(cell for cell in row_cells):
-                count += 1
-        return count
-    return 0
+                rows.append(row_cells)
+        return rows
+    return []
+
+
+def chapter_references(value: str) -> set[int]:
+    """Extract design chapter numbers from section-sign references."""
+    return {int(number) for number in re.findall(r"§\s*(\d{1,2})\b", value)}
+
+
+def validate_change_surface(text: str, fields: dict[str, str]) -> tuple[list[str], set[int]]:
+    """Validate Template Version 4 change-surface breadth and chapter alignment."""
+    errors: list[str] = []
+    goals = section(text, "## 3. Goals and Non-goals")
+    heading = "### 3.3 Change Surface and Design Depth"
+    if heading not in goals:
+        return [f"Template Version 4 is missing required subsection: {heading}"], set()
+
+    body = heading_body(goals, heading)
+    if "| Area/layer | Disposition | Exact repository evidence |" not in body:
+        errors.append("Change surface requires the canonical area/disposition/evidence table")
+
+    rows = markdown_table_rows(body, "Area/layer")
+    if not rows:
+        errors.append("Change surface requires at least one classified area")
+
+    affected_chapters: set[int] = set()
+    for row_number, row in enumerate(rows, start=1):
+        if len(row) < 6:
+            errors.append(
+                f"Change-surface row {row_number} requires six columns; found {len(row)}"
+            )
+            continue
+        area, disposition, evidence, behavior, treatment, chapters = [clean(cell) for cell in row[:6]]
+        if not area:
+            errors.append(f"Change-surface row {row_number} is missing its area/layer")
+        if disposition not in CHANGE_SURFACE_DISPOSITIONS:
+            errors.append(
+                f"Change-surface row {row_number} has invalid disposition '{disposition}'; "
+                f"expected one of: {', '.join(sorted(CHANGE_SURFACE_DISPOSITIONS))}"
+            )
+        for label, value in (
+            ("repository evidence", evidence),
+            ("changed or preserved behavior/contract", behavior),
+            ("required Spec treatment", treatment),
+            ("chapter references", chapters),
+        ):
+            if not value:
+                errors.append(f"Change-surface row {row_number} is missing {label}")
+        row_chapters = chapter_references(chapters)
+        invalid_chapters = {chapter for chapter in row_chapters if chapter < 7 or chapter > 18}
+        if invalid_chapters:
+            errors.append(
+                f"Change-surface row {row_number} references chapters outside §7-§18: "
+                f"{', '.join(str(item) for item in sorted(invalid_chapters))}"
+            )
+        if disposition == "Affected":
+            if not row_chapters:
+                errors.append(
+                    f"Change-surface row {row_number} is Affected but names no §7-§18 chapter"
+                )
+            affected_chapters.update(row_chapters)
+
+    if not affected_chapters:
+        errors.append("Change surface requires at least one Affected area and design chapter")
+
+    header_chapters = chapter_references(clean(fields.get("Affected Chapters", "")))
+    if header_chapters != affected_chapters:
+        errors.append(
+            "Affected Chapters header must exactly match chapters from Affected change-surface rows: "
+            f"header={sorted(header_chapters)}, matrix={sorted(affected_chapters)}"
+        )
+    return errors, affected_chapters
 
 
 def validate_ordered_subheadings(owner: str, text: str, headings: list[str]) -> list[str]:
@@ -241,17 +317,29 @@ def validate_v2_content(
     elif complexity == "Complex" and drivers.lower() == "none":
         errors.append("A Complex Spec must name material Complexity Drivers")
 
+    affected_chapters: set[int] = set()
+    if template_version >= 4:
+        change_surface_errors, affected_chapters = validate_change_surface(text, fields)
+        errors.extend(change_surface_errors)
+
     required_v2_headings = [
         "### 4.2 Use-case analysis",
         "### 7.1 System Architecture Design",
         "### 7.2 High-Level Design",
         "### 7.3 Detailed Design",
-        "### 9.1 Interface Inventory",
-        "### 9.2 Per-interface Detailed Contracts",
-        "### 11.1 Table Inventory",
-        "### 11.2 Per-table Detailed Design",
-        "### 11.3 Entity-relationship diagram",
     ]
+    if template_version < 4 or 9 in affected_chapters:
+        required_v2_headings.extend(
+            ["### 9.1 Interface Inventory", "### 9.2 Per-interface Detailed Contracts"]
+        )
+    if template_version < 4 or 11 in affected_chapters:
+        required_v2_headings.extend(
+            [
+                "### 11.1 Table Inventory",
+                "### 11.2 Per-table Detailed Design",
+                "### 11.3 Entity-relationship diagram",
+            ]
+        )
     if template_version >= 3:
         required_v2_headings.insert(1, "### 7.0 Minimum-design baseline and element-necessity audit")
     for heading in required_v2_headings:
@@ -331,7 +419,11 @@ def validate_v2_content(
         if sequence_count < 1:
             errors.append("A Complex Spec requires a Mermaid sequenceDiagram swimlane view")
 
-    interfaces = section(text, "## 9. Interface Definitions")
+    interfaces = (
+        section(text, "## 9. Interface Definitions")
+        if template_version < 4 or 9 in affected_chapters
+        else ""
+    )
     detail_start = interfaces.find("### 9.2 Per-interface Detailed Contracts")
     inventory_text = interfaces[:detail_start] if detail_start >= 0 else interfaces
     detail_text = interfaces[detail_start:] if detail_start >= 0 else ""
@@ -434,7 +526,11 @@ def validate_v2_content(
             if status in {"Review", "Accepted", "Implemented", "Superseded"} and "..." in block:
                 errors.append(f"{contract_id} jsonc payload cannot contain an abbreviated ellipsis at Status {status}")
 
-    database = section(text, "## 11. Database Design")
+    database = (
+        section(text, "## 11. Database Design")
+        if template_version < 4 or 11 in affected_chapters
+        else ""
+    )
     table_detail_start = database.find("### 11.2 Per-table Detailed Design")
     table_inventory = database[:table_detail_start] if table_detail_start >= 0 else database
     table_detail = database[table_detail_start:] if table_detail_start >= 0 else ""
@@ -455,7 +551,10 @@ def validate_v2_content(
         for match in MERMAID_BLOCK_RE.finditer(er_design)
         if match.group("body").lstrip().startswith("erDiagram")
     ]
-    if inventory_tables:
+    relational_model_unchanged = bool(
+        re.search(r"(?im)^Relational model change:\s*No\b", er_design)
+    )
+    if inventory_tables and not relational_model_unchanged:
         if not er_blocks:
             errors.append("Relational table inventory requires a Mermaid erDiagram in §11.3")
         else:
@@ -567,7 +666,10 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
             )
         else:
             parsed_template_version = int(template_version)
-            for field in ("Complexity", "Complexity Drivers"):
+            versioned_fields = ["Complexity", "Complexity Drivers"]
+            if parsed_template_version >= 4:
+                versioned_fields.extend(["Change Surface", "Affected Chapters"])
+            for field in versioned_fields:
                 if field not in fields or not clean(fields[field]):
                     errors.append(f"Template Version {parsed_template_version} requires header field: {field}")
             errors.extend(validate_v2_content(text, fields, status, parsed_template_version))

@@ -1,6 +1,6 @@
 ---
 name: egon-coding-writing-spec
-description: Use when a coding task needs repository-grounded requirements and use-case analysis, minimum-coherent architecture, system architecture, high-level design, detailed design, complex cross-module analysis, necessary and fully expanded interface contracts, Mermaid ER/database design, an RFC-style specification, or an approved design baseline before implementation planning. For Java package design, the current supported profile is the traditional three-layer structure with biz.controller, biz.service, nested biz.service.impl, biz.dao, biz.config, biz.utils, and biz.domain.
+description: Use when a coding task needs a repository-grounded RFC-style specification before implementation planning, including focused layer-local changes with proportional design depth, requirements/use-case analysis, minimum-coherent architecture, system/high-level/detailed design, complex cross-module analysis, necessary interface contracts, or Mermaid ER/database design. For Java package design, the current supported profile is the traditional three-layer structure with biz.controller, biz.service, nested biz.service.impl, biz.dao, biz.config, biz.utils, and biz.domain.
 ---
 
 # EGON Coding Spec Writing
@@ -22,7 +22,7 @@ The specification defines **what must be built and why the design is coherent**.
   - Replace `ABSTRACT` with a concise lowercase ASCII kebab-case summary, normally 3–8 words.
   - Example: `docs/egon/spec/2026-08-15-14-30-account-lockout-design.md`.
   - Never overwrite a document with the same minute and abstract; choose a more specific abstract.
-- Start from Template Version 3 in `assets/spec-template.md`. Keep every numbered chapter. Write `N/A` with repository evidence and a reason when a chapter does not apply. The validator continues to accept existing Version 2 Specs under their original contract.
+- Start from Template Version 4 in `assets/spec-template.md`. Keep every numbered chapter, but allocate depth using `references/change-surface-and-proportional-depth.md`: fully design `Affected` areas, keep `Context-only` and `Unchanged` areas concise, and use evidence-backed `N/A` only for `Not applicable`. The validator continues to accept existing Version 2 and Version 3 Specs under their original contracts.
 
 ## Resource-integrity preflight
 
@@ -46,18 +46,19 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 8. Never silently rewrite an approved predecessor's normative design. Create a later Spec that names the earlier document and exact sections it changes. Metadata-only backlinks may be added when repository policy permits.
 9. A later Spec may fill gaps or correct earlier design. State whether the later document amends only named sections or supersedes the earlier document for a defined scope; unchanged predecessor sections remain effective.
 10. Do not mark a Spec `Accepted` without explicit user/decision-owner approval. An internally complete draft awaiting approval is `Review`; unresolved major decisions require `Draft` and a blocked conclusion.
-11. Design every applicable layer at detailed-design depth: exact paths/packages, symbols, contracts, fields, state rules, schema, page states, test cases, compatibility, and failure semantics. Do not invent full production implementations.
+11. Design every `Affected` area at detailed-design depth: exact paths/packages, symbols, contracts, fields, state rules, schema, page states, test cases, compatibility, and failure semantics as applicable. For `Context-only` and `Unchanged` areas, record only the evidence, preserved invariant, reason no change is required, and focused verification. Do not invent full production implementations or redesign adjacent layers.
 12. Review the finished Spec against the original user request and the current repository before delivery. Fix internal defects yourself; surface only unresolved major decisions.
 13. Classify Java objects by their actual boundary and lifecycle roles. Follow `references/pojo-modeling.md`; never treat POJO/PO/DO/DTO/VO/BO/Entity/Query/Command/Request/Response/Form/Param/PageQuery/PageResult as mandatory parallel classes.
 14. Prevent class explosion. Require a concrete semantic reason for every distinct object and mapper. PO/ORM Entity inheritance is allowed only with repository and lifecycle justification; concrete business services default to composition and delegation rather than inheritance.
 15. For Java package design, read `references/three-layer-architecture.md` and use only the traditional three-layer profile currently standardized by this skill: `biz.controller`, `biz.service`, `biz.service.impl`, `biz.dao`, `biz.config`, `biz.utils`, and `biz.domain`. Do not design DDD or COLA packages until this skill is explicitly extended. If the existing repository uses another architecture, preserve it and ask before proposing a structural migration.
 16. Classify every Spec as `Simple` or `Complex` using `references/complex-scenario-analysis.md`. For a Complex Spec, complete the evidence map, scenario matrix, ownership/consistency analysis, quality constraints, and evidence-to-decision conclusion chain before selecting the architecture. Do not burden a Simple Spec with ceremonial analysis.
-17. Split Chapter 7 into System Architecture Design, High-Level Design, and Detailed Design. A Complex Spec must contain an architecture Mermaid flowchart, a separate critical business/control flowchart, and a Mermaid swimlane/sequence view covering the main participants and important failure behavior.
-18. Read `references/interface-contract-design.md` whenever interfaces exist. Assign one interface ID per atomic Method + URL or protocol operation; never group a CRUD family. Keep an inventory, then expand every ID with its exact URL or protocol symbol, complete request rules, actual response/error payloads, frontend-oriented logic, compatibility, and verification. HTTP JSON examples use documentation-only `jsonc`; every field requires a line-end meaning comment.
-19. Read `references/database-design.md` whenever persisted data is used or changed. Inventory and expand every affected table and index, including complete column semantics, real queries/access paths, index-order rationale, migration/history handling, transactions, locks, compatibility, verification, and rollback/forward-fix boundaries.
+17. Split Chapter 7 into System Architecture Design, High-Level Design, and Detailed Design. Describe only the affected collaboration plus the context needed to prove its boundary. A Complex Spec must contain an architecture Mermaid flowchart, a separate critical business/control flowchart, and a Mermaid swimlane/sequence view covering the main participants and important failure behavior; a focused Simple Spec must not add decorative full-system diagrams.
+18. Read `references/interface-contract-design.md` when an HTTP/RPC/event/job/internal Service contract is `Affected`. Assign one interface ID per atomic Method + URL or protocol operation; never group a CRUD family. Inventory and fully expand every changed contract. When an existing interface is only `Context-only` or `Unchanged`, cite its exact current symbol/route and preserved invariant without reproducing its full request/response contract.
+19. Read `references/database-design.md` when schema, data semantics, constraints, indexes, migrations, transaction/locking behavior, or authoritative persistence ownership is `Affected`. Inventory and expand only those affected database elements. A DAO query-only change may record the exact SQL/access path and relevant existing index evidence without reproducing complete unchanged tables or ER relationships.
 20. Read `references/requirements-use-case-analysis.md` for every Spec. Requirements analysis must identify real actors and stable `UC-*` use cases with triggers, preconditions, main outcomes, alternatives/failures, postconditions, and traceability. Use a complete table or a Mermaid `flowchart`; prefer a Mermaid system-boundary view for complex or multi-actor behavior. Do not confuse use cases with Controller methods or architecture call chains.
-21. Whenever relational tables are read, created, or changed, add a Mermaid `erDiagram` covering every inventory table, directly relevant neighboring tables, actual cardinalities, relationship labels, and material PK/FK/UK fields. Map renderer-safe entity names to exact physical tables. The ER diagram complements rather than replaces per-table, per-column, per-index, migration, and transaction design.
+21. Whenever the relational data model, tables, keys, constraints, or relationships are `Affected`, add a Mermaid `erDiagram` covering every affected inventory table, directly relevant neighboring tables, actual cardinalities, relationship labels, and material PK/FK/UK fields. Map renderer-safe entity names to exact physical tables. Do not redraw an unchanged ER model for a DAO-only query or mapping change.
 22. Read `references/minimal-design-and-interface-necessity.md` before selecting architecture elements or assigning interface IDs. Start from the direct reuse/no-new-element baseline. Every new or materially expanded API, RPC/event, class, layer, table, cache, job, dependency, or frontend store/provider must prove a current requirement that the simpler alternative cannot satisfy and must record its added calls, state, coupling, failure, migration, and operational cost. Reject fetch-then-forward interfaces whose result is only copied into another request when the target can derive or validate the value itself.
+23. Read `references/change-surface-and-proportional-depth.md` before target design. Build an impact cone from the requested symbols, classify each relevant area as `Affected`, `Context-only`, `Unchanged`, or `Not applicable`, and record `Change Surface` plus `Affected Chapters` in the Header. The presence of a layer is not evidence that it must be redesigned. If repository evidence requires a major scope expansion beyond the user's stated boundary, stop and ask before widening it.
 
 ## Mandatory reference loading and drafting passes
 
@@ -67,10 +68,10 @@ Read every applicable reference **completely before drafting the corresponding c
 
 | Situation | References that must be read completely |
 | --- | --- |
-| Every Spec | `references/ambiguity-policy.md`, `references/rfc-governance.md`, `references/complex-scenario-analysis.md`, `references/requirements-use-case-analysis.md`, `references/minimal-design-and-interface-necessity.md`, `references/review-checklist.md`, and `assets/spec-template.md` |
+| Every Spec | `references/ambiguity-policy.md`, `references/rfc-governance.md`, `references/complex-scenario-analysis.md`, `references/requirements-use-case-analysis.md`, `references/change-surface-and-proportional-depth.md`, `references/minimal-design-and-interface-necessity.md`, `references/review-checklist.md`, and `assets/spec-template.md` |
 | Java design | `references/three-layer-architecture.md` and `references/pojo-modeling.md` |
-| Any HTTP/RPC/event/job/internal contract | `references/interface-contract-design.md` |
-| Any persisted read/write or schema dependency | `references/database-design.md` |
+| Any `Affected` HTTP/RPC/event/job/internal Service contract | `references/interface-contract-design.md` |
+| Any `Affected` schema/data/constraint/index/migration/transaction/locking/persistence-ownership surface | `references/database-design.md` |
 
 For a Complex Spec, use four explicit passes. Preserve the resulting analysis in the Spec instead of collapsing it into a summary:
 
@@ -82,12 +83,13 @@ For a Complex Spec, use four explicit passes. Preserve the resulting analysis in
 Minimum depth is structural, not numerical padding:
 
 - a Complex Spec must contain at least two evidence/current-chain rows, three materially distinct scenario rows, three applicable quality/constraint rows, and two evidence-to-decision conclusion chains unless the affected subsection records `Depth exception:` followed by repository evidence proving that fewer real items exist;
+- every Spec must define one evidence-backed change-surface matrix, name the affected design chapters, and apply full detail only to `Affected` rows; `Context-only`, `Unchanged`, and `Not applicable` are not permission to invent target design;
 - every Spec must contain evidenced actors and stable `UC-*` goals in either a complete table or Mermaid use-case view, with conditions, outcomes, postconditions, and forward traceability;
 - every proposed element must have an `Add/Keep/Merge/Remove` necessity verdict against a direct existing/reuse alternative; no new interface may exist only to fetch values that the caller forwards unchanged or the target can derive;
-- every inventory contract must contain all required per-interface subsections, actual protocol identity, complete parameter rules, success and error outcomes, ordered consumer logic, and verification;
-- every inventory table must contain all required per-table subsections, a complete affected-column table, per-index justification tied to real access paths, migration/history handling, and consistency/recovery rules;
-- every relational table inventory must be represented in a Mermaid `erDiagram` with physical-name mapping and relationship/key semantics consistent with the detailed design;
-- `N/A`, “same as existing,” “handled by framework,” class names, or links may replace detailed content only when the Spec cites the exact authoritative implementation/contract and explains why no new decision is needed.
+- every affected interface inventory item must contain all required per-interface subsections, actual protocol identity, complete parameter rules, success and error outcomes, ordered consumer logic, and verification;
+- every affected database inventory item must contain all required per-table subsections, a complete affected-column table, per-index justification tied to real access paths, migration/history handling, and consistency/recovery rules;
+- every affected relational-model table inventory must be represented in a Mermaid `erDiagram` with physical-name mapping and relationship/key semantics consistent with the detailed design;
+- an `Affected` area may use `N/A`, “same as existing,” “handled by framework,” a class name, or a link in place of detail only when it cites the exact authority and proves no new decision is needed; `Context-only`, `Unchanged`, and `Not applicable` use their dedicated concise treatments instead.
 
 ## Ambiguity and decision boundary
 
@@ -106,7 +108,7 @@ Use this exact header field set in every Spec:
 | Field | Required meaning |
 | --- | --- |
 | Document | Current filename as a relative repository link or code value |
-| Template Version | `3` for the current template; existing Version 2 documents remain valid under v2 rules |
+| Template Version | `4` for the current template; existing Version 2 and Version 3 documents remain valid under their original rules |
 | Status | `Draft`, `Review`, `Accepted`, `Implemented`, `Superseded`, or `Rejected` |
 | Type | `Feature`, `Refactor`, `Bugfix`, `Architecture`, or another clearly defined coding type |
 | Complexity | `Simple` or `Complex` |
@@ -116,6 +118,8 @@ Use this exact header field set in every Spec:
 | Owner | User, team, or decision owner |
 | Repository | Repository name |
 | Scope | Affected modules or bounded context |
+| Change Surface | Concise statement of the exact files/layers/behaviors that change |
+| Affected Chapters | Comma-separated design chapters (`§7` through `§18`) receiving `Affected` detail |
 | Source Requirement | User request, issue, ticket, or linked brief |
 | Baseline Revision | Git commit/branch or explicit uncommitted-worktree snapshot |
 | Amends | Earlier Spec links plus exact sections partially changed, or `None` |
@@ -141,9 +145,11 @@ Read `references/rfc-governance.md` for lifecycle and backlink rules.
    - Create the `REQ-*` inventory and identify missing decisions.
    - Apply `references/requirements-use-case-analysis.md`; identify evidenced actors and map behavioral requirements into `UC-*` goals, flows, outcomes, and postconditions.
    - Apply `references/complex-scenario-analysis.md`; record `Simple`/`Complex` and the concrete drivers.
+   - Apply `references/change-surface-and-proportional-depth.md`; build the impact cone and classify relevant areas before choosing target architecture.
 2. **Inspect the repository**
    - Record real files, symbols, consumers, call chains, schemas, pages, tests, and build commands.
    - Separate repository/static evidence from assumptions and from unverified runtime claims.
+   - Trace callers and callees only until the preserved boundary is proven; do not turn inspected context into implicit implementation scope.
 3. **Resolve design history**
    - Search current and legacy Spec locations.
    - Determine whether this Spec is new, amending, superseding, dependent, or merely related.
@@ -158,13 +164,13 @@ Read `references/rfc-governance.md` for lifecycle and backlink rules.
    - Explicitly consider appropriate patterns such as Strategy, Template Method, Factory, Adapter, Facade, State, Observer, Command, or Specification.
    - Select a pattern only when it resolves a real variation point, coupling problem, lifecycle, orchestration concern, or testability problem. Otherwise record why direct design is clearer and avoids over-engineering.
    - For Java work, read `references/three-layer-architecture.md` and `references/pojo-modeling.md`. Confirm the traditional three-layer applicability gate, keep `impl` under `service`, classify each proposed object by semantic role, apply the class-necessity test, and evaluate persistence inheritance separately from service composition.
-   - Read `references/interface-contract-design.md` and `references/database-design.md` when their chapters apply.
-   - For relational persistence, derive a Mermaid `erDiagram` from evidenced table ownership, keys, and cardinalities before finalizing per-table details.
+   - Read `references/interface-contract-design.md` and `references/database-design.md` only when their surfaces are `Affected`; otherwise cite the authoritative current contract or persistence evidence and preserved invariant concisely.
+   - For an affected relational model, derive a Mermaid `erDiagram` from evidenced table ownership, keys, and cardinalities before finalizing per-table details; do not redraw unchanged relationships for query-only work.
 7. **Write the Spec**
-   - Copy `assets/spec-template.md` and fill all chapters with repository-specific content.
+   - Copy `assets/spec-template.md`, keep all numbered chapters, and fill them according to the change-surface disposition. Remove optional deep subsections for `Context-only`, `Unchanged`, or `Not applicable` areas instead of filling them ceremonially.
    - Use exact signatures, field tables, state transitions, file trees, and pseudocode where they clarify design; do not write production-ready method bodies.
-   - Include the selected use-case artifact and, when relational persistence applies, the Mermaid ER diagram.
-   - Expand every interface and every affected table/index; do not stop at inventory tables.
+   - Include the selected use-case artifact and, when the relational model/relationships are affected, the Mermaid ER diagram.
+   - Expand every affected interface and every affected table/index; do not inventory unchanged elements merely to make the document look complete.
 8. **Review and repair**
    - Apply `references/review-checklist.md`.
    - Repair omissions, contradictions, stale paths, vague placeholders, broken traceability, and unjustified scope expansion.
@@ -182,20 +188,20 @@ The template is normative. At minimum, the Spec must contain:
 3. **Goals and non-goals** — explicit scope control.
 4. **Requirements, acceptance criteria, and use-case analysis** — atomic `REQ-*` items and observable outcomes plus evidenced actors and `UC-*` goals. Use a complete use-case table or Mermaid `flowchart`; define triggers, preconditions, main/alternative/failure outcomes, postconditions, interfaces/pages, and tests.
 5. **Constraints, assumptions, and decisions** — confirmed constraints, `ASM-*`, resolved decisions, and open blockers.
-6. **Project technology context** — current language/framework/build/module/persistence/frontend/testing facts.
-7. **Architecture design** — begin with a minimum-design/element-necessity audit, then provide System Architecture Design, High-Level Design, and Detailed Design. Define boundaries, responsibilities, dependencies, data/control flow, transactions, concurrency, consistency, failure handling, and observability. For a Complex Spec include the required architecture flowchart, critical-flow flowchart, and swimlane/sequence view. For the Java three-layer profile, define Controller, Service interface, `service.impl`, DAO, Config, Utils, and POJO responsibilities plus allowed dependencies.
-8. **Package structure and code file tree** — current relevant tree, the selected three-layer target tree, exact create/modify/delete paths, symbols, responsibilities, and requirement mapping. Keep `biz.service.impl` nested under `biz.service`. This is the target design, not implementation order.
-9. **Interface definitions** — first prove each interface's necessity and interaction cost, then provide the complete HTTP/RPC/event/internal inventory and expand every retained ID. For HTTP include the verified method and URL, all path/query/header/body rules, full success/error `jsonc` payloads with a line-end comment on every field, frontend-oriented interface logic, auth/tenant/idempotency, versioning, compatibility, and tests. Apply equivalent protocol-specific depth to non-HTTP contracts. A query used only to obtain another request's parameters is rejected unless it has independent user-visible selection/discovery/negotiation value.
-10. **POJO and data model design** — repository-defined POJO roles, object ownership/boundaries, class-necessity decisions, persistence objects or ORM entities, DTOs/commands/queries/View Objects/BOs, field types, nullability, validation, state transitions, mappings, inheritance, and safe reuse. Relational model relationships must agree with the ER diagram. Do not require DDD aggregates, domain services, repository ports, or value objects.
-11. **Database design** — first inventory every affected table, draw a Mermaid `erDiagram` covering all inventory tables and relevant direct neighbors, then expand each table and each retained/added/changed/removed index. Define cardinalities, PK/FK/UK fields, all relevant columns, native types, null/default/constraint semantics, relationships, real query/access patterns, index column order/selectivity/cost, migration and historical-data handling, transactions/locks/audit, verification, rollback, and compatibility. Never modify an existing migration when repository policy requires a new one.
-12. **Frontend page design** — routes, navigation, permissions, layout/component tree, user flows, form rules, API/state mapping, loading/empty/error/disabled/denied states, accessibility, responsiveness, and key copy.
-13. **Design patterns and architecture principles** — chosen/rejected patterns, variation point, simplicity test, and alignment with the three-layer architecture; include Controller-to-Service dependency, Service-to-DAO orchestration, cohesion, coupling, information hiding, SOLID, YAGNI, persistence-inheritance safety, and composition-over-inheritance for `service.impl` classes.
-14. **Test design** — unit tests for behavior and invariants plus applicable integration, contract, mapper/repository, component, and end-to-end tests; define test data, boundaries, failure cases, expected assertions, tools, and requirement mapping.
-15. **Non-functional and cross-cutting design** — security, tenancy, privacy, performance, capacity, caching, audit, logging, metrics, tracing, operations, and maintainability.
-16. **Compatibility, migration, rollout, and rollback**.
-17. **Alternatives and decisions** — compare the direct/no-new-element baseline with viable alternatives, including network calls, states, coupling, failures, migrations, operations, and evidence-backed rejection/selection.
-18. **Risks and open questions**.
-19. **Traceability matrix** — every `REQ-*` maps to design, contracts/models/pages as applicable, tests, and acceptance evidence; every proposed element maps back to a requirement or necessary infrastructure rationale.
+6. **Project technology context** — only current language/framework/build/module/persistence/frontend/testing facts that constrain affected work or prove a stopping boundary.
+7. **Architecture design** — begin with a minimum-design/element-necessity audit, then keep System Architecture Design, High-Level Design, and Detailed Design. Fully define only affected boundaries, collaboration, data/control flow, transactions, failure handling, and observability; cite surrounding unchanged architecture only to prove the stopping boundary. Complex Specs use the required three diagrams; focused Simple Specs omit non-informative diagrams with evidence.
+8. **Package structure and code file tree** — show the exact affected files and only the parent/context paths needed to locate them, with operations, symbols, responsibilities, and requirement mapping. Do not emit a full Controller/Service/DAO tree for a DAO-only task. Keep `biz.service.impl` nested under `biz.service` when it is in scope.
+9. **Interface definitions** — fully inventory and expand only added, removed, or materially changed HTTP/RPC/event/internal contracts. For unchanged boundaries, cite the exact existing route/symbol, consumers, and preserved request/response/error invariant without reproducing full JSON. Every affected HTTP contract still requires the verified method/URL, complete input rules, full commented success/error `jsonc`, logic, compatibility, and tests.
+10. **POJO and data model design** — fully design only affected/new types, fields, mappings, lifecycle, or reuse decisions. For unchanged models, cite the exact type and preserved invariant; do not inventory unrelated PO/DTO/BO/Entity/VO classes. A changed relational model must agree with the ER diagram.
+11. **Database design** — fully inventory and expand only affected schema/data/constraint/index/transaction elements. Draw a Mermaid `erDiagram` when the relational model or relationships change. For a DAO query-only change with unchanged schema, record the exact query/access path, relevant columns/index evidence, and preserved schema invariant without reproducing the whole table or ER model.
+12. **Frontend page design** — fully design routes, components, flows, mappings, and states only when frontend behavior is affected. Existing unaffected frontend receives one evidence-backed `Unchanged` record; absent frontend is `N/A`.
+13. **Design patterns and architecture principles** — consider patterns, dependency direction, cohesion, coupling, information hiding, SOLID, YAGNI, inheritance, and composition only for affected variation points and boundaries; do not restate the whole architecture.
+14. **Test design** — define focused tests for changed behavior and the smallest caller/contract/schema regressions proving the declared preserved boundaries; add higher-level tests only when the impact cone requires them.
+15. **Non-functional and cross-cutting design** — fully design only materially affected security, tenancy, privacy, performance, capacity, caching, audit, observability, operations, and maintainability concerns; otherwise record preserved invariants or `N/A` as appropriate.
+16. **Compatibility, migration, rollout, and rollback** — cover only consequences created by the affected surface and explicitly name preserved public/internal contracts, schema, callers, and deployment behavior.
+17. **Alternatives and decisions** — compare the direct/no-new-element baseline with viable alternatives for the affected decision only; do not create alternatives for unchanged layers.
+18. **Risks and open questions** — include risks from the affected surface and any evidence-backed scope-expansion conflict; do not inventory generic project risks.
+19. **Traceability matrix** — every `REQ-*` maps to affected areas/chapters, context-only or unchanged boundaries, tests, and acceptance evidence; every proposed element maps back to a requirement or necessary infrastructure rationale.
 20. **Review and acceptance** — original-request fidelity, repository fidelity, cross-section consistency, relationship correctness, and final verdict.
 
 ## Completion verdicts
@@ -236,9 +242,11 @@ Use exactly one:
 | Letting a Controller access DAO or `service.impl` directly | Depend on the Service interface and keep persistence behind the implementation |
 | Naming a design pattern without a variation point | Reject it or explain the concrete problem it solves |
 | Treating integration tests as unit-test design | Define isolated unit behavior and separate higher-level coverage |
-| Omitting a non-applicable chapter | Keep it and write evidence-backed `N/A` |
+| Fully redesigning Controller, Service, models, database, or frontend because one DAO changes | Build the change-surface matrix; fully design the DAO and tests, keep only necessary caller/database context, and mark preserved layers `Unchanged` |
+| Using `N/A` for an existing but unchanged layer | Use `Unchanged` with exact evidence, preserved invariant, stopping reason, and focused verification |
+| Omitting a non-applicable chapter | Keep it and write evidence-backed `N/A`; do not confuse `Not applicable` with `Unchanged` |
 | Writing implementation order or code | Stop at design; use `egon-coding-writing-plan` after review |
 
 ## Skill maintenance
 
-When changing this skill, first run the resource-integrity unit tests (`scripts/test_validate_skill_resources.py`) and preflight (`scripts/validate_skill_resources.py`), then run `references/acceptance-scenarios.md` as review cases and the applicable output validator. Keep `SKILL.zh-CN.md` plus all `*.zh-CN.md` review mirrors synchronized with the English operational contract. A change is not complete if any bundled resource is missing, uses an ambiguous bare path, escapes the skill root, or contains a broken local Markdown link.
+When changing this skill, first run the resource-integrity unit tests (`scripts/test_validate_skill_resources.py`), change-surface validator tests (`scripts/test_validate_spec_scope.py`), and preflight (`scripts/validate_skill_resources.py`), then run `references/acceptance-scenarios.md` as review cases and the applicable output validator. Keep `SKILL.zh-CN.md` plus all `*.zh-CN.md` review mirrors synchronized with the English operational contract. A change is not complete if any bundled resource is missing, uses an ambiguous bare path, escapes the skill root, or contains a broken local Markdown link.

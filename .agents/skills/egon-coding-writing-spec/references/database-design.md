@@ -1,6 +1,6 @@
 # Per-table and Per-index Database Design
 
-Read this reference whenever Chapter 11 affects persisted data or relies on existing tables for correctness. Use the repository's actual database dialect, migration framework, naming conventions, and access technology.
+Read this reference when Chapter 11 marks schema, data semantics, constraints, indexes, migrations, transaction/locking behavior, or persistence ownership as `Affected`. Use the repository's actual database dialect, migration framework, naming conventions, and access technology. For a DAO query-only change with unchanged database design, use the concise `Context-only`/`Unchanged` treatment from `references/change-surface-and-proportional-depth.md` instead of applying this full per-table template.
 
 ## Contents
 
@@ -17,16 +17,16 @@ Read this reference whenever Chapter 11 affects persisted data or relies on exis
 
 First identify the database/schema, ownership, migration locations, current version sequence, access layer, and whether the evidence is source-only or verified against a live schema.
 
-List every created, altered, read, or written table:
+List every table whose schema, data semantics, constraints, indexes, migration, transaction/locking behavior, or authoritative ownership is affected:
 
 | Table | Existing/new | Purpose and owner | Read/write paths | Change | Migration | Requirements |
 | --- | --- | --- | --- | --- | --- | --- |
 
-Every inventory table must have a detailed subsection. If no database is involved, keep Chapter 11 and write evidence-backed `N/A`.
+Every affected inventory table must have a detailed subsection. A read-only/query-only dependency with unchanged database design is not an inventory item; cite the exact table/column/index evidence and preserved invariant in a concise Chapter 11 scope record. If no database is involved, keep Chapter 11 and write evidence-backed `N/A`.
 
 ## Required Mermaid entity-relationship diagram
 
-When one or more relational tables are read, created, or changed, Chapter 11 must contain a Mermaid `erDiagram`. The ER diagram is the structural overview; it does not replace the table inventory, complete column design, constraints, access paths, indexes, migration, or transaction analysis.
+When the relational model, table structure, keys, constraints, or relationships are affected, Chapter 11 must contain a Mermaid `erDiagram`. Index-only, query-only, or transaction-only work may state `Relational model change: No` with exact evidence and omit the diagram. When required, the ER diagram is the structural overview; it does not replace the table inventory, complete column design, constraints, access paths, indexes, migration, or transaction analysis.
 
 The diagram must:
 
@@ -75,7 +75,7 @@ erDiagram
 
 In the real Spec, state whether `CUSTOMERS -> ORDERS` and `ORDERS -> ORDER_ITEMS` are database-enforced FKs or application-enforced relationships, including tenant key participation and delete behavior. Mermaid `FK` notation alone does not make the constraint real.
 
-If no relational persistence is involved, retain the ER subsection and write `N/A` with repository evidence. For document, graph, key-value, or event storage, use the closest accurate Mermaid model only when it adds information; do not misrepresent it as a relational ER diagram.
+If relational persistence exists but its model/relationships are unchanged, state `Relational model change: No` with repository evidence. If no relational persistence is involved, write evidence-backed `N/A`. For document, graph, key-value, or event storage, use the closest accurate Mermaid model only when it adds information; do not misrepresent it as a relational ER diagram.
 
 ## Required per-table subsection
 
@@ -158,7 +158,7 @@ Complete database design from evidence outward. Do not start by proposing a tabl
 1. **Establish the persistence baseline** — identify database dialect/version, schema, migration tool/path/version convention, ORM/mapper technology, naming/type conventions, transaction manager, soft-delete/tenant/audit conventions, and whether a live schema was verified.
 2. **Trace data ownership** — identify authoritative writer, readers, interface/model fields, lifecycle/state transitions, retention, expected volume/growth, and sensitive/audit classification.
 3. **Inspect current DDL and access paths** — read immutable migrations or schema definitions, PO/Entity mappings, Mapper/DAO SQL, generated-query methods, batch jobs, reports, and existing indexes/constraints. Source definitions and a live schema may differ; label the boundary.
-4. **Draw and verify the ER structure** — map physical tables to renderer-safe entities, draw actual cardinalities and material PK/FK/UK fields, then reconcile database- versus application-enforced relationships, optionality, tenant scope, and lifecycle.
+4. **Decide ER applicability** — when the relational model/relationships change, map physical tables to renderer-safe entities, draw actual cardinalities and material PK/FK/UK fields, then reconcile enforcement, optionality, tenant scope, and lifecycle. Otherwise record the exact unchanged-model evidence and do not draw a decorative ER view.
 5. **Design columns and constraints** — use native types and state exact absence, default, precision, time, enum, tenant, audit, identity, uniqueness, relationship, and compatibility semantics.
 6. **Design from queries to indexes** — write the real query shape first, including equality/range/join/order/group/page behavior; only then select or reject an index and explain ordered keys, selectivity, coverage, overlap, and write/build cost.
 7. **Design migration and runtime coexistence** — profile existing data, order expand/backfill/validate/contract steps, define old/new application compatibility, lock duration, batching/restart, verification, rollback boundary, and forward fix.
@@ -345,7 +345,7 @@ The real Spec must name the exact migration path, SQL/DDL pseudocode, pre/post v
 Before accepting a table detail, verify:
 
 - all seven required subsections exist in order and name the exact schema/table;
-- Chapter 11 contains one Mermaid `erDiagram` covering every inventory table, exact physical-name mapping, real cardinalities, relationship labels, and material PK/FK/UK attributes;
+- when the relational model/relationships change, Chapter 11 contains one Mermaid `erDiagram` covering every affected inventory table, exact physical-name mapping, real cardinalities, relationship labels, and material PK/FK/UK attributes; otherwise it records `Relational model change: No` with evidence;
 - affected existing and all proposed columns include native type, precision/length, null, default, generation, constraints, meaning, mapping, and example;
 - primary/business/foreign relationships state ownership, optionality, tenant scope, update/delete/orphan behavior, and enforcement choice;
 - every index names an exact query/caller, ordered keys, selectivity evidence, sort/coverage role, overlap, write/storage/build/lock cost, and verification;
@@ -361,7 +361,7 @@ Line count is not a substitute. A read-only lookup against a proven stable table
 Return `REVISE` when any applies:
 
 - a table is listed but not expanded, or a column lacks type/null/default/meaning;
-- relational tables exist but the ER diagram is missing, omits an inventory table, invents a relationship, or contradicts keys/cardinality/optionality in the detailed design;
+- the relational model/relationships change but the ER diagram is missing, omits an affected inventory table, invents a relationship, or contradicts keys/cardinality/optionality in the detailed design;
 - an interface/model field cannot be mapped to a column or intentional non-persistent source;
 - an index lacks a real query and column-order rationale;
 - uniqueness, soft-delete, tenant, time, money, or `NULL` semantics are ambiguous;

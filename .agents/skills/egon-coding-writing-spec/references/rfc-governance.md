@@ -7,7 +7,7 @@
 - The abstract is concise, stable, and specific enough to avoid collisions.
 - Never reuse a path for a different design and never overwrite a predecessor. If a collision occurs, choose a more specific abstract.
 - Header `Document`, `Created`, and `Updated` values must agree with the file and actual history.
-- New Specs use `Template Version: 2` plus `Complexity` and `Complexity Drivers`. Legacy Specs without these fields remain valid historical documents; do not rewrite them only to upgrade the template.
+- New Specs use `Template Version: 4` plus `Complexity`, `Complexity Drivers`, `Change Surface`, and `Affected Chapters`. Version 2 and Version 3 Specs remain valid under their original contracts; older historical Specs remain usable when their design is authoritative. Do not rewrite a predecessor only to upgrade its template.
 
 ## Status lifecycle
 

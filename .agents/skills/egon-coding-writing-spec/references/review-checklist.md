@@ -19,6 +19,21 @@
 - [ ] Every critical actor, consumer, source of truth, write owner, transaction boundary, and compatibility obligation is resolved or recorded as an open major decision.
 - [ ] Happy path, partial failure, retry, timeout, duplicate, concurrency, rollback, recovery, permission denial, and empty states are covered as applicable.
 
+## Change surface and proportional depth
+
+- [ ] The Header contains an exact `Change Surface` and `Affected Chapters`; §3.3 contains the evidence-backed change-surface matrix.
+- [ ] Complexity and change surface were decided independently; `Simple` did not weaken affected detail, and `Complex` did not widen implementation scope.
+- [ ] Every materially relevant area is classified as exactly one of `Affected`, `Context-only`, `Unchanged`, or `Not applicable`.
+- [ ] Every `Affected` row names exact paths/symbols, the changed behavior or contract, required Spec treatment, and the chapters containing its detailed design.
+- [ ] The Header's `Affected Chapters` exactly matches the distinct chapter numbers referenced by `Affected` rows.
+- [ ] `Context-only` areas contain only boundary evidence, the relied-upon invariant, the reason no modification is required, and focused verification.
+- [ ] `Unchanged` areas contain only exact current evidence, the preserved invariant, the stopping reason, and focused verification; they introduce no target files, fields, contracts, pages, schema, diagrams, or abstractions.
+- [ ] `Not applicable` is used only when the area/concern does not exist or is irrelevant; an existing unchanged layer is not mislabeled `N/A`.
+- [ ] Caller/callee tracing stops when an unchanged semantic boundary is proven; inspected context is not silently converted into implementation scope.
+- [ ] If repository evidence requires a material expansion beyond the user's stated boundary, the Spec stops for approval rather than silently widening or forcing an impossible narrow design.
+- [ ] A DAO-only change does not reproduce unchanged Controller JSON, Service design, unrelated POJOs, full table definitions, ER relationships, or frontend pages.
+- [ ] Focused tests prove the changed behavior and the smallest preserved caller/contract/schema boundary; the test plan is not expanded ceremonially to every layer.
+
 ## Requirements and use-case review
 
 - [ ] Chapter 4 identifies repository/user-evidenced `ACTOR-*` roles and stable `UC-*` actor goals rather than implementation classes or generic CRUD verbs.
@@ -39,13 +54,13 @@
 
 ## Design completeness and consistency
 
-- [ ] Architecture, target file tree, interfaces, fields, models, schema, pages, tests, rollout, and failure behavior describe the same system.
+- [ ] Architecture, target file tree, interfaces, fields, models, schema, pages, tests, rollout, and failure behavior describe the same affected system slice and preserve the declared unchanged boundaries.
 - [ ] Chapter 7 has separate System Architecture Design, High-Level Design, and Detailed Design sections with no contradictory responsibility or flow descriptions.
 - [ ] A Complex Spec contains separate Mermaid architecture and critical-flow `flowchart` views plus a swimlane/`sequenceDiagram`; diagrams use real components/contracts/data and include important failure behavior.
 - [ ] Mermaid diagrams match dependency rules, interface IDs, state changes, tables, and prose; they do not introduce shortcut calls or unowned data.
 - [ ] Detailed Design names transaction/visibility boundaries, concurrency/version/idempotency identities, each material failure point, retry exhaustion, unknown outcomes, recovery owner, reconciliation, and verification.
 - [ ] Observability names emitters and lifecycle points, stable low-cardinality fields, correlation propagation, sensitive-data treatment, thresholds, alerts/runbooks, owners, and static-versus-runtime validation limits.
-- [ ] The target tree names exact Create/Modify/Delete paths, symbols, responsibilities, ownership, consumers, and requirement mapping.
+- [ ] The target tree names exact Create/Modify/Delete paths, symbols, responsibilities, ownership, consumers, and requirement mapping, and omits unrelated layer skeletons.
 - [ ] Java package design uses the approved traditional three-layer profile only, unless the existing non-three-layer structure is preserved or a structural migration is an open user decision.
 - [ ] `impl` is nested at `biz.service.impl`, not placed beside `biz.service`.
 - [ ] Controllers depend on Service interfaces and never call DAO or `service.impl` directly.
@@ -63,7 +78,7 @@
 - [ ] Frontend routes, permissions, components, user flows, states, validation, and copy agree with contracts.
 - [ ] Frontend design expands route/navigation/guards, component tree and ownership, ordered flows/forms, complete UI-state transitions, field/API/cache mapping, accessibility, responsiveness, double-submit/destructive-action safety, and test/manual-verification boundaries.
 - [ ] Unit tests target isolated production behavior; higher-level tests have separate responsibilities.
-- [ ] Security, tenancy, compatibility, migration, observability, rollback, and operational concerns are covered or evidence-backed `N/A`.
+- [ ] Affected security, tenancy, compatibility, migration, observability, rollback, and operational concerns are designed; unchanged concerns name preserved invariants, and only inapplicable concerns use evidence-backed `N/A`.
 
 ## Minimum-design and element-necessity review
 
@@ -77,7 +92,8 @@
 
 ## Interface-contract review
 
-- [ ] Chapter 9 has a complete interface inventory and exactly one detailed subsection for every `API-*`, `RPC-*`, `EVENT-*`, `JOB-*`, or `INTERNAL-*` ID.
+- [ ] When §9 is `Affected`, it has a complete changed-interface inventory and exactly one detailed subsection for every `API-*`, `RPC-*`, `EVENT-*`, `JOB-*`, or `INTERNAL-*` ID; otherwise it contains only the required concise boundary record.
+- [ ] The remaining detailed interface checks in this section are applied only when §9 is `Affected`; an unchanged boundary is not expanded merely to satisfy the checklist.
 - [ ] Each ID represents one atomic Method + URL or protocol operation; CRUD families and independently callable collection/detail/status operations are not grouped.
 - [ ] Every HTTP contract has a repository-verified Method and full application URL, including class/method mappings and applicable context/gateway/version prefixes.
 - [ ] Path, Query, Header, Cookie, Multipart, and Body inputs are separated; every parameter has type, required/null/default behavior, exact validation, meaning, example, and source.
@@ -92,8 +108,9 @@
 
 ## Database-design review
 
-- [ ] Chapter 11 inventories every created, altered, read, or written table and expands every inventory item in a detailed subsection.
-- [ ] When relational tables exist, Chapter 11 includes a Mermaid `erDiagram` covering every inventory table and the direct unchanged neighbors needed to explain ownership/cardinality.
+- [ ] When §11 is `Affected`, it inventories and expands every affected schema/data/constraint/index/transaction element; a query-only DAO change with unchanged schema uses a concise access-path and preserved-schema record instead of a full table inventory.
+- [ ] The remaining per-table checks in this section are applied only to affected database inventory items; context-only or unchanged tables are not promoted into the inventory.
+- [ ] When the relational model or relationships are affected, Chapter 11 includes a Mermaid `erDiagram` covering every affected inventory table and direct unchanged neighbors needed to explain ownership/cardinality; unchanged query-only work does not redraw the ER model.
 - [ ] Every ER entity maps to an exact physical table; relationships use correct cardinality and labels and identify material PK/FK/UK fields.
 - [ ] ER relationships agree with database- versus application-enforcement, optionality, tenant scope, lifecycle, update/delete behavior, orphan handling, PO/Entity mappings, and per-table constraints.
 - [ ] Every table detail contains all seven required subsections in order and states its exact schema/table, owner, authoritative writer, readers, lifecycle, tenant/retention, volume evidence, and source-vs-live verification boundary.
@@ -129,6 +146,6 @@
 - [ ] Every proposed interface, model, file, migration, page, and test maps to a requirement or necessary infrastructure rationale.
 - [ ] Happy path, boundaries, invalid input, permissions, tenancy, concurrency, failure, migration, compatibility, and regression cases are considered as applicable.
 - [ ] No unresolved `TBD`, `TODO`, `FIXME`, vague placeholder, or internal contradiction remains in a `Review`/`Accepted` document.
-- [ ] Every non-applicable mandatory chapter says `N/A` with evidence and reason.
+- [ ] Every `Not applicable` mandatory chapter says `N/A` with evidence and reason; every existing but unchanged area uses `Unchanged` instead.
 - [ ] Final verdict is exactly `PASS`, `BLOCKED`, or `REVISE` and matches reality.
 - [ ] No Plan, production code, migration execution, service start, or runtime claim was produced as a side effect.

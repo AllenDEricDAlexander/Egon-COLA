@@ -28,7 +28,7 @@ Classify the Spec as `Complex` when any material driver exists:
 
 Otherwise classify it as `Simple`. Record `Complexity` and `Complexity Drivers` in the header. Complexity is about decision risk and interaction count, not the number of files.
 
-For a Simple Spec, keep the same evidence, contract, file, database, test, and review quality, but do not manufacture matrices, alternatives, or abstractions that add no information.
+For a Simple Spec, keep full evidence, contract, file, database, test, and review quality for every `Affected` area, while applying the concise `Context-only`/`Unchanged` treatment from `references/change-surface-and-proportional-depth.md` elsewhere. Do not manufacture matrices, alternatives, abstractions, or full-layer design that add no information.
 
 ## Required analysis for a Complex Spec
 
@@ -254,7 +254,7 @@ For a Complex Spec, Chapter 7 must contain all three Mermaid views:
 
 Label nodes with real modules/contracts and reference `REQ-*`, interface IDs, table names, or state names where useful. Diagrams must agree with the prose and must not show an unimplemented shortcut such as Controller-to-DAO access.
 
-For a Simple Spec, use the views that materially improve understanding. Mark an omitted view `N/A` with the exact reason; never insert a decorative diagram.
+For a Simple Spec, use only views that materially improve understanding. For an existing but unchanged architecture, record `Unchanged` or `Context-only` with the exact reason; use `N/A` only when the view/concern is not applicable. Never insert a decorative diagram.
 
 ## Complex-design stop conditions
 
