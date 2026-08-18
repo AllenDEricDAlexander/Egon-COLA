@@ -15,6 +15,17 @@ const config: EnterpriseLayoutConfig = {
   footer: { version: '5.3.2' },
 }
 
+const nestedConfig: EnterpriseLayoutConfig = {
+  platformName: 'Nested Admin',
+  navigation: [{
+    key: 'iam', label: 'IAM',
+    children: [{
+      key: 'authorization', label: '授权',
+      children: [{key: 'roles', label: '角色', path: '/iam/roles'}],
+    }],
+  }],
+}
+
 const setViewport = (wide: boolean) => {
   vi.stubGlobal('matchMedia', (query: string) => ({
     matches: wide,
@@ -41,6 +52,7 @@ const renderLayout = (initialPath = '/registry') => render(
       >
         <Route path="registry" element={<div>注册页内容</div>} />
         <Route path="configs" element={<div>配置页内容</div>} />
+        <Route path="iam/roles" element={<div>角色页内容</div>} />
       </Route>
     </Routes>
   </MemoryRouter>,
@@ -103,5 +115,29 @@ describe('EnterpriseLayout', () => {
     expect(drawer).toBeInTheDocument()
     expect(screen.getByText('运行状态')).toBeInTheDocument()
     expect(screen.getByText('配置管理')).toBeInTheDocument()
+  })
+
+  it('renders nested navigation and navigates leaf routes', async () => {
+    setViewport(false)
+    render(
+      <MemoryRouter initialEntries={['/iam/roles']}>
+        <Routes>
+          <Route path="*" element={(
+            <EnterpriseLayout config={nestedConfig}>
+              <Outlet />
+            </EnterpriseLayout>
+          )}>
+            <Route path="iam/roles" element={<div>角色页内容</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '打开导航' }))
+    fireEvent.click(screen.getByText('IAM'))
+    fireEvent.click(screen.getByText('授权'))
+    expect(await screen.findByText('角色')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('角色'))
+    expect(await screen.findByText('角色页内容')).toBeInTheDocument()
   })
 })

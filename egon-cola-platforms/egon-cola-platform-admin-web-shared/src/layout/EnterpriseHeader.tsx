@@ -8,11 +8,15 @@ import type { EnterpriseHeaderConfig, EnterpriseNavigationItem } from './types'
 
 export type EnterpriseHeaderProps = EnterpriseHeaderConfig
 
-const toItem = (item: EnterpriseNavigationItem) => ({
+const toItem = (item: EnterpriseNavigationItem): NonNullable<MenuProps['items']>[number] => ({
   key: item.key,
   icon: item.icon,
   label: item.label,
+  children: item.children?.map(toItem),
 })
+
+const flattenLeaves = (items: readonly EnterpriseNavigationItem[]): EnterpriseNavigationItem[] =>
+  items.flatMap((item) => item.children?.length ? flattenLeaves(item.children) : [item])
 
 /** 统一企业级顶部 Header：品牌区 + 平台名称 + 一级导航 + 全局操作区 + 用户区。 */
 export const EnterpriseHeader = ({
@@ -36,12 +40,13 @@ export const EnterpriseHeader = ({
   // 路由高亮：与当前路径做最长前缀匹配（带路径边界），避免顺序敏感与误匹配。
   const selectedKey = useMemo(() => {
     let best: EnterpriseNavigationItem | undefined
-    for (const item of navigation) {
+    for (const item of flattenLeaves(navigation)) {
+      if (!item.path) continue
       const matches = item.path === '/'
         ? location.pathname === item.path
         : location.pathname === item.path
           || location.pathname.startsWith(item.path.endsWith('/') ? item.path : `${item.path}/`)
-      if (matches && (!best || item.path.length > best.path.length)) {
+      if (matches && (!best || item.path.length > (best.path?.length ?? -1))) {
         best = item
       }
     }
@@ -49,8 +54,8 @@ export const EnterpriseHeader = ({
   }, [location.pathname, navigation])
 
   const handleMenuClick: MenuProps['onClick'] = ({ key }) => {
-    const item = navigation.find((entry) => entry.key === key)
-    if (!item) return
+    const item = flattenLeaves(navigation).find((entry) => entry.key === key)
+    if (!item || !item.path) return
     setDrawerOpen(false)
     if (onNavigate) {
       onNavigate(item)

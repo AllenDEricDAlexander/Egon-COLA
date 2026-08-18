@@ -10,13 +10,15 @@ import type { CSSProperties, ReactNode } from 'react'
 export interface EnterpriseNavigationItem {
   readonly key: string
   readonly label: string
-  readonly path: string
+  readonly path?: string
   readonly icon?: ReactNode
   /**
    * 可选分组名。桌面端顶部导航平铺展示，忽略该字段；
    * 窄屏抽屉导航中按 group 分组展示（与 Ant Design Menu 的 group 一致）。
    */
   readonly group?: string
+  /** Nested MENU/ROUTE children. Parent items without a path only expand. */
+  readonly children?: readonly EnterpriseNavigationItem[]
 }
 
 /**
