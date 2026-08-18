@@ -6,6 +6,10 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
 
 /**
  * The RBAC3 request principal projected from the IdP identity and the current
@@ -23,6 +27,25 @@ public record CurrentRbac3Principal(
         long policyVersion,
         Set<String> permissions,
         boolean platformAdministrator) {
+
+    /** Reads the current USER authorization facts without controller parameter injection. */
+    public static CurrentRbac3Principal requireCurrent() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new AuthenticationCredentialsNotFoundException(
+                    "RBAC3 USER principal is required");
+        }
+        if (authentication.getPrincipal() instanceof CurrentRbac3Principal principal) {
+            return principal;
+        }
+        if (authentication.getPrincipal() instanceof Rbac3UserDetails details) {
+            return new CurrentRbac3Principal(
+                    details.tenantId(), details.identitySub(), details.rbac3UserId(),
+                    details.authVersion(), details.policyVersion(), details.permissions(), false);
+        }
+        throw new AuthenticationCredentialsNotFoundException(
+                "RBAC3 USER principal is required");
+    }
 
     public CurrentRbac3Principal {
         tenantId = required(tenantId, "tenantId");

@@ -23,8 +23,6 @@ import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
 import top.egon.cola.platform.rbac3.admin.authorization.repository.jpa.JpaAuthorizationRuleRepository;
 import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
 import top.egon.cola.platform.rbac3.admin.bootstrap.controller.cli.Rbac3PlatformAdminBootstrapCli;
-import top.egon.cola.platform.rbac3.admin.bootstrap.repository.BootstrapSnapshotRepository;
-import top.egon.cola.platform.rbac3.admin.bootstrap.service.BootstrapQueryService;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.PlatformAdminBootstrapService;
 import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3AdminProperties;
 import top.egon.cola.platform.rbac3.admin.config.properties.Rbac3SecurityProperties;
@@ -488,12 +486,6 @@ public class Rbac3ApplicationConfiguration {
      * @param source 输入参数 `source`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    @Bean
-    BootstrapQueryService bootstrapQueryService(
-            BootstrapSnapshotRepository source) {
-        return new BootstrapQueryService(source);
-    }
-
     /**
      * 方法 `rbac3PlatformAdminBootstrapCli` 按照 `Rbac3ApplicationConfiguration` 的职责处理输入，完成 `rbac3 Platform Admin Bootstrap Cli` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
      * Method `rbac3PlatformAdminBootstrapCli` processes its inputs according to `Rbac3ApplicationConfiguration`'s responsibility, performs the `rbac3 Platform Admin Bootstrap Cli` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.

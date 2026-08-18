@@ -2,7 +2,6 @@ package top.egon.cola.platform.idp.admin.identity.controller;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,7 +20,7 @@ import top.egon.cola.platform.idp.admin.identity.domain.vo.IdentityUserVO;
 import top.egon.cola.platform.idp.admin.identity.domain.vo.ResetPasswordVO;
 import top.egon.cola.platform.idp.admin.identity.service.IdentityUserService;
 import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthorizationPort;
-import top.egon.cola.platform.idp.contract.IdentityPrincipal;
+import top.egon.cola.platform.idp.starter.security.CurrentIdentity;
 
 import java.util.List;
 import java.util.Objects;
@@ -44,16 +43,19 @@ public class IdentityUserController {
 
     private final IdentityUserService users;
     private final IdpAdminAuthorizationPort authorization;
+    private final CurrentIdentity currentIdentity;
 
     public IdentityUserController(
             IdentityUserService users,
-            IdpAdminAuthorizationPort authorization
+            IdpAdminAuthorizationPort authorization,
+            CurrentIdentity currentIdentity
     ) {
         this.users = Objects.requireNonNull(users, "users");
         this.authorization = Objects.requireNonNull(
                 authorization,
                 "authorization"
         );
+        this.currentIdentity = Objects.requireNonNull(currentIdentity, "currentIdentity");
     }
 
     @GetMapping
@@ -62,10 +64,8 @@ public class IdentityUserController {
             summary = "查询全局身份用户",
             externalAccessible = true,
             tags = {"idp", "identity"})
-    public List<IdentityUserVO> list(
-            @AuthenticationPrincipal IdentityPrincipal principal
-    ) {
-        authorization.require(principal, "idp:identity-user:read");
+    public List<IdentityUserVO> list() {
+        authorization.require(currentIdentity.require(), "idp:identity-user:read");
         return users.list();
     }
 
@@ -77,10 +77,9 @@ public class IdentityUserController {
             externalAccessible = true,
             tags = {"idp", "identity"})
     public CreatedIdentityUserVO create(
-            @Valid @RequestBody CreateIdentityUserDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @Valid @RequestBody CreateIdentityUserDTO request
     ) {
-        authorization.require(principal, "idp:identity-user:create");
+        authorization.require(currentIdentity.require(), "idp:identity-user:create");
         return users.create(request);
     }
 
@@ -92,10 +91,9 @@ public class IdentityUserController {
             tags = {"idp", "identity"})
     public IdentityUserVO update(
             @PathVariable("subject") String subject,
-            @Valid @RequestBody UpdateIdentityUserDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @Valid @RequestBody UpdateIdentityUserDTO request
     ) {
-        authorization.require(principal, "idp:identity-user:update");
+        authorization.require(currentIdentity.require(), "idp:identity-user:update");
         return users.update(subject, request);
     }
 
@@ -106,10 +104,9 @@ public class IdentityUserController {
             externalAccessible = true,
             tags = {"idp", "identity"})
     public ResetPasswordVO resetPassword(
-            @PathVariable("subject") String subject,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @PathVariable("subject") String subject
     ) {
-        authorization.require(principal, "idp:identity-user:password-reset");
+        authorization.require(currentIdentity.require(), "idp:identity-user:password-reset");
         return users.resetPassword(subject);
     }
 
@@ -120,10 +117,9 @@ public class IdentityUserController {
             externalAccessible = true,
             tags = {"idp", "identity"})
     public IdentityUserVO revokeAll(
-            @PathVariable("subject") String subject,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @PathVariable("subject") String subject
     ) {
-        authorization.require(principal, "idp:identity-user:revoke-all");
+        authorization.require(currentIdentity.require(), "idp:identity-user:revoke-all");
         return users.revokeAll(subject);
     }
 }

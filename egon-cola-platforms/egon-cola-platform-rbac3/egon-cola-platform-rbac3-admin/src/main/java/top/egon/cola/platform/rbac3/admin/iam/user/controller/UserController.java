@@ -3,7 +3,6 @@ package top.egon.cola.platform.rbac3.admin.iam.user.controller;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -79,9 +78,10 @@ public class UserController {
     @GatewayOperation(name = "rbac3-iam-user-create-v1", summary = "创建RBAC用户成员",
             externalAccessible = true, tags = {"rbac3", "iam", "user"})
     public ApiEnvelopeVO<UserDirectoryVO> create(
-            @Valid @RequestBody CreateUserCommandDTO command,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(users.create(Long.valueOf(tenantId()), command, principal.userId()));
+            @Valid @RequestBody CreateUserCommandDTO command
+            ) {
+        return ApiEnvelopeVO.success(users.create(Long.valueOf(tenantId()), command,
+                CurrentRbac3Principal.requireCurrent().userId()));
     }
 
     @GetMapping("/users/{userId}")
@@ -98,9 +98,10 @@ public class UserController {
             externalAccessible = true, tags = {"rbac3", "iam", "user"})
     public ApiEnvelopeVO<UserDirectoryVO> update(
             @PathVariable Long userId,
-            @Valid @RequestBody UpdateUserCommandDTO command,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(users.update(Long.valueOf(tenantId()), userId, command, principal.userId()));
+            @Valid @RequestBody UpdateUserCommandDTO command
+            ) {
+        return ApiEnvelopeVO.success(users.update(Long.valueOf(tenantId()), userId, command,
+                CurrentRbac3Principal.requireCurrent().userId()));
     }
 
     @DeleteMapping("/users/{userId}")
@@ -109,9 +110,9 @@ public class UserController {
             externalAccessible = true, tags = {"rbac3", "iam", "user"})
     public ApiEnvelopeVO<Void> delete(
             @PathVariable Long userId,
-            @RequestParam long expectedAuthVersion,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        users.delete(Long.valueOf(tenantId()), userId, expectedAuthVersion, principal.userId());
+            @RequestParam long expectedAuthVersion) {
+        users.delete(Long.valueOf(tenantId()), userId, expectedAuthVersion,
+                CurrentRbac3Principal.requireCurrent().userId());
         return ApiEnvelopeVO.success(null);
     }
 
@@ -121,10 +122,10 @@ public class UserController {
             externalAccessible = true, tags = {"rbac3", "iam", "user"})
     public ApiEnvelopeVO<UserDirectoryVO> changeStatus(
             @PathVariable String userId,
-            @Valid @RequestBody UserStatusCommandDTO command,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
+            @Valid @RequestBody UserStatusCommandDTO command
+            ) {
         return ApiEnvelopeVO.success(commandPort.changeUserStatus(
-                tenantId(), userId, command, principal.userId()));
+                tenantId(), userId, command, CurrentRbac3Principal.requireCurrent().userId()));
     }
 
     private static String tenantId() {

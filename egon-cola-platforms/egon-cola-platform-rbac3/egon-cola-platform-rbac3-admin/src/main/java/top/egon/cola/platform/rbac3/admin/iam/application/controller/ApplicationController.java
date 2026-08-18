@@ -1,7 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.iam.application.controller;
 
 import jakarta.validation.Valid;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -56,10 +55,10 @@ public final class ApplicationController {
             externalAccessible = true,
             tags = {"rbac3", "application"})
     public ApiEnvelopeVO<ApplicationAuthorizationScopeVO> admit(
-            @Valid @RequestBody AdmitApplicationAuthorizationScopeCommand command,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
+            @Valid @RequestBody AdmitApplicationAuthorizationScopeCommand command
+            ) {
         return ApiEnvelopeVO.success(facade.admit(
-                tenantId(), principal.userId(), command));
+                tenantId(), CurrentRbac3Principal.requireCurrent().userId(), command));
     }
 
     @GetMapping("/tenant-applications")
@@ -94,10 +93,11 @@ public final class ApplicationController {
             tags = {"rbac3", "application"})
     public ApiEnvelopeVO<ApplicationAuthorizationScopeVO> changeStatus(
             @PathVariable Long applicationId,
-            @Valid @RequestBody ChangeApplicationAuthorizationScopeStatusCommand command,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
+            @Valid @RequestBody ChangeApplicationAuthorizationScopeStatusCommand command
+            ) {
         return ApiEnvelopeVO.success(facade.changeStatus(
-                tenantId(), applicationId, principal.userId(), command));
+                tenantId(), applicationId,
+                CurrentRbac3Principal.requireCurrent().userId(), command));
     }
 
     @DeleteMapping("/tenant-applications/{applicationId}")
@@ -109,9 +109,9 @@ public final class ApplicationController {
             tags = {"rbac3", "application"})
     public ApiEnvelopeVO<Void> remove(
             @PathVariable Long applicationId,
-            @RequestParam(name = "expectedVersion") long expectedVersion,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        facade.remove(tenantId(), applicationId, expectedVersion, principal.userId());
+            @RequestParam(name = "expectedVersion") long expectedVersion) {
+        facade.remove(tenantId(), applicationId, expectedVersion,
+                CurrentRbac3Principal.requireCurrent().userId());
         return ApiEnvelopeVO.success(null);
     }
 

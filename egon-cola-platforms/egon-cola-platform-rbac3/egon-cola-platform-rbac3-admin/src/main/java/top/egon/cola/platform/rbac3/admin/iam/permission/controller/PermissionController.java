@@ -1,7 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.iam.permission.controller;
 
 import jakarta.validation.Valid;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -57,18 +56,19 @@ public final class PermissionController {
     @PostMapping
     @RequiresRbac3Permission(permission = "system:permission:manage")
     public ApiEnvelopeVO<PermissionCatalogVO> create(
-            @Valid @RequestBody CreatePermissionRequestDTO command,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(service.create(command, principal.userId()));
+            @Valid @RequestBody CreatePermissionRequestDTO command
+            ) {
+        return ApiEnvelopeVO.success(service.create(
+                command, CurrentRbac3Principal.requireCurrent().userId()));
     }
 
     @PutMapping("/{id}/status")
     @RequiresRbac3Permission(permission = "system:permission:manage")
     public ApiEnvelopeVO<PermissionCatalogVO> changeStatus(
             @PathVariable String id,
-            @Valid @RequestBody ChangePermissionStatusRequestDTO command,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
+            @Valid @RequestBody ChangePermissionStatusRequestDTO command
+            ) {
         return ApiEnvelopeVO.success(service.changeStatus(
-                id, command, principal.userId()));
+                id, command, CurrentRbac3Principal.requireCurrent().userId()));
     }
 }

@@ -2,7 +2,6 @@ package top.egon.cola.platform.rbac3.admin.iam.resource.controller;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.PositiveOrZero;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -146,19 +145,20 @@ public class ApplicationResourceController {
     @PostMapping("/fields")
     @RequiresRbac3Permission(permission = "system:field-definition:manage")
     public ApiEnvelopeVO<FieldDefinitionVO> createField(
-            @Valid @RequestBody CreateFieldDefinitionRequestDTO command,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(facade.createField(command, principal.userId()));
+            @Valid @RequestBody CreateFieldDefinitionRequestDTO command
+            ) {
+        return ApiEnvelopeVO.success(facade.createField(
+                command, CurrentRbac3Principal.requireCurrent().userId()));
     }
 
     @PutMapping("/fields/{fieldId}/status")
     @RequiresRbac3Permission(permission = "system:field-definition:manage")
     public ApiEnvelopeVO<FieldDefinitionVO> changeFieldStatus(
             @PathVariable String fieldId,
-            @Valid @RequestBody ChangeFieldDefinitionStatusRequestDTO command,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
+            @Valid @RequestBody ChangeFieldDefinitionStatusRequestDTO command
+            ) {
         return ApiEnvelopeVO.success(facade.changeFieldStatus(
-                fieldId, command, principal.userId()));
+                fieldId, command, CurrentRbac3Principal.requireCurrent().userId()));
     }
 
     /**
@@ -182,12 +182,12 @@ public class ApplicationResourceController {
             tags = {"rbac3", "resource"})
     public ApiEnvelopeVO<ArchiveResultVO> archive(
             @PathVariable String resourceId,
-            @Valid @RequestBody ArchiveResourceRequestDTO request,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
+            @Valid @RequestBody ArchiveResourceRequestDTO request
+            ) {
         return ApiEnvelopeVO.success(facade.archive(
                 resourceId,
                 request.expectedVersion(),
-                principal.userId()));
+                CurrentRbac3Principal.requireCurrent().userId()));
     }
 
     }
