@@ -9,7 +9,7 @@ import {TenantListPage} from './TenantListPage'
 const wrapper = ({ children }: PropsWithChildren) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const sdk = {
-    getBootstrap: async () => ({
+    getAbout: async () => ({
         user: {id: '7', tenantId: '42', identitySub: 'tenant-test', status: 'ACTIVE'},
       permissions: ['system:tenant:read'],
       fieldPolicies: {},

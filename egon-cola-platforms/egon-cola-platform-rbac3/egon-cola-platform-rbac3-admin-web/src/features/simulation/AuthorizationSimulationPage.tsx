@@ -16,22 +16,22 @@ interface SimulationForm {
 const permissionList = (value?: string) => value?.split(',').map((item) => item.trim()).filter(Boolean) ?? []
 
 export const AuthorizationSimulationPage = () => {
-    const {bootstrap} = useRbac3Authorization()
+    const {about} = useRbac3Authorization()
   const api = simulationApi(useFeatureApi())
   const simulation = useMutation({
     mutationFn: (form: SimulationForm) => {
-      if (!bootstrap) throw new Error('BOOTSTRAP_REQUIRED')
+      if (!about) throw new Error('ABOUT_REQUIRED')
       const command: AuthorizationSimulationCommand = {
         decisionRequest: {
             subject: {
-                tenantId: bootstrap.user.tenantId,
-                userId: bootstrap.user.id,
-                identitySub: bootstrap.user.identitySub
+                tenantId: about.user.tenantId,
+                userId: about.user.subject,
+                identitySub: about.user.subject
             },
           permissionCode: form.permissionCode,
           resource: { applicationCode: form.applicationCode, resourceCode: form.resourceCode },
           requestedDecisions: ['FUNCTION', 'DATA_SCOPE', 'FIELD', 'PARTICIPATION', 'FENCE'],
-            tokenVersions: {authVersion: bootstrap.authVersion, policyVersion: bootstrap.policyVersion},
+            tokenVersions: {authVersion: about.authVersion, policyVersion: about.policyVersion},
         },
         hypothesis: { addedPermissions: permissionList(form.addedPermissions), removedPermissions: permissionList(form.removedPermissions) },
         at: new Date().toISOString(),

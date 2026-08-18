@@ -73,7 +73,7 @@ const wrapper = (replaceActiveRoles: Rbac3Client['replaceActiveRoles']) => ({chi
     getActivationCandidates: async () => candidates,
     getActiveRoles: async () => activeRoles,
     replaceActiveRoles,
-    getBootstrap: async () => ({
+        getAbout: async () => ({
         user: {id: '7', tenantId: '9', identitySub: 'mario', status: 'ACTIVE'},
         permissions: ['system:role-activation:use'],
         fieldPolicies: {}, activeRoleContexts: [], apps: [], menus: [], routes: [], actions: [],

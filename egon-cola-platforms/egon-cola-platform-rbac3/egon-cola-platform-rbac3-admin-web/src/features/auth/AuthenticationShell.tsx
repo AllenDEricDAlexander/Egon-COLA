@@ -13,7 +13,7 @@ export const AuthenticationShell = ({ children }: AuthenticationShellProps) => {
         await gatewayAuth.logout()
         window.location.assign('/')
     }
-    if (['UNINITIALIZED', 'LOADING_BOOTSTRAP'].includes(authorization.status)) {
+    if (['UNINITIALIZED', 'LOADING_ABOUT'].includes(authorization.status)) {
         return <main className="rbac3-centered"><Spin size="large" description="正在加载授权上下文"/></main>
   }
     if (authorization.status === 'AUTHENTICATION_REQUIRED') {

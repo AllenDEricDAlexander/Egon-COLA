@@ -10,14 +10,14 @@ import {gatewayAuth} from '../auth/gatewayAuth'
 
 export const RoleActivationPage = () => {
     const authorization = useRbac3Authorization()
-  const canActivateAfterBootstrap = usePermission('system:role-activation:use')
+  const canActivateAfterAbout = usePermission('system:role-activation:use')
   const { replaceActiveRoles } = useActiveRoles()
   const { effectiveTenantId } = useFeatureTenantContext()
   const api = roleActivationApi(useFeatureApi())
   const queryClient = useQueryClient()
     const enabled = ['READY', 'ACTIVATION_REQUIRED'].includes(authorization.status)
   const candidates = useQuery({
-      queryKey: ['rbac3', 'activation-candidates', effectiveTenantId ?? 'none', authorization.bootstrap?.authVersion ?? 'none'],
+      queryKey: ['rbac3', 'activation-candidates', effectiveTenantId ?? 'none', authorization.about?.authVersion ?? 'none'],
     queryFn: api.candidates,
     enabled,
   })
@@ -130,7 +130,7 @@ export const RoleActivationPage = () => {
           )}
         </PageState>
         <Space style={{ marginTop: 16 }}>
-            {(authorization.status === 'ACTIVATION_REQUIRED' || canActivateAfterBootstrap) && (
+            {(authorization.status === 'ACTIVATION_REQUIRED' || canActivateAfterAbout) && (
             <Button
               type="primary"
               disabled={!current.data || Boolean(conflict) || authorization.status === 'REPLACING_ACTIVE_ROLES'}

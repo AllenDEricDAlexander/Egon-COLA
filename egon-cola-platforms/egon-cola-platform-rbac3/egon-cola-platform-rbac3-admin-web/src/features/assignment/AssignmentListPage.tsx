@@ -17,7 +17,7 @@ export interface AssignmentListPageProps {
 }
 
 export const AssignmentListPage = ({ userId }: AssignmentListPageProps) => {
-    const {status, bootstrap} = useRbac3Authorization()
+    const {status, about} = useRbac3Authorization()
   const { effectiveTenantId } = useFeatureTenantContext()
   const api = assignmentApi(useFeatureApi())
   const queryClient = useQueryClient()
@@ -37,7 +37,7 @@ export const AssignmentListPage = ({ userId }: AssignmentListPageProps) => {
         reason: 'console state change',
         ticketNo: null,
         expectedAssignmentVersion: assignment.version,
-        expectedUserAuthVersion: bootstrap?.authVersion ?? 0,
+        expectedUserAuthVersion: about?.authVersion ?? 0,
       },
       crypto.randomUUID(),
     ),

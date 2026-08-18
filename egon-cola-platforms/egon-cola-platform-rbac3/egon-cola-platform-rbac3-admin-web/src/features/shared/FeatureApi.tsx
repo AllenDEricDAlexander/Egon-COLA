@@ -1,5 +1,5 @@
 import {useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
-import {createContext, type PropsWithChildren, useContext, useMemo, useState,} from 'react'
+import {createContext, type PropsWithChildren, useCallback, useContext, useMemo, useState,} from 'react'
 
 export interface FeatureApiRequest {
   readonly method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
@@ -26,9 +26,9 @@ export interface FeatureApiProviderProps extends PropsWithChildren {
 }
 
 export const FeatureApiProvider = ({ client, children }: FeatureApiProviderProps) => {
-    const {bootstrap} = useRbac3Authorization()
+    const {about} = useRbac3Authorization()
   const [targetTenantId, setTargetTenant] = useState<string | null>(null)
-  const effectiveTenantId = bootstrap?.user.tenantId ?? null
+  const effectiveTenantId = about?.user.tenantId ?? null
   const tenantClient = useMemo<FeatureApiClient>(() => ({
     request: async <T,>(path: string, request: FeatureApiRequest = {}) => {
       const tenantRequest = targetTenantId === null || !path.startsWith('/api/rbac3/v1/platform/')
@@ -37,10 +37,10 @@ export const FeatureApiProvider = ({ client, children }: FeatureApiProviderProps
         return client.request<T>(path, tenantRequest)
     },
   }), [client, targetTenantId])
-  const setTargetTenantId = (tenantId: string | null) => {
+  const setTargetTenantId = useCallback((tenantId: string | null) => {
     const normalized = tenantId?.trim() || null
     setTargetTenant(normalized)
-  }
+  }, [])
   const value = useMemo<FeatureApiContextValue>(() => ({
     client: tenantClient,
     effectiveTenantId,

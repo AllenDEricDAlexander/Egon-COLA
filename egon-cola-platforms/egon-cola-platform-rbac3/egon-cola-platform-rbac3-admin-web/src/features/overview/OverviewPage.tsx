@@ -6,7 +6,7 @@ import {overviewApi} from './overview.api'
 import {PageState} from '@egon-cola/admin-web-shared'
 
 export const OverviewPage = () => {
-    const {status, bootstrap} = useRbac3Authorization()
+    const {status, about} = useRbac3Authorization()
   const { effectiveTenantId } = useFeatureTenantContext()
   const api = overviewApi(useFeatureApi())
   const query = useQuery({
@@ -18,8 +18,8 @@ export const OverviewPage = () => {
     <Card title="权限治理概览">
       <PageState loading={query.isPending} error={query.error} empty={!query.data}>
         <Row gutter={16}>
-          <Col span={8}><Statistic title="Auth Version" value={bootstrap?.authVersion ?? 0} /></Col>
-          <Col span={8}><Statistic title="Policy Version" value={bootstrap?.policyVersion ?? 0} /></Col>
+          <Col span={8}><Statistic title="Auth Version" value={about?.authVersion ?? 0} /></Col>
+          <Col span={8}><Statistic title="Policy Version" value={about?.policyVersion ?? 0} /></Col>
         </Row>
       </PageState>
     </Card>

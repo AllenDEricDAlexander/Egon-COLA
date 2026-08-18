@@ -7,7 +7,7 @@ import {AuthenticationShell} from './AuthenticationShell'
 describe('authentication shell', () => {
   it('offers unified SSO without local username, password, or token fields', async () => {
     const client = {
-        getBootstrap: async () => {
+        getAbout: async () => {
         throw new Rbac3RequestError({
           status: 401,
           code: 'AUTHENTICATION_REQUIRED',

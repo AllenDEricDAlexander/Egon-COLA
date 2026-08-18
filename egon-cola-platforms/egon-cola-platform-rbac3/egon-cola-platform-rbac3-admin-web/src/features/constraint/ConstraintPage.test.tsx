@@ -9,7 +9,7 @@ import {ConstraintPage, validateDsdRoleSelection} from './ConstraintPage'
 const wrapper = ({ children }: PropsWithChildren) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const sdk = {
-    getBootstrap: async () => ({
+    getAbout: async () => ({
         user: {id: '7', tenantId: '42', identitySub: 'constraint-test', status: 'ACTIVE'},
       permissions: ['system:authorization-constraint:read'],
         fieldPolicies: {}, activeRoleContexts: [], apps: [], menus: [], routes: [], actions: [],

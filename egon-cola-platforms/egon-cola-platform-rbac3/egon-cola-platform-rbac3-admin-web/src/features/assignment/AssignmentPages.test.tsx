@@ -34,7 +34,7 @@ describe('assignment pages', () => {
 
 const wrapper = (request: FeatureApiClient['request'], permissions: readonly string[]) => ({ children }: PropsWithChildren) => {
   const sdk = {
-    getBootstrap: async () => ({
+    getAbout: async () => ({
         user: {id: '7', tenantId: '9', identitySub: 'assignment-test', status: 'ACTIVE'},
         permissions,
         fieldPolicies: {},

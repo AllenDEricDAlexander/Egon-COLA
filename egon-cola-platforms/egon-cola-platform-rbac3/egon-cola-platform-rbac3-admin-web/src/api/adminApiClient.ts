@@ -1,5 +1,4 @@
 import {
-    type ApiEnvelope,
     Rbac3ApiClient,
     type Rbac3ErrorCode,
     type Rbac3ErrorResponse,
@@ -43,16 +42,17 @@ export const createAdminApiClients = (
       })
     }
     if (!response.ok) throw await responseError(response)
-    const envelope = await readJson<ApiEnvelope<T>>(response)
-    if (envelope === null || typeof envelope !== 'object' || !('data' in envelope)) {
+    const envelope = await readJson<ResultRecord<T> | LegacyDataEnvelope<T>>(response)
+    if (isLegacyDataEnvelope(envelope)) return envelope.data
+    if (envelope === null || typeof envelope !== 'object' || !('data' in envelope) || envelope.success !== true) {
       throw new Rbac3RequestError({
         status: response.status,
-        code: 'INVALID_RESPONSE',
-        message: 'RBAC3 response envelope is invalid',
+        code: envelope?.code === 401 ? 'AUTHENTICATION_REQUIRED' : 'INVALID_RESPONSE',
+        message: envelope?.message ?? 'RBAC3 response envelope is invalid',
         retryable: false,
       })
     }
-    return envelope.data
+    return envelope.data as T
   }
 
     return {
@@ -60,6 +60,21 @@ export const createAdminApiClients = (
         featureClient: {request},
     }
 }
+
+interface ResultRecord<T> {
+  readonly success: boolean
+  readonly code: number
+  readonly message: string
+  readonly data: T | null
+}
+
+interface LegacyDataEnvelope<T> {
+  readonly data: T
+  readonly meta: Readonly<Record<string, unknown>>
+}
+
+const isLegacyDataEnvelope = <T,>(value: ResultRecord<T> | LegacyDataEnvelope<T> | null): value is LegacyDataEnvelope<T> =>
+  value !== null && typeof value === 'object' && 'data' in value && 'meta' in value && !('success' in value)
 
 const buildUrl = (
     basePath: string,

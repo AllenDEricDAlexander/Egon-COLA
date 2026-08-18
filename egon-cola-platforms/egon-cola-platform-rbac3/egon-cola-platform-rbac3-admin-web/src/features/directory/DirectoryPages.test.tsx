@@ -10,7 +10,7 @@ import {UserDirectoryPage} from './UserDirectoryPage'
 const wrapper = ({ children }: PropsWithChildren) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const sdk = {
-    getBootstrap: async () => ({
+    getAbout: async () => ({
         user: {id: '7', tenantId: '42', identitySub: 'directory-test', status: 'ACTIVE'},
       permissions: ['system:user:read', 'system:directory:sync'],
         fieldPolicies: {}, activeRoleContexts: [], apps: [], menus: [], routes: [], actions: [],

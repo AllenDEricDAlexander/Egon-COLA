@@ -8,9 +8,9 @@ import {applicationRouteDescriptors, isRouteAllowed, resolveApplicationLanding, 
 import type {FeatureRouteDescriptor} from '../features/shared/RouteDescriptor'
 
 export const ApplicationRouter = () => {
-    const {bootstrap} = useRbac3Authorization()
-  if (!bootstrap) return null
-  const landing = resolveApplicationLanding(bootstrap)
+    const {about} = useRbac3Authorization()
+  if (!about) return null
+  const landing = resolveApplicationLanding(about)
   const fallback = landing === null
     ? <Result status="403" title="没有可访问页面" subTitle="当前激活角色没有可用的本地路由。" />
     : <Navigate to={landing} replace />
@@ -27,24 +27,20 @@ export const ApplicationRouter = () => {
 }
 
 const RouteAccessGuard = ({ route, children }: PropsWithChildren<{ readonly route: FeatureRouteDescriptor }>) => {
-    const {bootstrap} = useRbac3Authorization()
-  if (!bootstrap || !isRouteAllowed(bootstrap, route)) return <Result status="403" title="无权访问此页面" subTitle="路由已在客户端隐藏，服务端仍会独立执行授权校验。" />
+    const {about} = useRbac3Authorization()
+  if (!about || !isRouteAllowed(about, route)) return <Result status="403" title="无权访问此页面" subTitle="路由已在客户端隐藏，服务端仍会独立执行授权校验。" />
   return children
 }
 
 const AdminLayout = ({ children }: PropsWithChildren) => {
-    const {bootstrap} = useRbac3Authorization()
-  if (!bootstrap) return null
+    const {about} = useRbac3Authorization()
+  if (!about) return null
   // 导航由 SDK 的 visibleNavigation 提供（含权限过滤），shared 只负责渲染与高亮。
   const config: EnterpriseLayoutConfig = {
     platformName: 'RBAC3 权限平台',
-    navigation: visibleNavigation(bootstrap).map((item) => ({
-      key: item.key,
-      label: item.title,
-      path: item.path,
-    })),
+    navigation: visibleNavigation(about),
     user: {
-        name: bootstrap.user.identitySub,
+        name: about.user.subject,
         menu: [],
     },
     footer: { version },

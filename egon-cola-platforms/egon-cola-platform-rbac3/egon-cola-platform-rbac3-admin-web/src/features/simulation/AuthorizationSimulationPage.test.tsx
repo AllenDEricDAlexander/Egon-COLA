@@ -8,7 +8,7 @@ import {AuthorizationSimulationPage} from './AuthorizationSimulationPage'
 
 const wrapper = ({ children }: PropsWithChildren) => {
   const sdk = {
-    getBootstrap: async () => ({
+        getAbout: async () => ({
         user: {id: '7', tenantId: '9', identitySub: 'simulation-test', status: 'ACTIVE'},
         authVersion: 2,
         policyVersion: 4,

@@ -8,7 +8,7 @@ import {ManagementPolicyPage} from './ManagementPolicyPage'
 
 const wrapper = ({ children }: PropsWithChildren) => {
   const sdk = {
-    getBootstrap: async () => ({
+    getAbout: async () => ({
         user: {id: '7', tenantId: '9', identitySub: 'policy-test', status: 'ACTIVE'},
       permissions: ['system:management-policy:read', 'system:management-policy:manage'],
       fieldPolicies: {}, activeRoleContexts: [], apps: [], menus: [], routes: [], actions: [],

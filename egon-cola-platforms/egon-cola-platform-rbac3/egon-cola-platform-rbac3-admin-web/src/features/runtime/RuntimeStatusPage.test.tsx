@@ -8,7 +8,7 @@ import {RuntimeStatusPage} from './RuntimeStatusPage'
 
 const wrapper = ({ children }: PropsWithChildren) => {
     const sdk = {
-        getBootstrap: async () => ({
+        getAbout: async () => ({
             user: {
                 id: '7',
                 tenantId: '9',
