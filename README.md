@@ -2,80 +2,67 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-> Java 21 clean layered architecture scaffolding and reusable Spring Boot components.
+Egon-COLA is a Java 21 Maven multi-module project that provides cleanly layered project scaffolding, reusable Spring Boot components, and deployable enterprise platform capabilities. It gives business teams a consistent engineering direction while leaving business rules and domain details in the consuming application.
 
 [![Fast CI](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci.yaml/badge.svg)](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci.yaml)
-[![Strong CI](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci_java_compatibility.yaml/badge.svg)](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci_java_compatibility.yaml)
+[![Java Compatibility](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci_java_compatibility.yaml/badge.svg)](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci_java_compatibility.yaml)
 [![Java](https://img.shields.io/badge/Java-21-blue.svg)](https://openjdk.org/projects/jdk/21/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.x-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![License](https://img.shields.io/badge/license-MIT%20%2F%20LGPL--2.1-blue.svg)](#license)
 
-Egon-COLA is a Java 21 and Spring Boot 3.x project scaffold and reusable component collection. It does not try to write an entire business system for you. Instead, it constrains the parts of an enterprise Java project that most often drift: project structure, layer boundaries, entry-point adapters, component reuse, and new-project initialization.
+## Features
 
-In short, Egon-COLA establishes the engineering direction while business teams retain ownership of business details.
+- **Project scaffolding**: Generate light, service, and web business projects with Maven Archetypes.
+- **Layering conventions**: Provide explicit boundaries for `common`, `facade`, `domain`, `application`, `infrastructure`, `adapter`, and `starter` layers.
+- **Reusable components**: Offer common contracts, IDs, tracing, dynamic thread pools, RPC, rule engines, access governance, method extension, transactional outbox, and bytecode tooling.
+- **Enterprise platforms**: Include Dynamic Config Center, Gateway, Unified Identity Provider, and RBAC3 permission platform modules.
+- **Architecture verification**: Support build-time architecture rules, baselines, reports, and optional runtime bytecode enhancements.
+- **Compatibility verification**: Run Maven builds, generated-project verification, Docker-backed tests, and Java compatibility checks in CI.
 
-## Project Positioning
+## Architecture
 
-Egon-COLA focuses on three capabilities:
+The repository is organized into three Maven reactors:
 
-| Capability | Description |
-|---|---|
-| Project scaffolding | Generate light, service, and web business project skeletons through Maven Archetypes. |
-| Layering conventions | Standardize the boundaries of `common / facade / domain / application / infrastructure / adapter / starter`. |
-| Component ecosystem | Provide reusable components, starters, a BOM, test utilities, and component development conventions. |
+| Reactor | Responsibility | Typical consumer |
+|---|---|---|
+| `egon-cola-archetypes` | Project templates and generated-project fixtures. | New business projects. |
+| `egon-cola-components` | Reusable libraries, Spring Boot starters, BOM, and component tests. | Business applications and platform services. |
+| `egon-cola-platforms` | Independently deployable infrastructure systems and control planes. | Platform operators and enterprise services. |
 
-Egon-COLA is an engineering foundation rather than a complete business framework. Business systems can choose components and technologies as needed; the architecture constrains direction without prescribing every package name or forcing a heavyweight DDD template.
+The intended dependency direction is:
 
-## Repository Layout
-
-```text
-Egon-COLA
-├── .github/                  # GitHub Actions workflows
-├── .mvn/wrapper/             # Maven Wrapper
-├── cola-samples/             # Example projects generated from archetypes
-│   ├── light/
-│   ├── fable/
-│   └── fable-web/
-├── docs/superpowers/         # Design specifications and execution plans
-├── egon-cola-archetypes/     # Maven Archetype projects
-│   ├── egon-cola-archetype-light/
-│   ├── egon-cola-archetype-service/
-│   ├── egon-cola-archetype-web/
-│   ├── architecture-mermaid-diagrams.md
-│   └── code-style-abstract.md
-├── egon-cola-components/     # Reusable components, starters, BOM, and component tests
-│   ├── egon-cola-components-bom/
-│   ├── egon-cola-component-common/
-│   │   └── egon-cola-component-common-id-starter/
-│   ├── egon-cola-component-dynamic-thread-pool/
-│   ├── egon-cola-component-rpc/
-│   ├── egon-cola-component-rule-engine/
-│   ├── egon-cola-component-access-guard-starter/
-│   ├── egon-cola-component-method-extension/
-│   ├── egon-cola-component-transactional-outbox/
-│   └── egon-cola-component-bytecode/
-├── egon-cola-platforms/      # Enterprise infrastructure platforms and their shared parent POM
-│   ├── egon-cola-platform-dynamic-config-center/
-│   └── egon-cola-platform-gateway/
-├── scripts/                  # Local verification, version updates, and release notes
-├── mvnw
-├── mvnw.cmd
-└── pom.xml
+```mermaid
+flowchart LR
+    Archetypes["Maven Archetypes"] -->|generate| Business["Business Projects"]
+    BOM["Components BOM"] -. manages versions .-> Components["Reusable Components"]
+    Business -->|consume| Components
+    Platforms["Enterprise Platforms"] -->|consume| Components
 ```
 
-## Technology Versions
+Generated business projects use the following layered direction:
 
-| Technology      | Version             |
-|----------------|-------------------|
-| JDK            | 21                |
-| Maven Wrapper  | 3.9.14            |
-| Spring Boot    | 3.5.16            |
-| Dubbo          | 3.3.6             |
-| MapStruct Plus | 1.5.1             |
-| Lombok         | 1.18.38 / 1.18.46 |
-| JUnit Jupiter  | 5.12.2            |
+```text
+adapter -> application -> domain
+adapter -> facade
+infrastructure -> domain
+starter -> application / domain / infrastructure
+common is shared by the layers where the generated project contract allows it
+```
+
+The exact rules differ between the light, service, and web archetypes. See the architecture documents under [`egon-cola-archetypes`](egon-cola-archetypes/) and [`egon-cola-components`](egon-cola-components/) before extending a generated project.
+
+## Requirements
+
+- JDK 21 or a later JDK. Java 21 is the project baseline.
+- Maven 3.9.14 through the included Maven Wrapper (`./mvnw`).
+- Git for source checkout and contribution workflows.
+- Docker for Docker-backed integration tests and platform image builds.
+- Node.js 24 for the Gateway Admin Web and RBAC3 web workflows. Java-only builds do not require Node.js.
+- Redis, PostgreSQL, or other external services only when running the corresponding component or platform integration flow. See the module README for the exact topology.
 
 ## Quick Start
+
+Clone the repository and run the root reactor build:
 
 ```bash
 git clone https://github.com/AllenDEricDAlexander/Egon-COLA.git
@@ -83,30 +70,15 @@ cd Egon-COLA
 ./mvnw -V --no-transfer-progress clean install
 ```
 
-To verify the RPC component together with its required DDC platform client:
+Run a focused RPC contract verification when iterating on the RPC component:
 
 ```bash
-./mvnw -B -ntp -pl :egon-cola-component-rpc-test-contract -am test
+./mvnw -B -ntp \
+  -pl :egon-cola-component-rpc-test-contract \
+  -am test
 ```
 
-## Local Verification
-
-Quick verification, equivalent to the core Fast CI build:
-
-```bash
-./mvnw -V --no-transfer-progress clean install
-```
-
-For the host-local unified IdP, RBAC3, DDC, Gateway, and complete MCP topology,
-use the [unified identity and MCP local runbook](docs/operations/unified-identity-mcp-local-runbook.md).
-
-The core Strong CI build runs separately on JDK 21 and JDK 25. The complete workflow also verifies generated archetype projects and Docker images; see `.github/workflows/ci_java_compatibility.yaml` for the exact steps.
-
-```bash
-./mvnw -B -ntp clean install
-```
-
-Generation verification for all three archetypes:
+Verify all three archetypes and their generated projects:
 
 ```bash
 ./mvnw -B -ntp \
@@ -114,189 +86,23 @@ Generation verification for all three archetypes:
   -am clean integration-test
 ```
 
-## Generating the Three Archetypes from a Remote Repository
+For a complete host-local identity, DDC, Gateway, RBAC3, RPC, and MCP topology, use the [unified identity and MCP local runbook](docs/operations/unified-identity-mcp-local-runbook.md).
 
-Egon-COLA currently provides three Maven Archetypes:
+## Maven Dependency
 
-| Archetype | Use case | Generated project |
-|---|---|---|
-| `egon-cola-archetype-light` | A lightweight single-module project for small services, component tests, and quick verification. | A single-module project in the `student-management` style. |
-| `egon-cola-archetype-service` | A backend-only service that exposes Dubbo3 Triple RPC / MQ capabilities without HTTP Controllers. | A multi-module project in the `student-management-evaluation` style. |
-| `egon-cola-archetype-web` | A complete web business service with HTTP adapters, Dubbo3 Triple facades, application, domain, and infrastructure layers. | A multi-module project in the `student-management-organization` style. |
-
-### Generate a light Project
-
-```bash
-mvn -B archetype:generate \
-  -DgroupId='top.egon' \
-  -DartifactId='light' \
-  -Dversion='1.0.0-SNAPSHOT' \
-  -Dpackage='top.egon.light' \
-  -DarchetypeGroupId='top.egon' \
-  -DarchetypeArtifactId='egon-cola-archetype-light' \
-  -DarchetypeVersion='5.3.3' \
-  -DinteractiveMode='false'
-```
-
-### Generate a service Project
-
-```bash
-mvn -B archetype:generate \
-  -DgroupId='top.egon' \
-  -DartifactId='fable' \
-  -Dversion='1.0.0-SNAPSHOT' \
-  -Dpackage='top.egon.fable' \
-  -DarchetypeGroupId='top.egon' \
-  -DarchetypeArtifactId='egon-cola-archetype-service' \
-  -DarchetypeVersion='5.3.3' \
-  -DinteractiveMode='false'
-```
-
-### Generate a web Project
-
-```bash
-mvn -B archetype:generate \
-  -DgroupId='top.egon' \
-  -DartifactId='fable-web' \
-  -Dversion='1.0.0-SNAPSHOT' \
-  -Dpackage='top.egon.fable.web' \
-  -DarchetypeGroupId='top.egon' \
-  -DarchetypeArtifactId='egon-cola-archetype-web' \
-  -DarchetypeVersion='5.3.3' \
-  -DinteractiveMode='false'
-```
-
-After generation, use the target directory as the root of the new repository and open its root `pom.xml` in IntelliJ IDEA.
-
-## Generating the Three Archetypes Locally
-
-Egon-COLA currently provides three Maven Archetypes:
-
-| Archetype | Use case | Generated project |
-|---|---|---|
-| `egon-cola-archetype-light` | A lightweight single-module project for small services, component tests, and quick verification. | A single-module project in the `student-management` style. |
-| `egon-cola-archetype-service` | A backend-only service that exposes Dubbo3 Triple RPC / MQ capabilities without HTTP Controllers. | A multi-module project in the `student-management-evaluation` style. |
-| `egon-cola-archetype-web` | A complete web business service with HTTP adapters, Dubbo3 Triple facades, application, domain, and infrastructure layers. | A multi-module project in the `student-management-organization` style. |
-
-To use the latest archetype from the local repository, run this before generation:
-
-```bash
-./mvnw -V --no-transfer-progress clean install
-```
-
-### Generate a light Project
-
-```bash
-mvn -B archetype:generate \
-  -DgroupId='top.egon' \
-  -DartifactId='light' \
-  -Dversion='1.0.0-SNAPSHOT' \
-  -Dpackage='top.egon.light' \
-  -DarchetypeGroupId='top.egon' \
-  -DarchetypeArtifactId='egon-cola-archetype-light' \
-  -DarchetypeVersion='5.3.3' \
-  -DarchetypeCatalog='local' \
-  -DinteractiveMode='false'
-```
-
-### Generate a service Project
-
-```bash
-mvn -B archetype:generate \
-  -DgroupId='top.egon' \
-  -DartifactId='fable' \
-  -Dversion='1.0.0-SNAPSHOT' \
-  -Dpackage='top.egon.fable' \
-  -DarchetypeGroupId='top.egon' \
-  -DarchetypeArtifactId='egon-cola-archetype-service' \
-  -DarchetypeVersion='5.3.3' \
-  -DarchetypeCatalog='local' \
-  -DinteractiveMode='false'
-```
-
-### Generate a web Project
-
-```bash
-mvn -B archetype:generate \
-  -DgroupId='top.egon' \
-  -DartifactId='fable-web' \
-  -Dversion='1.0.0-SNAPSHOT' \
-  -Dpackage='top.egon.fable.web' \
-  -DarchetypeGroupId='top.egon' \
-  -DarchetypeArtifactId='egon-cola-archetype-web' \
-  -DarchetypeVersion='5.3.3' \
-  -DarchetypeCatalog='local' \
-  -DinteractiveMode='false'
-```
-
-After generation, use the target directory as the root of the new repository and open its root `pom.xml` in IntelliJ IDEA.
-
-## Component Ecosystem
-
-`egon-cola-components` contains reusable runtime capabilities, standalone control-plane
-applications, test projects, and the public Components BOM. The component README files
-are the source of truth for each component's API, configuration, boundaries, and focused
-verification command.
-
-| Component | Main entry point | Scope |
-|---|---|---|
-| [Common](egon-cola-components/egon-cola-component-common/README.md) | `egon-cola-component-common-*`, [`...-id-starter`](egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/README.md) | Common contracts plus Snowflake ID generation and Spring Boot auto-configuration. |
-| [Dynamic Thread Pool](egon-cola-components/egon-cola-component-dynamic-thread-pool/README.md) | `...-starter` | Executor registration, snapshots, Redis changes, resizing, virtual-thread limits, and MDC propagation. |
-| [RPC](egon-cola-components/egon-cola-component-rpc/README.md) | `...-starter` | Protobuf/gRPC Provider and Consumer contracts, DDC registration/discovery, deadlines, and Gateway channels. |
-| [Rule Engine](egon-cola-components/egon-cola-component-rule-engine/README.md) | `...-starter` | Java rule chains, singleton chains of responsibility, rule trees, traces, limits, and listeners. |
-| [Access Guard](egon-cola-components/egon-cola-component-access-guard-starter/README.md) | `...-starter` | One Starter with unified AOP, programmatic, and optional Agent governance. |
-| [Method Extension](egon-cola-components/egon-cola-component-method-extension/README.md) | `...-starter` | AOP or Agent-based business decision handlers before annotated methods. |
-| [Transactional Outbox](egon-cola-components/egon-cola-component-transactional-outbox/README.md) | `...-starter` | PostgreSQL/JDBC at-least-once delivery through HTTP, RabbitMQ, or custom handlers. |
-| [Bytecode](egon-cola-components/egon-cola-component-bytecode/README.md) | API, bridge, runtime, Agent, and starter | Build-time architecture checks plus optional executor, observation, Method Extension, and Access Guard enhancement. |
-| [Components BOM](egon-cola-components/egon-cola-components-bom/README.md) | `egon-cola-components-bom` | Central version management for public component consumption artifacts. |
-
-## Platform Ecosystem
-
-`egon-cola-platforms` contains deployable enterprise infrastructure systems. Its empty
-packaging parent POM aggregates only platform systems and centralizes their dependency
-imports and plugin versions. Platforms may consume public components, while the Components
-BOM does not export platform artifacts.
-
-| Platform | Main entry point | Scope |
-|---|---|---|
-| [Dynamic Config Center](egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.md) | Starter, Admin | Dynamic configuration, Redis leases/service registry, synchronous publish, and standalone control plane. |
-| [Gateway](egon-cola-platforms/egon-cola-platform-gateway/README.md) | Engine, Admin, Starter, Provider Runtime | HTTP/RPC data plane, rule releases, provider discovery, security, observability, and deployment assets. |
-
-Recommended structure for runtime starter-style components:
-
-```text
-egon-cola-component-xxx
-├── pom.xml
-├── egon-cola-component-xxx-starter   # Direct dependency for business systems
-├── egon-cola-component-xxx-test      # Test / example project
-└── egon-cola-component-xxx-admin     # Optional backend management service
-```
-
-Component constraints:
-
-- `egon-cola-component-common` is an aggregator POM; business systems depend on concrete JARs such as `egon-cola-component-common-core`, or on the direct `egon-cola-component-common-id-starter` Spring Boot entry point.
-- Except for pure-JAR foundations such as `common`, runtime starter-style components are consumed through their `starter` module.
-- `starter` must not depend back on `admin`, `test`, or `ui`.
-- `test` is reserved for component self-tests, integration tests, and example startup.
-- `admin` is optional and must be independently deployable when present.
-- Component projects do not contain UI; UI is maintained in a separate frontend repository.
-
-The Gateway Admin Web is the exception to the Maven component layout: it is a private
-React application colocated with the Gateway sources and is built with npm. Gateway
-deployment, frontend, and performance instructions are linked from the Gateway README.
-
-## Using the BOM
-
-Business systems can manage component versions centrally through the BOM:
+Import the Components BOM to keep public component versions aligned. The current repository version is `5.3.3`.
 
 ```xml
+<properties>
+    <egon-cola.version>5.3.3</egon-cola.version>
+</properties>
 
 <dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-components-bom</artifactId>
-            <version>5.2.3</version>
+            <version>${egon-cola.version}</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -304,10 +110,9 @@ Business systems can manage component versions centrally through the BOM:
 </dependencyManagement>
 ```
 
-Then add only the components you need:
+Add only the component entry points required by the business application:
 
 ```xml
-
 <dependencies>
     <dependency>
         <groupId>top.egon</groupId>
@@ -319,84 +124,229 @@ Then add only the components you need:
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-transactional-outbox-starter</artifactId>
+        <artifactId>egon-cola-component-rpc-starter</artifactId>
     </dependency>
 </dependencies>
 ```
 
-The dynamic thread-pool starter is optional; add it only when the business system needs thread-pool governance:
+The BOM manages the public component artifacts, including common, tracing, dynamic thread pool, RPC/DDC adapter, rule engine, access guard, method extension, transactional outbox, and bytecode artifacts. It does not export platform artifacts, test modules, admin applications, or frontend packages. See the [Components BOM README](egon-cola-components/egon-cola-components-bom/README.md) for the authoritative export list.
 
-```xml
-
-<dependencies>
-    <dependency>
-        <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-dynamic-thread-pool-starter</artifactId>
-    </dependency>
-</dependencies>
-```
-
-If a component has not been published to Maven Central, run `./mvnw clean install` in this repository before using it from a business project.
-
-## CI
-
-Fast CI uses `.github/workflows/ci.yaml`, runs on a GitHub-hosted Ubuntu runner, and executes the following separately on JDK 21 and JDK 25 inside a Rocky Linux 10 container:
+If a component version is not available in the remote Maven repository, install the current reactor locally before consuming it from another project:
 
 ```bash
-./mvnw -V --no-transfer-progress -DtrimStackTrace=false clean install
+./mvnw -V --no-transfer-progress clean install
 ```
 
-Strong CI uses `.github/workflows/ci_java_compatibility.yaml`, runs on a GitHub-hosted Ubuntu runner, executes `clean install` separately on JDK 21 and JDK 25 inside a Rocky Linux 10 container, verifies projects generated by all three archetypes, and finally builds a Docker image on the host runner:
+## Configuration
+
+The root project is a library, template, and platform reactor; it does not define one application-wide runtime configuration file. Configuration belongs to the selected component or deployable platform.
+
+Common configuration conventions are:
+
+| Capability | Configuration namespace | Notes |
+|---|---|---|
+| Snowflake IDs | `egon.cola.component.id` | `machine-id` is explicit and required when the starter is enabled. |
+| Dynamic thread pool | `egon.cola.component.dtp` | Configure executor registration, Redis, reporting, and trace propagation. |
+| RPC | `egon.cola.component.rpc` | Configure provider/consumer roles, TLS, deadlines, and metadata. |
+| DDC integration | `egon.cola.component.ddc` | Configure bootstrap targets, Redis, registry leases, and credentials. |
+| Transactional outbox | `egon.cola.component.transactional-outbox` | Configure PostgreSQL/JDBC storage, polling, retry, lease, and delivery channels. |
+
+For example, a Spring Boot application using the ID starter must provide an explicit machine ID:
+
+```yaml
+egon:
+  cola:
+    component:
+      id:
+        enabled: true
+        machine-id: 17
+        max-clock-backward: 5ms
+```
+
+Read the component documentation before copying configuration between environments. In particular, credentials, TLS settings, DDC registry settings, Redis topology, and outbox schema ownership are deployment-specific. The [Gateway and DDC integration guide](egon-cola-platforms/egon-cola-platform-gateway/docs/developer-integration.md) documents the multi-process configuration boundary.
+
+## Usage
+
+### Generate a business project
+
+Egon-COLA provides three Maven Archetypes:
+
+| Archetype | Use case |
+|---|---|
+| `egon-cola-archetype-light` | Lightweight single-module project for small services, component tests, and quick verification. |
+| `egon-cola-archetype-service` | Backend service focused on Dubbo3 Triple RPC and MQ without HTTP Controllers. |
+| `egon-cola-archetype-web` | Multi-module web service with HTTP adapters, facades, application, domain, and infrastructure layers. |
+
+Example:
 
 ```bash
-./mvnw -B -ntp clean install
+mvn -B archetype:generate \
+  -DgroupId=top.egon \
+  -DartifactId=order-service \
+  -Dversion=1.0.0-SNAPSHOT \
+  -Dpackage=top.egon.orders \
+  -DarchetypeGroupId=top.egon \
+  -DarchetypeArtifactId=egon-cola-archetype-web \
+  -DarchetypeVersion=5.3.3 \
+  -DinteractiveMode=false
 ```
 
-## Release
+To generate from the locally built archetype catalog, add `-DarchetypeCatalog=local` after installing the repository with `./mvnw clean install`.
 
-Egon-COLA uses the Sonatype Central Portal release process. DDC is a platform, while the
-RPC component consumes its client SDK and Gateway consumes RPC. Maven topologically sorts
-that graph in the root reactor, so fresh versions must be verified and published from the
-root rather than as separate Components and Platforms releases.
+### Add a component
+
+Import the BOM, select the component's `starter` or pure-JAR entry point, and configure only the capabilities required by the application. Component-specific usage examples are maintained in the linked module READMEs.
+
+### Run a platform
+
+Platforms are deployed as independent applications rather than started by the root project. Start the required platform modules and backing services according to their runbooks:
+
+- [Dynamic Config Center](egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.md)
+- [Gateway](egon-cola-platforms/egon-cola-platform-gateway/README.md)
+- [Unified Identity Provider](egon-cola-platforms/egon-cola-platform-idp/README.md)
+- [RBAC3 Permission Platform](egon-cola-platforms/egon-cola-platform-rbac3/README.md)
+
+## Core Concepts
+
+- **Archetype**: A template for creating a new business project. It defines the initial module layout and dependency direction but does not implement the consuming application's business domain.
+- **Component**: A reusable library or Spring Boot starter. Runtime components expose contracts and auto-configuration; test and admin modules remain development or deployment concerns.
+- **Platform**: A separately deployable enterprise capability such as DDC, Gateway, IDP, or RBAC3. Platforms may consume components, while business applications consume the platform contracts or platform-facing starters required by their topology.
+- **Starter boundary**: A starter is the normal business-application entry point for a runtime component. It owns auto-configuration and should not depend back on admin, test, or UI modules.
+- **Contract versus runtime**: API, contract, and descriptor modules define stable integration surfaces; runtime, engine, admin, and adapter modules implement specific deployment responsibilities.
+- **BOM ownership**: The Components BOM centralizes versions for public component consumption. Platform versioning and platform deployment are managed by the platform reactors and their documentation.
+
+## Extension Points
+
+The repository provides extension points at several boundaries:
+
+- Add or tailor generated project conventions through the Maven Archetype templates.
+- Replace default Spring Boot beans with application-owned beans where a starter documents conditional back-off behavior.
+- Register rules, listeners, policies, access decisions, and method-extension handlers in the corresponding component APIs.
+- Define Protobuf contracts and choose RPC provider, consumer, DDC, or Gateway integration modes.
+- Supply transactional-outbox delivery handlers for custom destinations or use the built-in HTTP and RabbitMQ adapters.
+- Provide bytecode architecture rules, baselines, report writers, or optional runtime agents when the bytecode component is enabled.
+
+Extension points are module-local contracts, not a promise that every module is wired into every platform. Confirm the registration path and lifecycle in the relevant README before relying on an extension in production.
+
+## Project Structure
+
+```text
+Egon-COLA/
+├── .github/                         # GitHub Actions workflows
+├── .mvn/wrapper/                    # Maven Wrapper configuration
+├── docs/                            # Operations runbooks and project documents
+├── egon-cola-archetypes/            # Maven Archetypes and generated-project fixtures
+│   ├── egon-cola-archetype-light/
+│   ├── egon-cola-archetype-service/
+│   ├── egon-cola-archetype-web/
+│   ├── egon-cola-evaluation-facade/
+│   └── egon-cola-organization-facade/
+├── egon-cola-components/             # Reusable components, starters, BOM, and tests
+│   ├── egon-cola-components-bom/
+│   ├── egon-cola-component-common/
+│   ├── egon-cola-component-dynamic-thread-pool/
+│   ├── egon-cola-component-rpc/
+│   ├── egon-cola-component-rule-engine/
+│   ├── egon-cola-component-access-guard-starter/
+│   ├── egon-cola-component-method-extension/
+│   ├── egon-cola-component-transactional-outbox/
+│   └── egon-cola-component-bytecode/
+├── egon-cola-platforms/              # Deployable infrastructure platforms
+│   ├── egon-cola-platform-dynamic-config-center/
+│   ├── egon-cola-platform-gateway/
+│   ├── egon-cola-platform-idp/
+│   └── egon-cola-platform-rbac3/
+├── scripts/                          # Release and repository helper scripts
+├── mvnw
+├── mvnw.cmd
+└── pom.xml                           # Root aggregation parent, version 5.3.3
+```
+
+Useful documentation entry points include the [component architecture guide](egon-cola-components/egon-cola-components-architecture.md), [archetype architecture diagrams](egon-cola-archetypes/architecture-mermaid-diagrams.md), and [Maven deployment guide](scripts/maven-deploy.md).
+
+## Deployment
+
+Components are normally consumed as Maven dependencies. The DDC, Gateway, IDP, and RBAC3 modules are platform applications with their own runtime configuration, Docker/deployment assets, backing services, and operational boundaries.
+
+For Maven Central publication, the root reactor should be verified and deployed as one dependency-aware graph:
 
 ```bash
 ./mvnw -B -ntp -Prelease -DskipTests verify
 ./mvnw -B -ntp -Prelease -DskipTests clean deploy
 ```
 
-See [scripts/maven-deploy.md](scripts/maven-deploy.md) for detailed steps.
+Use [scripts/maven-deploy.md](scripts/maven-deploy.md) for release prerequisites and credential setup. For local platform deployment, start only the platform modules and external services required by the chosen topology; the root build does not start them automatically.
 
-## Documentation Guide
+## Compatibility
 
-| Document | Description |
-|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------|
-| [egon-cola-archetypes/code-style-abstract.md](egon-cola-archetypes/code-style-abstract.md) | Coding style for the large-monolith light domain-layered architecture. |
-| [egon-cola-archetypes/architecture-mermaid-diagrams.md](egon-cola-archetypes/architecture-mermaid-diagrams.md) | Mermaid diagrams for layer dependencies, call flows, and architecture boundaries. |
-| [egon-cola-archetypes/egon-cola-archetype-light/large-monolith-light-domain-architecture.md](egon-cola-archetypes/egon-cola-archetype-light/large-monolith-light-domain-architecture.md) | light archetype architecture. |
-| [egon-cola-archetypes/egon-cola-archetype-service/student-management-service-only-rpc-mq-architecture.md](egon-cola-archetypes/egon-cola-archetype-service/student-management-service-only-rpc-mq-architecture.md) | service archetype architecture. |
-| [egon-cola-archetypes/egon-cola-archetype-web/multi-project-multi-module-architecture.md](egon-cola-archetypes/egon-cola-archetype-web/multi-project-multi-module-architecture.md) | web archetype architecture. |
-| [egon-cola-components/egon-cola-components-architecture.md](egon-cola-components/egon-cola-components-architecture.md) | Multi-component project structure conventions. |
-| [egon-cola-components/egon-cola-components-bom/README.md](egon-cola-components/egon-cola-components-bom/README.md) | Public component versions and export boundaries. |
-| [egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/README.md](egon-cola-components/egon-cola-component-common/egon-cola-component-common-id-starter/README.md) | Snowflake ID configuration, guarantees, and operational boundaries. |
-| [egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.md](egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.md) | Dynamic configuration, leases, registry, and publish protocol. |
-| [egon-cola-components/egon-cola-component-rpc/README.md](egon-cola-components/egon-cola-component-rpc/README.md) | Protobuf/gRPC Provider and Consumer contract. |
-| [egon-cola-platforms/egon-cola-platform-gateway/README.md](egon-cola-platforms/egon-cola-platform-gateway/README.md) | HTTP/RPC Gateway platform and deployment links. |
-| [egon-cola-components/egon-cola-component-transactional-outbox/README.md](egon-cola-components/egon-cola-component-transactional-outbox/README.md) | PostgreSQL/JDBC transactional outbox usage and guarantees. |
-| [scripts/maven-deploy.md](scripts/maven-deploy.md) | Maven Central release instructions. |
+| Item | Supported baseline or current value |
+|---|---|
+| Project version | `5.3.3` |
+| Java | 21 baseline; CI verifies JDK 21 and JDK 25 |
+| Maven Wrapper | 3.9.14 |
+| Spring Boot | 3.5.16 in the component and archetype reactors |
+| Frontend runtime | Node.js 24 for the Gateway Admin Web and RBAC3 web workflows |
+| CI container | Rocky Linux 10 for the main Java compatibility workflows |
 
-## Project Origin
+The Java source baseline is 21 even though CI also checks a newer JDK. Frontend modules have their own package manifests and lockfiles; do not infer frontend compatibility from the Java reactor alone.
 
-Egon-COLA was originally forked from [alibaba/COLA](https://github.com/alibaba/COLA).
+## FAQ
 
-This repository is now maintained as an independent architecture project.
-The original fork relationship has been intentionally detached to avoid accidental upstream synchronization and to keep
-the project direction independent.
+### Is Egon-COLA a complete business framework?
+
+No. It is an engineering foundation: scaffolding, reusable components, platform capabilities, and boundary checks. The consuming project owns its business model, workflows, persistence decisions, and domain rules.
+
+### Should a business application depend on a parent or an admin module?
+
+Usually not. Import the Components BOM and depend on the component's documented starter or pure-JAR entry point. Admin and test modules are intended for platform operation or component verification.
+
+### Does the Components BOM include DDC, Gateway, IDP, or RBAC3?
+
+No. The BOM manages public reusable component artifacts. Platform artifacts have separate module boundaries and deployment documentation.
+
+### Do Maven tests prove a production topology?
+
+No. Unit, module, and Docker-backed tests prove the behavior covered by those tests. They do not by themselves prove production Redis/PostgreSQL availability, DNS or VIP routing, credentials, multi-process deployment, or high-availability behavior.
+
+### Where should configuration questions be answered?
+
+Start with the README for the exact component or platform, then follow its runbook for external services, credentials, TLS, and deployment topology. Avoid copying a development configuration into production without reviewing those boundaries.
+
+## Roadmap
+
+The current roadmap direction is:
+
+- Keep the Java 21 baseline and cross-JDK compatibility verification healthy.
+- Continue aligning DDC, Gateway, Unified Identity, and RBAC3 contracts with their local runbooks.
+- Expand archetype generation examples and architecture checks without forcing unnecessary framework conventions on business projects.
+- Improve operational documentation for local and production-like platform topologies.
+- Maintain the Components BOM and Maven Central release workflow as the public consumption surface evolves.
+
+This list is directional. Approved design documents, issues, and release decisions are the authority for committed scope and dates.
+
+## Contributing
+
+1. Read the README for the component, platform, or archetype being changed.
+2. Keep the change scoped to the requested behavior and preserve unrelated worktree changes.
+3. Run the smallest relevant verification first, then the root build when the change crosses module boundaries.
+4. Update the affected documentation and tests together when contracts or configuration change.
+5. Open a pull request with the motivation, changed modules, validation commands, and any runtime-validation boundary.
+
+The default repository verification is:
+
+```bash
+./mvnw -B -ntp clean install
+```
+
+For generated projects, also run the archetype integration-test command from [Quick Start](#quick-start). Platform frontend and live-topology checks are documented in their platform-specific workflows and runbooks.
+
+## Changelog
+
+The current Maven project version is `5.3.3`, as declared by the root `pom.xml`. There is no standalone `CHANGELOG.md` in the repository; release history is maintained through Git history and the [GitHub Releases page](https://github.com/AllenDEricDAlexander/Egon-COLA/releases). Module READMEs document the current contracts, configuration, and validation boundaries for each feature.
 
 ## License
 
-This project is dual-licensed under the MIT License and the GNU Lesser General Public License v2.1.
+Egon-COLA is dual-licensed. You may use the project under either:
 
-You may choose either license:
-
-- MIT License, see [LICENSE-MIT](LICENSE-MIT).
-- GNU LGPL v2.1, see [LICENSE-LGPL-2.1](LICENSE-LGPL-2.1).
+- [MIT License](LICENSE-MIT)
+- [GNU Lesser General Public License v2.1](LICENSE-LGPL-2.1)
