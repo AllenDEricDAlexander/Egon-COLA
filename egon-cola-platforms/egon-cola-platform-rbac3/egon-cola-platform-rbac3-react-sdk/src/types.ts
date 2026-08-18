@@ -7,7 +7,7 @@ export type FieldAccessLevel = 'NONE' | 'MASKED_READ' | 'READ' | 'WRITE'
 
 export type Rbac3State =
   | 'UNINITIALIZED'
-  | 'LOADING_BOOTSTRAP'
+  | 'LOADING_ABOUT'
   | 'ACTIVATION_REQUIRED'
   | 'REPLACING_ACTIVE_ROLES'
   | 'READY'
@@ -81,14 +81,13 @@ export interface RoleActivationCandidateView {
   readonly calculatedAt: InstantString
 }
 
-export interface BootstrapUser {
-  readonly id: BigintId
-    readonly tenantId: string
-    readonly identitySub: string
-    readonly status: string
+export interface AboutUser {
+  readonly subject: string
+  readonly tenantId: string
+  readonly status: string
 }
 
-export interface BootstrapActiveRoleContext {
+export interface AboutActiveRoleContext {
   readonly applicationCode: string
   readonly activationRoot: ActivationRoot
   readonly effectiveRoleIds: readonly BigintId[]
@@ -96,19 +95,21 @@ export interface BootstrapActiveRoleContext {
   readonly landingRoute: string | null
 }
 
-export interface BootstrapView {
-  readonly user: BootstrapUser
-  readonly activeRoleContexts: readonly BootstrapActiveRoleContext[]
+export interface Rbac3AboutView {
+  readonly user: AboutUser
+  readonly currentApplicationCode: string | null
+  readonly activeRoles: readonly ActiveRoleDescriptor[]
   readonly permissions: readonly string[]
-  readonly apps: readonly ManifestResource[]
-  readonly menus: readonly ManifestResource[]
-  readonly routes: readonly ManifestResource[]
-  readonly actions: readonly ManifestResource[]
   readonly fieldPolicies: Readonly<Record<string, FieldPolicyDecision>>
-  readonly defaultApplicationCode: string | null
-  readonly defaultRoute: string | null
+  readonly landingRouteCode: string | null
   readonly authVersion: number
   readonly policyVersion: number
+}
+
+export interface ActiveRoleDescriptor {
+  readonly roleId: BigintId
+  readonly roleCode: string
+  readonly applicationCode: string
 }
 
 export interface AuthorizationDecision {
@@ -213,7 +214,7 @@ export interface AppAuthorizationContext {
   readonly permissions: readonly string[]
   readonly dataScopes: Readonly<Record<string, DataScopeDecision>>
   readonly fieldPolicies: Readonly<Record<string, FieldPolicyDecision>>
-  readonly resources: readonly ManifestResource[]
+  readonly resourceCodes: readonly string[]
   readonly landingRouteCode: string | null
 }
 
@@ -230,7 +231,7 @@ export interface UserAuthorizationSnapshot {
     readonly expiresAt: InstantString
 }
 
-export interface ManifestResource {
+export interface CiFrontendResourceDefinition {
   readonly code: string
   readonly parentCode: string | null
   readonly name: string | null
@@ -261,20 +262,16 @@ export interface ResourceFieldDefinition {
   readonly exportable: boolean
 }
 
-export interface ResourceManifest {
+export interface CiResourceReportDefinition {
   readonly schemaVersion: string
   readonly applicationCode: string
   readonly applicationName: string
   readonly artifactVersion: string
   readonly buildId: string
-  readonly manifestVersion: number
+  readonly applicationVersion: number
   readonly generatedAt: InstantString
   readonly checksum: string
-  readonly apps: readonly ManifestResource[]
-  readonly menus: readonly ManifestResource[]
-  readonly routes: readonly ManifestResource[]
-  readonly actions: readonly ManifestResource[]
-  readonly apis: readonly ManifestResource[]
+  readonly resources: readonly CiFrontendResourceDefinition[]
   readonly fieldDefinitions: readonly ResourceFieldDefinition[]
 }
 
@@ -342,14 +339,15 @@ export interface Rbac3Client {
   replaceActiveRoles(
     request: ReplaceActiveRolesRequest,
   ): Promise<ReplaceActiveRolesResult>
-  getBootstrap(): Promise<BootstrapView>
+  getAbout(): Promise<Rbac3AboutView>
 }
 
-export interface ApiEnvelope<T> {
-  readonly data: T
-  readonly meta: {
-    readonly requestId: string
-    readonly traceId: string
-    readonly timestamp: InstantString
-  }
+export interface ResultRecord<T> {
+  readonly success: boolean
+  readonly code: number
+  readonly status: string
+  readonly message: string
+  readonly data: T | null
+  readonly traceId: string | null
+  readonly timestamp: number
 }

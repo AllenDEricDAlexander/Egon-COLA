@@ -17,7 +17,7 @@ describe('RBAC3 TypeScript contracts', () => {
     expect(typeof root.applicationId).toBe('string')
   })
 
-  it('keeps manifest field definitions aligned with the Java contract', () => {
+  it('keeps field definitions aligned with the Java contract', () => {
     const field: ResourceFieldDefinition = {
         resourceCode: 'payment-detail', fieldCode: 'bank-account-no', jsonPath: '$.bankAccountNo',
         dataType: 'STRING', sensitivity: 'HIGH', defaultAccess: 'MASKED_READ',

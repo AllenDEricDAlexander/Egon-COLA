@@ -5,13 +5,13 @@ import {
 } from './rbac3StateMachine'
 
 describe('RBAC3 state machine', () => {
-  it('requires explicit bootstrap before anything is ready', () => {
+  it('requires explicit about before anything is ready', () => {
     const loading = transitionRbac3State(initialRbac3MachineState, {
       type: 'INITIALIZE',
     })
 
-    expect(loading.status).toBe('LOADING_BOOTSTRAP')
-    expect(loading.bootstrap).toBeNull()
+    expect(loading.status).toBe('LOADING_ABOUT')
+    expect(loading.about).toBeNull()
   })
 
   it('enters activation required after login without an active role', () => {
@@ -21,13 +21,13 @@ describe('RBAC3 state machine', () => {
     })
 
     expect(state.status).toBe('ACTIVATION_REQUIRED')
-    expect(state.bootstrap).toBeNull()
+    expect(state.about).toBeNull()
   })
 
   it('keeps the previous ready snapshot after a mutex conflict', () => {
     const ready = transitionRbac3State(initialRbac3MachineState, {
-      type: 'BOOTSTRAP_SUCCEEDED',
-      bootstrap: {
+      type: 'ABOUT_SUCCEEDED',
+      about: {
         permissions: ['orders:read'],
       } as never,
     })
@@ -40,7 +40,7 @@ describe('RBAC3 state machine', () => {
     })
 
     expect(restored.status).toBe('READY')
-    expect(restored.bootstrap).toBe(ready.bootstrap)
+    expect(restored.about).toBe(ready.about)
     expect(restored.errorCode).toBe('APP_ROLE_ACTIVATION_MUTEX_VIOLATION')
   })
 

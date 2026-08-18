@@ -52,8 +52,8 @@ export const Rbac3Provider = ({
     const initialize = useCallback((): Promise<void> => {
         if (initializePromise.current === null) {
             dispatch({type: 'INITIALIZE'})
-            initializePromise.current = client.getBootstrap()
-                .then((bootstrap) => dispatch({type: 'BOOTSTRAP_SUCCEEDED', bootstrap}))
+            initializePromise.current = client.getAbout()
+                .then((about) => dispatch({type: 'ABOUT_SUCCEEDED', about}))
                 .catch(async (error: unknown) => {
                     const classified = classifyError(error)
                     if (classified.code === 'ROLE_ACTIVATION_REQUIRED') {
@@ -88,8 +88,8 @@ export const Rbac3Provider = ({
                 await loadActivation()
                 return result
             }
-            const bootstrap = await client.getBootstrap()
-            dispatch({type: 'BOOTSTRAP_SUCCEEDED', bootstrap})
+            const about = await client.getAbout()
+            dispatch({type: 'ABOUT_SUCCEEDED', about})
             return result
         } catch (error) {
             const classified = classifyError(error)

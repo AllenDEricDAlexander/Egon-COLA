@@ -1,8 +1,8 @@
-import {type Rbac3ErrorCode, type Rbac3ErrorResponse, Rbac3RequestError,} from '../errors'
+import {type Rbac3ErrorCode, Rbac3RequestError,} from '../errors'
 import type {
     ActiveRoleSetView,
-    ApiEnvelope,
-    BootstrapView,
+    Rbac3AboutView,
+    ResultRecord,
     Rbac3Client,
     ReplaceActiveRolesRequest,
     ReplaceActiveRolesResult,
@@ -41,8 +41,8 @@ export class Rbac3ApiClient implements Rbac3Client {
     })
   }
 
-  getBootstrap(): Promise<BootstrapView> {
-      return this.request('/api/v1/auth/bootstrap')
+  getAbout(): Promise<Rbac3AboutView> {
+      return this.request('/api/v1/auth/about')
   }
 
     private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -70,12 +70,21 @@ export class Rbac3ApiClient implements Rbac3Client {
 
         if (!response.ok) throw await toRequestError(response)
 
-    const envelope = await readJson<ApiEnvelope<T>>(response)
-    if (envelope === null || typeof envelope !== 'object' || !('data' in envelope)) {
+    const envelope = await readJson<ResultRecord<T>>(response)
+    if (envelope === null || typeof envelope !== 'object'
+      || envelope.success !== true || !('data' in envelope)) {
       throw new Rbac3RequestError({
         status: response.status,
         code: 'INVALID_RESPONSE',
         message: 'RBAC3 response envelope is invalid',
+        retryable: false,
+      })
+    }
+    if (envelope.data === null) {
+      throw new Rbac3RequestError({
+        status: response.status,
+        code: 'INVALID_RESPONSE',
+        message: 'RBAC3 response data is null',
         retryable: false,
       })
     }
@@ -97,13 +106,18 @@ const readJson = async <T>(response: Response): Promise<T | null> => {
 }
 
 const toRequestError = async (response: Response): Promise<Rbac3RequestError> => {
-  const body = await readJson<Rbac3ErrorResponse>(response)
-  const code = body?.error?.code as Rbac3ErrorCode | undefined
+  const body = await readJson<{
+    code?: number
+    status?: string
+    message?: string
+    traceId?: string
+  }>(response)
+  const code = body?.status as Rbac3ErrorCode | undefined
   return new Rbac3RequestError({
     status: response.status,
     code: code ?? 'INVALID_RESPONSE',
-    message: body?.error?.message ?? 'RBAC3 request was rejected',
-    retryable: body?.error?.retryable ?? response.status >= 500,
-    traceId: body?.meta?.traceId,
+    message: body?.message ?? 'RBAC3 request was rejected',
+    retryable: response.status >= 500,
+    traceId: body?.traceId,
   })
 }

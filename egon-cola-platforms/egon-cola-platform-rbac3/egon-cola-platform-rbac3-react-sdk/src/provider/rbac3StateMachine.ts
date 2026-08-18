@@ -1,8 +1,8 @@
-import type {ActiveRoleSetView, BootstrapView, Rbac3State, RoleActivationCandidateView,} from '../types'
+import type {ActiveRoleSetView, Rbac3AboutView, Rbac3State, RoleActivationCandidateView,} from '../types'
 
 export interface Rbac3MachineState {
   readonly status: Rbac3State
-  readonly bootstrap: BootstrapView | null
+  readonly about: Rbac3AboutView | null
   readonly candidates: RoleActivationCandidateView | null
   readonly activeRoles: ActiveRoleSetView | null
   readonly errorCode: string | null
@@ -10,7 +10,7 @@ export interface Rbac3MachineState {
 
 export type Rbac3MachineEvent =
   | { readonly type: 'INITIALIZE' }
-  | { readonly type: 'BOOTSTRAP_SUCCEEDED'; readonly bootstrap: BootstrapView }
+  | { readonly type: 'ABOUT_SUCCEEDED'; readonly about: Rbac3AboutView }
   | {
       readonly type: 'ACTIVATION_REQUIRED'
       readonly candidates: RoleActivationCandidateView | null
@@ -25,7 +25,7 @@ export type Rbac3MachineEvent =
 
 export const initialRbac3MachineState: Rbac3MachineState = Object.freeze({
   status: 'UNINITIALIZED',
-  bootstrap: null,
+  about: null,
   candidates: null,
   activeRoles: null,
   errorCode: null,
@@ -37,11 +37,11 @@ export const transitionRbac3State = (
 ): Rbac3MachineState => {
   switch (event.type) {
     case 'INITIALIZE':
-      return { ...state, status: 'LOADING_BOOTSTRAP', errorCode: null }
-    case 'BOOTSTRAP_SUCCEEDED':
+      return { ...state, status: 'LOADING_ABOUT', errorCode: null }
+    case 'ABOUT_SUCCEEDED':
       return {
         status: 'READY',
-        bootstrap: event.bootstrap,
+        about: event.about,
         candidates: null,
         activeRoles: state.activeRoles,
         errorCode: null,
@@ -49,7 +49,7 @@ export const transitionRbac3State = (
     case 'ACTIVATION_REQUIRED':
       return {
         status: 'ACTIVATION_REQUIRED',
-        bootstrap: null,
+        about: null,
         candidates: event.candidates,
         activeRoles: event.activeRoles ?? null,
         errorCode: null,
@@ -61,7 +61,7 @@ export const transitionRbac3State = (
     case 'REPLACE_REJECTED':
       return {
         ...state,
-        status: state.bootstrap === null ? 'ERROR_FATAL' : 'READY',
+        status: state.about === null ? 'ERROR_FATAL' : 'READY',
         errorCode: event.errorCode,
       }
     case 'AUTHENTICATION_REQUIRED':

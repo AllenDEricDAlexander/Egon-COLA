@@ -3,7 +3,7 @@ import type {PropsWithChildren} from 'react'
 import {describe, expect, it, vi} from 'vitest'
 import type {
     ActiveRoleSetView,
-    BootstrapView,
+    Rbac3AboutView,
     Rbac3Client,
     ReplaceActiveRolesResult,
     RoleActivationCandidateView,
@@ -12,7 +12,7 @@ import {Rbac3RequestError} from '../errors'
 import {useRbac3Authorization} from '../hooks/useRbac3Authorization'
 import {Rbac3Provider} from './Rbac3Provider'
 
-const bootstrap = {permissions: ['orders:read'], defaultRoute: '/orders'} as unknown as BootstrapView
+const about = {permissions: ['orders:read'], currentApplicationCode: 'orders'} as unknown as Rbac3AboutView
 const activeRoles = {
     activeRoles: [],
     activationRequired: false,
@@ -29,12 +29,12 @@ const client = (overrides: Partial<Rbac3Client> = {}): Rbac3Client => ({
       activeRoles: [], changed: true, authVersion: 2, policyVersion: 1,
       activationRequired: false, snapshotChecksum: 'next',
   } as ReplaceActiveRolesResult)),
-  getBootstrap: vi.fn(async () => bootstrap),
+  getAbout: vi.fn(async () => about),
   ...overrides,
 })
 
 describe('Rbac3Provider', () => {
-    it('initializes through the protected bootstrap endpoint without token state', async () => {
+    it('initializes through the protected about endpoint without token state', async () => {
     const sdk = client()
     const wrapper = ({ children }: PropsWithChildren) => (
         <Rbac3Provider client={sdk}>{children}</Rbac3Provider>
@@ -42,13 +42,13 @@ describe('Rbac3Provider', () => {
         const {result} = renderHook(() => useRbac3Authorization(), {wrapper})
 
     await waitFor(() => expect(result.current.status).toBe('READY'))
-        expect(sdk.getBootstrap).toHaveBeenCalledTimes(1)
-        expect(result.current.bootstrap).toBe(bootstrap)
+        expect(sdk.getAbout).toHaveBeenCalledTimes(1)
+        expect(result.current.about).toBe(about)
   })
 
-    it('loads role activation candidates when bootstrap reports activation required', async () => {
+    it('loads role activation candidates when about reports activation required', async () => {
     const sdk = client({
-        getBootstrap: vi.fn(async () => {
+        getAbout: vi.fn(async () => {
             throw new Rbac3RequestError({
                 status: 409, code: 'ROLE_ACTIVATION_REQUIRED', message: 'activate a role', retryable: false,
             })
@@ -64,12 +64,12 @@ describe('Rbac3Provider', () => {
         expect(sdk.getActiveRoles).toHaveBeenCalledTimes(1)
     })
 
-    it('publishes the new bootstrap after role replacement', async () => {
-        const nextBootstrap = {permissions: ['orders:read', 'orders:write']} as unknown as BootstrapView
+    it('publishes the new about after role replacement', async () => {
+        const nextAbout = {permissions: ['orders:read', 'orders:write']} as unknown as Rbac3AboutView
         const sdk = client({
-            getBootstrap: vi.fn()
-                .mockResolvedValueOnce(bootstrap)
-                .mockResolvedValueOnce(nextBootstrap)
+            getAbout: vi.fn()
+                .mockResolvedValueOnce(about)
+                .mockResolvedValueOnce(nextAbout)
         })
         const wrapper = ({children}: PropsWithChildren) => (
             <Rbac3Provider client={sdk}>{children}</Rbac3Provider>
@@ -81,7 +81,7 @@ describe('Rbac3Provider', () => {
         await result.current.replaceActiveRoles({roleIds: ['50001'], expectedAuthVersion: 1})
     })
 
-        expect(result.current.bootstrap).toBe(nextBootstrap)
+        expect(result.current.about).toBe(nextAbout)
     expect(result.current.status).toBe('READY')
   })
 

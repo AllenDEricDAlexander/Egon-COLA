@@ -19,11 +19,11 @@ export const FieldGuard = ({
   fallback = null,
   render,
 }: FieldGuardProps) => {
-    const {status, bootstrap} = useRbac3Authorization()
-  if (status !== 'READY' || bootstrap === null) {
+    const {status, about} = useRbac3Authorization()
+  if (status !== 'READY' || about === null) {
     return fallback
   }
-  const policy = bootstrap.fieldPolicies[policyKey]
+  const policy = about.fieldPolicies[policyKey]
   const access = policy?.decision === 'ALLOW' ? policy.fields[fieldCode] : undefined
   if (access === undefined || access.level === 'NONE') {
     return fallback
