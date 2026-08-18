@@ -2,6 +2,7 @@ package top.egon.cola.platform.idp.gateway.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -18,11 +19,14 @@ import top.egon.cola.platform.idp.gateway.security.GatewayResourceServerResolver
 import top.egon.cola.platform.idp.gateway.security.IdpGatewayJwtVerifier;
 import top.egon.cola.platform.idp.gateway.security.IdpIdentityAuthenticationProvider;
 import top.egon.cola.platform.idp.gateway.security.IdpRefreshClient;
+import top.egon.cola.platform.idp.gateway.security.IdpRefreshTokenStatusClient;
 import top.egon.cola.platform.idp.gateway.security.IdpReservedHeaderSanitizer;
 import top.egon.cola.platform.idp.gateway.security.IdpTrustedIdentityMapper;
 import top.egon.cola.platform.idp.gateway.security.IdpUserCookieCredentialExtractor;
 import top.egon.cola.platform.idp.gateway.security.IdpUserCredentialRecoveryProvider;
+import top.egon.cola.platform.idp.gateway.security.IdpUserOnlineStateProvider;
 import top.egon.cola.platform.idp.gateway.security.ReactorNettyIdpRefreshClient;
+import top.egon.cola.platform.idp.gateway.security.ReactorNettyIdpRefreshTokenStatusClient;
 import top.egon.cola.platform.idp.starter.security.RetryingJwtDecoder;
 import top.egon.cola.platform.idp.starter.state.IdentityOAuthClientStateReader;
 import top.egon.cola.platform.idp.starter.state.IdentityResourceServerStateReader;
@@ -30,6 +34,7 @@ import top.egon.cola.platform.idp.starter.state.RedisIdentityOAuthClientStateRea
 import top.egon.cola.platform.idp.starter.state.RedisIdentityResourceServerStateReader;
 
 import java.time.Duration;
+import java.util.function.Supplier;
 
 /**
  * 将统一 IdP 身份验证能力装配到非 Servlet 的 Gateway 安全扩展点。
@@ -218,17 +223,47 @@ public class IdpGatewayAdapterAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public IdpRefreshTokenStatusClient idpRefreshTokenStatusClient(
+            IdpGatewayAdapterProperties properties,
+            ObjectProvider<Supplier<String>> serviceAccessTokens,
+            ObjectMapper objectMapper) {
+        properties.validate();
+        Supplier<String> serviceAccessToken = serviceAccessTokens.orderedStream()
+                .findFirst()
+                .orElse(() -> "");
+        return new ReactorNettyIdpRefreshTokenStatusClient(
+                statusUri(properties.getIdpRefreshUri()),
+                serviceAccessToken,
+                objectMapper,
+                Duration.ofMillis(800));
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public IdpUserOnlineStateProvider idpUserOnlineStateProvider(
+            IdpRefreshTokenStatusClient client,
+            IdpGatewayAdapterProperties properties) {
+        return new IdpUserOnlineStateProvider(
+                client,
+                properties.getRefreshTokenCookieName(),
+                properties.getAccessTokenCookieName());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public IdpUserCredentialRecoveryProvider idpUserCredentialRecoveryProvider(
             IdpRefreshClient client,
             IdpGatewayJwtVerifier verifier,
             IdpReservedHeaderSanitizer sanitizer,
-            IdpGatewayAdapterProperties properties) {
+            IdpGatewayAdapterProperties properties,
+            IdpUserOnlineStateProvider onlineStateProvider) {
         return new IdpUserCredentialRecoveryProvider(
                 client,
                 verifier,
                 sanitizer,
                 properties.getRefreshTokenCookieName(),
-                properties.getAccessTokenCookieName());
+                properties.getAccessTokenCookieName(),
+                onlineStateProvider);
     }
 
     /**
@@ -279,5 +314,15 @@ public class IdpGatewayAdapterAutoConfiguration {
         decoder.setJwtValidator(JwtValidators.createDefaultWithIssuer(
                 properties.getIssuer().trim()));
         return decoder;
+    }
+
+    private String statusUri(String refreshUri) {
+        try {
+            return java.net.URI.create(refreshUri)
+                    .resolve("/internal/v1/oauth2/refresh-token/validate")
+                    .toString();
+        } catch (RuntimeException exception) {
+            throw new IllegalStateException("invalid IdP refresh URI", exception);
+        }
     }
 }

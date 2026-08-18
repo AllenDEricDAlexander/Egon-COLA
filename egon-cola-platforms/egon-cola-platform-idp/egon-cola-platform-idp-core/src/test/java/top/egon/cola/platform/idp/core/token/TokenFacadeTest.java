@@ -96,6 +96,26 @@ class TokenFacadeTest {
     }
 
     @Test
+    void validateRefreshReturnsOnlyCurrentOnlineIdentityAndExpiry() {
+        UserTokenPair pair = issue();
+
+        RefreshTokenStatus status = facade.validateRefresh(pair.refreshToken());
+
+        assertEquals("alice-sub", status.subject());
+        assertEquals("tenant-a", status.tenantId());
+        assertEquals(pair.refreshExpiresAt(), status.expiresAt());
+    }
+
+    @Test
+    void validateRefreshRejectsRevokedRefreshToken() {
+        UserTokenPair pair = issue();
+        facade.revoke(pair.refreshToken());
+
+        assertThrows(TokenException.class,
+                () -> facade.validateRefresh(pair.refreshToken()));
+    }
+
+    @Test
     void revokeAndSubjectRevokeInvalidateRefreshRecords() {
         UserTokenPair first = issue();
         facade.revoke(first.refreshToken());

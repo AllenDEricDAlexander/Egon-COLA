@@ -17,6 +17,9 @@ import java.util.Objects;
  */
 public final class IdpEndpointAuthenticationPolicy {
 
+    private static final String INTERNAL_REFRESH_STATUS_PATH =
+            "/internal/v1/oauth2/refresh-token/validate";
+
     /**
      * Credential requirement selected for one request path.
      */
@@ -95,7 +98,8 @@ public final class IdpEndpointAuthenticationPolicy {
             path = path.substring(contextPath.length());
         }
         boolean publicEndpoint = matches(publicPathPatterns, path);
-        boolean serviceEndpoint = matches(servicePathPatterns, path);
+        boolean serviceEndpoint = matches(servicePathPatterns, path)
+                || INTERNAL_REFRESH_STATUS_PATH.equals(path);
         if (publicEndpoint && serviceEndpoint) {
             return Requirement.DENY;
         }

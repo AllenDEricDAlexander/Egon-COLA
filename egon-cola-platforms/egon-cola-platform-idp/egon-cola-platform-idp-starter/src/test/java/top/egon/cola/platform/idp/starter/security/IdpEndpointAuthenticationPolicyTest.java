@@ -36,6 +36,20 @@ class IdpEndpointAuthenticationPolicyTest {
                 .isEqualTo(IdpEndpointAuthenticationPolicy.Requirement.DENY);
     }
 
+    @Test
+    void classifiesInternalRefreshStatusAsServiceOnly() {
+        IdpEndpointAuthenticationPolicy policy =
+                new IdpEndpointAuthenticationPolicy(
+                        List.of("/oauth2/token"),
+                        List.of());
+
+        assertThat(policy.requirement(request(
+                "POST", "/internal/v1/oauth2/refresh-token/validate")))
+                .isEqualTo(IdpEndpointAuthenticationPolicy.Requirement.SERVICE);
+        assertThat(policy.requirement(request("POST", "/oauth2/token")))
+                .isEqualTo(IdpEndpointAuthenticationPolicy.Requirement.PUBLIC);
+    }
+
     private static MockHttpServletRequest request(String method, String path) {
         return new MockHttpServletRequest(method, path);
     }

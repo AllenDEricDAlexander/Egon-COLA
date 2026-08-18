@@ -7,6 +7,7 @@ import top.egon.cola.component.gateway.core.security.AuthenticationFailure;
 import top.egon.cola.component.gateway.core.security.CredentialRecoveryResult;
 import top.egon.cola.component.gateway.core.security.GatewayAuthContext;
 import top.egon.cola.component.gateway.core.security.GatewayCredential;
+import top.egon.cola.component.gateway.core.security.GatewayCredentialOnlineStateResult;
 import top.egon.cola.component.gateway.core.security.GatewayCredentialRecoveryProvider;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 
@@ -28,6 +29,7 @@ public final class IdpUserCredentialRecoveryProvider
     private final IdpRefreshClient client;
     private final IdpGatewayJwtVerifier verifier;
     private final IdpReservedHeaderSanitizer sanitizer;
+    private final IdpUserOnlineStateProvider onlineStateProvider;
     private final String refreshCookieName;
     private final String accessCookieName;
 
@@ -37,9 +39,20 @@ public final class IdpUserCredentialRecoveryProvider
             IdpReservedHeaderSanitizer sanitizer,
             String refreshCookieName,
             String accessCookieName) {
+        this(client, verifier, sanitizer, refreshCookieName, accessCookieName, null);
+    }
+
+    public IdpUserCredentialRecoveryProvider(
+            IdpRefreshClient client,
+            IdpGatewayJwtVerifier verifier,
+            IdpReservedHeaderSanitizer sanitizer,
+            String refreshCookieName,
+            String accessCookieName,
+            IdpUserOnlineStateProvider onlineStateProvider) {
         this.client = Objects.requireNonNull(client, "client");
         this.verifier = Objects.requireNonNull(verifier, "verifier");
         this.sanitizer = Objects.requireNonNull(sanitizer, "sanitizer");
+        this.onlineStateProvider = onlineStateProvider;
         this.refreshCookieName = required(refreshCookieName, "refreshCookieName");
         this.accessCookieName = required(accessCookieName, "accessCookieName");
     }
@@ -65,6 +78,16 @@ public final class IdpUserCredentialRecoveryProvider
         return client.refresh(refreshToken)
                 .map(response -> response(response, context))
                 .onErrorReturn(CredentialRecoveryResult.failed());
+    }
+
+    @Override
+    public Publisher<GatewayCredentialOnlineStateResult> validateAuthenticated(
+            GatewayAuthContext context,
+            GatewayExchange exchange) {
+        if (onlineStateProvider == null) {
+            return Mono.just(GatewayCredentialOnlineStateResult.active());
+        }
+        return onlineStateProvider.validateAuthenticated(context, exchange);
     }
 
     private CredentialRecoveryResult response(

@@ -17,11 +17,13 @@ import top.egon.cola.component.gateway.core.security.AuthorizationDecisionMode;
 import top.egon.cola.component.gateway.core.security.CredentialForwardingMode;
 import top.egon.cola.component.gateway.core.security.GatewayAuthContext;
 import top.egon.cola.component.gateway.core.security.GatewayCredential;
+import top.egon.cola.component.gateway.core.security.GatewayCredentialOnlineStateResult;
 import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
 import top.egon.cola.component.gateway.core.security.SecurityDecision;
 import top.egon.cola.component.gateway.core.security.SecurityFailureMode;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
+import top.egon.cola.platform.idp.core.token.RefreshTokenStatus;
 
 import java.net.URI;
 import java.time.Duration;
@@ -113,6 +115,66 @@ class IdpGatewaySecurityProviderTest {
         assertThat(new IdpTrustedIdentityMapper().map(context(principal)).httpHeaders())
                 .containsEntry("X-Egon-Resource-Version", "12")
                 .containsEntry("X-Egon-Client-Id", "finance-service");
+    }
+
+    @Test
+    void validatesRefreshTokenOnlineStateAndMatchesAuthenticatedUser() {
+        IdpRefreshTokenStatusClient client = token -> Mono.just(
+                new IdpRefreshTokenStatusClient.Response(
+                        200,
+                        new RefreshTokenStatus(
+                                "identity-1", "tenant-1", Instant.now().plusSeconds(300))));
+        IdpUserOnlineStateProvider provider = new IdpUserOnlineStateProvider(
+                client, "__Host-egon_user_rt", "__Host-egon_user_at");
+
+        StepVerifier.create(provider.validateAuthenticated(
+                        context(new GatewayPrincipal(
+                                "identity-1", "USER", "tenant-1", null,
+                                true, Map.of())),
+                        exchange(Map.of(
+                                "Cookie", List.of("__Host-egon_user_rt=refresh-token")))))
+                .assertNext(result -> assertThat(result.outcome())
+                        .isEqualTo(GatewayCredentialOnlineStateResult.Outcome.ACTIVE))
+                .verifyComplete();
+    }
+
+    @Test
+    void revokedOrMismatchedRefreshTokenExpiresBothCookies() {
+        IdpRefreshTokenStatusClient revoked = token -> Mono.just(
+                new IdpRefreshTokenStatusClient.Response(401, null));
+        IdpUserOnlineStateProvider provider = new IdpUserOnlineStateProvider(
+                revoked, "__Host-egon_user_rt", "__Host-egon_user_at");
+
+        StepVerifier.create(provider.validateAuthenticated(
+                        context(new GatewayPrincipal(
+                                "identity-1", "USER", "tenant-1", null,
+                                true, Map.of())),
+                        exchange(Map.of(
+                                "Cookie", List.of("__Host-egon_user_rt=refresh-token")))))
+                .assertNext(result -> {
+                    assertThat(result.outcome())
+                            .isEqualTo(GatewayCredentialOnlineStateResult.Outcome.INACTIVE);
+                    assertThat(result.responseHeaders().get("set-cookie"))
+                            .hasSize(2);
+                })
+                .verifyComplete();
+
+        IdpRefreshTokenStatusClient mismatched = token -> Mono.just(
+                new IdpRefreshTokenStatusClient.Response(
+                        200,
+                        new RefreshTokenStatus(
+                                "other-user", "tenant-1", Instant.now().plusSeconds(300))));
+        IdpUserOnlineStateProvider mismatchProvider = new IdpUserOnlineStateProvider(
+                mismatched, "__Host-egon_user_rt", "__Host-egon_user_at");
+        StepVerifier.create(mismatchProvider.validateAuthenticated(
+                        context(new GatewayPrincipal(
+                                "identity-1", "USER", "tenant-1", null,
+                                true, Map.of())),
+                        exchange(Map.of(
+                                "Cookie", List.of("__Host-egon_user_rt=refresh-token")))))
+                .assertNext(result -> assertThat(result.outcome())
+                        .isEqualTo(GatewayCredentialOnlineStateResult.Outcome.INACTIVE))
+                .verifyComplete();
     }
 
     private GatewaySecurityPolicy policy() {

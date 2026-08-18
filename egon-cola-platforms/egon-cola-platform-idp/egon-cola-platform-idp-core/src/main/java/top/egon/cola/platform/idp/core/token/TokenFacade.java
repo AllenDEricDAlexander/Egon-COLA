@@ -115,6 +115,28 @@ public final class TokenFacade {
     }
 
     /**
+     * Validates only the IdP-owned online state of a stable refresh token.
+     * No access token is issued and no token secret is returned.
+     */
+    public RefreshTokenStatus validateRefresh(String rawRefreshToken) {
+        Instant now = tokenTime();
+        RefreshTokenClaims claims = verifiedRefresh(rawRefreshToken, now);
+        RefreshTokenRecord record = refreshTokens.findValid(
+                        digest(rawRefreshToken), now)
+                .orElseThrow(TokenFacade::invalidGrant);
+        if (!record.identitySub().equals(claims.subject())
+                || !record.tenantId().equals(claims.tenantId())
+                || !record.expiresAt().equals(claims.expiresAt())
+                || !claims.expiresAt().isAfter(now)) {
+            throw invalidGrant();
+        }
+        return new RefreshTokenStatus(
+                claims.subject(),
+                claims.tenantId(),
+                claims.expiresAt());
+    }
+
+    /**
      * Re-signs a short-lived USER AT after an already authenticated step-up.
      * The stable RT is deliberately untouched and no server-side session is created.
      */

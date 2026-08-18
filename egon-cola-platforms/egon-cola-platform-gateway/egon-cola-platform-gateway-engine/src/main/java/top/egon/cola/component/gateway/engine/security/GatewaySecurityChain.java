@@ -251,13 +251,21 @@ public final class GatewaySecurityChain {
                         ))))
                 .collectList()
                 .flatMap(decisions -> authenticatedPrincipal(decisions)
-                        .flatMap(principal -> authorizeAndMap(
-                                credentialContext.withPrincipal(principal),
-                                policy,
-                                extraction.fieldsToRemove(),
-                                forwardable(policy, extraction.credentials()),
-                                responseHeaders
-                        )))
+                        .flatMap(principal -> {
+                            GatewayAuthContext authenticated =
+                                    credentialContext.withPrincipal(principal);
+                            return validateOnlineState(
+                                    authenticated, policy, exchange)
+                                    .then(authorizeAndMap(
+                                            authenticated,
+                                            policy,
+                                            extraction.fieldsToRemove(),
+                                            forwardable(
+                                                    policy,
+                                                    extraction.credentials()),
+                                            responseHeaders
+                                    ));
+                        }))
                 .onErrorResume(
                         AuthenticationFailureException.class,
                         failure -> recoverOrFail(
@@ -269,6 +277,29 @@ public final class GatewaySecurityChain {
                                 recoveryAttempt
                         ));
 
+    }
+
+    private Mono<Void> validateOnlineState(
+            GatewayAuthContext context,
+            GatewaySecurityPolicy policy,
+            GatewayExchange exchange) {
+        if (!"USER".equalsIgnoreCase(context.principal().principalType())
+                || policy.credentialRecoveryProviderId() == null) {
+            return Mono.empty();
+        }
+        return Mono.from(capabilities.recovery(
+                        policy.credentialRecoveryProviderId())
+                .validateAuthenticated(context, exchange))
+                .switchIfEmpty(Mono.error(
+                        GatewaySecurityException.providerError()))
+                .flatMap(result -> switch (result.outcome()) {
+                    case ACTIVE -> Mono.empty();
+                    case INACTIVE -> Mono.error(
+                            GatewaySecurityException.authenticationFailed(
+                                    result.responseHeaders()));
+                    case UNAVAILABLE -> Mono.error(
+                            GatewaySecurityException.providerError());
+                });
     }
 
     private Mono<GatewaySecurityResult> recoverOrFail(
