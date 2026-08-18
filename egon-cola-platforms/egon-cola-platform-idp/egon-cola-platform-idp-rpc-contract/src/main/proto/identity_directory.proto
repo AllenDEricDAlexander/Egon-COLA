@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package egon.idp.v1;
+
+option java_multiple_files = true;
+option java_package = "top.egon.cola.platform.idp.rpc.contract.proto.v1";
+
+// Read-only identity display directory used by RBAC administration.
+service IdentityDirectoryService {
+  // Resolves a bounded batch of identity subjects without returning credentials or permissions.
+  rpc BatchGetIdentityProfiles(BatchGetIdentityProfilesRequest)
+      returns (BatchGetIdentityProfilesResponse);
+}
+
+message BatchGetIdentityProfilesRequest {
+  repeated string subjects = 1;
+}
+
+message BatchGetIdentityProfilesResponse {
+  repeated IdentityProfile profiles = 1;
+  repeated string missing_subjects = 2;
+}
+
+message IdentityProfile {
+  string subject = 1;
+  string username = 2;
+  string display_name = 3;
+  string status = 4;
+  int64 version = 5;
+}
