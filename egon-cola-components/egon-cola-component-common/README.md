@@ -24,7 +24,7 @@ This directory is a `pom` aggregator, not a runtime JAR that business applicatio
 
 ### Result Codes and Exceptions
 
-`common-core` uses `ResultCode` as its default result code set. Every code is an `int` and implements `ErrorStatus`, making it suitable for API responses, log searches, and cross-system transport. Applications can use exception types such as `BusinessException`, `ValidationException`, and `RemoteCallException`, or implement `ErrorStatus` to define their own error statuses.
+`common-core` uses `ResultCode` as its default result code set. Every code is an `int` and implements `ErrorStatus`, making it suitable for API responses, log searches, and cross-system transport. Applications use `BusinessException` for business failures and `CommonException` for general failures. `BusinessExceptionEnum` supplies reusable business codes and default messages, while applications can also implement `ErrorStatus` for their own statuses.
 
 Exception classes in common-core intentionally do not use an `Egon` prefix.
 
@@ -260,7 +260,7 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 | Old API | New API |
 |---|---|
 | `CommonStatus` | `ResultCode` |
-| Old prefixed common exceptions | `BusinessException`, `ValidationException`, `RemoteCallException` |
+| Old prefixed common exceptions | `BusinessException`, `CommonException` |
 | `ResultDto`, `ResultModel` | `ResultRecord` |
 | `PageResultDto`, `PageResultModel` | `PageResultRecord` |
 | `ResultDtos`, `ResultModels` | Static factory methods on `ResultRecord` and `PageResultRecord` |

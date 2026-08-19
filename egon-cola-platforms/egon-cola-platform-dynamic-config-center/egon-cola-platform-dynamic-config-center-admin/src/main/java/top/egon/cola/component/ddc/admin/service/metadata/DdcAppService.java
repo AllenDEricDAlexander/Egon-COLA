@@ -6,8 +6,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.enums.ResultCode;
+import top.egon.cola.component.common.core.exception.BusinessException;
 import top.egon.cola.component.common.core.exception.CommonException;
-import top.egon.cola.component.common.core.exception.ConcurrencyException;
 import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.model.entity.DdcAppEntity;
@@ -125,7 +125,7 @@ public class DdcAppService {
             throw new CommonException(DdcErrorStatus.BIZ_NOT_FOUND);
         }
         if (appRepository.existsByAppCode(app.getAppCode())) {
-            throw new ConcurrencyException(
+            throw new BusinessException(
                     ResultCode.CONCURRENCY_ERROR.getCode(),
                     ResultCode.CONCURRENCY_ERROR.getStatus(),
                     "app code already exists"

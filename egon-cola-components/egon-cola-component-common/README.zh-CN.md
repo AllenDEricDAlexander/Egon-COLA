@@ -24,7 +24,7 @@
 
 ### 统一错误码和异常
 
-`common-core` 以 `ResultCode` 作为默认结果码集合。所有结果码都是 `int`，并实现 `ErrorStatus`，适合 API 响应、日志检索和跨系统传递。业务可以直接使用 `BusinessException`、`ValidationException`、`RemoteCallException` 等异常类型，也可以实现 `ErrorStatus` 扩展自己的错误状态。
+`common-core` 以 `ResultCode` 作为默认结果码集合。所有结果码都是 `int`，并实现 `ErrorStatus`，适合 API 响应、日志检索和跨系统传递。业务异常统一使用 `BusinessException`，通用场景使用 `CommonException`；`BusinessExceptionEnum` 提供可复用的业务错误码和默认消息，也可以实现 `ErrorStatus` 扩展自己的错误状态。
 
 common-core 的异常类名不再使用 `Egon` 前缀。
 
@@ -257,7 +257,7 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 | 旧 API | 新 API |
 |---|---|
 | `CommonStatus` | `ResultCode` |
-| 旧前缀通用异常 | `BusinessException`、`ValidationException`、`RemoteCallException` |
+| 旧前缀通用异常 | `BusinessException`、`CommonException` |
 | `ResultDto`、`ResultModel` | `ResultRecord` |
 | `PageResultDto`、`PageResultModel` | `PageResultRecord` |
 | `ResultDtos`、`ResultModels` | `ResultRecord` 和 `PageResultRecord` 自身的静态工厂方法 |

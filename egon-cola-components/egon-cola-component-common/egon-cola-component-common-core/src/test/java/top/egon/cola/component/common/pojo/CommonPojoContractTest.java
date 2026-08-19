@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.common.core.enums.ResultCode;
 import top.egon.cola.component.common.core.exception.BusinessException;
-import top.egon.cola.component.common.core.exception.RemoteCallException;
+import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.PageResultRecord;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.common.trace.TraceContext;
@@ -75,14 +75,14 @@ class CommonPojoContractTest {
     void commonExceptionsDoNotUseEgonClassPrefix() {
         BusinessException business = new BusinessException(ResultCode.INVALID_PARAMS);
         RuntimeException cause = new RuntimeException("timeout");
-        RemoteCallException remote = new RemoteCallException(ResultCode.REMOTE_CALL_ERROR, true, cause);
+        CommonException remote = new CommonException(ResultCode.REMOTE_CALL_ERROR, true, cause);
 
         assertEquals("BusinessException", business.getClass().getSimpleName());
         assertEquals(ResultCode.INVALID_PARAMS.getCode(), business.getCode());
         assertEquals(ResultCode.INVALID_PARAMS.getStatus(), business.getStatus());
         assertEquals(ResultCode.INVALID_PARAMS.getMessage(), business.getMessage());
         assertFalse(business.isRetryable());
-        assertEquals("RemoteCallException", remote.getClass().getSimpleName());
+        assertEquals("CommonException", remote.getClass().getSimpleName());
         assertTrue(remote.isRetryable());
         assertSame(cause, remote.getCause());
     }
