@@ -8,12 +8,15 @@
 PostgreSQL 本地事务，再通过 HTTP、RabbitMQ 或自定义通道异步投递。如果应用在数据库
 提交后停止，轮询任务会恢复这条已落库消息。
 
-组件只包含两个 Maven 模块：
+组件只包含一个 Maven 模块：
 
 | 模块 | 用途 |
 |---|---|
-| `egon-cola-component-transactional-outbox-starter` | 公开 API、PostgreSQL/JDBC 存储、轮询、重试、清理、HTTP/RabbitMQ 适配、自动配置和指标 |
-| `egon-cola-component-transactional-outbox-test` | 组件集成测试，以及恰好两个可执行的消费端示例 |
+| `egon-cola-component-transactional-outbox-starter` | 公开 API、PostgreSQL/JDBC 存储、轮询、重试、清理、HTTP/RabbitMQ 适配、自动配置、指标、单测和集成测试 |
+
+单测仍按组件包路径放在 `starter/src/test/java` 下；集成测试和可执行示例统一放在
+`starter/src/test/java/top/egon/cola/component/outbox/integration` 下，并通过 Maven
+Failsafe 执行。
 
 实现采用 Transactional Outbox 模式。`TransactionalOutbox` 是业务侧门面，
 `DeliveryHandler` 是不同投递通道的策略/适配器扩展点。
@@ -399,7 +402,7 @@ egon:
 
 ```bash
 EGON_OUTBOX_TEST_POSTGRES_ENABLED=true ./mvnw -B -ntp \
-  -pl :egon-cola-component-transactional-outbox-test \
+  -pl :egon-cola-component-transactional-outbox-starter \
   -am clean verify
 ```
 

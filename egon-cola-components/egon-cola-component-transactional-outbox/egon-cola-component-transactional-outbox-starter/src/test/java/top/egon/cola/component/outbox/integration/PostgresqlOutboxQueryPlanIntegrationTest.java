@@ -1,4 +1,4 @@
-package top.egon.cola.component.outbox.test;
+package top.egon.cola.component.outbox.integration;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.support.TransactionTemplate;

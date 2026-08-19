@@ -1,4 +1,4 @@
-package top.egon.cola.component.outbox.test;
+package top.egon.cola.component.outbox.integration;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

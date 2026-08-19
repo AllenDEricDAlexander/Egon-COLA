@@ -1,4 +1,4 @@
-package top.egon.cola.component.outbox.test;
+package top.egon.cola.component.outbox.integration;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;

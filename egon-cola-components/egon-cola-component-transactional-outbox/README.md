@@ -9,12 +9,16 @@ an outbound message in the same local PostgreSQL transaction, then delivers the
 message asynchronously through HTTP, RabbitMQ, or a custom channel. If the
 application stops after the database commit, polling recovers the stored message.
 
-The component has two Maven modules:
+The component has one Maven module:
 
 | Module | Purpose |
 |---|---|
-| `egon-cola-component-transactional-outbox-starter` | Public API, PostgreSQL/JDBC store, polling, retry, cleanup, HTTP/RabbitMQ adapters, auto-configuration, and metrics |
-| `egon-cola-component-transactional-outbox-test` | Component integration tests and exactly two executable consumer samples |
+| `egon-cola-component-transactional-outbox-starter` | Public API, PostgreSQL/JDBC store, polling, retry, cleanup, HTTP/RabbitMQ adapters, auto-configuration, metrics, unit tests, and integration tests |
+
+Unit tests remain in the regular component-package directories under
+`starter/src/test/java`; integration tests and executable samples are grouped
+under `starter/src/test/java/top/egon/cola/component/outbox/integration` and run
+through Maven Failsafe.
 
 The implementation uses the Transactional Outbox pattern. `TransactionalOutbox`
 is the application-facing facade, while `DeliveryHandler` is the strategy/adapter
@@ -429,7 +433,7 @@ and query-plan behavior, make Docker available and run:
 
 ```bash
 EGON_OUTBOX_TEST_POSTGRES_ENABLED=true ./mvnw -B -ntp \
-  -pl :egon-cola-component-transactional-outbox-test \
+  -pl :egon-cola-component-transactional-outbox-starter \
   -am clean verify
 ```
 

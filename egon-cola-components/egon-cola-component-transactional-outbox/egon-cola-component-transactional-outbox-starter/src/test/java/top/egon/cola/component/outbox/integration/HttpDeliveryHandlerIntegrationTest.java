@@ -1,4 +1,4 @@
-package top.egon.cola.component.outbox.test;
+package top.egon.cola.component.outbox.integration;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import org.junit.jupiter.api.AfterEach;

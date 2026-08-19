@@ -175,6 +175,6 @@ jobs:
       - name: Test Outbox with isolated PostgreSQL
         run: |
           ./mvnw -B -ntp \
-            -pl :egon-cola-component-transactional-outbox-test \
+            -pl :egon-cola-component-transactional-outbox-starter \
             -am \
             clean verify
