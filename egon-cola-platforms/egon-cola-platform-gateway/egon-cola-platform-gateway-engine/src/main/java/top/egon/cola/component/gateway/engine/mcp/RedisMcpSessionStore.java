@@ -12,8 +12,8 @@ import org.redisson.api.stream.StreamReadArgs;
 import org.redisson.client.codec.StringCodec;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import top.egon.cola.component.gateway.mcp.transport.McpSessionStore;
-import top.egon.cola.component.gateway.mcp.transport.McpSubscriptionEventStore;
+import top.egon.cola.component.gateway.mcp.common.transport.McpSessionStore;
+import top.egon.cola.component.gateway.mcp.common.transport.McpSubscriptionEventStore;
 
 import java.time.Clock;
 import java.time.Duration;

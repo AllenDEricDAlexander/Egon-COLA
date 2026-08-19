@@ -19,7 +19,7 @@ import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeResource;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeResourceTemplate;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTaskPolicy;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
-import top.egon.cola.component.gateway.mcp.remote.McpRemoteEndpointValidator;
+import top.egon.cola.component.gateway.mcp.remote.domain.McpRemoteEndpointValidator;
 
 import java.net.URI;
 import java.util.ArrayList;

@@ -15,7 +15,7 @@ import top.egon.cola.component.gateway.admin.mcp.domain.dto.McpApprovalRequestDT
 import top.egon.cola.component.gateway.admin.mcp.domain.vo.McpApprovalOwnerVO;
 import top.egon.cola.component.gateway.admin.mcp.domain.vo.McpApprovalVO;
 import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpApprovalRepository;
-import top.egon.cola.component.gateway.mcp.security.McpSecurityDigests;
+import top.egon.cola.component.gateway.mcp.common.security.McpSecurityDigests;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;

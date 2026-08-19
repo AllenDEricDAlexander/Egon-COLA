@@ -3,10 +3,10 @@ package top.egon.cola.component.gateway.engine.mcp;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import top.egon.cola.component.gateway.mcp.transport.McpHttpRequest;
-import top.egon.cola.component.gateway.mcp.transport.McpHttpResponse;
-import top.egon.cola.component.gateway.mcp.transport.McpSessionStore;
-import top.egon.cola.component.gateway.mcp.transport.McpSubscriptionEventStore;
+import top.egon.cola.component.gateway.mcp.common.transport.McpHttpRequest;
+import top.egon.cola.component.gateway.mcp.common.transport.McpHttpResponse;
+import top.egon.cola.component.gateway.mcp.common.transport.McpSessionStore;
+import top.egon.cola.component.gateway.mcp.common.transport.McpSubscriptionEventStore;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;

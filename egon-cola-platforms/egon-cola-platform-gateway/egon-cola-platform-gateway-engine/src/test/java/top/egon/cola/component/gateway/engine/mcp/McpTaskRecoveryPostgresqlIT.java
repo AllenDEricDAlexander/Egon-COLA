@@ -7,10 +7,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import reactor.core.publisher.Mono;
-import top.egon.cola.component.gateway.mcp.task.McpTask;
-import top.egon.cola.component.gateway.mcp.task.McpTaskExecutor;
-import top.egon.cola.component.gateway.mcp.task.McpTaskService;
-import top.egon.cola.component.gateway.mcp.protocol.McpProtocolException;
+import top.egon.cola.component.gateway.mcp.task.domain.McpTask;
+import top.egon.cola.component.gateway.mcp.task.service.McpTaskExecutor;
+import top.egon.cola.component.gateway.mcp.task.service.McpTaskService;
+import top.egon.cola.component.gateway.mcp.common.protocol.McpProtocolException;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpErrorCode;
 
 import java.sql.Connection;

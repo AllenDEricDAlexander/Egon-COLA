@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.core.Authentication;
 import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpApprovalRepository;
-import top.egon.cola.component.gateway.mcp.security.McpSecurityDigests;
+import top.egon.cola.component.gateway.mcp.common.security.McpSecurityDigests;
 import top.egon.cola.platform.idp.contract.AuthenticationContext;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 

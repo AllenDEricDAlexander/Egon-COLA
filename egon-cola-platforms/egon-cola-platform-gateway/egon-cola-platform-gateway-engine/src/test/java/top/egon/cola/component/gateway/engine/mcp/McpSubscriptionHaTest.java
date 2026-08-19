@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import top.egon.cola.component.gateway.mcp.subscription.McpSubscriptionService;
+import top.egon.cola.component.gateway.mcp.subscription.service.McpSubscriptionService;
 
 import java.time.Clock;
 import java.time.Duration;

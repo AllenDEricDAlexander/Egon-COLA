@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuleContent;
-import top.egon.cola.component.gateway.mcp.rule.CompiledMcpRules;
-import top.egon.cola.component.gateway.mcp.rule.McpRuleCompiler;
+import top.egon.cola.component.gateway.mcp.rule.domain.CompiledMcpRules;
+import top.egon.cola.component.gateway.mcp.rule.service.McpRuleCompiler;
 
 import java.util.Map;
 import java.util.Set;

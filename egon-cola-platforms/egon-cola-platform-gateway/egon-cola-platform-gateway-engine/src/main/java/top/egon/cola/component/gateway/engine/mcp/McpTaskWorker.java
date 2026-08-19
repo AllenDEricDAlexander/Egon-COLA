@@ -3,8 +3,8 @@ package top.egon.cola.component.gateway.engine.mcp;
 import org.reactivestreams.Publisher;
 import org.springframework.context.SmartLifecycle;
 import reactor.core.publisher.Mono;
-import top.egon.cola.component.gateway.mcp.task.McpTaskExecutor;
-import top.egon.cola.component.gateway.mcp.task.McpTaskService;
+import top.egon.cola.component.gateway.mcp.task.service.McpTaskExecutor;
+import top.egon.cola.component.gateway.mcp.task.service.McpTaskService;
 
 import java.time.Duration;
 import java.util.Objects;

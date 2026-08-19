@@ -5,8 +5,8 @@ import org.springframework.boot.actuate.health.HealthIndicator;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeRemoteProvider;
 import top.egon.cola.component.gateway.engine.rule.CompiledGatewayRules;
 import top.egon.cola.component.gateway.engine.rule.GatewayRuleActivationApplier;
-import top.egon.cola.component.gateway.mcp.remote.McpRemoteClientPool;
-import top.egon.cola.component.gateway.mcp.rule.CompiledMcpRules;
+import top.egon.cola.component.gateway.mcp.remote.service.McpRemoteClientPool;
+import top.egon.cola.component.gateway.mcp.rule.domain.CompiledMcpRules;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

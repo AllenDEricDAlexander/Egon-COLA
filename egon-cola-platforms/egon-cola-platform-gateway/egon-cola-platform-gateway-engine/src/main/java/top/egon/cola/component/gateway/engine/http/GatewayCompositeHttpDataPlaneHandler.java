@@ -11,8 +11,8 @@ import top.egon.cola.component.gateway.engine.mcp.McpEngineHttpHandler;
 import top.egon.cola.component.gateway.engine.websocket.GatewayPreparedWebSocketSession;
 import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketHandshakeResult;
 import top.egon.cola.component.gateway.engine.websocket.GatewayWebSocketPeer;
-import top.egon.cola.component.gateway.mcp.transport.McpHttpRequest;
-import top.egon.cola.component.gateway.mcp.transport.McpHttpResponse;
+import top.egon.cola.component.gateway.mcp.common.transport.McpHttpRequest;
+import top.egon.cola.component.gateway.mcp.common.transport.McpHttpResponse;
 
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;

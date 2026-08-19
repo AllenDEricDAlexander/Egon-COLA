@@ -9,8 +9,8 @@ import top.egon.cola.component.gateway.core.operation.GatewayInvocationResult;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationCall;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvocation;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvoker;
-import top.egon.cola.component.gateway.mcp.task.McpTask;
-import top.egon.cola.component.gateway.mcp.task.McpTaskExecutor;
+import top.egon.cola.component.gateway.mcp.task.domain.McpTask;
+import top.egon.cola.component.gateway.mcp.task.service.McpTaskExecutor;
 
 import java.net.URI;
 import java.util.Base64;

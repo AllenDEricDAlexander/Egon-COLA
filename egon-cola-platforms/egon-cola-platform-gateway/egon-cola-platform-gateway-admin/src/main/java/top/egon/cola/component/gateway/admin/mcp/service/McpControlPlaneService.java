@@ -34,8 +34,8 @@ import top.egon.cola.component.gateway.admin.shared.domain.exception.GatewayAdmi
 import top.egon.cola.component.gateway.admin.shared.repository.IdempotencyRepository;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuleContent;
 import top.egon.cola.component.gateway.core.mcp.app.McpAppArtifactStore;
-import top.egon.cola.component.gateway.mcp.app.McpAppSecurityValidator;
-import top.egon.cola.component.gateway.mcp.protocol.McpProtocolException;
+import top.egon.cola.component.gateway.mcp.app.domain.McpAppSecurityValidator;
+import top.egon.cola.component.gateway.mcp.common.protocol.McpProtocolException;
 
 import java.net.URI;
 import java.security.MessageDigest;

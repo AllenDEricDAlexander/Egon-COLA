@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
 import top.egon.cola.component.gateway.core.mcp.remote.RemoteMcpClient;
-import top.egon.cola.component.gateway.mcp.remote.McpRemoteEndpointValidator;
+import top.egon.cola.component.gateway.mcp.remote.domain.McpRemoteEndpointValidator;
 
 import java.io.ByteArrayOutputStream;
 import java.time.Duration;

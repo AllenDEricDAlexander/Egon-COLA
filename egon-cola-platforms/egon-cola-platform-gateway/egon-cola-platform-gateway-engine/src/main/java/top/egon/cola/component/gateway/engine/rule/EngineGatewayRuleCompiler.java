@@ -26,8 +26,8 @@ import top.egon.cola.component.gateway.engine.security.GatewaySecurityPolicyComp
 import top.egon.cola.component.gateway.engine.traffic.GatewayTrafficPolicyCompiler;
 import top.egon.cola.component.gateway.engine.traffic.RuntimeTrafficPolicy;
 import top.egon.cola.component.gateway.engine.traffic.TrafficPolicyType;
-import top.egon.cola.component.gateway.mcp.rule.CompiledMcpRules;
-import top.egon.cola.component.gateway.mcp.rule.McpRuleCompiler;
+import top.egon.cola.component.gateway.mcp.rule.domain.CompiledMcpRules;
+import top.egon.cola.component.gateway.mcp.rule.service.McpRuleCompiler;
 
 import java.time.Duration;
 import java.util.ArrayList;

@@ -13,12 +13,12 @@ import top.egon.cola.component.gateway.engine.http.GatewayHttpEngineProperties;
 import top.egon.cola.component.gateway.engine.http.GatewayHttpServer;
 import top.egon.cola.component.gateway.engine.http.GatewayOutboundHttpResponse;
 import top.egon.cola.component.gateway.engine.security.GatewayTransportSecurity;
-import top.egon.cola.component.gateway.mcp.rule.McpRuleCompiler;
-import top.egon.cola.component.gateway.mcp.server.McpMethodDispatcher;
-import top.egon.cola.component.gateway.mcp.server.handler.McpDiscoverHandler;
-import top.egon.cola.component.gateway.mcp.server.handler.McpInitializeHandler;
-import top.egon.cola.component.gateway.mcp.server.handler.McpInitializedHandler;
-import top.egon.cola.component.gateway.mcp.server.handler.McpPingHandler;
+import top.egon.cola.component.gateway.mcp.rule.service.McpRuleCompiler;
+import top.egon.cola.component.gateway.mcp.server.service.McpMethodDispatcher;
+import top.egon.cola.component.gateway.mcp.server.service.handler.McpDiscoverHandler;
+import top.egon.cola.component.gateway.mcp.server.service.handler.McpInitializeHandler;
+import top.egon.cola.component.gateway.mcp.server.service.handler.McpInitializedHandler;
+import top.egon.cola.component.gateway.mcp.server.service.handler.McpPingHandler;
 
 import java.time.Clock;
 import java.time.Duration;

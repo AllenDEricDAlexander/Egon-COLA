@@ -11,8 +11,8 @@ import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeRemoteProvide
 import top.egon.cola.component.gateway.core.mcp.remote.RemoteAuthProvider;
 import top.egon.cola.component.gateway.engine.mcp.remote.ReactorNettyRemoteMcpClient;
 import top.egon.cola.component.gateway.engine.mcp.remote.ReferenceRemoteAuthProvider;
-import top.egon.cola.component.gateway.mcp.remote.McpDialectTranslator;
-import top.egon.cola.component.gateway.mcp.remote.McpRemoteClientPool;
+import top.egon.cola.component.gateway.mcp.remote.service.McpDialectTranslator;
+import top.egon.cola.component.gateway.mcp.remote.service.McpRemoteClientPool;
 
 import java.time.Duration;
 import java.util.Map;

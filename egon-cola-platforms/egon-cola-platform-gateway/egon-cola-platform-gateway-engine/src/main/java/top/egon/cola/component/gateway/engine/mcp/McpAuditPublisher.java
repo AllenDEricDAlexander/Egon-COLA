@@ -3,8 +3,8 @@ package top.egon.cola.component.gateway.engine.mcp;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import top.egon.cola.component.gateway.mcp.security.McpSecurityDigests;
-import top.egon.cola.component.gateway.mcp.telemetry.McpTelemetry;
+import top.egon.cola.component.gateway.mcp.common.security.McpSecurityDigests;
+import top.egon.cola.component.gateway.mcp.common.telemetry.McpTelemetry;
 
 import java.time.Clock;
 import java.time.Instant;

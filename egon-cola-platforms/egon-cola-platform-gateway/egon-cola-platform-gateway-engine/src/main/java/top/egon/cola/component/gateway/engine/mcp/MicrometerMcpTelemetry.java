@@ -5,7 +5,7 @@ import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
-import top.egon.cola.component.gateway.mcp.telemetry.McpTelemetry;
+import top.egon.cola.component.gateway.mcp.common.telemetry.McpTelemetry;
 
 import java.util.List;
 import java.util.Locale;

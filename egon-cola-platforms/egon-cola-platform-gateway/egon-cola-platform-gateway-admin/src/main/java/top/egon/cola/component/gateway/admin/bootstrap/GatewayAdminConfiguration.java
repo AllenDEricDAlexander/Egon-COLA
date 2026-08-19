@@ -31,7 +31,7 @@ import top.egon.cola.component.gateway.admin.release.repository.GatewayReleaseRe
 import top.egon.cola.component.gateway.admin.release.service.GatewayReleasePublicationCoordinator;
 import top.egon.cola.component.gateway.admin.rule.service.GatewayDdcRulePublisher;
 import top.egon.cola.component.gateway.admin.runtime.service.GatewayProjectionService;
-import top.egon.cola.component.gateway.mcp.app.McpAppSecurityValidator;
+import top.egon.cola.component.gateway.mcp.app.domain.McpAppSecurityValidator;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
 

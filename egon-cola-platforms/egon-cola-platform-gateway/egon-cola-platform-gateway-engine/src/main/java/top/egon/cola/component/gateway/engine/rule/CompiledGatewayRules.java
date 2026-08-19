@@ -8,7 +8,7 @@ import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
 import top.egon.cola.component.gateway.engine.cors.RuntimeCorsPolicy;
 import top.egon.cola.component.gateway.engine.discovery.RuntimeProviderPolicy;
 import top.egon.cola.component.gateway.engine.traffic.RuntimeTrafficPolicy;
-import top.egon.cola.component.gateway.mcp.rule.CompiledMcpRules;
+import top.egon.cola.component.gateway.mcp.rule.domain.CompiledMcpRules;
 
 import java.util.Map;
 import java.util.Objects;

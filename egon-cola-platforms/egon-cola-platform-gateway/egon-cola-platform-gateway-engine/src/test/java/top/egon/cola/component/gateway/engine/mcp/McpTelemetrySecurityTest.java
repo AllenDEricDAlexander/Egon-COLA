@@ -13,10 +13,10 @@ import top.egon.cola.component.gateway.contract.mcp.protocol.McpJsonRpcError;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpErrorCode;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeServer;
-import top.egon.cola.component.gateway.mcp.server.McpMethodDispatcher;
-import top.egon.cola.component.gateway.mcp.server.McpMethodHandler;
-import top.egon.cola.component.gateway.mcp.server.McpRequestContext;
-import top.egon.cola.component.gateway.mcp.telemetry.McpTelemetry;
+import top.egon.cola.component.gateway.mcp.server.service.McpMethodDispatcher;
+import top.egon.cola.component.gateway.mcp.server.service.McpMethodHandler;
+import top.egon.cola.component.gateway.mcp.server.domain.McpRequestContext;
+import top.egon.cola.component.gateway.mcp.common.telemetry.McpTelemetry;
 
 import java.time.Clock;
 import java.time.Instant;

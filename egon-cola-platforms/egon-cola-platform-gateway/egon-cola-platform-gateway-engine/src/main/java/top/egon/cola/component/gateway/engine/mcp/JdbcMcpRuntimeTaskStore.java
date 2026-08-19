@@ -4,8 +4,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
-import top.egon.cola.component.gateway.mcp.task.McpTask;
-import top.egon.cola.component.gateway.mcp.task.McpTaskStore;
+import top.egon.cola.component.gateway.mcp.task.domain.McpTask;
+import top.egon.cola.component.gateway.mcp.task.service.McpTaskStore;
 
 import javax.sql.DataSource;
 import java.sql.Connection;

@@ -20,7 +20,7 @@ import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
 import top.egon.cola.component.gateway.core.route.GatewayResponseMode;
 import top.egon.cola.component.gateway.core.route.HttpRouteCompiler;
 import top.egon.cola.component.gateway.core.route.RuntimeHttpRoute;
-import top.egon.cola.component.gateway.mcp.rule.McpRuleCompiler;
+import top.egon.cola.component.gateway.mcp.rule.service.McpRuleCompiler;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;

@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.core.operation.GatewayInvocationResult;
 import top.egon.cola.component.gateway.core.operation.GatewayOperationInvocation;
-import top.egon.cola.component.gateway.mcp.task.McpTask;
+import top.egon.cola.component.gateway.mcp.task.domain.McpTask;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
