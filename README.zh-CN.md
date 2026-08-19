@@ -26,10 +26,10 @@ Egon-COLA 是一个基于 Java 21 的 Maven 多模块工程，提供清晰分层
 | Component | [Common](egon-cola-components/egon-cola-component-common/README.zh-CN.md) | 通用结果、异常、POJO、Trace、ID、加密和脱敏能力。 |
 | Component | [Dynamic Thread Pool](egon-cola-components/egon-cola-component-dynamic-thread-pool/README.zh-CN.md) | 执行器注册、Redis 配置变更、动态扩缩容、虚拟线程限制和 Trace 传播。 |
 | Component | [RPC](egon-cola-components/egon-cola-component-rpc/README.zh-CN.md) | Protobuf/gRPC Provider、Consumer、DDC 注册发现及 Gateway 通道。 |
-| Component | [Rule Engine](egon-cola-components/egon-cola-component-rule-engine/README.zh-CN.md) | Java 规则链、责任链、规则树、Trace、限制和监听器。 |
+| Component | [Rule Engine](egon-cola-components/egon-cola-component-rule-engine-starter/README.zh-CN.md) | Java 规则链、责任链、规则树、Trace、限制和监听器。 |
 | Component | [Access Guard](egon-cola-components/egon-cola-component-access-guard-starter/README.zh-CN.md) | 方法级白名单、黑名单、限流、超时和拒绝治理。 |
 | Component | [Method Extension](egon-cola-components/egon-cola-component-method-extension/README.zh-CN.md) | 在注解方法执行前插入 AOP 或 Agent 业务决策 Handler。 |
-| Component | [Transactional Outbox](egon-cola-components/egon-cola-component-transactional-outbox/README.zh-CN.md) | 基于 PostgreSQL/JDBC 的至少一次 HTTP、RabbitMQ 或自定义 Handler 投递。 |
+| Component | [Transactional Outbox](egon-cola-components/egon-cola-component-transactional-outbox-starter/README.zh-CN.md) | 基于 PostgreSQL/JDBC 的至少一次 HTTP、RabbitMQ 或自定义 Handler 投递。 |
 | Component | [Bytecode](egon-cola-components/egon-cola-component-bytecode/README.zh-CN.md) | 构建期架构检查，以及可选的 Executor、观测、Method Extension 和 Access Guard 增强。 |
 | Platform | [Dynamic Config Center](egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.zh-CN.md) | 动态配置、Redis 租约、服务注册、同步发布和独立控制面。 |
 | Platform | [Gateway](egon-cola-platforms/egon-cola-platform-gateway/README.zh-CN.md) | HTTP/RPC 数据面、规则发布、Provider 发现、安全、可观测和部署资产。 |
@@ -288,10 +288,10 @@ Egon-COLA/
 │   ├── egon-cola-component-common/
 │   ├── egon-cola-component-dynamic-thread-pool/
 │   ├── egon-cola-component-rpc/
-│   ├── egon-cola-component-rule-engine/
+│   ├── egon-cola-component-rule-engine-starter/
 │   ├── egon-cola-component-access-guard-starter/
 │   ├── egon-cola-component-method-extension/
-│   ├── egon-cola-component-transactional-outbox/
+│   ├── egon-cola-component-transactional-outbox-starter/
 │   └── egon-cola-component-bytecode/
 ├── egon-cola-platforms/              # 可部署的企业级基础设施平台
 │   ├── egon-cola-platform-dynamic-config-center/

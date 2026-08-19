@@ -1,10 +1,10 @@
-# Egon COLA 事务消息组件
+# Egon COLA 事务消息 Starter
 
 [English](README.md) | [中文](README.zh-CN.md)
 
 ## 解决什么问题
 
-`egon-cola-component-transactional-outbox` 把业务变更和待发送消息原子地写入同一个
+`egon-cola-component-transactional-outbox-starter` 把业务变更和待发送消息原子地写入同一个
 PostgreSQL 本地事务，再通过 HTTP、RabbitMQ 或自定义通道异步投递。如果应用在数据库
 提交后停止，轮询任务会恢复这条已落库消息。
 
@@ -14,8 +14,8 @@ PostgreSQL 本地事务，再通过 HTTP、RabbitMQ 或自定义通道异步投�
 |---|---|
 | `egon-cola-component-transactional-outbox-starter` | 公开 API、PostgreSQL/JDBC 存储、轮询、重试、清理、HTTP/RabbitMQ 适配、自动配置、指标、单测和集成测试 |
 
-单测仍按组件包路径放在 `starter/src/test/java` 下；集成测试和可执行示例统一放在
-`starter/src/test/java/top/egon/cola/component/outbox/integration` 下，并通过 Maven
+单测仍按组件包路径放在 `src/test/java` 下；集成测试和可执行示例统一放在
+`src/test/java/top/egon/cola/component/outbox/integration` 下，并通过 Maven
 Failsafe 执行。
 
 实现采用 Transactional Outbox 模式。`TransactionalOutbox` 是业务侧门面，
@@ -86,7 +86,7 @@ RabbitMQ 投递时增加 `spring-rabbit`。
 引入 starter **不会自动建表**，也不会替业务应用执行 Flyway。请复制：
 
 ```text
-egon-cola-component-transactional-outbox-starter/src/main/resources/
+src/main/resources/
 db/transactional-outbox/postgresql/V1__create_transactional_outbox_schema.sql
 ```
 

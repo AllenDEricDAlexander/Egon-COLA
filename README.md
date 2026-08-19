@@ -246,10 +246,10 @@ Egon-COLA/
 │   ├── egon-cola-component-common/
 │   ├── egon-cola-component-dynamic-thread-pool/
 │   ├── egon-cola-component-rpc/
-│   ├── egon-cola-component-rule-engine/
+│   ├── egon-cola-component-rule-engine-starter/
 │   ├── egon-cola-component-access-guard-starter/
 │   ├── egon-cola-component-method-extension/
-│   ├── egon-cola-component-transactional-outbox/
+│   ├── egon-cola-component-transactional-outbox-starter/
 │   └── egon-cola-component-bytecode/
 ├── egon-cola-platforms/              # Deployable infrastructure platforms
 │   ├── egon-cola-platform-dynamic-config-center/

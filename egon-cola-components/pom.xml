@@ -57,10 +57,10 @@
         <module>egon-cola-component-common</module>
         <module>egon-cola-component-dynamic-thread-pool</module>
         <module>egon-cola-component-rpc</module>
-        <module>egon-cola-component-rule-engine</module>
+        <module>egon-cola-component-rule-engine-starter</module>
         <module>egon-cola-component-access-guard-starter</module>
         <module>egon-cola-component-method-extension</module>
-        <module>egon-cola-component-transactional-outbox</module>
+        <module>egon-cola-component-transactional-outbox-starter</module>
         <module>egon-cola-component-bytecode</module>
     </modules>
 

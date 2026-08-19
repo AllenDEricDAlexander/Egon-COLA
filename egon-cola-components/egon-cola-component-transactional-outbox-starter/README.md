@@ -1,10 +1,10 @@
-# Egon COLA Transactional Outbox
+# Egon COLA Transactional Outbox Starter
 
 [English](README.md) | [中文](README.zh-CN.md)
 
 ## What Problem This Solves
 
-`egon-cola-component-transactional-outbox` atomically stores a business change and
+`egon-cola-component-transactional-outbox-starter` atomically stores a business change and
 an outbound message in the same local PostgreSQL transaction, then delivers the
 message asynchronously through HTTP, RabbitMQ, or a custom channel. If the
 application stops after the database commit, polling recovers the stored message.
@@ -16,8 +16,8 @@ The component has one Maven module:
 | `egon-cola-component-transactional-outbox-starter` | Public API, PostgreSQL/JDBC store, polling, retry, cleanup, HTTP/RabbitMQ adapters, auto-configuration, metrics, unit tests, and integration tests |
 
 Unit tests remain in the regular component-package directories under
-`starter/src/test/java`; integration tests and executable samples are grouped
-under `starter/src/test/java/top/egon/cola/component/outbox/integration` and run
+`src/test/java`; integration tests and executable samples are grouped
+under `src/test/java/top/egon/cola/component/outbox/integration` and run
 through Maven Failsafe.
 
 The implementation uses the Transactional Outbox pattern. `TransactionalOutbox`
@@ -94,7 +94,7 @@ Introducing the starter **does not create its table** and does not run Flyway.
 Copy:
 
 ```text
-egon-cola-component-transactional-outbox-starter/src/main/resources/
+src/main/resources/
 db/transactional-outbox/postgresql/V1__create_transactional_outbox_schema.sql
 ```
 

@@ -6,7 +6,7 @@
 
     <parent>
         <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-transactional-outbox</artifactId>
+        <artifactId>egon-cola-components-parent</artifactId>
         <version>5.3.3</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
