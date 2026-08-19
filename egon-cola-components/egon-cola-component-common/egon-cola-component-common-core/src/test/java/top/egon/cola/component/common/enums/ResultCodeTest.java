@@ -35,12 +35,12 @@ class ResultCodeTest {
     }
 
     @Test
-    void egonEnumExposesOnlyCodeAndMessageContracts() {
+    void egonEnumExposesCodeMessageAndEnumContracts() {
         Set<String> methods = Arrays.stream(EgonEnum.class.getDeclaredMethods())
                 .map(method -> method.getName())
                 .collect(Collectors.toSet());
 
-        assertEquals(Set.of("getCode", "getMessage"), methods);
+        assertEquals(Set.of("getCode", "getMessage", "ordinal", "name", "values", "valueOf"), methods);
     }
 
     @Test
@@ -49,6 +49,8 @@ class ResultCodeTest {
         assertEquals(0, ResultCode.SUCCESS.ordinal());
         assertEquals(ResultCode.values().length, ResultCode.class.getEnumConstants().length);
         assertEquals(ResultCode.SUCCESS, ResultCode.values()[ResultCode.SUCCESS.ordinal()]);
+        assertEquals(ResultCode.values().length, EgonEnum.values(ResultCode.class).length);
+        assertEquals(ResultCode.SUCCESS, EgonEnum.valueOf(ResultCode.class, "SUCCESS"));
     }
 
     @Test

@@ -3,31 +3,37 @@ package top.egon.cola.component.common.core.enums;
 /**
  * Severity levels supported by business exceptions.
  */
-public enum ExceptionLevelEnum {
+public enum ExceptionLevelEnum implements EgonEnum {
 
-    ERROR(1, "error"),
+    TRACE(5, "trace"),
 
     DEBUG(2, "debug"),
 
+    INFO(4, "info"),
+
     WARN(3, "warn"),
 
-    INFO(4, "info");
+    ERROR(1, "error"),
+
+    FATAL(6, "fatal");
 
     private final int code;
 
-    private final String desc;
+    private final String message;
 
-    ExceptionLevelEnum(int code, String desc) {
+    ExceptionLevelEnum(int code, String message) {
         this.code = code;
-        this.desc = desc;
+        this.message = message;
     }
 
+    @Override
     public int getCode() {
         return code;
     }
 
-    public String getDesc() {
-        return desc;
+    @Override
+    public String getMessage() {
+        return message;
     }
 
     public static ExceptionLevelEnum fromValue(int value) {
