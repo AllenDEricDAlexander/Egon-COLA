@@ -1,11 +1,14 @@
 package top.egon.cola.component.gateway.engine;
 
+import top.egon.cola.component.gateway.engine.bootstrap.lifecycle.GatewayEngineRuntime;
+import top.egon.cola.component.gateway.engine.common.config.GatewayEngineRuntimeProperties;
+
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.gateway.engine.discovery.ProviderDirectory;
-import top.egon.cola.component.gateway.engine.http.GatewayHttpServer;
-import top.egon.cola.component.gateway.engine.rpc.RpcGatewayServer;
-import top.egon.cola.component.gateway.engine.rpc.RpcGatewaySlotRuntime;
-import top.egon.cola.component.gateway.engine.rule.GatewayRuleActivationApplier;
+import top.egon.cola.component.gateway.engine.common.provider.service.ProviderDirectory;
+import top.egon.cola.component.gateway.engine.http.service.GatewayHttpServer;
+import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewayServer;
+import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewaySlotRuntime;
+import top.egon.cola.component.gateway.engine.rule.service.GatewayRuleActivationApplier;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;

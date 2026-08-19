@@ -1,5 +1,7 @@
 package top.egon.cola.component.gateway.engine;
 
+import top.egon.cola.component.gateway.engine.bootstrap.config.GatewayEngineConfiguration;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;

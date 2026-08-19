@@ -12,7 +12,7 @@ import org.springframework.core.env.SystemEnvironmentPropertySource;
 import org.springframework.core.io.FileSystemResource;
 import org.yaml.snakeyaml.Yaml;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
-import top.egon.cola.component.gateway.engine.GatewayEngineRuntimeProperties;
+import top.egon.cola.component.gateway.engine.common.config.GatewayEngineRuntimeProperties;
 
 import java.io.IOException;
 import java.io.InputStream;

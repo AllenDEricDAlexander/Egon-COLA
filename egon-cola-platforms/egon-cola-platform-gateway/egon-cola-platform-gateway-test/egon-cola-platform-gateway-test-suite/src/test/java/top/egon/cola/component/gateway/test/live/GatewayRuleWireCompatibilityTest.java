@@ -15,7 +15,7 @@ import top.egon.cola.component.gateway.contract.rule.GatewayRuntimePolicy;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeRoute;
 import top.egon.cola.component.gateway.contract.rule.GatewayTransportProtocol;
 import top.egon.cola.component.gateway.contract.rule.GatewayTransportResponseMode;
-import top.egon.cola.component.gateway.engine.rule.GatewayRuleJsonCodec;
+import top.egon.cola.component.gateway.engine.rule.adapter.json.GatewayRuleJsonCodec;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;

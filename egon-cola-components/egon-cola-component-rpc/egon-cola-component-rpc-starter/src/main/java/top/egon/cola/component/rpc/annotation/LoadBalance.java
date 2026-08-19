@@ -4,7 +4,7 @@ package top.egon.cola.component.rpc.annotation;
  * Load balancing policy selectable from a declaration site.
  *
  * <p>Constant names are kept identical to
- * {@code top.egon.cola.component.gateway.engine.balance.LoadBalancerType} so that a
+ * {@code top.egon.cola.component.gateway.engine.common.provider.domain.LoadBalancerType} so that a
  * declaration can be mapped onto the engine policy by name alone, without a
  * translation table that would silently drift as either side gains a strategy.
  *

@@ -1,5 +1,7 @@
 package top.egon.cola.component.gateway.engine;
 
+import top.egon.cola.component.gateway.engine.common.config.GatewayEngineRuntimeProperties;
+
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
