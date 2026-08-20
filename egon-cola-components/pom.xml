@@ -76,7 +76,11 @@
         <sqlite.jdbc.version>3.50.3.0</sqlite.jdbc.version>
         <micrometer.version>1.15.12</micrometer.version>
         <resilience4j.version>2.2.0</resilience4j.version>
+        <guava.version>33.6.0-jre</guava.version>
+        <commons.lang3.version>3.20.0</commons.lang3.version>
         <commons.collections4.version>4.5.0</commons.collections4.version>
+        <commons.io.version>2.22.0</commons.io.version>
+        <commons.text.version>1.15.0</commons.text.version>
         <commons.codec.version>1.18.0</commons.codec.version>
         <lombok.version>1.18.46</lombok.version>
         <junit.platform.version>1.12.2</junit.platform.version>
@@ -171,6 +175,16 @@
             </dependency>
             <!-- 工具包 -->
             <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons.lang3.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>fastjson</artifactId>
                 <version>1.2.83</version>
@@ -180,6 +194,16 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-collections4</artifactId>
                 <version>${commons.collections4.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${commons.io.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-text</artifactId>
+                <version>${commons.text.version}</version>
             </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
