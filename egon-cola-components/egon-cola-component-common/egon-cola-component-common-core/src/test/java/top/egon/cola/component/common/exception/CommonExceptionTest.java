@@ -40,6 +40,37 @@ class CommonExceptionTest {
     }
 
     @Test
+    void businessExceptionFormatsEnumMessageDetails() {
+        BusinessException exception = new BusinessException(
+                BusinessExceptionEnum.INVALID_PARAM,
+                "orderId"
+        );
+
+        assertEquals("参数orderId为空或者不合法", exception.getMessage());
+    }
+
+    @Test
+    void commonExceptionFormatsEnumMessageDetailsWithCause() {
+        RuntimeException cause = new RuntimeException("connection refused");
+
+        CommonException exception = new CommonException(
+                BusinessExceptionEnum.INTERFACE_CALL_ERROR,
+                cause,
+                "inventory-service"
+        );
+
+        assertEquals("接口调用异常,inventory-service", exception.getMessage());
+        assertSame(cause, exception.getCause());
+    }
+
+    @Test
+    void formattingWithoutDetailsKeepsTemplateForLaterContext() {
+        CommonException exception = new CommonException(BusinessExceptionEnum.SYSTEM_ERROR);
+
+        assertEquals("系统处理异常:%s", exception.getMessage());
+    }
+
+    @Test
     void businessExceptionPreservesLevelDetailsAndCause() {
         RuntimeException cause = new RuntimeException("invalid order");
         Object[] details = {"orderId"};

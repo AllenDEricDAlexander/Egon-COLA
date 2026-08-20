@@ -5,7 +5,6 @@ import top.egon.cola.component.common.core.enums.ErrorStatus;
 import top.egon.cola.component.common.core.enums.ExceptionLevelEnum;
 
 import java.io.Serial;
-import java.util.IllegalFormatException;
 import java.util.Objects;
 
 /**
@@ -30,6 +29,14 @@ public class BusinessException extends CommonException {
 
     public BusinessException(ErrorStatus errorStatus, Throwable cause) {
         this(errorStatus, ExceptionLevelEnum.ERROR, cause, new Object[0]);
+    }
+
+    public BusinessException(ErrorStatus errorStatus, Object... details) {
+        this(errorStatus, ExceptionLevelEnum.ERROR, null, details);
+    }
+
+    public BusinessException(ErrorStatus errorStatus, Throwable cause, Object... details) {
+        this(errorStatus, ExceptionLevelEnum.ERROR, cause, details);
     }
 
     public BusinessException(BusinessExceptionEnum businessExceptionEnum) {
@@ -89,7 +96,7 @@ public class BusinessException extends CommonException {
                               ExceptionLevelEnum level,
                               Throwable cause,
                               Object[] details) {
-        super(Objects.requireNonNull(errorStatus, "errorStatus"), cause);
+        super(Objects.requireNonNull(errorStatus, "errorStatus"), cause, details);
         this.businessExceptionEnum = errorStatus instanceof BusinessExceptionEnum business
                 ? business
                 : null;
@@ -170,16 +177,5 @@ public class BusinessException extends CommonException {
 
     private static Object[] copyDetails(Object[] details) {
         return details == null ? new Object[0] : details.clone();
-    }
-
-    private static String formatMessage(String message, Object[] details) {
-        if (details == null || details.length == 0 || message.indexOf('%') < 0) {
-            return message;
-        }
-        try {
-            return String.format(message, details);
-        } catch (IllegalFormatException ignored) {
-            return message;
-        }
     }
 }
