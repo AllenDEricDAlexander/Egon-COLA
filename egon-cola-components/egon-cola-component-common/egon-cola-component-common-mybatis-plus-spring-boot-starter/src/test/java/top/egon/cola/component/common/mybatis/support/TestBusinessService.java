@@ -9,7 +9,7 @@ import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils
  * Test-only technical Service extension used by the unit and integration
  * contracts. It contains no business rules or CRUD overrides.
  */
-public final class TestBusinessService extends EgonColaServiceImpl<TestBusinessMapper, TestBusinessModel> {
+public class TestBusinessService extends EgonColaServiceImpl<TestBusinessMapper, TestBusinessModel> {
 
     public TestBusinessService(EgonColaModelValidationUtils modelValidationUtils,
                                 EgonColaTenantIdProvider tenantIdProvider,
