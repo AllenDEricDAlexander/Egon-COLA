@@ -13,6 +13,7 @@
 | Module | 说明 |
 |---|---|
 | `egon-cola-component-common-core` | `ResultCode`、通用异常、转换器契约、POJO record 和树结构构建 |
+| `egon-cola-component-common-mybatis-plus-spring-boot-starter` | 按需启用的 MyBatis-Plus 3.5.16 ActiveRecord `EgonModel`、零新增方法 `EgonColaMapper`、增强 57 方法 Service、TenantID 隔离、审计填充和仓储校验 |
 | `egon-cola-component-common-trace` | 纯 JDK + SLF4J Trace 核心、W3C `traceparent` 传播、完整 MDC 捕获和本地线程任务模板 |
 | `egon-cola-component-common-trace-spring-boot-starter` | Spring Boot 3 自动配置：Servlet、WebFlux、RestClient、WebClient 和 Reactor Context 投影 |
 | `egon-cola-component-common-id-starter` | Snowflake 接口、纯 JDK 算法、解析器、已废弃的 UUIDv7 兼容 API 和 Spring Boot 自动配置；全部测试位于本模块 |
@@ -120,6 +121,10 @@ executor.execute(new TraceRouteRunnable() {
     <dependency>
         <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-common-core</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-common-mybatis-plus-spring-boot-starter</artifactId>
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
@@ -274,6 +279,10 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 旧的 `util` 聚合包、拆分的 `model/result/structure` 包、独立结果工厂、`BaseEntity` 和 `AuditableModel` 已被有意移除。
 
 Snowflake 位布局、配置、时钟回拨、Kubernetes 机器 ID 分配和 UUIDv7 迁移边界见 [common ID Starter 中文文档](egon-cola-component-common-id-starter/README.zh-CN.md)。
+
+## MyBatis-Plus Starter
+
+引入具体 Starter 后能力按依赖启用，配置默认开启。完整的 `EgonModel`、Mapper、Service、TenantID、审计填充、校验、建表前置和回滚说明见[模块中文文档](egon-cola-component-common-mybatis-plus-spring-boot-starter/README.zh-CN.md)。Common 聚合本身不拥有业务表和迁移。
 
 ## 验证命令
 
