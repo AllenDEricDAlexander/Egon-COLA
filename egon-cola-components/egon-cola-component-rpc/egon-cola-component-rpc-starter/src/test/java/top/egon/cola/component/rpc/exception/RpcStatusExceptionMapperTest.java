@@ -57,6 +57,16 @@ class RpcStatusExceptionMapperTest {
         ).getCode()).isEqualTo(EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE);
     }
 
+    @Test
+    void shouldMapProviderRateLimitToDedicatedCode() {
+        Metadata trailers = new Metadata();
+        RpcFailureStage.PROVIDER.put(trailers);
+        trailers.put(RpcMetadataKeys.ERROR_TYPE, "rate-limit");
+
+        assertThat(mapper.map(Status.UNAVAILABLE.asRuntimeException(trailers)).getCode())
+                .isEqualTo(EgonRpcErrorCode.RPC_RATE_LIMITED);
+    }
+
     private void assertCode(Status status, EgonRpcErrorCode expected) {
         assertThat(mapper.map(status.asRuntimeException()).getCode())
                 .isEqualTo(expected);

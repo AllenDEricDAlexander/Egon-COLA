@@ -3,15 +3,10 @@ package top.egon.cola.component.rpc.exception;
 import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 import top.egon.cola.component.rpc.context.invocation.RpcFailureStage;
 
 public class RpcStatusExceptionMapper {
-
-    private static final Metadata.Key<String> ERROR_TYPE =
-            Metadata.Key.of(
-                    "x-egon-rpc-error-type",
-                    Metadata.ASCII_STRING_MARSHALLER
-            );
 
     public EgonRpcException map(StatusRuntimeException exception) {
         EgonRpcErrorCode code = switch (exception.getStatus().getCode()) {
@@ -33,13 +28,20 @@ public class RpcStatusExceptionMapper {
     }
 
     private EgonRpcErrorCode notFoundCode(Metadata trailers) {
-        String type = trailers == null ? null : trailers.get(ERROR_TYPE);
+        String type = trailers == null ? null : trailers.get(RpcMetadataKeys.ERROR_TYPE);
         return "method".equalsIgnoreCase(type)
                 ? EgonRpcErrorCode.RPC_METHOD_NOT_FOUND
                 : EgonRpcErrorCode.RPC_SERVICE_NOT_FOUND;
     }
 
     private EgonRpcErrorCode unavailableCode(Metadata trailers) {
+        String errorType = trailers == null ? null : trailers.get(RpcMetadataKeys.ERROR_TYPE);
+        if ("rate-limit".equalsIgnoreCase(errorType)
+                && RpcFailureStage.from(trailers)
+                .filter(stage -> stage == RpcFailureStage.PROVIDER)
+                .isPresent()) {
+            return EgonRpcErrorCode.RPC_RATE_LIMITED;
+        }
         return RpcFailureStage.from(trailers)
                 .filter(stage -> stage == RpcFailureStage.PROVIDER)
                 .isPresent()
@@ -53,6 +55,7 @@ public class RpcStatusExceptionMapper {
             case RPC_CANCELLED -> "RPC call was cancelled";
             case RPC_GATEWAY_UNAVAILABLE -> "RPC Gateway is unavailable";
             case RPC_PROVIDER_UNAVAILABLE -> "RPC Provider is unavailable";
+            case RPC_RATE_LIMITED -> "RPC request was rate limited";
             case RPC_INVALID_REQUEST -> "RPC request is invalid";
             case RPC_PROVIDER_REJECTED -> "RPC Provider rejected the request";
             case RPC_METHOD_NOT_FOUND -> "RPC method was not found";
