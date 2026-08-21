@@ -15,7 +15,11 @@ import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
 
 public class RpcConsumerClientInterceptor implements ClientInterceptor {
 
-    private final RpcContractDescriptor contract;
+    private final String serviceName;
+
+    private final String group;
+
+    private final String version;
 
     private final RpcProcessIdentity processIdentity;
 
@@ -24,9 +28,44 @@ public class RpcConsumerClientInterceptor implements ClientInterceptor {
     public RpcConsumerClientInterceptor(
             RpcContractDescriptor contract,
             RpcProcessIdentity processIdentity) {
-        this.contract = contract;
-        this.processIdentity = processIdentity;
-        this.invocationId = UuidV7.simpleString();
+        this(
+                contract == null ? null : contract.serviceName(),
+                contract == null ? null : contract.group(),
+                contract == null ? null : contract.version(),
+                processIdentity,
+                UuidV7.simpleString()
+        );
+    }
+
+    public RpcConsumerClientInterceptor(
+            String serviceName,
+            String group,
+            String version,
+            RpcProcessIdentity processIdentity,
+            String invocationId) {
+        this.serviceName = required(serviceName, "serviceName");
+        this.group = required(group, "group");
+        this.version = required(version, "version");
+        this.processIdentity = java.util.Objects.requireNonNull(
+                processIdentity,
+                "processIdentity"
+        );
+        this.invocationId = required(invocationId, "invocationId");
+    }
+
+    public static RpcConsumerClientInterceptor forTarget(
+            String serviceName,
+            String group,
+            String version,
+            RpcProcessIdentity processIdentity,
+            String invocationId) {
+        return new RpcConsumerClientInterceptor(
+                serviceName,
+                group,
+                version,
+                processIdentity,
+                invocationId
+        );
     }
 
     @Override
@@ -50,9 +89,9 @@ public class RpcConsumerClientInterceptor implements ClientInterceptor {
 
     private Metadata metadataAtStart(Metadata existingHeaders) {
         Metadata metadata = new Metadata();
-        metadata.put(RpcMetadataKeys.SERVICE, contract.serviceName());
-        metadata.put(RpcMetadataKeys.GROUP, contract.group());
-        metadata.put(RpcMetadataKeys.VERSION, contract.version());
+        metadata.put(RpcMetadataKeys.SERVICE, serviceName);
+        metadata.put(RpcMetadataKeys.GROUP, group);
+        metadata.put(RpcMetadataKeys.VERSION, version);
         metadata.put(RpcMetadataKeys.INVOCATION_ID, invocationId);
         metadata.put(RpcMetadataKeys.SOURCE_APP, processIdentity.applicationName());
         metadata.put(RpcMetadataKeys.SOURCE_INSTANCE, processIdentity.instanceId());
@@ -73,5 +112,12 @@ public class RpcConsumerClientInterceptor implements ClientInterceptor {
             }
         }
         return metadata;
+    }
+
+    private static String required(String value, String name) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(name + " is required");
+        }
+        return value.trim();
     }
 }
