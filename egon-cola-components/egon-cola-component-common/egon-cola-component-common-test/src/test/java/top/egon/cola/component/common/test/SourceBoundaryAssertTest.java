@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -26,5 +27,18 @@ class SourceBoundaryAssertTest {
         Files.writeString(source, "package sample;\nimport org.springframework.context.ApplicationContext;\nclass Sample {}\n");
 
         assertThrows(AssertionError.class, () -> SourceBoundaryAssert.assertNoForbiddenImports(tempDir));
+    }
+
+    @Test
+    void allowsOnlyExplicitValidationImportPrefix() throws Exception {
+        Path tempDir = Files.createTempDirectory("common-boundary-validation");
+        Path source = tempDir.resolve("Sample.java");
+        Files.writeString(source, "package sample;\n"
+                + "import jakarta.validation.Validator;\n"
+                + "import jakarta.persistence.Entity;\n"
+                + "class Sample {}\n");
+
+        assertThrows(AssertionError.class, () -> SourceBoundaryAssert.assertNoForbiddenImports(
+                tempDir, Set.of("jakarta.validation.")));
     }
 }
