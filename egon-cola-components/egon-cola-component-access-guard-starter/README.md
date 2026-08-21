@@ -913,11 +913,14 @@ selected store implementation.
 
 ## 14. Rate Limit
 
-The current algorithm is:
+The rate-limit strategy is selected by the rule and defaults to
+`TOKEN_BUCKET`. The starter supports three algorithms:
 
-```text
-TOKEN_BUCKET
-```
+| Algorithm | State semantics | Parameter interpretation |
+|-----------|-----------------|--------------------------|
+| `TOKEN_BUCKET` | Tokens accumulate up to `capacity`; an allowed call consumes `requested-tokens`. | `refill-tokens` are added every `refill-period`. |
+| `LEAKY_BUCKET` | Water level drains at a fixed rate; a call is admitted only when the new level fits. | `refill-tokens/refill-period` define the drain rate; `requested-tokens` is the water cost. |
+| `SLIDING_WINDOW` | Accepted timestamps are retained for one window and counted exactly. | `capacity` is the maximum calls; `refill-period` is the window; `requested-tokens` must be `1`. |
 
 Configuration:
 
@@ -945,6 +948,22 @@ Validation rules include:
 - all numeric values must be positive;
 - `requested-tokens` cannot exceed `capacity`;
 - `refill-period` must be positive.
+- `SLIDING_WINDOW` requires `requested-tokens=1` and `capacity<=100000`.
+
+Local storage uses monotonic time and a bounded in-memory entry map. Redisson
+storage uses Redis server time and atomic single-key scripts. Existing Token
+Bucket deployments retain the legacy HASH key; Leaky Bucket and Sliding Window
+use lazy `:leaky-bucket` and `:sliding-window` suffix keys with idle TTL cleanup.
+No migration or broad deletion is required. Changing algorithm parameters starts
+new normalized state according to the configured rule version. Storage errors
+follow `failurePolicies.rateLimitBackend` (`FAIL_OPEN`, `LOCAL_FALLBACK`, or
+`FAIL_CLOSED`). `retryAfter` is an operational hint in `GuardOutcome`; the Guard
+does not queue or sleep a rejected call.
+
+For RPC Provider methods, add the RPC Starter and Access Guard Starter explicitly
+and put `@RateLimitGuard(ruleId, key)` on the implementation method. RPC maps only
+`GuardDecision.RATE_LIMITED` to Provider-stage gRPC `UNAVAILABLE`; the target method
+is not entered. Other Guard decisions retain their normal exception semantics.
 
 ### Examples
 

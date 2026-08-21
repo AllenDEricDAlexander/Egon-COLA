@@ -27,12 +27,13 @@ forwarding are owned by the separate [Gateway platform](../../egon-cola-platform
 - Provider bean scanning with `@EgonRpcProvider`, a managed unary gRPC server,
   availability gating, DDC lease registration, heartbeat, recovery, and exact
   lease deregistration.
-- Consumer JDK proxies with two selectable runtime paths:
+- Consumer CGLIB proxies with two selectable runtime paths:
   `@EgonRpcReference` through discovered internal Gateways, or
   `@EgonRpcDirectReference` through discovered Providers.
 - Programmatic direct gRPC clients for infrastructure endpoints through
   `RpcDirectClientFactory`; the caller owns the returned channel handle.
-- Deadline and cancellation propagation, bounded trace/request metadata, and
+- Blocking and `CompletionStage` invocation, restricted generic raw-Protobuf
+  calls, HTTP/2 channel multiplexing, deadline/cancellation propagation, bounded trace/request metadata, and
   stable `EgonRpcErrorCode` mapping from gRPC status values.
 - Optional DDC RPC adapter for ConfigData, service registry, and management
   clients, with explicit mTLS or development-plaintext configuration and
@@ -65,7 +66,7 @@ must match the complete lease identity.
 |---------------------|--------------------------------------------------------------------------------|---------------------------------------------------------------|
 | Contract            | Java binding, descriptor validation, unary contract snapshot                   | A second IDL or serializer                                    |
 | Provider            | gRPC server, bean dispatch, availability, lease lifecycle                      | Gateway routing or provider health probing                    |
-| Consumer            | Proxy, channel lifecycle, deadline, metadata, Gateway/Provider directory ports | Gateway rules, provider load balancing, business retry policy |
+| Consumer            | Proxy, channel lifecycle, deadline, metadata, Gateway/Provider directory ports, Consumer-side candidate load balancing | Gateway rules, Gateway-side Provider routing, business retry policy |
 | DDC adapter         | Direct gRPC clients for config, registry, and management ports                 | DDC Admin persistence and Redis implementation                |
 | Gateway integration | Transport-neutral Gateway/Provider directory interfaces and contract catalog   | Production Gateway data plane and control plane               |
 
@@ -233,6 +234,7 @@ All properties in this table are under `egon.cola.component.rpc`.
 | `provider.heartbeat-interval-seconds`   |       `10` | Heartbeat interval; it must be shorter than the lease TTL.      |
 | `provider.graceful-shutdown-timeout-ms` |    `10000` | Server drain timeout.                                           |
 | `provider.metadata`                     |      empty | User metadata; reserved framework prefixes are rejected.        |
+| `provider.metadata.gateway.weight`      | contract `weight` or `100` | Published instance capacity, valid range `1..10000`. |
 
 The Provider starts its gRPC server, prepares handlers as unavailable, registers
 one DDC lease per service identity, and marks the matching handler available only
@@ -254,12 +256,23 @@ heartbeats, deregisters exact leases, and drains the server.
 | `consumer.gateway-app-code`             |              empty | Optional DDC application-scope override.                 |
 | `consumer.channel-drain-timeout-ms`     |             `5000` | Drain timeout for replaced Provider channels.            |
 | `consumer.gateway-max-attempts`         |                `2` | Maximum Gateway channels considered by one logical call. |
+| `consumer.max-retries`                  |                `3` | Default same-mode availability retry budget.             |
+| `consumer.default-load-balance`         |       `ROUND_ROBIN` | Default Consumer-side selection strategy.                |
+| `consumer.consistent-hash-virtual-nodes`|              `160` | Ring density for `CONSISTENT_HASH`.                      |
+| `consumer.generic-cache-max-entries`    |              `256` | Maximum generic target entries.                          |
+| `consumer.generic-cache-idle-timeout-ms`|           `600000` | Idle eviction threshold for generic target entries.      |
 
-`@EgonRpcReference.timeoutMs` may shorten but never extend the configured
-`default-timeout-ms`. Gateway failover is limited to an idempotent method that
-receives a Gateway-stage `UNAVAILABLE`; Provider failures and direct Provider
-calls are not retried by the Consumer. Channels explicitly disable gRPC's own
-transport retry policy.
+`@EgonRpcReference` and `@EgonRpcDirectReference` share the same timeout, retry,
+load-balance, fallback, and hash-resolver policy fields. The selected mode is
+fixed when the field is injected: an unavailable Gateway is never replaced by a
+Direct Provider, and a Direct failure never enters Gateway. Availability-only
+failures (acquisition errors and Provider/Gateway-stage `UNAVAILABLE`) may select
+another candidate in the same mode until the total deadline or retry budget is
+exhausted. Business statuses such as `INVALID_ARGUMENT`, `PERMISSION_DENIED`,
+`NOT_FOUND`, `FAILED_PRECONDITION`, `ALREADY_EXISTS`, `ABORTED`, and business
+exceptions are terminal and are not retried. The framework does not infer
+idempotency; when retries are enabled the business operation must be duplicate-safe
+(for example, a unique document number with overwrite/upsert semantics).
 
 ### Identity and transport security
 
@@ -343,7 +356,7 @@ The project parent manages `protobuf-maven-plugin`, `protoc`, and
 )
 public interface EchoRpc {
 
-    @EgonRpcMethod(name = "Echo", idempotent = true)
+    @EgonRpcMethod(name = "Echo")
     EchoResponse echo(EchoRequest request);
 }
 ```
@@ -415,8 +428,7 @@ public class InternalEchoClient {
 
 This path requires a `RpcProviderDirectory`, normally supplied by the DDC Adapter.
 It discovers `RPC_PROVIDER` entries and manages channels to active Provider
-instances; it does not apply Gateway routing, authorization, traffic governance,
-or Provider retry policy.
+instances; it does not apply Gateway routing, authorization, or traffic governance.
 
 ### 6. Create an infrastructure direct client
 
@@ -458,13 +470,83 @@ failure removes availability before lease recovery is attempted.
 
 | Mode            | Entry point               | Discovery          | Channel owner       | Retry boundary                                                        |
 |-----------------|---------------------------|--------------------|---------------------|-----------------------------------------------------------------------|
-| Gateway         | `@EgonRpcReference`       | `INTERNAL_GATEWAY` | RPC Consumer        | Idempotent Gateway-stage `UNAVAILABLE` only, within the same deadline |
-| Direct Provider | `@EgonRpcDirectReference` | `RPC_PROVIDER`     | RPC Consumer        | One Provider attempt; no business retry                               |
+| Gateway         | `@EgonRpcReference`       | `INTERNAL_GATEWAY` | RPC Consumer        | Same-mode candidate reselection for acquisition/`UNAVAILABLE` only     |
+| Direct Provider | `@EgonRpcDirectReference` | `RPC_PROVIDER`     | RPC Consumer        | Same-mode candidate reselection for acquisition/`UNAVAILABLE` only     |
 | Explicit target | `RpcDirectClientFactory`  | None               | Caller-owned handle | One transport attempt                                                 |
 
 The normal Consumer path never discovers Providers directly. Gateway provider
 selection, health probing, route rules, and Provider load balancing belong to the
 Gateway platform.
+
+The Consumer itself maintains one immutable snapshot per exact discovery query.
+The DDC adapter owns the event listener and periodic full reconciliation; a
+Consumer call reads the local snapshot and never performs a call-time DDC pull.
+`RpcLoadBalancers` supplies `RANDOM`, `WEIGHTED_RANDOM`, `ROUND_ROBIN`,
+`SMOOTH_WEIGHTED_ROUND_ROBIN`, `CONSISTENT_HASH`, and `LEAST_IN_FLIGHT`.
+Weights are read from the Provider's `gateway.weight` metadata. Consistent hash
+requires a named `RpcLoadBalanceKeyResolver` for typed calls or an explicit
+bounded `affinityKey` for generic calls.
+
+### Blocking, async, generic, and multiplexed calls
+
+Typed methods may return a Protobuf response for blocking invocation or
+`CompletionStage<ProtobufResponse>` for asynchronous invocation. Both shapes use
+the same unary gRPC descriptor and metadata/interceptor chain. The generic API is
+intentionally raw and bounded:
+
+```java
+RpcGenericInvocation call = RpcGenericInvocation.gateway(
+        "egon.rpc.test.v1.EchoService", "default", "1.0.0",
+        "egon.rpc.test.v1.EchoService/Echo", requestBytes,
+        3000, 1, LoadBalance.ROUND_ROBIN, FailStrategy.FAIL_CLOSED, null);
+byte[] response = genericInvoker.invokeBlocking(call);
+CompletionStage<byte[]> async = genericInvoker.invokeAsync(call);
+```
+
+The only accepted method identity is the canonical gRPC
+`fully.qualified.Service/Method` form; dot aliases, arbitrary Metadata, endpoint
+addresses, DDC credentials, Map/Object serialization, streaming, and a second
+generic wire service are rejected. Generic target state is bounded by the cache
+settings above. One shared `ManagedChannel` is multiplexed across concurrent unary
+streams for the same endpoint key and is drained on shutdown.
+
+### Provider Guard rate limiting
+
+RPC does not define a second limiter or add fields to `@EgonRpcProvider`. Add the
+Access Guard starter explicitly to a Provider application and put the existing
+annotation on the implementation method:
+
+```java
+@EgonRpcProvider
+final class OrderProvider implements OrderRpc {
+    @RateLimitGuard("rpc.order.create")
+    public CompletionStage<OrderResponse> create(OrderRequest request) { ... }
+}
+```
+
+Configure `TOKEN_BUCKET`, `LEAKY_BUCKET`, or `SLIDING_WINDOW` under the Guard rule.
+The Guard strategy/factory and Local/Redisson backend own capacity, key scope,
+atomicity, and failure policy. A `RATE_LIMITED` rejection is mapped by the RPC
+adapter to gRPC `UNAVAILABLE` with Provider-stage and `error-type=rate-limit`
+trailers; the business method is not invoked. Other Guard decisions remain on the
+normal rejection path. If the Guard starter is absent, the optional RPC adapter is
+not created and no rate limit is silently assumed.
+
+### Lifecycle states and graceful shutdown
+
+Provider states are `NEW → STARTING → READY|DEGRADED → DRAINING → STOPPED` (or
+`FAILED`). READY is published only after the gRPC server is bound and every
+required lease is active. Provider heartbeat is an RPC-side fixed-delay scheduler;
+DDC only validates/renews/expirs leases and publishes changes. Consumer startup
+installs all declared Directory subscriptions and the shared channel pool before
+accepting calls. Shutdown closes the admission gate, stops subscriptions and
+recovery, deregisters exact leases, drains in-flight unary calls until the
+configured timeout, then force-closes remaining channels. `SmartLifecycle` stop
+callbacks are invoked once.
+
+`FAIL_OPEN` is an explicit degraded-result contract: an exhausted availability
+attempt returns `null` (typed or generic) and callers must handle it. It must not
+be used for a required business result without a local fallback or null check.
 
 ### Deadline, metadata, and status
 
@@ -575,14 +657,11 @@ The following items are not part of the current V1 runtime contract and require
 separate contract/design decisions before implementation:
 
 - Streaming RPC support and its Gateway descriptor/reporting model.
-- A single effective retry/failure-policy model connecting contract metadata,
-  Consumer references, and Gateway policies.
-- Consistent runtime handling for declaration metadata such as reference-level
-  `group`, `version`, `loadBalance`, `retries`, and `failStrategy`.
-- Richer metrics and channel/provider diagnostics without exposing unbounded
-  request metadata or sensitive DDC credentials.
-- Expanded production integration documentation and fault-drill coverage for
-  mTLS, lease recovery, Gateway failover, and descriptor compatibility.
+- Streaming RPC support and its Gateway descriptor/reporting model.
+- Production-scale observability dashboards and fault-drill automation; the
+  bounded runtime hooks and status/trailer contracts are already available.
+- Live DDC/Redis topology and deployment-specific mTLS validation, which remain
+  environment-owned evidence rather than module unit-test behavior.
 
 ## Validation
 
@@ -594,8 +673,9 @@ Run the ordinary RPC module tests from the repository root:
   -am test
 ```
 
-The ordinary suite uses real loopback TCP with a test Mock Gateway and does not
-prove a production DDC/Redis/Gateway topology. The opt-in process test requires
+The ordinary suite uses real loopback TCP with a test Mock Gateway and direct
+Provider fixtures; it does not prove a production DDC/Redis/Gateway topology.
+The opt-in process test requires
 an externally managed Redis instance:
 
 ```bash
