@@ -7,7 +7,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
-import com.baomidou.mybatisplus.extension.activerecord.AbstractModel;
+import com.baomidou.mybatisplus.extension.activerecord.Model;
 import jakarta.validation.constraints.NotNull;
 
 import java.io.Serializable;
@@ -19,7 +19,7 @@ import java.util.Objects;
  *
  * @param <M> concrete self type used by MyBatis-Plus ActiveRecord wrappers
  */
-public abstract class EgonModel<M extends EgonModel<M>> extends AbstractModel<M> {
+public abstract class EgonModel<M extends EgonModel<M>> extends Model<M> {
 
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     @NotNull(groups = EgonColaModelValidationGroups.Persisted.class)
