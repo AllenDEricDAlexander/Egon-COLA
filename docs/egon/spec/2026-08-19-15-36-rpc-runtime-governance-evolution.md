@@ -21,7 +21,7 @@
 | Supersedes | `[Gateway BIZ/APP 与 DDC 直连 RPC Spec](./2026-08-15-16-57-gateway-biz-app-scope-direct-rpc-design.md) §1、§3.2、§4 REQ-005–REQ-011、§5 DEC-003–DEC-005、§7.3–§7.5、§8 RPC Consumer 子树、§9 ANN-001/ANN-002、§13.2、§15 Direct 治理、§16–§18 中的 RPC Reference/Direct 行为；其 Gateway BIZ/APP 安全与凭证中继设计不被替换` |
 | Depends On | `[DDC 单机闭环与轻量 RPC §8 服务注册中心](../../superpowers/specs/2026-07-24-ddc-standalone-rpc-framework-design.md#8-ddc-服务注册中心)`；`[GWS-04 §5–§13 Gateway RPC 数据面](../../superpowers/specs/2026-07-25-gateway-engine-rpc-design.md#5-动态-grpc-handler)`；`[Gateway BIZ/APP 与 DDC 直连 RPC Spec §7.1–§7.2、§15 Security](./2026-08-15-16-57-gateway-biz-app-scope-direct-rpc-design.md#71-architecture-overview)` |
 | Related Specs | `[统一服务模型与管理端优化](../../superpowers/specs/2026-07-26-ddc-rpc-gateway-unified-service-model-design.md)`；`[Gateway Provider 发现与负载均衡](../../superpowers/specs/2026-07-25-gateway-provider-discovery-load-balancing-design.md)` |
-| Related Plans | `None` |
+| Related Plans | [RPC 运行时治理演进实施计划](../plan/2026-08-21-12-59-rpc-runtime-governance-implementation.md) |
 
 ## 1. Summary
 
