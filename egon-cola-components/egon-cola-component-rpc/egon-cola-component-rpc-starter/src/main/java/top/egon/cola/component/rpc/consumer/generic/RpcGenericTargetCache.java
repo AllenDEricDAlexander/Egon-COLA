@@ -88,11 +88,24 @@ public final class RpcGenericTargetCache implements AutoCloseable {
             int maxEntries,
             Duration idleTimeout) {
         this(
+                strategyFactory,
+                maxEntries,
+                idleTimeout,
+                new RpcLoadBalancers()
+        );
+    }
+
+    public RpcGenericTargetCache(
+            RpcReferenceStrategyFactory strategyFactory,
+            int maxEntries,
+            Duration idleTimeout,
+            RpcLoadBalancers loadBalancers) {
+        this(
                 invocation -> strategyFactory.create(definition(invocation)),
                 maxEntries,
                 idleTimeout,
                 System::currentTimeMillis,
-                new RpcLoadBalancers()
+                loadBalancers
         );
     }
 

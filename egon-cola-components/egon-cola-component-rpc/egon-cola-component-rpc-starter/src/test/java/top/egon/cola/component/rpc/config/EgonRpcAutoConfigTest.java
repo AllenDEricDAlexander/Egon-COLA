@@ -10,24 +10,27 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.util.ClassUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcDirectReference;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.annotation.EgonRpcReference;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
 import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelFactory;
+import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelPool;
 import top.egon.cola.component.rpc.consumer.channel.RpcEndpoint;
 import top.egon.cola.component.rpc.consumer.gateway.RpcConsumerGatewayManager;
 import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayDirectory;
 import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayEndpoint;
 import top.egon.cola.component.rpc.consumer.gateway.RpcGatewaySnapshot;
 import top.egon.cola.component.rpc.consumer.interceptor.RpcClientInterceptorFactory;
+import top.egon.cola.component.rpc.consumer.generic.RpcGenericInvoker;
 import top.egon.cola.component.rpc.consumer.provider.RpcConsumerProviderManager;
 import top.egon.cola.component.rpc.consumer.provider.RpcProviderDirectory;
 import top.egon.cola.component.rpc.consumer.provider.RpcProviderSnapshot;
-import top.egon.cola.component.rpc.consumer.proxy.RpcDirectReferenceProxyFactory;
+import top.egon.cola.component.rpc.consumer.proxy.RpcConsumerProxyFactory;
+import top.egon.cola.component.rpc.consumer.lifecycle.RpcConsumerLifecycleCoordinator;
 import top.egon.cola.component.rpc.support.TestGrpcDescriptorFixtures.UnaryFixtureGrpc;
 
-import java.lang.reflect.Proxy;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,7 +39,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-class EgonRpcAutoConfigTest {
+public class EgonRpcAutoConfigTest {
 
     private final ApplicationContextRunner contextRunner =
             new ApplicationContextRunner()
@@ -67,6 +70,11 @@ class EgonRpcAutoConfigTest {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(
                             RpcConsumerProviderManager.class
+                    );
+                    assertThat(context).hasSingleBean(RpcConsumerChannelPool.class);
+                    assertThat(context).hasSingleBean(RpcGenericInvoker.class);
+                    assertThat(context).hasSingleBean(
+                            RpcConsumerLifecycleCoordinator.class
                     );
                     assertThat(context).doesNotHaveBean(
                             RpcConsumerGatewayManager.class
@@ -105,10 +113,12 @@ class EgonRpcAutoConfigTest {
                     assertThat(context).hasSingleBean(
                             RpcConsumerGatewayManager.class
                     );
+                    assertThat(context).hasSingleBean(RpcConsumerChannelPool.class);
+                    assertThat(context).hasSingleBean(RpcGenericInvoker.class);
                     assertThat(context).doesNotHaveBean(
                             RpcConsumerProviderManager.class
                     );
-                    assertThat(Proxy.isProxyClass(context.getBean(
+                    assertThat(ClassUtils.isCglibProxyClass(context.getBean(
                             GatewayReferences.class
                     ).reference.getClass())).isTrue();
                     assertThat(directory.subscribeCount.get()).isOne();
@@ -144,21 +154,28 @@ class EgonRpcAutoConfigTest {
                     assertThat(context).hasSingleBean(
                             RpcConsumerProviderManager.class
                     );
+                    assertThat(context).hasSingleBean(RpcConsumerChannelPool.class);
+                    assertThat(context).hasSingleBean(RpcGenericInvoker.class);
+                    assertThat(context).hasSingleBean(
+                            RpcConsumerLifecycleCoordinator.class
+                    );
                     BothReferences references = context.getBean(
                             BothReferences.class
                     );
-                    assertThat(Proxy.isProxyClass(
+                    assertThat(ClassUtils.isCglibProxyClass(
                             references.gatewayReference.getClass()
                     )).isTrue();
-                    assertThat(Proxy.isProxyClass(
+                    assertThat(ClassUtils.isCglibProxyClass(
                             references.directReference.getClass()
                     )).isTrue();
                     assertInterceptorOrders(
+                            context,
                             references.gatewayReference,
                             1,
                             2
                     );
                     assertInterceptorOrders(
+                            context,
                             references.directReference,
                             1,
                             2
@@ -185,12 +202,15 @@ class EgonRpcAutoConfigTest {
 
     @SuppressWarnings("unchecked")
     private void assertInterceptorOrders(
+            org.springframework.context.ApplicationContext context,
             SampleContract reference,
             Integer... orders) {
-        Object invocationHandler = Proxy.getInvocationHandler(reference);
+        RpcConsumerProxyFactory proxyFactory = context.getBean(
+                RpcConsumerProxyFactory.class
+        );
         List<RpcClientInterceptorFactory> factories =
-                (List<RpcClientInterceptorFactory>) ReflectionTestUtils
-                        .getField(invocationHandler, "interceptorFactories");
+                (List<RpcClientInterceptorFactory>)
+                        ReflectionTestUtils.getField(proxyFactory, "interceptorFactories");
         assertThat(factories)
                 .extracting(factory -> ((Ordered) factory).getOrder())
                 .containsExactly(orders);
@@ -255,7 +275,7 @@ class EgonRpcAutoConfigTest {
             group = "default",
             version = "1.0.0"
     )
-    interface SampleContract {
+    public interface SampleContract {
 
         @EgonRpcMethod(name = "Echo")
         StringValue echo(StringValue request);

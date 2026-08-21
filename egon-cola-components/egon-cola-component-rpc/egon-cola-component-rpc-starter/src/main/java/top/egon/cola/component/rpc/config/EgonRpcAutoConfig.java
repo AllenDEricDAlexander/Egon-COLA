@@ -18,13 +18,19 @@ import top.egon.cola.component.rpc.contract.catalog.DefaultRpcContractCatalog;
 import top.egon.cola.component.rpc.contract.catalog.RpcContractCatalog;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
 import top.egon.cola.component.rpc.consumer.proxy.EgonRpcReferenceBeanPostProcessor;
-import top.egon.cola.component.rpc.consumer.gateway.GatewayRpcInvocationChannelProvider;
 import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelFactory;
+import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelPool;
 import top.egon.cola.component.rpc.consumer.gateway.RpcConsumerGatewayManager;
 import top.egon.cola.component.rpc.consumer.interceptor.RpcClientInterceptorFactory;
+import top.egon.cola.component.rpc.consumer.generic.RpcGenericInvoker;
+import top.egon.cola.component.rpc.consumer.generic.RpcGenericTargetCache;
+import top.egon.cola.component.rpc.consumer.invocation.RpcInvocationExecutor;
+import top.egon.cola.component.rpc.consumer.lifecycle.RpcConsumerLifecycleCoordinator;
+import top.egon.cola.component.rpc.consumer.loadbalance.RpcLoadBalancers;
 import top.egon.cola.component.rpc.consumer.provider.RpcConsumerProviderManager;
 import top.egon.cola.component.rpc.consumer.provider.RpcProviderDirectory;
-import top.egon.cola.component.rpc.consumer.proxy.RpcDirectReferenceProxyFactory;
+import top.egon.cola.component.rpc.consumer.reference.RpcReferenceDefinitionResolver;
+import top.egon.cola.component.rpc.consumer.reference.RpcReferenceStrategyFactory;
 import top.egon.cola.component.rpc.consumer.proxy.RpcConsumerProxyFactory;
 import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayDirectory;
 import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
@@ -42,6 +48,8 @@ import top.egon.cola.component.rpc.provider.server.RpcServerServiceDefinitionFac
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.Duration;
+import java.util.random.RandomGenerator;
 
 @AutoConfiguration
 @EnableConfigurationProperties(EgonRpcProperties.class)
@@ -188,6 +196,38 @@ public class EgonRpcAutoConfig {
             name = "enabled",
             havingValue = "true"
     )
+    @ConditionalOnMissingBean
+    public RpcLoadBalancers rpcLoadBalancers(EgonRpcProperties properties) {
+        EgonRpcProperties.Consumer consumer = properties.getConsumer();
+        return new RpcLoadBalancers(
+                consumer.getConsistentHashVirtualNodes(),
+                RandomGenerator.getDefault()
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.consumer",
+            name = "enabled",
+            havingValue = "true"
+    )
+    @ConditionalOnMissingBean
+    public RpcConsumerChannelPool rpcConsumerChannelPool(
+            RpcConsumerChannelFactory channelFactory,
+            EgonRpcProperties properties) {
+        return new RpcConsumerChannelPool(
+                channelFactory,
+                Duration.ofMillis(properties.getConsumer()
+                        .getChannelDrainTimeoutMs())
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.consumer",
+            name = "enabled",
+            havingValue = "true"
+    )
     @ConditionalOnBean(RpcGatewayDirectory.class)
     public RpcConsumerGatewayManager rpcConsumerGatewayManager(
             RpcGatewayDirectory gatewayDirectory,
@@ -199,57 +239,6 @@ public class EgonRpcAutoConfig {
                 channelFactory,
                 properties,
                 processIdentity
-        );
-    }
-
-    @Bean
-    @ConditionalOnProperty(
-            prefix = "egon.cola.component.rpc.consumer",
-            name = "enabled",
-            havingValue = "true"
-    )
-    @ConditionalOnBean(RpcConsumerGatewayManager.class)
-    public GatewayRpcInvocationChannelProvider
-            gatewayRpcInvocationChannelProvider(
-            RpcConsumerGatewayManager gatewayManager) {
-        return new GatewayRpcInvocationChannelProvider(gatewayManager);
-    }
-
-    @Bean
-    @ConditionalOnProperty(
-            prefix = "egon.cola.component.rpc.consumer",
-            name = "enabled",
-            havingValue = "true"
-    )
-    @ConditionalOnBean(GatewayRpcInvocationChannelProvider.class)
-    public RpcConsumerProxyFactory rpcConsumerProxyFactory(
-            RpcContractValidator contractValidator,
-            GatewayRpcInvocationChannelProvider channelProvider,
-            RpcProcessIdentity processIdentity,
-            EgonRpcProperties properties,
-            ObjectProvider<RpcClientInterceptorFactory>
-                    interceptorFactories) {
-        return new RpcConsumerProxyFactory(
-                contractValidator,
-                channelProvider,
-                processIdentity,
-                new RpcStatusExceptionMapper(),
-                properties.getConsumer().getDefaultTimeoutMs(),
-                interceptorFactories.orderedStream().toList()
-        );
-    }
-
-    public RpcConsumerProxyFactory rpcConsumerProxyFactory(
-            RpcContractValidator contractValidator,
-            GatewayRpcInvocationChannelProvider channelProvider,
-            RpcProcessIdentity processIdentity,
-            EgonRpcProperties properties) {
-        return new RpcConsumerProxyFactory(
-                contractValidator,
-                channelProvider,
-                processIdentity,
-                new RpcStatusExceptionMapper(),
-                properties.getConsumer().getDefaultTimeoutMs()
         );
     }
 
@@ -277,21 +266,140 @@ public class EgonRpcAutoConfig {
             name = "enabled",
             havingValue = "true"
     )
-    @ConditionalOnBean(RpcConsumerProviderManager.class)
-    public RpcDirectReferenceProxyFactory rpcDirectReferenceProxyFactory(
-            RpcContractValidator contractValidator,
-            RpcConsumerProviderManager providerManager,
-            RpcProcessIdentity processIdentity,
+    @ConditionalOnMissingBean
+    public RpcReferenceStrategyFactory rpcReferenceStrategyFactory(
+            ObjectProvider<RpcConsumerGatewayManager> gatewayManager,
+            ObjectProvider<RpcConsumerProviderManager> providerManager) {
+        return new RpcReferenceStrategyFactory(
+                gatewayManager.getIfAvailable(),
+                providerManager.getIfAvailable()
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.consumer",
+            name = "enabled",
+            havingValue = "true"
+    )
+    @ConditionalOnMissingBean
+    public RpcReferenceDefinitionResolver rpcReferenceDefinitionResolver(
             EgonRpcProperties properties,
-            ObjectProvider<RpcClientInterceptorFactory>
-                    interceptorFactories) {
-        return new RpcDirectReferenceProxyFactory(
-                contractValidator,
-                providerManager,
+            RpcProcessIdentity processIdentity,
+            ApplicationContext applicationContext) {
+        return new RpcReferenceDefinitionResolver(
+                properties,
                 processIdentity,
+                applicationContext
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.consumer",
+            name = "enabled",
+            havingValue = "true"
+    )
+    @ConditionalOnMissingBean
+    public RpcGenericTargetCache rpcGenericTargetCache(
+            RpcReferenceStrategyFactory strategyFactory,
+            EgonRpcProperties properties,
+            RpcLoadBalancers loadBalancers) {
+        return new RpcGenericTargetCache(
+                strategyFactory,
+                properties.getConsumer().getGenericCacheMaxEntries(),
+                Duration.ofMillis(properties.getConsumer()
+                        .getGenericCacheIdleTimeoutMs()),
+                loadBalancers
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.consumer",
+            name = "enabled",
+            havingValue = "true"
+    )
+    @ConditionalOnMissingBean
+    public RpcConsumerLifecycleCoordinator rpcConsumerLifecycleCoordinator(
+            RpcConsumerChannelPool channelPool,
+            ObjectProvider<RpcConsumerGatewayManager> gatewayManager,
+            ObjectProvider<RpcConsumerProviderManager> providerManager,
+            RpcGenericTargetCache genericTargetCache,
+            RpcReferenceStrategyFactory strategyFactory) {
+        return new RpcConsumerLifecycleCoordinator(
+                channelPool,
+                gatewayManager.getIfAvailable(),
+                providerManager.getIfAvailable(),
+                List.of(genericTargetCache, strategyFactory)
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.consumer",
+            name = "enabled",
+            havingValue = "true"
+    )
+    @ConditionalOnMissingBean
+    public RpcInvocationExecutor rpcInvocationExecutor(
+            RpcConsumerLifecycleCoordinator lifecycleCoordinator) {
+        return new RpcInvocationExecutor(
+                lifecycleCoordinator,
+                new RpcStatusExceptionMapper()
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.consumer",
+            name = "enabled",
+            havingValue = "true"
+    )
+    @ConditionalOnMissingBean
+    public RpcGenericInvoker rpcGenericInvoker(
+            RpcGenericTargetCache targetCache,
+            RpcConsumerChannelPool channelPool,
+            RpcInvocationExecutor executor,
+            RpcProcessIdentity processIdentity,
+            RpcLoadBalancers loadBalancers,
+            ObjectProvider<RpcClientInterceptorFactory> interceptorFactories) {
+        return new RpcGenericInvoker(
+                targetCache,
+                channelPool,
+                executor,
+                processIdentity,
+                interceptorFactories.orderedStream().toList(),
+                loadBalancers
+        );
+    }
+
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.component.rpc.consumer",
+            name = "enabled",
+            havingValue = "true"
+    )
+    @ConditionalOnMissingBean
+    public RpcConsumerProxyFactory rpcConsumerProxyFactory(
+            RpcContractValidator contractValidator,
+            RpcConsumerChannelPool channelPool,
+            RpcInvocationExecutor executor,
+            RpcProcessIdentity processIdentity,
+            RpcLoadBalancers loadBalancers,
+            EgonRpcProperties properties,
+            ApplicationContext applicationContext,
+            ObjectProvider<RpcClientInterceptorFactory> interceptorFactories) {
+        return new RpcConsumerProxyFactory(
+                contractValidator,
+                channelPool,
+                executor,
+                processIdentity,
+                loadBalancers,
                 new RpcStatusExceptionMapper(),
                 properties.getConsumer().getDefaultTimeoutMs(),
-                interceptorFactories.orderedStream().toList()
+                interceptorFactories.orderedStream().toList(),
+                applicationContext
         );
     }
 
@@ -302,14 +410,15 @@ public class EgonRpcAutoConfig {
             havingValue = "true"
     )
     public EgonRpcReferenceBeanPostProcessor egonRpcReferenceBeanPostProcessor(
-            ObjectProvider<RpcConsumerProxyFactory> gatewayProxyFactory,
-            ObjectProvider<RpcConsumerGatewayManager> gatewayManager,
-            ObjectProvider<RpcDirectReferenceProxyFactory>
-                    directProxyFactory) {
+            RpcContractValidator contractValidator,
+            RpcReferenceDefinitionResolver definitionResolver,
+            RpcReferenceStrategyFactory strategyFactory,
+            RpcConsumerProxyFactory proxyFactory) {
         return new EgonRpcReferenceBeanPostProcessor(
-                gatewayProxyFactory.getIfAvailable(),
-                gatewayManager.getIfAvailable(),
-                directProxyFactory.getIfAvailable()
+                contractValidator,
+                definitionResolver,
+                strategyFactory,
+                proxyFactory
         );
     }
 

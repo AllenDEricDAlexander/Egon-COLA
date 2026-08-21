@@ -32,8 +32,8 @@ public final class RpcConsumerLifecycleCoordinator
             RpcConsumerProviderManager providerManager,
             List<? extends AutoCloseable> closeHooks) {
         this.pool = Objects.requireNonNull(pool, "pool");
-        this.gatewayManager = Objects.requireNonNull(gatewayManager, "gatewayManager");
-        this.providerManager = Objects.requireNonNull(providerManager, "providerManager");
+        this.gatewayManager = gatewayManager;
+        this.providerManager = providerManager;
         this.closeHooks = closeHooks == null ? List.of() : List.copyOf(closeHooks);
     }
 
@@ -51,12 +51,20 @@ public final class RpcConsumerLifecycleCoordinator
             state = RpcConsumerRuntimeState.STARTING;
             try {
                 pool.start();
-                gatewayManager.start();
-                providerManager.start();
+                if (gatewayManager != null) {
+                    gatewayManager.start();
+                }
+                if (providerManager != null) {
+                    providerManager.start();
+                }
                 // Calling isRunning makes a manager startup fault observable while
                 // an empty optional demand remains a valid degraded runtime.
-                gatewayManager.isRunning();
-                providerManager.isRunning();
+                if (gatewayManager != null) {
+                    gatewayManager.isRunning();
+                }
+                if (providerManager != null) {
+                    providerManager.isRunning();
+                }
                 state = RpcConsumerRuntimeState.READY;
             } catch (RuntimeException exception) {
                 state = RpcConsumerRuntimeState.FAILED;
@@ -141,6 +149,9 @@ public final class RpcConsumerLifecycleCoordinator
     }
 
     private void stopQuietly(SmartLifecycle lifecycle) {
+        if (lifecycle == null) {
+            return;
+        }
         try {
             lifecycle.stop();
         } catch (RuntimeException ignored) {

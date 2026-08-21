@@ -95,6 +95,31 @@ public final class RpcClientInvocation {
         );
     }
 
+    public static RpcClientInvocation typed(
+            RpcContractDescriptor contract,
+            RpcMethodDescriptor method,
+            Message request,
+            RpcProcessIdentity processIdentity,
+            String group,
+            String version,
+            String invocationId) {
+        Objects.requireNonNull(contract, "contract");
+        Objects.requireNonNull(method, "method");
+        Objects.requireNonNull(request, "request");
+        return new RpcClientInvocation(
+                contract,
+                method,
+                request,
+                processIdentity,
+                contract.serviceName(),
+                group,
+                version,
+                method.fullMethodName(),
+                null,
+                invocationId
+        );
+    }
+
     public RpcContractDescriptor contract() {
         return contract;
     }

@@ -5,28 +5,42 @@ import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.util.ReflectionUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcDirectReference;
 import top.egon.cola.component.rpc.annotation.EgonRpcReference;
-import top.egon.cola.component.rpc.consumer.gateway.RpcConsumerGatewayManager;
+import top.egon.cola.component.rpc.consumer.reference.RpcReferenceDefinition;
+import top.egon.cola.component.rpc.consumer.reference.RpcReferenceDefinitionResolver;
+import top.egon.cola.component.rpc.consumer.reference.RpcReferenceStrategy;
+import top.egon.cola.component.rpc.consumer.reference.RpcReferenceStrategyFactory;
+import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
+import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
 
+/** Resolves each annotated field once and installs one fixed-mode CGLIB proxy. */
 public class EgonRpcReferenceBeanPostProcessor implements BeanPostProcessor {
 
-    private final RpcConsumerProxyFactory gatewayProxyFactory;
-
-    private final RpcConsumerGatewayManager gatewayManager;
-
-    private final RpcDirectReferenceProxyFactory directProxyFactory;
+    private final RpcContractValidator contractValidator;
+    private final RpcReferenceDefinitionResolver definitionResolver;
+    private final RpcReferenceStrategyFactory strategyFactory;
+    private final RpcConsumerProxyFactory proxyFactory;
 
     public EgonRpcReferenceBeanPostProcessor(
+            RpcContractValidator contractValidator,
+            RpcReferenceDefinitionResolver definitionResolver,
+            RpcReferenceStrategyFactory strategyFactory,
             RpcConsumerProxyFactory proxyFactory) {
-        this(proxyFactory, null, null);
-    }
-
-    public EgonRpcReferenceBeanPostProcessor(
-            RpcConsumerProxyFactory gatewayProxyFactory,
-            RpcConsumerGatewayManager gatewayManager,
-            RpcDirectReferenceProxyFactory directProxyFactory) {
-        this.gatewayProxyFactory = gatewayProxyFactory;
-        this.gatewayManager = gatewayManager;
-        this.directProxyFactory = directProxyFactory;
+        this.contractValidator = java.util.Objects.requireNonNull(
+                contractValidator,
+                "contractValidator"
+        );
+        this.definitionResolver = java.util.Objects.requireNonNull(
+                definitionResolver,
+                "definitionResolver"
+        );
+        this.strategyFactory = java.util.Objects.requireNonNull(
+                strategyFactory,
+                "strategyFactory"
+        );
+        this.proxyFactory = java.util.Objects.requireNonNull(
+                proxyFactory,
+                "proxyFactory"
+        );
     }
 
     @Override
@@ -35,98 +49,83 @@ public class EgonRpcReferenceBeanPostProcessor implements BeanPostProcessor {
             String beanName) throws BeansException {
         ReflectionUtils.doWithFields(
                 bean.getClass(),
-                field -> {
-                    EgonRpcReference reference =
-                            field.getAnnotation(EgonRpcReference.class);
-                    EgonRpcDirectReference directReference =
-                            field.getAnnotation(
-                                    EgonRpcDirectReference.class
-                            );
-                    if (reference != null && directReference != null) {
-                        throw injectionFailure(
-                                beanName,
-                                field.getName(),
-                                "cannot declare both @EgonRpcReference and "
-                                        + "@EgonRpcDirectReference"
-                        );
-                    }
-                    if (!field.getType().isInterface()) {
-                        throw injectionFailure(
-                                beanName,
-                                field.getName(),
-                                annotationName(reference),
-                                "field must be an interface"
-                        );
-                    }
-                    ReflectionUtils.makeAccessible(field);
-                    if (reference != null) {
-                        injectGateway(
-                                bean,
-                                beanName,
-                                field,
-                                reference
-                        );
-                    } else {
-                        injectDirect(
-                                bean,
-                                beanName,
-                                field,
-                                directReference
-                        );
-                    }
-                },
+                field -> inject(bean, beanName, field),
                 field -> field.isAnnotationPresent(EgonRpcReference.class)
-                        || field.isAnnotationPresent(
-                                EgonRpcDirectReference.class
-                        )
+                        || field.isAnnotationPresent(EgonRpcDirectReference.class)
         );
         return bean;
     }
 
-    private void injectGateway(
+    private void inject(
             Object bean,
             String beanName,
-            java.lang.reflect.Field field,
-            EgonRpcReference reference) {
-        if (gatewayProxyFactory == null) {
+            java.lang.reflect.Field field) {
+        EgonRpcReference reference = field.getAnnotation(EgonRpcReference.class);
+        EgonRpcDirectReference direct = field.getAnnotation(
+                EgonRpcDirectReference.class
+        );
+        if (reference != null && direct != null) {
             throw injectionFailure(
                     beanName,
                     field.getName(),
                     "@EgonRpcReference",
-                    "requires an RPC Gateway directory"
+                    "cannot declare both @EgonRpcReference and "
+                            + "@EgonRpcDirectReference"
             );
         }
-        if (gatewayManager != null) {
-            gatewayManager.registerDemand();
-        }
-        ReflectionUtils.setField(
-                field,
-                bean,
-                gatewayProxyFactory.create(
-                        field.getType(),
-                        reference.timeoutMs()
-                )
-        );
-    }
-
-    private void injectDirect(
-            Object bean,
-            String beanName,
-            java.lang.reflect.Field field,
-            EgonRpcDirectReference reference) {
-        if (directProxyFactory == null) {
+        if (!field.getType().isInterface()) {
             throw injectionFailure(
                     beanName,
                     field.getName(),
-                    "@EgonRpcDirectReference",
-                    "requires an RPC Provider directory"
+                    annotationName(reference),
+                    "field must be an interface"
             );
         }
-        ReflectionUtils.setField(
-                field,
-                bean,
-                directProxyFactory.create(field.getType(), reference)
+        ReflectionUtils.makeAccessible(field);
+        RpcContractDescriptor descriptor = contractValidator.validate(
+                field.getType()
         );
+        RpcReferenceDefinition definition;
+        try {
+            definition = definitionResolver.resolve(field, descriptor);
+        } catch (RuntimeException exception) {
+            throw injectionFailure(
+                    beanName,
+                    field.getName(),
+                    annotationName(reference),
+                    exception.getMessage(),
+                    exception
+            );
+        }
+        RpcReferenceStrategy strategy;
+        try {
+            strategy = strategyFactory.create(definition);
+        } catch (RuntimeException exception) {
+            throw injectionFailure(
+                    beanName,
+                    field.getName(),
+                    annotationName(reference),
+                    exception.getMessage(),
+                    exception
+            );
+        }
+        try {
+            Object proxy = proxyFactory.create(
+                    descriptor,
+                    definition,
+                    strategy
+            );
+            ReflectionUtils.setField(field, bean, proxy);
+        } catch (RuntimeException exception) {
+            strategy.close();
+            throw injectionFailure(
+                    beanName,
+                    field.getName(),
+                    annotationName(reference),
+                    exception.getMessage(),
+                    exception
+            );
+        }
     }
 
     private String annotationName(EgonRpcReference reference) {
@@ -138,11 +137,14 @@ public class EgonRpcReferenceBeanPostProcessor implements BeanPostProcessor {
     private IllegalStateException injectionFailure(
             String beanName,
             String fieldName,
+            String annotation,
             String message) {
-        return new IllegalStateException(
-                "RPC reference injection failed for bean '"
-                        + beanName + "', field '" + fieldName + "': "
-                        + message
+        return injectionFailure(
+                beanName,
+                fieldName,
+                annotation,
+                message,
+                null
         );
     }
 
@@ -150,11 +152,15 @@ public class EgonRpcReferenceBeanPostProcessor implements BeanPostProcessor {
             String beanName,
             String fieldName,
             String annotation,
-            String message) {
-        return injectionFailure(
-                beanName,
-                fieldName,
-                annotation + " " + message
+            String message,
+            Throwable cause) {
+        String detail = message == null || message.isBlank()
+                ? "reference resolution failed" : message;
+        return new IllegalStateException(
+                "RPC reference injection failed for bean '"
+                        + beanName + "', field '" + fieldName + "': "
+                        + annotation + " " + detail,
+                cause
         );
     }
 }
