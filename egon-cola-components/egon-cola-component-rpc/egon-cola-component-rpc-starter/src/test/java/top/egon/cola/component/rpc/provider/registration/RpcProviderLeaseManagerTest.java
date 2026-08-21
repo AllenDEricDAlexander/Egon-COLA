@@ -103,9 +103,11 @@ class RpcProviderLeaseManagerTest {
                 new RpcProviderAvailabilityRegistry()
         );
         leases.prepare(providers(), "127.0.0.1", 19090);
+        assertThat(leases.allPreparedLeasesActive()).isFalse();
         leases.enableRecovery();
 
         leases.registerAll();
+        assertThat(leases.allPreparedLeasesActive()).isTrue();
 
         assertThat(registry.registration.host()).isEqualTo("127.0.0.1");
         assertThat(registry.registration.port()).isEqualTo(19090);
@@ -117,16 +119,60 @@ class RpcProviderLeaseManagerTest {
                         "1.0.0"
                 ));
         assertThat(registry.registration.metadata())
-                .containsEntry("egon.rpc.runtime-version", "test");
+                .containsEntry("egon.rpc.runtime-version", "test")
+                .containsEntry("gateway.weight", "100");
+    }
+
+    @Test
+    void configuredWeightOverridesContractDefault() {
+        RecordingRegistry registry = new RecordingRegistry();
+        RpcProviderAvailabilityRegistry availability =
+                new RpcProviderAvailabilityRegistry();
+        EgonRpcProperties properties = new EgonRpcProperties();
+        properties.getProvider().getMetadata().put("gateway.weight", "60");
+        RpcProviderLeaseManager leases = manager(
+                registry,
+                availability,
+                properties
+        );
+
+        leases.prepare(providers(), "127.0.0.1", 19090);
+        leases.enableRecovery();
+        leases.registerAll();
+
+        assertThat(registry.registration.metadata())
+                .containsEntry("gateway.weight", "60");
+    }
+
+    @Test
+    void activeLeaseSummaryClearsWhenDeregistered() {
+        RecordingRegistry registry = new RecordingRegistry();
+        RpcProviderAvailabilityRegistry availability =
+                new RpcProviderAvailabilityRegistry();
+        RpcProviderLeaseManager leases = manager(registry, availability);
+        leases.prepare(providers(), "127.0.0.1", 19090);
+        leases.enableRecovery();
+        leases.registerAll();
+
+        assertThat(leases.allPreparedLeasesActive()).isTrue();
+        leases.deregisterAll();
+        assertThat(leases.allPreparedLeasesActive()).isFalse();
     }
 
     private RpcProviderLeaseManager manager(
             RpcProviderRegistry registry,
             RpcProviderAvailabilityRegistry availability) {
+        return manager(registry, availability, new EgonRpcProperties());
+    }
+
+    private RpcProviderLeaseManager manager(
+            RpcProviderRegistry registry,
+            RpcProviderAvailabilityRegistry availability,
+            EgonRpcProperties properties) {
         return new RpcProviderLeaseManager(
                 registry,
                 availability,
-                new EgonRpcProperties(),
+                properties,
                 new RpcProcessIdentity(
                         "provider-test",
                         "test",

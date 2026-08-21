@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
+import top.egon.cola.component.rpc.annotation.EgonRpcService;
 import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
 import top.egon.cola.component.rpc.provider.binding.RpcProviderBinding;
 import top.egon.cola.component.rpc.provider.lifecycle.RpcProviderAvailabilityRegistry;
@@ -86,7 +87,7 @@ public class RpcProviderLeaseManager {
                     advertisedHost,
                     advertisedPort,
                     secure,
-                    registrationMetadata(service),
+                    registrationMetadata(service, provider),
                     properties.getLeaseSeconds(),
                     properties.getHeartbeatIntervalSeconds()
             ));
@@ -145,6 +146,11 @@ public class RpcProviderLeaseManager {
         return Map.copyOf(leases);
     }
 
+    public synchronized boolean allPreparedLeasesActive() {
+        return !registrations.isEmpty()
+                && leases.keySet().containsAll(registrations.keySet());
+    }
+
     private void heartbeatAndRecover(RpcServiceIdentity service) {
         RpcProviderLease session = leases.get(service);
         if (session == null) {
@@ -192,15 +198,41 @@ public class RpcProviderLeaseManager {
     }
 
     private Map<String, String> registrationMetadata(
-            RpcServiceIdentity service
+            RpcServiceIdentity service,
+            RpcProviderBinding provider
     ) {
         Map<String, String> metadata = new LinkedHashMap<>(
                 metadataMerger.merge(service, properties.getMetadata())
         );
+        EgonRpcService contract = provider.contract().contractType()
+                .getAnnotation(EgonRpcService.class);
+        int defaultWeight = contract == null ? 100 : contract.weight();
+        validateWeight(defaultWeight);
+        String configuredWeight = metadata.get("gateway.weight");
+        if (configuredWeight == null || configuredWeight.isBlank()) {
+            metadata.put("gateway.weight", Integer.toString(defaultWeight));
+        } else {
+            try {
+                validateWeight(Integer.parseInt(configuredWeight.trim()));
+            } catch (NumberFormatException exception) {
+                throw new IllegalArgumentException(
+                        "RPC Provider gateway.weight must be an integer",
+                        exception
+                );
+            }
+        }
         metadata.put("egon.rpc.transport", "grpc");
         metadata.put("egon.rpc.serialization", "protobuf");
         metadata.put("egon.rpc.runtime-version", runtimeVersion);
         return metadata;
+    }
+
+    private void validateWeight(int weight) {
+        if (weight < 1 || weight > 10_000) {
+            throw new IllegalArgumentException(
+                    "RPC Provider gateway.weight must be between 1 and 10000"
+            );
+        }
     }
 
     private RpcProviderLeaseIdentity leaseIdentity(

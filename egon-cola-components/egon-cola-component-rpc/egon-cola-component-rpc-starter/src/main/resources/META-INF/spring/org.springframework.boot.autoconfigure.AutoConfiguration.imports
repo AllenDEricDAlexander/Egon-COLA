@@ -1,1 +1,2 @@
 top.egon.cola.component.rpc.config.EgonRpcAutoConfig
+top.egon.cola.component.rpc.config.RpcAccessGuardAutoConfiguration
