@@ -15,6 +15,7 @@ import io.grpc.stub.ClientCalls;
 import io.grpc.stub.ServerCalls;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.test.util.ReflectionTestUtils;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
@@ -40,6 +41,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -111,6 +113,7 @@ class RpcProviderLifecycleTest {
 
             lifecycle.start();
 
+            assertThat(lifecycle.state()).isEqualTo(RpcProviderRuntimeState.READY);
             assertThat(lifecycle.boundPort()).isPositive();
             assertThat(registry.registration.port())
                     .isEqualTo(lifecycle.boundPort());
@@ -131,6 +134,7 @@ class RpcProviderLifecycleTest {
 
             lifecycle.stop();
 
+            assertThat(lifecycle.state()).isEqualTo(RpcProviderRuntimeState.STOPPED);
             assertThat(registry.events)
                     .containsExactly("register", "deregister");
         }
@@ -159,13 +163,19 @@ class RpcProviderLifecycleTest {
 
             lifecycle.start();
 
+            assertThat(lifecycle.state()).isEqualTo(RpcProviderRuntimeState.READY);
+
             assertThat(methods.providers()).allSatisfy(binding ->
                     assertThat(availability.isAvailable(
                             binding.serviceIdentity()
                     )).isTrue()
             );
 
-            lifecycle.stop();
+            AtomicInteger callbacks = new AtomicInteger();
+            lifecycle.stop(callbacks::incrementAndGet);
+            lifecycle.stop(callbacks::incrementAndGet);
+            assertThat(lifecycle.state()).isEqualTo(RpcProviderRuntimeState.STOPPED);
+            assertThat(callbacks).hasValue(1);
             assertThat(methods.providers()).allSatisfy(binding ->
                     assertThat(availability.isAvailable(
                             binding.serviceIdentity()
@@ -195,6 +205,33 @@ class RpcProviderLifecycleTest {
                     .hasMessageContaining("RpcProviderRegistry")
                     .hasMessageContaining("registration-mode=disabled");
             assertThat(lifecycle.isRunning()).isFalse();
+            assertThat(lifecycle.state()).isEqualTo(RpcProviderRuntimeState.FAILED);
+        }
+    }
+
+    @Test
+    void nonFailFastRegistrationRecoversFromDegradedOnHeartbeat() {
+        RecordingRegistry registry = new RecordingRegistry();
+        registry.failRegistration = true;
+        EgonRpcProperties properties = configuredProperties();
+        properties.getProvider().setRegistrationFailFast(false);
+        try (AnnotationConfigApplicationContext context = providerContext()) {
+            RpcProviderLifecycle lifecycle = lifecycle(
+                    context,
+                    registry,
+                    properties
+            );
+
+            lifecycle.start();
+
+            assertThat(lifecycle.state()).isEqualTo(RpcProviderRuntimeState.DEGRADED);
+            assertThat(lifecycle.isRunning()).isTrue();
+
+            registry.failRegistration = false;
+            ReflectionTestUtils.invokeMethod(lifecycle, "heartbeatAndRefreshState");
+
+            assertThat(lifecycle.state()).isEqualTo(RpcProviderRuntimeState.READY);
+            lifecycle.stop();
         }
     }
 
@@ -212,6 +249,7 @@ class RpcProviderLifecycleTest {
             assertThatThrownBy(lifecycle::start)
                     .isInstanceOf(EgonRpcException.class);
             assertThat(lifecycle.isRunning()).isFalse();
+            assertThat(lifecycle.state()).isEqualTo(RpcProviderRuntimeState.FAILED);
         }
     }
 
@@ -237,6 +275,7 @@ class RpcProviderLifecycleTest {
                 .isInstanceOf(EgonRpcException.class)
                 .hasMessageContaining("no RPC Provider bean");
         assertThat(registry.events).isEmpty();
+        assertThat(lifecycle.state()).isEqualTo(RpcProviderRuntimeState.FAILED);
     }
 
     @Test
@@ -273,6 +312,7 @@ class RpcProviderLifecycleTest {
                     .isInstanceOf(EgonRpcException.class)
                     .hasRootCauseMessage("contributor failed");
             assertThat(registry.events).isEmpty();
+            assertThat(lifecycle.state()).isEqualTo(RpcProviderRuntimeState.FAILED);
             assertThat(lifecycle.isRunning()).isFalse();
         }
     }
@@ -368,10 +408,15 @@ class RpcProviderLifecycleTest {
 
         private RpcProviderRegistration registration;
 
+        private boolean failRegistration;
+
         @Override
         public RpcProviderLease register(
                 RpcProviderRegistration registration) {
             events.add("register");
+            if (failRegistration) {
+                throw new IllegalStateException("registry unavailable");
+            }
             this.registration = registration;
             Instant now = Instant.now();
             return new RpcProviderLease(

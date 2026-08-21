@@ -31,6 +31,7 @@ public final class RateLimitPolicy implements GuardPolicy<AdmissionConfig.RateLi
                 context.ruleId(),
                 context.stateVersion(),
                 context.keyHash(),
+                config.algorithm(),
                 config.capacity(),
                 config.refillTokens(),
                 config.refillPeriod(),

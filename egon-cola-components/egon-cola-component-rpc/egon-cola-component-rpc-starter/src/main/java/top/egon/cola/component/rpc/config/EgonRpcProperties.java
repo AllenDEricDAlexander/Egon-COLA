@@ -1,6 +1,7 @@
 package top.egon.cola.component.rpc.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import top.egon.cola.component.rpc.annotation.LoadBalance;
 import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
 import top.egon.cola.component.rpc.exception.EgonRpcException;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistrationMode;
@@ -231,6 +232,16 @@ public class EgonRpcProperties {
 
         private int gatewayMaxAttempts = 2;
 
+        private int maxRetries = 3;
+
+        private LoadBalance defaultLoadBalance = LoadBalance.ROUND_ROBIN;
+
+        private int consistentHashVirtualNodes = 160;
+
+        private int genericCacheMaxEntries = 256;
+
+        private long genericCacheIdleTimeoutMs = 600_000;
+
         public boolean isEnabled() {
             return enabled;
         }
@@ -311,11 +322,61 @@ public class EgonRpcProperties {
             this.gatewayMaxAttempts = gatewayMaxAttempts;
         }
 
+        public int getMaxRetries() {
+            return maxRetries;
+        }
+
+        public void setMaxRetries(int maxRetries) {
+            this.maxRetries = maxRetries;
+        }
+
+        public LoadBalance getDefaultLoadBalance() {
+            return defaultLoadBalance;
+        }
+
+        public void setDefaultLoadBalance(LoadBalance defaultLoadBalance) {
+            this.defaultLoadBalance = defaultLoadBalance;
+        }
+
+        public int getConsistentHashVirtualNodes() {
+            return consistentHashVirtualNodes;
+        }
+
+        public void setConsistentHashVirtualNodes(int consistentHashVirtualNodes) {
+            this.consistentHashVirtualNodes = consistentHashVirtualNodes;
+        }
+
+        public int getGenericCacheMaxEntries() {
+            return genericCacheMaxEntries;
+        }
+
+        public void setGenericCacheMaxEntries(int genericCacheMaxEntries) {
+            this.genericCacheMaxEntries = genericCacheMaxEntries;
+        }
+
+        public long getGenericCacheIdleTimeoutMs() {
+            return genericCacheIdleTimeoutMs;
+        }
+
+        public void setGenericCacheIdleTimeoutMs(long genericCacheIdleTimeoutMs) {
+            this.genericCacheIdleTimeoutMs = genericCacheIdleTimeoutMs;
+        }
+
         public void validateSharedSettings() {
-            if (defaultTimeoutMs <= 0 || channelDrainTimeoutMs <= 0) {
+            if (defaultTimeoutMs <= 0 || channelDrainTimeoutMs <= 0
+                    || gatewayMaxAttempts < 1 || gatewayMaxAttempts > 10
+                    || maxRetries < 0 || maxRetries > 10
+                    || defaultLoadBalance == null
+                    || defaultLoadBalance == LoadBalance.INHERIT
+                    || consistentHashVirtualNodes < 16
+                    || consistentHashVirtualNodes > 4096
+                    || genericCacheMaxEntries < 1
+                    || genericCacheMaxEntries > 4096
+                    || genericCacheIdleTimeoutMs < 1_000
+                    || genericCacheIdleTimeoutMs > 86_400_000) {
                 throw new EgonRpcException(
                         EgonRpcErrorCode.RPC_INVALID_CONTRACT,
-                        "RPC Consumer timeout settings must be positive"
+                        "RPC Consumer settings are outside supported bounds"
                 );
             }
         }

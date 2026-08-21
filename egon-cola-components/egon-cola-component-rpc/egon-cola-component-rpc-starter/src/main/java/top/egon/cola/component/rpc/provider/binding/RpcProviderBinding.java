@@ -8,6 +8,12 @@ public record RpcProviderBinding(
         RpcContractDescriptor contract
 ) {
 
+    public RpcProviderBinding {
+        if (bean == null || contract == null) {
+            throw new IllegalArgumentException("RPC provider binding requires bean and contract");
+        }
+    }
+
     public RpcServiceIdentity serviceIdentity() {
         return RpcServiceIdentity.from(contract);
     }

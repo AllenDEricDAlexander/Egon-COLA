@@ -22,6 +22,8 @@ public enum EgonRpcErrorCode {
 
     RPC_PROVIDER_UNAVAILABLE,
 
+    RPC_RATE_LIMITED,
+
     RPC_INVALID_REQUEST,
 
     RPC_PROVIDER_REJECTED,

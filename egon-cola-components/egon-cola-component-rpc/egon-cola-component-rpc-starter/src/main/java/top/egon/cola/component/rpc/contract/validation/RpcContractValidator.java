@@ -7,11 +7,14 @@ import top.egon.cola.component.rpc.annotation.EgonRpcService;
 import top.egon.cola.component.rpc.contract.descriptor.GeneratedGrpcDescriptorResolver;
 import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
 import top.egon.cola.component.rpc.contract.descriptor.RpcMethodDescriptor;
+import top.egon.cola.component.rpc.consumer.invocation.RpcInvocationMode;
 import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
 import top.egon.cola.component.rpc.exception.EgonRpcException;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -19,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CompletionStage;
 
 public class RpcContractValidator {
 
@@ -93,10 +97,17 @@ public class RpcContractValidator {
             throw invalid("RPC method must declare exactly one request parameter");
         }
         Class<?> requestType = javaMethod.getParameterTypes()[0];
-        Class<?> responseType = javaMethod.getReturnType();
-        if (!Message.class.isAssignableFrom(requestType)
-                || !Message.class.isAssignableFrom(responseType)) {
-            throw invalid("RPC request and response must implement Protobuf Message");
+        if (!Message.class.isAssignableFrom(requestType)) {
+            throw invalid("RPC request must implement Protobuf Message");
+        }
+        RpcInvocationMode invocationMode;
+        Class<?> responseType;
+        if (Message.class.isAssignableFrom(javaMethod.getReturnType())) {
+            invocationMode = RpcInvocationMode.BLOCKING;
+            responseType = javaMethod.getReturnType();
+        } else {
+            invocationMode = RpcInvocationMode.ASYNC;
+            responseType = completionStageResponseType(javaMethod);
         }
         GeneratedGrpcDescriptorResolver.ResolvedGrpcMethod generatedMethod =
                 generated.methods().get(rpcMethod.name());
@@ -127,9 +138,34 @@ public class RpcContractValidator {
                 rpcMethod.name(),
                 grpcMethod.getFullMethodName(),
                 rpcMethod.idempotent(),
+                invocationMode,
+                messageType(requestType),
+                messageType(responseType),
                 grpcMethod,
                 generatedMethod.protoMethod()
         );
+    }
+
+    private Class<?> completionStageResponseType(Method javaMethod) {
+        if (!CompletionStage.class.equals(javaMethod.getReturnType())) {
+            throw invalid("RPC async return must be CompletionStage<Response>");
+        }
+        Type generic = javaMethod.getGenericReturnType();
+        if (!(generic instanceof ParameterizedType parameterized)
+                || parameterized.getActualTypeArguments().length != 1) {
+            throw invalid("RPC async return must declare an exact CompletionStage response type");
+        }
+        Type response = parameterized.getActualTypeArguments()[0];
+        if (!(response instanceof Class<?> responseClass)
+                || !Message.class.isAssignableFrom(responseClass)) {
+            throw invalid("RPC async CompletionStage response must be a concrete Protobuf Message");
+        }
+        return responseClass;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Class<? extends Message> messageType(Class<?> type) {
+        return (Class<? extends Message>) type;
     }
 
     private Message defaultInstance(Class<?> messageType) {

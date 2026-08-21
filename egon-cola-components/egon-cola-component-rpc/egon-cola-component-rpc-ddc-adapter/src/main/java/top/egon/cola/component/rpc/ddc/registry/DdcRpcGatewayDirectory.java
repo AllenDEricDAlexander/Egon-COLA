@@ -42,11 +42,12 @@ public final class DdcRpcGatewayDirectory implements RpcGatewayDirectory {
                 new RpcGatewaySnapshot(
                         snapshot.revision(), snapshot.observedAt(),
                         snapshot.instances().stream().map(instance -> {
-                            ServiceInstanceMetaCodec.decode(instance.metadata());
+                            var meta = ServiceInstanceMetaCodec.decode(instance.metadata());
                             return new RpcGatewayEndpoint(
                                     instance.instanceId(), instance.leaseId(),
                                     instance.host(), instance.port(), instance.secure(),
-                                    instance.leaseExpireAt()
+                                    instance.leaseExpireAt(),
+                                    meta.weight()
                             );
                         }).toList()
                 )

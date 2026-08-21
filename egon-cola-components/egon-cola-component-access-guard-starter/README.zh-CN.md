@@ -926,11 +926,13 @@ GuardDecision.PENALTY_ACTIVE
 
 ## 14. RateLimit
 
-当前算法为：
+限流算法由 Rule 选择，默认仍为 `TOKEN_BUCKET`。Starter 支持三种算法：
 
-```text
-TOKEN_BUCKET
-```
+| 算法 | 状态语义 | 参数含义 |
+|------|----------|----------|
+| `TOKEN_BUCKET` | Token 累积到 `capacity`，准入调用消耗 `requested-tokens`。 | `refill-tokens` 在每个 `refill-period` 增加。 |
+| `LEAKY_BUCKET` | 水位按固定速率流出，只有新水位不超过容量才准入。 | `refill-tokens/refill-period` 定义流出速率；`requested-tokens` 是单次水量。 |
+| `SLIDING_WINDOW` | 保留窗口内的准入时间戳并精确计数。 | `capacity` 是最大调用数；`refill-period` 是窗口；`requested-tokens` 必须为 `1`。 |
 
 配置：
 
@@ -958,6 +960,18 @@ rate-limit:
 - 所有数值必须为正；
 - `requested-tokens` 不能大于 `capacity`；
 - `refill-period` 必须为正。
+- `SLIDING_WINDOW` 要求 `requested-tokens=1` 且 `capacity<=100000`。
+
+Local 存储使用单调时钟和有界内存条目。Redisson 存储使用 Redis Server 时间和单 Key 原子
+脚本。已有 Token Bucket 保留旧 HASH Key；漏桶和滑动窗口惰性使用 `:leaky-bucket`、
+`:sliding-window` 后缀 Key，并通过 idle TTL 清理。不需要迁移或批量删除。算法参数变化会
+按 Rule 版本产生新的规范化状态。存储异常遵循 `failurePolicies.rateLimitBackend`
+（`FAIL_OPEN`、`LOCAL_FALLBACK` 或 `FAIL_CLOSED`）。`retryAfter` 只是 `GuardOutcome` 中的
+运行提示，Guard 不会排队或 sleep 被拒绝的调用。
+
+Provider 方法接入 RPC 时，必须显式依赖 RPC Starter 和 Access Guard Starter，并将
+`@RateLimitGuard(ruleId, key)` 放在实现方法上。RPC 只把 `GuardDecision.RATE_LIMITED` 映射为
+Provider-stage gRPC `UNAVAILABLE`，业务方法不会进入；其他 Guard 决策保持原有异常语义。
 
 ### 示例
 

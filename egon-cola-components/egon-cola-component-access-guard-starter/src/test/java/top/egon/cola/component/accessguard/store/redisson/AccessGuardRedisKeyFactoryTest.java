@@ -1,6 +1,7 @@
 package top.egon.cola.component.accessguard.store.redisson;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.accessguard.core.plan.AdmissionConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -19,6 +20,27 @@ class AccessGuardRedisKeyFactoryTest {
         assertThat(key)
                 .isEqualTo("egon:access-guard:draw-service:draw:rate-limit:state-v2:" + HASH)
                 .doesNotContain("raw-user-id");
+    }
+
+    @Test
+    void keepsTokenBucketKeyUnchanged() {
+        assertThat(factory.rateLimit(
+                "draw", "state-v2", HASH, AdmissionConfig.RateLimitAlgorithm.TOKEN_BUCKET))
+                .isEqualTo(factory.rateLimit("draw", "state-v2", HASH));
+    }
+
+    @Test
+    void addsSafeLeakySuffix() {
+        assertThat(factory.rateLimit(
+                "draw", "state-v2", HASH, AdmissionConfig.RateLimitAlgorithm.LEAKY_BUCKET))
+                .isEqualTo(factory.rateLimit("draw", "state-v2", HASH) + ":leaky-bucket");
+    }
+
+    @Test
+    void addsSafeSlidingSuffix() {
+        assertThat(factory.rateLimit(
+                "draw", "state-v2", HASH, AdmissionConfig.RateLimitAlgorithm.SLIDING_WINDOW))
+                .isEqualTo(factory.rateLimit("draw", "state-v2", HASH) + ":sliding-window");
     }
 
     @Test

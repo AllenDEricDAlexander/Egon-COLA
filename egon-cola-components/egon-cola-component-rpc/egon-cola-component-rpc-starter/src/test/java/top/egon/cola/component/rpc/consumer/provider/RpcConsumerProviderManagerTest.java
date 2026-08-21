@@ -122,6 +122,23 @@ class RpcConsumerProviderManagerTest {
     }
 
     @Test
+    void retainedDemandExposesImmutableSnapshotAndReleasesExactQuery() {
+        SnapshotDirectory directory = new SnapshotDirectory();
+        RpcConsumerProviderManager manager = manager(
+                directory, new StubChannelFactory());
+        RpcProviderQuery exact = query("orders", "orders-api");
+        RpcConsumerProviderManager.Demand demand = manager.retain(exact);
+        manager.start();
+        directory.publish(exact, snapshot(5L, endpoint("provider-a", "lease-1", 19091)));
+
+        assertThat(manager.snapshot(exact)).isNotNull();
+        assertThat(manager.snapshot(exact).revision()).isEqualTo(5L);
+        demand.close();
+        assertThat(directory.closedQueries).contains(exact);
+        manager.stop();
+    }
+
+    @Test
     void rejectsWildcardOrNonGrpcQueries() {
         assertInvalidQuery(() -> new RpcProviderQuery(
                 "*", "orders", "test", "orders-api",

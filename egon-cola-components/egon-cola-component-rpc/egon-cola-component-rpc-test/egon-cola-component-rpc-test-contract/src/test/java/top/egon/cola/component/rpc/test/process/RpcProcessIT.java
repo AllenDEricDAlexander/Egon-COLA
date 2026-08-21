@@ -216,6 +216,40 @@ class RpcProcessIT {
                         .contains("invocationId=" + invocationId)
                         .contains("providerId=process-provider");
 
+                RpcProcessHarness.Child directConsumer = processes.start(
+                        "direct-consumer",
+                        "top.egon.cola.component.rpc.test.fixture.directconsumer."
+                                + "RpcDirectTestConsumerApplication",
+                        rpcArguments(
+                                adminTarget,
+                                redisHost,
+                                redisPort,
+                                env,
+                                namespace,
+                                List.of(
+                                        "--egon.cola.component.rpc.provider.enabled=false",
+                                        "--egon.cola.component.rpc.consumer.enabled=true",
+                                        "--rpc.test.message=direct-process-call"
+                                )
+                        )
+                );
+                assertThat(processes.awaitExit(
+                        directConsumer,
+                        STARTUP_TIMEOUT
+                )).isZero();
+                String directOutput = processes.output(directConsumer);
+                String directInvocationId = value(
+                        directOutput,
+                        "invocationId"
+                );
+                assertThat(directOutput)
+                        .contains("RPC_PROCESS_DIRECT_SUCCESS")
+                        .contains("providerId=process-provider")
+                        .contains("message=direct-process-call");
+                assertThat(directInvocationId).isNotBlank();
+                assertThat(processes.output(gateway))
+                        .doesNotContain("invocationId=" + directInvocationId);
+
                 processes.stop(provider);
                 processes.awaitCondition(
                         () -> registry.client()

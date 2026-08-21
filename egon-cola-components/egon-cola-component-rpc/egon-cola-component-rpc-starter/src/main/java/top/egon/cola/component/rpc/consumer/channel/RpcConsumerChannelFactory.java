@@ -27,11 +27,15 @@ public class RpcConsumerChannelFactory {
     }
 
     public ManagedChannel create(RpcEndpoint endpoint) {
+        return create(RpcChannelKey.from(endpoint));
+    }
+
+    public ManagedChannel create(RpcChannelKey key) {
         NettyChannelBuilder builder = NettyChannelBuilder.forAddress(
-                endpoint.host(),
-                endpoint.port()
+                key.host(),
+                key.port()
         ).disableRetry();
-        if (endpoint.secure()) {
+        if (key.secure()) {
             if (!transportSecurity.enabled()) {
                 throw new IllegalStateException(
                         "secure RPC Gateway requires configured mTLS material"

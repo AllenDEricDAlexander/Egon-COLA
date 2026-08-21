@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -115,6 +116,43 @@ class DdcRpcProviderDirectoryTest {
                         endpoint,
                         leaseExpireAt
                 ));
+        assertThat(observed.get().endpoints().getFirst().weight()).isEqualTo(80);
+    }
+
+    @Test
+    void mapsMissingAndInvalidWeightToDefault() {
+        DdcServiceRegistryClient client = mock(DdcServiceRegistryClient.class);
+        ArgumentCaptor<Consumer<DdcServiceSnapshot>> listener =
+                ArgumentCaptor.forClass(Consumer.class);
+        when(client.subscribe(any(), listener.capture())).thenReturn(() -> { });
+        DdcRpcProviderDirectory directory = new DdcRpcProviderDirectory(client);
+        AtomicReference<RpcProviderSnapshot> observed = new AtomicReference<>();
+        directory.subscribe(query(), observed::set);
+        Instant now = Instant.parse("2026-08-15T00:00:00Z");
+        DdcServiceKey key = new DdcServiceKey(
+                "commerce", "test", "orders", DdcServiceKind.RPC_PROVIDER,
+                "egon.rpc.orders.v1.OrderService", "blue", "2.1.0", "grpc");
+        listener.getValue().accept(new DdcServiceSnapshot(
+                key, 28,
+                List.of(instance(key, "provider-default", Map.of()),
+                        instance(key, "provider-invalid", Map.of("gateway.weight", "bad"))),
+                now));
+
+        assertThat(observed.get().endpoints())
+                .extracting(RpcProviderEndpoint::weight)
+                .containsExactly(100, 100);
+    }
+
+    private static DdcServiceInstance instance(
+            DdcServiceKey key,
+            String instanceId,
+            Map<String, String> metadata) {
+        Instant now = Instant.parse("2026-08-15T00:00:00Z");
+        return new DdcServiceInstance(
+                instanceId, "lease-" + instanceId, key, "127.0.0.1", 19091,
+                true, metadata, 30, 10, now.minusSeconds(10), now,
+                now.plusSeconds(30), "ONLINE", 28, "resource-orders", 3L,
+                "kid-test", now.plusSeconds(20));
     }
 
     private void assertEndpoint(

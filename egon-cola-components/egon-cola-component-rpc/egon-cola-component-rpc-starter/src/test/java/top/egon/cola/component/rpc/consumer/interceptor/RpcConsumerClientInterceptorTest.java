@@ -9,8 +9,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import top.egon.cola.component.common.trace.TraceContext;
+import top.egon.cola.component.rpc.annotation.FailStrategy;
+import top.egon.cola.component.rpc.annotation.LoadBalance;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
+import top.egon.cola.component.rpc.consumer.generic.RpcGenericInvocation;
 import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
 
 import java.util.List;
@@ -51,6 +54,73 @@ class RpcConsumerClientInterceptorTest {
         assertThat(headers.get(RpcMetadataKeys.INVOCATION_ID)).isNotBlank();
         assertThat(headers.get(RpcMetadataKeys.SOURCE_APP)).isEqualTo("rpc-app");
         assertThat(headers.get(RpcMetadataKeys.SOURCE_INSTANCE)).isEqualTo("rpc-1");
+    }
+
+    @Test
+    void genericTargetUsesOneLogicalInvocationIdAcrossAttempts() {
+        RpcConsumerClientInterceptor interceptor =
+                RpcConsumerClientInterceptor.forTarget(
+                        "egon.rpc.test.Echo",
+                        "default",
+                        "1.0.0",
+                        identity(),
+                        "invocation-1"
+                );
+        AtomicReference<Metadata> firstHeaders = new AtomicReference<>();
+        AtomicReference<Metadata> secondHeaders = new AtomicReference<>();
+        ClientCall<String, String> first = interceptor.interceptCall(
+                method(),
+                CallOptions.DEFAULT,
+                new CapturingChannel(firstHeaders)
+        );
+        ClientCall<String, String> second = interceptor.interceptCall(
+                method(),
+                CallOptions.DEFAULT,
+                new CapturingChannel(secondHeaders)
+        );
+
+        first.start(new ClientCall.Listener<>() {
+        }, new Metadata());
+        second.start(new ClientCall.Listener<>() {
+        }, new Metadata());
+
+        assertThat(firstHeaders.get().get(RpcMetadataKeys.INVOCATION_ID))
+                .isEqualTo("invocation-1");
+        assertThat(secondHeaders.get().get(RpcMetadataKeys.INVOCATION_ID))
+                .isEqualTo("invocation-1");
+        assertThat(firstHeaders.get().get(RpcMetadataKeys.SERVICE))
+                .isEqualTo("egon.rpc.test.Echo");
+    }
+
+    @Test
+    void genericInvocationContextIsRawAndDefensive() {
+        byte[] payload = new byte[]{1, 2, 3};
+        RpcGenericInvocation command = RpcGenericInvocation.gateway(
+                "egon.rpc.test.Echo",
+                "default",
+                "1.0.0",
+                "egon.rpc.test.Echo/Echo",
+                payload,
+                1000,
+                0,
+                LoadBalance.ROUND_ROBIN,
+                FailStrategy.FAIL_CLOSED,
+                null
+        );
+        RpcClientInvocation invocation = RpcClientInvocation.generic(
+                command,
+                identity(),
+                "invocation-2"
+        );
+        payload[0] = 9;
+
+        assertThat(invocation.generic()).isTrue();
+        assertThat(invocation.contract()).isNull();
+        assertThat(invocation.method()).isNull();
+        assertThat(invocation.request()).isNull();
+        assertThat(invocation.rawRequestPayload())
+                .containsExactly(1, 2, 3);
+        assertThat(invocation.invocationId()).isEqualTo("invocation-2");
     }
 
     private RpcContractDescriptor contract() {

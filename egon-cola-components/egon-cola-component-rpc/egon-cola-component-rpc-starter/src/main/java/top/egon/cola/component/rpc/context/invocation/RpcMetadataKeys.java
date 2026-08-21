@@ -37,6 +37,9 @@ public final class RpcMetadataKeys {
     public static final Metadata.Key<String> FAILURE_STAGE =
             ascii("x-egon-rpc-failure-stage");
 
+    public static final Metadata.Key<String> ERROR_TYPE =
+            ascii("x-egon-rpc-error-type");
+
     private RpcMetadataKeys() {
     }
 

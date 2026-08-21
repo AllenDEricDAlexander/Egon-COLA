@@ -9,6 +9,13 @@ import java.lang.annotation.Target;
  * Binds a contract method to a gRPC wire method and records the per-method
  * decisions that would be wrong to state once for the whole contract, since a
  * single contract routinely mixes cheap reads with expensive writes.
+ *
+ * <p>The supported Java unary shapes are {@code Response method(Request)} and
+ * {@code CompletionStage<Response> method(Request)}. The response type must be
+ * the exact generated Protobuf output for the bound wire method. The
+ * {@link #idempotent()} value is descriptive metadata only: configured
+ * availability retries remain a framework policy, while business code owns
+ * duplicate safety (for example, by using a unique document number).
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
@@ -26,8 +33,8 @@ public @interface EgonRpcMethod {
 
     /**
      * Retry attempts after the initial call. Negative means unset; zero is
-     * reserved for "explicitly do not retry", which a non-idempotent method may
-     * need to state even where its contract permits retries.
+     * reserved for "explicitly do not retry". It does not disable retries merely
+     * because {@link #idempotent()} is {@code false}.
      */
     int retries() default -1;
 

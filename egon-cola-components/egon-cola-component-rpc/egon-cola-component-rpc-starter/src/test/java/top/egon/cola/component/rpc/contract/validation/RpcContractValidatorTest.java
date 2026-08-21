@@ -13,6 +13,8 @@ import top.egon.cola.component.rpc.support.TestGrpcDescriptorFixtures.MissingDes
 import top.egon.cola.component.rpc.support.TestGrpcDescriptorFixtures.StreamingFixtureGrpc;
 import top.egon.cola.component.rpc.support.TestGrpcDescriptorFixtures.UnaryFixtureGrpc;
 
+import java.util.concurrent.CompletionStage;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -73,6 +75,26 @@ class RpcContractValidatorTest {
     void shouldRejectMessageTypeMismatch() {
         assertInvalid(RequestMismatchContract.class);
         assertInvalid(ResponseMismatchContract.class);
+    }
+
+    @Test
+    void shouldAcceptExactCompletionStageResponse() throws Exception {
+        RpcMethodDescriptor method = validator.validate(
+                AsyncContract.class).method(AsyncContract.class.getMethod(
+                        "echo", StringValue.class));
+
+        assertThat(method.invocationMode())
+                .isEqualTo(top.egon.cola.component.rpc.consumer.invocation.RpcInvocationMode.ASYNC);
+        assertThat(method.requestType()).isEqualTo(StringValue.class);
+        assertThat(method.responseType()).isEqualTo(StringValue.class);
+    }
+
+    @Test
+    void shouldRejectUnsupportedCompletionStageShapes() {
+        assertInvalid(RawStageContract.class);
+        assertInvalid(WildcardStageContract.class);
+        assertInvalid(NestedStageContract.class);
+        assertInvalid(WrongStageContract.class);
     }
 
     @Test
@@ -177,6 +199,41 @@ class RpcContractValidatorTest {
 
         @EgonRpcMethod(name = "Echo")
         Int32Value echo(StringValue request);
+    }
+
+    @EgonRpcService(grpcClass = UnaryFixtureGrpc.class)
+    interface AsyncContract {
+
+        @EgonRpcMethod(name = "Echo")
+        CompletionStage<StringValue> echo(StringValue request);
+    }
+
+    @EgonRpcService(grpcClass = UnaryFixtureGrpc.class)
+    interface RawStageContract {
+
+        @EgonRpcMethod(name = "Echo")
+        CompletionStage echo(StringValue request);
+    }
+
+    @EgonRpcService(grpcClass = UnaryFixtureGrpc.class)
+    interface WildcardStageContract {
+
+        @EgonRpcMethod(name = "Echo")
+        CompletionStage<?> echo(StringValue request);
+    }
+
+    @EgonRpcService(grpcClass = UnaryFixtureGrpc.class)
+    interface NestedStageContract {
+
+        @EgonRpcMethod(name = "Echo")
+        CompletionStage<CompletionStage<StringValue>> echo(StringValue request);
+    }
+
+    @EgonRpcService(grpcClass = UnaryFixtureGrpc.class)
+    interface WrongStageContract {
+
+        @EgonRpcMethod(name = "Echo")
+        CompletionStage<Int32Value> echo(StringValue request);
     }
 
     @EgonRpcService(grpcClass = UnaryFixtureGrpc.class)

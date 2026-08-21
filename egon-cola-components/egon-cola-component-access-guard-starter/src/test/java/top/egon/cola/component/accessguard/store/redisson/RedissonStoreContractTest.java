@@ -6,6 +6,7 @@ import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.RedisException;
 import org.redisson.client.codec.Codec;
+import top.egon.cola.component.accessguard.core.plan.AdmissionConfig;
 import top.egon.cola.component.accessguard.store.GuardStoreContract;
 import top.egon.cola.component.accessguard.store.PenaltyKey;
 import top.egon.cola.component.accessguard.store.PenaltyState;
@@ -125,6 +126,52 @@ class RedissonStoreContractTest {
                 .contains("redis.call('TIME')", "redis.call('HSET'", "redis.call('PEXPIRE'");
     }
 
+    @Test
+    void leakyBucketUsesRedisTimeAndAtomicHashState() {
+        RedissonClient client = mock(RedissonClient.class);
+        RScript script = mock(RScript.class);
+        when(client.getScript(any(Codec.class))).thenReturn(script);
+        when(script.eval(any(), anyString(), any(), anyList(), any(Object[].class)))
+                .thenReturn(List.of(1L, 2L, 0L));
+        RedissonRateLimitBackend backend = new RedissonRateLimitBackend(client, keyFactory(), Duration.ofMinutes(10));
+
+        backend.acquire(request(AdmissionConfig.RateLimitAlgorithm.LEAKY_BUCKET, 2));
+
+        org.mockito.ArgumentCaptor<String> lua = org.mockito.ArgumentCaptor.forClass(String.class);
+        org.mockito.ArgumentCaptor<List> keys = org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(script).eval(
+                eq(RScript.Mode.READ_WRITE), lua.capture(), eq(RScript.ReturnType.MULTI),
+                keys.capture(), any(Object[].class));
+        org.assertj.core.api.Assertions.assertThat(keys.getValue().getFirst().toString())
+                .endsWith(":leaky-bucket");
+        org.assertj.core.api.Assertions.assertThat(lua.getValue())
+                .contains("redis.call('TIME')", "redis.call('HMGET'", "redis.call('HSET'",
+                        "redis.call('PEXPIRE'");
+    }
+
+    @Test
+    void slidingWindowUsesRedisTimeAndAtomicListState() {
+        RedissonClient client = mock(RedissonClient.class);
+        RScript script = mock(RScript.class);
+        when(client.getScript(any(Codec.class))).thenReturn(script);
+        when(script.eval(any(), anyString(), any(), anyList(), any(Object[].class)))
+                .thenReturn(List.of(1L, 1L, 0L));
+        RedissonRateLimitBackend backend = new RedissonRateLimitBackend(client, keyFactory(), Duration.ofMinutes(10));
+
+        backend.acquire(request(AdmissionConfig.RateLimitAlgorithm.SLIDING_WINDOW, 1));
+
+        org.mockito.ArgumentCaptor<String> lua = org.mockito.ArgumentCaptor.forClass(String.class);
+        org.mockito.ArgumentCaptor<List> keys = org.mockito.ArgumentCaptor.forClass(List.class);
+        verify(script).eval(
+                eq(RScript.Mode.READ_WRITE), lua.capture(), eq(RScript.ReturnType.MULTI),
+                keys.capture(), any(Object[].class));
+        org.assertj.core.api.Assertions.assertThat(keys.getValue().getFirst().toString())
+                .endsWith(":sliding-window");
+        org.assertj.core.api.Assertions.assertThat(lua.getValue())
+                .contains("redis.call('TIME')", "redis.call('LINDEX'", "redis.call('LPOP'",
+                        "redis.call('LLEN'", "redis.call('RPUSH'", "redis.call('PEXPIRE'");
+    }
+
     private static GuardStoreContract.ListStoreFixture fixture(
             top.egon.cola.component.accessguard.store.AllowListStore store,
             FakeListScripts scripts
@@ -181,6 +228,14 @@ class RedissonStoreContractTest {
 
     private static AccessGuardRedisKeyFactory keyFactory() {
         return new AccessGuardRedisKeyFactory("egon:access-guard", "test");
+    }
+
+    private static RateLimitRequest request(
+            AdmissionConfig.RateLimitAlgorithm algorithm,
+            long requestedTokens) {
+        return new RateLimitRequest(
+                "draw", "v1", HASH, algorithm, 10, 2,
+                Duration.ofSeconds(1), requestedTokens);
     }
 
     private static final class FakeListScripts {

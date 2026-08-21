@@ -15,8 +15,19 @@ public record RpcProviderEndpoint(
         String host,
         int port,
         boolean secure,
-        Instant leaseExpireAt
+        Instant leaseExpireAt,
+        int weight
 ) implements RpcEndpoint {
+
+    public RpcProviderEndpoint(
+            String instanceId,
+            String leaseId,
+            String host,
+            int port,
+            boolean secure,
+            Instant leaseExpireAt) {
+        this(instanceId, leaseId, host, port, secure, leaseExpireAt, 100);
+    }
 
     public RpcProviderEndpoint {
         String normalizedInstanceId = normalize(instanceId);
@@ -49,6 +60,7 @@ public record RpcProviderEndpoint(
         instanceId = normalizedInstanceId;
         leaseId = normalizedLeaseId;
         host = normalizedHost;
+        weight = normalizeWeight(weight);
     }
 
     public boolean activeAt(Instant now) {
@@ -60,5 +72,9 @@ public record RpcProviderEndpoint(
             return null;
         }
         return value.trim();
+    }
+
+    private static int normalizeWeight(int value) {
+        return value >= 1 && value <= 10_000 ? value : 100;
     }
 }

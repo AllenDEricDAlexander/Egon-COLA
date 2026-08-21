@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RpcProviderLifecycle implements SmartLifecycle {
 
@@ -41,6 +42,10 @@ public class RpcProviderLifecycle implements SmartLifecycle {
     private final RpcProcessIdentity processIdentity;
 
     private volatile boolean running;
+
+    private volatile RpcProviderRuntimeState state = RpcProviderRuntimeState.NEW;
+
+    private final AtomicBoolean stopCallbackInvoked = new AtomicBoolean();
 
     private volatile Server server;
 
@@ -67,13 +72,26 @@ public class RpcProviderLifecycle implements SmartLifecycle {
 
     @Override
     public synchronized void start() {
-        if (running) {
+        if (state == RpcProviderRuntimeState.READY
+                || state == RpcProviderRuntimeState.DEGRADED) {
             return;
         }
-        validateProperties();
-        List<RpcProviderBinding> providers = registry.providers();
-        if (providers.isEmpty()) {
-            throw startFailed("no RPC Provider bean was found", null);
+        if (state == RpcProviderRuntimeState.DRAINING
+                || state == RpcProviderRuntimeState.FAILED
+                || state == RpcProviderRuntimeState.STOPPED) {
+            throw startFailed("RPC Provider is not restartable after shutdown/failure", null);
+        }
+        List<RpcProviderBinding> providers;
+        try {
+            validateProperties();
+            providers = registry.providers();
+            if (providers.isEmpty()) {
+                throw startFailed("no RPC Provider bean was found", null);
+            }
+            state = RpcProviderRuntimeState.STARTING;
+        } catch (RuntimeException exception) {
+            state = RpcProviderRuntimeState.FAILED;
+            throw exception;
         }
         try {
             Server preparedServer = serverFactory.create(
@@ -106,18 +124,32 @@ public class RpcProviderLifecycle implements SmartLifecycle {
                 }
                 startHeartbeat();
             }
-            running = true;
+            state = registrationEnabled()
+                    && leaseManager != null
+                    && !leaseManager.allPreparedLeasesActive()
+                    ? RpcProviderRuntimeState.DEGRADED
+                    : RpcProviderRuntimeState.READY;
+            running = state.servingNewCalls();
         } catch (IOException | RuntimeException exception) {
             stopInfrastructure();
+            state = RpcProviderRuntimeState.FAILED;
             throw startFailed("RPC Provider startup failed", exception);
         }
     }
 
     @Override
     public synchronized void stop() {
-        if (!running && server == null) {
+        stop(null);
+    }
+
+    @Override
+    public synchronized void stop(Runnable callback) {
+        if (state == RpcProviderRuntimeState.STOPPED) {
+            runOnce(callback);
             return;
         }
+        state = RpcProviderRuntimeState.DRAINING;
+        running = false;
         availability.clear();
         // Recovery is disabled before deregistration so shutdown cannot publish
         // a replacement lease after the exact active lease was removed.
@@ -142,12 +174,17 @@ public class RpcProviderLifecycle implements SmartLifecycle {
                 current.shutdownNow();
             }
         }
-        running = false;
+        state = RpcProviderRuntimeState.STOPPED;
+        runOnce(callback);
     }
 
     @Override
     public boolean isRunning() {
-        return running;
+        return state.servingNewCalls();
+    }
+
+    public RpcProviderRuntimeState state() {
+        return state;
     }
 
     @Override
@@ -224,11 +261,28 @@ public class RpcProviderLifecycle implements SmartLifecycle {
             return thread;
         });
         heartbeatExecutor.scheduleWithFixedDelay(
-                leaseManager::heartbeatAndRecover,
+                this::heartbeatAndRefreshState,
                 properties.getHeartbeatIntervalSeconds(),
                 properties.getHeartbeatIntervalSeconds(),
                 TimeUnit.SECONDS
         );
+    }
+
+    private void heartbeatAndRefreshState() {
+        if (state == RpcProviderRuntimeState.DRAINING
+                || state == RpcProviderRuntimeState.STOPPED) {
+            return;
+        }
+        try {
+            leaseManager.heartbeatAndRecover();
+            state = leaseManager.allPreparedLeasesActive()
+                    ? RpcProviderRuntimeState.READY
+                    : RpcProviderRuntimeState.DEGRADED;
+            running = state.servingNewCalls();
+        } catch (RuntimeException exception) {
+            state = RpcProviderRuntimeState.DEGRADED;
+            running = true;
+        }
     }
 
     private void stopHeartbeat() {
@@ -262,6 +316,12 @@ public class RpcProviderLifecycle implements SmartLifecycle {
             current.shutdownNow();
         }
         running = false;
+    }
+
+    private void runOnce(Runnable callback) {
+        if (callback != null && stopCallbackInvoked.compareAndSet(false, true)) {
+            callback.run();
+        }
     }
 
     private boolean registrationEnabled() {

@@ -23,11 +23,11 @@ HTTP/RPC 转发由独立的 [Gateway 平台](../../egon-cola-platforms/egon-cola
 - 严格校验 Java 方法、生成的 gRPC Descriptor 以及 Protobuf 请求/响应类型的一致性。
 - 通过 `@EgonRpcProvider` 扫描 Provider Bean，管理 unary gRPC Server、可用性门控、
   DDC 租约注册、心跳、恢复和精确租约注销。
-- Consumer JDK Proxy 支持两条运行路径：经发现的内部 Gateway 调用
+- Consumer CGLIB Proxy 支持两条运行路径：经发现的内部 Gateway 调用
   `@EgonRpcReference`，或经发现的 Provider 调用 `@EgonRpcDirectReference`。
 - 通过 `RpcDirectClientFactory` 创建基础设施端点的程序化直连 gRPC Client；返回的
   Channel Handle 由调用方负责关闭。
-- 传播 Deadline 和 Cancellation，传递有界 Trace/Request Metadata，并将 gRPC Status
+- 支持阻塞和 `CompletionStage` 调用、受限的泛化 raw-Protobuf、HTTP/2 Channel 多路复用，传播 Deadline 和 Cancellation，传递有界 Trace/Request Metadata，并将 gRPC Status
   稳定映射为 `EgonRpcErrorCode`。
 - 可选 DDC RPC Adapter，提供 ConfigData、服务注册中心和管理客户端，并支持显式 mTLS
   或开发明文模式，以及按能力隔离的 HMAC 凭据。
@@ -57,7 +57,7 @@ DDC 目标是本地引导配置，DDC 不通过自身被发现。Provider 和 Ga
 |-------------|--------------------------------------------------------------------|---------------------------------|
 | Contract    | Java 绑定、Descriptor 校验、unary Contract Snapshot                      | 第二套 IDL 或序列化协议                  |
 | Provider    | gRPC Server、Bean 分发、可用性、租约生命周期                                     | Gateway 路由或 Provider 健康探测       |
-| Consumer    | Proxy、Channel 生命周期、Deadline、Metadata、Gateway/Provider Directory 接口 | Gateway 规则、Provider 负载均衡、业务重试策略 |
+| Consumer    | Proxy、Channel 生命周期、Deadline、Metadata、Gateway/Provider Directory 接口、Consumer 候选节点负载均衡 | Gateway 规则、Gateway 侧 Provider 路由、业务重试策略 |
 | DDC Adapter | 配置、注册、管理端口的直连 gRPC Client                                          | DDC Admin 持久化和 Redis 实现         |
 | Gateway 集成  | 传输无关的 Gateway/Provider Directory Port 和 Contract Catalog           | 生产 Gateway 数据面和控制面              |
 
@@ -216,6 +216,7 @@ DDC Adapter；它会传递引入 Starter 和 DDC SDK：
 | `provider.heartbeat-interval-seconds`   |       `10` | 心跳间隔，必须小于租约 TTL。                         |
 | `provider.graceful-shutdown-timeout-ms` |    `10000` | Server 排空超时。                             |
 | `provider.metadata`                     |          空 | 业务元数据；不能使用框架保留前缀。                        |
+| `provider.metadata.gateway.weight`      | Contract `weight` 或 `100` | 上报实例容量，范围 `1..10000`。 |
 
 Provider 先启动 gRPC Server，将 Handler 置为不可用，再为每个 Service Identity 注册一份
 DDC 租约，注册成功后才恢复对应 Handler 的可用状态。租约失效或心跳失败会先摘除可用性，
@@ -236,11 +237,19 @@ DDC 租约，注册成功后才恢复对应 Handler 的可用状态。租约失�
 | `consumer.gateway-app-code`             |                  空 | 可选的 DDC 应用作用域覆盖。               |
 | `consumer.channel-drain-timeout-ms`     |             `5000` | 替换 Provider Channel 的排空超时。     |
 | `consumer.gateway-max-attempts`         |                `2` | 一次逻辑调用最多考虑的 Gateway Channel 数。 |
+| `consumer.max-retries`                  |                `3` | 默认同模式可用性重试预算。                |
+| `consumer.default-load-balance`         |       `ROUND_ROBIN` | Consumer 默认选择策略。                  |
+| `consumer.consistent-hash-virtual-nodes`|              `160` | `CONSISTENT_HASH` 环密度。               |
+| `consumer.generic-cache-max-entries`    |              `256` | 泛化目标缓存最大条目数。                  |
+| `consumer.generic-cache-idle-timeout-ms`|           `600000` | 泛化目标空闲淘汰时间。                    |
 
-`@EgonRpcReference.timeoutMs` 只能缩短、不能超过 `default-timeout-ms`。只有幂等方法收到
-Gateway 阶段的 `UNAVAILABLE` 时，Consumer 才会在同一个 Deadline 内进行 Gateway Failover；
-Provider 失败和直连 Provider 调用不会由 Consumer 重试。Channel 会显式关闭 gRPC 自带的
-Transport Retry。
+`@EgonRpcReference` 和 `@EgonRpcDirectReference` 共享 timeout、retry、load-balance、fallback
+和 Hash resolver 公共字段。字段注入时就固定模式：Gateway 不可用时不会改走 Direct，Direct
+失败时也不会进入 Gateway。只有获取失败和 Provider/Gateway 阶段 `UNAVAILABLE` 等可用性故障，
+才会在同一模式候选内按负载均衡更换节点，直到总 Deadline 或重试预算耗尽。业务状态
+`INVALID_ARGUMENT`、`PERMISSION_DENIED`、`NOT_FOUND`、`FAILED_PRECONDITION`、`ALREADY_EXISTS`、
+`ABORTED` 以及业务异常都是终态，不重试。框架不推断幂等性；开启重试时必须由业务保证重复
+安全（例如唯一单据编号配合覆盖/upsert）。Channel 会显式关闭 gRPC 自带的 Transport Retry。
 
 ### 身份与传输安全
 
@@ -320,7 +329,7 @@ message EchoResponse {
 )
 public interface EchoRpc {
 
-    @EgonRpcMethod(name = "Echo", idempotent = true)
+    @EgonRpcMethod(name = "Echo")
     EchoResponse echo(EchoRequest request);
 }
 ```
@@ -389,8 +398,7 @@ public class InternalEchoClient {
 ```
 
 该路径需要 `RpcProviderDirectory` 实现，通常由 DDC Adapter 提供。它发现 `RPC_PROVIDER`
-条目并管理有效 Provider 的 Channel；它不执行 Gateway 路由、鉴权、流量治理或 Provider
-重试策略。
+条目并管理有效 Provider 的 Channel；它不执行 Gateway 路由、鉴权或流量治理。
 
 ### 6. 创建基础设施直连 Client
 
@@ -426,12 +434,70 @@ Protobuf Descriptor 是线协议 Service、Method、Request、Response 以及 St
 
 | 模式          | 入口                        | 发现对象               | Channel 所有者  | 重试边界                                       |
 |-------------|---------------------------|--------------------|--------------|--------------------------------------------|
-| Gateway     | `@EgonRpcReference`       | `INTERNAL_GATEWAY` | RPC Consumer | 仅同一 Deadline 内的幂等 Gateway 阶段 `UNAVAILABLE` |
-| 直连 Provider | `@EgonRpcDirectReference` | `RPC_PROVIDER`     | RPC Consumer | 一次 Provider 尝试；不做业务重试                      |
+| Gateway     | `@EgonRpcReference`       | `INTERNAL_GATEWAY` | RPC Consumer | 仅同模式获取失败/`UNAVAILABLE` 换候选节点 |
+| 直连 Provider | `@EgonRpcDirectReference` | `RPC_PROVIDER`     | RPC Consumer | 仅同模式获取失败/`UNAVAILABLE` 换候选节点 |
 | 显式目标        | `RpcDirectClientFactory`  | 无                  | 调用方 Handle   | 一次传输尝试                                     |
 
 普通 Consumer 链路不会直接发现 Provider。Gateway 的 Provider 选择、健康探测、路由规则和
 Provider 负载均衡都属于 Gateway 平台。
+
+Consumer 会为每个精确发现查询维护一份不可变本地 Snapshot。DDC Adapter 负责事件监听和
+周期性全量对账；调用热路径只读本地 Snapshot，不在每次调用时拉 DDC。`RpcLoadBalancers`
+提供 `RANDOM`、`WEIGHTED_RANDOM`、`ROUND_ROBIN`、`SMOOTH_WEIGHTED_ROUND_ROBIN`、
+`CONSISTENT_HASH` 和 `LEAST_IN_FLIGHT`。权重来自 Provider 的 `gateway.weight` Metadata。
+一致性 Hash 的 typed 调用必须配置命名 `RpcLoadBalanceKeyResolver`，泛化调用必须提供有界
+`affinityKey`。
+
+### 阻塞、异步、泛化与多路复用
+
+Typed 方法可以返回 Protobuf 响应（阻塞调用），也可以返回
+`CompletionStage<ProtobufResponse>`（异步调用）。两者复用同一 unary gRPC Descriptor 及
+Metadata/Interceptor 链路。泛化 API 仅允许受限的 raw bytes：
+
+```java
+RpcGenericInvocation call = RpcGenericInvocation.gateway(
+        "egon.rpc.test.v1.EchoService", "default", "1.0.0",
+        "egon.rpc.test.v1.EchoService/Echo", requestBytes,
+        3000, 1, LoadBalance.ROUND_ROBIN, FailStrategy.FAIL_CLOSED, null);
+byte[] response = genericInvoker.invokeBlocking(call);
+CompletionStage<byte[]> async = genericInvoker.invokeAsync(call);
+```
+
+唯一允许的方法身份是 gRPC canonical `fully.qualified.Service/Method`；点号别名、任意
+Metadata、Endpoint 地址、DDC 凭据、Map/Object 序列化、Streaming 和第二套泛化 wire Service
+都会被拒绝。泛化目标状态受缓存上限约束；同一 Endpoint Key 的并发 unary stream 共享一个
+`ManagedChannel`，关闭时先排空再强制关闭。
+
+### Provider Guard 限流
+
+RPC 不定义第二套限流器，也不向 `@EgonRpcProvider` 增加字段。Provider 应显式依赖 Access
+Guard Starter，并将已有注解放在实现方法上：
+
+```java
+@EgonRpcProvider
+final class OrderProvider implements OrderRpc {
+    @RateLimitGuard("rpc.order.create")
+    public CompletionStage<OrderResponse> create(OrderRequest request) { ... }
+}
+```
+
+Guard Rule 在 `TOKEN_BUCKET`、`LEAKY_BUCKET`、`SLIDING_WINDOW` 中选择算法。算法 Strategy/
+Factory、Local/Redisson 后端负责 capacity、Key 作用域、原子性和 failure policy。`RATE_LIMITED`
+会由 RPC Adapter 映射为 gRPC `UNAVAILABLE`，携带 Provider-stage 与 `error-type=rate-limit`
+Trailer，业务方法不会执行；其他 Guard 决策仍走原有拒绝链路。缺少 Guard Starter 时，RPC
+可选 Adapter 不创建，也不会静默假设存在限流。
+
+### 生命周期状态与优雅关闭
+
+Provider 状态为 `NEW → STARTING → READY|DEGRADED → DRAINING → STOPPED`（也可能进入
+`FAILED`）。只有 Server 已绑定且所有必需租约 active 后才进入 READY。Provider 心跳由 RPC
+侧 fixed-delay 调度；DDC 只负责租约校验、续期、过期和变更事件，不主动探测 Provider。Consumer
+启动先安装所有声明的 Directory 订阅与共享 Channel Pool，再接受调用。关闭先关准入门、停止
+订阅/恢复、注销精确租约，在配置的超时内排空 in-flight unary，最后强制关闭剩余 Channel；
+`SmartLifecycle` stop callback 只执行一次。
+
+`FAIL_OPEN` 是显式的降级结果合同：可用性尝试耗尽时返回 `null`（typed 或 generic），调用方
+必须处理；需要业务结果的调用不应依赖它，应使用本地 fallback 或显式 null 检查。
 
 ### Deadline、Metadata 与 Status
 
@@ -531,12 +597,8 @@ egon-cola-component-rpc/
 以下内容不属于当前 V1 Runtime Contract，实施前需要单独完成 Contract/Design 决策：
 
 - Streaming RPC 及其 Gateway Descriptor/Reporting 模型。
-- 统一 Contract Metadata、Consumer Reference 与 Gateway Policy 的重试/失败策略模型。
-- 让 Reference 层的 `group`、`version`、`loadBalance`、`retries`、`failStrategy` 等声明
-  元数据拥有一致且可验证的运行时语义。
-- 在不暴露无界 Request Metadata 或敏感 DDC 凭据的前提下，增加更完整的 Metrics 和
-  Channel/Provider 诊断。
-- 扩展 mTLS、租约恢复、Gateway Failover 和 Descriptor 兼容性故障演练文档。
+- 生产级 Metrics 面板和故障演练自动化；运行时已有有界诊断及 Status/Trailer 合同。
+- 依赖具体环境的 DDC/Redis 拓扑与 mTLS 校验；它们属于部署侧证据，不由模块单测替代。
 
 ## Validation
 
@@ -548,7 +610,7 @@ egon-cola-component-rpc/
   -am test
 ```
 
-普通测试使用真实 loopback TCP 和测试 Mock Gateway，不能证明生产 DDC/Redis/Gateway 拓扑。
+普通测试使用真实 loopback TCP、测试 Mock Gateway 和 Direct Provider Fixture，不能证明生产 DDC/Redis/Gateway 拓扑。
 可选进程测试需要外部管理的 Redis：
 
 ```bash

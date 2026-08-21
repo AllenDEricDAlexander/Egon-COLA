@@ -52,8 +52,14 @@ public class RpcProviderBeanScanner {
                             + beanType.getSimpleName() + "."
             );
         }
-        contracts.forEach(contract -> providers.add(
-                new RpcProviderBinding(bean, contractValidator.validate(contract))
-        ));
+        contracts.forEach(contract -> {
+            if (!contract.isInstance(bean)) {
+                throw new EgonRpcException(
+                        EgonRpcErrorCode.RPC_INVALID_CONTRACT,
+                        "RPC Provider bean does not implement " + contract.getName());
+            }
+            providers.add(new RpcProviderBinding(
+                    bean, contractValidator.validate(contract)));
+        });
     }
 }

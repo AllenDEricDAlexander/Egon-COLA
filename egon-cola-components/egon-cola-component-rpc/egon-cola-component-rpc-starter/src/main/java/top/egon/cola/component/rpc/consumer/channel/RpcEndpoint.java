@@ -13,4 +13,9 @@ public interface RpcEndpoint {
     int port();
 
     boolean secure();
+
+    /** Relative selection weight; custom endpoints compiled before this method use 100. */
+    default int weight() {
+        return 100;
+    }
 }
