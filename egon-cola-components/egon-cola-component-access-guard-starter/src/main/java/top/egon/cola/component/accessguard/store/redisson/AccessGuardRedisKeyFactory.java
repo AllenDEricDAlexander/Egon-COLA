@@ -1,5 +1,7 @@
 package top.egon.cola.component.accessguard.store.redisson;
 
+import top.egon.cola.component.accessguard.core.plan.AdmissionConfig;
+
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -30,6 +32,21 @@ public final class AccessGuardRedisKeyFactory {
 
     public String rateLimit(String ruleId, String stateVersion, String keyHash) {
         return state(ruleId, "rate-limit", stateVersion, keyHash);
+    }
+
+    public String rateLimit(
+            String ruleId,
+            String stateVersion,
+            String keyHash,
+            AdmissionConfig.RateLimitAlgorithm algorithm) {
+        AdmissionConfig.RateLimitAlgorithm selected = Objects.requireNonNull(
+                algorithm, "algorithm");
+        String base = rateLimit(ruleId, stateVersion, keyHash);
+        return switch (selected) {
+            case TOKEN_BUCKET -> base;
+            case LEAKY_BUCKET -> base + ":leaky-bucket";
+            case SLIDING_WINDOW -> base + ":sliding-window";
+        };
     }
 
     private String list(String ruleId, String policy, String dataVersion) {

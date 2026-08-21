@@ -6,12 +6,15 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 import org.testcontainers.DockerClientFactory;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.DockerImageName;
+import top.egon.cola.component.accessguard.core.plan.AdmissionConfig;
 import top.egon.cola.component.accessguard.store.PenaltyKey;
 import top.egon.cola.component.accessguard.store.RateLimitDecision;
 import top.egon.cola.component.accessguard.store.RateLimitRequest;
@@ -73,6 +76,32 @@ class RedissonStoreIntegrationTest {
         assertThat(rejected.retryAfter()).isPositive();
     }
 
+    @ParameterizedTest
+    @EnumSource(AdmissionConfig.RateLimitAlgorithm.class)
+    void twoClientsShareOneAtomicQuotaForEveryAlgorithm(
+            AdmissionConfig.RateLimitAlgorithm algorithm) {
+        RedissonRateLimitBackend first = backend(firstClient);
+        RedissonRateLimitBackend second = backend(secondClient);
+
+        assertThat(first.acquire(request("shared-" + algorithm, algorithm, 1)).allowed()).isTrue();
+        RateLimitDecision rejected = second.acquire(request("shared-" + algorithm, algorithm, 1));
+
+        assertThat(rejected.allowed()).isFalse();
+        assertThat(rejected.retryAfter()).isPositive();
+    }
+
+    @Test
+    void algorithmSwitchUsesIndependentSuffixedStateWithoutWrongType() {
+        RedissonRateLimitBackend first = backend(firstClient);
+
+        assertThat(first.acquire(request("switch", AdmissionConfig.RateLimitAlgorithm.TOKEN_BUCKET, 1))
+                .allowed()).isTrue();
+        assertThat(first.acquire(request("switch", AdmissionConfig.RateLimitAlgorithm.LEAKY_BUCKET, 1))
+                .allowed()).isTrue();
+        assertThat(first.acquire(request("switch", AdmissionConfig.RateLimitAlgorithm.SLIDING_WINDOW, 1))
+                .allowed()).isTrue();
+    }
+
     @Test
     void penaltyThresholdAndTtlAreSharedAcrossClients() throws Exception {
         RedissonPenaltyStore first = new RedissonPenaltyStore(firstClient, keyFactory);
@@ -126,6 +155,15 @@ class RedissonStoreIntegrationTest {
     private static RateLimitRequest request(String version, long requested) {
         return new RateLimitRequest(
                 "draw", version, HASH, 1, 1, Duration.ofSeconds(1), requested);
+    }
+
+    private static RateLimitRequest request(
+            String version,
+            AdmissionConfig.RateLimitAlgorithm algorithm,
+            long requested) {
+        return new RateLimitRequest(
+                "draw", version, HASH, algorithm, 1, 1,
+                Duration.ofSeconds(1), requested);
     }
 
     private static RedissonClient client() {
