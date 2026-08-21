@@ -27,9 +27,9 @@ forwarding are owned by the separate [Gateway platform](../../egon-cola-platform
 - Provider bean scanning with `@EgonRpcProvider`, a managed unary gRPC server,
   availability gating, DDC lease registration, heartbeat, recovery, and exact
   lease deregistration.
-- Consumer CGLIB proxies with two selectable runtime paths:
-  `@EgonRpcReference` through discovered internal Gateways, or
-  `@EgonRpcDirectReference` through discovered Providers.
+- Consumer CGLIB proxies with one reference annotation and two selectable runtime
+  paths: `@EgonRpcReference` defaults to direct Provider discovery; set
+  `mode = RpcReferenceMode.GATEWAY` to use a discovered internal Gateway.
 - Programmatic direct gRPC clients for infrastructure endpoints through
   `RpcDirectClientFactory`; the caller owns the returned channel handle.
 - Blocking and `CompletionStage` invocation, restricted generic raw-Protobuf
@@ -47,8 +47,8 @@ forwarding are owned by the separate [Gateway platform](../../egon-cola-platform
 
 ```text
 Business Consumer
-  ├─ @EgonRpcReference ──> active INTERNAL_GATEWAY set ──> RPC_PROVIDER ──> Provider
-  └─ @EgonRpcDirectReference ──> DDC RPC registry ──> RPC_PROVIDER ──> Provider
+  ├─ @EgonRpcReference(mode=GATEWAY) ──> active INTERNAL_GATEWAY set ──> RPC_PROVIDER ──> Provider
+  └─ @EgonRpcReference(mode=DIRECT, bizCode/appCode) ──> DDC RPC registry ──> RPC_PROVIDER ──> Provider
 
 Provider ── register / heartbeat / deregister ─┐
 Gateway  ── register / heartbeat / deregister ─┼─> direct DDC gRPC target ─> DDC Admin ─> Redis
@@ -71,9 +71,9 @@ must match the complete lease identity.
 | Gateway integration | Transport-neutral Gateway/Provider directory interfaces and contract catalog   | Production Gateway data plane and control plane               |
 
 For the normal business path, the Consumer discovers only `INTERNAL_GATEWAY`.
-It does not query `RPC_PROVIDER` or open Provider channels. The direct Provider
-path is an explicit alternative for trusted/internal calls and is selected only
-by `@EgonRpcDirectReference`.
+It does not query `RPC_PROVIDER` or open Provider channels. The Gateway path is
+selected explicitly with `@EgonRpcReference(mode = RpcReferenceMode.GATEWAY)`;
+when no mode is written, the reference defaults to direct Provider discovery.
 
 ## Requirements
 
@@ -92,13 +92,16 @@ by `@EgonRpcDirectReference`.
 ## Quick Start
 
 The shortest Spring Boot setup uses the DDC adapter, one Protobuf contract, one
-Provider application, and one Gateway-backed Consumer application.
+Provider application, and one Consumer application. Choose the direct default
+or opt into the Gateway proxy at the reference annotation.
 
 1. Put the `.proto` file in `src/main/proto` and generate Java/gRPC sources.
 2. Declare a Java interface with `@EgonRpcService` and
    `@EgonRpcMethod`.
 3. Implement the interface on an `@EgonRpcProvider` Spring bean.
-4. Inject the interface with `@EgonRpcReference` in the Consumer.
+4. Inject the interface with `@EgonRpcReference` in the Consumer; add
+   `mode = RpcReferenceMode.GATEWAY` for Gateway proxy calls, otherwise provide
+   direct `bizCode` and `appCode`.
 5. Enable RPC, the relevant role, and DDC registry access. For a local
    plaintext setup, set both DDC and business RPC plaintext switches explicitly.
 
@@ -262,17 +265,26 @@ heartbeats, deregisters exact leases, and drains the server.
 | `consumer.generic-cache-max-entries`    |              `256` | Maximum generic target entries.                          |
 | `consumer.generic-cache-idle-timeout-ms`|           `600000` | Idle eviction threshold for generic target entries.      |
 
-`@EgonRpcReference` and `@EgonRpcDirectReference` share the same timeout, retry,
-load-balance, fallback, and hash-resolver policy fields. The selected mode is
-fixed when the field is injected: an unavailable Gateway is never replaced by a
-Direct Provider, and a Direct failure never enters Gateway. Availability-only
-failures (acquisition errors and Provider/Gateway-stage `UNAVAILABLE`) may select
-another candidate in the same mode until the total deadline or retry budget is
-exhausted. Business statuses such as `INVALID_ARGUMENT`, `PERMISSION_DENIED`,
-`NOT_FOUND`, `FAILED_PRECONDITION`, `ALREADY_EXISTS`, `ABORTED`, and business
-exceptions are terminal and are not retried. The framework does not infer
-idempotency; when retries are enabled the business operation must be duplicate-safe
-(for example, a unique document number with overwrite/upsert semantics).
+`@EgonRpcReference` carries the common timeout, retry, load-balance, fallback, and
+hash-resolver policy fields. Its `mode` is fixed when the field is injected and
+defaults to `DIRECT`; an unavailable Gateway is never replaced by a Direct
+Provider, and a Direct failure never enters Gateway. Direct mode additionally
+requires `bizCode` and `appCode` (with optional `env`). Gateway mode must leave
+those direct-only fields empty. Availability-only failures (acquisition errors
+and Provider/Gateway-stage `UNAVAILABLE`) may select another candidate in the
+same mode until the total deadline or retry budget is exhausted. Business
+statuses such as `INVALID_ARGUMENT`, `PERMISSION_DENIED`, `NOT_FOUND`,
+`FAILED_PRECONDITION`, `ALREADY_EXISTS`, `ABORTED`, and business exceptions are
+terminal and are not retried. The framework does not infer idempotency; when
+retries are enabled the business operation must be duplicate-safe (for example,
+a unique document number with overwrite/upsert semantics).
+
+#### Reference annotation migration
+
+Replace the removed `@EgonRpcDirectReference` with `@EgonRpcReference` and keep
+its `bizCode`, `appCode`, and optional `env` values. Existing Gateway references
+must add `mode = RpcReferenceMode.GATEWAY`; a reference without a mode is now
+Direct and must provide the direct Provider identity.
 
 ### Identity and transport security
 
@@ -394,7 +406,9 @@ Starter runtime version together with user metadata.
 @Component
 public class EchoClient {
 
-    @EgonRpcReference(timeoutMs = 2000)
+    @EgonRpcReference(
+            mode = RpcReferenceMode.GATEWAY,
+            timeoutMs = 2000)
     private EchoRpc echoRpc;
 
     public EchoResponse echo(String message) {
@@ -417,7 +431,8 @@ For trusted internal use cases that intentionally bypass Gateway rules:
 @Component
 public class InternalEchoClient {
 
-    @EgonRpcDirectReference(
+    @EgonRpcReference(
+            mode = RpcReferenceMode.DIRECT,
             bizCode = "demo",
             appCode = "echo-provider",
             env = "dev"
@@ -434,8 +449,8 @@ instances; it does not apply Gateway routing, authorization, or traffic governan
 
 `RpcDirectClientFactory` creates a typed proxy for one explicitly configured gRPC
 target, such as a DDC port. The returned `RpcDirectClientHandle` owns that channel
-and must be closed by the caller. It is separate from
-`@EgonRpcDirectReference`, which discovers business Providers from DDC.
+and must be closed by the caller. It is separate from `@EgonRpcReference`, which
+discovers business Providers or Gateways from DDC.
 
 ## Core Concepts
 
@@ -468,11 +483,11 @@ failure removes availability before lease recovery is attempted.
 
 ### Consumer channel modes
 
-| Mode            | Entry point               | Discovery          | Channel owner       | Retry boundary                                                        |
-|-----------------|---------------------------|--------------------|---------------------|-----------------------------------------------------------------------|
-| Gateway         | `@EgonRpcReference`       | `INTERNAL_GATEWAY` | RPC Consumer        | Same-mode candidate reselection for acquisition/`UNAVAILABLE` only     |
-| Direct Provider | `@EgonRpcDirectReference` | `RPC_PROVIDER`     | RPC Consumer        | Same-mode candidate reselection for acquisition/`UNAVAILABLE` only     |
-| Explicit target | `RpcDirectClientFactory`  | None               | Caller-owned handle | One transport attempt                                                 |
+| Mode            | Entry point                       | Discovery          | Channel owner       | Retry boundary                                                     |
+|-----------------|-----------------------------------|--------------------|---------------------|--------------------------------------------------------------------|
+| Gateway         | `@EgonRpcReference(mode=GATEWAY)` | `INTERNAL_GATEWAY` | RPC Consumer        | Same-mode candidate reselection for acquisition/`UNAVAILABLE` only |
+| Direct Provider | `@EgonRpcReference` (default)     | `RPC_PROVIDER`     | RPC Consumer        | Same-mode candidate reselection for acquisition/`UNAVAILABLE` only |
+| Explicit target | `RpcDirectClientFactory`          | None               | Caller-owned handle | One transport attempt                                              |
 
 The normal Consumer path never discovers Providers directly. Gateway provider
 selection, health probing, route rules, and Provider load balancing belong to the
@@ -587,18 +602,18 @@ for route, rule, health, security, and traffic-governance behavior.
 The Starter keeps discovery and registration behind ports so applications do not
 need to depend on DDC implementation types:
 
-| Extension point                  | Purpose                                                                  |
-|----------------------------------|--------------------------------------------------------------------------|
-| `RpcProviderRegistry`            | Provide Provider lease registration, heartbeat, and deregistration.      |
-| `RpcGatewayDirectory`            | Supply live Gateway snapshots to Gateway-mode Consumers.                 |
-| `RpcProviderDirectory`           | Supply live Provider snapshots to direct-reference Consumers.            |
-| `RpcClientInterceptorFactory`    | Add an ordered request-aware gRPC client interceptor.                    |
-| `RpcProviderExceptionMapper`     | Map a Provider domain exception to gRPC status and trailers.             |
-| `RpcProviderMetadataContributor` | Add registration metadata for a service identity.                        |
-| `RpcInvocationChannelProvider`   | Supply a custom channel-selection/lifecycle strategy to a proxy factory. |
-| `RpcProcessIdentityProvider`     | Supply application, environment, host, and instance identity.            |
-| `RpcContractCatalog`             | Replace or adapt the validated contract catalog used by integrations.    |
-| Spring `ServerInterceptor` beans | Add Provider-side gRPC server interceptors.                              |
+| Extension point                  | Purpose                                                                       |
+|----------------------------------|-------------------------------------------------------------------------------|
+| `RpcProviderRegistry`            | Provide Provider lease registration, heartbeat, and deregistration.           |
+| `RpcGatewayDirectory`            | Supply live Gateway snapshots to Gateway-mode Consumers.                      |
+| `RpcProviderDirectory`           | Supply live Provider snapshots to `@EgonRpcReference(mode=DIRECT)` Consumers. |
+| `RpcClientInterceptorFactory`    | Add an ordered request-aware gRPC client interceptor.                         |
+| `RpcProviderExceptionMapper`     | Map a Provider domain exception to gRPC status and trailers.                  |
+| `RpcProviderMetadataContributor` | Add registration metadata for a service identity.                             |
+| `RpcInvocationChannelProvider`   | Supply a custom channel-selection/lifecycle strategy to a proxy factory.      |
+| `RpcProcessIdentityProvider`     | Supply application, environment, host, and instance identity.                 |
+| `RpcContractCatalog`             | Replace or adapt the validated contract catalog used by integrations.         |
+| Spring `ServerInterceptor` beans | Add Provider-side gRPC server interceptors.                                   |
 
 The production Gateway's routing, authorization, load-balancing, circuit-breaking,
 and rate-limiting extension points are outside this module and must be implemented

@@ -1,18 +1,17 @@
 package top.egon.cola.component.rpc.consumer.reference;
 
 import org.springframework.context.ApplicationContext;
-import top.egon.cola.component.rpc.annotation.EgonRpcDirectReference;
 import top.egon.cola.component.rpc.annotation.EgonRpcReference;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
 import top.egon.cola.component.rpc.annotation.EgonServiceMeta;
 import top.egon.cola.component.rpc.annotation.FailStrategy;
 import top.egon.cola.component.rpc.annotation.LoadBalance;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
+import top.egon.cola.component.rpc.consumer.loadbalance.RpcLoadBalanceKeyResolver;
+import top.egon.cola.component.rpc.consumer.provider.RpcProviderQuery;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
 import top.egon.cola.component.rpc.contract.descriptor.RpcMethodDescriptor;
-import top.egon.cola.component.rpc.consumer.loadbalance.RpcLoadBalanceKeyResolver;
-import top.egon.cola.component.rpc.consumer.provider.RpcProviderQuery;
 import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
 import top.egon.cola.component.rpc.exception.EgonRpcException;
 
@@ -56,13 +55,12 @@ public final class RpcReferenceDefinitionResolver {
                 && !field.getType().isAssignableFrom(descriptor.contractType())) {
             throw invalid("RPC reference field type does not match contract");
         }
-        EgonRpcReference gateway = field.getAnnotation(EgonRpcReference.class);
-        EgonRpcDirectReference direct = field.getAnnotation(EgonRpcDirectReference.class);
-        if ((gateway == null) == (direct == null)) {
-            throw invalid("RPC reference field must declare exactly one reference annotation");
+        EgonRpcReference reference = field.getAnnotation(EgonRpcReference.class);
+        if (reference == null) {
+            throw invalid("RPC reference field must declare @EgonRpcReference");
         }
-        RpcReferenceMode mode = gateway == null
-                ? RpcReferenceMode.DIRECT : RpcReferenceMode.GATEWAY;
+        RpcReferenceMode mode = reference.mode();
+        validateMode(reference, mode);
         EgonRpcService service = descriptor.contractType().getAnnotation(EgonRpcService.class);
         EgonServiceMeta typeMeta = descriptor.contractType().getAnnotation(EgonServiceMeta.class);
         Map<java.lang.reflect.Method, RpcReferencePolicy> policies = new LinkedHashMap<>();
@@ -71,19 +69,18 @@ public final class RpcReferenceDefinitionResolver {
                     method.javaMethod().getAnnotation(EgonServiceMeta.class),
                     typeMeta,
                     service,
-                    gateway,
-                    direct,
+                    reference,
                     field,
                     descriptor));
         }
-        RpcProviderQuery directQuery = direct == null ? null : directQuery(
-                direct, descriptor, service);
+        RpcProviderQuery directQuery = mode == RpcReferenceMode.DIRECT
+                ? directQuery(reference, descriptor) : null;
         return new RpcReferenceDefinition(
                 mode,
                 new top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity(
                         descriptor.serviceName(),
-                        effectiveGroup(gateway, direct, descriptor.group()),
-                        effectiveVersion(gateway, direct, descriptor.version())),
+                        effectiveGroup(reference, descriptor.group()),
+                        effectiveVersion(reference, descriptor.version())),
                 directQuery,
                 policies);
     }
@@ -92,40 +89,33 @@ public final class RpcReferenceDefinitionResolver {
             EgonServiceMeta methodMeta,
             EgonServiceMeta typeMeta,
             EgonRpcService service,
-            EgonRpcReference gateway,
-            EgonRpcDirectReference direct,
+            EgonRpcReference reference,
             Field field,
             RpcContractDescriptor descriptor) {
         long timeout = timeout(
                 methodMeta == null ? -1 : methodMeta.timeoutMs(),
-                gateway == null ? (direct == null ? -1 : direct.timeoutMs()) : gateway.timeoutMs(),
+                reference.timeoutMs(),
                 service == null ? -1 : service.timeoutMs(),
                 typeMeta == null ? -1 : typeMeta.timeoutMs(),
                 consumer.getDefaultTimeoutMs());
         int retries = retries(
                 methodMeta == null ? -1 : methodMeta.retries(),
-                gateway == null ? (direct == null ? -1 : direct.retries()) : gateway.retries(),
+                reference.retries(),
                 service == null ? -1 : service.retries(),
                 typeMeta == null ? -1 : typeMeta.retries());
         LoadBalance loadBalance = firstLoadBalance(
                 methodMeta == null ? LoadBalance.INHERIT : methodMeta.loadBalance(),
-                gateway == null ? (direct == null ? LoadBalance.INHERIT : direct.loadBalance())
-                        : gateway.loadBalance(),
+                reference.loadBalance(),
                 service == null ? LoadBalance.INHERIT : service.loadBalance(),
                 typeMeta == null ? LoadBalance.INHERIT : typeMeta.loadBalance(),
                 consumer.getDefaultLoadBalance());
-        String fallbackBean = gateway == null
-                ? (direct == null ? "" : direct.fallbackBean()) : gateway.fallbackBean();
-        FailStrategy failStrategy = gateway == null
-                ? (direct == null ? FailStrategy.INHERIT : direct.failStrategy())
-                : gateway.failStrategy();
+        String fallbackBean = reference.fallbackBean();
+        FailStrategy failStrategy = reference.failStrategy();
         if (failStrategy == FailStrategy.INHERIT) {
             failStrategy = FailStrategy.FAIL_CLOSED;
         }
         validateFallback(field, descriptor, fallbackBean, failStrategy);
-        String resolverBean = gateway == null
-                ? (direct == null ? "" : direct.loadBalanceKeyResolver())
-                : gateway.loadBalanceKeyResolver();
+        String resolverBean = reference.loadBalanceKeyResolver();
         RpcLoadBalanceKeyResolver keyResolver = resolveKeyResolver(
                 field, resolverBean, loadBalance);
         return new RpcReferencePolicy(
@@ -133,15 +123,14 @@ public final class RpcReferenceDefinitionResolver {
     }
 
     private RpcProviderQuery directQuery(
-            EgonRpcDirectReference direct,
-            RpcContractDescriptor descriptor,
-            EgonRpcService service) {
-        String env = blank(direct.env()) ? processIdentity.env() : direct.env().trim();
-        String group = effectiveGroup(null, direct, descriptor.group());
-        String version = effectiveVersion(null, direct, descriptor.version());
+            EgonRpcReference reference,
+            RpcContractDescriptor descriptor) {
+        String env = blank(reference.env()) ? processIdentity.env() : reference.env().trim();
+        String group = effectiveGroup(reference, descriptor.group());
+        String version = effectiveVersion(reference, descriptor.version());
         return new RpcProviderQuery(
-                direct.bizCode(),
-                direct.appCode(),
+                reference.bizCode(),
+                reference.appCode(),
                 env,
                 descriptor.serviceName(),
                 group,
@@ -150,21 +139,35 @@ public final class RpcReferenceDefinitionResolver {
     }
 
     private String effectiveGroup(
-            EgonRpcReference gateway,
-            EgonRpcDirectReference direct,
+            EgonRpcReference reference,
             String fallback) {
-        String override = gateway == null
-                ? (direct == null ? "" : direct.group()) : gateway.group();
+        String override = reference.group();
         return blank(override) ? fallback : override.trim();
     }
 
     private String effectiveVersion(
-            EgonRpcReference gateway,
-            EgonRpcDirectReference direct,
+            EgonRpcReference reference,
             String fallback) {
-        String override = gateway == null
-                ? (direct == null ? "" : direct.version()) : gateway.version();
+        String override = reference.version();
         return blank(override) ? fallback : override.trim();
+    }
+
+    private void validateMode(EgonRpcReference reference, RpcReferenceMode mode) {
+        if (mode == null) {
+            throw invalid("RPC reference mode is required");
+        }
+        if (mode == RpcReferenceMode.DIRECT) {
+            if (blank(reference.bizCode()) || blank(reference.appCode())) {
+                throw invalid("DIRECT RPC reference requires bizCode and appCode");
+            }
+            return;
+        }
+        if (mode == RpcReferenceMode.GATEWAY
+                && (!blank(reference.bizCode())
+                || !blank(reference.appCode())
+                || !blank(reference.env()))) {
+            throw invalid("bizCode, appCode and env are only valid for DIRECT references");
+        }
     }
 
     private long timeout(long... values) {

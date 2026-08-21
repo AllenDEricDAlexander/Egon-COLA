@@ -2,6 +2,7 @@ package top.egon.cola.platform.rbac3.admin.iam.user.repository;
 
 import org.springframework.stereotype.Component;
 import top.egon.cola.component.rpc.annotation.EgonRpcReference;
+import top.egon.cola.component.rpc.consumer.reference.RpcReferenceMode;
 import top.egon.cola.platform.idp.rpc.contract.IdentityDirectoryRpc;
 import top.egon.cola.platform.idp.rpc.contract.proto.v1.BatchGetIdentityProfilesRequest;
 import top.egon.cola.platform.idp.rpc.contract.proto.v1.BatchGetIdentityProfilesResponse;
@@ -26,7 +27,7 @@ public final class IdentityProfileDirectory {
 
     private static final int MAX_SUBJECTS = 100;
 
-    @EgonRpcReference(timeoutMs = 1500)
+    @EgonRpcReference(mode = RpcReferenceMode.GATEWAY, timeoutMs = 1500)
     private IdentityDirectoryRpc rpc;
 
     public IdentityProfileDirectory() {

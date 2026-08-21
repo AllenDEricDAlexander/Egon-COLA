@@ -3,7 +3,6 @@ package top.egon.cola.component.rpc.consumer.proxy;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.util.ReflectionUtils;
-import top.egon.cola.component.rpc.annotation.EgonRpcDirectReference;
 import top.egon.cola.component.rpc.annotation.EgonRpcReference;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferenceDefinition;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferenceDefinitionResolver;
@@ -71,7 +70,6 @@ public class EgonRpcReferenceBeanPostProcessor implements BeanPostProcessor {
                 bean.getClass(),
                 field -> inject(bean, beanName, field),
                 field -> field.isAnnotationPresent(EgonRpcReference.class)
-                        || field.isAnnotationPresent(EgonRpcDirectReference.class)
         );
         return bean;
     }
@@ -81,23 +79,11 @@ public class EgonRpcReferenceBeanPostProcessor implements BeanPostProcessor {
             String beanName,
             java.lang.reflect.Field field) {
         EgonRpcReference reference = field.getAnnotation(EgonRpcReference.class);
-        EgonRpcDirectReference direct = field.getAnnotation(
-                EgonRpcDirectReference.class
-        );
-        if (reference != null && direct != null) {
-            throw injectionFailure(
-                    beanName,
-                    field.getName(),
-                    "@EgonRpcReference",
-                    "cannot declare both @EgonRpcReference and "
-                            + "@EgonRpcDirectReference"
-            );
-        }
         if (!field.getType().isInterface()) {
             throw injectionFailure(
                     beanName,
                     field.getName(),
-                    annotationName(reference),
+                    annotationName(),
                     "field must be an interface"
             );
         }
@@ -119,7 +105,7 @@ public class EgonRpcReferenceBeanPostProcessor implements BeanPostProcessor {
                 throw injectionFailure(
                         beanName,
                         field.getName(),
-                        annotationName(reference),
+                        annotationName(),
                         exception.getMessage(),
                         exception
                 );
@@ -132,7 +118,7 @@ public class EgonRpcReferenceBeanPostProcessor implements BeanPostProcessor {
             throw injectionFailure(
                     beanName,
                     field.getName(),
-                    annotationName(reference),
+                    annotationName(),
                     exception.getMessage(),
                     exception
             );
@@ -144,7 +130,7 @@ public class EgonRpcReferenceBeanPostProcessor implements BeanPostProcessor {
             throw injectionFailure(
                     beanName,
                     field.getName(),
-                    annotationName(reference),
+                    annotationName(),
                     exception.getMessage(),
                     exception
             );
@@ -161,17 +147,15 @@ public class EgonRpcReferenceBeanPostProcessor implements BeanPostProcessor {
             throw injectionFailure(
                     beanName,
                     field.getName(),
-                    annotationName(reference),
+                    annotationName(),
                     exception.getMessage(),
                     exception
             );
         }
     }
 
-    private String annotationName(EgonRpcReference reference) {
-        return reference == null
-                ? "@EgonRpcDirectReference"
-                : "@EgonRpcReference";
+    private String annotationName() {
+        return "@EgonRpcReference";
     }
 
     private IllegalStateException injectionFailure(

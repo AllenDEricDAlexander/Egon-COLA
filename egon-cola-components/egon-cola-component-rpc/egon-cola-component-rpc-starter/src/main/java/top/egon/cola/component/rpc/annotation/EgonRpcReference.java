@@ -1,5 +1,7 @@
 package top.egon.cola.component.rpc.annotation;
 
+import top.egon.cola.component.rpc.consumer.reference.RpcReferenceMode;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -16,6 +18,32 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface EgonRpcReference {
+
+    /**
+     * Transport path selected by this injection point. The default is direct
+     * Provider discovery; Gateway proxy calls must opt in explicitly.
+     */
+    RpcReferenceMode mode() default RpcReferenceMode.DIRECT;
+
+    /**
+     * Direct Provider business identity. These values are required when
+     * {@link #mode()} is {@link RpcReferenceMode#DIRECT} and must be empty for
+     * Gateway proxy references.
+     */
+    String bizCode() default "";
+
+    /**
+     * Direct Provider application identity. These values are required when
+     * {@link #mode()} is {@link RpcReferenceMode#DIRECT} and must be empty for
+     * Gateway proxy references.
+     */
+    String appCode() default "";
+
+    /**
+     * Direct Provider environment override. Empty means the consumer process
+     * environment; it is not valid for Gateway proxy references.
+     */
+    String env() default "";
 
     /**
      * Call deadline in milliseconds for this injection point. Negative means

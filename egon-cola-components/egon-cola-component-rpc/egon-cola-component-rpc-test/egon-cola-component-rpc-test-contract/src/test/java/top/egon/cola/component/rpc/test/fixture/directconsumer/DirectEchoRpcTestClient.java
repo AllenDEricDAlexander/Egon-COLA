@@ -1,7 +1,7 @@
 package top.egon.cola.component.rpc.test.fixture.directconsumer;
 
 import org.springframework.stereotype.Component;
-import top.egon.cola.component.rpc.annotation.EgonRpcDirectReference;
+import top.egon.cola.component.rpc.annotation.EgonRpcReference;
 import top.egon.cola.component.rpc.annotation.LoadBalance;
 import top.egon.cola.component.rpc.test.contract.EchoRpc;
 import top.egon.cola.component.rpc.test.contract.proto.EchoRequest;
@@ -11,7 +11,7 @@ import top.egon.cola.component.rpc.test.contract.proto.EchoResponse;
 @Component
 public class DirectEchoRpcTestClient {
 
-    @EgonRpcDirectReference(
+    @EgonRpcReference(
             bizCode = "test-biz",
             appCode = "test-app",
             retries = 1,

@@ -2,6 +2,7 @@ package top.egon.cola.component.rpc.test.consumer;
 
 import org.springframework.stereotype.Component;
 import top.egon.cola.component.rpc.annotation.EgonRpcReference;
+import top.egon.cola.component.rpc.consumer.reference.RpcReferenceMode;
 import top.egon.cola.component.rpc.test.contract.EchoRpc;
 import top.egon.cola.component.rpc.test.contract.proto.EchoRequest;
 import top.egon.cola.component.rpc.test.contract.proto.EchoResponse;
@@ -9,7 +10,7 @@ import top.egon.cola.component.rpc.test.contract.proto.EchoResponse;
 @Component
 public class EchoRpcClient {
 
-    @EgonRpcReference(timeoutMs = 3000)
+    @EgonRpcReference(mode = RpcReferenceMode.GATEWAY, timeoutMs = 3000)
     private EchoRpc echoRpc;
 
     public EchoResponse echo(String message) {

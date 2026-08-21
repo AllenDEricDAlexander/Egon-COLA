@@ -23,8 +23,9 @@ HTTP/RPC 转发由独立的 [Gateway 平台](../../egon-cola-platforms/egon-cola
 - 严格校验 Java 方法、生成的 gRPC Descriptor 以及 Protobuf 请求/响应类型的一致性。
 - 通过 `@EgonRpcProvider` 扫描 Provider Bean，管理 unary gRPC Server、可用性门控、
   DDC 租约注册、心跳、恢复和精确租约注销。
-- Consumer CGLIB Proxy 支持两条运行路径：经发现的内部 Gateway 调用
-  `@EgonRpcReference`，或经发现的 Provider 调用 `@EgonRpcDirectReference`。
+- Consumer CGLIB Proxy 统一使用 `@EgonRpcReference`：默认通过 DDC 发现业务
+  Provider 直连；设置 `mode = RpcReferenceMode.GATEWAY` 后改为通过发现到的内部
+  Gateway 代理。
 - 通过 `RpcDirectClientFactory` 创建基础设施端点的程序化直连 gRPC Client；返回的
   Channel Handle 由调用方负责关闭。
 - 支持阻塞和 `CompletionStage` 调用、受限的泛化 raw-Protobuf、HTTP/2 Channel 多路复用，传播 Deadline 和 Cancellation，传递有界 Trace/Request Metadata，并将 gRPC Status
@@ -40,8 +41,8 @@ HTTP/RPC 转发由独立的 [Gateway 平台](../../egon-cola-platforms/egon-cola
 
 ```text
 业务 Consumer
-  ├─ @EgonRpcReference ──> 有效 INTERNAL_GATEWAY 集合 ──> RPC_PROVIDER ──> Provider
-  └─ @EgonRpcDirectReference ──> DDC RPC 注册中心 ──> RPC_PROVIDER ──> Provider
+  ├─ @EgonRpcReference(mode=GATEWAY) ──> 有效 INTERNAL_GATEWAY 集合 ──> RPC_PROVIDER ──> Provider
+  └─ @EgonRpcReference(mode=DIRECT, bizCode/appCode) ──> DDC RPC 注册中心 ──> RPC_PROVIDER ──> Provider
 
 Provider ── 注册 / 心跳 / 注销 ─┐
 Gateway  ── 注册 / 心跳 / 注销 ─┼─> DDC 直连 gRPC 目标 ─> DDC Admin ─> Redis
@@ -61,9 +62,9 @@ DDC 目标是本地引导配置，DDC 不通过自身被发现。Provider 和 Ga
 | DDC Adapter | 配置、注册、管理端口的直连 gRPC Client                                          | DDC Admin 持久化和 Redis 实现         |
 | Gateway 集成  | 传输无关的 Gateway/Provider Directory Port 和 Contract Catalog           | 生产 Gateway 数据面和控制面              |
 
-普通业务链路中，Consumer 只发现 `INTERNAL_GATEWAY`，不会查询 `RPC_PROVIDER`，也不会
-创建 Provider Channel。直连 Provider 是显式的受控替代路径，仅由
-`@EgonRpcDirectReference` 选择。
+Gateway 业务链路中，Consumer 只发现 `INTERNAL_GATEWAY`，不会查询 `RPC_PROVIDER`，也不会
+创建 Provider Channel。`@EgonRpcReference` 的默认模式是 `DIRECT`；需要 Gateway
+代理时必须显式设置 `mode = RpcReferenceMode.GATEWAY`。
 
 ## Requirements
 
@@ -80,12 +81,14 @@ DDC 目标是本地引导配置，DDC 不通过自身被发现。Provider 和 Ga
 ## Quick Start
 
 最短的 Spring Boot 使用方式是引入 DDC Adapter，准备一个 Protobuf Contract、一个
-Provider 应用和一个经 Gateway 的 Consumer 应用。
+Provider 应用和一个 Consumer 应用；调用点可以使用直连默认值，也可以显式选择 Gateway
+代理模式。
 
 1. 将 `.proto` 文件放在 `src/main/proto`，生成 Java/gRPC 源码。
 2. 使用 `@EgonRpcService` 和 `@EgonRpcMethod` 声明 Java 接口。
 3. 在 `@EgonRpcProvider` Spring Bean 上实现该接口。
-4. 在 Consumer 中使用 `@EgonRpcReference` 注入该接口。
+4. 在 Consumer 中使用 `@EgonRpcReference` 注入该接口；Gateway 代理调用设置
+   `mode = RpcReferenceMode.GATEWAY`，直连调用提供 `bizCode` 和 `appCode`。
 5. 开启 RPC、对应角色和 DDC Registry。若本地使用明文，必须同时显式打开 DDC 和业务
    RPC 的明文开关。
 
@@ -243,13 +246,21 @@ DDC 租约，注册成功后才恢复对应 Handler 的可用状态。租约失�
 | `consumer.generic-cache-max-entries`    |              `256` | 泛化目标缓存最大条目数。                  |
 | `consumer.generic-cache-idle-timeout-ms`|           `600000` | 泛化目标空闲淘汰时间。                    |
 
-`@EgonRpcReference` 和 `@EgonRpcDirectReference` 共享 timeout、retry、load-balance、fallback
-和 Hash resolver 公共字段。字段注入时就固定模式：Gateway 不可用时不会改走 Direct，Direct
-失败时也不会进入 Gateway。只有获取失败和 Provider/Gateway 阶段 `UNAVAILABLE` 等可用性故障，
+`@EgonRpcReference` 统一承载 timeout、retry、load-balance、fallback 和 Hash resolver
+公共字段。字段注入时就固定模式，默认是 `DIRECT`：Gateway 不可用时不会改走 Direct，Direct
+失败时也不会进入 Gateway。Direct 模式必须配置 `bizCode`、`appCode`，可选 `env`；Gateway
+模式必须保持这些直连字段为空。只有获取失败和 Provider/Gateway 阶段 `UNAVAILABLE` 等可用性故障，
 才会在同一模式候选内按负载均衡更换节点，直到总 Deadline 或重试预算耗尽。业务状态
 `INVALID_ARGUMENT`、`PERMISSION_DENIED`、`NOT_FOUND`、`FAILED_PRECONDITION`、`ALREADY_EXISTS`、
 `ABORTED` 以及业务异常都是终态，不重试。框架不推断幂等性；开启重试时必须由业务保证重复
 安全（例如唯一单据编号配合覆盖/upsert）。Channel 会显式关闭 gRPC 自带的 Transport Retry。
+
+#### Reference 注解迁移
+
+将已移除的 `@EgonRpcDirectReference` 替换为 `@EgonRpcReference`，保留原有的 `bizCode`、
+`appCode` 和可选 `env`。既有 Gateway 调用点必须增加
+`mode = RpcReferenceMode.GATEWAY`；不写 mode 的注解现在表示 Direct，并且必须提供直连
+Provider 身份。
 
 ### 身份与传输安全
 
@@ -365,7 +376,9 @@ public class EchoRpcProvider implements EchoRpc {
 @Component
 public class EchoClient {
 
-    @EgonRpcReference(timeoutMs = 2000)
+    @EgonRpcReference(
+            mode = RpcReferenceMode.GATEWAY,
+            timeoutMs = 2000)
     private EchoRpc echoRpc;
 
     public EchoResponse echo(String message) {
@@ -388,7 +401,8 @@ Gateway Service/Group/Version 订阅快照，为每个有效 Gateway 保持一�
 @Component
 public class InternalEchoClient {
 
-    @EgonRpcDirectReference(
+    @EgonRpcReference(
+            mode = RpcReferenceMode.DIRECT,
             bizCode = "demo",
             appCode = "echo-provider",
             env = "dev"
@@ -404,7 +418,7 @@ public class InternalEchoClient {
 
 `RpcDirectClientFactory` 为一个显式配置的 gRPC 目标创建类型化 Proxy，例如 DDC 端口。
 返回的 `RpcDirectClientHandle` 持有该 Channel，调用方必须负责关闭。它和
-`@EgonRpcDirectReference` 不同：后者是从 DDC 发现业务 Provider。
+`@EgonRpcReference` 不同：后者按 `mode` 从 DDC 发现业务 Provider 或 Gateway。
 
 ## Core Concepts
 
@@ -434,8 +448,8 @@ Protobuf Descriptor 是线协议 Service、Method、Request、Response 以及 St
 
 | 模式          | 入口                        | 发现对象               | Channel 所有者  | 重试边界                                       |
 |-------------|---------------------------|--------------------|--------------|--------------------------------------------|
-| Gateway     | `@EgonRpcReference`       | `INTERNAL_GATEWAY` | RPC Consumer | 仅同模式获取失败/`UNAVAILABLE` 换候选节点 |
-| 直连 Provider | `@EgonRpcDirectReference` | `RPC_PROVIDER`     | RPC Consumer | 仅同模式获取失败/`UNAVAILABLE` 换候选节点 |
+| Gateway     | `@EgonRpcReference(mode=GATEWAY)` | `INTERNAL_GATEWAY` | RPC Consumer | 仅同模式获取失败/`UNAVAILABLE` 换候选节点 |
+| 直连 Provider | `@EgonRpcReference`（默认） | `RPC_PROVIDER`     | RPC Consumer | 仅同模式获取失败/`UNAVAILABLE` 换候选节点 |
 | 显式目标        | `RpcDirectClientFactory`  | 无                  | 调用方 Handle   | 一次传输尝试                                     |
 
 普通 Consumer 链路不会直接发现 Provider。Gateway 的 Provider 选择、健康探测、路由规则和
@@ -536,7 +550,7 @@ Starter 将发现和注册封装为 Port，业务应用不需要依赖 DDC 实�
 |----------------------------------|------------------------------------------------|
 | `RpcProviderRegistry`            | 提供 Provider 租约注册、心跳和注销。                        |
 | `RpcGatewayDirectory`            | 为 Gateway 模式 Consumer 提供实时 Gateway Snapshot。   |
-| `RpcProviderDirectory`           | 为直连 Reference Consumer 提供实时 Provider Snapshot。 |
+| `RpcProviderDirectory`           | 为 `@EgonRpcReference(mode=DIRECT)` Consumer 提供实时 Provider Snapshot。 |
 | `RpcClientInterceptorFactory`    | 添加按请求创建的有序 gRPC Client Interceptor。            |
 | `RpcProviderExceptionMapper`     | 将 Provider 领域异常映射为 gRPC Status 和 Trailer。      |
 | `RpcProviderMetadataContributor` | 为 Service Identity 增加注册 Metadata。              |

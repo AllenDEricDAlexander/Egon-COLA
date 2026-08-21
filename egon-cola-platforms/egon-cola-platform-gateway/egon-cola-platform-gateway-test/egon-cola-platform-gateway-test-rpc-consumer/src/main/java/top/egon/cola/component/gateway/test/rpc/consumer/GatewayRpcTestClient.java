@@ -11,14 +11,15 @@ import top.egon.cola.component.gateway.test.rpc.contract.proto.GetOrderRequest;
 import top.egon.cola.component.gateway.test.rpc.contract.proto.OrderResponse;
 import top.egon.cola.component.gateway.test.rpc.contract.proto.SlowCallRequest;
 import top.egon.cola.component.rpc.annotation.EgonRpcReference;
+import top.egon.cola.component.rpc.consumer.reference.RpcReferenceMode;
 
 @Component
 public class GatewayRpcTestClient {
 
-    @EgonRpcReference(timeoutMs = 3000)
+    @EgonRpcReference(mode = RpcReferenceMode.GATEWAY, timeoutMs = 3000)
     private EchoRpc echoRpc;
 
-    @EgonRpcReference(timeoutMs = 3000)
+    @EgonRpcReference(mode = RpcReferenceMode.GATEWAY, timeoutMs = 3000)
     private OrderRpc orderRpc;
 
     public EchoResponse echo(String message) {

@@ -2,24 +2,21 @@ package top.egon.cola.component.rpc.consumer.proxy;
 
 import com.google.protobuf.StringValue;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.rpc.annotation.EgonRpcDirectReference;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.annotation.EgonRpcReference;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
-import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferenceDefinition;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferenceDefinitionResolver;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferenceMode;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferenceStrategy;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferenceStrategyFactory;
+import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
 import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
 import top.egon.cola.component.rpc.exception.EgonRpcException;
 import top.egon.cola.component.rpc.support.TestGrpcDescriptorFixtures.UnaryFixtureGrpc;
-
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -120,19 +117,19 @@ class EgonRpcReferenceBeanPostProcessorTest {
     }
 
     @Test
-    void rejectsDoubleAnnotatedFieldWithBeanAndFieldName() {
+    void rejectsGatewayReferenceWithDirectOnlyFields() {
         assertThatThrownBy(() -> processor(
                 mock(RpcReferenceStrategyFactory.class),
                 mock(RpcConsumerProxyFactory.class)
         ).postProcessBeforeInitialization(
-                new DoubleAnnotatedReference(),
+                new InvalidGatewayReference(),
                 "conflictingClient"
         ))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("conflictingClient")
                 .hasMessageContaining("reference")
                 .hasMessageContaining("@EgonRpcReference")
-                .hasMessageContaining("@EgonRpcDirectReference");
+                .hasMessageContaining("only valid for DIRECT");
     }
 
     @Test
@@ -203,13 +200,15 @@ class EgonRpcReferenceBeanPostProcessorTest {
 
     private static final class GatewayReferences {
 
-        @EgonRpcReference(timeoutMs = 1200)
+        @EgonRpcReference(
+                mode = RpcReferenceMode.GATEWAY,
+                timeoutMs = 1200)
         private SampleContract reference;
     }
 
     private static final class DirectReferences {
 
-        @EgonRpcDirectReference(
+        @EgonRpcReference(
                 bizCode = "commerce",
                 appCode = "orders"
         )
@@ -218,20 +217,21 @@ class EgonRpcReferenceBeanPostProcessorTest {
 
     private static final class BothReferences {
 
-        @EgonRpcReference
+        @EgonRpcReference(
+                mode = RpcReferenceMode.GATEWAY)
         private SampleContract gatewayReference;
 
-        @EgonRpcDirectReference(
+        @EgonRpcReference(
                 bizCode = "commerce",
                 appCode = "orders"
         )
         private SampleContract directReference;
     }
 
-    private static final class DoubleAnnotatedReference {
+    private static final class InvalidGatewayReference {
 
-        @EgonRpcReference
-        @EgonRpcDirectReference(
+        @EgonRpcReference(
+                mode = RpcReferenceMode.GATEWAY,
                 bizCode = "commerce",
                 appCode = "orders"
         )

@@ -3,20 +3,17 @@ package top.egon.cola.component.rpc.consumer.reference;
 import com.google.protobuf.StringValue;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
-import top.egon.cola.component.rpc.annotation.EgonRpcDirectReference;
 import top.egon.cola.component.rpc.annotation.EgonRpcReference;
 import top.egon.cola.component.rpc.annotation.FailStrategy;
 import top.egon.cola.component.rpc.annotation.LoadBalance;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
+import top.egon.cola.component.rpc.consumer.loadbalance.RpcLoadBalanceKeyResolver;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
-import top.egon.cola.component.rpc.consumer.loadbalance.RpcLoadBalanceKeyResolver;
 import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
 import top.egon.cola.component.rpc.exception.EgonRpcException;
 import top.egon.cola.component.rpc.support.RpcProviderTestFixtures.EchoContract;
-
-import java.lang.reflect.Field;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -74,7 +71,7 @@ class RpcReferenceDefinitionResolverTest {
     }
 
     @Test
-    void rejectsTwoReferenceAnnotations() {
+    void rejectsDirectOnlyFieldsOnGatewayReference() {
         RpcReferenceDefinitionResolver definitions = new RpcReferenceDefinitionResolver(
                 new EgonRpcProperties(),
                 new RpcProcessIdentity("consumer", "test", "127.0.0.1", 1, "i-1"));
@@ -82,12 +79,24 @@ class RpcReferenceDefinitionResolverTest {
         assertThatThrownBy(() -> definitions.resolve(
                 Holder.class.getDeclaredField("both"), descriptor))
                 .isInstanceOf(EgonRpcException.class)
-                .hasMessageContaining("exactly one");
+                .hasMessageContaining("only valid for DIRECT");
+    }
+
+    @Test
+    void defaultsToDirectAndRequiresProviderIdentity() {
+        RpcReferenceDefinitionResolver definitions = new RpcReferenceDefinitionResolver(
+                new EgonRpcProperties(),
+                new RpcProcessIdentity("consumer", "test", "127.0.0.1", 1, "i-1"));
+
+        assertThatThrownBy(() -> definitions.resolve(
+                Holder.class.getDeclaredField("missingDirect"), descriptor))
+                .isInstanceOf(EgonRpcException.class)
+                .hasMessageContaining("requires bizCode and appCode");
     }
 
     static final class Holder {
 
-        @EgonRpcDirectReference(
+        @EgonRpcReference(
                 bizCode = "commerce",
                 appCode = "orders",
                 timeoutMs = 400,
@@ -98,11 +107,18 @@ class RpcReferenceDefinitionResolverTest {
                 loadBalanceKeyResolver = "hash-key")
         private EchoContract direct;
 
-        @EgonRpcReference(loadBalance = LoadBalance.CONSISTENT_HASH)
+        @EgonRpcReference(
+                mode = RpcReferenceMode.GATEWAY,
+                loadBalance = LoadBalance.CONSISTENT_HASH)
         private EchoContract gateway;
 
-        @EgonRpcReference
-        @EgonRpcDirectReference(bizCode = "commerce", appCode = "orders")
+        @EgonRpcReference(
+                mode = RpcReferenceMode.GATEWAY,
+                bizCode = "commerce",
+                appCode = "orders")
         private EchoContract both;
+
+        @EgonRpcReference
+        private EchoContract missingDirect;
     }
 }

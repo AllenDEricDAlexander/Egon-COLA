@@ -3,6 +3,7 @@ package top.egon.cola.component.rpc.test.fixture.consumer;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import top.egon.cola.component.rpc.annotation.EgonRpcReference;
+import top.egon.cola.component.rpc.consumer.reference.RpcReferenceMode;
 import top.egon.cola.component.rpc.test.contract.AsyncEchoRpc;
 import top.egon.cola.component.rpc.test.contract.proto.EchoRequest;
 import top.egon.cola.component.rpc.test.contract.proto.EchoResponse;
@@ -14,7 +15,10 @@ import java.util.concurrent.CompletionStage;
 @Profile("rpc-async-fixture")
 public class AsyncEchoRpcTestClient {
 
-    @EgonRpcReference(timeoutMs = 3000, retries = 1)
+    @EgonRpcReference(
+            mode = RpcReferenceMode.GATEWAY,
+            timeoutMs = 3000,
+            retries = 1)
     private AsyncEchoRpc asyncEchoRpc;
 
     public CompletionStage<EchoResponse> echoAsync(String message) {

@@ -11,7 +11,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.ClassUtils;
-import top.egon.cola.component.rpc.annotation.EgonRpcDirectReference;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.annotation.EgonRpcReference;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
@@ -22,13 +21,14 @@ import top.egon.cola.component.rpc.consumer.gateway.RpcConsumerGatewayManager;
 import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayDirectory;
 import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayEndpoint;
 import top.egon.cola.component.rpc.consumer.gateway.RpcGatewaySnapshot;
-import top.egon.cola.component.rpc.consumer.interceptor.RpcClientInterceptorFactory;
 import top.egon.cola.component.rpc.consumer.generic.RpcGenericInvoker;
+import top.egon.cola.component.rpc.consumer.interceptor.RpcClientInterceptorFactory;
+import top.egon.cola.component.rpc.consumer.lifecycle.RpcConsumerLifecycleCoordinator;
 import top.egon.cola.component.rpc.consumer.provider.RpcConsumerProviderManager;
 import top.egon.cola.component.rpc.consumer.provider.RpcProviderDirectory;
 import top.egon.cola.component.rpc.consumer.provider.RpcProviderSnapshot;
 import top.egon.cola.component.rpc.consumer.proxy.RpcConsumerProxyFactory;
-import top.egon.cola.component.rpc.consumer.lifecycle.RpcConsumerLifecycleCoordinator;
+import top.egon.cola.component.rpc.consumer.reference.RpcReferenceMode;
 import top.egon.cola.component.rpc.support.TestGrpcDescriptorFixtures.UnaryFixtureGrpc;
 
 import java.time.Instant;
@@ -194,9 +194,7 @@ public class EgonRpcAutoConfigTest {
                     assertThat(context.getStartupFailure())
                             .hasStackTraceContaining("directReferences")
                             .hasStackTraceContaining("reference")
-                            .hasStackTraceContaining(
-                                    "@EgonRpcDirectReference"
-                            );
+                            .hasStackTraceContaining("@EgonRpcReference");
                 });
     }
 
@@ -245,7 +243,7 @@ public class EgonRpcAutoConfigTest {
 
     static final class DirectReferences {
 
-        @EgonRpcDirectReference(
+        @EgonRpcReference(
                 bizCode = "commerce",
                 appCode = "orders"
         )
@@ -254,16 +252,16 @@ public class EgonRpcAutoConfigTest {
 
     static final class GatewayReferences {
 
-        @EgonRpcReference
+        @EgonRpcReference(mode = RpcReferenceMode.GATEWAY)
         private SampleContract reference;
     }
 
     static final class BothReferences {
 
-        @EgonRpcReference
+        @EgonRpcReference(mode = RpcReferenceMode.GATEWAY)
         private SampleContract gatewayReference;
 
-        @EgonRpcDirectReference(
+        @EgonRpcReference(
                 bizCode = "commerce",
                 appCode = "orders"
         )
