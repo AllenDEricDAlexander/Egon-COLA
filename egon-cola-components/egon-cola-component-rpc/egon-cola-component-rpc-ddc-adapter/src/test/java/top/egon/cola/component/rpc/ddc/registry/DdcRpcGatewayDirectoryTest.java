@@ -54,6 +54,46 @@ class DdcRpcGatewayDirectoryTest {
         assertThat(observed.get().revision()).isEqualTo(12);
         assertThat(observed.get().endpoints()).singleElement()
                 .extracting(RpcGatewayEndpoint::port).isEqualTo(19091);
+        assertThat(observed.get().endpoints().getFirst().weight()).isEqualTo(80);
         subscription.close();
+    }
+
+    @Test
+    void mapsMissingAndInvalidWeightToDefault() {
+        DdcServiceRegistryClient client = mock(DdcServiceRegistryClient.class);
+        ArgumentCaptor<Consumer<DdcServiceSnapshot>> listener =
+                ArgumentCaptor.forClass(Consumer.class);
+        when(client.subscribe(any(), listener.capture())).thenReturn(() -> { });
+        DdcRpcGatewayDirectory directory = new DdcRpcGatewayDirectory(
+                client, "biz", "gateway-app");
+        AtomicReference<RpcGatewaySnapshot> observed = new AtomicReference<>();
+        directory.subscribe(new RpcGatewayQuery(
+                "test", null, null, "GatewayService", "default", "1.0.0"),
+                observed::set);
+        Instant now = Instant.parse("2026-08-09T00:00:00Z");
+        DdcServiceKey key = new DdcServiceKey(
+                "biz", "test", "gateway-app", DdcServiceKind.INTERNAL_GATEWAY,
+                "GatewayService", "default", "1.0.0", "grpc");
+        listener.getValue().accept(new DdcServiceSnapshot(
+                key, 13,
+                List.of(instance(key, "gateway-default", Map.of()),
+                        instance(key, "gateway-invalid", Map.of("gateway.weight", "bad"))),
+                now));
+
+        assertThat(observed.get().endpoints())
+                .extracting(RpcGatewayEndpoint::weight)
+                .containsExactly(100, 100);
+    }
+
+    private static DdcServiceInstance instance(
+            DdcServiceKey key,
+            String instanceId,
+            Map<String, String> metadata) {
+        Instant now = Instant.parse("2026-08-09T00:00:00Z");
+        return new DdcServiceInstance(
+                instanceId, "lease-" + instanceId, key, "127.0.0.1", 19091,
+                false, metadata, 30, 10, now.minusSeconds(10), now,
+                now.plusSeconds(30), "ONLINE", 13, "resource-gateway", 1L,
+                "kid-test", now.plusSeconds(20));
     }
 }

@@ -43,7 +43,7 @@ public final class DdcRpcProviderDirectory implements RpcProviderDirectory {
                         snapshot.revision(),
                         snapshot.observedAt(),
                         snapshot.instances().stream().map(instance -> {
-                            ServiceInstanceMetaCodec.decode(
+                            var meta = ServiceInstanceMetaCodec.decode(
                                     instance.metadata()
                             );
                             return new RpcProviderEndpoint(
@@ -52,7 +52,8 @@ public final class DdcRpcProviderDirectory implements RpcProviderDirectory {
                                     instance.host(),
                                     instance.port(),
                                     instance.secure(),
-                                    instance.leaseExpireAt()
+                                    instance.leaseExpireAt(),
+                                    meta.weight()
                             );
                         }).toList()
                 )
