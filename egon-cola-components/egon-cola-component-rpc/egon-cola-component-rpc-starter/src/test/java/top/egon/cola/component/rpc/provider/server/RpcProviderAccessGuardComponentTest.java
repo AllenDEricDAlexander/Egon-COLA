@@ -81,7 +81,7 @@ class RpcProviderAccessGuardComponentTest {
                     new RpcServerServiceDefinitionFactory(
                             availability,
                             List.of(context.getBean(
-                                    RpcAccessGuardExceptionMapper.class));
+                                    RpcAccessGuardExceptionMapper.class)));
             Server server = null;
             ManagedChannel channel = null;
             try {

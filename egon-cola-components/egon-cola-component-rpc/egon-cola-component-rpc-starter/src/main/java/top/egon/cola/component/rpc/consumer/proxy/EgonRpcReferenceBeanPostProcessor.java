@@ -20,6 +20,8 @@ public class EgonRpcReferenceBeanPostProcessor implements BeanPostProcessor {
     private final RpcReferenceStrategyFactory strategyFactory;
     private final RpcConsumerProxyFactory proxyFactory;
 
+    private final boolean legacyMode;
+
     public EgonRpcReferenceBeanPostProcessor(
             RpcContractValidator contractValidator,
             RpcReferenceDefinitionResolver definitionResolver,
@@ -41,6 +43,24 @@ public class EgonRpcReferenceBeanPostProcessor implements BeanPostProcessor {
                 proxyFactory,
                 "proxyFactory"
         );
+        this.legacyMode = false;
+    }
+
+    /**
+     * Compatibility constructor for programmatic clients that already own a
+     * channel provider. New Spring-managed references use the fixed-mode
+     * resolver/strategy constructor above.
+     */
+    public EgonRpcReferenceBeanPostProcessor(
+            RpcConsumerProxyFactory proxyFactory) {
+        this.contractValidator = new RpcContractValidator();
+        this.definitionResolver = null;
+        this.strategyFactory = null;
+        this.proxyFactory = java.util.Objects.requireNonNull(
+                proxyFactory,
+                "proxyFactory"
+        );
+        this.legacyMode = true;
     }
 
     @Override
@@ -85,6 +105,26 @@ public class EgonRpcReferenceBeanPostProcessor implements BeanPostProcessor {
         RpcContractDescriptor descriptor = contractValidator.validate(
                 field.getType()
         );
+        if (legacyMode) {
+            long timeoutMs = reference == null || reference.timeoutMs() <= 0
+                    ? -1 : reference.timeoutMs();
+            try {
+                ReflectionUtils.setField(
+                        field,
+                        bean,
+                        proxyFactory.create(field.getType(), timeoutMs)
+                );
+                return;
+            } catch (RuntimeException exception) {
+                throw injectionFailure(
+                        beanName,
+                        field.getName(),
+                        annotationName(reference),
+                        exception.getMessage(),
+                        exception
+                );
+            }
+        }
         RpcReferenceDefinition definition;
         try {
             definition = definitionResolver.resolve(field, descriptor);
