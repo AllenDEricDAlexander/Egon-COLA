@@ -175,6 +175,22 @@ class RpcConsumerGatewayManagerTest {
         assertThat(manager.state()).isEqualTo(RpcGatewayState.STOPPED);
     }
 
+    @Test
+    void retainedDemandExposesRevisionedSnapshotAndClosesOnRelease() {
+        SnapshotDirectory directory = new SnapshotDirectory();
+        RpcConsumerGatewayManager manager = managerWithoutDemand(
+                directory, new StubChannelFactory());
+        RpcConsumerGatewayManager.Demand demand = manager.retainDemand();
+        directory.snapshot = snapshot(endpoint("gateway-1", "lease-1", 19090));
+
+        manager.start();
+        assertThat(manager.snapshot()).isNotNull();
+        assertThat(manager.snapshot().revision()).isEqualTo(1);
+        demand.close();
+        assertThat(manager.state()).isEqualTo(RpcGatewayState.STOPPED);
+        manager.stop();
+    }
+
     private RpcConsumerGatewayManager manager(
             SnapshotDirectory directory,
             StubChannelFactory channels) {

@@ -46,6 +46,10 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
 
     private volatile List<ActiveGateway> activeGateways = List.of();
 
+    private long revision = -1;
+
+    private Instant observedAt;
+
     private volatile RpcGatewaySubscription subscription;
 
     private volatile ScheduledExecutorService drainExecutor;
@@ -89,6 +93,71 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
                 );
             }
             demandCount++;
+        }
+    }
+
+    /** Retains the primary Gateway discovery demand for one reference. */
+    public Demand retainDemand() {
+        synchronized (monitor) {
+            if (state == RpcGatewayState.STOPPED) {
+                demandCount++;
+            } else {
+                demandCount++;
+                if (subscription == null) {
+                    subscription = directory.subscribe(gatewayQuery, this::acceptSnapshot);
+                }
+            }
+            return new Demand();
+        }
+    }
+
+    public void releaseDemand() {
+        synchronized (monitor) {
+            if (demandCount == 0) {
+                return;
+            }
+            demandCount--;
+            if (demandCount > 0 || state == RpcGatewayState.STOPPED) {
+                return;
+            }
+            if (subscription != null) {
+                subscription.close();
+                subscription = null;
+            }
+            activeGateways.forEach(this::drain);
+            activeGateways = List.of();
+            state = RpcGatewayState.STOPPED;
+            revision = -1;
+            observedAt = null;
+            monitor.notifyAll();
+        }
+    }
+
+    public RpcGatewaySnapshot snapshot() {
+        long currentRevision = revision;
+        if (currentRevision < 0) {
+            return null;
+        }
+        Instant time = observedAt == null ? Instant.now() : observedAt;
+        return new RpcGatewaySnapshot(
+                currentRevision,
+                time,
+                activeGateways.stream().map(ActiveGateway::endpoint).toList());
+    }
+
+    public final class Demand implements AutoCloseable {
+
+        private final java.util.concurrent.atomic.AtomicBoolean closed =
+                new java.util.concurrent.atomic.AtomicBoolean();
+
+        private Demand() {
+        }
+
+        @Override
+        public void close() {
+            if (closed.compareAndSet(false, true)) {
+                releaseDemand();
+            }
         }
     }
 
@@ -153,6 +222,8 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
         ScheduledExecutorService executor;
         synchronized (monitor) {
             state = RpcGatewayState.STOPPED;
+            revision = -1;
+            observedAt = null;
             if (subscription != null) {
                 subscription.close();
                 subscription = null;
@@ -257,6 +328,11 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
             if (state == RpcGatewayState.STOPPED) {
                 return;
             }
+            if (snapshot.revision() < revision) {
+                return;
+            }
+            revision = snapshot.revision();
+            observedAt = snapshot.observedAt();
             Instant now = Instant.now();
             List<RpcGatewayEndpoint> desired = snapshot.endpoints().stream()
                     .filter(Objects::nonNull)
@@ -379,6 +455,8 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
         }
         activeGateways.forEach(this::closeNow);
         activeGateways = List.of();
+        revision = -1;
+        observedAt = null;
         drainingChannels.forEach(ManagedChannel::shutdownNow);
         drainingChannels.clear();
         state = RpcGatewayState.STOPPED;

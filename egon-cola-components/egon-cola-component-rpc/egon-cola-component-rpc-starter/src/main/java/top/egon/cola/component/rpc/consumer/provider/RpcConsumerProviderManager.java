@@ -73,11 +73,79 @@ public class RpcConsumerProviderManager implements SmartLifecycle {
                     query,
                     ignored -> new Registration()
             );
+            registration.references++;
             if (running && registration.subscription == null) {
                 subscribe(query, registration);
             }
         }
         return new ProviderRpcInvocationChannelProvider(this, query);
+    }
+
+    /** Retains one exact Provider discovery demand for a fixed Direct reference. */
+    public Demand retain(RpcProviderQuery query) {
+        Objects.requireNonNull(query, "RPC Provider query is required");
+        synchronized (monitor) {
+            Registration registration = registrations.computeIfAbsent(
+                    query, ignored -> new Registration());
+            registration.references++;
+            if (running && registration.subscription == null) {
+                subscribe(query, registration);
+            }
+            return new Demand(query);
+        }
+    }
+
+    public void release(RpcProviderQuery query) {
+        synchronized (monitor) {
+            Registration registration = registrations.get(query);
+            if (registration == null || registration.references == 0) {
+                return;
+            }
+            registration.references--;
+            if (registration.references > 0) {
+                return;
+            }
+            closeSubscription(registration);
+            registration.activeProviders.forEach(this::closeNow);
+            registration.activeProviders = List.of();
+            registrations.remove(query, registration);
+        }
+    }
+
+    public RpcProviderSnapshot snapshot(RpcProviderQuery query) {
+        expireProviders();
+        synchronized (monitor) {
+            Registration registration = registrations.get(query);
+            if (registration == null || registration.revision < 0) {
+                return null;
+            }
+            Instant observed = registration.observedAt == null
+                    ? Instant.now() : registration.observedAt;
+            return new RpcProviderSnapshot(
+                    registration.revision,
+                    observed,
+                    registration.activeProviders.stream()
+                            .map(ActiveProvider::endpoint)
+                            .toList());
+        }
+    }
+
+    public final class Demand implements AutoCloseable {
+
+        private final RpcProviderQuery query;
+        private final java.util.concurrent.atomic.AtomicBoolean closed =
+                new java.util.concurrent.atomic.AtomicBoolean();
+
+        private Demand(RpcProviderQuery query) {
+            this.query = query;
+        }
+
+        @Override
+        public void close() {
+            if (closed.compareAndSet(false, true)) {
+                release(query);
+            }
+        }
     }
 
     @Override
@@ -118,6 +186,7 @@ public class RpcConsumerProviderManager implements SmartLifecycle {
                 registration.activeProviders.forEach(this::closeNow);
                 registration.activeProviders = List.of();
                 registration.revision = -1;
+                registration.observedAt = null;
                 registration.roundRobinSequence.set(0);
             });
             drainingChannels.forEach(ManagedChannel::shutdownNow);
@@ -212,6 +281,7 @@ public class RpcConsumerProviderManager implements SmartLifecycle {
                 return;
             }
             registration.revision = snapshot.revision();
+            registration.observedAt = snapshot.observedAt();
             Instant now = Instant.now();
             Map<ProviderIdentity, RpcProviderEndpoint> desired =
                     new LinkedHashMap<>();
@@ -378,6 +448,10 @@ public class RpcConsumerProviderManager implements SmartLifecycle {
         private final AtomicLong roundRobinSequence = new AtomicLong();
 
         private long revision = -1;
+
+        private Instant observedAt;
+
+        private int references;
 
         private List<ActiveProvider> activeProviders = List.of();
 
