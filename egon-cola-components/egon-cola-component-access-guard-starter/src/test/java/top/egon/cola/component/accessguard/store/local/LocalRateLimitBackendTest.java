@@ -1,6 +1,7 @@
 package top.egon.cola.component.accessguard.store.local;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.accessguard.core.plan.AdmissionConfig;
 import top.egon.cola.component.accessguard.store.RateLimitDecision;
 import top.egon.cola.component.accessguard.store.RateLimitRequest;
 import top.egon.cola.component.accessguard.store.StoreOperationException;
@@ -58,6 +59,41 @@ class LocalRateLimitBackendTest {
         assertThat(backend.size()).isZero();
     }
 
+    @Test
+    void leakyBucketLeaksByFullPeriodsBeforeAdmittingMoreWater() {
+        MutableTicker ticker = new MutableTicker();
+        LocalRateLimitBackend backend = new LocalRateLimitBackend(
+                ticker::read, 100, Duration.ofMinutes(10));
+
+        assertThat(backend.acquire(request(
+                AdmissionConfig.RateLimitAlgorithm.LEAKY_BUCKET,
+                "state-v1", 3, 1, Duration.ofSeconds(1), 3)).allowed()).isTrue();
+        assertThat(backend.acquire(request(
+                AdmissionConfig.RateLimitAlgorithm.LEAKY_BUCKET,
+                "state-v1", 3, 1, Duration.ofSeconds(1), 1)).allowed()).isFalse();
+
+        ticker.advance(Duration.ofSeconds(1));
+        assertThat(backend.acquire(request(
+                AdmissionConfig.RateLimitAlgorithm.LEAKY_BUCKET,
+                "state-v1", 3, 1, Duration.ofSeconds(1), 1)).allowed()).isTrue();
+    }
+
+    @Test
+    void slidingWindowExpiresTheOldestTimestampAtTheBoundary() {
+        MutableTicker ticker = new MutableTicker();
+        LocalRateLimitBackend backend = new LocalRateLimitBackend(
+                ticker::read, 100, Duration.ofMinutes(10));
+        RateLimitRequest request = request(
+                AdmissionConfig.RateLimitAlgorithm.SLIDING_WINDOW,
+                "state-v1", 2, 1, Duration.ofSeconds(1), 1);
+
+        assertThat(backend.acquire(request).allowed()).isTrue();
+        assertThat(backend.acquire(request).allowed()).isTrue();
+        assertThat(backend.acquire(request).allowed()).isFalse();
+        ticker.advance(Duration.ofSeconds(1));
+        assertThat(backend.acquire(request).allowed()).isTrue();
+    }
+
     private static RateLimitRequest request(
             String stateVersion,
             long capacity,
@@ -65,7 +101,20 @@ class LocalRateLimitBackendTest {
             Duration period,
             long requested
     ) {
-        return new RateLimitRequest("draw", stateVersion, hash(), capacity, refill, period, requested);
+        return request(AdmissionConfig.RateLimitAlgorithm.TOKEN_BUCKET,
+                stateVersion, capacity, refill, period, requested);
+    }
+
+    private static RateLimitRequest request(
+            AdmissionConfig.RateLimitAlgorithm algorithm,
+            String stateVersion,
+            long capacity,
+            long refill,
+            Duration period,
+            long requested
+    ) {
+        return new RateLimitRequest(
+                "draw", stateVersion, hash(), algorithm, capacity, refill, period, requested);
     }
 
     private static String hash() {

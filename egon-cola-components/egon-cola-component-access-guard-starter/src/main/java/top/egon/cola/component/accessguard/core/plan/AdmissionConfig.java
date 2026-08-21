@@ -72,7 +72,9 @@ public record AdmissionConfig(
     }
 
     public enum RateLimitAlgorithm {
-        TOKEN_BUCKET
+        TOKEN_BUCKET,
+        LEAKY_BUCKET,
+        SLIDING_WINDOW
     }
 
     private static String requireVersion(String value) {

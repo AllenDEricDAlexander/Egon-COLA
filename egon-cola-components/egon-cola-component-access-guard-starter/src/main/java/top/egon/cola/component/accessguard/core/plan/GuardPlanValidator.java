@@ -30,6 +30,16 @@ public final class GuardPlanValidator {
                 || rate.refillPeriod().isZero() || rate.refillPeriod().isNegative()) {
             throw new IllegalArgumentException("rate-limit values must be positive");
         }
+        if (rate.algorithm() == AdmissionConfig.RateLimitAlgorithm.SLIDING_WINDOW
+                && rate.requestedTokens() != 1) {
+            throw new IllegalArgumentException(
+                    "SLIDING_WINDOW requires requestedTokens=1");
+        }
+        if (rate.algorithm() == AdmissionConfig.RateLimitAlgorithm.SLIDING_WINDOW
+                && rate.capacity() > 100_000) {
+            throw new IllegalArgumentException(
+                    "SLIDING_WINDOW capacity must be <= 100000");
+        }
         ExecutionConfig.TimeLimitConfig time = plan.execution().timeLimit();
         if (time.timeout().isZero() || time.timeout().isNegative()) {
             throw new IllegalArgumentException("time-limit timeout must be positive");
