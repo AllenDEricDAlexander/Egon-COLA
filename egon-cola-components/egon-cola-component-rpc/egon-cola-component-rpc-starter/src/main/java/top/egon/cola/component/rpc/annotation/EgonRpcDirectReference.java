@@ -26,4 +26,14 @@ public @interface EgonRpcDirectReference {
     String version() default "";
 
     long timeoutMs() default -1;
+
+    int retries() default -1;
+
+    LoadBalance loadBalance() default LoadBalance.INHERIT;
+
+    String fallbackBean() default "";
+
+    FailStrategy failStrategy() default FailStrategy.INHERIT;
+
+    String loadBalanceKeyResolver() default "";
 }

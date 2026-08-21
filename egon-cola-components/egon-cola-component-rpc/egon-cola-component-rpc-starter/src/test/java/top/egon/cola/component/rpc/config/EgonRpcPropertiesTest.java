@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistrationMode;
 import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
 import top.egon.cola.component.rpc.exception.EgonRpcException;
+import top.egon.cola.component.rpc.annotation.LoadBalance;
 
 import java.util.Arrays;
 
@@ -49,6 +50,43 @@ class EgonRpcPropertiesTest {
         assertInvalidSharedSettings(consumer);
         consumer.setDefaultTimeoutMs(3000);
         consumer.setChannelDrainTimeoutMs(0);
+        assertInvalidSharedSettings(consumer);
+    }
+
+    @Test
+    void consumerPolicyDefaultsAndCacheBoundsAreExplicit() {
+        EgonRpcProperties.Consumer consumer =
+                new EgonRpcProperties().getConsumer();
+
+        assertThat(consumer.getMaxRetries()).isEqualTo(3);
+        assertThat(consumer.getDefaultLoadBalance()).isEqualTo(LoadBalance.ROUND_ROBIN);
+        assertThat(consumer.getConsistentHashVirtualNodes()).isEqualTo(160);
+        assertThat(consumer.getGenericCacheMaxEntries()).isEqualTo(256);
+        assertThat(consumer.getGenericCacheIdleTimeoutMs()).isEqualTo(600_000L);
+        consumer.validateSharedSettings();
+    }
+
+    @Test
+    void consumerPolicyAndGenericCacheBoundsFailFast() {
+        EgonRpcProperties.Consumer consumer = new EgonRpcProperties().getConsumer();
+
+        consumer.setMaxRetries(-1);
+        assertInvalidSharedSettings(consumer);
+        consumer.setMaxRetries(3);
+        consumer.setMaxRetries(11);
+        assertInvalidSharedSettings(consumer);
+        consumer.setMaxRetries(3);
+
+        consumer.setDefaultLoadBalance(LoadBalance.INHERIT);
+        assertInvalidSharedSettings(consumer);
+        consumer.setDefaultLoadBalance(LoadBalance.ROUND_ROBIN);
+        consumer.setConsistentHashVirtualNodes(15);
+        assertInvalidSharedSettings(consumer);
+        consumer.setConsistentHashVirtualNodes(160);
+        consumer.setGenericCacheMaxEntries(4097);
+        assertInvalidSharedSettings(consumer);
+        consumer.setGenericCacheMaxEntries(256);
+        consumer.setGenericCacheIdleTimeoutMs(999);
         assertInvalidSharedSettings(consumer);
     }
 

@@ -29,5 +29,9 @@ public enum LoadBalance {
 
     RANDOM,
 
+    WEIGHTED_RANDOM,
+
+    CONSISTENT_HASH,
+
     LEAST_IN_FLIGHT
 }

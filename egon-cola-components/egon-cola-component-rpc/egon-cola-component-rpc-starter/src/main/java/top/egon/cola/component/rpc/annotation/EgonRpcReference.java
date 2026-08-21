@@ -67,6 +67,12 @@ public @interface EgonRpcReference {
     String fallbackBean() default "";
 
     /**
+     * Named {@link top.egon.cola.component.rpc.consumer.loadbalance.RpcLoadBalanceKeyResolver}
+     * used only when the effective policy is {@link LoadBalance#CONSISTENT_HASH}.
+     */
+    String loadBalanceKeyResolver() default "";
+
+    /**
      * What this caller should do once retries are exhausted.
      *
      * @see FailStrategy#INHERIT
