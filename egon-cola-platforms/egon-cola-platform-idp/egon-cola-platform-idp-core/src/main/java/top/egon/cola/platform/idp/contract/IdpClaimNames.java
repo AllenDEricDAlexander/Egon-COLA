@@ -11,6 +11,10 @@ public final class IdpClaimNames {
     public static final String TENANT_ID = "tid";
     /** OAuth Client 标识。 / OAuth Client identifier. */
     public static final String CLIENT_ID = "client_id";
+    /** 稳定业务应用身份。 / Stable business application identity. */
+    public static final String APP_ID = "app_id";
+    /** SERVICE Token 授权上下文。 / SERVICE Token authorization context. */
+    public static final String SCOPE_CONTEXT = "scope_context";
     /** USER 或 SERVICE 主体类型。 / USER or SERVICE principal type. */
     public static final String PRINCIPAL_TYPE = "principal_type";
     /** Resource Server 版本。 / Resource Server version. */

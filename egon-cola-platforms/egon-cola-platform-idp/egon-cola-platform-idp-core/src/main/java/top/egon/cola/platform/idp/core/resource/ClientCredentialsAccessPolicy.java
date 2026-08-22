@@ -1,5 +1,6 @@
 package top.egon.cola.platform.idp.core.resource;
 
+import top.egon.cola.platform.idp.contract.ServiceTokenContext;
 import top.egon.cola.platform.idp.core.oauth.OAuthClient;
 import top.egon.cola.platform.idp.core.port.ResourceServerStore;
 
@@ -41,7 +42,7 @@ public final class ClientCredentialsAccessPolicy {
      *
      * @param sourceClient    源服务 Client；source service Client
      * @param targetResource  目标 Resource Server；target Resource Server
-     * @param tenantId        明确租户；explicit tenant
+     * @param tenantId        TENANT 的明确租户，PLATFORM 时为空；explicit tenant, null for PLATFORM
      * @param requestedScopes 请求 Scope；requested scopes
      * @return 最小服务访问授权结果；minimal service-access authorization result
      */
@@ -68,7 +69,7 @@ public final class ClientCredentialsAccessPolicy {
                     "Target Resource Server is disabled"
             );
         }
-        String safeTenantId = required(tenantId, "tenantId");
+        String safeTenantId = optionalTenant(tenantId);
         Set<String> safeScopes = scopes(requestedScopes);
         if (safeScopes.isEmpty()) {
             deny("IDP_SERVICE_SCOPE_INVALID", "Requested scope is empty");
@@ -109,7 +110,8 @@ public final class ClientCredentialsAccessPolicy {
                 targetResource.version(),
                 safeTenantId,
                 safeScopes,
-                grant.version()
+                grant.version(),
+                grant.scopeContext()
         );
     }
 
@@ -151,8 +153,22 @@ public final class ClientCredentialsAccessPolicy {
      * @param field 字段名；field name
      * @return 已校验文本；validated text
      */
+    private String optionalTenant(String value) {
+        if (value == null) {
+            return null;
+        }
+        if (value.isBlank() || "*".equals(value)
+                || !value.equals(value.trim())) {
+            throw new IllegalArgumentException(
+                    "tenantId must be concrete and must not be a wildcard"
+            );
+        }
+        return value;
+    }
+
     private String required(String value, String field) {
-        if (value == null || value.isBlank() || !value.equals(value.trim())) {
+        if (value == null || value.isBlank()
+                || !value.equals(value.trim())) {
             throw new IllegalArgumentException(field + " is required");
         }
         return value;
@@ -174,6 +190,7 @@ public final class ClientCredentialsAccessPolicy {
      * @param tenantId               绑定租户；bound tenant
      * @param scopes                 本次许可 Scope；scopes granted for this request
      * @param grantVersion           Service Grant 版本；Service Grant version
+     * @param scopeContext           SERVICE 授权上下文；SERVICE authorization context
      */
     public record ServiceResourceAccess(
             String sourceClientId,
@@ -186,7 +203,8 @@ public final class ClientCredentialsAccessPolicy {
             long targetResourceVersion,
             String tenantId,
             Set<String> scopes,
-            long grantVersion
+            long grantVersion,
+            ServiceTokenContext scopeContext
     ) {
     }
 }

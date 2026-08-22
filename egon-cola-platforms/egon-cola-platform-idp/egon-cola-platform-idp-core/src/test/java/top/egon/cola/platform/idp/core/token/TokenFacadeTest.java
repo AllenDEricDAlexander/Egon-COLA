@@ -271,7 +271,7 @@ class TokenFacadeTest {
         @Override
         public TenantMembership resolve(String identitySub, String tenantId) {
             return new TenantMembership(
-                    identitySub, tenantId, "rbac-user", "Tenant A", status);
+                    identitySub, tenantId, "Tenant A", status);
         }
 
         @Override

@@ -14,7 +14,6 @@ public interface TenantMembershipPort {
     record TenantMembership(
             String identitySub,
             String tenantId,
-            String rbac3UserId,
             String tenantDisplayName,
             MembershipStatus status
     ) {

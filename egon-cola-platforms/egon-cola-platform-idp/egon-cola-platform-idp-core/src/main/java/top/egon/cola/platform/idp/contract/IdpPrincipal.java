@@ -33,7 +33,7 @@ public sealed interface IdpPrincipal
      *
      * <p>Returns the tenant identifier.</p>
      *
-     * @return 租户标识；tenant identifier
+     * @return 租户标识；tenant identifier；PLATFORM SERVICE 主体为 {@code null}
      */
     String tenantId();
 

@@ -1,5 +1,7 @@
 package top.egon.cola.platform.idp.core.resource;
 
+import top.egon.cola.platform.idp.contract.ServiceTokenContext;
+
 import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
@@ -13,10 +15,11 @@ import java.util.TreeSet;
  * @param clientId          OAuth Client 标识；OAuth Client identifier
  * @param resourceServerId  目标 Resource Server 标识；target Resource Server identifier
  * @param grantType         授权类型；grant type
- * @param tenantId          CLIENT_CREDENTIALS 绑定租户；tenant bound to CLIENT_CREDENTIALS
+ * @param tenantId          CLIENT_CREDENTIALS 绑定租户，PLATFORM 时为空；tenant bound to CLIENT_CREDENTIALS, null for PLATFORM
  * @param allowedScopes     IdP 许可的服务 Scope；service scopes permitted by IdP
  * @param status            授权状态；grant status
  * @param version           乐观锁和投影版本；optimistic-lock and projection version
+ * @param scopeContext      SERVICE 授权上下文；SERVICE authorization context
  */
 public record ClientResourceGrant(
         String clientId,
@@ -25,7 +28,8 @@ public record ClientResourceGrant(
         String tenantId,
         Set<String> allowedScopes,
         Status status,
-        long version
+        long version,
+        ServiceTokenContext scopeContext
 ) {
 
     /**
@@ -47,17 +51,67 @@ public record ClientResourceGrant(
             throw new IllegalArgumentException("version must not be negative");
         }
         if (grantType == ResourceGrantType.USER_DELEGATION
-                && (tenantId != null || !allowedScopes.isEmpty())) {
+                && (tenantId != null
+                || !allowedScopes.isEmpty()
+                || scopeContext != null)) {
             throw new IllegalArgumentException(
-                    "USER_DELEGATION must not contain tenant or scopes"
+                    "USER_DELEGATION must not contain tenant, scopes or context"
             );
         }
-        if (grantType == ResourceGrantType.CLIENT_CREDENTIALS
-                && (tenantId == null || allowedScopes.isEmpty())) {
-            throw new IllegalArgumentException(
-                    "CLIENT_CREDENTIALS requires tenant and scopes"
+        if (grantType == ResourceGrantType.CLIENT_CREDENTIALS) {
+            scopeContext = Objects.requireNonNull(
+                    scopeContext,
+                    "scopeContext"
             );
+            if (allowedScopes.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "CLIENT_CREDENTIALS requires scopes"
+                );
+            }
+            if (scopeContext == ServiceTokenContext.TENANT
+                    && tenantId == null) {
+                throw new IllegalArgumentException(
+                        "TENANT grant requires tenantId"
+                );
+            }
+            if (scopeContext == ServiceTokenContext.PLATFORM
+                    && tenantId != null) {
+                throw new IllegalArgumentException(
+                        "PLATFORM grant must not contain tenantId"
+                );
+            }
         }
+    }
+
+    /**
+     * 兼容旧领域构造签名；服务授权根据 tenant 是否为空推导迁移期 context。
+     *
+     * <p>Retains the former domain constructor and derives the transitional service context from
+     * tenant presence.</p>
+     */
+    public ClientResourceGrant(
+            String clientId,
+            String resourceServerId,
+            ResourceGrantType grantType,
+            String tenantId,
+            Set<String> allowedScopes,
+            Status status,
+            long version
+    ) {
+        this(
+                clientId,
+                resourceServerId,
+                grantType,
+                tenantId,
+                allowedScopes,
+                status,
+                version,
+                grantType == ResourceGrantType.CLIENT_CREDENTIALS
+                        ? (tenantId == null
+                        ? ServiceTokenContext.PLATFORM
+                        : ServiceTokenContext.TENANT)
+                        : null
+        );
     }
 
     /**
@@ -119,8 +173,15 @@ public record ClientResourceGrant(
      * @return 规范化文本或 {@code null}；normalized text or {@code null}
      */
     private static String optional(String value) {
-        return value == null || value.isBlank() ? null
-                : required(value, "tenantId");
+        if (value == null) {
+            return null;
+        }
+        if ("*".equals(value)) {
+            throw new IllegalArgumentException(
+                    "tenantId must not be a wildcard"
+            );
+        }
+        return required(value, "tenantId");
     }
 
     /**

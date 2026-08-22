@@ -1,6 +1,7 @@
 package top.egon.cola.platform.idp.core.token;
 
 import top.egon.cola.platform.idp.contract.PrincipalType;
+import top.egon.cola.platform.idp.contract.ServiceTokenContext;
 
 import java.net.URI;
 import java.time.Instant;
@@ -18,17 +19,19 @@ import java.util.TreeSet;
  * @param subject 服务 Client 主体标识；service Client subject identifier
  * @param clientId OAuth Client 标识；OAuth Client identifier
  * @param audience 唯一目标 Resource URI；sole target Resource URI
- * @param tenantId 精确租户标识；exact tenant identifier
+ * @param tenantId 精确租户标识，PLATFORM 时为空；exact tenant identifier, null for PLATFORM
  * @param sourceBizCode 来源业务域；source business-domain code
  * @param sourceAppCode 来源应用；source application code
  * @param sourceEnvironment 来源环境；source environment
- * @param credentialId Client JWK kid；Client JWK kid
+ * @param credentialId 验证成功的 Secret 记录标识；verified Secret record identifier
  * @param resourceVersion 目标 Resource 版本；target Resource version
  * @param scopes 本次授权的 IdP Service Scope；IdP Service scopes granted for this token
  * @param tokenId JWT ID；JWT ID
  * @param issuedAt 签发时间；issuance instant
  * @param notBefore 生效时间；not-before instant
  * @param expiresAt 过期时间；expiration instant
+ * @param appId 稳定业务应用身份；stable business application identity
+ * @param scopeContext SERVICE 授权上下文；SERVICE authorization context
  */
 public record ServiceAccessTokenClaims(
         String subject,
@@ -44,7 +47,9 @@ public record ServiceAccessTokenClaims(
         String tokenId,
         Instant issuedAt,
         Instant notBefore,
-        Instant expiresAt
+        Instant expiresAt,
+        String appId,
+        ServiceTokenContext scopeContext
 ) {
 
     /**
@@ -61,10 +66,19 @@ public record ServiceAccessTokenClaims(
             );
         }
         audience = resource(audience);
-        tenantId = required(tenantId, "tenantId");
-        if ("*".equals(tenantId)) {
+        tenantId = optional(tenantId, "tenantId");
+        appId = required(appId, "appId");
+        scopeContext = Objects.requireNonNull(scopeContext, "scopeContext");
+        if (scopeContext == ServiceTokenContext.TENANT
+                && tenantId == null) {
             throw new IllegalArgumentException(
-                    "SERVICE tenant must be explicit"
+                    "TENANT service context requires tenantId"
+            );
+        }
+        if (scopeContext == ServiceTokenContext.PLATFORM
+                && tenantId != null) {
+            throw new IllegalArgumentException(
+                    "PLATFORM service context must not contain tenantId"
             );
         }
         sourceBizCode = required(sourceBizCode, "sourceBizCode");
@@ -89,6 +103,49 @@ public record ServiceAccessTokenClaims(
                     "invalid SERVICE access token time range"
             );
         }
+    }
+
+    /**
+     * 保留旧构造签名，供 USER TokenFacade 迁移期间的调用方编译。
+     *
+     * <p>Retains the former constructor for callers migrating with the USER TokenFacade.</p>
+     */
+    public ServiceAccessTokenClaims(
+            String subject,
+            String clientId,
+            URI audience,
+            String tenantId,
+            String sourceBizCode,
+            String sourceAppCode,
+            String sourceEnvironment,
+            String credentialId,
+            long resourceVersion,
+            Set<String> scopes,
+            String tokenId,
+            Instant issuedAt,
+            Instant notBefore,
+            Instant expiresAt
+    ) {
+        this(
+                subject,
+                clientId,
+                audience,
+                tenantId,
+                sourceBizCode,
+                sourceAppCode,
+                sourceEnvironment,
+                credentialId,
+                resourceVersion,
+                scopes,
+                tokenId,
+                issuedAt,
+                notBefore,
+                expiresAt,
+                clientId,
+                tenantId == null
+                        ? ServiceTokenContext.PLATFORM
+                        : ServiceTokenContext.TENANT
+        );
     }
 
     /**
@@ -158,5 +215,12 @@ public record ServiceAccessTokenClaims(
             throw new IllegalArgumentException(field + " is required");
         }
         return value;
+    }
+
+    private static String optional(String value, String field) {
+        if (value == null) {
+            return null;
+        }
+        return required(value, field);
     }
 }
