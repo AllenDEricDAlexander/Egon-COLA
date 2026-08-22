@@ -1,7 +1,6 @@
 import { Navigate, useParams } from 'react-router-dom'
 import type { FeatureRouteDescriptor } from './shared/RouteDescriptor'
 import { OverviewPage } from './overview/OverviewPage'
-import { TenantListPage } from './tenant/TenantListPage'
 import { UserDirectoryPage } from './directory/UserDirectoryPage'
 import { ApplicationListPage } from './application/ApplicationListPage'
 import { ResourceCatalogPage } from './application/ResourceCatalogPage'
@@ -18,7 +17,6 @@ const RolePermissionRoute = () => {
 
 export const governanceRouteDescriptors: readonly FeatureRouteDescriptor[] = [
   { key: 'overview', path: '/iam/overview', title: '治理概览', permission: 'system:runtime:read', componentKey: 'rbac3-overview', component: OverviewPage, navigationOrder: 10 },
-  { key: 'tenants', path: '/iam/tenants', title: '租户上下文', permission: 'system:tenant:read', componentKey: 'rbac3-tenants', component: TenantListPage, navigationOrder: 20 },
   { key: 'directory-users', path: '/iam/users', title: '用户目录', permission: 'system:user:read', componentKey: 'rbac3-users', component: UserDirectoryPage, navigationOrder: 30 },
   { key: 'directory-organizations', path: '/iam/organizations', title: '组织', permission: 'system:organization:read', componentKey: 'rbac3-organizations', component: UserDirectoryPage, navigationOrder: 31 },
   { key: 'directory-positions', path: '/iam/positions', title: '岗位', permission: 'system:position:read', componentKey: 'rbac3-positions', component: UserDirectoryPage, navigationOrder: 32 },

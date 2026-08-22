@@ -1,5 +1,5 @@
 import {useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
-import {createContext, type PropsWithChildren, useCallback, useContext, useMemo, useState,} from 'react'
+import {createContext, type PropsWithChildren, useContext, useMemo,} from 'react'
 
 export interface FeatureApiRequest {
   readonly method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
@@ -15,8 +15,6 @@ export interface FeatureApiClient {
 interface FeatureApiContextValue {
   readonly client: FeatureApiClient
   readonly effectiveTenantId: string | null
-  readonly targetTenantId: string | null
-  readonly setTargetTenantId: (tenantId: string | null) => void
 }
 
 const FeatureApiContext = createContext<FeatureApiContextValue | null>(null)
@@ -27,26 +25,16 @@ export interface FeatureApiProviderProps extends PropsWithChildren {
 
 export const FeatureApiProvider = ({ client, children }: FeatureApiProviderProps) => {
     const {about} = useRbac3Authorization()
-  const [targetTenantId, setTargetTenant] = useState<string | null>(null)
   const effectiveTenantId = about?.user.tenantId ?? null
   const tenantClient = useMemo<FeatureApiClient>(() => ({
     request: async <T,>(path: string, request: FeatureApiRequest = {}) => {
-      const tenantRequest = targetTenantId === null || !path.startsWith('/api/rbac3/v1/platform/')
-        ? request
-        : { ...request, headers: { ...request.headers, 'X-RBAC3-Target-Tenant': targetTenantId } }
-        return client.request<T>(path, tenantRequest)
+        return client.request<T>(path, request)
     },
-  }), [client, targetTenantId])
-  const setTargetTenantId = useCallback((tenantId: string | null) => {
-    const normalized = tenantId?.trim() || null
-    setTargetTenant(normalized)
-  }, [])
+  }), [client])
   const value = useMemo<FeatureApiContextValue>(() => ({
     client: tenantClient,
     effectiveTenantId,
-    targetTenantId,
-    setTargetTenantId,
-  }), [effectiveTenantId, targetTenantId, tenantClient, setTargetTenantId])
+  }), [effectiveTenantId, tenantClient])
   return <FeatureApiContext.Provider value={value}>{children}</FeatureApiContext.Provider>
 }
 
@@ -65,7 +53,5 @@ export const useFeatureTenantContext = () => {
   }
   return {
     effectiveTenantId: value.effectiveTenantId,
-    targetTenantId: value.targetTenantId,
-    setTargetTenantId: value.setTargetTenantId,
   }
 }

@@ -108,9 +108,12 @@ public class JpaPlatformAdminBootstrapRepository
             "system:role:create",
             "system:role:read",
             "system:role:update",
-            "system:tenant:manage",
-            "system:tenant:read",
             "system:tenant:target",
+            "idp:oauth-client:create",
+            "idp:oauth-client:read",
+            "idp:oauth-client:update",
+            "idp:tenant:manage",
+            "idp:tenant:read",
             "system:user-status:manage",
             "system:user:read");
 

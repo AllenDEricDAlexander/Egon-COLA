@@ -36,10 +36,14 @@ class Rbac3DevelopmentTopologyTest {
                 "system:role-activation:read",
                 "system:role-activation:use",
                 "system:tenant:target");
+        assertThat(application("rbac3-admin").permissions())
+                .doesNotContain("system:tenant:read", "system:tenant:manage");
         assertThat(application("idp-admin").permissions()).contains(
                 "idp:bootstrap:read",
                 "idp:identity-user:read",
                 "idp:oauth-client:read",
+                "idp:tenant:read",
+                "idp:tenant:manage",
                 "idp:resource-server:read",
                 "idp:resource-server:create",
                 "idp:resource-server:update",

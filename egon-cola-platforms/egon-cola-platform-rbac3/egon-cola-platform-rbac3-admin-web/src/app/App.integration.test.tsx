@@ -5,7 +5,7 @@ import {MemoryRouter} from 'react-router-dom'
 import {describe, expect, it} from 'vitest'
 import {type FeatureApiClient, FeatureApiProvider} from '../features/shared/FeatureApi'
 import {ApplicationRouter} from './router'
-import {resolveApplicationLanding} from './navigation'
+import {applicationRouteDescriptors, localResourceRegistry, resolveApplicationLanding} from './navigation'
 
 const about = (permissions: readonly string[]): Rbac3AboutView => ({
   user: { subject: 'mario', tenantId: '9', status: 'ACTIVE' },
@@ -33,7 +33,12 @@ describe('application router', () => {
   })
 
   it('chooses the stable first accessible local route when no default is usable', () => {
-    expect(resolveApplicationLanding(about(['system:tenant:read']))).toBe('/iam/tenants')
+    expect(resolveApplicationLanding(about(['system:runtime:read']))).toBe('/iam/overview')
+  })
+
+  it('removes the RBAC tenant catalog route and browser resource definition', () => {
+    expect(applicationRouteDescriptors.some((route) => route.path === '/iam/tenants')).toBe(false)
+    expect(localResourceRegistry.definitions.some((definition) => definition.code === 'iam.tenants')).toBe(false)
   })
 
   it('does not expose a browser resource report or synchronization action', async () => {

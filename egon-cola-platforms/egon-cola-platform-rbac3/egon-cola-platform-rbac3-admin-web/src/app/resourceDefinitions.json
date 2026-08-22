@@ -15,7 +15,6 @@
   { "kind": "ROUTE", "code": "iam.resources", "name": "资源", "permission": "system:resource:read", "parentCode": "iam.catalog", "path": "/iam/resources", "componentKey": "rbac3-resources", "order": 20 },
   { "kind": "ROUTE", "code": "iam.fields", "name": "字段定义", "permission": "system:field-definition:read", "parentCode": "iam.catalog", "path": "/iam/fields", "componentKey": "rbac3-fields", "order": 30 },
   { "kind": "ROUTE", "code": "iam.policies", "name": "授权策略", "permission": "system:authorization-constraint:read", "parentCode": "iam.authorization", "path": "/iam/policies", "componentKey": "rbac3-constraints", "order": 40 },
-  { "kind": "ROUTE", "code": "iam.tenants", "name": "租户", "permission": "system:tenant:read", "parentCode": "iam", "path": "/iam/tenants", "componentKey": "rbac3-tenants", "order": 50 },
   { "kind": "ROUTE", "code": "iam.overview", "name": "治理概览", "permission": "system:runtime:read", "parentCode": "iam", "path": "/iam/overview", "componentKey": "rbac3-overview", "order": 1 },
   { "kind": "ROUTE", "code": "iam.management-policies", "name": "委托策略", "permission": "system:management-policy:read", "parentCode": "iam.authorization", "path": "/iam/management-policies", "componentKey": "rbac3-management-policies", "order": 41 },
   { "kind": "MENU", "code": "iam.diagnostics", "name": "诊断", "permission": "system:authorization-runtime:read", "parentCode": "iam", "order": 90 },

@@ -50,8 +50,6 @@ public final class Rbac3DevelopmentTopology {
             "system:role:create",
             "system:role:read",
             "system:role:update",
-            "system:tenant:manage",
-            "system:tenant:read",
             "system:tenant:target",
             "system:user-status:manage",
             "system:user:read");
@@ -78,6 +76,8 @@ public final class Rbac3DevelopmentTopology {
                     "idp:oauth-client:create",
                     "idp:oauth-client:read",
                     "idp:oauth-client:update",
+                    "idp:tenant:manage",
+                    "idp:tenant:read",
                     "idp:resource-server:create",
                     "idp:resource-server:grant",
                     "idp:resource-server:key",
