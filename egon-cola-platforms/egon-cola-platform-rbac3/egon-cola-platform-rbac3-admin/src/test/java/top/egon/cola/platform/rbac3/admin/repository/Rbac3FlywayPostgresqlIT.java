@@ -44,10 +44,11 @@ class Rbac3FlywayPostgresqlIT {
                     .defaultSchema(schema)
                     .schemas(schema)
                     .table("flyway_schema_history_rbac3")
+                    .target("7")
                     .locations("classpath:db/migration")
                     .load();
 
-            assertThat(flyway.migrate().migrationsExecuted).isEqualTo(5);
+            assertThat(flyway.migrate().migrationsExecuted).isEqualTo(7);
             assertThat(flyway.migrate().migrationsExecuted).isZero();
             assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
 

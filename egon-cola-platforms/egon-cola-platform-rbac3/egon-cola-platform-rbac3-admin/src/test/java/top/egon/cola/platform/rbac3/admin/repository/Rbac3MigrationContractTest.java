@@ -34,6 +34,8 @@ class Rbac3MigrationContractTest {
             "db/migration/V6__adopt_ddc_business_application_authorization_scope.sql";
     private static final String GLOBAL_CATALOG_MIGRATION =
             "db/migration/V7__globalize_resource_catalog_and_remove_manifest.sql";
+    private static final String EXTERNAL_TENANT_MIGRATION =
+            "db/migration/V8__externalize_tenant_authority.sql";
     private static final Pattern TABLE_PATTERN = Pattern.compile(
             "create\\s+table\\s+(rbac3_[a-z0-9_]+)\\s*\\((.*?)\\);",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
@@ -109,7 +111,8 @@ class Rbac3MigrationContractTest {
         assertThat(listMigrationResources()).containsExactly(
             MIGRATION, STRONG_AUTH_MIGRATION, IDP_MIGRATION,
             TENANT_SESSION_MIGRATION, STATELESS_IDENTITY_MIGRATION,
-                DDC_AUTHORIZATION_SCOPE_MIGRATION, GLOBAL_CATALOG_MIGRATION);
+                DDC_AUTHORIZATION_SCOPE_MIGRATION, GLOBAL_CATALOG_MIGRATION,
+                EXTERNAL_TENANT_MIGRATION);
         assertThat(resourceSql(STRONG_AUTH_MIGRATION))
                 .contains("add column strong_authenticated_at timestamptz")
                 .contains("ck_rbac3_session_strong_authentication_time");
