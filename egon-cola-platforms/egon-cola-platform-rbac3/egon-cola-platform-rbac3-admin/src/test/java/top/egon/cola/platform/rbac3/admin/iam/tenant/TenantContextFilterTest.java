@@ -69,6 +69,7 @@ class TenantContextFilterTest {
 
         assertEquals(200, response.getStatus());
         assertEquals("tenant-2", request.getAttribute(TenantContextFilter.TENANT_ATTRIBUTE));
+        assertEquals(TenantContext.class.getName(), TenantContextFilter.TENANT_ATTRIBUTE);
     }
 
     @Test

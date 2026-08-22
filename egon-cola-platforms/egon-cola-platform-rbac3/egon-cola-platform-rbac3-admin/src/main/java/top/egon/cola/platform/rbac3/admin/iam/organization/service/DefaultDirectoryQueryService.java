@@ -8,7 +8,6 @@ import top.egon.cola.platform.rbac3.admin.iam.organization.domain.vo.OrgUnitVO;
 import top.egon.cola.platform.rbac3.admin.iam.position.domain.vo.PositionVO;
 import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.repository.DirectoryQueryRepository;
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.vo.UserDirectoryVO;
-import top.egon.cola.platform.rbac3.admin.iam.tenant.domain.vo.TenantVO;
 
 import java.util.List;
 
@@ -22,11 +21,6 @@ public class DefaultDirectoryQueryService implements DirectoryQueryService {
     }
     @Override public UserDirectoryVO findUser(String tenantId, String userId) {
         return repository.findUser(tenantId, userId);
-    }
-    @Override public TenantVO findTenant(String tenantId) { return repository.findTenant(tenantId); }
-    @Override public DirectoryPageVO<TenantVO> findTenants(
-            String query, String status, int page, int size) {
-        return repository.findTenants(query, status, page, size);
     }
     @Override public DirectoryPageVO<UserDirectoryVO> findUsers(
             String tenantId, String query, String status, String orgUnitId,

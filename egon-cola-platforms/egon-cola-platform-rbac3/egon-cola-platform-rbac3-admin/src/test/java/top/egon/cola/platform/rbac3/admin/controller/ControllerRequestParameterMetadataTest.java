@@ -5,7 +5,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import top.egon.cola.platform.rbac3.admin.audit.controller.AuditController;
 import top.egon.cola.platform.rbac3.admin.iam.organization.controller.DirectoryController;
 import top.egon.cola.platform.rbac3.admin.iam.user.controller.UserDirectoryController;
-import top.egon.cola.platform.rbac3.admin.iam.tenant.controller.TenantController;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -18,8 +17,7 @@ class ControllerRequestParameterMetadataTest {
 
     @Test
     void preservesNamesForImplicitRequestParametersInPackagedClasses() {
-        List<String> missingNames = List.of(
-                        TenantController.class,
+                List<String> missingNames = List.of(
                         UserDirectoryController.class,
                         DirectoryController.class,
                         RolePermissionController.class,

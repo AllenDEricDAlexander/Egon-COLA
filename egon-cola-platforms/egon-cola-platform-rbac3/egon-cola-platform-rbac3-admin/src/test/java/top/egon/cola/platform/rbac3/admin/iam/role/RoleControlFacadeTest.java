@@ -27,9 +27,7 @@ import top.egon.cola.platform.rbac3.core.hierarchy.RoleNode;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -60,9 +58,6 @@ class RoleControlFacadeTest {
                         "50001", "50002"), true, "actor");
 
         verify(stateStore).increment(10001L, "actor");
-        verify(entityManager, never()).find(
-                eq(top.egon.cola.platform.rbac3.admin.iam.tenant.domain.po.TenantPO.class),
-                any(), eq(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE));
         verify(eventPort).enqueue(any());
     }
 

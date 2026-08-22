@@ -47,7 +47,7 @@ import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.domain.vo.Di
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
         code = "directory",
-        name = "租户用户与目录接口组")
+        name = "用户与目录接口组")
 @EgonHttpService(
         serviceName = "rbac3-admin",
         group = "default",
