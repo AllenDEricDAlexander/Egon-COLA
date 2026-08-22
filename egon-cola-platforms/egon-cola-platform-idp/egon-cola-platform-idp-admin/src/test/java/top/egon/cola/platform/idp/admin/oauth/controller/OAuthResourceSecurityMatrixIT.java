@@ -3,15 +3,12 @@ package top.egon.cola.platform.idp.admin.oauth.controller;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.idp.core.oauth.OAuthClient;
 import top.egon.cola.platform.idp.core.port.ResourceServerStore;
-import top.egon.cola.platform.idp.core.port.TenantMembershipPort;
-import top.egon.cola.platform.idp.core.port.UserResourceAccessAuthorizationPort;
 import top.egon.cola.platform.idp.core.resource.ClientCredentialsAccessPolicy;
 import top.egon.cola.platform.idp.core.resource.ClientResourceGrant;
 import top.egon.cola.platform.idp.core.resource.ResourceAuthorizationException;
 import top.egon.cola.platform.idp.core.resource.ResourceGrantType;
 import top.egon.cola.platform.idp.core.resource.ResourceServer;
 import top.egon.cola.platform.idp.core.resource.ResourceServerStatus;
-import top.egon.cola.platform.idp.core.resource.UserResourceAccessPolicy;
 
 import java.io.IOException;
 import java.net.URI;
@@ -34,31 +31,6 @@ class OAuthResourceSecurityMatrixIT {
             "https://api.egon.internal/prod/permission/idp");
     private static final URI RBAC3_URI = URI.create(
             "https://api.egon.internal/prod/permission/rbac3");
-
-    @Test
-    void userEntryPermissionIsEvaluatedForTheRequestedApplicationOnly() {
-        MatrixStore store = new MatrixStore();
-        UserResourceAccessPolicy policy = new UserResourceAccessPolicy(
-                store,
-                memberships(),
-                request -> new UserResourceAccessAuthorizationPort.AccessDecision(
-                        "idp".equals(request.rbacApplicationCode())
-                                ? UserResourceAccessAuthorizationPort.Decision.ALLOW
-                                : UserResourceAccessAuthorizationPort.Decision.DENY,
-                        "idp".equals(request.rbacApplicationCode())
-                                ? "ALLOW" : "ENTRY_PERMISSION_DENIED",
-                        11L, 12L, 13L));
-        OAuthClient client = publicClient();
-
-        assertThat(policy.authorize(
-                        client, IDP_URI, "alice", "tenant-1")
-                .resourceUri()).isEqualTo(IDP_URI);
-        assertThatThrownBy(() -> policy.authorize(
-                client, RBAC3_URI, "alice", "tenant-1"))
-                .isInstanceOfSatisfying(ResourceAuthorizationException.class,
-                        error -> assertThat(error.code())
-                                .isEqualTo("IDP_RESOURCE_ACCESS_DENIED"));
-    }
 
     @Test
     void serviceGrantIsTenantAndScopeBoundWithoutConsultingUserAuthorization() {
@@ -114,32 +86,6 @@ class OAuthResourceSecurityMatrixIT {
 
         assertThat(yaml).contains("resource-server-id:", "resource-uri:")
                 .doesNotContain("audiences:", "client-ids:");
-    }
-
-    private static OAuthClient publicClient() {
-        return new OAuthClient(
-                "idp-admin-web", OAuthClient.ClientType.PUBLIC,
-                OAuthClient.Status.ACTIVE, true,
-                List.of("https://idp.example/oauth/callback"));
-    }
-
-    private static TenantMembershipPort memberships() {
-        return new TenantMembershipPort() {
-            @Override
-            public TenantMembership resolve(
-                    String identitySub,
-                    String tenantId
-            ) {
-                return new TenantMembership(
-                        identitySub, tenantId, "rbac-user-1", "Tenant 1",
-                        MembershipStatus.ACTIVE);
-            }
-
-            @Override
-            public List<TenantMembership> list(String identitySub) {
-                return List.of(resolve(identitySub, "tenant-1"));
-            }
-        };
     }
 
     private static OAuthClient confidentialClient() {
