@@ -16,8 +16,9 @@ import org.springframework.core.env.Environment;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -26,7 +27,8 @@ import java.util.Map;
         "top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfiguration")
 @EnableConfigurationProperties({
         DdcHttpRegistrationProperties.class,
-        DdcProperties.class
+        DdcProperties.class,
+        IdpStarterProperties.class
 })
 @ConditionalOnProperty(
         prefix = DdcHttpRegistrationProperties.PREFIX,
@@ -36,8 +38,8 @@ import java.util.Map;
 public class DdcHttpRegistrationAutoConfiguration {
 
     /**
-     * 创建在 Web Server Ready 后执行准入注册的运行时。
-     * / Creates the runtime that performs admitted registration after the web server is ready.
+     * 创建在 Web Server Ready 后执行 SERVICE Token 注册的运行时。
+     * / Creates the runtime that performs SERVICE-token registration after the web server is ready.
      *
      * @param registry DDC 服务注册客户端 / DDC service-registry client
      * @param serviceKeyFactory 服务键工厂 / service-key factory
@@ -46,11 +48,12 @@ public class DdcHttpRegistrationAutoConfiguration {
      * @param ddcProperties DDC 物理作用域配置 / DDC physical-scope configuration
      * @param ddcIdentity 可选 DDC 实例身份 / optional DDC instance identity
      * @param environment Spring 环境 / Spring environment
-     * @param admissionTickets 准入票据端口 / admission-ticket port
+     * @param serviceClient IdP OAuth2 Client facade / IdP OAuth2 Client facade
+     * @param idpProperties IdP client settings / IdP client settings
      * @return HTTP 注册运行时 / HTTP registration runtime
      */
     @Bean(destroyMethod = "close")
-    @ConditionalOnBean(DdcServiceRegistryClient.class)
+    @ConditionalOnBean({DdcServiceRegistryClient.class, IdpServiceOAuth2Client.class})
     @ConditionalOnMissingBean(DdcHttpRegistrationRuntime.class)
     public DdcHttpRegistrationRuntime ddcHttpRegistrationRuntime(
             DdcServiceRegistryClient registry,
@@ -60,7 +63,8 @@ public class DdcHttpRegistrationAutoConfiguration {
             DdcProperties ddcProperties,
             ObjectProvider<DdcInstanceIdentity> ddcIdentity,
             Environment environment,
-            DdcAdmissionTicketSupplier admissionTickets) {
+            IdpServiceOAuth2Client serviceClient,
+            IdpStarterProperties idpProperties) {
         RegistrationContribution contribution = mergeContributions(
                 contributors
         );
@@ -79,7 +83,8 @@ public class DdcHttpRegistrationAutoConfiguration {
                         contribution.metadata(),
                         0
                 ),
-                admissionTickets
+                serviceClient,
+                idpProperties
         );
     }
 

@@ -31,8 +31,8 @@ public interface DdcServiceRegistryClient {
      * 为指定实例租约续期。
      * / Renews the lease for the specified instance.
      *
-     * @param request 包含服务键、实例、租约和短期准入票据的续期请求
-     *                / renewal request containing service key, instance, lease, and short-lived admission ticket
+     * @param request 包含服务键、实例、租约和 registration token 的续期请求
+     *                / renewal request containing service key, instance, lease, and registration token
      * @return 租约操作结果 / lease operation result
      */
     DdcLeaseOperationResult heartbeat(DdcServiceLeaseRequest request);

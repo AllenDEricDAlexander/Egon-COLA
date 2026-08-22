@@ -9,11 +9,16 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
+import top.egon.cola.platform.idp.contract.ServiceTokenContext;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 
+import java.net.URI;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -21,8 +26,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * 在 HTTP 服务监听成功后，使用 IdP 准入票据维护其 DDC 服务租约。
- * / Maintains an HTTP service's DDC lease with IdP admission tickets after the server starts listening.
+ * 在 HTTP 服务监听成功后，使用 IdP PLATFORM SERVICE Token 维护其 DDC 服务租约。
+ * / Maintains an HTTP service's DDC lease with an IdP PLATFORM SERVICE token after the server starts listening.
  */
 public final class DdcHttpRegistrationRuntime implements AutoCloseable {
 
@@ -35,8 +40,11 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
 
     private final DdcHttpRegistrationRuntimeProperties properties;
 
-    /** 为每次注册和心跳提供精确绑定的短期票据。 / Supplies an exactly bound short-lived ticket for each registration and heartbeat. */
-    private final DdcAdmissionTicketSupplier admissionTickets;
+    /** IdP OAuth2 Client facade used to acquire DDC registration tokens. */
+    private final IdpServiceOAuth2Client serviceClient;
+
+    /** IdP client registration and resource settings. */
+    private final IdpStarterProperties idpProperties;
 
     private final ScheduledExecutorService scheduler;
 
@@ -54,28 +62,28 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
 
     /**
      * 创建默认 Fail Closed 的 HTTP 注册运行时。
-     * / Creates the HTTP registration runtime, which fails closed when a ticket cannot be obtained.
+     * / Creates the HTTP registration runtime, which fails closed when a SERVICE token cannot be obtained.
      *
      * @param registry DDC 服务注册客户端 / DDC service-registry client
      * @param serviceKeyFactory 服务键工厂 / service-key factory
      * @param properties HTTP 注册参数 / HTTP registration settings
-     * @param admissionTickets 准入票据端口 / admission-ticket port
+     * @param serviceClient IdP OAuth2 Client facade / IdP OAuth2 Client facade
+     * @param idpProperties IdP client settings / IdP client settings
      */
     public DdcHttpRegistrationRuntime(
             DdcServiceRegistryClient registry,
             DdcServiceKeyFactory serviceKeyFactory,
             DdcHttpRegistrationRuntimeProperties properties,
-            DdcAdmissionTicketSupplier admissionTickets) {
+            IdpServiceOAuth2Client serviceClient,
+            IdpStarterProperties idpProperties) {
         this.registry = Objects.requireNonNull(registry, "registry");
         this.serviceKeyFactory = Objects.requireNonNull(
                 serviceKeyFactory,
                 "serviceKeyFactory"
         );
         this.properties = Objects.requireNonNull(properties, "properties");
-        this.admissionTickets = Objects.requireNonNull(
-                admissionTickets,
-                "admissionTickets"
-        );
+        this.serviceClient = Objects.requireNonNull(serviceClient, "serviceClient");
+        this.idpProperties = Objects.requireNonNull(idpProperties, "idpProperties");
         this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(
                     runnable,
@@ -122,8 +130,8 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
     }
 
     /**
-     * 携带新鲜准入票据续约；续约失败时重新注册。
-     * / Renews with a fresh admission ticket and re-registers after renewal failure.
+     * 携带新鲜 SERVICE Token 续约；续约失败时重新注册。
+     * / Renews with a fresh SERVICE token and re-registers after renewal failure.
      */
     public synchronized void heartbeatAndRecover() {
         if (actualServerPort == null
@@ -140,9 +148,7 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
             request.setServiceKey(registration.serviceKey());
             request.setInstanceId(lease.instanceId());
             request.setLeaseId(lease.leaseId());
-            request.setAdmissionTicket(admissionTicket(
-                    registration.serviceKey()
-            ));
+            request.setRegistrationToken(registrationToken());
             DdcLeaseOperationResult result = registry.heartbeat(request);
             if (!result.renewed()) {
                 lease = null;
@@ -244,7 +250,7 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
         }
     }
 
-    /** 使用实际端口和新鲜票据建立新租约。 / Establishes a new lease with the actual port and a fresh ticket. */
+    /** 使用实际端口和新鲜 SERVICE Token 建立新租约。 / Establishes a new lease with the actual port and a fresh SERVICE token. */
     private void register() {
         DdcServiceKey serviceKey = serviceKeyFactory.fromScope(
                 DdcServiceKind.HTTP_PROVIDER,
@@ -262,25 +268,30 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
                 properties.metadata(),
                 properties.leaseSeconds(),
                 properties.heartbeatIntervalSeconds(),
-                admissionTicket(serviceKey)
+                registrationToken()
         );
         lease = registry.register(registration);
         state.set(DdcHttpRegistrationState.REGISTERED);
     }
 
     /**
-     * 为当前 HTTP 实例和精确物理作用域取得原始票据。
-     * / Obtains the raw ticket for the current HTTP instance and exact physical scope.
+     * 为当前 HTTP 实例和精确物理作用域取得 DDC PLATFORM SERVICE Token。
+     * / Obtains a DDC PLATFORM SERVICE token for the current HTTP instance and exact physical scope.
      *
-     * @param serviceKey 实际发送的服务键 / service key actually sent
-     * @return 原始短期准入 JWT / raw short-lived admission JWT
+     * @return 不透明 SERVICE access token / opaque SERVICE access token
      */
-    private String admissionTicket(DdcServiceKey serviceKey) {
-        return admissionTickets.getTicket(
-                serviceKey.bizCode(),
-                serviceKey.appCode(),
-                serviceKey.env(),
-                properties.instanceId()
-        ).value();
+    private String registrationToken() {
+        IdpStarterProperties.ServiceClient client = idpProperties.getServiceClient();
+        client.validate();
+        URI audience = Objects.requireNonNull(
+                idpProperties.getResourceUri(), "egon.cola.platform.idp.resource-uri");
+        return serviceClient.authorize(new IdpServiceTokenRequest(
+                client.getRegistrationId(),
+                client.getAppId(),
+                audience,
+                ServiceTokenContext.PLATFORM,
+                null,
+                Set.of(DdcHttpRegistrationProperties.REGISTRATION_SCOPE)
+        )).getTokenValue();
     }
 }

@@ -13,7 +13,6 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.autoconfigure.DdcAutoConfiguration;
 import top.egon.cola.component.ddc.autoconfigure.DdcRedisAutoConfiguration;
 import top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfiguration;
@@ -31,6 +30,8 @@ import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
 import top.egon.cola.component.rpc.ddc.client.registry.RpcDdcServiceRegistryClient;
 import top.egon.cola.component.rpc.ddc.registry.*;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistry;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
 
 import java.net.InetAddress;
 
@@ -46,7 +47,11 @@ import java.net.InetAddress;
                 EgonRpcAutoConfig.class
         }
 )
-@EnableConfigurationProperties({DdcRpcProperties.class, DdcProperties.class})
+@EnableConfigurationProperties({
+        DdcRpcProperties.class,
+        DdcProperties.class,
+        IdpStarterProperties.class
+})
 public class DdcRpcAutoConfiguration {
 
     @Bean
@@ -172,26 +177,29 @@ public class DdcRpcAutoConfiguration {
     }
 
     /**
-     * 创建携带 IdP 准入票据的 RPC Provider 注册端口。
-     * / Creates the RPC Provider registry port that carries IdP admission tickets.
+     * 创建携带 IdP PLATFORM SERVICE Token 的 RPC Provider 注册端口。
+     * / Creates the RPC Provider registry port that carries an IdP PLATFORM SERVICE token.
      *
      * @param client DDC 服务注册客户端 / DDC service-registry client
      * @param properties DDC 物理作用域配置 / DDC physical-scope configuration
-     * @param admissionTickets 准入票据端口 / admission-ticket port
+     * @param serviceClient IdP OAuth2 Client facade / IdP OAuth2 Client facade
+     * @param idpProperties IdP client settings / IdP client settings
      * @return RPC Provider 注册端口 / RPC Provider registry port
      */
     @Bean
-    @ConditionalOnBean(DdcServiceRegistryClient.class)
+    @ConditionalOnBean({DdcServiceRegistryClient.class, IdpServiceOAuth2Client.class})
     @ConditionalOnMissingBean(RpcProviderRegistry.class)
     public RpcProviderRegistry ddcRpcProviderRegistry(
             DdcServiceRegistryClient client,
             DdcProperties properties,
-            DdcAdmissionTicketSupplier admissionTickets) {
+            IdpServiceOAuth2Client serviceClient,
+            IdpStarterProperties idpProperties) {
         return new DdcRpcProviderRegistry(
                 client,
                 properties.getBizCode(),
                 properties.getAppCode(),
-                admissionTickets);
+                serviceClient,
+                idpProperties);
     }
 
     @Bean

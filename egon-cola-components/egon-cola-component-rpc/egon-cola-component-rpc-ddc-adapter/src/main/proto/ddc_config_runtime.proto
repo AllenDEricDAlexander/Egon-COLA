@@ -27,7 +27,7 @@ message RegisterConfigClientRequest {
   int32 lease_seconds = 7;
   int32 heartbeat_interval_seconds = 8;
   map<string, string> metadata = 9;
-  string admission_ticket = 10;
+  string registration_token = 10;
 }
 
 message RegisterConfigClientResponse {
@@ -43,7 +43,7 @@ message HeartbeatConfigClientRequest {
   string pid = 6;
   string sdk_version = 7;
   map<string, string> metadata = 8;
-  string admission_ticket = 9;
+  string registration_token = 9;
 }
 
 message HeartbeatConfigClientResponse {

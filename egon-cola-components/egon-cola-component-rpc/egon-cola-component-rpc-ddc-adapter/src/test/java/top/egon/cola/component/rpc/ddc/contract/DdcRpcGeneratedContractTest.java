@@ -55,18 +55,18 @@ class DdcRpcGeneratedContractTest {
     }
 
     @Test
-    void generatesAdmissionTransportAndAuditAccessors() {
+    void generatesRegistrationTokenTransportAndAuditAccessors() {
         assertThat(RegisterConfigClientRequest.newBuilder()
-                .setAdmissionTicket("register-config").build().getAdmissionTicket())
+                .setRegistrationToken("register-config").build().getRegistrationToken())
                 .isEqualTo("register-config");
         assertThat(HeartbeatConfigClientRequest.newBuilder()
-                .setAdmissionTicket("heartbeat-config").build().getAdmissionTicket())
+                .setRegistrationToken("heartbeat-config").build().getRegistrationToken())
                 .isEqualTo("heartbeat-config");
         assertThat(RegisterServiceRequest.newBuilder()
-                .setAdmissionTicket("register-service").build().getAdmissionTicket())
+                .setRegistrationToken("register-service").build().getRegistrationToken())
                 .isEqualTo("register-service");
         assertThat(HeartbeatServiceRequest.newBuilder()
-                .setAdmissionTicket("heartbeat-service").build().getAdmissionTicket())
+                .setRegistrationToken("heartbeat-service").build().getRegistrationToken())
                 .isEqualTo("heartbeat-service");
         DdcServiceInstance instance = DdcServiceInstance.newBuilder()
                 .setResourceServerId("resource-order")
@@ -76,7 +76,7 @@ class DdcRpcGeneratedContractTest {
         assertThat(instance.getResourceServerId()).isEqualTo("resource-order");
         assertThat(instance.getResourceVersion()).isEqualTo(12L);
         assertThat(instance.getCredentialId()).isEqualTo("kid-2026");
-        assertThat(instance.getDescriptorForType().findFieldByName("admission_ticket"))
+        assertThat(instance.getDescriptorForType().findFieldByName("registration_token"))
                 .isNull();
     }
 }

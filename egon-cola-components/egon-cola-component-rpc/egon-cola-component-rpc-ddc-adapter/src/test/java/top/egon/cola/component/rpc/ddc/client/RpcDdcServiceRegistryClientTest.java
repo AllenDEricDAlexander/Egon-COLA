@@ -79,7 +79,7 @@ class RpcDdcServiceRegistryClientTest {
         verify(rpc).heartbeatService(argThat(request ->
                 request.getServiceKey().getServiceKind()
                         == top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcServiceKind.DDC_SERVICE_KIND_RPC_PROVIDER
-                        && request.getAdmissionTicket().equals("service-heartbeat-ticket")));
+                        && request.getRegistrationToken().equals("service-heartbeat-ticket")));
     }
 
     @Test
@@ -136,7 +136,7 @@ class RpcDdcServiceRegistryClientTest {
         request.setServiceKey(key);
         request.setInstanceId("instance-1");
         request.setLeaseId("lease-1");
-        request.setAdmissionTicket("service-heartbeat-ticket");
+        request.setRegistrationToken("service-heartbeat-ticket");
         return request;
     }
 }

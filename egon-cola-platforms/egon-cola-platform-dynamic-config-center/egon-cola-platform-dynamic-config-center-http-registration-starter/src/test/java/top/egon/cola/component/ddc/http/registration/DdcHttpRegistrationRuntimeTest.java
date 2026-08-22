@@ -1,6 +1,7 @@
 package top.egon.cola.component.ddc.http.registration;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
@@ -14,13 +15,17 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
-import top.egon.cola.component.ddc.model.admission.DdcAdmissionTicket;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.contract.ServiceTokenContext;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 
 import java.time.Instant;
-import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -28,6 +33,9 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class DdcHttpRegistrationRuntimeTest {
 
@@ -38,7 +46,8 @@ class DdcHttpRegistrationRuntimeTest {
                 registry,
                 serviceKeyFactory(),
                 properties(),
-                admissionTickets()
+                serviceTokens().client,
+                idpProperties()
         );
 
         runtime.onHttpServerReady(18080);
@@ -65,7 +74,8 @@ class DdcHttpRegistrationRuntimeTest {
                 registry,
                 serviceKeyFactory(),
                 properties(),
-                admissionTickets()
+                serviceTokens().client,
+                idpProperties()
         );
 
         runtime.onHttpServerReady(18080);
@@ -117,16 +127,16 @@ class DdcHttpRegistrationRuntimeTest {
     }
 
     @Test
-    void initialAdmissionFailurePreventsRegistrationAndReady() {
+    void initialServiceTokenFailurePreventsRegistrationAndReady() {
         FakeRegistry registry = new FakeRegistry();
-        RecordingAdmissionTickets admissionTickets =
-                new RecordingAdmissionTickets();
-        admissionTickets.failures.set(1);
+        RecordingServiceTokens serviceTokens = serviceTokens();
+        serviceTokens.failures.set(1);
         DdcHttpRegistrationRuntime runtime = new DdcHttpRegistrationRuntime(
                 registry,
                 serviceKeyFactory(),
                 properties(),
-                admissionTickets
+                serviceTokens.client,
+                idpProperties()
         );
 
         assertThrows(
@@ -141,17 +151,17 @@ class DdcHttpRegistrationRuntimeTest {
     @Test
     void renewalFailureLeavesReadyAndRetainsLeaseForShutdown() {
         FakeRegistry registry = new FakeRegistry();
-        RecordingAdmissionTickets admissionTickets =
-                new RecordingAdmissionTickets();
+        RecordingServiceTokens serviceTokens = serviceTokens();
         DdcHttpRegistrationRuntime runtime = new DdcHttpRegistrationRuntime(
                 registry,
                 serviceKeyFactory(),
                 properties(),
-                admissionTickets
+                serviceTokens.client,
+                idpProperties()
         );
         runtime.onHttpServerReady(18080);
         DdcLeaseSession established = runtime.lease().orElseThrow();
-        admissionTickets.failures.set(1);
+        serviceTokens.failures.set(1);
 
         runtime.heartbeatAndRecover();
 
@@ -160,34 +170,43 @@ class DdcHttpRegistrationRuntimeTest {
         assertEquals(0, registry.heartbeats.get());
         runtime.close();
         assertEquals(1, registry.deregistrations.get());
-        assertEquals(2, admissionTickets.calls.get());
+        assertEquals(2, serviceTokens.calls.get());
     }
 
     @Test
-    void attachesCurrentTicketToRegistrationAndEveryHeartbeat() {
+    void attachesCurrentServiceTokenToRegistrationAndEveryHeartbeat() {
         FakeRegistry registry = new FakeRegistry();
-        RecordingAdmissionTickets admissionTickets =
-                new RecordingAdmissionTickets();
+        RecordingServiceTokens serviceTokens = serviceTokens();
         DdcHttpRegistrationRuntime runtime = new DdcHttpRegistrationRuntime(
                 registry,
                 serviceKeyFactory(),
                 properties(),
-                admissionTickets
+                serviceTokens.client,
+                idpProperties()
         );
 
         runtime.onHttpServerReady(18080);
         runtime.heartbeatAndRecover();
 
         assertEquals(
-                "admission-ticket-1",
-                registry.registration.admissionTicket()
+                "service-token-1",
+                registry.registration.registrationToken()
         );
         assertEquals(
-                "admission-ticket-2",
-                registry.heartbeatRequest.getAdmissionTicket()
+                "service-token-2",
+                registry.heartbeatRequest.getRegistrationToken()
         );
+        assertEquals(2, serviceTokens.requests.size());
+        IdpServiceTokenRequest request = serviceTokens.requests.getFirst();
+        assertEquals(
+                java.net.URI.create("https://api.example/ddc"),
+                request.audience()
+        );
+        assertEquals(ServiceTokenContext.PLATFORM, request.context());
+        assertEquals(null, request.tenantId());
+        assertEquals(Set.of("ddc:registration:write"), request.scopes());
         runtime.close();
-        assertEquals(2, admissionTickets.calls.get());
+        assertEquals(2, serviceTokens.calls.get());
     }
 
     private DdcHttpRegistrationRuntimeProperties properties() {
@@ -223,20 +242,19 @@ class DdcHttpRegistrationRuntimeTest {
         return new DdcServiceKeyFactory(properties);
     }
 
-    private DdcAdmissionTicketSupplier admissionTickets() {
-        return (bizCode, appCode, environment, instanceId) ->
-                new DdcAdmissionTicket(
-                        "test-admission-ticket",
-                        Instant.parse("2099-01-01T00:00:00Z"),
-                        "resource-test",
-                        URI.create("urn:egon:resource:test"),
-                        1L,
-                        bizCode,
-                        appCode,
-                        environment,
-                        instanceId,
-                        "kid-test"
-                );
+    private IdpStarterProperties idpProperties() {
+        IdpStarterProperties properties = new IdpStarterProperties();
+        properties.setResourceUri(java.net.URI.create("https://api.example/ddc"));
+        IdpStarterProperties.ServiceClient client =
+                new IdpStarterProperties.ServiceClient();
+        client.setAppId("ddc-app");
+        client.setRegistrationId("ddc-registration");
+        properties.setServiceClient(client);
+        return properties;
+    }
+
+    private RecordingServiceTokens serviceTokens() {
+        return new RecordingServiceTokens();
     }
 
     private static final class FakeRegistry
@@ -326,38 +344,39 @@ class DdcHttpRegistrationRuntimeTest {
         }
     }
 
-    private static final class RecordingAdmissionTickets
-            implements DdcAdmissionTicketSupplier {
+    private static final class RecordingServiceTokens {
 
         private final AtomicInteger calls = new AtomicInteger();
 
         private final AtomicInteger failures = new AtomicInteger();
 
-        @Override
-        public DdcAdmissionTicket getTicket(
-                String bizCode,
-                String appCode,
-                String environment,
-                String instanceId) {
-            int sequence = calls.incrementAndGet();
-            if (failures.getAndUpdate(value -> Math.max(0, value - 1))
-                    > 0) {
-                throw new IllegalStateException(
-                        "IdP admission unavailable"
-                );
-            }
-            return new DdcAdmissionTicket(
-                    "admission-ticket-" + sequence,
-                    Instant.parse("2099-01-01T00:00:00Z"),
-                    "resource-test",
-                    URI.create("urn:egon:resource:test"),
-                    1L,
-                    bizCode,
-                    appCode,
-                    environment,
-                    instanceId,
-                    "kid-test"
-            );
+        private final List<IdpServiceTokenRequest> requests =
+                new ArrayList<>();
+
+        private final IdpServiceOAuth2Client client = mock(
+                IdpServiceOAuth2Client.class
+        );
+
+        private RecordingServiceTokens() {
+            when(client.authorize(any(IdpServiceTokenRequest.class)))
+                    .thenAnswer(invocation -> {
+                        requests.add(invocation.getArgument(0));
+                        int sequence = calls.incrementAndGet();
+                        if (failures.getAndUpdate(
+                                value -> Math.max(0, value - 1)
+                        ) > 0) {
+                            throw new IllegalStateException(
+                                    "IdP service token unavailable"
+                            );
+                        }
+                        Instant issuedAt = Instant.now();
+                        return new OAuth2AccessToken(
+                                OAuth2AccessToken.TokenType.BEARER,
+                                "service-token-" + sequence,
+                                issuedAt,
+                                issuedAt.plusSeconds(300)
+                        );
+                    });
         }
     }
 }

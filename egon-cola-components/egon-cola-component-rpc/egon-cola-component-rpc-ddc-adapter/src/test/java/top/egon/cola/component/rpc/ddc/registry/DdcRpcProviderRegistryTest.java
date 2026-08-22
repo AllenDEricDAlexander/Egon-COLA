@@ -2,20 +2,22 @@ package top.egon.cola.component.rpc.ddc.registry;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.model.lease.*;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
-import top.egon.cola.component.ddc.model.admission.DdcAdmissionTicket;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
 import top.egon.cola.component.rpc.provider.registration.RpcLeaseOperationResult;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderLease;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderLeaseIdentity;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistration;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 
-import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -42,18 +44,8 @@ class DdcRpcProviderRegistryTest {
                 client,
                 "biz",
                 "app",
-                (biz, app, env, instance) -> new DdcAdmissionTicket(
-                        "admission.jwt.value",
-                        now.plusSeconds(20),
-                        "resource-order",
-                        URI.create("https://api.example/order"),
-                        1L,
-                        biz,
-                        app,
-                        env,
-                        instance,
-                        "kid-test"
-                ));
+                serviceClient(new AtomicInteger(), "service-token"),
+                idpProperties());
         RpcProviderRegistration registration = new RpcProviderRegistration(
                 new RpcServiceIdentity("OrderService", "default", "1.0.0"),
                 new RpcProcessIdentity("orders", "test", "127.0.0.1", 1, "instance-1"),
@@ -71,12 +63,12 @@ class DdcRpcProviderRegistryTest {
                 value.serviceKey().serviceKind() == DdcServiceKind.RPC_PROVIDER
                         && value.serviceKey().protocol().equals("grpc")
                         && value.instanceId().equals("instance-1")
-                        && value.admissionTicket().equals("admission.jwt.value")));
+                        && value.registrationToken().equals("service-token")));
         verify(client).heartbeat(argThat((DdcServiceLeaseRequest value) ->
                 value.getServiceKey().serviceKind()
                         == DdcServiceKind.RPC_PROVIDER
-                        && value.getAdmissionTicket()
-                        .equals("admission.jwt.value")));
+                        && value.getRegistrationToken()
+                        .equals("service-token")));
     }
 
     @Test
@@ -96,18 +88,8 @@ class DdcRpcProviderRegistryTest {
                 client,
                 "biz",
                 "app",
-                (biz, app, env, instance) -> new DdcAdmissionTicket(
-                        "admission-ticket-" + calls.incrementAndGet(),
-                        now.plusSeconds(60),
-                        "resource-order",
-                        URI.create("https://api.example/order"),
-                        1L,
-                        biz,
-                        app,
-                        env,
-                        instance,
-                        "kid-test"
-                )
+                serviceClient(calls, "service-token-1", "service-token-2"),
+                idpProperties()
         );
         RpcProviderRegistration registration = new RpcProviderRegistration(
                 new RpcServiceIdentity(
@@ -127,10 +109,10 @@ class DdcRpcProviderRegistryTest {
                 lease.leaseId()
         ));
 
-        verify(client).register(argThat(value -> value.admissionTicket()
-                .equals("admission-ticket-1")));
-        verify(client).heartbeat(argThat(value -> value.getAdmissionTicket()
-                .equals("admission-ticket-2")));
+        verify(client).register(argThat(value -> value.registrationToken()
+                .equals("service-token-1")));
+        verify(client).heartbeat(argThat(value -> value.getRegistrationToken()
+                .equals("service-token-2")));
         assertThat(calls).hasValue(2);
     }
 
@@ -153,18 +135,8 @@ class DdcRpcProviderRegistryTest {
                 client,
                 "trade",
                 "orders",
-                (biz, app, env, instance) -> new DdcAdmissionTicket(
-                        "admission.jwt.value",
-                        now.plusSeconds(30),
-                        "resource-order",
-                        URI.create("https://api.example/order"),
-                        1L,
-                        biz,
-                        app,
-                        env,
-                        instance,
-                        "kid-test"
-                )
+                serviceClient(new AtomicInteger(), "service-token"),
+                idpProperties()
         );
         RpcProviderRegistration registration = new RpcProviderRegistration(
                 new RpcServiceIdentity(
@@ -211,5 +183,38 @@ class DdcRpcProviderRegistryTest {
                 .containsExactlyEntriesOf(Map.of("region", "cn-east-1"));
         assertThat(captured.leaseSeconds()).isEqualTo(45);
         assertThat(captured.heartbeatIntervalSeconds()).isEqualTo(15);
+    }
+
+    private IdpStarterProperties idpProperties() {
+        IdpStarterProperties properties = new IdpStarterProperties();
+        properties.setResourceUri(java.net.URI.create("https://api.example/ddc"));
+        IdpStarterProperties.ServiceClient client =
+                new IdpStarterProperties.ServiceClient();
+        client.setAppId("ddc-app");
+        client.setRegistrationId("ddc-registration");
+        properties.setServiceClient(client);
+        return properties;
+    }
+
+    private IdpServiceOAuth2Client serviceClient(
+            AtomicInteger calls,
+            String... tokens) {
+        IdpServiceOAuth2Client client = mock(IdpServiceOAuth2Client.class);
+        when(client.authorize(any(IdpServiceTokenRequest.class)))
+                .thenAnswer(invocation -> {
+                    int sequence = calls.getAndIncrement();
+                    return accessToken(tokens[Math.min(sequence, tokens.length - 1)]);
+                });
+        return client;
+    }
+
+    private OAuth2AccessToken accessToken(String value) {
+        Instant issuedAt = Instant.now();
+        return new OAuth2AccessToken(
+                OAuth2AccessToken.TokenType.BEARER,
+                value,
+                issuedAt,
+                issuedAt.plusSeconds(300)
+        );
     }
 }

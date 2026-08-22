@@ -7,7 +7,10 @@ import org.springframework.http.MediaType;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
-import top.egon.cola.platform.idp.starter.admission.PrivateKeyJwtAssertionFactory;
+import top.egon.cola.platform.idp.contract.ServiceTokenContext;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 
 import java.net.URI;
 import java.time.Clock;
@@ -53,6 +56,12 @@ public final class HttpMcpTaskServiceTokenSupplier
      * 用法 / Usage: 该字段通过 {@code HttpMcpTaskServiceTokenSupplier} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code HttpMcpTaskServiceTokenSupplier}; do not couple callers to its representation when the owning type exposes an API.
      */
     private final String clientId;
+
+    /** Spring Security OAuth2 Client facade used by the production path. */
+    private final IdpServiceOAuth2Client serviceClient;
+
+    /** IdP client registration settings used by the production path. */
+    private final IdpStarterProperties idpProperties;
 
     /**
      * 每次请求创建新 Assertion 的工厂；factory creating a fresh assertion per request.
@@ -106,9 +115,8 @@ public final class HttpMcpTaskServiceTokenSupplier
      * 创建生产 HTTP SERVICE Token 提供器。
      * Creates the production HTTP SERVICE-token supplier.
      *
-     * @param restClient Spring HTTP 客户端；Spring HTTP client
-     * @param tokenEndpoint IdP Token Endpoint；IdP Token Endpoint
-     * @param assertions {@code private_key_jwt} 工厂；assertion factory
+     * @param serviceClient IdP OAuth2 Client facade；IdP OAuth2 Client facade
+     * @param idpProperties IdP client registration settings；IdP client settings
      * @param scopes 任务执行 Scope；task-execution scopes
      * @param renewalSkew 提前续签窗口；renewal skew
      * @param clock UTC 业务时钟；UTC business clock
@@ -117,20 +125,25 @@ public final class HttpMcpTaskServiceTokenSupplier
      * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
      */
     public HttpMcpTaskServiceTokenSupplier(
-            RestClient restClient,
-            URI tokenEndpoint,
-            PrivateKeyJwtAssertionFactory assertions,
+            IdpServiceOAuth2Client serviceClient,
+            IdpStarterProperties idpProperties,
             Set<String> scopes,
             Duration renewalSkew,
             Clock clock
     ) {
-        this(
-                Objects.requireNonNull(assertions, "assertions").clientId(),
-                assertions::create,
-                scopes,
-                renewalSkew,
-                clock,
-                httpEndpoint(restClient, tokenEndpoint)
+        this.clientId = null;
+        this.assertions = null;
+        this.scopes = normalizedScopes(scopes);
+        this.renewalSkew = positive(renewalSkew, "renewalSkew");
+        this.clock = Objects.requireNonNull(clock, "clock");
+        this.endpoint = null;
+        this.serviceClient = Objects.requireNonNull(
+                serviceClient,
+                "serviceClient"
+        );
+        this.idpProperties = Objects.requireNonNull(
+                idpProperties,
+                "idpProperties"
         );
     }
 
@@ -154,6 +167,8 @@ public final class HttpMcpTaskServiceTokenSupplier
         this.renewalSkew = positive(renewalSkew, "renewalSkew");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.endpoint = Objects.requireNonNull(endpoint, "endpoint");
+        this.serviceClient = null;
+        this.idpProperties = null;
     }
 
     /**
@@ -165,6 +180,19 @@ public final class HttpMcpTaskServiceTokenSupplier
      */
     @Override
     public String issue(String tenantId, URI resourceUri) {
+        if (serviceClient != null) {
+            IdpStarterProperties.ServiceClient client =
+                    idpProperties.getServiceClient();
+            client.validate();
+            return serviceClient.authorize(new IdpServiceTokenRequest(
+                    client.getRegistrationId(),
+                    client.getAppId(),
+                    resource(resourceUri),
+                    ServiceTokenContext.TENANT,
+                    required(tenantId, "tenantId"),
+                    scopes
+            )).getTokenValue();
+        }
         CacheKey key = new CacheKey(
                 required(tenantId, "tenantId"),
                 resource(resourceUri)

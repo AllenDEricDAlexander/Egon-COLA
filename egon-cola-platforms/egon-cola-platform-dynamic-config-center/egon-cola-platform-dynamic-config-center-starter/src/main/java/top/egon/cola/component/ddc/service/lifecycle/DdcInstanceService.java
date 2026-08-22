@@ -4,7 +4,6 @@ import top.egon.cola.component.ddc.state.DdcLeaseSessionHolder;
 
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.api.extension.DdcInstanceMetadataContributor;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.error.DdcException;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
@@ -13,7 +12,12 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
+import top.egon.cola.platform.idp.contract.ServiceTokenContext;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 
+import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -50,11 +54,11 @@ public class DdcInstanceService {
      */
     private final List<DdcInstanceMetadataContributor> metadataContributors;
 
-    /**
-     * 为精确配置客户端实例提供短期准入票据的端口。
-     * Port supplying short-lived admission tickets for the exact configuration-client instance.
-     */
-    private final DdcAdmissionTicketSupplier admissionTickets;
+    /** IdP OAuth2 Client facade for configuration-client SERVICE tokens. */
+    private final IdpServiceOAuth2Client serviceClient;
+
+    /** IdP client registration and resource settings. */
+    private final IdpStarterProperties idpProperties;
 
     /**
      * 创建支持自定义实例元数据的实例服务。
@@ -65,7 +69,8 @@ public class DdcInstanceService {
      * @param identity             实例身份; instance identity
      * @param sessionHolder        租约会话持有器; lease session holder
      * @param metadataContributors 元数据贡献器; metadata contributors
-     * @param admissionTickets     准入票据端口; admission-ticket port
+     * @param serviceClient        IdP OAuth2 Client facade; IdP OAuth2 Client facade
+     * @param idpProperties        IdP client settings; IdP client settings
      */
     public DdcInstanceService(
             DdcProperties properties,
@@ -73,16 +78,17 @@ public class DdcInstanceService {
             DdcInstanceIdentity identity,
             DdcLeaseSessionHolder sessionHolder,
             List<DdcInstanceMetadataContributor> metadataContributors,
-            DdcAdmissionTicketSupplier admissionTickets) {
+            IdpServiceOAuth2Client serviceClient,
+            IdpStarterProperties idpProperties) {
         this.properties = properties;
         this.adminClient = adminClient;
         this.identity = identity;
         this.sessionHolder = sessionHolder;
         this.metadataContributors = List.copyOf(metadataContributors);
-        this.admissionTickets = java.util.Objects.requireNonNull(
-                admissionTickets,
-                "admissionTickets"
-        );
+        this.serviceClient = java.util.Objects.requireNonNull(
+                serviceClient, "serviceClient");
+        this.idpProperties = java.util.Objects.requireNonNull(
+                idpProperties, "idpProperties");
     }
 
     /**
@@ -95,7 +101,7 @@ public class DdcInstanceService {
     public DdcLeaseSession register() {
         DdcInstanceRegisterRequest request = new DdcInstanceRegisterRequest();
         fill(request);
-        request.setAdmissionTicket(admissionTicket());
+        request.setRegistrationToken(registrationToken());
         request.setLeaseSeconds(properties.getInstance().getLeaseSeconds());
         request.setHeartbeatIntervalSeconds(properties.getInstance().getHeartbeatIntervalSeconds());
         DdcLeaseSession session = adminClient.register(request);
@@ -113,7 +119,7 @@ public class DdcInstanceService {
      */
     public DdcLeaseOperationResult heartbeat(DdcLeaseSession session) {
         DdcHeartbeatRequest request = operationRequest(session);
-        request.setAdmissionTicket(admissionTicket());
+        request.setRegistrationToken(registrationToken());
         return adminClient.heartbeat(request);
     }
 
@@ -153,18 +159,25 @@ public class DdcInstanceService {
     }
 
     /**
-     * 为当前实例的精确业务、应用和环境身份取得准入 JWT。
-     * Acquires an admission JWT for the current instance's exact business, application, and environment identity.
+     * 为当前实例的精确业务、应用和环境身份取得 PLATFORM SERVICE Token。
+     * Acquires a PLATFORM SERVICE token for the current instance's exact business, application, and environment identity.
      *
-     * @return 原始短期准入 JWT; raw short-lived admission JWT
+     * @return 不透明 SERVICE access token; opaque SERVICE access token
      */
-    private String admissionTicket() {
-        return admissionTickets.getTicket(
-                identity.bizCode(),
-                identity.appCode(),
-                identity.env(),
-                identity.instanceId()
-        ).value();
+    private String registrationToken() {
+        IdpStarterProperties.ServiceClient client = idpProperties.getServiceClient();
+        client.validate();
+        URI resource = java.util.Objects.requireNonNull(
+                idpProperties.getResourceUri(),
+                "egon.cola.platform.idp.resource-uri");
+        return serviceClient.authorize(new IdpServiceTokenRequest(
+                client.getRegistrationId(),
+                client.getAppId(),
+                resource,
+                ServiceTokenContext.PLATFORM,
+                null,
+                java.util.Set.of("ddc:registration:write")
+        )).getTokenValue();
     }
 
     /**

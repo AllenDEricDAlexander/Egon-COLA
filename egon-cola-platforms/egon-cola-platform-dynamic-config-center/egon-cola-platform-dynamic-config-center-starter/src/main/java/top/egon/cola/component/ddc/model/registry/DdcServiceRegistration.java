@@ -22,7 +22,7 @@ import java.util.TreeMap;
  * @param metadata                 不可变的实例元数据 / immutable instance metadata
  * @param leaseSeconds             租约有效期秒数 / lease duration in seconds
  * @param heartbeatIntervalSeconds 心跳间隔秒数 / heartbeat interval in seconds
- * @param admissionTicket          IdP 短期准入票据 / short-lived IdP admission ticket
+ * @param registrationToken       Opaque IdP SERVICE access token / opaque SERVICE access token
  */
 public record DdcServiceRegistration(
         String instanceId,
@@ -33,8 +33,11 @@ public record DdcServiceRegistration(
         @Nullable Map<String, String> metadata,
         int leaseSeconds,
         int heartbeatIntervalSeconds,
-        String admissionTicket
+        String registrationToken
 ) {
+
+    /** Maximum opaque credential size accepted by DDC transport models. */
+    public static final int MAX_REGISTRATION_TOKEN_LENGTH = 8192;
 
     /**
      * 校验并规范化注册信息。
@@ -67,12 +70,12 @@ public record DdcServiceRegistration(
                     "heartbeatIntervalSeconds must be positive and less than leaseSeconds"
             );
         }
-        admissionTicket = require(admissionTicket, "admissionTicket");
+        registrationToken = requireRegistrationToken(registrationToken);
     }
 
     /**
-     * 返回不会泄漏原始准入 JWT 的诊断文本。
-     * / Returns diagnostic text that never exposes the raw admission JWT.
+     * 返回不会泄漏原始 registration token 的诊断文本。
+     * / Returns diagnostic text that never exposes the raw registration token.
      *
      * @return 已脱敏的注册摘要 / redacted registration summary
      */
@@ -86,7 +89,7 @@ public record DdcServiceRegistration(
                 + ", metadata=" + metadata
                 + ", leaseSeconds=" + leaseSeconds
                 + ", heartbeatIntervalSeconds=" + heartbeatIntervalSeconds
-                + ", admissionTicket=<redacted>]";
+                + ", registrationToken=<redacted>]";
     }
 
     /**
@@ -186,6 +189,18 @@ public record DdcServiceRegistration(
     private static String require(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " is required");
+        }
+        return value;
+    }
+
+    /** Validates the opaque registration credential without decoding its claims. */
+    public static String requireRegistrationToken(String value) {
+        value = require(value, "registrationToken");
+        if (value.length() > MAX_REGISTRATION_TOKEN_LENGTH) {
+            throw new IllegalArgumentException(
+                    "registrationToken must not exceed "
+                            + MAX_REGISTRATION_TOKEN_LENGTH + " characters"
+            );
         }
         return value;
     }

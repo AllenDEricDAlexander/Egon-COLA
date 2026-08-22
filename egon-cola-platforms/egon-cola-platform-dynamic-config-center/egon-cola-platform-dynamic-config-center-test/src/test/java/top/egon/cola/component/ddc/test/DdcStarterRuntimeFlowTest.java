@@ -12,7 +12,6 @@ import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.model.config.DdcAckRequest;
 import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
@@ -23,8 +22,9 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.model.config.DdcConfigValue;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
-import top.egon.cola.component.ddc.model.admission.DdcAdmissionTicket;
 import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.ddc.test.service.SampleConfigService;
@@ -40,6 +40,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = {
         "egon.cola.component.ddc.enabled=true",
@@ -53,6 +54,9 @@ import static org.mockito.Mockito.when;
         "egon.cola.component.ddc.consistency.fail-fast=true",
         "egon.cola.component.ddc.instance.lease-seconds=7200",
         "egon.cola.component.ddc.instance.heartbeat-interval-seconds=3600",
+        "egon.cola.platform.idp.resource-uri=https://api.example/ddc",
+        "egon.cola.platform.idp.service-client.app-id=ddc-app",
+        "egon.cola.platform.idp.service-client.registration-id=ddc-registration",
         "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
                 + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
                 + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration"
@@ -96,20 +100,18 @@ class DdcStarterRuntimeFlowTest {
         }
 
         @Bean
-        DdcAdmissionTicketSupplier admissionTicketSupplier() {
-            return (bizCode, appCode, env, instanceId) ->
-                    new DdcAdmissionTicket(
-                            "test-admission-ticket",
-                            Instant.now().plusSeconds(300),
-                            "demo-resource",
-                            URI.create("https://api.egon.internal/dev/demo-biz/demo-app"),
-                            1L,
-                            bizCode,
-                            appCode,
-                            env,
-                            instanceId,
-                            "test-kid"
-                    );
+        IdpServiceOAuth2Client serviceClient() {
+            IdpServiceOAuth2Client client = mock(IdpServiceOAuth2Client.class);
+            Instant issuedAt = Instant.now();
+            when(client.authorize(org.mockito.ArgumentMatchers.any(
+                    IdpServiceTokenRequest.class
+            ))).thenReturn(new OAuth2AccessToken(
+                    OAuth2AccessToken.TokenType.BEARER,
+                    "service-token",
+                    issuedAt,
+                    issuedAt.plusSeconds(300)
+            ));
+            return client;
         }
 
         @Bean(name = "ddcRedissonClient", destroyMethod = "")
@@ -141,8 +143,8 @@ class DdcStarterRuntimeFlowTest {
 
         @Override
         public DdcLeaseSession register(DdcInstanceRegisterRequest request) {
-            assertThat(request.getAdmissionTicket())
-                    .isEqualTo("test-admission-ticket");
+            assertThat(request.getRegistrationToken())
+                    .isEqualTo("service-token");
             events.add("register");
             Instant registeredAt = Instant.now();
             return new DdcLeaseSession(

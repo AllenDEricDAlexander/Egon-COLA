@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.model.config;
 
+import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
+
 import org.springframework.lang.Nullable;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -72,11 +74,8 @@ public class DdcInstanceRegisterRequest {
      */
     private Map<String, String> metadata = Map.of();
 
-    /**
-     * IdP 签发且仅用于本次注册验证的短期准入票据。
-     * / Short-lived IdP admission ticket used only to validate this registration.
-     */
-    private String admissionTicket;
+    /** Opaque IdP SERVICE access token used for this registration. */
+    private String registrationToken;
 
 
     /**
@@ -322,20 +321,21 @@ public class DdcInstanceRegisterRequest {
     }
 
     /**
-     * 返回短期准入票据。 / Returns the short-lived admission ticket.
+     * 返回注册 SERVICE Token。 / Returns the registration SERVICE token.
      *
-     * @return 原始准入 JWT / raw admission JWT
+     * @return 不透明 SERVICE Token / opaque SERVICE token
      */
-    public String getAdmissionTicket() {
-        return admissionTicket;
+    public String getRegistrationToken() {
+        return registrationToken;
     }
 
     /**
-     * 设置短期准入票据。 / Sets the short-lived admission ticket.
+     * 设置注册 SERVICE Token。 / Sets the registration SERVICE token.
      *
-     * @param admissionTicket 原始准入 JWT / raw admission JWT
+     * @param registrationToken 不透明 SERVICE Token / opaque SERVICE token
      */
-    public void setAdmissionTicket(String admissionTicket) {
-        this.admissionTicket = admissionTicket;
+    public void setRegistrationToken(String registrationToken) {
+        this.registrationToken = DdcServiceRegistration
+                .requireRegistrationToken(registrationToken);
     }
 }

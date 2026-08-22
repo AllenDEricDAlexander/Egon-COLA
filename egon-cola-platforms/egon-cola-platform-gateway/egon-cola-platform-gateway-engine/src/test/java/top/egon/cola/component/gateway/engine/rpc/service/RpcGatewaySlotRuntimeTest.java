@@ -17,12 +17,13 @@ import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
-import top.egon.cola.component.ddc.model.admission.DdcAdmissionTicket;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
 
 import java.time.Instant;
-import java.net.URI;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,6 +32,9 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class RpcGatewaySlotRuntimeTest {
 
@@ -93,7 +97,8 @@ class RpcGatewaySlotRuntimeTest {
                 registry,
                 serviceKeyFactory(),
                 properties(3, 1),
-                admissionTickets()
+                serviceTokens().client,
+                idpProperties()
         );
         runtime.listenerStarted(19090);
         runtime.engineReady();
@@ -122,7 +127,8 @@ class RpcGatewaySlotRuntimeTest {
                 registry,
                 serviceKeyFactory(),
                 properties(3, 1),
-                admissionTickets()
+                serviceTokens().client,
+                idpProperties()
         );
         runtime.listenerStarted(19090);
 
@@ -145,7 +151,8 @@ class RpcGatewaySlotRuntimeTest {
                 registry,
                 serviceKeyFactory(),
                 properties(),
-                admissionTickets()
+                serviceTokens().client,
+                idpProperties()
         );
 
         runtime.listenerStarted(19090);
@@ -181,16 +188,16 @@ class RpcGatewaySlotRuntimeTest {
     }
 
     @Test
-    void initialAdmissionFailurePreventsGatewayReady() {
+    void initialServiceTokenFailurePreventsGatewayReady() {
         FakeRegistry registry = new FakeRegistry();
-        RecordingAdmissionTickets admissionTickets =
-                new RecordingAdmissionTickets();
-        admissionTickets.failures.set(1);
+        RecordingServiceTokens serviceTokens = serviceTokens();
+        serviceTokens.failures.set(1);
         RpcGatewaySlotRuntime runtime = new RpcGatewaySlotRuntime(
                 registry,
                 serviceKeyFactory(),
                 properties(),
-                admissionTickets
+                serviceTokens.client,
+                idpProperties()
         );
         runtime.listenerStarted(19090);
 
@@ -205,18 +212,18 @@ class RpcGatewaySlotRuntimeTest {
     @Test
     void renewalFailureLeavesReadyAndRetainsLeaseForShutdown() {
         FakeRegistry registry = new FakeRegistry();
-        RecordingAdmissionTickets admissionTickets =
-                new RecordingAdmissionTickets();
+        RecordingServiceTokens serviceTokens = serviceTokens();
         RpcGatewaySlotRuntime runtime = new RpcGatewaySlotRuntime(
                 registry,
                 serviceKeyFactory(),
                 properties(),
-                admissionTickets
+                serviceTokens.client,
+                idpProperties()
         );
         runtime.listenerStarted(19090);
         runtime.engineReady();
         DdcLeaseSession established = runtime.lease().orElseThrow();
-        admissionTickets.failures.set(1);
+        serviceTokens.failures.set(1);
 
         runtime.heartbeatAndRecover();
 
@@ -225,19 +232,19 @@ class RpcGatewaySlotRuntimeTest {
         assertEquals(0, registry.heartbeats.get());
         runtime.close();
         assertEquals(1, registry.deregistrations.get());
-        assertEquals(2, admissionTickets.calls.get());
+        assertEquals(2, serviceTokens.calls.get());
     }
 
     @Test
-    void attachesCurrentTicketToRegistrationAndEveryHeartbeat() {
+    void attachesCurrentServiceTokenToRegistrationAndEveryHeartbeat() {
         FakeRegistry registry = new FakeRegistry();
-        RecordingAdmissionTickets admissionTickets =
-                new RecordingAdmissionTickets();
+        RecordingServiceTokens serviceTokens = serviceTokens();
         RpcGatewaySlotRuntime runtime = new RpcGatewaySlotRuntime(
                 registry,
                 serviceKeyFactory(),
                 properties(),
-                admissionTickets
+                serviceTokens.client,
+                idpProperties()
         );
         runtime.listenerStarted(19090);
         runtime.engineReady();
@@ -245,15 +252,15 @@ class RpcGatewaySlotRuntimeTest {
         runtime.heartbeatAndRecover();
 
         assertEquals(
-                "admission-ticket-1",
-                registry.registration.admissionTicket()
+                "service-token-1",
+                registry.registration.registrationToken()
         );
         assertEquals(
-                "admission-ticket-2",
-                registry.heartbeatRequest.getAdmissionTicket()
+                "service-token-2",
+                registry.heartbeatRequest.getRegistrationToken()
         );
         runtime.close();
-        assertEquals(2, admissionTickets.calls.get());
+        assertEquals(2, serviceTokens.calls.get());
     }
 
     private RpcGatewaySlotRuntime readyRuntime(FakeRegistry registry) {
@@ -261,7 +268,8 @@ class RpcGatewaySlotRuntimeTest {
                 registry,
                 serviceKeyFactory(),
                 properties(),
-                admissionTickets()
+                serviceTokens().client,
+                idpProperties()
         );
         runtime.listenerStarted(19090);
         runtime.engineReady();
@@ -281,20 +289,19 @@ class RpcGatewaySlotRuntimeTest {
         return new DdcServiceKeyFactory(properties);
     }
 
-    private DdcAdmissionTicketSupplier admissionTickets() {
-        return (bizCode, appCode, environment, instanceId) ->
-                new DdcAdmissionTicket(
-                        "test-admission-ticket",
-                        Instant.parse("2099-01-01T00:00:00Z"),
-                        "resource-test",
-                        URI.create("urn:egon:resource:test"),
-                        1L,
-                        bizCode,
-                        appCode,
-                        environment,
-                        instanceId,
-                        "kid-test"
-                );
+    private IdpStarterProperties idpProperties() {
+        IdpStarterProperties properties = new IdpStarterProperties();
+        properties.setResourceUri(java.net.URI.create("https://api.example/ddc"));
+        IdpStarterProperties.ServiceClient client =
+                new IdpStarterProperties.ServiceClient();
+        client.setAppId("ddc-app");
+        client.setRegistrationId("ddc-registration");
+        properties.setServiceClient(client);
+        return properties;
+    }
+
+    private RecordingServiceTokens serviceTokens() {
+        return new RecordingServiceTokens();
     }
 
     private RpcGatewaySlotProperties properties(
@@ -417,38 +424,35 @@ class RpcGatewaySlotRuntimeTest {
         }
     }
 
-    private static final class RecordingAdmissionTickets
-            implements DdcAdmissionTicketSupplier {
+    private static final class RecordingServiceTokens {
 
         private final AtomicInteger calls = new AtomicInteger();
 
         private final AtomicInteger failures = new AtomicInteger();
 
-        @Override
-        public DdcAdmissionTicket getTicket(
-                String bizCode,
-                String appCode,
-                String environment,
-                String instanceId) {
-            int sequence = calls.incrementAndGet();
-            if (failures.getAndUpdate(value -> Math.max(0, value - 1))
-                    > 0) {
-                throw new IllegalStateException(
-                        "IdP admission unavailable"
-                );
-            }
-            return new DdcAdmissionTicket(
-                    "admission-ticket-" + sequence,
-                    Instant.parse("2099-01-01T00:00:00Z"),
-                    "resource-test",
-                    URI.create("urn:egon:resource:test"),
-                    1L,
-                    bizCode,
-                    appCode,
-                    environment,
-                    instanceId,
-                    "kid-test"
-            );
+        private final IdpServiceOAuth2Client client = mock(
+                IdpServiceOAuth2Client.class
+        );
+
+        private RecordingServiceTokens() {
+            when(client.authorize(any(IdpServiceTokenRequest.class)))
+                    .thenAnswer(invocation -> {
+                        int sequence = calls.incrementAndGet();
+                        if (failures.getAndUpdate(
+                                value -> Math.max(0, value - 1)
+                        ) > 0) {
+                            throw new IllegalStateException(
+                                    "IdP service token unavailable"
+                            );
+                        }
+                        Instant issuedAt = Instant.now();
+                        return new OAuth2AccessToken(
+                                OAuth2AccessToken.TokenType.BEARER,
+                                "service-token-" + sequence,
+                                issuedAt,
+                                issuedAt.plusSeconds(300)
+                        );
+                    });
         }
     }
 }

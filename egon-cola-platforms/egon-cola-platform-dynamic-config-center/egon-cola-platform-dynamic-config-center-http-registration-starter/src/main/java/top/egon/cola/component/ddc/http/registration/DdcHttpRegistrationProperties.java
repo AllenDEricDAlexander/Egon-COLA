@@ -11,6 +11,9 @@ public class DdcHttpRegistrationProperties {
     public static final String PREFIX =
             "egon.cola.component.ddc.registry.http";
 
+    /** Fixed least-privilege scope required for DDC registration and heartbeat. */
+    public static final String REGISTRATION_SCOPE = "ddc:registration:write";
+
     private boolean enabled;
 
     private String env;

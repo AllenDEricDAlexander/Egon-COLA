@@ -13,13 +13,13 @@ import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationAutoConfiguration;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcAutoConfiguration;
 import top.egon.cola.component.rpc.ddc.client.config.RpcDdcConfigClient;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -156,8 +156,8 @@ class GatewayAdminApplicationConfigurationTest {
         }
 
         @Bean
-        DdcAdmissionTicketSupplier ddcAdmissionTicketSupplier() {
-            return mock(DdcAdmissionTicketSupplier.class);
+        IdpServiceOAuth2Client idpServiceOAuth2Client() {
+            return mock(IdpServiceOAuth2Client.class);
         }
 
         @Bean

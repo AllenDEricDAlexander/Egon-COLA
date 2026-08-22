@@ -2,7 +2,6 @@ package top.egon.cola.component.ddc.test;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.config.DdcAckRequest;
 import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
@@ -22,7 +21,6 @@ import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.ddc.redis.DdcRedisTopicSubscription;
 
 import java.time.Instant;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,6 +29,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 
 class DdcLeaseLifecycleTest {
 
@@ -54,7 +57,8 @@ class DdcLeaseLifecycleTest {
                 ),
                 sessionHolder,
                 List.of(),
-                admissionTickets()
+                serviceClient(),
+                idpProperties()
         );
         DdcRedisTopicSubscription<DdcPublishMessage> subscription =
                 mock(DdcRedisTopicSubscription.class);
@@ -106,20 +110,28 @@ class DdcLeaseLifecycleTest {
         return properties;
     }
 
-    private DdcAdmissionTicketSupplier admissionTickets() {
-        return (bizCode, appCode, environment, instanceId) ->
-                new top.egon.cola.component.ddc.model.admission.DdcAdmissionTicket(
-                        "test-admission-ticket",
-                        Instant.parse("2099-01-01T00:00:00Z"),
-                        "resource-test",
-                        URI.create("urn:egon:resource:test"),
-                        1L,
-                        bizCode,
-                        appCode,
-                        environment,
-                        instanceId,
-                        "kid-test"
-                );
+    private IdpStarterProperties idpProperties() {
+        IdpStarterProperties properties = new IdpStarterProperties();
+        properties.setResourceUri(java.net.URI.create("https://api.example/ddc"));
+        IdpStarterProperties.ServiceClient client =
+                new IdpStarterProperties.ServiceClient();
+        client.setAppId("ddc-app");
+        client.setRegistrationId("ddc-registration");
+        properties.setServiceClient(client);
+        return properties;
+    }
+
+    private IdpServiceOAuth2Client serviceClient() {
+        IdpServiceOAuth2Client client = mock(IdpServiceOAuth2Client.class);
+        Instant issuedAt = Instant.now();
+        when(client.authorize(any(IdpServiceTokenRequest.class)))
+                .thenReturn(new OAuth2AccessToken(
+                        OAuth2AccessToken.TokenType.BEARER,
+                        "service-token",
+                        issuedAt,
+                        issuedAt.plusSeconds(300)
+                ));
+        return client;
     }
 
     private static final class RecordingAdminClient implements DdcConfigClient {

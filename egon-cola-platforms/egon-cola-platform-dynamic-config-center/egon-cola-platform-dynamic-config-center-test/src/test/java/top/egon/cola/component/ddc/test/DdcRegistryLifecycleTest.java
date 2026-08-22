@@ -55,7 +55,7 @@ class DdcRegistryLifecycleTest {
         heartbeat.setServiceKey(registration.serviceKey());
         heartbeat.setInstanceId(session.instanceId());
         heartbeat.setLeaseId(session.leaseId());
-        heartbeat.setAdmissionTicket("test-admission-ticket");
+        heartbeat.setRegistrationToken("test-service-token");
         assertThat(registry.heartbeat(heartbeat).status())
                 .isEqualTo(DdcLeaseOperationStatus.RENEWED);
         assertThat(registry.deregister(
@@ -91,7 +91,7 @@ class DdcRegistryLifecycleTest {
                 Map.of("zone", "local"),
                 kind == DdcServiceKind.RPC_PROVIDER ? 30 : 15,
                 kind == DdcServiceKind.RPC_PROVIDER ? 10 : 5,
-                "test-admission-ticket"
+                "test-service-token"
         );
     }
 

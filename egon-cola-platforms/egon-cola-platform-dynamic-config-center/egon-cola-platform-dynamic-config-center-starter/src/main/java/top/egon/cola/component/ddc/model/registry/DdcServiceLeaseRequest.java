@@ -23,11 +23,8 @@ public class DdcServiceLeaseRequest {
      */
     private String leaseId;
 
-    /**
-     * 仅用于心跳验证的 IdP 短期准入票据。
-     * / Short-lived IdP admission ticket used only for heartbeat validation.
-     */
-    private String admissionTicket;
+    /** Opaque IdP SERVICE access token used for heartbeat validation. */
+    private String registrationToken;
 
     /**
      * 返回租约所属服务键。 / Returns the service key that owns the lease.
@@ -84,26 +81,27 @@ public class DdcServiceLeaseRequest {
     }
 
     /**
-     * 返回心跳准入票据。 / Returns the heartbeat admission ticket.
+     * 返回心跳 SERVICE Token。 / Returns the heartbeat SERVICE token.
      *
-     * @return 原始准入 JWT / raw admission JWT
+     * @return 不透明 SERVICE Token / opaque SERVICE token
      */
-    public String getAdmissionTicket() {
-        return admissionTicket;
+    public String getRegistrationToken() {
+        return registrationToken;
     }
 
     /**
-     * 设置心跳准入票据。 / Sets the heartbeat admission ticket.
+     * 设置心跳 SERVICE Token。 / Sets the heartbeat SERVICE token.
      *
-     * @param admissionTicket 原始准入 JWT / raw admission JWT
+     * @param registrationToken 不透明 SERVICE Token / opaque SERVICE token
      */
-    public void setAdmissionTicket(String admissionTicket) {
-        this.admissionTicket = admissionTicket;
+    public void setRegistrationToken(String registrationToken) {
+        this.registrationToken = DdcServiceRegistration
+                .requireRegistrationToken(registrationToken);
     }
 
     /**
-     * 返回不会泄漏原始准入 JWT 的租约诊断文本。
-     * / Returns lease diagnostic text that never exposes the raw admission JWT.
+     * 返回不会泄漏原始 registration token 的租约诊断文本。
+     * / Returns lease diagnostic text that never exposes the raw registration token.
      *
      * @return 已脱敏租约摘要 / redacted lease summary
      */
@@ -112,6 +110,6 @@ public class DdcServiceLeaseRequest {
         return "DdcServiceLeaseRequest[serviceKey=" + serviceKey
                 + ", instanceId=" + instanceId
                 + ", leaseId=" + leaseId
-                + ", admissionTicket=<redacted>]";
+                + ", registrationToken=<redacted>]";
     }
 }

@@ -2,37 +2,38 @@ package top.egon.cola.component.rpc.test.fixture;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
-import top.egon.cola.component.ddc.model.admission.DdcAdmissionTicket;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 
-import java.net.URI;
 import java.time.Instant;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 /**
- * Supplies the fixed admission credential accepted by the RPC process test.
+ * Supplies the fixed IdP OAuth2 Client facade used by the RPC process test.
  */
 @Configuration(proxyBeanMethods = false)
 public class RpcTestAdmissionConfiguration {
 
     /**
-     * Creates tickets bound to the exact process identity requested by DDC.
+     * Creates a client facade returning the fixed process-test SERVICE token.
      *
-     * @return process-test admission ticket supplier
+     * @return process-test OAuth2 Client facade
      */
     @Bean
-    public DdcAdmissionTicketSupplier rpcTestAdmissionTicketSupplier() {
-        return (bizCode, appCode, environment, instanceId) ->
-                new DdcAdmissionTicket(
-                        "test-admission-ticket",
-                        Instant.now().plusSeconds(300),
-                        "rpc-process-test-resource",
-                        URI.create("urn:egon:resource:rpc-process-test"),
-                        1L,
-                        bizCode,
-                        appCode,
-                        environment,
-                        instanceId,
-                        "rpc-process-test-credential"
-                );
+    public IdpServiceOAuth2Client rpcTestServiceClient() {
+        IdpServiceOAuth2Client client = mock(IdpServiceOAuth2Client.class);
+        Instant issuedAt = Instant.now();
+        when(client.authorize(any(IdpServiceTokenRequest.class)))
+                .thenReturn(new OAuth2AccessToken(
+                        OAuth2AccessToken.TokenType.BEARER,
+                        "test-service-token",
+                        issuedAt,
+                        issuedAt.plusSeconds(300)
+                ));
+        return client;
     }
 }

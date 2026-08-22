@@ -8,8 +8,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
-import top.egon.cola.component.ddc.model.admission.DdcAdmissionTicket;
 import top.egon.cola.component.ddc.autoconfigure.DdcAutoConfiguration;
 import top.egon.cola.component.ddc.autoconfigure.DdcRedisAutoConfiguration;
 import top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfiguration;
@@ -20,9 +18,7 @@ import top.egon.cola.component.rpc.context.identity.RpcProcessIdentityProvider;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistry;
-
-import java.net.URI;
-import java.time.Instant;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -31,23 +27,9 @@ class DdcRpcAutoConfigurationTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(DdcRpcAutoConfiguration.class))
-            .withBean(DdcAdmissionTicketSupplier.class, this::admissionTickets);
-
-    private DdcAdmissionTicketSupplier admissionTickets() {
-        return (bizCode, appCode, environment, instanceId) ->
-                new DdcAdmissionTicket(
-                        "test-admission-ticket",
-                        Instant.parse("2099-01-01T00:00:00Z"),
-                        "resource-test",
-                        URI.create("urn:egon:resource:test"),
-                        1L,
-                        bizCode,
-                        appCode,
-                        environment,
-                        instanceId,
-                        "kid-test"
-                );
-    }
+            .withBean(IdpServiceOAuth2Client.class, () -> mock(
+                    IdpServiceOAuth2Client.class
+            ));
 
     @Test
     void disabledRuntimeAndRegistryCreateNoDirectClientAndRequireNoTarget() {
@@ -117,8 +99,8 @@ class DdcRpcAutoConfigurationTest {
                 ))
                 .withUserConfiguration(RedisOverride.class)
                 .withBean(
-                        DdcAdmissionTicketSupplier.class,
-                        this::admissionTickets
+                        IdpServiceOAuth2Client.class,
+                        () -> mock(IdpServiceOAuth2Client.class)
                 )
                 .withPropertyValues(
                         "egon.cola.component.ddc.enabled=true",

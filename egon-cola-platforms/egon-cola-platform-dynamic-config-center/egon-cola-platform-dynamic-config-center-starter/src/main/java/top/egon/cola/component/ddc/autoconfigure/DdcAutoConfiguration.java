@@ -39,7 +39,6 @@ import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.binding.DdcFieldBindingService;
 import top.egon.cola.component.ddc.api.extension.DdcInstanceIdProvider;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.service.lifecycle.DdcInstanceIdentityFactory;
 import top.egon.cola.component.ddc.api.extension.DdcInstanceMetadataContributor;
 import top.egon.cola.component.ddc.service.lifecycle.DdcInstanceService;
@@ -48,6 +47,8 @@ import top.egon.cola.component.ddc.service.refresh.DdcRefreshService;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.ddc.service.refresh.DefaultDdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.redis.DdcRedisTopicSubscription;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
 
 import java.util.List;
 
@@ -58,7 +59,8 @@ import java.util.List;
 @EnableScheduling
 @EnableConfigurationProperties({
         DdcProperties.class,
-        DdcAckDeliveryProperties.class
+        DdcAckDeliveryProperties.class,
+        IdpStarterProperties.class
 })
 @ConditionalOnProperty(prefix = "egon.cola.component.ddc", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class DdcAutoConfiguration {
@@ -388,7 +390,8 @@ public class DdcAutoConfiguration {
      * @param identity             当前实例身份。 current instance identity
      * @param sessionHolder        租约会话持有器。 lease-session holder
      * @param metadataContributors 有序实例元数据贡献器。 ordered instance-metadata contributors
-     * @param admissionTickets     IdP 准入票据端口。 IdP admission-ticket port
+     * @param serviceClient        IdP OAuth2 Client facade。 IdP OAuth2 Client facade
+     * @param idpProperties        IdP client settings。 IdP client settings
      * @return DDC 实例服务。 DDC instance service
     */
     @Bean
@@ -404,14 +407,16 @@ public class DdcAutoConfiguration {
                                                  DdcLeaseSessionHolder sessionHolder,
                                                  ObjectProvider<DdcInstanceMetadataContributor>
                                                          metadataContributors,
-                                                 DdcAdmissionTicketSupplier admissionTickets) {
+                                                 IdpServiceOAuth2Client serviceClient,
+                                                 IdpStarterProperties idpProperties) {
         return new DdcInstanceService(
                 properties,
                 adminClient,
                 identity,
                 sessionHolder,
                 metadataContributors.orderedStream().toList(),
-                admissionTickets
+                serviceClient,
+                idpProperties
         );
     }
 

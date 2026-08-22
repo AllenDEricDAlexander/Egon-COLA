@@ -40,7 +40,7 @@ public final class DdcRegistryProtoMapper {
                 .setLeaseSeconds(value.leaseSeconds())
                 .setHeartbeatIntervalSeconds(
                         value.heartbeatIntervalSeconds())
-                .setAdmissionTicket(value.admissionTicket())
+                .setRegistrationToken(value.registrationToken())
                 .build());
     }
 
@@ -60,7 +60,7 @@ public final class DdcRegistryProtoMapper {
                 value.getLeaseSeconds(),
                 value.getHeartbeatIntervalSeconds(),
                 DdcCommonProtoMapper.require(
-                        value.getAdmissionTicket(), "admissionTicket")
+                        value.getRegistrationToken(), "registrationToken")
         );
     }
 
@@ -71,8 +71,8 @@ public final class DdcRegistryProtoMapper {
                 .setServiceKey(common.toProto(value.getServiceKey()))
                 .setInstanceId(value.getInstanceId())
                 .setLeaseId(value.getLeaseId())
-                .setAdmissionTicket(DdcCommonProtoMapper.require(
-                        value.getAdmissionTicket(), "admissionTicket"))
+                .setRegistrationToken(DdcCommonProtoMapper.require(
+                        value.getRegistrationToken(), "registrationToken"))
                 .build());
     }
 
@@ -84,8 +84,8 @@ public final class DdcRegistryProtoMapper {
                 value.getInstanceId(),
                 value.getLeaseId()
         );
-        result.setAdmissionTicket(DdcCommonProtoMapper.require(
-                value.getAdmissionTicket(), "admissionTicket"));
+        result.setRegistrationToken(DdcCommonProtoMapper.require(
+                value.getRegistrationToken(), "registrationToken"));
         return result;
     }
 
@@ -243,7 +243,7 @@ public final class DdcRegistryProtoMapper {
     private static void requireLease(DdcServiceLeaseRequest value) {
         requireLeaseIdentity(value);
         DdcCommonProtoMapper.require(
-                value.getAdmissionTicket(), "admissionTicket");
+                value.getRegistrationToken(), "registrationToken");
     }
 
     private static void requireLeaseIdentity(DdcServiceLeaseRequest value) {

@@ -9,13 +9,18 @@ import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
+import top.egon.cola.platform.idp.contract.ServiceTokenContext;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 
+import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -23,8 +28,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * 维护 Gateway RPC Slot 的监听、准入注册、心跳续约和排空状态。
- * / Maintains listening, admitted registration, heartbeat renewal, and draining state for the Gateway RPC slot.
+ * 维护 Gateway RPC Slot 的监听、SERVICE Token 注册、心跳续约和排空状态。
+ * / Maintains listening, SERVICE-token registration, heartbeat renewal, and draining state for the Gateway RPC slot.
  * 补充说明 / Supplementary summary: {@code RpcGatewaySlotRuntime} 是运行时组件，位于当前 Gateway 模块的相关包中，负责Rpc网关槽位运行时相关的职责与边界。
  * English supplement: {@code RpcGatewaySlotRuntime} is a rpc gateway slot runtime runtime in the current Gateway module; it owns the rpc gateway slot runtime-related responsibility and boundary.
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
@@ -56,12 +61,15 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
     private final RpcGatewaySlotProperties properties;
 
     /**
-     * 为每次注册和心跳提供精确绑定的短期票据。 / Supplies an exactly bound short-lived ticket for every registration and heartbeat.
-     * 补充说明 / Supplementary summary: 保存 准入Tickets 对应的状态、依赖或配置值；字段类型为 {@code DdcAdmissionTicketSupplier}，由 {@code RpcGatewaySlotRuntime} 在其生命周期内读取或更新。
-     * English supplement: Holds the state, dependency, or configuration represented by admission tickets; its type is {@code DdcAdmissionTicketSupplier}, and {@code RpcGatewaySlotRuntime} reads or updates it during its lifecycle.
+     * 为每次注册和心跳提供精确绑定的 SERVICE Token。 / Supplies an exactly bound SERVICE token for every registration and heartbeat.
+     * 补充说明 / Supplementary summary: 保存 IdP OAuth2 Client 对应的状态、依赖或配置值；字段类型为 {@code IdpServiceOAuth2Client}，由 {@code RpcGatewaySlotRuntime} 在其生命周期内读取或更新。
+     * English supplement: Holds the IdP OAuth2 Client used for registration and heartbeat tokens; {@code RpcGatewaySlotRuntime} reads it during its lifecycle.
      * 用法 / Usage: 该字段通过 {@code RpcGatewaySlotRuntime} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code RpcGatewaySlotRuntime}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private final DdcAdmissionTicketSupplier admissionTickets;
+    private final IdpServiceOAuth2Client serviceClient;
+
+    /** IdP client registration and DDC resource settings. */
+    private final IdpStarterProperties idpProperties;
 
     /**
      * 中文说明：保存 scheduler 对应的状态、依赖或配置值；字段类型为 {@code ScheduledExecutorService}，由 {@code RpcGatewaySlotRuntime} 在其生命周期内读取或更新。
@@ -126,7 +134,8 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
      * @param registry DDC 服务注册客户端 / DDC service-registry client
      * @param serviceKeyFactory 服务键工厂 / service-key factory
      * @param properties RPC Slot 参数 / RPC-slot settings
-     * @param admissionTickets 准入票据端口 / admission-ticket port
+     * @param serviceClient IdP OAuth2 Client facade / IdP OAuth2 Client facade
+     * @param idpProperties IdP client settings / IdP client settings
      * 补充说明 / Supplementary summary: 创建 {@code RpcGatewaySlotRuntime} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
      * English supplement: Creates an instance of {@code RpcGatewaySlotRuntime} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
      * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
@@ -135,16 +144,21 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
             DdcServiceRegistryClient registry,
             DdcServiceKeyFactory serviceKeyFactory,
             RpcGatewaySlotProperties properties,
-            DdcAdmissionTicketSupplier admissionTickets) {
+            IdpServiceOAuth2Client serviceClient,
+            IdpStarterProperties idpProperties) {
         this.registry = Objects.requireNonNull(registry, "registry");
         this.serviceKeyFactory = Objects.requireNonNull(
                 serviceKeyFactory,
                 "serviceKeyFactory"
         );
         this.properties = Objects.requireNonNull(properties, "properties");
-        this.admissionTickets = Objects.requireNonNull(
-                admissionTickets,
-                "admissionTickets"
+        this.serviceClient = Objects.requireNonNull(
+                serviceClient,
+                "serviceClient"
+        );
+        this.idpProperties = Objects.requireNonNull(
+                idpProperties,
+                "idpProperties"
         );
         state = new AtomicReference<>(properties.enabled()
                 ? RpcGatewaySubsystemState.STARTING
@@ -224,9 +238,7 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
             request.setServiceKey(registration.serviceKey());
             request.setInstanceId(lease.instanceId());
             request.setLeaseId(lease.leaseId());
-            request.setAdmissionTicket(admissionTicket(
-                    registration.serviceKey()
-            ));
+            request.setRegistrationToken(registrationToken());
             var result = Objects.requireNonNull(
                     registry.heartbeat(request),
                     "heartbeat result"
@@ -433,8 +445,8 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
     }
 
     /**
-     * 使用实际端口和新鲜票据构造本轮注册。
-     * / Builds the current registration with the actual port and a fresh ticket.
+     * 使用实际端口和新鲜 SERVICE Token 构造本轮注册。
+     * / Builds the current registration with the actual port and a fresh SERVICE token.
      *
      * @return DDC 服务注册请求 / DDC service registration
      * 补充说明 / Supplementary summary: 执行 registration 操作；该方法是 {@code RpcGatewaySlotRuntime} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -469,26 +481,31 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
                 ),
                 properties.leaseSeconds(),
                 properties.heartbeatIntervalSeconds(),
-                admissionTicket(serviceKey)
+                registrationToken()
         );
     }
 
     /**
-     * 为当前 Gateway 实例和精确物理作用域取得原始票据。
-     * / Obtains the raw ticket for the current Gateway instance and exact physical scope.
+     * 为当前 Gateway 实例取得 DDC PLATFORM SERVICE Token。
+     * / Obtains a DDC PLATFORM SERVICE token for the current Gateway instance.
      *
-     * @param serviceKey 实际发送的服务键 / service key actually sent
-     * @return 原始短期准入 JWT / raw short-lived admission JWT
-     * 补充说明 / Supplementary summary: 执行 准入Ticket 操作；该方法是 {@code RpcGatewaySlotRuntime} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English supplement: Executes the admission ticket operation; this method is the invocation entry point on {@code RpcGatewaySlotRuntime} and performs the corresponding runtime, management, or protocol work.
-     * 用法 / Usage: 调用方式 / Usage: {@code RpcGatewaySlotRuntime.admissionTicket(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
+     * @return 不透明 SERVICE access token / opaque SERVICE access token
      */
-    private String admissionTicket(DdcServiceKey serviceKey) {
-        return admissionTickets.getTicket(
-                serviceKey.bizCode(),
-                serviceKey.appCode(),
-                serviceKey.env(),
-                properties.instanceId()
-        ).value();
+    private String registrationToken() {
+        IdpStarterProperties.ServiceClient client =
+                idpProperties.getServiceClient();
+        client.validate();
+        URI audience = Objects.requireNonNull(
+                idpProperties.getResourceUri(),
+                "egon.cola.platform.idp.resource-uri"
+        );
+        return serviceClient.authorize(new IdpServiceTokenRequest(
+                client.getRegistrationId(),
+                client.getAppId(),
+                audience,
+                ServiceTokenContext.PLATFORM,
+                null,
+                Set.of("ddc:registration:write")
+        )).getTokenValue();
     }
 }

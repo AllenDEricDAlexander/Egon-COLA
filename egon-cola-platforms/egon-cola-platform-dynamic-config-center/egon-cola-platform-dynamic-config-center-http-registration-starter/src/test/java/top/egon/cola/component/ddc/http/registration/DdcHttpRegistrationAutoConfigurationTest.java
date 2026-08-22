@@ -8,6 +8,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.web.context.WebServerApplicationContext;
 import org.springframework.boot.web.context.WebServerInitializedEvent;
 import org.springframework.boot.web.server.WebServer;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
@@ -23,10 +24,9 @@ import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
-import top.egon.cola.component.ddc.model.admission.DdcAdmissionTicket;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 
-import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
@@ -36,6 +36,7 @@ import java.util.function.Consumer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -61,8 +62,8 @@ class DdcHttpRegistrationAutoConfigurationTest {
                             this::ddcInstanceIdentity
                     )
                     .withBean(
-                            DdcAdmissionTicketSupplier.class,
-                            this::admissionTickets
+                            IdpServiceOAuth2Client.class,
+                            this::serviceClient
                     )
                     .withPropertyValues(requiredProperties());
 
@@ -132,8 +133,8 @@ class DdcHttpRegistrationAutoConfigurationTest {
                         this::ddcInstanceIdentity
                 )
                 .withBean(
-                        DdcAdmissionTicketSupplier.class,
-                        this::admissionTickets
+                        IdpServiceOAuth2Client.class,
+                        this::serviceClient
                 )
                 .withBean(DdcServiceRegistryClient.class, () -> registry)
                 .run(context -> {
@@ -171,8 +172,8 @@ class DdcHttpRegistrationAutoConfigurationTest {
                         this::serviceKeyFactory
                 )
                 .withBean(
-                        DdcAdmissionTicketSupplier.class,
-                        this::admissionTickets
+                        IdpServiceOAuth2Client.class,
+                        this::serviceClient
                 )
                 .withBean(DdcServiceRegistryClient.class, () -> registry)
                 .run(context -> {
@@ -282,6 +283,9 @@ class DdcHttpRegistrationAutoConfigurationTest {
                 "egon.cola.component.ddc.registry.http.heartbeat-interval-seconds=1",
                 "egon.cola.component.ddc.env=test",
                 "egon.cola.component.ddc.namespace=gateway-test",
+                "egon.cola.platform.idp.resource-uri=https://api.example/ddc",
+                "egon.cola.platform.idp.service-client.app-id=ddc-app",
+                "egon.cola.platform.idp.service-client.registration-id=ddc-registration",
                 "spring.application.name=orders"
         };
     }
@@ -314,20 +318,17 @@ class DdcHttpRegistrationAutoConfigurationTest {
         return new DdcServiceKeyFactory(properties);
     }
 
-    private DdcAdmissionTicketSupplier admissionTickets() {
-        return (bizCode, appCode, environment, instanceId) ->
-                new DdcAdmissionTicket(
-                        "test-admission-ticket",
-                        Instant.parse("2099-01-01T00:00:00Z"),
-                        "resource-test",
-                        URI.create("urn:egon:resource:test"),
-                        1L,
-                        bizCode,
-                        appCode,
-                        environment,
-                        instanceId,
-                        "kid-test"
-                );
+    private IdpServiceOAuth2Client serviceClient() {
+        IdpServiceOAuth2Client client = mock(IdpServiceOAuth2Client.class);
+        Instant issuedAt = Instant.now();
+        when(client.authorize(any(IdpServiceTokenRequest.class)))
+                .thenReturn(new OAuth2AccessToken(
+                        OAuth2AccessToken.TokenType.BEARER,
+                        "service-token",
+                        issuedAt,
+                        issuedAt.plusSeconds(300)
+                ));
+        return client;
     }
 
     private DdcInstanceIdentity ddcInstanceIdentity() {

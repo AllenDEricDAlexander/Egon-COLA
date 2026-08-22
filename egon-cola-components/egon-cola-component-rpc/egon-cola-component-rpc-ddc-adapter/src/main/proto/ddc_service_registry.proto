@@ -26,7 +26,7 @@ message RegisterServiceRequest {
   map<string, string> metadata = 6;
   int32 lease_seconds = 7;
   int32 heartbeat_interval_seconds = 8;
-  string admission_ticket = 9;
+  string registration_token = 9;
 }
 
 message RegisterServiceResponse {
@@ -37,7 +37,7 @@ message HeartbeatServiceRequest {
   DdcServiceKey service_key = 1;
   string instance_id = 2;
   string lease_id = 3;
-  string admission_ticket = 4;
+  string registration_token = 4;
 }
 
 message HeartbeatServiceResponse {

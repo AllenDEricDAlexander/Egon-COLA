@@ -264,7 +264,7 @@ public final class RpcMockGatewayApplication {
             request.setServiceKey(activeServices.get(lease.leaseId()));
             request.setInstanceId(lease.instanceId());
             request.setLeaseId(lease.leaseId());
-            request.setAdmissionTicket("test-admission-ticket");
+            request.setRegistrationToken("test-service-token");
             return result(delegate.heartbeat(request));
         }
 

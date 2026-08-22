@@ -1,7 +1,6 @@
 package top.egon.cola.component.rpc.ddc.registry;
 
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.format.ServiceInstanceMetaCodec;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
@@ -15,9 +14,15 @@ import top.egon.cola.component.rpc.provider.registration.RpcProviderLease;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderLeaseIdentity;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistration;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistry;
+import top.egon.cola.platform.idp.contract.ServiceTokenContext;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 
+import java.net.URI;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -27,39 +32,48 @@ public final class DdcRpcProviderRegistry implements RpcProviderRegistry {
     private final DdcServiceRegistryClient client;
     private final String bizCode;
     private final String appCode;
-    /** RPC Provider 注册和心跳所需的 IdP 短期票据。 / IdP short-lived tickets required by RPC Provider registration and heartbeats. */
-    private final DdcAdmissionTicketSupplier admissionTickets;
+    /** IdP OAuth2 Client facade used for RPC Provider registration and heartbeats. */
+    private final IdpServiceOAuth2Client serviceClient;
 
-    /** 按活动租约保存服务键，不保存原始票据。 / Holds service keys by active lease and never stores raw tickets. */
+    /** IdP client registration and DDC resource settings. */
+    private final IdpStarterProperties idpProperties;
+
+    /** 按活动租约保存服务键，不保存原始 Token。 / Holds service keys by active lease and never stores raw tokens. */
     private final ConcurrentMap<String, DdcServiceKey> activeServices =
             new ConcurrentHashMap<>();
 
     /**
-     * 创建 RPC Provider 到 DDC 的准入注册桥接器。
-     * / Creates the admitted registration bridge from RPC Provider to DDC.
+     * 创建 RPC Provider 到 DDC 的 SERVICE Token 注册桥接器。
+     * / Creates the SERVICE-token registration bridge from RPC Provider to DDC.
      *
      * @param client DDC 服务注册客户端 / DDC service-registry client
      * @param bizCode 业务域编码 / business-domain code
      * @param appCode 应用编码 / application code
-     * @param admissionTickets 准入票据端口 / admission-ticket port
+     * @param serviceClient IdP OAuth2 Client facade / IdP OAuth2 Client facade
+     * @param idpProperties IdP client settings / IdP client settings
      */
     public DdcRpcProviderRegistry(
             DdcServiceRegistryClient client,
             String bizCode,
             String appCode,
-            DdcAdmissionTicketSupplier admissionTickets) {
+            IdpServiceOAuth2Client serviceClient,
+            IdpStarterProperties idpProperties) {
         this.client = Objects.requireNonNull(client, "client");
         this.bizCode = bizCode;
         this.appCode = appCode;
-        this.admissionTickets = Objects.requireNonNull(
-                admissionTickets,
-                "admissionTickets"
+        this.serviceClient = Objects.requireNonNull(
+                serviceClient,
+                "serviceClient"
+        );
+        this.idpProperties = Objects.requireNonNull(
+                idpProperties,
+                "idpProperties"
         );
     }
 
     /**
      * 使用精确物理身份和新鲜票据注册 RPC Provider。
-     * / Registers an RPC Provider with its exact physical identity and a fresh ticket.
+     * / Registers an RPC Provider with its exact physical identity and a fresh SERVICE token.
      */
     @Override
     public RpcProviderLease register(RpcProviderRegistration registration) {
@@ -71,7 +85,7 @@ public final class DdcRpcProviderRegistry implements RpcProviderRegistry {
                 registration.host(), registration.port(), registration.secure(),
                 registration.metadata(), registration.leaseSeconds(),
                 registration.heartbeatIntervalSeconds(),
-                admissionTicket(serviceKey, registration.processIdentity().instanceId())
+                registrationToken()
         ));
         activeServices.put(session.leaseId(), serviceKey);
         return new RpcProviderLease(
@@ -82,7 +96,7 @@ public final class DdcRpcProviderRegistry implements RpcProviderRegistry {
 
     /**
      * 为活动 Provider 租约携带新鲜票据续约。
-     * / Renews an active Provider lease with a fresh ticket.
+     * / Renews an active Provider lease with a fresh SERVICE token.
      */
     @Override
     public RpcLeaseOperationResult heartbeat(RpcProviderLeaseIdentity lease) {
@@ -91,10 +105,7 @@ public final class DdcRpcProviderRegistry implements RpcProviderRegistry {
         request.setServiceKey(serviceKey);
         request.setInstanceId(lease.instanceId());
         request.setLeaseId(lease.leaseId());
-        request.setAdmissionTicket(admissionTicket(
-                serviceKey,
-                lease.instanceId()
-        ));
+        request.setRegistrationToken(registrationToken());
         DdcLeaseOperationResult result = client.heartbeat(request);
         if (!result.renewed()) {
             activeServices.remove(lease.leaseId());
@@ -103,8 +114,8 @@ public final class DdcRpcProviderRegistry implements RpcProviderRegistry {
     }
 
     /**
-     * 仅凭租约身份注销，不要求重新取得准入票据。
-     * / Deregisters with lease identity alone and does not acquire another admission ticket.
+     * 仅凭租约身份注销，不要求重新取得 SERVICE Token。
+     * / Deregisters with lease identity alone and does not acquire another SERVICE token.
      */
     @Override
     public RpcLeaseOperationResult deregister(RpcProviderLeaseIdentity lease) {
@@ -146,22 +157,27 @@ public final class DdcRpcProviderRegistry implements RpcProviderRegistry {
     }
 
     /**
-     * 为实际服务键和实例取得原始准入票据。
-     * / Obtains the raw admission ticket for the actual service key and instance.
+     * 为 RPC Provider 取得 DDC PLATFORM SERVICE Token。
+     * / Obtains a DDC PLATFORM SERVICE token for the RPC Provider.
      *
-     * @param serviceKey 实际发送的服务键 / service key actually sent
-     * @param instanceId 实际发送的实例标识 / instance identifier actually sent
-     * @return 原始短期准入 JWT / raw short-lived admission JWT
+     * @return 不透明 SERVICE access token / opaque SERVICE access token
      */
-    private String admissionTicket(
-            DdcServiceKey serviceKey,
-            String instanceId) {
-        return admissionTickets.getTicket(
-                serviceKey.bizCode(),
-                serviceKey.appCode(),
-                serviceKey.env(),
-                instanceId
-        ).value();
+    private String registrationToken() {
+        IdpStarterProperties.ServiceClient client =
+                idpProperties.getServiceClient();
+        client.validate();
+        URI audience = Objects.requireNonNull(
+                idpProperties.getResourceUri(),
+                "egon.cola.platform.idp.resource-uri"
+        );
+        return serviceClient.authorize(new IdpServiceTokenRequest(
+                client.getRegistrationId(),
+                client.getAppId(),
+                audience,
+                ServiceTokenContext.PLATFORM,
+                null,
+                Set.of("ddc:registration:write")
+        )).getTokenValue();
     }
 
     /**

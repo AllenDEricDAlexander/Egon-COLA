@@ -40,15 +40,15 @@ class DdcRpcContractDescriptorTest {
     }
 
     @Test
-    void appendsAdmissionTicketWithoutRenumberingExistingFields() {
+    void appendsRegistrationTokenWithoutRenumberingExistingFields() {
         assertThat(RegisterConfigClientRequest.getDescriptor()
-                .findFieldByName("admission_ticket").getNumber()).isEqualTo(10);
+                .findFieldByName("registration_token").getNumber()).isEqualTo(10);
         assertThat(HeartbeatConfigClientRequest.getDescriptor()
-                .findFieldByName("admission_ticket").getNumber()).isEqualTo(9);
+                .findFieldByName("registration_token").getNumber()).isEqualTo(9);
         assertThat(RegisterServiceRequest.getDescriptor()
-                .findFieldByName("admission_ticket").getNumber()).isEqualTo(9);
+                .findFieldByName("registration_token").getNumber()).isEqualTo(9);
         assertThat(HeartbeatServiceRequest.getDescriptor()
-                .findFieldByName("admission_ticket").getNumber()).isEqualTo(4);
+                .findFieldByName("registration_token").getNumber()).isEqualTo(4);
     }
 
     @Test

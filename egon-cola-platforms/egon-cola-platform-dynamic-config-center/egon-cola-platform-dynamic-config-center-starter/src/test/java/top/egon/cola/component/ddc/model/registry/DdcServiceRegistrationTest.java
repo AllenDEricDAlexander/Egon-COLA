@@ -98,13 +98,13 @@ class DdcServiceRegistrationTest {
     }
 
     @Test
-    void requiresAdmissionTicketOutsideMetadataAndRedactsItFromText() {
+    void requiresOpaqueRegistrationTokenOutsideMetadataAndRedactsItFromText() {
         DdcServiceRegistration registration = registration(Map.of());
 
-        assertThat(registration.admissionTicket()).isEqualTo("admission.jwt.value");
-        assertThat(registration.metadata()).doesNotContainKey("admission_ticket");
+        assertThat(registration.registrationToken()).isEqualTo("admission.jwt.value");
+        assertThat(registration.metadata()).doesNotContainKey("registration_token");
         assertThat(registration.toString())
-                .contains("admissionTicket=<redacted>")
+                .contains("registrationToken=<redacted>")
                 .doesNotContain("admission.jwt.value");
         assertThatThrownBy(() -> new DdcServiceRegistration(
                 registration.instanceId(),
@@ -117,7 +117,19 @@ class DdcServiceRegistrationTest {
                 registration.heartbeatIntervalSeconds(),
                 " "
         )).isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("admissionTicket");
+                .hasMessageContaining("registrationToken");
+        assertThatThrownBy(() -> new DdcServiceRegistration(
+                registration.instanceId(),
+                registration.serviceKey(),
+                registration.host(),
+                registration.port(),
+                registration.secure(),
+                registration.metadata(),
+                registration.leaseSeconds(),
+                registration.heartbeatIntervalSeconds(),
+                "x".repeat(DdcServiceRegistration.MAX_REGISTRATION_TOKEN_LENGTH + 1)
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must not exceed");
     }
 
     private DdcServiceRegistration registration(Map<String, String> metadata) {

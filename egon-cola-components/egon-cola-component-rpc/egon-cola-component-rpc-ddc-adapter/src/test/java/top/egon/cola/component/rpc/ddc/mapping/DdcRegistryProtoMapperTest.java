@@ -42,12 +42,12 @@ class DdcRegistryProtoMapperTest {
         lease.setServiceKey(key);
         lease.setInstanceId("instance-1");
         lease.setLeaseId("lease-1");
-        lease.setAdmissionTicket("service-heartbeat-ticket");
+        lease.setRegistrationToken("service-heartbeat-ticket");
         assertThat(mapper.fromHeartbeatRequest(mapper.toHeartbeatRequest(lease)))
                 .usingRecursiveComparison().isEqualTo(lease);
         assertThat(mapper.fromDeregisterRequest(mapper.toDeregisterRequest(lease)))
                 .usingRecursiveComparison()
-                .ignoringFields("admissionTicket")
+                .ignoringFields("registrationToken")
                 .isEqualTo(lease);
 
         Instant now = Instant.parse("2026-08-09T08:00:00.123456Z");
@@ -61,14 +61,14 @@ class DdcRegistryProtoMapperTest {
         assertThat(mapper.fromInstancesResponse(
                 mapper.toInstancesResponse(snapshot)))
                 .usingRecursiveComparison().isEqualTo(snapshot);
-        assertThat(mapper.toRegisterRequest(registration).getAdmissionTicket())
+        assertThat(mapper.toRegisterRequest(registration).getRegistrationToken())
                 .isEqualTo("service-register-ticket");
-        assertThat(mapper.toHeartbeatRequest(lease).getAdmissionTicket())
+        assertThat(mapper.toHeartbeatRequest(lease).getRegistrationToken())
                 .isEqualTo("service-heartbeat-ticket");
         assertThat(mapper.toDeregisterRequest(lease).getAllFields().keySet())
-                .noneMatch(field -> field.getName().equals("admission_ticket"));
+                .noneMatch(field -> field.getName().equals("registration_token"));
         assertThat(mapper.toProto(instance).getDescriptorForType()
-                .findFieldByName("admission_ticket")).isNull();
+                .findFieldByName("registration_token")).isNull();
 
         DdcServiceQuery query = new DdcServiceQuery(
                 "retail", "prod", "order", DdcServiceKind.RPC_PROVIDER,

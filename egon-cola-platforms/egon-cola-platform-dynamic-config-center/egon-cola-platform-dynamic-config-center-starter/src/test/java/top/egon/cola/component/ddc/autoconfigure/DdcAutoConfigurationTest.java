@@ -14,7 +14,6 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.redis.DdcRedisKeys;
 import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
@@ -24,6 +23,7 @@ import top.egon.cola.component.ddc.service.lifecycle.DdcAckDelivery;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcAckDeliveryProperties;
 import top.egon.cola.component.ddc.service.refresh.DefaultDdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.binding.DdcFieldBindingService;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -64,8 +64,8 @@ class DdcAutoConfigurationTest {
                     DdcAutoConfiguration.class
             ))
             .withBean(
-                    DdcAdmissionTicketSupplier.class,
-                    () -> mock(DdcAdmissionTicketSupplier.class)
+                    IdpServiceOAuth2Client.class,
+                    () -> mock(IdpServiceOAuth2Client.class)
             );
 
     private final ApplicationContextRunner redisContextRunner =
@@ -79,8 +79,8 @@ class DdcAutoConfigurationTest {
                             () -> mock(DdcConfigClient.class)
                     )
                     .withBean(
-                            DdcAdmissionTicketSupplier.class,
-                            () -> mock(DdcAdmissionTicketSupplier.class)
+                            IdpServiceOAuth2Client.class,
+                            () -> mock(IdpServiceOAuth2Client.class)
                     )
                     .withInitializer(context -> context.getEnvironment()
                             .getPropertySources().addFirst(

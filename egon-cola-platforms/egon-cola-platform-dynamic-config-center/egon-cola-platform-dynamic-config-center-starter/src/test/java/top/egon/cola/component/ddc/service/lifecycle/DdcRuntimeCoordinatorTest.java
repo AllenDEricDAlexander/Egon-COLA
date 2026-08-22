@@ -4,7 +4,6 @@ import top.egon.cola.component.ddc.state.DdcLeaseSessionHolder;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.service.refresh.DdcRefreshService;
 import top.egon.cola.component.ddc.error.DdcException;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
@@ -19,9 +18,11 @@ import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationResult;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
-import top.egon.cola.component.ddc.model.admission.DdcAdmissionTicket;
 import top.egon.cola.component.ddc.state.DdcLocalConfigState;
 import top.egon.cola.component.ddc.redis.DdcRedisTopicSubscription;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
 
 import java.net.URI;
 import java.time.Instant;
@@ -37,6 +38,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
 
 class DdcRuntimeCoordinatorTest {
 
@@ -95,21 +97,20 @@ class DdcRuntimeCoordinatorTest {
         RecordingAdminClient adminClient = new RecordingAdminClient(
                 new ArrayList<>()
         );
-        RecordingAdmissionTickets admissionTickets =
-                new RecordingAdmissionTickets();
-        admissionTickets.failures.set(1);
+        RecordingServiceTokens serviceTokens = serviceTokens();
+        serviceTokens.failures.set(1);
         DdcRuntimeCoordinator coordinator = coordinator(
                 adminClient,
                 mock(DdcRefreshService.class),
                 subscription(new ArrayList<>()),
                 properties(true),
                 new DdcLocalConfigState(),
-                admissionTickets
+                serviceTokens
         );
 
         assertThatThrownBy(coordinator::start)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("IdP admission unavailable");
+                .hasMessageContaining("IdP service token unavailable");
         assertThat(coordinator.state()).isEqualTo(DdcRuntimeState.FAILED);
         assertThat(adminClient.registerCount).isZero();
     }
@@ -118,20 +119,19 @@ class DdcRuntimeCoordinatorTest {
     void renewalFailureLeavesReadyWithoutExtendingOrLosingShutdownLease() {
         List<String> events = new ArrayList<>();
         RecordingAdminClient adminClient = new RecordingAdminClient(events);
-        RecordingAdmissionTickets admissionTickets =
-                new RecordingAdmissionTickets();
+        RecordingServiceTokens serviceTokens = serviceTokens();
         DdcRuntimeCoordinator coordinator = coordinator(
                 adminClient,
                 mock(DdcRefreshService.class),
                 subscription(events),
                 properties(true),
                 new DdcLocalConfigState(),
-                admissionTickets
+                serviceTokens
         );
         coordinator.start();
         DdcLeaseSession established = coordinator.currentSession()
                 .orElseThrow();
-        admissionTickets.failures.set(1);
+        serviceTokens.failures.set(1);
 
         coordinator.heartbeatOnce();
 
@@ -141,7 +141,7 @@ class DdcRuntimeCoordinatorTest {
         assertThat(adminClient.heartbeatCount).isZero();
         coordinator.stop();
         assertThat(events).endsWith("offline", "unsubscribe");
-        assertThat(admissionTickets.calls.get()).isEqualTo(2);
+        assertThat(serviceTokens.calls.get()).isEqualTo(2);
     }
 
     @Test
@@ -149,15 +149,14 @@ class DdcRuntimeCoordinatorTest {
         RecordingAdminClient adminClient = new RecordingAdminClient(
                 new ArrayList<>()
         );
-        RecordingAdmissionTickets admissionTickets =
-                new RecordingAdmissionTickets();
+        RecordingServiceTokens serviceTokens = serviceTokens();
         DdcRuntimeCoordinator coordinator = coordinator(
                 adminClient,
                 mock(DdcRefreshService.class),
                 subscription(new ArrayList<>()),
                 properties(true),
                 new DdcLocalConfigState(),
-                admissionTickets
+                serviceTokens
         );
         coordinator.start();
         adminClient.heartbeatExpireAt = Instant.parse(
@@ -166,10 +165,10 @@ class DdcRuntimeCoordinatorTest {
 
         coordinator.heartbeatOnce();
 
-        assertThat(adminClient.registrationAdmissionTicket)
-                .isEqualTo("admission-ticket-1");
-        assertThat(adminClient.heartbeatAdmissionTicket)
-                .isEqualTo("admission-ticket-2");
+        assertThat(adminClient.registrationToken)
+                .isEqualTo("service-token-1");
+        assertThat(adminClient.heartbeatToken)
+                .isEqualTo("service-token-2");
         assertThat(coordinator.currentSession().orElseThrow()
                 .leaseExpireAt()).isEqualTo(adminClient.heartbeatExpireAt);
         coordinator.stop();
@@ -393,7 +392,7 @@ class DdcRuntimeCoordinatorTest {
                 subscription,
                 properties,
                 repository,
-                new RecordingAdmissionTickets()
+                serviceTokens()
         );
     }
 
@@ -403,7 +402,7 @@ class DdcRuntimeCoordinatorTest {
             DdcRedisTopicSubscription<DdcPublishMessage> subscription,
             DdcProperties properties,
             DdcLocalConfigState repository,
-            DdcAdmissionTicketSupplier admissionTickets) {
+            RecordingServiceTokens serviceTokens) {
         DdcLeaseSessionHolder holder = new DdcLeaseSessionHolder();
         DdcInstanceIdentity identity = new DdcInstanceIdentity(
                 "instance-1",
@@ -422,7 +421,8 @@ class DdcRuntimeCoordinatorTest {
                         identity,
                         holder,
                         List.of(),
-                        admissionTickets
+                        serviceTokens.client,
+                        idpProperties()
                 );
         return new DdcRuntimeCoordinator(
                 properties,
@@ -468,9 +468,9 @@ class DdcRuntimeCoordinatorTest {
                 "2026-07-24T12:01:00Z"
         );
 
-        private String registrationAdmissionTicket;
+        private String registrationToken;
 
-        private String heartbeatAdmissionTicket;
+        private String heartbeatToken;
 
         private RecordingAdminClient(List<String> events) {
             this.events = events;
@@ -483,7 +483,7 @@ class DdcRuntimeCoordinatorTest {
         @Override
         public DdcLeaseSession register(DdcInstanceRegisterRequest request) {
             events.add("register");
-            registrationAdmissionTicket = request.getAdmissionTicket();
+            registrationToken = request.getRegistrationToken();
             if (registrationFailures-- > 0) {
                 throw new IllegalStateException("register failed");
             }
@@ -503,7 +503,7 @@ class DdcRuntimeCoordinatorTest {
         @Override
         public DdcLeaseOperationResult heartbeat(DdcHeartbeatRequest request) {
             heartbeatCount++;
-            heartbeatAdmissionTicket = request.getAdmissionTicket();
+            heartbeatToken = request.getRegistrationToken();
             return new DdcLeaseOperationResult(
                     heartbeatStatus,
                     heartbeatExpireAt
@@ -531,38 +531,42 @@ class DdcRuntimeCoordinatorTest {
         }
     }
 
-    private static final class RecordingAdmissionTickets
-            implements DdcAdmissionTicketSupplier {
+    private RecordingServiceTokens serviceTokens() {
+        IdpServiceOAuth2Client client = mock(IdpServiceOAuth2Client.class);
+        RecordingServiceTokens tokens = new RecordingServiceTokens(client);
+        when(client.authorize(any())).thenAnswer(invocation -> {
+            int sequence = tokens.calls.incrementAndGet();
+            if (tokens.failures.getAndUpdate(value -> Math.max(0, value - 1)) > 0) {
+                throw new IllegalStateException("IdP service token unavailable");
+            }
+            return new OAuth2AccessToken(
+                    OAuth2AccessToken.TokenType.BEARER,
+                    "service-token-" + sequence,
+                    Instant.parse("2026-08-10T00:00:00Z"),
+                    Instant.parse("2099-01-01T00:00:00Z")
+            );
+        });
+        return tokens;
+    }
+
+    private IdpStarterProperties idpProperties() {
+        IdpStarterProperties properties = new IdpStarterProperties();
+        properties.setResourceUri(URI.create("https://api.example/ddc"));
+        properties.getServiceClient().setAppId("ddc-app");
+        properties.getServiceClient().setRegistrationId("ddc-registration");
+        return properties;
+    }
+
+    private static final class RecordingServiceTokens {
+
+        private final IdpServiceOAuth2Client client;
 
         private final AtomicInteger calls = new AtomicInteger();
 
         private final AtomicInteger failures = new AtomicInteger();
 
-        @Override
-        public DdcAdmissionTicket getTicket(
-                String bizCode,
-                String appCode,
-                String environment,
-                String instanceId) {
-            int sequence = calls.incrementAndGet();
-            if (failures.getAndUpdate(value -> Math.max(0, value - 1))
-                    > 0) {
-                throw new IllegalStateException(
-                        "IdP admission unavailable"
-                );
-            }
-            return new DdcAdmissionTicket(
-                    "admission-ticket-" + sequence,
-                    Instant.parse("2026-08-10T00:05:00Z"),
-                    "resource-demo",
-                    URI.create("https://api.example/demo"),
-                    1L,
-                    bizCode,
-                    appCode,
-                    environment,
-                    instanceId,
-                    "kid-test"
-            );
+        private RecordingServiceTokens(IdpServiceOAuth2Client client) {
+            this.client = client;
         }
     }
 }

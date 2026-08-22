@@ -66,9 +66,9 @@ class RpcDdcConfigClientTest {
         verify(rpc).registerConfigClient(argThat(request ->
                 request.getScope().getBizCode().equals("biz")
                         && request.getLeaseSeconds() == 30
-                        && request.getAdmissionTicket().equals("config-register-ticket")));
+                        && request.getRegistrationToken().equals("config-register-ticket")));
         verify(rpc).heartbeatConfigClient(argThat(request ->
-                request.getAdmissionTicket().equals("config-heartbeat-ticket")));
+                request.getRegistrationToken().equals("config-heartbeat-ticket")));
         verify(rpc).pullConfig(argThat(request ->
                 request.getScope().getEnv().equals("test")));
         verify(rpc).acknowledgePublish(argThat(request ->
@@ -83,7 +83,7 @@ class RpcDdcConfigClientTest {
         request.setPid("1"); request.setSdkVersion("5.3.3");
         request.setLeaseSeconds(30); request.setHeartbeatIntervalSeconds(10);
         request.setMetadata(Map.of("zone", "a"));
-        request.setAdmissionTicket("config-register-ticket");
+        request.setRegistrationToken("config-register-ticket");
         return request;
     }
 
@@ -94,7 +94,7 @@ class RpcDdcConfigClientTest {
         request.setHost("127.0.0.1"); request.setPort(8080);
         request.setPid("1"); request.setSdkVersion("5.3.3");
         request.setMetadata(Map.of());
-        request.setAdmissionTicket("config-heartbeat-ticket");
+        request.setRegistrationToken("config-heartbeat-ticket");
         return request;
     }
 

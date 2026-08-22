@@ -29,7 +29,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.api.extension.DdcInstanceMetadataContributor;
 import top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
@@ -78,6 +77,8 @@ import top.egon.cola.component.gateway.engine.mcp.service.McpTaskServiceTokenSup
 import top.egon.cola.component.gateway.engine.mcp.service.McpTaskWorker;
 import top.egon.cola.component.gateway.engine.mcp.adapter.MicrometerMcpTelemetry;
 import top.egon.cola.component.gateway.engine.mcp.adapter.RedisMcpSessionStore;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
 import top.egon.cola.component.gateway.engine.mcp.adapter.remote.ReactorNettyRemoteMcpClient;
 import top.egon.cola.component.gateway.engine.mcp.adapter.security.JdbcMcpApprovalAdapter;
 import top.egon.cola.component.gateway.engine.mcp.adapter.security.Rbac3McpAuthorizationAdapter;
@@ -165,14 +166,13 @@ import top.egon.cola.component.gateway.mcp.tool.service.McpResultBinder;
 import top.egon.cola.component.gateway.mcp.tool.service.McpToolCatalog;
 import top.egon.cola.component.gateway.mcp.tool.service.McpToolsCallHandler;
 import top.egon.cola.component.gateway.mcp.tool.service.McpToolsListHandler;
-import top.egon.cola.platform.idp.starter.admission.OwnerOnlyPrivateKeyLoader;
-import top.egon.cola.platform.idp.starter.admission.PrivateKeyJwtAssertionFactory;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
 import top.egon.cola.platform.rbac3.starter.cache.SingleFlightSnapshotLoader;
 
 import javax.sql.DataSource;
 import java.net.URI;
 import java.nio.file.Path;
-import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.time.Clock;
@@ -841,32 +841,16 @@ public class GatewayEngineConfiguration {
             havingValue = "true"
     )
     public McpTaskServiceTokenSupplier gatewayMcpTaskServiceTokenSupplier(
-            @Value("${egon.cola.component.gateway.engine.mcp.tasks.service-token.token-endpoint}")
-            URI tokenEndpoint,
-            @Value("${egon.cola.component.gateway.engine.mcp.tasks.service-token.client-id}")
-            String clientId,
-            @Value("${egon.cola.component.gateway.engine.mcp.tasks.service-token.key-id}")
-            String keyId,
-            @Value("${egon.cola.component.gateway.engine.mcp.tasks.service-token.private-key-file}")
-            Path privateKeyFile,
             @Value("${egon.cola.component.gateway.engine.mcp.tasks.service-token.scopes}")
             Set<String> scopes,
             @Value("${egon.cola.component.gateway.engine.mcp.tasks.service-token.renewal-skew}")
             Duration renewalSkew,
-            @Qualifier("gatewayClock") Clock gatewayClock) {
-        PrivateKeyJwtAssertionFactory assertions =
-                new PrivateKeyJwtAssertionFactory(
-                        clientId,
-                        keyId,
-                        tokenEndpoint,
-                        new OwnerOnlyPrivateKeyLoader().load(privateKeyFile),
-                        gatewayClock,
-                        new SecureRandom()
-                );
+            @Qualifier("gatewayClock") Clock gatewayClock,
+            IdpServiceOAuth2Client serviceClient,
+            IdpStarterProperties idpProperties) {
         return new HttpMcpTaskServiceTokenSupplier(
-                org.springframework.web.client.RestClient.builder().build(),
-                tokenEndpoint,
-                assertions,
+                serviceClient,
+                idpProperties,
                 scopes,
                 renewalSkew,
                 gatewayClock
@@ -1634,14 +1618,15 @@ public class GatewayEngineConfiguration {
     }
 
     /**
-     * 创建携带 IdP 准入票据的 Gateway RPC Slot 运行时。
-     * / Creates the Gateway RPC-slot runtime that carries IdP admission tickets.
+     * 创建携带 IdP PLATFORM SERVICE Token 的 Gateway RPC Slot 运行时。
+     * / Creates the Gateway RPC-slot runtime that carries an IdP PLATFORM SERVICE token.
      *
      * @param registry DDC 服务注册客户端 / DDC service-registry client
      * @param serviceKeyFactory 服务键工厂 / service-key factory
      * @param ddcIdentity Gateway 的 DDC 实例身份 / Gateway DDC instance identity
      * @param properties Gateway Engine 配置 / Gateway Engine configuration
-     * @param admissionTickets 准入票据端口 / admission-ticket port
+     * @param serviceClient IdP OAuth2 Client facade / IdP OAuth2 Client facade
+     * @param idpProperties IdP client settings / IdP client settings
      * @return Gateway RPC Slot 运行时 / Gateway RPC-slot runtime
      * 补充说明 / Supplementary summary: 执行 网关Rpc槽位运行时 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
      * English supplement: Executes the gateway rpc slot runtime operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
@@ -1653,7 +1638,8 @@ public class GatewayEngineConfiguration {
             DdcServiceKeyFactory serviceKeyFactory,
             DdcInstanceIdentity ddcIdentity,
             GatewayEngineRuntimeProperties properties,
-            DdcAdmissionTicketSupplier admissionTickets) {
+            IdpServiceOAuth2Client serviceClient,
+            IdpStarterProperties idpProperties) {
         GatewayEngineRuntimeProperties.Rpc rpc = properties.getRpc();
         return new RpcGatewaySlotRuntime(
                 registry,
@@ -1674,7 +1660,8 @@ public class GatewayEngineConfiguration {
                         rpc.getLeaseSeconds(),
                         rpc.getHeartbeatIntervalSeconds()
                 ),
-                admissionTickets
+                serviceClient,
+                idpProperties
         );
     }
 

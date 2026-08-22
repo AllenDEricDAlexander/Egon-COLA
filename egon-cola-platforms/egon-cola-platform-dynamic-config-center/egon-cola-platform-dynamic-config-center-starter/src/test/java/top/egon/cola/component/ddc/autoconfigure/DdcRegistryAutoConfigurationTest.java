@@ -9,8 +9,8 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import top.egon.cola.component.ddc.api.client.DdcConfigClient;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -30,8 +30,8 @@ class DdcRegistryAutoConfigurationTest {
                             "egon.cola.component.ddc.registry.enabled=true"
                     )
                     .withBean(
-                            DdcAdmissionTicketSupplier.class,
-                            () -> mock(DdcAdmissionTicketSupplier.class)
+                            IdpServiceOAuth2Client.class,
+                            () -> mock(IdpServiceOAuth2Client.class)
                     );
 
     @Test
@@ -134,8 +134,8 @@ class DdcRegistryAutoConfigurationTest {
                         () -> mock(DdcConfigClient.class)
                 )
                 .withBean(
-                        DdcAdmissionTicketSupplier.class,
-                        () -> mock(DdcAdmissionTicketSupplier.class)
+                        IdpServiceOAuth2Client.class,
+                        () -> mock(IdpServiceOAuth2Client.class)
                 )
                 .run(context -> {
                     assertThat(context).hasSingleBean(DdcConfigClient.class);
