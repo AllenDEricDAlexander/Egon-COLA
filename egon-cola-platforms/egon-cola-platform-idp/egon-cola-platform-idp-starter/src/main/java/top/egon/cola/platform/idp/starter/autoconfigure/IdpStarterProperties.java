@@ -3,7 +3,6 @@ package top.egon.cola.platform.idp.starter.autoconfigure;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.net.URI;
-import java.nio.file.Path;
 import java.time.Duration;
 
 /**
@@ -78,12 +77,8 @@ public class IdpStarterProperties {
      */
     private String oauthClientStateKeyPrefix = "identity:oauth-client:";
 
-    /**
-     * Resource Server 启动准入和机器身份配置。
-     *
-     * <p>Resource Server startup-admission and machine-identity settings.</p>
-     */
-    private Admission admission = new Admission();
+    /** Standard Spring OAuth2 Client machine-token settings. */
+    private ServiceClient serviceClient = new ServiceClient();
 
     /**
      * 创建使用默认值初始化的 IdP Starter 配置。
@@ -279,26 +274,14 @@ public class IdpStarterProperties {
         this.oauthClientStateKeyPrefix = oauthClientStateKeyPrefix;
     }
 
-    /**
-     * 返回 Resource Server 启动准入配置。
-     *
-     * <p>Returns the Resource Server startup-admission settings.</p>
-     *
-     * @return 准入配置；admission settings
-     */
-    public Admission getAdmission() {
-        return admission;
+    /** @return Spring OAuth2 Client service settings. */
+    public ServiceClient getServiceClient() {
+        return serviceClient;
     }
 
-    /**
-     * 设置 Resource Server 启动准入配置。
-     *
-     * <p>Sets the Resource Server startup-admission settings.</p>
-     *
-     * @param admission 准入配置；admission settings
-     */
-    public void setAdmission(Admission admission) {
-        this.admission = admission;
+    /** @param serviceClient Spring OAuth2 Client service settings. */
+    public void setServiceClient(ServiceClient serviceClient) {
+        this.serviceClient = serviceClient;
     }
 
     /**
@@ -317,53 +300,6 @@ public class IdpStarterProperties {
         required(platformAudience, "platformAudience");
         required(resourceStateKeyPrefix, "resourceStateKeyPrefix");
         required(oauthClientStateKeyPrefix, "oauthClientStateKeyPrefix");
-    }
-
-    /**
-     * 校验生产 Admission Ticket 供应器所需的全部机器身份配置。
-     *
-     * <p>Validates all machine-identity settings required by the production Admission Ticket
-     * supplier.</p>
-     *
-     * @throws IllegalStateException 配置缺失、RPC 超时无效或私钥路径非绝对路径时抛出；when
-     * settings are missing, the RPC timeout is invalid, or the private-key path is not absolute
-     */
-    public void validateAdmission() {
-        if (admission == null) {
-            throw new IllegalStateException(
-                    "egon.cola.platform.idp.admission is required"
-            );
-        }
-        required(admission.bizCode, "admission.bizCode");
-        required(admission.appCode, "admission.appCode");
-        required(admission.environment, "admission.environment");
-        required(admission.instanceId, "admission.instanceId");
-        required(
-                admission.managementClientId,
-                "admission.managementClientId"
-        );
-        required(admission.kid, "admission.kid");
-        if (admission.privateKeyPath == null
-                || !admission.privateKeyPath.isAbsolute()) {
-            throw new IllegalStateException(
-                    "egon.cola.platform.idp.admission.privateKeyPath must be absolute"
-            );
-        }
-        required(admission.rpcTarget, "admission.rpcTarget");
-        if (admission.rpcTimeout == null
-                || admission.rpcTimeout.isZero()
-                || admission.rpcTimeout.isNegative()) {
-            throw new IllegalStateException(
-                    "egon.cola.platform.idp.admission.rpcTimeout must be positive"
-            );
-        }
-        if (admission.renewalSkew == null
-                || admission.renewalSkew.isZero()
-                || admission.renewalSkew.isNegative()) {
-            throw new IllegalStateException(
-                    "egon.cola.platform.idp.admission.renewalSkew must be positive"
-            );
-        }
     }
 
     /**
@@ -402,150 +338,50 @@ public class IdpStarterProperties {
         }
     }
 
-    /**
-     * Resource Server Admission Ticket 和 Management Client 配置。
-     *
-     * <p>Resource Server Admission Ticket and Management Client settings.</p>
-     */
-    public static class Admission {
+    /** Standard Spring registration identity and cache renewal settings. */
+    public static class ServiceClient {
 
-        /** 业务域编码；business-domain code. */
-        private String bizCode;
-
-        /** 应用编码；application code. */
-        private String appCode;
-
-        /** 运行环境编码；runtime environment code. */
-        private String environment;
-
-        /** DDC 稳定实例标识；stable DDC instance identifier. */
-        private String instanceId;
-
-        /** Resource 绑定的 Confidential Management Client；Resource-bound confidential
-         * Management Client. */
-        private String managementClientId;
-
-        /** Client JWK kid；Client JWK kid. */
-        private String kid;
-
-        /** owner-only PKCS#8 RSA 私钥绝对路径；absolute owner-only PKCS#8 RSA private-key path. */
-        private Path privateKeyPath;
-
-        /** IdP Admission Egon-RPC 静态目标；static IdP Admission Egon-RPC target. */
-        private String rpcTarget;
-
-        /** 单次 Admission RPC 超时；per-call Admission RPC timeout. */
-        private Duration rpcTimeout = Duration.ofSeconds(3);
-
-        /** 票据提前续签窗口；ticket renewal-ahead window. */
+        private String appId;
+        private String registrationId;
         private Duration renewalSkew = Duration.ofSeconds(30);
 
-        /**
-         * 创建空 Admission 配置供 Spring 绑定。
-         *
-         * <p>Creates empty Admission settings for Spring binding.</p>
-         */
-        public Admission() {
+        public String getAppId() {
+            return appId;
         }
 
-        /** @return 业务域编码；business-domain code */
-        public String getBizCode() {
-            return bizCode;
+        public void setAppId(String appId) {
+            this.appId = appId;
         }
 
-        /** @param bizCode 业务域编码；business-domain code */
-        public void setBizCode(String bizCode) {
-            this.bizCode = bizCode;
+        public String getRegistrationId() {
+            return registrationId;
         }
 
-        /** @return 应用编码；application code */
-        public String getAppCode() {
-            return appCode;
+        public void setRegistrationId(String registrationId) {
+            this.registrationId = registrationId;
         }
 
-        /** @param appCode 应用编码；application code */
-        public void setAppCode(String appCode) {
-            this.appCode = appCode;
-        }
-
-        /** @return 环境编码；environment code */
-        public String getEnvironment() {
-            return environment;
-        }
-
-        /** @param environment 环境编码；environment code */
-        public void setEnvironment(String environment) {
-            this.environment = environment;
-        }
-
-        /** @return DDC 实例标识；DDC instance identifier */
-        public String getInstanceId() {
-            return instanceId;
-        }
-
-        /** @param instanceId DDC 实例标识；DDC instance identifier */
-        public void setInstanceId(String instanceId) {
-            this.instanceId = instanceId;
-        }
-
-        /** @return Management Client 标识；Management Client identifier */
-        public String getManagementClientId() {
-            return managementClientId;
-        }
-
-        /** @param managementClientId Management Client 标识；Management Client identifier */
-        public void setManagementClientId(String managementClientId) {
-            this.managementClientId = managementClientId;
-        }
-
-        /** @return Client JWK kid；Client JWK kid */
-        public String getKid() {
-            return kid;
-        }
-
-        /** @param kid Client JWK kid；Client JWK kid */
-        public void setKid(String kid) {
-            this.kid = kid;
-        }
-
-        /** @return 私钥绝对路径；absolute private-key path */
-        public Path getPrivateKeyPath() {
-            return privateKeyPath;
-        }
-
-        /** @param privateKeyPath 私钥绝对路径；absolute private-key path */
-        public void setPrivateKeyPath(Path privateKeyPath) {
-            this.privateKeyPath = privateKeyPath;
-        }
-
-        /** @return IdP Admission RPC 目标；IdP Admission RPC target */
-        public String getRpcTarget() {
-            return rpcTarget;
-        }
-
-        /** @param rpcTarget IdP Admission RPC 目标；IdP Admission RPC target */
-        public void setRpcTarget(String rpcTarget) {
-            this.rpcTarget = rpcTarget;
-        }
-
-        /** @return 单次 RPC 超时；per-call RPC timeout */
-        public Duration getRpcTimeout() {
-            return rpcTimeout;
-        }
-
-        /** @param rpcTimeout 单次 RPC 超时；per-call RPC timeout */
-        public void setRpcTimeout(Duration rpcTimeout) {
-            this.rpcTimeout = rpcTimeout;
-        }
-
-        /** @return 提前续签窗口；renewal-ahead window */
         public Duration getRenewalSkew() {
             return renewalSkew;
         }
 
-        /** @param renewalSkew 提前续签窗口；renewal-ahead window */
         public void setRenewalSkew(Duration renewalSkew) {
             this.renewalSkew = renewalSkew;
+        }
+
+        /** Validates enabled service-client settings. */
+        public void validate() {
+            if (appId == null || appId.isBlank()
+                    || registrationId == null || registrationId.isBlank()) {
+                throw new IllegalStateException(
+                        "egon.cola.platform.idp.service-client.app-id and registration-id are required"
+                );
+            }
+            if (renewalSkew == null || renewalSkew.isNegative()) {
+                throw new IllegalStateException(
+                        "egon.cola.platform.idp.service-client.renewal-skew must be non-negative"
+                );
+            }
         }
     }
 }

@@ -6,36 +6,28 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.autoconfigure.condition.AnyNestedCondition;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Conditional;
-import org.springframework.context.annotation.ConfigurationCondition.ConfigurationPhase;
 import org.springframework.core.env.Environment;
+import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.ClientCredentialsOAuth2AuthorizedClientProvider;
+import org.springframework.security.oauth2.client.InMemoryOAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.endpoint.RestClientClientCredentialsTokenResponseClient;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import top.egon.cola.component.ddc.api.extension.DdcAdmissionTicketSupplier;
-import top.egon.cola.component.ddc.model.admission.DdcAdmissionRequest;
-import top.egon.cola.component.rpc.config.EgonRpcProperties;
-import top.egon.cola.component.rpc.config.RpcTransportSecurity;
-import top.egon.cola.component.rpc.consumer.direct.RpcDirectClientFactory;
-import top.egon.cola.component.rpc.consumer.direct.RpcDirectClientHandle;
-import top.egon.cola.component.rpc.consumer.direct.RpcDirectClientSettings;
-import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
-import top.egon.cola.component.rpc.context.identity.RpcProcessIdentityFactory;
-import top.egon.cola.platform.idp.rpc.contract.ResourceServerAdmissionRpc;
-import top.egon.cola.platform.idp.starter.admission.CachingDdcAdmissionTicketSupplier;
-import top.egon.cola.platform.idp.starter.admission.OwnerOnlyPrivateKeyLoader;
-import top.egon.cola.platform.idp.starter.admission.PrivateKeyJwtAssertionFactory;
-import top.egon.cola.platform.idp.starter.admission.RpcResourceServerAdmissionClient;
+import top.egon.cola.platform.idp.starter.client.IdpClientCredentialsRequestEntityConverter;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
 import top.egon.cola.platform.idp.starter.security.IdpEndpointAuthenticationPolicy;
 import top.egon.cola.platform.idp.starter.security.IdpJwtVerifier;
@@ -50,25 +42,23 @@ import top.egon.cola.platform.idp.starter.state.IdentityResourceServerStateReade
 import top.egon.cola.platform.idp.starter.state.RedisIdentityOAuthClientStateReader;
 import top.egon.cola.platform.idp.starter.state.RedisIdentityResourceServerStateReader;
 
-import java.security.SecureRandom;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * 为普通 Servlet 资源服务器装配统一 IdP 身份验证能力。
- * 本配置创建 Admission Ticket 供应器、JWT 解码器、用户实时状态读取器、身份验证器与
+ * 本配置创建 Spring OAuth2 Client SERVICE facade、JWT 解码器、用户实时状态读取器、身份验证器与
  * Bearer 过滤器；它不签发 OAuth Access Token，也不执行接口权限判断。
  *
  * <p>Auto-configures unified IdP identity verification for regular Servlet resource servers.
- * It creates the Admission Ticket supplier, JWT decoder, service-state readers, identity
+ * It creates the OAuth2 Client facade, JWT decoder, service-state readers, identity
  * verifier, and Bearer filter. It neither issues OAuth access tokens nor makes endpoint
  * authorization decisions.</p>
  */
 @AutoConfiguration
 @EnableConfigurationProperties({
-        IdpStarterProperties.class,
-        EgonRpcProperties.class
+        IdpStarterProperties.class
 })
 @ConditionalOnProperty(
         prefix = "egon.cola.platform.idp",
@@ -84,156 +74,114 @@ public class IdpStarterAutoConfiguration {
     public IdpStarterAutoConfiguration() {
     }
 
-    /**
-     * 创建 owner-only 私钥、RPC Audience 绑定 Assertion 和静态直连 Egon-RPC 客户端。
-     * 应用只能通过显式注入另一个 {@link DdcAdmissionTicketSupplier} 替换生产实现，普通配置中
-     * 不提供关闭准入的开关。
-     *
-     * <p>Creates the statically targeted Egon-RPC client from an owner-only private key and
-     * RPC-audience-bound assertions. Applications may replace the production implementation only
-     * by explicitly providing another {@link DdcAdmissionTicketSupplier}; no ordinary
-     * configuration switch disables admission.</p>
-     *
-     * @param properties IdP Starter 配置；IdP Starter settings
-     * @param rpcProperties Egon-RPC 进程身份和传输安全配置；Egon-RPC process identity and
-     *                      transport-security settings
-     * @param environment Spring 运行环境；Spring environment
-     * @return IdP Resource Server 准入 RPC 客户端；IdP Resource Server admission RPC client
-     */
-    @Bean(destroyMethod = "close")
-    @ConditionalOnMissingBean({
-            DdcAdmissionTicketSupplier.class,
-            RpcResourceServerAdmissionClient.class
-    })
-    @Conditional(DdcAdmissionRequiredCondition.class)
-    public RpcResourceServerAdmissionClient
-            rpcResourceServerAdmissionClient(
-                    IdpStarterProperties properties,
-                    EgonRpcProperties rpcProperties,
-                    Environment environment
+    /** Creates the request converter used by the standard client-credentials provider. */
+    @Bean
+    @ConditionalOnBean(ClientRegistrationRepository.class)
+    @ConditionalOnMissingBean
+    public IdpClientCredentialsRequestEntityConverter
+            idpClientCredentialsRequestEntityConverter() {
+        return new IdpClientCredentialsRequestEntityConverter();
+    }
+
+    /** Provides the default in-memory authorized-client store for service tokens. */
+    @Bean
+    @ConditionalOnBean(ClientRegistrationRepository.class)
+    @ConditionalOnMissingBean
+    public OAuth2AuthorizedClientService idpOAuth2AuthorizedClientService(
+            ClientRegistrationRepository registrations
     ) {
-        properties.validate();
-        properties.validateAdmission();
-        IdpStarterProperties.Admission admission =
-                properties.getAdmission();
-        Clock clock = Clock.systemUTC();
-        PrivateKeyJwtAssertionFactory assertions =
-                new PrivateKeyJwtAssertionFactory(
-                        admission.getManagementClientId(),
-                        admission.getKid(),
-                        ResourceServerAdmissionRpc.AUDIENCE,
-                        new OwnerOnlyPrivateKeyLoader().load(
-                                admission.getPrivateKeyPath()),
-                        clock,
-                        new SecureRandom()
-                );
-        EgonRpcProperties.Tls tls = rpcProperties.getTls();
-        RpcTransportSecurity security = new RpcTransportSecurity(
-                tls.isEnabled(),
-                tls.isDevelopmentPlaintext(),
-                tls.getCertificateChainPath(),
-                tls.getPrivateKeyPath(),
-                tls.getTrustCertificateCollectionPath()
-        );
-        RpcProcessIdentity processIdentity = new RpcProcessIdentityFactory(
-                environment,
-                rpcProperties
-        ).create();
-        RpcDirectClientHandle<ResourceServerAdmissionRpc> handle =
-                new RpcDirectClientFactory().create(
-                        ResourceServerAdmissionRpc.class,
-                        RpcDirectClientSettings.defaults(
-                                admission.getRpcTarget(),
-                                processIdentity,
-                                security,
-                                admission.getRpcTimeout().toMillis()
-                        ),
-                        List.of()
-                );
-        return new RpcResourceServerAdmissionClient(
-                handle,
-                properties.getIssuer(),
-                assertions
-        );
+        return new InMemoryOAuth2AuthorizedClientService(registrations);
     }
 
     /**
-     * 创建带提前续签和未过期回退语义的 DDC 准入票据供应器。
-     *
-     * <p>Creates the DDC Admission Ticket supplier with renewal-ahead and unexpired-fallback
-     * semantics.</p>
-     *
-     * @param properties IdP Starter 配置；IdP Starter settings
-     * @param client IdP Resource Server 准入 RPC 客户端；IdP Resource Server admission RPC
-     *               client
-     * @return DDC Admission Ticket 供应器；DDC Admission Ticket supplier
+     * Configures Spring's client-credentials provider with the IdP extension converter.
      */
     @Bean
-    @ConditionalOnBean(RpcResourceServerAdmissionClient.class)
-    @ConditionalOnMissingBean(DdcAdmissionTicketSupplier.class)
-    @Conditional(DdcAdmissionRequiredCondition.class)
-    public DdcAdmissionTicketSupplier ddcAdmissionTicketSupplier(
-            IdpStarterProperties properties,
-            RpcResourceServerAdmissionClient client
+    @ConditionalOnBean({
+            ClientRegistrationRepository.class,
+            OAuth2AuthorizedClientService.class
+    })
+    @ConditionalOnMissingBean(OAuth2AuthorizedClientManager.class)
+    @ConditionalOnProperty(
+            prefix = "egon.cola.platform.idp.service-client",
+            name = {"app-id", "registration-id"}
+    )
+    public OAuth2AuthorizedClientManager idpOAuth2AuthorizedClientManager(
+            ClientRegistrationRepository registrations,
+            OAuth2AuthorizedClientService authorizedClients,
+            IdpClientCredentialsRequestEntityConverter converter,
+            IdpStarterProperties properties
     ) {
-        IdpStarterProperties.Admission admission = properties.getAdmission();
-        DdcAdmissionRequest expectedRequest = new DdcAdmissionRequest(
-                properties.getResourceServerId(),
-                properties.getResourceUri(),
-                admission.getBizCode(),
-                admission.getAppCode(),
-                admission.getEnvironment(),
-                admission.getInstanceId()
+        properties.getServiceClient().validate();
+        RestClientClientCredentialsTokenResponseClient responseClient =
+                new RestClientClientCredentialsTokenResponseClient();
+        responseClient.setHeadersConverter(converter::convertHeaders);
+        responseClient.setParametersConverter(converter::convertParameters);
+        ClientCredentialsOAuth2AuthorizedClientProvider provider =
+                new ClientCredentialsOAuth2AuthorizedClientProvider();
+        provider.setClockSkew(
+                properties.getServiceClient().getRenewalSkew()
         );
-        return new CachingDdcAdmissionTicketSupplier(
-                client,
-                expectedRequest,
-                admission.getRenewalSkew(),
-                Clock.systemUTC()
+        provider.setAccessTokenResponseClient(responseClient);
+        AuthorizedClientServiceOAuth2AuthorizedClientManager manager =
+                new AuthorizedClientServiceOAuth2AuthorizedClientManager(
+                        registrations,
+                        authorizedClients
+                );
+        manager.setAuthorizedClientProvider(provider);
+        return manager;
+    }
+
+    /** Creates the one recommended SERVICE-token API for biz services. */
+    @Bean
+    @ConditionalOnBean(OAuth2AuthorizedClientManager.class)
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.platform.idp.service-client",
+            name = {"app-id", "registration-id"}
+    )
+    public IdpServiceOAuth2Client idpServiceOAuth2Client(
+            OAuth2AuthorizedClientManager manager,
+            IdpClientCredentialsRequestEntityConverter converter,
+            IdpStarterProperties properties
+    ) {
+        properties.getServiceClient().validate();
+        return new IdpServiceOAuth2Client(
+                manager,
+                converter,
+                Clock.systemUTC(),
+                properties.getServiceClient().getRenewalSkew()
         );
     }
 
-    /**
-     * 仅在 DDC 配置客户端或注册中心参与运行时装配准入票据供应器。
-     *
-     * <p>Creates the admission-ticket supplier only when either the DDC configuration client or
-     * service registry participates in the application runtime.</p>
-     */
-    static final class DdcAdmissionRequiredCondition
-            extends AnyNestedCondition {
-
-        /**
-         * 创建按 Bean 注册阶段判断的任一条件组合。
-         *
-         * <p>Creates the any-match condition evaluated during bean registration.</p>
-         */
-        DdcAdmissionRequiredCondition() {
-            super(ConfigurationPhase.REGISTER_BEAN);
+    /** Fails explicitly when retired private-key/Admission settings remain configured. */
+    @Bean
+    @ConditionalOnProperty(
+            prefix = "egon.cola.platform.idp",
+            name = "enabled",
+            havingValue = "true"
+    )
+    public Object idpLegacyConfigurationMigrationGuard(
+            Environment environment
+    ) {
+        List<String> retired = List.of(
+                "egon.cola.platform.idp.admission.private-key-path",
+                "egon.cola.platform.idp.admission.management-client-id",
+                "egon.cola.platform.idp.admission.rpc-target",
+                "egon.idp.rbac3.service-token.private-key-file",
+                "egon.idp.rbac3.service-token.key-id",
+                "egon.idp.oauth.client-assertion-key-prefix"
+        );
+        List<String> configured = retired.stream()
+                .filter(environment::containsProperty)
+                .toList();
+        if (!configured.isEmpty()) {
+            throw new IllegalStateException(
+                    "IdP OAuth2 Client migration required; retired properties configured: "
+                            + String.join(", ", configured)
+            );
         }
-
-        /**
-         * 匹配启用 DDC 配置客户端的应用。
-         *
-         * <p>Matches applications with the DDC configuration client enabled.</p>
-         */
-        @ConditionalOnProperty(
-                prefix = "egon.cola.component.ddc",
-                name = "enabled",
-                havingValue = "true")
-        static final class DdcConfigurationClientEnabled {
-        }
-
-        /**
-         * 匹配启用 DDC 服务注册中心的应用。
-         *
-         * <p>Matches applications with the DDC service registry enabled.</p>
-         */
-        @ConditionalOnProperty(
-                prefix = "egon.cola.component.ddc.registry",
-                name = "enabled",
-                havingValue = "true")
-        static final class DdcServiceRegistryEnabled {
-        }
+        return new Object();
     }
 
     /**
