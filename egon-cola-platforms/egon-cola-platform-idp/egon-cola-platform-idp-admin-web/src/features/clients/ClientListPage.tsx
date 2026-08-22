@@ -1,4 +1,5 @@
 import {
+    Alert,
     Button,
     Card,
     Descriptions,
@@ -16,13 +17,19 @@ import {
     Tag,
     Typography,
 } from 'antd'
-import {DeleteOutlined, EditOutlined, LinkOutlined, PlusOutlined, ReloadOutlined} from '@ant-design/icons'
+import {CopyOutlined, DeleteOutlined, EditOutlined, LinkOutlined, PlusOutlined, ReloadOutlined} from '@ant-design/icons'
 import {useState} from 'react'
 import {useNavigate} from 'react-router-dom'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {httpClient, useAuth} from '../../auth/AuthContext'
 import {PageState, usePermission} from '@egon-cola/admin-web-shared'
-import type {CreateOAuthClientDTO, OAuthClientVO, UpdateOAuthClientDTO} from '../../api/types'
+import type {
+    CreateOAuthClientDTO,
+    CreatedOAuthClientVO,
+    OAuthClientVO,
+    RotatedClientSecretVO,
+    UpdateOAuthClientDTO,
+} from '../../api/types'
 
 const STATUS_COLORS: Record<string, string> = {
     ACTIVE: 'green',
@@ -38,6 +45,8 @@ export const ClientListPage = () => {
     const [createOpen, setCreateOpen] = useState(false)
     const [detailClient, setDetailClient] = useState<OAuthClientVO | null>(null)
     const [editOpen, setEditOpen] = useState(false)
+    const [rotateOpen, setRotateOpen] = useState(false)
+    const [oneTimeCredentials, setOneTimeCredentials] = useState<CreatedOAuthClientVO | RotatedClientSecretVO | null>(null)
     const [addUriType, setAddUriType] = useState<'redirect' | 'resource' | null>(null)
     const [createForm] = Form.useForm()
     const [editForm] = Form.useForm()
@@ -51,20 +60,54 @@ export const ClientListPage = () => {
 
   const createMutation = useMutation({
       mutationFn: (v: CreateOAuthClientDTO) =>
-          httpClient.request<OAuthClientVO>('/api/v1/identity/clients', {
+      httpClient.request<CreatedOAuthClientVO>('/api/v1/identity/clients', {
         method: 'POST',
               body: JSON.stringify(v),
       }),
-    onSuccess: async () => {
+    onSuccess: async (result) => {
         setCreateOpen(false)
         createForm.resetFields()
+        if (result.clientSecret) {
+            setOneTimeCredentials(result)
+        } else {
+            messageApi.success('客户端已创建')
+        }
         await queryClient.invalidateQueries({queryKey: ['idp', 'clients']})
-        messageApi.success('客户端已创建')
+        createMutation.reset()
     },
       onError: (err) => {
           messageApi.error(err instanceof Error ? err.message : '创建失败')
       },
   })
+
+    const rotateMutation = useMutation({
+        mutationFn: (client: OAuthClientVO) =>
+            httpClient.request<RotatedClientSecretVO>(
+                `/api/v1/identity/clients/${encodeURIComponent(client.clientId)}/secret-rotations`,
+                {
+                    method: 'POST',
+                    body: JSON.stringify({expectedVersion: client.version}),
+                },
+            ),
+        onSuccess: async (result) => {
+            setRotateOpen(false)
+            setOneTimeCredentials(result)
+            setDetailClient((current) => current && current.clientId === result.clientId
+                ? {
+                    ...current,
+                    secretHint: result.secretHint,
+                    secretStatus: 'ACTIVE',
+                    version: result.version,
+                    updatedAt: result.rotatedAt,
+                }
+                : current)
+            await queryClient.invalidateQueries({queryKey: ['idp', 'clients']})
+            rotateMutation.reset()
+        },
+        onError: (err) => {
+            messageApi.error(err instanceof Error ? err.message : 'Secret 轮换失败')
+        },
+    })
 
     const updateMutation = useMutation({
         mutationFn: ({clientId, data}: { clientId: string; data: UpdateOAuthClientDTO }) =>
@@ -132,6 +175,10 @@ export const ClientListPage = () => {
         setEditOpen(true)
     }
 
+    const clearOneTimeCredentials = () => {
+        setOneTimeCredentials(null)
+    }
+
   return (
     <>
       {contextHolder}
@@ -144,7 +191,10 @@ export const ClientListPage = () => {
                   }}>刷新</Button>
                   {has('idp:oauth-client:create') && (
                       <Button type="primary" icon={<PlusOutlined/>}
-                              onClick={() => setCreateOpen(true)}>创建客户端</Button>
+                              onClick={() => {
+                                  clearOneTimeCredentials()
+                                  setCreateOpen(true)
+                              }}>创建客户端</Button>
                   )}
               </Space>
           }
@@ -163,6 +213,7 @@ export const ClientListPage = () => {
                   dataSource={clientsQuery.data ?? []}
                   onRow={(row) => ({onClick: () => setDetailClient(row), style: {cursor: 'pointer'}})}
                   columns={[
+                      {title: 'App ID', dataIndex: 'appId', ellipsis: true},
                       {title: 'Client ID', dataIndex: 'clientId', ellipsis: true},
                       {title: '名称', dataIndex: 'clientName'},
                       {title: '类型', dataIndex: 'clientType'},
@@ -171,6 +222,7 @@ export const ClientListPage = () => {
                           dataIndex: 'status',
                           render: (v: string) => <Tag color={STATUS_COLORS[v] ?? 'default'}>{v}</Tag>
                       },
+                      {title: 'Secret Hint', dataIndex: 'secretHint', render: (v?: string) => v ?? '—'},
                       {title: 'PKCE', dataIndex: 'pkceRequired', width: 70, render: (v: boolean) => v ? 'S256' : '—'},
                       {title: '回调地址', dataIndex: 'redirectUris', render: (v: string[]) => `${v.length} 个`},
                       {title: 'Resource URI', dataIndex: 'resourceUris', render: (v: string[]) => `${v.length} 个`},
@@ -186,6 +238,7 @@ export const ClientListPage = () => {
             onClose={() => {
                 setDetailClient(null);
                 setEditOpen(false);
+                setRotateOpen(false)
                 setAddUriType(null)
             }}
             width={640}
@@ -199,7 +252,12 @@ export const ClientListPage = () => {
                             </Button>
                         )}
                         {has('idp:oauth-client:update') && (
-                            <Button type="primary" icon={<EditOutlined/>} onClick={openEdit}>编辑</Button>
+                            <Space>
+                                {detailClient.clientType === 'CONFIDENTIAL' && (
+                                    <Button onClick={() => setRotateOpen(true)}>轮换 Secret</Button>
+                                )}
+                                <Button type="primary" icon={<EditOutlined/>} onClick={openEdit}>编辑</Button>
+                            </Space>
                         )}
                     </Space>
                 )
@@ -209,11 +267,18 @@ export const ClientListPage = () => {
                 <>
                     <Descriptions column={1} bordered size="small" style={{marginBottom: 24}}>
                         <Descriptions.Item label="Client ID">{detailClient.clientId}</Descriptions.Item>
+                        <Descriptions.Item label="App ID">{detailClient.appId ?? '—'}</Descriptions.Item>
                         <Descriptions.Item label="名称">{detailClient.clientName}</Descriptions.Item>
                         <Descriptions.Item label="类型">{detailClient.clientType}</Descriptions.Item>
                         <Descriptions.Item label="状态">
                             <Tag color={STATUS_COLORS[detailClient.status]}>{detailClient.status}</Tag>
                         </Descriptions.Item>
+                        {detailClient.clientType === 'CONFIDENTIAL' && (
+                            <Descriptions.Item label="Secret">
+                                {detailClient.secretHint ?? '未生成'}
+                                {detailClient.secretStatus ? ` (${detailClient.secretStatus})` : ''}
+                            </Descriptions.Item>
+                        )}
                         <Descriptions.Item
                             label="PKCE">{detailClient.pkceRequired ? 'S256 (必需)' : '不要求'}</Descriptions.Item>
                         <Descriptions.Item
@@ -314,8 +379,9 @@ export const ClientListPage = () => {
                 createForm.resetFields()
             }}
             onOk={() => {
-                void createForm.validateFields().then((v: Record<string, unknown>) => {
+                    void createForm.validateFields().then((v: Record<string, unknown>) => {
                     createMutation.mutate({
+                        appId: v.clientType === 'CONFIDENTIAL' && v.appId ? v.appId as string : undefined,
                         clientId: v.clientId as string,
                         clientName: v.clientName as string,
                         clientType: (v.clientType as string) || 'PUBLIC',
@@ -334,6 +400,20 @@ export const ClientListPage = () => {
                 </Form.Item>
                 <Form.Item name="clientName" label="名称" rules={[{required: true}]}>
                     <Input placeholder="展示名称"/>
+                </Form.Item>
+                <Form.Item
+                    name="appId"
+                    label="App ID"
+                    dependencies={['clientType']}
+                    rules={[({getFieldValue}) => ({
+                        validator: async (_rule, value) => {
+                            if (getFieldValue('clientType') === 'CONFIDENTIAL' && !value) {
+                                throw new Error('CONFIDENTIAL 客户端必须填写 App ID')
+                            }
+                        },
+                    })]}
+                >
+                    <Input placeholder="业务应用身份，如 order-service" autoComplete="off"/>
                 </Form.Item>
                 <Form.Item name="clientType" label="类型" initialValue="PUBLIC">
                     <Select options={[
@@ -354,6 +434,64 @@ export const ClientListPage = () => {
                     <Input placeholder="https://api.example.com"/>
                 </Form.Item>
             </Form>
+        </Modal>
+
+        {/* One-time Secret Modal */}
+        {oneTimeCredentials && (
+            <Modal
+                title={'clientName' in oneTimeCredentials ? '客户端已创建' : 'Secret 已轮换'}
+                open
+                footer={<Button type="primary" onClick={clearOneTimeCredentials}>关闭</Button>}
+                onCancel={clearOneTimeCredentials}
+                destroyOnHidden
+            >
+                <Space direction="vertical" size="middle" style={{display: 'flex'}}>
+                    <Alert
+                        type="warning"
+                        showIcon
+                        message="Secret 仅显示一次"
+                        description="请立即复制并保存。关闭此窗口后 IdP 不会再次返回 Secret 明文。"
+                    />
+                    <Descriptions column={1} bordered size="small">
+                        <Descriptions.Item label="App ID">
+                            <Typography.Text code copyable={{icon: <CopyOutlined/>, tooltips: ['复制', '已复制']}}>
+                                {oneTimeCredentials.appId}
+                            </Typography.Text>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="App Key (Client ID)">
+                            <Typography.Text code copyable={{icon: <CopyOutlined/>, tooltips: ['复制', '已复制']}}>
+                                {oneTimeCredentials.clientId}
+                            </Typography.Text>
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Secret">
+                            <Typography.Text
+                                code
+                                copyable={{icon: <CopyOutlined/>, tooltips: ['复制', '已复制']}}
+                                strong
+                            >
+                                {oneTimeCredentials.clientSecret}
+                            </Typography.Text>
+                        </Descriptions.Item>
+                    </Descriptions>
+                </Space>
+            </Modal>
+        )}
+
+        {/* Rotate Secret Confirmation */}
+        <Modal
+            title={`轮换 Secret：${detailClient?.clientId ?? ''}`}
+            open={rotateOpen}
+            confirmLoading={rotateMutation.isPending}
+            onCancel={() => setRotateOpen(false)}
+            onOk={() => {
+                if (detailClient) rotateMutation.mutate(detailClient)
+            }}
+            destroyOnClose
+        >
+            <Typography.Paragraph>
+                当前版本为 <Typography.Text code>{detailClient?.version}</Typography.Text>。确认后旧 Secret 会立即失效，
+                新 Secret 只在下一窗口显示一次。
+            </Typography.Paragraph>
         </Modal>
 
         {/* Edit Modal */}

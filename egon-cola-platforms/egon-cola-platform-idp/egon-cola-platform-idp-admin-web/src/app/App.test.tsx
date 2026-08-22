@@ -12,7 +12,18 @@ vi.mock('../auth/AuthContext', () => ({
     bootstrap: {
         user: {id: 'user-1', identitySub: 'alice-sub', tenantId: 'default', status: 'ACTIVE'},
         activeRoleContexts: [],
-      permissions: [],
+      permissions: [
+          'idp:identity-user:read',
+          'idp:oauth-client:read',
+          'idp:oauth-client:create',
+          'idp:oauth-client:update',
+          'idp:resource-server:read',
+          'idp:resource-server:create',
+          'idp:resource-server:status',
+          'idp:resource-server:grant',
+          'idp:signing-key:read',
+          'idp:audit:read',
+      ],
         apps: [], menus: [], routes: [], actions: [], fieldPolicies: {},
         defaultApplicationCode: null, defaultRoute: null, authVersion: 1, policyVersion: 1,
     },
@@ -32,12 +43,36 @@ beforeEach(() => {
     }
     if (path === '/api/v1/identity/clients') {
       return Promise.resolve([{
+        appId: 'idp-admin-web',
         clientId: 'idp-admin-web',
         clientName: 'IdP Admin Web',
+        clientType: 'PUBLIC',
         status: 'ACTIVE',
         pkceRequired: true,
+        accessTokenTtlSeconds: 900,
+        refreshTokenTtlSeconds: 604800,
         redirectUris: ['http://127.0.0.1:18121/oauth/callback'],
         resourceUris: ['https://api.egon.internal/local/permission/idp'],
+        version: 1,
+        createdAt: '2026-08-06T10:00:00Z',
+        updatedAt: '2026-08-06T10:00:00Z',
+      }])
+    }
+    if (path === '/api/v1/identity/resource-servers') {
+      return Promise.resolve([{
+        resourceServerId: 'orders-api',
+        resourceUri: 'https://api.example.com/orders',
+        bizCode: 'commerce',
+        appCode: 'orders',
+        environment: 'prod',
+        displayName: 'Orders API',
+        managementClientId: 'orders-management',
+        rbacApplicationCode: 'commerce',
+        entryPermissionCode: 'orders:read',
+        status: 'ACTIVE',
+        version: 1,
+        createdAt: '2026-08-06T10:00:00Z',
+        updatedAt: '2026-08-06T10:00:00Z',
       }])
     }
     if (path === '/api/v1/identity/signing-keys') {
@@ -82,5 +117,15 @@ describe('IdP Admin application providers', () => {
 
     await waitFor(() => expect(screen.getByText(expectedText)).toBeInTheDocument())
     expect(admin.request).toHaveBeenCalledWith(requestPath)
+  })
+
+  it('keeps Resource Server management free of retired Client JWK and Admission controls', async () => {
+    window.history.replaceState({}, '', '/resource-servers')
+
+    render(<App />)
+
+    await waitFor(() => expect(screen.getByText('Orders API')).toBeInTheDocument())
+    expect(screen.queryByText(/JWK|准入|Admission/)).not.toBeInTheDocument()
+    expect(admin.request).toHaveBeenCalledWith('/api/v1/identity/resource-servers')
   })
 })

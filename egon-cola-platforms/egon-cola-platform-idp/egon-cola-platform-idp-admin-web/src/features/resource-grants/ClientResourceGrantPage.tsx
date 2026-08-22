@@ -21,14 +21,13 @@ import {httpClient, useAuth} from '../../auth/AuthContext'
 import {PageState, usePermission} from '@egon-cola/admin-web-shared'
 import type {
     ClientResourceGrantVO,
-    DeleteClientResourceGrantDTO,
     ResourceServerVO,
     UpsertClientResourceGrantDTO
 } from '../../api/types'
 
 const GRANT_TYPE_LABELS: Record<string, string> = {
     USER_DELEGATION: '用户委托 (USER_DELEGATION)',
-    SERVICE_ACCESS: '服务访问 (SERVICE_ACCESS)',
+    CLIENT_CREDENTIALS: '服务访问 (CLIENT_CREDENTIALS)',
 }
 
 export const ClientResourceGrantPage = () => {
@@ -64,21 +63,6 @@ export const ClientResourceGrantPage = () => {
         },
     })
 
-    const deleteMutation = useMutation({
-        mutationFn: ({rsId, data}: { rsId: string; data: DeleteClientResourceGrantDTO }) =>
-            httpClient.request(
-                `/api/v1/identity/clients/${encodeURIComponent(clientId!)}/resources/${encodeURIComponent(rsId)}`,
-                {method: 'DELETE', body: JSON.stringify(data)},
-            ),
-        onSuccess: async () => {
-            await queryClient.invalidateQueries({queryKey: ['idp', 'resource-servers']})
-            messageApi.success('Grant 已删除')
-        },
-        onError: (err) => {
-            messageApi.error(err instanceof Error ? err.message : '删除失败')
-        },
-    })
-
     if (!clientId) {
         return <Result status="error" title="缺少 clientId 参数"
                        extra={<Button onClick={() => navigate('/clients')}>返回客户端列表</Button>}/>
@@ -88,6 +72,7 @@ export const ClientResourceGrantPage = () => {
         setSelectedRs(rs)
         form.setFieldsValue({
             grantType: 'USER_DELEGATION',
+            scopeContext: 'TENANT',
             allowedScopes: '',
             tenantId: '',
         })
@@ -111,7 +96,7 @@ export const ClientResourceGrantPage = () => {
                 }
             >
                 <Typography.Paragraph type="secondary" style={{marginBottom: 16}}>
-                    为当前 Client 向 Resource Server 建立授权委托（Grant）。支持 USER_DELEGATION 和 SERVICE_ACCESS 两种类型。
+                    为当前 Client 向 Resource Server 建立授权委托（Grant）。SERVICE Grant 必须显式选择 TENANT 或 PLATFORM 上下文。
                 </Typography.Paragraph>
                 <PageState
                     loading={rsQuery.isPending}
@@ -171,8 +156,11 @@ export const ClientResourceGrantPage = () => {
                                 rsId: selectedRs.resourceServerId,
                                 data: {
                                     grantType: v.grantType,
-                                    tenantId: v.tenantId || undefined,
-                                    allowedScopes: scopes,
+                                    scopeContext: v.grantType === 'CLIENT_CREDENTIALS' ? v.scopeContext : undefined,
+                                    tenantId: v.grantType === 'CLIENT_CREDENTIALS' && v.scopeContext === 'TENANT'
+                                        ? v.tenantId || undefined
+                                        : undefined,
+                                    allowedScopes: v.grantType === 'CLIENT_CREDENTIALS' ? scopes : [],
                                     expectedResourceVersion: selectedRs.version,
                                     expectedGrantVersion: v.expectedGrantVersion || undefined,
                                 },
@@ -192,14 +180,33 @@ export const ClientResourceGrantPage = () => {
                             <Form.Item name="grantType" label="授权类型" rules={[{required: true}]}>
                                 <Select options={[
                                     {label: GRANT_TYPE_LABELS.USER_DELEGATION, value: 'USER_DELEGATION'},
-                                    {label: GRANT_TYPE_LABELS.SERVICE_ACCESS, value: 'SERVICE_ACCESS'},
+                                    {label: GRANT_TYPE_LABELS.CLIENT_CREDENTIALS, value: 'CLIENT_CREDENTIALS'},
                                 ]}/>
                             </Form.Item>
-                            <Form.Item name="tenantId" label="租户 ID (SERVICE_ACCESS 必填)">
-                                <Input placeholder="仅 SERVICE_ACCESS 时需要"/>
+                            <Form.Item noStyle dependencies={['grantType']}>
+                                {({getFieldValue}) => getFieldValue('grantType') === 'CLIENT_CREDENTIALS' && (
+                                    <Form.Item name="scopeContext" label="SERVICE 上下文" rules={[{required: true}]}>
+                                        <Select options={[
+                                            {label: '租户上下文 (TENANT)', value: 'TENANT'},
+                                            {label: '平台上下文 (PLATFORM)', value: 'PLATFORM'},
+                                        ]}/>
+                                    </Form.Item>
+                                )}
                             </Form.Item>
-                            <Form.Item name="allowedScopes" label="允许的 Scope（空格分隔）">
-                                <Input placeholder="read write admin"/>
+                            <Form.Item noStyle dependencies={['grantType', 'scopeContext']}>
+                                {({getFieldValue}) => getFieldValue('grantType') === 'CLIENT_CREDENTIALS'
+                                    && getFieldValue('scopeContext') === 'TENANT' && (
+                                    <Form.Item name="tenantId" label="租户 ID" rules={[{required: true}]}>
+                                        <Input placeholder="TENANT 上下文必填"/>
+                                    </Form.Item>
+                                )}
+                            </Form.Item>
+                            <Form.Item noStyle dependencies={['grantType']}>
+                                {({getFieldValue}) => getFieldValue('grantType') === 'CLIENT_CREDENTIALS' && (
+                                    <Form.Item name="allowedScopes" label="允许的 Scope（空格分隔）" rules={[{required: true}]}>
+                                        <Input placeholder="read write admin"/>
+                                    </Form.Item>
+                                )}
                             </Form.Item>
                             <Form.Item name="expectedGrantVersion" label="Grant 版本（更新时填写，新建留空）">
                                 <Input placeholder="留空表示新建" type="number"/>

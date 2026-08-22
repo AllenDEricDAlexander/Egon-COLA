@@ -58,10 +58,13 @@ export interface UpdateIdentityUserDTO {
 
 // ─── OAuth Clients ───────────────────────────────────────────────
 export interface OAuthClientVO {
+  readonly appId?: string
   readonly clientId: string
   readonly clientName: string
   readonly clientType: string
   readonly status: string
+  readonly secretHint?: string
+  readonly secretStatus?: string
   readonly pkceRequired: boolean
   readonly accessTokenTtlSeconds: number
   readonly refreshTokenTtlSeconds: number
@@ -73,6 +76,7 @@ export interface OAuthClientVO {
 }
 
 export interface CreateOAuthClientDTO {
+    appId?: string
     clientId: string
     clientName: string
     clientType?: string
@@ -94,17 +98,32 @@ export interface OAuthValueDTO {
     value: string
 }
 
-// ─── Resource Servers ────────────────────────────────────────────
-export interface ClientJwkVO {
-    readonly kid: string
-    readonly algorithm: string
+export interface CreatedOAuthClientVO {
+    readonly clientId: string
+    readonly appId?: string | null
+    readonly clientName: string
+    readonly clientType: string
     readonly status: string
-    readonly validFrom: string
-    readonly validTo: string
-    readonly lastUsedAt?: string
+    readonly clientSecret?: string | null
+    readonly secretHint?: string | null
     readonly version: number
+    readonly createdAt: string
 }
 
+export interface RotatedClientSecretVO {
+    readonly clientId: string
+    readonly appId: string
+    readonly clientSecret: string
+    readonly secretHint: string
+    readonly version: number
+    readonly rotatedAt: string
+}
+
+export interface RotateClientSecretDTO {
+    expectedVersion: number
+}
+
+// ─── Resource Servers ────────────────────────────────────────────
 export interface ResourceServerVO {
     readonly resourceServerId: string
     readonly resourceUri: string
@@ -115,10 +134,8 @@ export interface ResourceServerVO {
     readonly managementClientId: string
     readonly rbacApplicationCode: string
     readonly entryPermissionCode: string
-    readonly admissionTicketTtlSeconds: number
     readonly status: string
     readonly version: number
-    readonly keys: readonly ClientJwkVO[]
     readonly createdAt: string
     readonly updatedAt: string
 }
@@ -133,17 +150,6 @@ export interface CreateResourceServerDTO {
     managementClientId: string
     rbacApplicationCode: string
     entryPermissionCode: string
-    admissionTicketTtlSeconds: number
-    key: CreateClientJwkDTO
-}
-
-export interface CreateClientJwkDTO {
-    kid: string
-    algorithm: string
-    publicJwk: string
-    validFrom: string
-    validTo: string
-    expectedResourceVersion: number
 }
 
 export interface ResourceVersionDTO {
@@ -159,13 +165,15 @@ export interface BatchResourceServerActionDTO {
 }
 
 // ─── Client Resource Grants ──────────────────────────────────────
-export type ResourceGrantType = 'USER_DELEGATION' | 'SERVICE_ACCESS'
+export type ResourceGrantType = 'USER_DELEGATION' | 'CLIENT_CREDENTIALS'
+export type ServiceTokenContext = 'TENANT' | 'PLATFORM'
 
 export interface ClientResourceGrantVO {
     readonly clientId: string
     readonly resourceServerId: string
     readonly grantType: ResourceGrantType
-    readonly tenantId: string
+    readonly scopeContext?: ServiceTokenContext
+    readonly tenantId?: string
     readonly allowedScopes: readonly string[]
     readonly status: string
     readonly version: number
@@ -173,6 +181,7 @@ export interface ClientResourceGrantVO {
 
 export interface UpsertClientResourceGrantDTO {
     grantType: ResourceGrantType
+    scopeContext?: ServiceTokenContext
     tenantId?: string
     allowedScopes: string[]
     expectedResourceVersion: number
@@ -181,6 +190,7 @@ export interface UpsertClientResourceGrantDTO {
 
 export interface DeleteClientResourceGrantDTO {
     grantType: ResourceGrantType
+    scopeContext?: ServiceTokenContext
     tenantId?: string
     expectedResourceVersion: number
     expectedGrantVersion: number
@@ -192,6 +202,7 @@ export interface BatchClientResourceGrantDTO {
     appCodes: string[]
     action: 'UPSERT' | 'DELETE'
     grantType: ResourceGrantType
+    scopeContext?: ServiceTokenContext
     tenantId?: string
     allowedScopes: string[]
     expectedResourceVersions: Record<string, number>
