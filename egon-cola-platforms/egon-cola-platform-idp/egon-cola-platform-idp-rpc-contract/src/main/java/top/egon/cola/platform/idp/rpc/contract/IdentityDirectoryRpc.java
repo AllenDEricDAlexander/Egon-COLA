@@ -4,6 +4,8 @@ import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
 import top.egon.cola.platform.idp.rpc.contract.proto.v1.BatchGetIdentityProfilesRequest;
 import top.egon.cola.platform.idp.rpc.contract.proto.v1.BatchGetIdentityProfilesResponse;
+import top.egon.cola.platform.idp.rpc.contract.proto.v1.GetTenantMembershipRequest;
+import top.egon.cola.platform.idp.rpc.contract.proto.v1.GetTenantMembershipResponse;
 import top.egon.cola.platform.idp.rpc.contract.proto.v1.IdentityDirectoryServiceGrpc;
 
 /**
@@ -26,4 +28,11 @@ public interface IdentityDirectoryRpc {
     @EgonRpcMethod(name = "BatchGetIdentityProfiles")
     BatchGetIdentityProfilesResponse batchGetIdentityProfiles(
             BatchGetIdentityProfilesRequest request);
+
+    /**
+     * Resolves one tenant membership fact without exposing RBAC identifiers or policy data.
+     */
+    @EgonRpcMethod(name = "GetTenantMembership")
+    GetTenantMembershipResponse getTenantMembership(
+            GetTenantMembershipRequest request);
 }

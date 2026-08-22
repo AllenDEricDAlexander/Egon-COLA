@@ -17,13 +17,28 @@ class IdentityDirectoryRpcContractTest {
                 .isEqualTo("egon.idp.v1.IdentityDirectoryService");
         assertThat(contract.group()).isEqualTo("idp");
         assertThat(contract.version()).isEqualTo("1.0.0");
+        assertThat(contract.methods()).hasSize(2);
         assertThat(contract.methods())
+                .extracting(method -> method.methodName())
+                .containsExactlyInAnyOrder(
+                        "BatchGetIdentityProfiles",
+                        "GetTenantMembership"
+                );
+        assertThat(contract.methods())
+                .filteredOn(method -> method.methodName()
+                        .equals("BatchGetIdentityProfiles"))
                 .singleElement()
-                .satisfies(method -> {
-                    assertThat(method.methodName())
-                            .isEqualTo("BatchGetIdentityProfiles");
-                    assertThat(method.fullMethodName()).isEqualTo(
-                            "egon.idp.v1.IdentityDirectoryService/BatchGetIdentityProfiles");
-                });
+                .extracting(method -> method.fullMethodName())
+                .isEqualTo(
+                        "egon.idp.v1.IdentityDirectoryService/BatchGetIdentityProfiles"
+                );
+        assertThat(contract.methods())
+                .filteredOn(method -> method.methodName()
+                        .equals("GetTenantMembership"))
+                .singleElement()
+                .extracting(method -> method.fullMethodName())
+                .isEqualTo(
+                        "egon.idp.v1.IdentityDirectoryService/GetTenantMembership"
+                );
     }
 }
