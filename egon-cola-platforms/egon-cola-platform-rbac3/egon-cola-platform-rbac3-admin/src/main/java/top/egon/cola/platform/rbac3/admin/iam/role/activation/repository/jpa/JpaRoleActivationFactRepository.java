@@ -25,6 +25,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import top.egon.cola.platform.rbac3.admin.iam.role.activation.repository.internal.MutableDsd;
 import top.egon.cola.platform.rbac3.admin.iam.role.activation.repository.RoleActivationFactRepository;
+import top.egon.cola.platform.rbac3.admin.iam.authorizationstate.repository.TenantAuthorizationStateRepository;
 import top.egon.cola.platform.rbac3.admin.iam.role.activation.domain.vo.ActivationFactsVO;
 import top.egon.cola.platform.rbac3.admin.iam.role.activation.domain.vo.ApplicationFactVO;
 import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleEligibilityService;
@@ -47,6 +48,7 @@ public class JpaRoleActivationFactRepository
      */
     private final EntityManager entityManager;
     private final RoleEligibilityService roleEligibility;
+    private final TenantAuthorizationStateRepository authorizationState;
 
     /**
      * 构造器 `JpaRoleActivationFactRepository` 用于创建并初始化 `JpaRoleActivationFactRepository` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -56,17 +58,17 @@ public class JpaRoleActivationFactRepository
      * Usage: create the instance through `JpaRoleActivationFactRepository`'s constructor entry point and do not bypass the validation and initialization constraints established there.
      *
      * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param roleEligibility 输入参数 `roleEligibility`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param authorizationState 输入参数 `authorizationState`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
-    public JpaRoleActivationFactRepository(EntityManager entityManager) {
-        this(entityManager, null);
-    }
-
     @Autowired
     public JpaRoleActivationFactRepository(
             EntityManager entityManager,
-            RoleEligibilityService roleEligibility) {
+            RoleEligibilityService roleEligibility,
+            TenantAuthorizationStateRepository authorizationState) {
         this.entityManager = entityManager;
         this.roleEligibility = roleEligibility;
+        this.authorizationState = authorizationState;
     }
 
     /**
@@ -91,14 +93,14 @@ public class JpaRoleActivationFactRepository
         long tenant = Long.parseLong(tenantId);
         long user = Long.parseLong(userId);
         Object[] versions = one("""
-                select u.auth_version, u.directory_snapshot_version, t.policy_version, u.status
+                select u.auth_version, u.directory_snapshot_version, u.status
                   from rbac3_user u
-                  join rbac3_tenant t on t.id = u.tenant_id
                  where u.tenant_id = :tenantId and u.id = :userId
                 """, Map.of("tenantId", tenant, "userId", user));
-        if (!"ACTIVE".equals(text(versions[3]))) {
+        if (!"ACTIVE".equals(text(versions[2]))) {
             throw new Rbac3RuleViolation("AUTHORIZATION_SUBJECT_INVALID");
         }
+        long policyVersion = authorizationState.requireForUpdate(tenant).getPolicyVersion();
 
         List<Object[]> roleRows = rows("""
                 select r.id, r.application_id, r.role_code, r.role_name,
@@ -183,7 +185,7 @@ public class JpaRoleActivationFactRepository
                 dsdSets(tenant, databaseNow),
                 authorizationFacts(tenant, user, databaseNow),
                 number(versions[0]).longValue(),
-                number(versions[2]).longValue(),
+                policyVersion,
                 "directory:" + number(versions[1]).longValue(),
                 applications,
                 names);

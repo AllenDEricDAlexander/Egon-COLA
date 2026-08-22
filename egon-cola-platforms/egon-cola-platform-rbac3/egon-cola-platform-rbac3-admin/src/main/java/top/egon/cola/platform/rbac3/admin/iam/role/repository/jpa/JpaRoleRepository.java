@@ -7,7 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
 import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.iam.tenant.domain.po.TenantPO;
+import top.egon.cola.platform.rbac3.admin.iam.authorizationstate.repository.TenantAuthorizationStateRepository;
 import top.egon.cola.platform.rbac3.admin.iam.permission.domain.po.PermissionPO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.po.RolePO;
 import top.egon.cola.platform.rbac3.admin.iam.role.inheritance.domain.po.RoleInheritancePO;
@@ -90,6 +90,7 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
      * Meaning and usage: when reading, passing, or updating `eventPort`, preserve `JpaRoleRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
     private final AuthorizationEventPublisher eventPort;
+    private final TenantAuthorizationStateRepository authorizationState;
 
     /**
      * 构造器 `JpaRoleRepository` 用于创建并初始化 `JpaRoleRepository` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -103,18 +104,21 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
      * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param databaseClock 输入参数 `databaseClock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param eventPort 输入参数 `eventPort`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param authorizationState 输入参数 `authorizationState`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public JpaRoleRepository(
             EntityManager entityManager,
             PostgresqlRoleClosureRepository closureStore,
             LongIdGenerator idGenerator,
             DatabaseClock databaseClock,
-            AuthorizationEventPublisher eventPort) {
+            AuthorizationEventPublisher eventPort,
+            TenantAuthorizationStateRepository authorizationState) {
         this.entityManager = entityManager;
         this.closureStore = closureStore;
         this.idGenerator = idGenerator;
         this.databaseClock = databaseClock;
         this.eventPort = eventPort;
+        this.authorizationState = authorizationState;
     }
 
     /**
@@ -749,22 +753,22 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
             String eventType,
             String actorId,
             Instant now) {
-        TenantPO tenant = entityManager.find(
-                TenantPO.class, Long.valueOf(tenantId), LockModeType.PESSIMISTIC_WRITE);
-        if (tenant == null) {
+        long policyVersion;
+        try {
+            policyVersion = authorizationState.increment(Long.valueOf(tenantId), actorId);
+        } catch (IllegalStateException missingState) {
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }
-        tenant.incrementPolicyVersion(actorId, now);
         String propagationId = eventPort.enqueue(new AuthorizationEventVO(
                 tenantId,
                 aggregateType,
                 aggregateId,
                 eventType,
-                Map.of("policyVersion", Long.toString(tenant.getPolicyVersion())),
+                Map.of("policyVersion", Long.toString(policyVersion)),
                 eventType.toLowerCase(java.util.Locale.ROOT) + '-' + aggregateId));
         return new RoleMutationResultVO(
                 aggregateId,
-                tenant.getPolicyVersion(),
+                policyVersion,
                 propagationId,
                 true);
     }

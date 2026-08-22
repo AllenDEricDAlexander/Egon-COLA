@@ -1,6 +1,13 @@
 package top.egon.cola.platform.rbac3.admin.iam.role;
 
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.platform.rbac3.admin.iam.authorizationstate.repository.TenantAuthorizationStateRepository;
+import top.egon.cola.platform.rbac3.admin.iam.role.inheritance.repository.jdbc.PostgresqlRoleClosureRepository;
+import top.egon.cola.platform.rbac3.admin.iam.role.repository.jpa.JpaRoleRepository;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
+import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleFacade;
 import top.egon.cola.platform.rbac3.core.hierarchy.RoleHierarchy;
 
@@ -19,8 +26,45 @@ import top.egon.cola.platform.rbac3.admin.iam.role.inheritance.domain.dto.Inheri
 import top.egon.cola.platform.rbac3.core.hierarchy.RoleNode;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class RoleControlFacadeTest {
+
+    @Test
+    void graphMutationPublishesTheVersionReturnedByAuthorizationState() {
+        EntityManager entityManager = mock(EntityManager.class);
+        PostgresqlRoleClosureRepository closureStore = mock(
+                PostgresqlRoleClosureRepository.class);
+        LongIdGenerator idGenerator = mock(LongIdGenerator.class);
+        DatabaseClock databaseClock = mock(DatabaseClock.class);
+        AuthorizationEventPublisher eventPort = mock(AuthorizationEventPublisher.class);
+        TenantAuthorizationStateRepository stateStore = mock(
+                TenantAuthorizationStateRepository.class);
+        when(databaseClock.transactionNow()).thenReturn(Instant.EPOCH);
+        when(stateStore.increment(10001L, "actor")).thenReturn(4L);
+        when(eventPort.enqueue(any())).thenReturn("event-2");
+
+        new JpaRoleRepository(
+                entityManager,
+                closureStore,
+                idGenerator,
+                databaseClock,
+                eventPort,
+                stateStore).recordGraphMutation(
+                "10001", "71001", new top.egon.cola.platform.rbac3.core.hierarchy.RoleEdge(
+                        "50001", "50002"), true, "actor");
+
+        verify(stateStore).increment(10001L, "actor");
+        verify(entityManager, never()).find(
+                eq(top.egon.cola.platform.rbac3.admin.iam.tenant.domain.po.TenantPO.class),
+                any(), eq(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE));
+        verify(eventPort).enqueue(any());
+    }
 
     @Test
     void permissionBindingPreservesOneAtomicBatchAtTheStoreBoundary() {

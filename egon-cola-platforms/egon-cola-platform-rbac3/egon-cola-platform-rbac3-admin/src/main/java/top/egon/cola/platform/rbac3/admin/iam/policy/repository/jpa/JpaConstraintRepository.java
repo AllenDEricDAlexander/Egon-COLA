@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
 import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.iam.authorizationstate.repository.TenantAuthorizationStateRepository;
 import top.egon.cola.platform.rbac3.admin.iam.policy.domain.po.DataRulePO;
 import top.egon.cola.platform.rbac3.admin.iam.policy.domain.po.DataRuleReferencePO;
 import top.egon.cola.platform.rbac3.admin.iam.policy.domain.po.FieldRulePO;
@@ -15,7 +16,6 @@ import top.egon.cola.platform.rbac3.admin.iam.policy.domain.po.RoleCardinalityPO
 import top.egon.cola.platform.rbac3.admin.iam.policy.domain.po.RolePrerequisitePO;
 import top.egon.cola.platform.rbac3.admin.iam.policy.domain.po.SodMemberPO;
 import top.egon.cola.platform.rbac3.admin.iam.policy.domain.po.SodSetPO;
-import top.egon.cola.platform.rbac3.admin.iam.tenant.domain.po.TenantPO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.po.RolePO;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
@@ -90,6 +90,7 @@ public class JpaConstraintRepository implements
      * Meaning and usage: when reading, passing, or updating `eventPort`, preserve `JpaConstraintRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
     private final AuthorizationEventPublisher eventPort;
+    private final TenantAuthorizationStateRepository authorizationState;
 
     /**
      * 构造器 `JpaConstraintRepository` 用于创建并初始化 `JpaConstraintRepository` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -102,16 +103,19 @@ public class JpaConstraintRepository implements
      * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param databaseClock 输入参数 `databaseClock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param eventPort 输入参数 `eventPort`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param authorizationState 输入参数 `authorizationState`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public JpaConstraintRepository(
             EntityManager entityManager,
             LongIdGenerator idGenerator,
             DatabaseClock databaseClock,
-            AuthorizationEventPublisher eventPort) {
+            AuthorizationEventPublisher eventPort,
+            TenantAuthorizationStateRepository authorizationState) {
         this.entityManager = entityManager;
         this.idGenerator = idGenerator;
         this.databaseClock = databaseClock;
         this.eventPort = eventPort;
+        this.authorizationState = authorizationState;
     }
 
     /**
@@ -659,22 +663,22 @@ public class JpaConstraintRepository implements
             String aggregateId,
             String actorId,
             Instant now) {
-        TenantPO tenant = entityManager.find(
-                TenantPO.class, Long.valueOf(tenantId), LockModeType.PESSIMISTIC_WRITE);
-        if (tenant == null) {
+        long policyVersion;
+        try {
+            policyVersion = authorizationState.increment(Long.valueOf(tenantId), actorId);
+        } catch (IllegalStateException missingState) {
             throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
         }
-        tenant.incrementPolicyVersion(actorId, now);
         String eventType = aggregateType + "_CHANGED";
         String propagationId = eventPort.enqueue(new AuthorizationEventVO(
                 tenantId,
                 aggregateType,
                 aggregateId,
                 eventType,
-                Map.of("policyVersion", Long.toString(tenant.getPolicyVersion())),
+                Map.of("policyVersion", Long.toString(policyVersion)),
                 eventType.toLowerCase(java.util.Locale.ROOT) + '-' + aggregateId));
         return new MutationResultVO(
-                aggregateId, tenant.getPolicyVersion(), propagationId, true);
+                aggregateId, policyVersion, propagationId, true);
     }
 
     /**

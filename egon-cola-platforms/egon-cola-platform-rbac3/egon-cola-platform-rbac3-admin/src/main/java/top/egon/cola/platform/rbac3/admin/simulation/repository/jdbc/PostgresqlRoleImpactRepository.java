@@ -1,9 +1,9 @@
 package top.egon.cola.platform.rbac3.admin.simulation.repository.jdbc;
 
-import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.platform.rbac3.admin.iam.tenant.domain.po.TenantPO;
+import top.egon.cola.platform.rbac3.admin.iam.authorizationstate.domain.po.TenantAuthorizationStatePO;
+import top.egon.cola.platform.rbac3.admin.iam.authorizationstate.repository.TenantAuthorizationStateRepository;
 import top.egon.cola.platform.rbac3.admin.iam.role.repository.RoleImpactQuery;
 
 import java.nio.charset.StandardCharsets;
@@ -25,14 +25,6 @@ public class PostgresqlRoleImpactRepository
         implements RoleImpactRepository {
 
     /**
-     * 字段 `entityManager` 表示 `PostgresqlRoleImpactRepository` 中与 `entity Manager` 相关的状态、依赖、配置或结果（声明类型 `EntityManager`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `entityManager` stores the `entity Manager`-related state, dependency, configuration, or result of `PostgresqlRoleImpactRepository` (declared type `EntityManager`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `entityManager` 时应保持 `PostgresqlRoleImpactRepository` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `entityManager`, preserve `PostgresqlRoleImpactRepository`'s lifecycle, immutability, and thread-safety constraints.
-     */
-    private final EntityManager entityManager;
-    /**
      * 字段 `roleFacade` 表示 `PostgresqlRoleImpactRepository` 中与 `role Facade` 相关的状态、依赖、配置或结果（声明类型 `RoleFacade`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `roleFacade` stores the `role Facade`-related state, dependency, configuration, or result of `PostgresqlRoleImpactRepository` (declared type `RoleFacade`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
@@ -40,6 +32,7 @@ public class PostgresqlRoleImpactRepository
      * Meaning and usage: when reading, passing, or updating `roleFacade`, preserve `PostgresqlRoleImpactRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
     private final RoleImpactQuery roleImpactQuery;
+    private final TenantAuthorizationStateRepository authorizationState;
 
     /**
      * 构造器 `PostgresqlRoleImpactRepository` 用于创建并初始化 `PostgresqlRoleImpactRepository` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -48,14 +41,14 @@ public class PostgresqlRoleImpactRepository
      * 用法：通过 `PostgresqlRoleImpactRepository` 的构造入口创建实例，不绕过构造器建立的校验和初始化约束。
      * Usage: create the instance through `PostgresqlRoleImpactRepository`'s constructor entry point and do not bypass the validation and initialization constraints established there.
      *
-     * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param roleFacade 输入参数 `roleFacade`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     */
+     * @param authorizationState 输入参数 `authorizationState`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+    */
     public PostgresqlRoleImpactRepository(
-            EntityManager entityManager,
-            RoleImpactQuery roleImpactQuery) {
-        this.entityManager = entityManager;
+            RoleImpactQuery roleImpactQuery,
+            TenantAuthorizationStateRepository authorizationState) {
         this.roleImpactQuery = roleImpactQuery;
+        this.authorizationState = authorizationState;
     }
 
     /**
@@ -74,13 +67,10 @@ public class PostgresqlRoleImpactRepository
     public RoleImpactSnapshotVO load(
             String tenantId,
             String roleId) {
-        TenantPO tenant = entityManager.find(
-                TenantPO.class, Long.valueOf(tenantId));
-        if (tenant == null) {
-            throw new IllegalArgumentException("tenant is missing");
-        }
+        TenantAuthorizationStatePO state = authorizationState.requireForUpdate(
+                Long.valueOf(tenantId));
         RoleImpactVO impact = roleImpactQuery.impact(tenantId, roleId);
-        long policyVersion = tenant.getPolicyVersion();
+        long policyVersion = state.getPolicyVersion();
         return new RoleImpactSnapshotVO(
                 impact, policyVersion,
                 checksum(tenantId, policyVersion, impact));

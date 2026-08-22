@@ -123,13 +123,16 @@ public final class RoleEligibilityService {
         List<?> result = entityManager.createNativeQuery("""
                         select a.id, a.ddc_application_id, a.ddc_business_id, a.status
                           from rbac3_application a
-                          join rbac3_tenant_application ta
-                            on ta.application_id = a.id
-                           and ta.tenant_id = :tenantId
-                           and ta.status = 'ACTIVE'
-                           and ta.valid_from <= :at
-                           and (ta.valid_to is null or ta.valid_to > :at)
                          where a.id = :applicationId
+                           and exists (
+                               select 1
+                                 from rbac3_tenant_application ta
+                                where ta.application_id = a.id
+                                  and ta.tenant_id = :tenantId
+                                  and ta.status = 'ACTIVE'
+                                  and ta.valid_from <= :at
+                                  and (ta.valid_to is null or ta.valid_to > :at)
+                           )
                         """)
                 .setParameter("tenantId", tenantId)
                 .setParameter("applicationId", id)
@@ -178,13 +181,16 @@ public final class RoleEligibilityService {
         List<?> result = entityManager.createNativeQuery("""
                         select a.id, a.ddc_application_id, a.ddc_business_id, a.status
                           from rbac3_application a
-                          join rbac3_tenant_application ta
-                            on ta.application_id = a.id
-                           and ta.tenant_id = :tenantId
-                           and ta.status = 'ACTIVE'
-                           and ta.valid_from <= :at
-                           and (ta.valid_to is null or ta.valid_to > :at)
                          where a.application_code = :applicationCode
+                           and exists (
+                               select 1
+                                 from rbac3_tenant_application ta
+                                where ta.application_id = a.id
+                                  and ta.tenant_id = :tenantId
+                                  and ta.status = 'ACTIVE'
+                                  and ta.valid_from <= :at
+                                  and (ta.valid_to is null or ta.valid_to > :at)
+                           )
                         """)
                 .setParameter("tenantId", tenantId)
                 .setParameter("applicationCode", code)
