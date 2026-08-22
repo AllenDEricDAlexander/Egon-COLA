@@ -13,9 +13,12 @@ import top.egon.cola.platform.idp.admin.oauth.repo.JpaOAuthClientStore;
 import top.egon.cola.platform.idp.admin.oauth.service.impl.ClientSecretBasicAuthenticator;
 import top.egon.cola.platform.idp.admin.token.service.impl.ClientCredentialsTokenService;
 import top.egon.cola.platform.idp.admin.token.service.impl.Rs256TokenService;
+import top.egon.cola.platform.idp.admin.tenant.service.LocalTenantMembershipPort;
+import top.egon.cola.platform.idp.admin.tenant.service.TenantMembershipService;
 import top.egon.cola.platform.idp.core.port.OAuthClientStore;
 import top.egon.cola.platform.idp.core.port.PasswordHashPort;
 import top.egon.cola.platform.idp.core.port.ResourceServerStore;
+import top.egon.cola.platform.idp.core.port.TenantMembershipPort;
 import top.egon.cola.platform.idp.core.resource.ClientCredentialsAccessPolicy;
 
 import java.security.SecureRandom;
@@ -136,6 +139,18 @@ public class OAuthConfig {
                 idpClock,
                 ids::nextId
         );
+    }
+
+    /**
+     * 使用 IdP 本地 tenant/membership 权威服务完成 USER 登录成员关系解析。
+     *
+     * <p>Uses the IdP-local tenant/membership authority for USER-login membership resolution.</p>
+     */
+    @Bean
+    TenantMembershipPort tenantMembershipPort(
+            TenantMembershipService memberships
+    ) {
+        return new LocalTenantMembershipPort(memberships);
     }
 
 }

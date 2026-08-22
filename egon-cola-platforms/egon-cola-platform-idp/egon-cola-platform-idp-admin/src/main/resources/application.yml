@@ -58,17 +58,6 @@ egon.cola.platform:
     jwk-set-uri: ${IDP_JWK_SET_URI}
     resource-server-id: ${IDP_RESOURCE_SERVER_ID}
     resource-uri: ${IDP_RESOURCE_URI}
-    admission:
-      biz-code: ${IDP_RESOURCE_BIZ_CODE:permission}
-      app-code: ${IDP_RESOURCE_APP_CODE:idp}
-      environment: ${DEPLOYMENT_ENV}
-      instance-id: ${IDP_INSTANCE_ID}
-      management-client-id: ${IDP_RESOURCE_MANAGEMENT_CLIENT_ID}
-      kid: ${IDP_RESOURCE_MANAGEMENT_KEY_ID}
-      private-key-path: ${IDP_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE}
-      rpc-target: ${IDP_RESOURCE_ADMISSION_RPC_TARGET}
-      rpc-timeout: ${IDP_RESOURCE_ADMISSION_RPC_TIMEOUT:3s}
-      renewal-skew: ${IDP_RESOURCE_ADMISSION_RENEWAL_SKEW:30s}
   rbac3:
     enabled: ${UNIFIED_IDENTITY_ENABLED:true}
     register-filter: false
@@ -92,17 +81,6 @@ egon:
         kid: ${IDP_SIGNING_KEY_KID}
         public-key-file: ${IDP_SIGNING_PUBLIC_KEY_FILE}
         private-key-file: ${IDP_SIGNING_PRIVATE_KEY_FILE}
-    rbac3:
-      base-url: ${IDP_RBAC3_BASE_URL}
-      service-token:
-        client-id: ${IDP_RBAC3_SERVICE_CLIENT_ID}
-        key-id: ${IDP_RBAC3_SERVICE_KEY_ID}
-        private-key-file: ${IDP_RBAC3_SERVICE_PRIVATE_KEY_FILE}
-        resource-uri: ${IDP_RBAC3_RESOURCE_URI}
-        tenant-id: ${IDP_RBAC3_SERVICE_TENANT_ID}
-        scopes: ${IDP_RBAC3_SERVICE_SCOPES}
-        ttl-seconds: ${IDP_RBAC3_SERVICE_TOKEN_TTL_SECONDS:300}
-        renewal-skew-seconds: ${IDP_RBAC3_SERVICE_TOKEN_RENEWAL_SKEW_SECONDS:30}
   cola:
     component:
       id:
