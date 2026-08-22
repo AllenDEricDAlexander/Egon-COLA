@@ -9,6 +9,7 @@ const CentralLoginPage = lazy(() => import('../auth/CentralLoginPage').then(m =>
 const OverviewPage = lazy(() => import('../features/overview/OverviewPage').then(m => ({ default: m.OverviewPage })))
 const UserListPage = lazy(() => import('../features/users/UserListPage').then(m => ({ default: m.UserListPage })))
 const ClientListPage = lazy(() => import('../features/clients/ClientListPage').then(m => ({ default: m.ClientListPage })))
+const TenantListPage = lazy(() => import('../features/tenants/TenantListPage').then(m => ({default: m.TenantListPage})))
 const ResourceServerListPage = lazy(() => import('../features/resource-servers/ResourceServerListPage').then(m => ({default: m.ResourceServerListPage})))
 const ClientResourceGrantPage = lazy(() => import('../features/resource-grants/ClientResourceGrantPage').then(m => ({default: m.ClientResourceGrantPage})))
 const SigningKeyPage = lazy(() => import('../features/keys/SigningKeyPage').then(m => ({ default: m.SigningKeyPage })))
@@ -45,6 +46,7 @@ export const AppRouter = () => (
             <Route path="/overview" element={<OverviewPage />} />
             <Route path="/users" element={<UserListPage />} />
             <Route path="/clients" element={<ClientListPage />} />
+            <Route path="/tenants" element={<TenantListPage />} />
               <Route path="/clients/:clientId/resource-grants" element={<ClientResourceGrantPage/>}/>
               <Route path="/resource-servers" element={<ResourceServerListPage/>}/>
             <Route path="/keys" element={<SigningKeyPage />} />

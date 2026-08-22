@@ -56,6 +56,64 @@ export interface UpdateIdentityUserDTO {
     expectedVersion: number
 }
 
+// ─── IdP Tenants and Memberships ─────────────────────────────────
+export type TenantStatus = 'INITIALIZING' | 'ACTIVE' | 'SUSPENDED' | 'CLOSED'
+export type TenantMembershipStatus = 'ACTIVE' | 'DISABLED'
+
+export interface TenantVO {
+    readonly tenantId: string
+    readonly tenantCode: string
+    readonly tenantName: string
+    readonly status: TenantStatus
+    readonly settings: Record<string, unknown>
+    readonly version: number
+    readonly createdAt: string
+    readonly updatedAt: string
+}
+
+export interface TenantPageVO {
+    readonly content: readonly TenantVO[]
+    readonly page: number
+    readonly size: number
+    readonly totalElements: number
+    readonly totalPages: number
+}
+
+export interface CreateTenantDTO {
+    tenantCode: string
+    tenantName: string
+    settings?: Record<string, unknown>
+}
+
+export interface UpdateTenantDTO {
+    tenantName?: string
+    settings?: Record<string, unknown>
+    status: TenantStatus
+    expectedVersion: number
+}
+
+export interface TenantMembershipVO {
+    readonly tenantId?: string
+    readonly identitySub: string
+    readonly displayName: string
+    readonly status: TenantMembershipStatus
+    readonly version: number
+    readonly updatedAt: string
+}
+
+export interface TenantMembershipPageVO {
+    readonly content: readonly TenantMembershipVO[]
+    readonly page: number
+    readonly size: number
+    readonly totalElements: number
+    readonly totalPages: number
+}
+
+export interface UpsertTenantMembershipDTO {
+    status: TenantMembershipStatus
+    expectedVersion?: number
+}
+
 // ─── OAuth Clients ───────────────────────────────────────────────
 export interface OAuthClientVO {
   readonly appId?: string

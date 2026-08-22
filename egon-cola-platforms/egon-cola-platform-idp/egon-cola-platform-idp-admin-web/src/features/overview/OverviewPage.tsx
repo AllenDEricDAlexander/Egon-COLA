@@ -13,6 +13,7 @@ export const OverviewPage = () => {
     const permissionModules = [
         {key: 'users', label: '全局用户', perm: 'idp:identity-user:read'},
         {key: 'clients', label: 'OAuth 客户端', perm: 'idp:oauth-client:read'},
+        {key: 'tenants', label: '租户目录', perm: 'idp:tenant:read'},
         {key: 'resource-servers', label: 'Resource Server', perm: 'idp:resource-server:read'},
         {key: 'keys', label: '签名密钥', perm: 'idp:signing-key:read'},
         {key: 'audits', label: '安全审计', perm: 'idp:audit:read'},

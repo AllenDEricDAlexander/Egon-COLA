@@ -24,6 +24,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
     {key: 'overview', label: '身份概览', path: '/overview', permission: ''},
     {key: 'users', label: '全局用户', path: '/users', permission: 'idp:identity-user:read'},
     {key: 'clients', label: 'OAuth 客户端', path: '/clients', permission: 'idp:oauth-client:read'},
+    {key: 'tenants', label: '租户目录', path: '/tenants', permission: 'idp:tenant:read'},
     {
         key: 'resource-servers',
         label: 'Resource Server',
@@ -38,6 +39,7 @@ const PATH_LABELS: Record<string, string> = {
     '/overview': '身份概览',
     '/users': '全局用户',
     '/clients': 'OAuth 客户端',
+    '/tenants': '租户目录',
     '/resource-servers': 'Resource Server',
     '/keys': '签名密钥',
     '/audits': '安全审计',

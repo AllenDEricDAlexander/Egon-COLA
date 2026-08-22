@@ -17,6 +17,8 @@ vi.mock('../auth/AuthContext', () => ({
           'idp:oauth-client:read',
           'idp:oauth-client:create',
           'idp:oauth-client:update',
+          'idp:tenant:read',
+          'idp:tenant:manage',
           'idp:resource-server:read',
           'idp:resource-server:create',
           'idp:resource-server:status',
@@ -75,6 +77,24 @@ beforeEach(() => {
         updatedAt: '2026-08-06T10:00:00Z',
       }])
     }
+    if (path === '/api/v1/identity/tenants?page=0&size=20') {
+      return Promise.resolve({
+        content: [{
+          tenantId: 'tenant-1',
+          tenantCode: 'acme',
+          tenantName: 'Acme',
+          status: 'ACTIVE',
+          settings: {region: 'cn'},
+          version: 1,
+          createdAt: '2026-08-06T10:00:00Z',
+          updatedAt: '2026-08-06T10:00:00Z',
+        }],
+        page: 0,
+        size: 20,
+        totalElements: 1,
+        totalPages: 1,
+      })
+    }
     if (path === '/api/v1/identity/signing-keys') {
       return Promise.resolve([{
         kid: 'kid-1',
@@ -108,6 +128,7 @@ describe('IdP Admin application providers', () => {
   it.each([
     ['/users', '/api/v1/identity/users', 'alice'],
     ['/clients', '/api/v1/identity/clients', 'IdP Admin Web'],
+    ['/tenants', '/api/v1/identity/tenants?page=0&size=20', 'Acme'],
     ['/keys', '/api/v1/identity/signing-keys', 'kid-1'],
     ['/audits', '/api/v1/identity/audits?page=0&size=20', 'LOGIN_SUCCEEDED'],
   ])('renders the data page at %s', async (route, requestPath, expectedText) => {
