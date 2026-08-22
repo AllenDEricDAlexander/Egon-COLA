@@ -11,18 +11,14 @@ import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientEntity;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.BatchClientResourceGrantDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.BatchResourceServerActionDTO;
-import top.egon.cola.platform.idp.admin.resource.domain.dto.CreateClientJwkDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.CreateResourceServerDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.DeleteClientResourceGrantDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.ResourceVersionDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.UpsertClientResourceGrantDTO;
-import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientJwkEntity;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientResourceGrantEntity;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityResourceServerEntity;
-import top.egon.cola.platform.idp.admin.resource.domain.vo.ClientJwkVO;
 import top.egon.cola.platform.idp.admin.resource.domain.vo.ClientResourceGrantVO;
 import top.egon.cola.platform.idp.admin.resource.domain.vo.ResourceServerVO;
-import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientJwkRepository;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepository;
 import top.egon.cola.platform.idp.admin.resource.service.ResourceServerProjectionService;
@@ -64,9 +60,6 @@ public class ResourceServerServiceImpl implements ResourceServerService {
     /** Resource Server 仓储；Resource Server repository. */
     private final IdentityResourceServerRepository resources;
 
-    /** Client 公钥凭证仓储；Client public-key credential repository. */
-    private final IdentityClientJwkRepository credentials;
-
     /** Client Resource Grant 仓储；Client Resource Grant repository. */
     private final IdentityClientResourceGrantRepository grants;
 
@@ -96,7 +89,6 @@ public class ResourceServerServiceImpl implements ResourceServerService {
     @Autowired
     public ResourceServerServiceImpl(
             IdentityResourceServerRepository resources,
-            IdentityClientJwkRepository credentials,
             IdentityClientResourceGrantRepository grants,
             IdentityClientRepository clients,
             ResourceServerProjectionService projections,
@@ -106,7 +98,6 @@ public class ResourceServerServiceImpl implements ResourceServerService {
     ) {
         this(
                 resources,
-                credentials,
                 grants,
                 clients,
                 projections,
@@ -124,7 +115,6 @@ public class ResourceServerServiceImpl implements ResourceServerService {
      */
     ResourceServerServiceImpl(
             IdentityResourceServerRepository resources,
-            IdentityClientJwkRepository credentials,
             IdentityClientResourceGrantRepository grants,
             IdentityClientRepository clients,
             ResourceServerProjectionService projections,
@@ -134,10 +124,6 @@ public class ResourceServerServiceImpl implements ResourceServerService {
             TransactionalOutboxResourceServerEventAdapter events
     ) {
         this.resources = Objects.requireNonNull(resources, "resources");
-        this.credentials = Objects.requireNonNull(
-                credentials,
-                "credentials"
-        );
         this.grants = Objects.requireNonNull(grants, "grants");
         this.clients = Objects.requireNonNull(clients, "clients");
         this.projections = Objects.requireNonNull(
@@ -185,12 +171,6 @@ public class ResourceServerServiceImpl implements ResourceServerService {
                     "management Client is already bound to a Resource Server"
             );
         }
-        CreateClientJwkDTO key = Objects.requireNonNull(command.key(), "key");
-        if (key.expectedResourceVersion() != 0L) {
-            throw new IllegalStateException(
-                    "new Resource Server version must be zero"
-            );
-        }
         Instant now = clock.instant();
         IdentityResourceServerEntity resource = resources.save(
                 IdentityResourceServerEntity.create(
@@ -204,16 +184,12 @@ public class ResourceServerServiceImpl implements ResourceServerService {
                         command.managementClientId(),
                         command.rbacApplicationCode(),
                         command.entryPermissionCode(),
-                        command.admissionTicketTtlSeconds(),
                         IdentityResourceServerEntity.Status.DISABLED,
                         now
                 )
         );
-        IdentityClientJwkEntity credential = credentials.save(
-                credential(resource, key, now)
-        );
         projections.projectResource(resource, client);
-        return view(resource, List.of(credential));
+        return view(resource);
     }
 
     /** {@inheritDoc} */
@@ -227,14 +203,6 @@ public class ResourceServerServiceImpl implements ResourceServerService {
         IdentityResourceServerEntity resource = mutableResource(
                 resourceServerId
         );
-        if (!credentials.existsByClientIdAndStatus(
-                resource.getManagementClientId(),
-                IdentityClientJwkEntity.Status.ACTIVE
-        )) {
-            throw new IllegalStateException(
-                    "enabled Resource Server requires an active key"
-            );
-        }
         resource.enable(command.expectedVersion(), clock.instant());
         return saveAndProject(resource);
     }
@@ -254,66 +222,6 @@ public class ResourceServerServiceImpl implements ResourceServerService {
         ResourceServerVO result = saveAndProject(resource);
         events.enqueueDisabled(resource);
         return result;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    @Transactional
-    public ResourceServerVO addKey(
-            String resourceServerId,
-            CreateClientJwkDTO command
-    ) {
-        Objects.requireNonNull(command, "command");
-        IdentityResourceServerEntity resource = mutableResource(
-                resourceServerId
-        );
-        if (credentials.findByClientIdAndKid(
-                resource.getManagementClientId(),
-                exact(command.kid(), "kid")
-        ).isPresent()) {
-            throw new IllegalStateException("Client JWK already exists");
-        }
-        Instant now = clock.instant();
-        resource.touch(command.expectedResourceVersion(), now);
-        credentials.save(credential(resource, command, now));
-        return saveAndProject(resource);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    @Transactional
-    public ResourceServerVO removeKey(
-            String resourceServerId,
-            String kid,
-            long expectedResourceVersion,
-            long expectedKeyVersion
-    ) {
-        IdentityResourceServerEntity resource = mutableResource(
-                resourceServerId
-        );
-        IdentityClientJwkEntity credential = credentials
-                .findByClientIdAndKid(
-                        resource.getManagementClientId(),
-                        exact(kid, "kid")
-                ).orElseThrow(() -> new NoSuchElementException(
-                        "Client JWK was not found"
-                ));
-        if (resource.getStatus() == IdentityResourceServerEntity.Status.ACTIVE
-                && credential.getStatus()
-                == IdentityClientJwkEntity.Status.ACTIVE
-                && credentials.countByClientIdAndStatus(
-                        resource.getManagementClientId(),
-                        IdentityClientJwkEntity.Status.ACTIVE
-                ) <= 1L) {
-            throw new IllegalStateException(
-                    "cannot remove the last active key from an enabled Resource"
-            );
-        }
-        Instant now = clock.instant();
-        credential.disable(expectedKeyVersion, now);
-        resource.touch(expectedResourceVersion, now);
-        credentials.save(credential);
-        return saveAndProject(resource);
     }
 
     /** {@inheritDoc} */
@@ -464,14 +372,6 @@ public class ResourceServerServiceImpl implements ResourceServerService {
             );
             if (command.action()
                     == BatchResourceServerActionDTO.Action.ENABLE) {
-                if (!credentials.existsByClientIdAndStatus(
-                        resource.getManagementClientId(),
-                        IdentityClientJwkEntity.Status.ACTIVE
-                )) {
-                    throw new IllegalStateException(
-                            "enabled Resource Server requires an active key"
-                    );
-                }
                 resource.enable(expected, clock.instant());
             } else {
                 resource.disable(expected, clock.instant());
@@ -659,33 +559,6 @@ public class ResourceServerServiceImpl implements ResourceServerService {
                 ).isPresent()) {
             throw new IllegalStateException("Resource Server already exists");
         }
-    }
-
-    /**
-     * 从管理命令创建公开 JWK 凭证实体。
-     *
-     * @param resource 所属 Resource；owning Resource
-     * @param command JWK 命令；JWK command
-     * @param now 当前时间；current time
-     * @return JWK 实体；JWK entity
-     */
-    private IdentityClientJwkEntity credential(
-            IdentityResourceServerEntity resource,
-            CreateClientJwkDTO command,
-            Instant now
-    ) {
-        if (!"RS256".equals(exact(command.algorithm(), "algorithm"))) {
-            throw new IllegalArgumentException("only RS256 is supported");
-        }
-        return IdentityClientJwkEntity.create(
-                ids.nextId(),
-                resource.getManagementClientId(),
-                command.kid(),
-                command.publicJwk(),
-                command.validFrom(),
-                command.validTo(),
-                now
-        );
     }
 
     /**
@@ -997,25 +870,6 @@ public class ResourceServerServiceImpl implements ResourceServerService {
      * @return 管理视图；administration view
      */
     private ResourceServerVO view(IdentityResourceServerEntity resource) {
-        return view(
-                resource,
-                credentials.findByClientId(
-                        resource.getManagementClientId()
-                )
-        );
-    }
-
-    /**
-     * 构造 Resource 管理视图。
-     *
-     * @param resource Resource Server；Resource Server
-     * @param keys JWK 实体；JWK entities
-     * @return 管理视图；administration view
-     */
-    private ResourceServerVO view(
-            IdentityResourceServerEntity resource,
-            List<IdentityClientJwkEntity> keys
-    ) {
         return new ResourceServerVO(
                 resource.getResourceServerId(),
                 resource.getResourceUri(),
@@ -1026,35 +880,10 @@ public class ResourceServerServiceImpl implements ResourceServerService {
                 resource.getManagementClientId(),
                 resource.getRbacApplicationCode(),
                 resource.getEntryPermissionCode(),
-                resource.getAdmissionTicketTtlSeconds(),
                 resource.getStatus().name(),
                 resource.getVersion(),
-                keys.stream()
-                        .sorted(Comparator.comparing(
-                                IdentityClientJwkEntity::getKid
-                        ))
-                        .map(this::keyView)
-                        .toList(),
                 resource.getCreatedAt(),
                 resource.getUpdatedAt()
-        );
-    }
-
-    /**
-     * 构造 JWK 管理视图。
-     *
-     * @param key JWK 实体；JWK entity
-     * @return JWK 视图；JWK view
-     */
-    private ClientJwkVO keyView(IdentityClientJwkEntity key) {
-        return new ClientJwkVO(
-                key.getKid(),
-                key.getAlgorithm(),
-                key.getStatus().name(),
-                key.getValidFrom(),
-                key.getValidTo(),
-                key.getLastUsedAt(),
-                key.getVersion()
         );
     }
 

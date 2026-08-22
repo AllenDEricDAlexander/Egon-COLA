@@ -16,9 +16,9 @@ import java.util.Set;
  * SERVICE 机器身份属性；用户资料与权限不会透传。
  *
  * <p>Maps only verified immutable identity fields into fixed trusted downstream headers. The
- * principal must be authenticated and have a tenant. USER principals are deliberately rejected;
- * SERVICE mappings emit subject, tenant, token and verified machine attributes. User profile data
- * and authorities are not propagated.</p>
+ * principal must be authenticated. USER principals are deliberately rejected; SERVICE mappings
+ * emit subject, an optional tenant (PLATFORM tokens omit it), token and verified machine
+ * attributes. User profile data and authorities are not propagated.</p>
  */
 public final class IdpTrustedIdentityMapper implements GatewayIdentityMapper {
 
@@ -76,9 +76,10 @@ public final class IdpTrustedIdentityMapper implements GatewayIdentityMapper {
     @Override
     public TrustedIdentity map(GatewayAuthContext context) {
         GatewayPrincipal principal = context.principal();
-        if (!principal.authenticated() || principal.tenantId() == null) {
+        if (!principal.authenticated()) {
             throw new IllegalArgumentException(
-                    "authenticated IdP principal is required");
+                    "authenticated IdP principal is required"
+            );
         }
         if ("USER".equals(principal.principalType())) {
             throw new IllegalArgumentException(
@@ -88,7 +89,9 @@ public final class IdpTrustedIdentityMapper implements GatewayIdentityMapper {
         Map<String, String> headers = new LinkedHashMap<>();
         headers.put("X-Egon-Principal-Type", principal.principalType());
         headers.put("X-Egon-Identity-Sub", principal.principalId());
-        headers.put("X-Egon-Tenant-Id", principal.tenantId());
+        if (principal.tenantId() != null) {
+            headers.put("X-Egon-Tenant-Id", principal.tenantId());
+        }
         headers.put("X-Egon-Token-Id", required(
                 attributes, "idp.token-id"));
         if ("SERVICE".equals(principal.principalType())) {

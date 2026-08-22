@@ -19,7 +19,7 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import top.egon.cola.platform.idp.core.port.TokenSigner;
-import top.egon.cola.platform.idp.core.resource.AdmissionTicketClaims;
+import top.egon.cola.platform.idp.contract.ServiceTokenContext;
 import top.egon.cola.platform.idp.core.token.AccessTokenClaims;
 import top.egon.cola.platform.idp.core.token.RefreshTokenClaims;
 import top.egon.cola.platform.idp.core.token.ServiceAccessTokenClaims;
@@ -41,13 +41,6 @@ public final class Rs256TokenService implements TokenSigner {
 
     /** Refresh Token 用途声明；refresh-token use claim. */
     private static final String REFRESH_TOKEN_USE = "refresh";
-
-    /** Resource Server 准入票据用途；Resource Server admission-ticket use. */
-    private static final String ADMISSION_TOKEN_USE =
-            "resource_server_admission";
-
-    /** DDC Registry 固定准入 Audience；fixed DDC Registry admission audience. */
-    private static final String ADMISSION_AUDIENCE = "ddc-registry";
 
     /** 含私钥的当前 RSA JWK；current RSA JWK including private key. */
     private final RSAKey rsaKey;
@@ -149,13 +142,14 @@ public final class Rs256TokenService implements TokenSigner {
     @Override
     public String signServiceAccess(ServiceAccessTokenClaims claims) {
         Objects.requireNonNull(claims, "claims");
-        JwtClaimsSet claimSet = JwtClaimsSet.builder()
+        var builder = JwtClaimsSet.builder()
                 .issuer(issuer)
                 .subject(claims.subject())
                 .audience(List.of(claims.audience().toString()))
                 .claim("principal_type", claims.principalType().name())
                 .claim("client_id", claims.clientId())
-                .claim("tid", claims.tenantId())
+                .claim("app_id", claims.appId())
+                .claim("scope_context", claims.scopeContext().name())
                 .claim("scope", List.copyOf(claims.scopes()))
                 .claim("source_biz", claims.sourceBizCode())
                 .claim("source_app", claims.sourceAppCode())
@@ -165,40 +159,12 @@ public final class Rs256TokenService implements TokenSigner {
                 .id(claims.tokenId())
                 .issuedAt(claims.issuedAt())
                 .notBefore(claims.notBefore())
-                .expiresAt(claims.expiresAt())
-                .build();
+                .expiresAt(claims.expiresAt());
+        if (claims.scopeContext() == ServiceTokenContext.TENANT) {
+            builder.claim("tid", claims.tenantId());
+        }
+        JwtClaimsSet claimSet = builder.build();
         return encode(claimSet, "at+jwt");
-    }
-
-    /**
-     * 签发与 OAuth Access Token 隔离的 Resource Server Admission Ticket。
-     *
-     * <p>Signs a Resource Server Admission Ticket isolated from OAuth access tokens.</p>
-     *
-     * @param claims 已通过准入策略的可信声明；trusted claims authorized by the admission policy
-     * @return {@code typ=rs-admission+jwt} 的紧凑 JWT；compact JWT with
-     * {@code typ=rs-admission+jwt}
-     */
-    public String signAdmission(AdmissionTicketClaims claims) {
-        Objects.requireNonNull(claims, "claims");
-        JwtClaimsSet claimSet = JwtClaimsSet.builder()
-                .issuer(issuer)
-                .subject(claims.resourceServerId())
-                .audience(List.of(ADMISSION_AUDIENCE))
-                .claim("token_use", ADMISSION_TOKEN_USE)
-                .claim("resource", claims.resourceUri().toString())
-                .claim("resource_version", claims.resourceVersion())
-                .claim("biz", claims.bizCode())
-                .claim("app", claims.appCode())
-                .claim("env", claims.environment())
-                .claim("instance_id", claims.instanceId())
-                .claim("credential_id", claims.credentialId())
-                .id(claims.tokenId())
-                .issuedAt(claims.issuedAt())
-                .notBefore(claims.notBefore())
-                .expiresAt(claims.expiresAt())
-                .build();
-        return encode(claimSet, "rs-admission+jwt");
     }
 
     /** Signs a stable IdP-only refresh token. */

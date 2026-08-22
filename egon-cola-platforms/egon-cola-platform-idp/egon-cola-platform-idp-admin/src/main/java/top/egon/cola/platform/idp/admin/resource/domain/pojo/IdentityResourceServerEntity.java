@@ -64,10 +64,6 @@ public class IdentityResourceServerEntity {
     @Column(name = "entry_permission_code", nullable = false, length = 256)
     private String entryPermissionCode;
 
-    /** 准入票据有效秒数；admission-ticket lifetime in seconds. */
-    @Column(name = "admission_ticket_ttl_seconds", nullable = false)
-    private int admissionTicketTtlSeconds;
-
     /** Resource Server 状态；Resource Server status. */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
@@ -108,7 +104,6 @@ public class IdentityResourceServerEntity {
      * @param managementClientId 管理 Client；management Client
      * @param rbacApplicationCode RBAC3 应用编码；RBAC3 application code
      * @param entryPermissionCode 入口权限编码；entry-permission code
-     * @param admissionTicketTtlSeconds 准入票据有效秒数；admission-ticket lifetime in seconds
      * @param status 初始状态；initial status
      * @param now 创建时间；creation instant
      * @return 新持久化对象；new persistence object
@@ -124,7 +119,6 @@ public class IdentityResourceServerEntity {
             String managementClientId,
             String rbacApplicationCode,
             String entryPermissionCode,
-            int admissionTicketTtlSeconds,
             Status status,
             Instant now
     ) {
@@ -138,7 +132,7 @@ public class IdentityResourceServerEntity {
                 managementClientId,
                 rbacApplicationCode,
                 entryPermissionCode,
-                Duration.ofSeconds(admissionTicketTtlSeconds),
+                Duration.ofMinutes(5),
                 ResourceServerStatus.valueOf(status.name()),
                 0L
         );
@@ -154,12 +148,47 @@ public class IdentityResourceServerEntity {
         entity.managementClientId = managementClientId;
         entity.rbacApplicationCode = rbacApplicationCode;
         entity.entryPermissionCode = entryPermissionCode;
-        entity.admissionTicketTtlSeconds = admissionTicketTtlSeconds;
         entity.status = status;
         entity.version = 0L;
         entity.createdAt = Objects.requireNonNull(now, "now");
         entity.updatedAt = now;
         return entity;
+    }
+
+    /**
+     * Legacy factory retained for source compatibility while old fixtures migrate.
+     *
+     * <p>The retired Admission TTL is deliberately ignored and is not persisted.</p>
+     */
+    public static IdentityResourceServerEntity create(
+            String id,
+            String resourceServerId,
+            String resourceUri,
+            String bizCode,
+            String appCode,
+            String environment,
+            String displayName,
+            String managementClientId,
+            String rbacApplicationCode,
+            String entryPermissionCode,
+            int ignoredAdmissionTicketTtlSeconds,
+            Status status,
+            Instant now
+    ) {
+        return create(
+                id,
+                resourceServerId,
+                resourceUri,
+                bizCode,
+                appCode,
+                environment,
+                displayName,
+                managementClientId,
+                rbacApplicationCode,
+                entryPermissionCode,
+                status,
+                now
+        );
     }
 
     /** @return 数据库主键；database primary key */
@@ -210,11 +239,6 @@ public class IdentityResourceServerEntity {
     /** @return 入口权限编码；entry-permission code */
     public String getEntryPermissionCode() {
         return entryPermissionCode;
-    }
-
-    /** @return 准入票据有效秒数；admission-ticket lifetime in seconds */
-    public int getAdmissionTicketTtlSeconds() {
-        return admissionTicketTtlSeconds;
     }
 
     /** @return Resource Server 状态；Resource Server status */

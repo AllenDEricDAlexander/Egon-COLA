@@ -270,8 +270,6 @@ public class ResourceServerProjectionService {
                 resource.getRbacApplicationCode());
         payload.put("entryPermissionCode",
                 resource.getEntryPermissionCode());
-        payload.put("admissionTicketTtlSeconds",
-                resource.getAdmissionTicketTtlSeconds());
         return payload;
     }
 

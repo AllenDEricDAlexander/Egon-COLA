@@ -69,6 +69,7 @@ public class JpaOAuthClientStore implements OAuthClientStore {
     private OAuthClient toDomain(IdentityClientEntity entity) {
         return new OAuthClient(
                 entity.getClientId(),
+                entity.getAppId(),
                 OAuthClient.ClientType.valueOf(entity.getClientType().name()),
                 OAuthClient.Status.valueOf(entity.getStatus().name()),
                 entity.isPkceRequired(),

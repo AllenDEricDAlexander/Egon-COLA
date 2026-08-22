@@ -173,7 +173,7 @@ public class JpaResourceServerStore implements ResourceServerStore {
                 entity.getManagementClientId(),
                 entity.getRbacApplicationCode(),
                 entity.getEntryPermissionCode(),
-                Duration.ofSeconds(entity.getAdmissionTicketTtlSeconds()),
+                Duration.ofMinutes(5),
                 ResourceServerStatus.valueOf(entity.getStatus().name()),
                 entity.getVersion()
         );

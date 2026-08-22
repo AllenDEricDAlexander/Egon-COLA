@@ -9,6 +9,7 @@ import top.egon.cola.platform.idp.contract.IdpClaimNames;
 import top.egon.cola.platform.idp.contract.IdpPrincipal;
 import top.egon.cola.platform.idp.contract.PrincipalType;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
+import top.egon.cola.platform.idp.contract.ServiceTokenContext;
 import top.egon.cola.platform.idp.core.oauth.OAuthClient;
 import top.egon.cola.platform.idp.core.resource.ResourceServerStatus;
 import top.egon.cola.platform.idp.starter.state.IdentityOAuthClientStateReader;
@@ -229,9 +230,16 @@ public final class IdpJwtVerifier {
         if (!subject.equals(clientId)) {
             throw new InvalidTokenException("SERVICE_SUBJECT_INVALID");
         }
-        String tenantId = claim(jwt, IdpClaimNames.TENANT_ID);
+        String tenantId = optionalClaim(jwt, IdpClaimNames.TENANT_ID);
         if ("*".equals(tenantId)) {
             throw new InvalidTokenException("SERVICE_TENANT_INVALID");
+        }
+        ServiceTokenContext scopeContext = scopeContext(jwt);
+        if (scopeContext == ServiceTokenContext.PLATFORM && tenantId != null) {
+            throw new InvalidTokenException("SERVICE_CONTEXT_TENANT_CONFLICT");
+        }
+        if (scopeContext == ServiceTokenContext.TENANT && tenantId == null) {
+            throw new InvalidTokenException("SERVICE_CONTEXT_TENANT_MISSING");
         }
         IdentityOAuthClientStateReader.IdentityOAuthClientState state;
         try {
@@ -256,7 +264,17 @@ public final class IdpJwtVerifier {
                 resourceVersion, scopes(jwt), claim(jwt, IdpClaimNames.SOURCE_BIZ),
                 claim(jwt, IdpClaimNames.SOURCE_APP), claim(jwt, IdpClaimNames.SOURCE_ENV),
                 claim(jwt, IdpClaimNames.CREDENTIAL_ID), instant(jwt, "iat"),
-                instant(jwt, "exp"));
+                instant(jwt, "exp"), claim(jwt, IdpClaimNames.APP_ID),
+                scopeContext);
+    }
+
+    private ServiceTokenContext scopeContext(Jwt jwt) {
+        String value = claim(jwt, IdpClaimNames.SCOPE_CONTEXT);
+        try {
+            return ServiceTokenContext.valueOf(value);
+        } catch (IllegalArgumentException invalid) {
+            throw new InvalidTokenException("SERVICE_CONTEXT_INVALID", invalid);
+        }
     }
 
     private void verifyResource(long tokenResourceVersion) {
@@ -313,6 +331,14 @@ public final class IdpJwtVerifier {
 
     private String claim(Jwt jwt, String name) {
         return text(jwt.getClaims().get(name), name);
+    }
+
+    private String optionalClaim(Jwt jwt, String name) {
+        Object value = jwt.getClaims().get(name);
+        if (value == null) {
+            return null;
+        }
+        return text(value, name);
     }
 
     private long number(Jwt jwt, String name) {

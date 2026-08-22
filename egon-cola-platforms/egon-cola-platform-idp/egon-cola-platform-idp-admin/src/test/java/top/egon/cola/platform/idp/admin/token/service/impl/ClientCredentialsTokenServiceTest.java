@@ -4,7 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.oauth2.jwt.Jwt;
-import top.egon.cola.platform.idp.core.oauth.ClientAssertionAuthentication;
+import top.egon.cola.platform.idp.core.oauth.ClientSecretAuthentication;
 import top.egon.cola.platform.idp.core.oauth.OAuthClient;
 import top.egon.cola.platform.idp.core.oauth.OAuthException;
 import top.egon.cola.platform.idp.core.port.OAuthClientStore;
@@ -17,6 +17,7 @@ import top.egon.cola.platform.idp.core.resource.ResourceServer;
 import top.egon.cola.platform.idp.core.resource.ResourceServerStatus;
 import top.egon.cola.platform.idp.core.token.ServiceAccessToken;
 import top.egon.cola.platform.idp.core.token.ServiceAccessTokenClaims;
+import top.egon.cola.platform.idp.contract.ServiceTokenContext;
 
 import java.net.URI;
 import java.security.KeyPair;
@@ -99,6 +100,9 @@ class ClientCredentialsTokenServiceTest {
                 .isEqualTo("SERVICE");
         assertThat(claims.getValue().audience()).isEqualTo(TARGET_URI);
         assertThat(claims.getValue().tenantId()).isEqualTo("tenant-001");
+        assertThat(claims.getValue().appId()).isEqualTo("idp-service-app");
+        assertThat(claims.getValue().scopeContext())
+                .isEqualTo(ServiceTokenContext.TENANT);
         assertThat(claims.getValue().sourceBizCode()).isEqualTo("permission");
         assertThat(claims.getValue().sourceAppCode()).isEqualTo("idp");
         assertThat(claims.getValue().sourceEnvironment()).isEqualTo("prod");
@@ -106,6 +110,40 @@ class ClientCredentialsTokenServiceTest {
                 .isEqualTo("idp-service-key-1");
         assertThat(claims.getValue().scopes())
                 .containsExactly("rbac3:policy:read");
+    }
+
+    @Test
+    void issuesPlatformServiceTokenWithoutTenantClaim() {
+        when(resources.findGrant(
+                "idp-service",
+                "permission-rbac3-prod",
+                ResourceGrantType.CLIENT_CREDENTIALS,
+                null
+        )).thenReturn(Optional.of(new ClientResourceGrant(
+                "idp-service",
+                "permission-rbac3-prod",
+                ResourceGrantType.CLIENT_CREDENTIALS,
+                null,
+                Set.of("rbac3:policy:read"),
+                ClientResourceGrant.Status.ACTIVE,
+                4L
+        )));
+
+        ServiceAccessToken token = service.issue(
+                authentication(),
+                TARGET_URI,
+                null,
+                Set.of("rbac3:policy:read"),
+                Duration.ofMinutes(5)
+        );
+
+        assertThat(token).isNotNull();
+        ArgumentCaptor<ServiceAccessTokenClaims> claims =
+                ArgumentCaptor.forClass(ServiceAccessTokenClaims.class);
+        org.mockito.Mockito.verify(signer).signServiceAccess(claims.capture());
+        assertThat(claims.getValue().tenantId()).isNull();
+        assertThat(claims.getValue().scopeContext())
+                .isEqualTo(ServiceTokenContext.PLATFORM);
     }
 
     @Test
@@ -194,7 +232,9 @@ class ClientCredentialsTokenServiceTest {
                         "service-jti-1",
                         now,
                         now,
-                        now.plusSeconds(300)
+                        now.plusSeconds(300),
+                        "idp-service-app",
+                        ServiceTokenContext.TENANT
                 )
         );
 
@@ -204,6 +244,10 @@ class ClientCredentialsTokenServiceTest {
         assertThat(claims.getHeaders().get("typ")).isEqualTo("at+jwt");
         assertThat(claims.getClaimAsString("principal_type"))
                 .isEqualTo("SERVICE");
+        assertThat(claims.getClaimAsString("app_id"))
+                .isEqualTo("idp-service-app");
+        assertThat(claims.getClaimAsString("scope_context"))
+                .isEqualTo("TENANT");
         assertThat(claims.getAudience()).containsExactly(TARGET_URI.toString());
         assertThat(claims.getClaimAsString("tid")).isEqualTo("tenant-001");
         assertThat(claims.getClaimAsStringList("scope"))
@@ -226,19 +270,17 @@ class ClientCredentialsTokenServiceTest {
                 .hasMessage(error);
     }
 
-    private static ClientAssertionAuthentication authentication() {
-        return new ClientAssertionAuthentication(
+    private static ClientSecretAuthentication authentication() {
+        return new ClientSecretAuthentication(
                 "idp-service",
-                "idp-service-key-1",
-                "assertion-1",
-                NOW,
-                NOW.plusSeconds(60)
+                "idp-service-key-1"
         );
     }
 
     private static OAuthClient confidentialClient() {
         return new OAuthClient(
                 "idp-service",
+                "idp-service-app",
                 OAuthClient.ClientType.CONFIDENTIAL,
                 OAuthClient.Status.ACTIVE,
                 false,

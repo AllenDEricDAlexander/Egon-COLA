@@ -1,6 +1,6 @@
 package top.egon.cola.platform.idp.admin.token.service.impl;
 
-import top.egon.cola.platform.idp.core.oauth.ClientAssertionAuthentication;
+import top.egon.cola.platform.idp.core.oauth.ClientSecretAuthentication;
 import top.egon.cola.platform.idp.core.oauth.OAuthClient;
 import top.egon.cola.platform.idp.core.oauth.OAuthException;
 import top.egon.cola.platform.idp.core.port.OAuthClientStore;
@@ -91,7 +91,7 @@ public final class ClientCredentialsTokenService {
      * <p>Issues a single-Resource, single-tenant SERVICE token for an authenticated Confidential
      * Client.</p>
      *
-     * @param authentication 已认证 Client Assertion；authenticated Client Assertion
+     * @param authentication 已认证 Client Secret；authenticated Client Secret
      * @param resourceUri 目标 Resource URI；target Resource URI
      * @param tenantId 精确租户；exact tenant
      * @param requestedScopes 请求的 Scope；requested scopes
@@ -99,7 +99,7 @@ public final class ClientCredentialsTokenService {
      * @return 不含 Refresh Token 的签发结果；issuance result without a refresh token
      */
     public ServiceAccessToken issue(
-            ClientAssertionAuthentication authentication,
+            ClientSecretAuthentication authentication,
             URI resourceUri,
             String tenantId,
             Set<String> requestedScopes,
@@ -107,9 +107,6 @@ public final class ClientCredentialsTokenService {
     ) {
         Objects.requireNonNull(authentication, "authentication");
         Instant now = clock.instant();
-        if (!authentication.expiresAt().isAfter(now)) {
-            throw oauth("invalid_client");
-        }
         OAuthClient client = clients.findById(authentication.clientId())
                 .orElseThrow(() -> oauth("unauthorized_client"));
         if (client.status() != OAuthClient.Status.ACTIVE
@@ -158,7 +155,9 @@ public final class ClientCredentialsTokenService {
                 required(tokenIds.get(), "tokenId"),
                 now,
                 now,
-                expiresAt
+                expiresAt,
+                client.appId(),
+                access.scopeContext()
         );
         return new ServiceAccessToken(
                 signer.signServiceAccess(claims),

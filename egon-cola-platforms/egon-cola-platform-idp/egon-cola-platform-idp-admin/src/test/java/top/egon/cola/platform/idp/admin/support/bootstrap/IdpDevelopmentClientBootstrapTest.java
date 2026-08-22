@@ -5,7 +5,6 @@ import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthClientVO;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
 import top.egon.cola.platform.idp.admin.oauth.service.OAuthClientService;
-import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientJwkRepository;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientResourceGrantEntity;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityResourceServerEntity;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
@@ -33,8 +32,6 @@ class IdpDevelopmentClientBootstrapTest {
                 mock(IdentityResourceServerRepository.class);
         IdentityClientResourceGrantRepository grants =
                 mock(IdentityClientResourceGrantRepository.class);
-        IdentityClientJwkRepository credentials =
-                mock(IdentityClientJwkRepository.class);
         IdentityClientRepository clientEntities =
                 mock(IdentityClientRepository.class);
         ResourceServerProjectionService projections =
@@ -48,11 +45,8 @@ class IdpDevelopmentClientBootstrapTest {
                         clients,
                         resources,
                         grants,
-                        credentials,
                         clientEntities,
-                        projections,
-                        (stem, keyId) -> "{\"kty\":\"RSA\",\"kid\":\""
-                                + keyId + "\"}"
+                        projections
                 );
 
         bootstrap.afterSingletonsInstantiated();
@@ -119,7 +113,6 @@ class IdpDevelopmentClientBootstrapTest {
         verify(grants, atLeastOnce()).save(any(
                 IdentityClientResourceGrantEntity.class
         ));
-        verify(credentials, atLeastOnce()).save(any());
         verify(projections, atLeastOnce()).projectResource(any(), any());
         verify(projections, atLeastOnce()).projectServiceGrant(any());
     }
@@ -132,8 +125,6 @@ class IdpDevelopmentClientBootstrapTest {
                 mock(IdentityResourceServerRepository.class);
         IdentityClientResourceGrantRepository grants =
                 mock(IdentityClientResourceGrantRepository.class);
-        IdentityClientJwkRepository credentials =
-                mock(IdentityClientJwkRepository.class);
         IdentityClientRepository clientEntities =
                 mock(IdentityClientRepository.class);
         ResourceServerProjectionService projections =
@@ -161,11 +152,8 @@ class IdpDevelopmentClientBootstrapTest {
                         clients,
                         resources,
                         grants,
-                        credentials,
                         clientEntities,
                         projections,
-                        (stem, keyId) -> "{\"kty\":\"RSA\",\"kid\":\""
-                                + keyId + "\"}",
                         "tenant-42,tenant-84"
                 );
 
@@ -198,8 +186,6 @@ class IdpDevelopmentClientBootstrapTest {
                 mock(IdentityResourceServerRepository.class);
         IdentityClientResourceGrantRepository grants =
                 mock(IdentityClientResourceGrantRepository.class);
-        IdentityClientJwkRepository credentials =
-                mock(IdentityClientJwkRepository.class);
         IdentityClientRepository clientEntities =
                 mock(IdentityClientRepository.class);
         ResourceServerProjectionService projections =
@@ -219,11 +205,8 @@ class IdpDevelopmentClientBootstrapTest {
                         clients,
                         resources,
                         grants,
-                        credentials,
                         clientEntities,
-                        projections,
-                        (stem, keyId) -> "{\"kty\":\"RSA\",\"kid\":\""
-                                + keyId + "\"}"
+                        projections
                 );
 
         bootstrap.afterSingletonsInstantiated();

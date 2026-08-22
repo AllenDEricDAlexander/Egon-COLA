@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.idp.admin.audit.domain.pojo.IdentityAuditLogEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientRedirectUriEntity;
-import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientJwkEntity;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientResourceGrantEntity;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityResourceServerEntity;
 import top.egon.cola.platform.idp.admin.support.outbox.domain.pojo.IdentityOutboxEventEntity;
@@ -49,7 +48,7 @@ class IdpPersistenceEntityContractTest {
     }
 
     @Test
-    void resourceCredentialAndUserGrantKeepApplicationBoundary() {
+    void resourceAndUserGrantKeepApplicationBoundary() {
         IdentityResourceServerEntity resource =
                 IdentityResourceServerEntity.create(
                         "resource-row-1",
@@ -66,15 +65,6 @@ class IdpPersistenceEntityContractTest {
                         IdentityResourceServerEntity.Status.ACTIVE,
                         NOW
                 );
-        IdentityClientJwkEntity credential = IdentityClientJwkEntity.create(
-                "jwk-row-1",
-                "idp-admin-web",
-                "idp-local-2026-08",
-                "{\"kty\":\"RSA\"}",
-                NOW,
-                NOW.plusSeconds(3600),
-                NOW
-        );
         IdentityClientResourceGrantEntity grant =
                 IdentityClientResourceGrantEntity.userDelegation(
                         "grant-row-1",
@@ -85,9 +75,6 @@ class IdpPersistenceEntityContractTest {
 
         assertEquals("permission-idp-local", resource.getResourceServerId());
         assertEquals("idp", resource.getAppCode());
-        assertEquals("RS256", credential.getAlgorithm());
-        assertEquals(IdentityClientJwkEntity.Status.ACTIVE,
-                credential.getStatus());
         assertEquals(
                 IdentityClientResourceGrantEntity.GrantType.USER_DELEGATION,
                 grant.getGrantType()

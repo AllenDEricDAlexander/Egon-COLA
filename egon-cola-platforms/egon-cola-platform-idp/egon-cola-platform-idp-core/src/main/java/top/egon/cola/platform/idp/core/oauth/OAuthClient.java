@@ -9,6 +9,7 @@ import java.util.Objects;
  * OAuth Client registration; Resource access relationships are managed by explicit grants.
  *
  * @param clientId Client 稳定标识 / stable Client identifier
+ * @param appId 稳定业务应用身份 / stable business application identity
  * @param clientType Client 类型 / Client type
  * @param status Client 状态 / Client status
  * @param pkceRequired 是否强制 PKCE / whether PKCE is required
@@ -18,6 +19,7 @@ import java.util.Objects;
  */
 public record OAuthClient(
         String clientId,
+        String appId,
         ClientType clientType,
         Status status,
         boolean pkceRequired,
@@ -38,6 +40,9 @@ public record OAuthClient(
     public OAuthClient {
         clientId = required(clientId, "clientId");
         clientType = Objects.requireNonNull(clientType, "clientType");
+        appId = clientType == ClientType.CONFIDENTIAL
+                ? required(appId, "appId")
+                : optional(appId);
         status = Objects.requireNonNull(status, "status");
         redirectUris = normalizedDistinct(redirectUris, "redirectUris");
         accessTokenTtl = durationInRange(
@@ -79,8 +84,36 @@ public record OAuthClient(
             Status status,
             boolean pkceRequired,
             List<String> redirectUris) {
-        this(clientId, clientType, status, pkceRequired, redirectUris,
+        this(
+                clientId,
+                clientType == ClientType.CONFIDENTIAL ? clientId : null,
+                clientType,
+                status,
+                pkceRequired,
+                redirectUris,
                 DEFAULT_ACCESS_TOKEN_TTL, DEFAULT_REFRESH_TOKEN_TTL);
+    }
+
+    /** Creates a legacy Client with explicit token lifetimes. */
+    public OAuthClient(
+            String clientId,
+            ClientType clientType,
+            Status status,
+            boolean pkceRequired,
+            List<String> redirectUris,
+            Duration accessTokenTtl,
+            Duration refreshTokenTtl
+    ) {
+        this(
+                clientId,
+                clientType == ClientType.CONFIDENTIAL ? clientId : null,
+                clientType,
+                status,
+                pkceRequired,
+                redirectUris,
+                accessTokenTtl,
+                refreshTokenTtl
+        );
     }
 
     /**
@@ -102,8 +135,16 @@ public record OAuthClient(
      * @return 状态变更后的 Client / Client with the changed status
      */
     public OAuthClient withStatus(Status value) {
-        return new OAuthClient(clientId, clientType, value, pkceRequired,
-                redirectUris, accessTokenTtl, refreshTokenTtl);
+        return new OAuthClient(
+                clientId,
+                appId,
+                clientType,
+                value,
+                pkceRequired,
+                redirectUris,
+                accessTokenTtl,
+                refreshTokenTtl
+        );
     }
 
     /**
@@ -156,6 +197,13 @@ public record OAuthClient(
             throw new IllegalArgumentException(field + " is required");
         }
         return value;
+    }
+
+    private static String optional(String value) {
+        if (value == null) {
+            return null;
+        }
+        return required(value, "appId");
     }
 
     /** OAuth Client 类型。 / OAuth Client type. */

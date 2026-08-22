@@ -74,7 +74,7 @@ public class OAuthMetadataController {
                 "client_credentials"
         ));
         metadata.put("token_endpoint_auth_methods_supported", List.of(
-                "private_key_jwt"
+                "client_secret_basic"
         ));
         return Map.copyOf(metadata);
     }

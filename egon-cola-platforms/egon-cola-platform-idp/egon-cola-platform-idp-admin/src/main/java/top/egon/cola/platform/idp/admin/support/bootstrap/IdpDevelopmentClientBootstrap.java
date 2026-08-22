@@ -1,7 +1,5 @@
 package top.egon.cola.platform.idp.admin.support.bootstrap;
 
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.jwk.RSAKey;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,17 +11,13 @@ import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthClientVO;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
 import top.egon.cola.platform.idp.admin.oauth.service.OAuthClientService;
-import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientJwkEntity;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientResourceGrantEntity;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityResourceServerEntity;
-import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientJwkRepository;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepository;
 import top.egon.cola.platform.idp.admin.resource.service.ResourceServerProjectionService;
-import top.egon.cola.platform.idp.admin.token.service.impl.RsaPemKeyLoader;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -35,7 +29,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 /**
@@ -58,9 +51,6 @@ public class IdpDevelopmentClientBootstrap
 
     /** 开发 Client 的 Refresh Token 有效秒数；development refresh-token lifetime in seconds. */
     private static final int REFRESH_TOKEN_TTL_SECONDS = 604_800;
-
-    /** 本地公开凭证的有效期；local public-credential lifetime. */
-    private static final Duration KEY_LIFETIME = Duration.ofDays(3_650);
 
     /** 开发环境中需要幂等创建的 Public Client；public Clients created idempotently for local use. */
     private static final List<ClientSpec> CLIENTS = List.of(
@@ -109,9 +99,7 @@ public class IdpDevelopmentClientBootstrap
                     "idp-service",
                     "idp-admin",
                     "idp:identity:self:read",
-                    "idp-admin-web",
-                    "idp",
-                    "idp-local"
+                    "idp-admin-web"
             ),
             new ResourceSpec(
                     "permission-rbac3-local",
@@ -122,9 +110,7 @@ public class IdpDevelopmentClientBootstrap
                     "rbac3-service",
                     "rbac3-admin",
                     "system:tenant:read",
-                    "rbac3-admin-web",
-                    "rbac3",
-                    "rbac3-local"
+                    "rbac3-admin-web"
             ),
             new ResourceSpec(
                     "platform-ddc-local",
@@ -135,9 +121,7 @@ public class IdpDevelopmentClientBootstrap
                     "ddc-service",
                     "ddc-admin",
                     "DDC_READ",
-                    "ddc-admin-web",
-                    "ddc",
-                    "ddc-local"
+                    "ddc-admin-web"
             ),
             new ResourceSpec(
                     "platform-gateway-admin-local",
@@ -148,9 +132,7 @@ public class IdpDevelopmentClientBootstrap
                     "gateway-admin-service",
                     "gateway-admin",
                     "gateway:read",
-                    "gateway-admin-web",
-                    "gateway-admin",
-                    "gateway-admin-local"
+                    "gateway-admin-web"
             ),
             new ResourceSpec(
                     "identity-gateway-engine-default-local",
@@ -161,9 +143,7 @@ public class IdpDevelopmentClientBootstrap
                     "gateway-engine-service",
                     "mock-backend",
                     "mock:read",
-                    null,
-                    "gateway-engine",
-                    "gateway-engine-local"
+                    null
             ),
             new ResourceSpec(
                     "identity-mock-backend-local",
@@ -174,9 +154,7 @@ public class IdpDevelopmentClientBootstrap
                     "mock-backend-service",
                     "mock-backend",
                     "mock:read",
-                    "mock-backend",
-                    "mock-backend",
-                    "mock-backend-local"
+                    "mock-backend"
             ),
             new ResourceSpec(
                     "identity-gateway-test-mcp-provider-local",
@@ -187,9 +165,7 @@ public class IdpDevelopmentClientBootstrap
                     "mcp-provider-service",
                     "mock-backend",
                     "mock:read",
-                    null,
-                    "mcp-provider",
-                    "mcp-provider-local"
+                    null
             )
     );
 
@@ -251,17 +227,11 @@ public class IdpDevelopmentClientBootstrap
     /** Client Resource Grant 仓储；Client Resource Grant repository. */
     private final IdentityClientResourceGrantRepository grants;
 
-    /** Client 公开 JWK 仓储；Client public-JWK repository. */
-    private final IdentityClientJwkRepository credentials;
-
     /** OAuth Client 主记录仓储；OAuth Client master-record repository. */
     private final IdentityClientRepository clientEntities;
 
     /** Resource 运行态投影服务；Resource runtime projection service. */
     private final ResourceServerProjectionService projections;
-
-    /** 从本地 PEM 读取只含公开材料的 JWK；loads public-only JWKs from local PEM files. */
-    private final BiFunction<String, String, String> publicJwks;
 
     /** RBAC3 本地服务授权绑定的精确租户集合；exact tenants bound to local RBAC3 service grants. */
     private final Set<String> rbac3ServiceTenantIds;
@@ -280,64 +250,14 @@ public class IdpDevelopmentClientBootstrap
             OAuthClientService clients,
             IdentityResourceServerRepository resources,
             IdentityClientResourceGrantRepository grants,
-            IdentityClientJwkRepository credentials,
             IdentityClientRepository clientEntities,
             ResourceServerProjectionService projections,
-            @Value("${egon.idp.development-bootstrap.key-directory}")
-            String keyDirectory,
             @Value("${egon.idp.development-bootstrap.rbac3-service-tenant-ids:default}")
-            String rbac3ServiceTenantIds
-    ) {
-        this(
-                clients,
-                resources,
-                grants,
-                credentials,
-                clientEntities,
-                projections,
-                pemJwkLoader(Path.of(keyDirectory)),
-                rbac3ServiceTenantIds
-        );
-    }
-
-    IdpDevelopmentClientBootstrap(
-            OAuthClientService clients,
-            IdentityResourceServerRepository resources,
-            IdentityClientResourceGrantRepository grants,
-            IdentityClientJwkRepository credentials,
-            IdentityClientRepository clientEntities,
-            ResourceServerProjectionService projections,
-            BiFunction<String, String, String> publicJwks
-    ) {
-        this(
-                clients,
-                resources,
-                grants,
-                credentials,
-                clientEntities,
-                projections,
-                publicJwks,
-                "default"
-        );
-    }
-
-    IdpDevelopmentClientBootstrap(
-            OAuthClientService clients,
-            IdentityResourceServerRepository resources,
-            IdentityClientResourceGrantRepository grants,
-            IdentityClientJwkRepository credentials,
-            IdentityClientRepository clientEntities,
-            ResourceServerProjectionService projections,
-            BiFunction<String, String, String> publicJwks,
             String rbac3ServiceTenantIds
     ) {
         this.clients = Objects.requireNonNull(clients, "clients");
         this.resources = Objects.requireNonNull(resources, "resources");
         this.grants = Objects.requireNonNull(grants, "grants");
-        this.credentials = Objects.requireNonNull(
-                credentials,
-                "credentials"
-        );
         this.clientEntities = Objects.requireNonNull(
                 clientEntities,
                 "clientEntities"
@@ -346,15 +266,31 @@ public class IdpDevelopmentClientBootstrap
                 projections,
                 "projections"
         );
-        this.publicJwks = Objects.requireNonNull(publicJwks, "publicJwks");
         this.rbac3ServiceTenantIds = tenantIds(rbac3ServiceTenantIds);
     }
 
+    IdpDevelopmentClientBootstrap(
+            OAuthClientService clients,
+            IdentityResourceServerRepository resources,
+            IdentityClientResourceGrantRepository grants,
+            IdentityClientRepository clientEntities,
+            ResourceServerProjectionService projections
+    ) {
+        this(
+                clients,
+                resources,
+                grants,
+                clientEntities,
+                projections,
+                "default"
+        );
+    }
+
     /**
-     * 在 DDC 生命周期启动前，幂等对齐本地 Client、Resource、JWK 与显式 Grant。
+     * 在 DDC 生命周期启动前，幂等对齐本地 Client、Resource 与显式 Grant。
      *
-     * <p>Idempotently reconciles local Clients, Resources, JWKs, and explicit grants before the
-     * DDC lifecycle starts and requests its admission ticket.</p>
+     * <p>Idempotently reconciles local Clients, Resources, and explicit grants before the
+     * DDC lifecycle starts.</p>
      */
     @Override
     public void afterSingletonsInstantiated() {
@@ -466,10 +402,9 @@ public class IdpDevelopmentClientBootstrap
     }
 
     /**
-     * 幂等创建一个 Resource Server、公开 JWK 和对应 Public Client 授权。
+     * 幂等创建一个 Resource Server 和对应 Public Client 授权。
      *
-     * <p>Idempotently creates one Resource Server, its public JWK, and its Public Client
-     * grant.</p>
+     * <p>Idempotently creates one Resource Server and its Public Client grant.</p>
      *
      * @param spec Resource 规格；Resource specification
      */
@@ -478,7 +413,6 @@ public class IdpDevelopmentClientBootstrap
                 .findByResourceServerId(spec.resourceServerId())
                 .orElseGet(() -> createResource(spec));
         requireMatchingResource(spec, resource);
-        reconcileCredential(spec, resource);
         if (spec.userClientId() != null
                 && !grants.existsByClientIdAndResourceServerIdAndGrantType(
                 spec.userClientId(),
@@ -553,33 +487,6 @@ public class IdpDevelopmentClientBootstrap
                             + spec.resourceServerId()
             );
         }
-    }
-
-    /**
-     * 幂等登记 Resource 管理 Client 的本地公开 JWK。
-     *
-     * <p>Idempotently registers the local public JWK for a Resource management Client.</p>
-     */
-    private void reconcileCredential(
-            ResourceSpec spec,
-            IdentityResourceServerEntity resource
-    ) {
-        if (credentials.findByClientIdAndKid(
-                spec.managementClientId(),
-                spec.keyId()
-        ).isPresent()) {
-            return;
-        }
-        Instant now = Instant.now();
-        credentials.save(IdentityClientJwkEntity.create(
-                "dev-key-" + spec.appCode(),
-                spec.managementClientId(),
-                spec.keyId(),
-                publicJwks.apply(spec.keyStem(), spec.keyId()),
-                now.minusSeconds(60),
-                now.plus(KEY_LIFETIME),
-                now
-        ));
     }
 
     /**
@@ -825,28 +732,6 @@ public class IdpDevelopmentClientBootstrap
     }
 
     /**
-     * 构造从受保护 PEM 目录读取公开 JWK 的加载器。
-     *
-     * <p>Builds a loader that reads public JWKs from a protected PEM directory.</p>
-     */
-    private static BiFunction<String, String, String> pemJwkLoader(
-            Path keyDirectory
-    ) {
-        return (stem, keyId) -> {
-            RsaPemKeyLoader.KeyMaterial material = new RsaPemKeyLoader().load(
-                    keyDirectory.resolve(stem + "-public.pem"),
-                    keyDirectory.resolve(stem + "-private.pem")
-            );
-            return new RSAKey.Builder(material.publicKey())
-                    .keyID(keyId)
-                    .algorithm(JWSAlgorithm.RS256)
-                    .build()
-                    .toPublicJWK()
-                    .toJSONString();
-        };
-    }
-
-    /**
      * 开发 Public Client 规格。
      *
      * <p>Development Public Client specification.</p>
@@ -905,8 +790,6 @@ public class IdpDevelopmentClientBootstrap
      * @param entryPermissionCode 入口权限；entry permission
      * @param userClientId 获准请求 USER Token 的 Public Client；Public Client allowed to request
      * USER tokens
-     * @param keyStem 本地 PEM 文件名前缀；local PEM filename stem
-     * @param keyId 公开 JWK 标识；public JWK identifier
      */
     private record ResourceSpec(
             String resourceServerId,
@@ -917,9 +800,7 @@ public class IdpDevelopmentClientBootstrap
             String managementClientId,
             String rbacApplicationCode,
             String entryPermissionCode,
-            String userClientId,
-            String keyStem,
-            String keyId
+            String userClientId
     ) {
     }
 }

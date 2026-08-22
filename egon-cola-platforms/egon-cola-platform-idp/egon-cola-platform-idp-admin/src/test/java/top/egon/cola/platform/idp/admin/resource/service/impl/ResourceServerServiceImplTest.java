@@ -7,15 +7,12 @@ import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientEntity;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.BatchClientResourceGrantDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.BatchResourceServerActionDTO;
-import top.egon.cola.platform.idp.admin.resource.domain.dto.CreateClientJwkDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.CreateResourceServerDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.ResourceVersionDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.UpsertClientResourceGrantDTO;
-import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientJwkEntity;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientResourceGrantEntity;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityResourceServerEntity;
 import top.egon.cola.platform.idp.admin.resource.domain.vo.ResourceServerVO;
-import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientJwkRepository;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepository;
 import top.egon.cola.platform.idp.admin.resource.service.ResourceServerProjectionService;
@@ -45,8 +42,6 @@ class ResourceServerServiceImplTest {
 
     private final IdentityResourceServerRepository resources =
             mock(IdentityResourceServerRepository.class);
-    private final IdentityClientJwkRepository credentials =
-            mock(IdentityClientJwkRepository.class);
     private final IdentityClientResourceGrantRepository grants =
             mock(IdentityClientResourceGrantRepository.class);
     private final IdentityClientRepository clients =
@@ -65,7 +60,6 @@ class ResourceServerServiceImplTest {
         objectMapper.findAndRegisterModules();
         service = new ResourceServerServiceImpl(
                 resources,
-                credentials,
                 grants,
                 clients,
                 projections,
@@ -77,18 +71,16 @@ class ResourceServerServiceImplTest {
     }
 
     @Test
-    void createsDisabledResourceWithOnePublicKeyAndProjectsIt() {
+    void createsDisabledResourceAndProjectsIt() {
         IdentityClientEntity client = client("idp-service");
         when(clients.findById("idp-service")).thenReturn(Optional.of(client));
         when(resources.save(any())).thenAnswer(call -> call.getArgument(0));
-        when(credentials.save(any())).thenAnswer(call -> call.getArgument(0));
 
         var created = service.create(createCommand());
 
         assertThat(created.resourceServerId()).isEqualTo("permission-idp-prod");
         assertThat(created.status()).isEqualTo("DISABLED");
-        assertThat(created.keys()).extracting(key -> key.kid())
-                .containsExactly("idp-prod-2026-08");
+        assertThat(created.status()).isEqualTo("DISABLED");
         verify(projections).projectResource(any(), any());
     }
 
@@ -105,7 +97,6 @@ class ResourceServerServiceImplTest {
         assertThatThrownBy(() -> service.create(createCommand()))
                 .isInstanceOf(IllegalStateException.class);
         verify(resources, never()).save(any());
-        verify(credentials, never()).save(any());
     }
 
     @Test
@@ -135,9 +126,6 @@ class ResourceServerServiceImplTest {
         when(resources.findAll()).thenReturn(List.of(resource));
         when(resources.findByResourceServerId("permission-idp-prod"))
                 .thenReturn(Optional.of(resource));
-        when(credentials.findByClientId("idp-service"))
-                .thenReturn(List.of());
-
         assertThat(service.list()).extracting(ResourceServerVO::appCode)
                 .containsExactly("idp");
         assertThat(service.detail("permission-idp-prod").resourceServerId())
@@ -145,7 +133,7 @@ class ResourceServerServiceImplTest {
     }
 
     @Test
-    void statusAndKeyMutationsRequireCurrentVersionsAndLastActiveKey() {
+    void statusMutationsRequireCurrentVersions() {
         IdentityResourceServerEntity resource = resource(
                 "permission-idp-prod",
                 "idp",
@@ -155,11 +143,6 @@ class ResourceServerServiceImplTest {
         when(resources.findByResourceServerId("permission-idp-prod"))
                 .thenReturn(Optional.of(resource));
         when(clients.findById("idp-service")).thenReturn(Optional.of(client));
-        when(credentials.existsByClientIdAndStatus(
-                "idp-service",
-                IdentityClientJwkEntity.Status.ACTIVE
-        )).thenReturn(true);
-
         var enabled = service.enable(
                 "permission-idp-prod",
                 new ResourceVersionDTO(0L)
@@ -172,31 +155,6 @@ class ResourceServerServiceImplTest {
                 new ResourceVersionDTO(0L)
         )).isInstanceOf(IllegalStateException.class);
 
-        IdentityClientJwkEntity key = IdentityClientJwkEntity.create(
-                "key-row",
-                "idp-service",
-                "idp-prod-2026-08",
-                "{\"kty\":\"RSA\"}",
-                NOW.minusSeconds(60),
-                NOW.plusSeconds(3600),
-                NOW
-        );
-        when(credentials.findByClientIdAndKid(
-                "idp-service",
-                "idp-prod-2026-08"
-        )).thenReturn(Optional.of(key));
-        when(credentials.countByClientIdAndStatus(
-                "idp-service",
-                IdentityClientJwkEntity.Status.ACTIVE
-        )).thenReturn(1L);
-
-        assertThatThrownBy(() -> service.removeKey(
-                "permission-idp-prod",
-                "idp-prod-2026-08",
-                1L,
-                0L
-        )).isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("last active key");
     }
 
     @Test
@@ -218,36 +176,6 @@ class ResourceServerServiceImplTest {
 
         verify(events).enqueueDisabled(resource);
         assertThat(resource.getVersion()).isEqualTo(1L);
-    }
-
-    @Test
-    void addsOnePublicKeyAndAdvancesResourceVersion() {
-        IdentityResourceServerEntity resource = resource(
-                "permission-idp-prod",
-                "idp",
-                "idp-service"
-        );
-        when(resources.findByResourceServerId("permission-idp-prod"))
-                .thenReturn(Optional.of(resource));
-        when(clients.findById("idp-service"))
-                .thenReturn(Optional.of(client("idp-service")));
-        when(credentials.save(any())).thenAnswer(call -> call.getArgument(0));
-
-        var updated = service.addKey(
-                "permission-idp-prod",
-                new CreateClientJwkDTO(
-                        "idp-next",
-                        "RS256",
-                        "{\"kty\":\"RSA\"}",
-                        NOW,
-                        NOW.plusSeconds(3600),
-                        0L
-                )
-        );
-
-        assertThat(updated.version()).isEqualTo(1L);
-        verify(credentials).save(any());
-        verify(projections).projectResource(any(), any());
     }
 
     @Test
@@ -343,9 +271,6 @@ class ResourceServerServiceImplTest {
                 .thenReturn(Optional.of(client("idp-service")));
         when(clients.findById("rbac3-service"))
                 .thenReturn(Optional.of(client("rbac3-service")));
-        when(credentials.existsByClientIdAndStatus(any(), any()))
-                .thenReturn(true);
-
         var results = service.batch(new BatchResourceServerActionDTO(
                 "permission",
                 "prod",
@@ -428,16 +353,7 @@ class ResourceServerServiceImplTest {
                 "IdP Production",
                 "idp-service",
                 "idp",
-                "idp:access",
-                300,
-                new CreateClientJwkDTO(
-                        "idp-prod-2026-08",
-                        "RS256",
-                        "{\"kty\":\"RSA\"}",
-                        NOW.minusSeconds(60),
-                        NOW.plusSeconds(3600),
-                        0L
-                )
+                "idp:access"
         );
     }
 

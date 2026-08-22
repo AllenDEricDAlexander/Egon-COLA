@@ -1,24 +1,20 @@
 package top.egon.cola.platform.idp.admin.resource.controller;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.BatchResourceServerActionDTO;
-import top.egon.cola.platform.idp.admin.resource.domain.dto.CreateClientJwkDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.CreateResourceServerDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.ResourceVersionDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.vo.ResourceServerVO;
@@ -30,9 +26,9 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Resource Server 和公开 JWK 管理接口。
+ * Resource Server 管理接口。
  *
- * <p>Administration API for Resource Servers and public JWKs.</p>
+ * <p>Administration API for Resource Servers.</p>
  */
 @Validated
 @RestController
@@ -154,51 +150,6 @@ public class ResourceServerController {
     ) {
         authorization.require(principal, "idp:resource-server:status");
         return resources.disable(resourceServerId, request);
-    }
-
-    /**
-     * 增加公开 JWK。
-     *
-     * <p>Adds a public JWK.</p>
-     */
-    @PostMapping("/{resourceServerId}/keys")
-    @GatewayOperation(name = "idp-resource-server-key-create-v1",
-            summary = "登记Resource Server公钥", externalAccessible = true,
-            tags = {"idp", "resource-server"})
-    public ResourceServerVO addKey(
-            @PathVariable("resourceServerId") String resourceServerId,
-            @Valid @RequestBody CreateClientJwkDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
-    ) {
-        authorization.require(principal, "idp:resource-server:key");
-        return resources.addKey(resourceServerId, request);
-    }
-
-    /**
-     * 禁用公开 JWK。
-     *
-     * <p>Disables a public JWK.</p>
-     */
-    @DeleteMapping("/{resourceServerId}/keys/{kid}")
-    @GatewayOperation(name = "idp-resource-server-key-delete-v1",
-            summary = "删除Resource Server公钥", externalAccessible = true,
-            tags = {"idp", "resource-server"})
-    public ResourceServerVO removeKey(
-            @PathVariable("resourceServerId") String resourceServerId,
-            @PathVariable("kid") String kid,
-            @RequestParam("expectedResourceVersion")
-            @PositiveOrZero long expectedResourceVersion,
-            @RequestParam("expectedKeyVersion")
-            @PositiveOrZero long expectedKeyVersion,
-            @AuthenticationPrincipal IdentityPrincipal principal
-    ) {
-        authorization.require(principal, "idp:resource-server:key");
-        return resources.removeKey(
-                resourceServerId,
-                kid,
-                expectedResourceVersion,
-                expectedKeyVersion
-        );
     }
 
     /**

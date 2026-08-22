@@ -18,10 +18,10 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthErrorVO;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthTokenVO;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthUserTokenResultVO;
-import top.egon.cola.platform.idp.admin.oauth.service.impl.PrivateKeyJwtAuthenticator;
+import top.egon.cola.platform.idp.admin.oauth.service.impl.ClientSecretBasicAuthenticator;
 import top.egon.cola.platform.idp.admin.support.ddc.IdpRuntimePolicy;
 import top.egon.cola.platform.idp.admin.token.service.impl.ClientCredentialsTokenService;
-import top.egon.cola.platform.idp.core.oauth.ClientAssertionAuthentication;
+import top.egon.cola.platform.idp.core.oauth.ClientSecretAuthentication;
 import top.egon.cola.platform.idp.core.oauth.OAuthException;
 import top.egon.cola.platform.idp.core.token.ServiceAccessToken;
 import top.egon.cola.platform.idp.core.token.TokenException;
@@ -51,7 +51,7 @@ import java.util.TreeSet;
 public class OAuthTokenController {
 
     private final TokenFacade tokens;
-    private final PrivateKeyJwtAuthenticator clientAuthenticator;
+    private final ClientSecretBasicAuthenticator clientAuthenticator;
     private final ClientCredentialsTokenService clientCredentialsTokens;
     private final IdpRuntimePolicy runtimePolicy;
     private final Clock clock;
@@ -59,7 +59,7 @@ public class OAuthTokenController {
 
     public OAuthTokenController(
             TokenFacade tokens,
-            PrivateKeyJwtAuthenticator clientAuthenticator,
+            ClientSecretBasicAuthenticator clientAuthenticator,
             ClientCredentialsTokenService clientCredentialsTokens,
             IdpRuntimePolicy runtimePolicy,
             @Qualifier("idpClock") Clock clock,
@@ -85,7 +85,11 @@ public class OAuthTokenController {
             HttpServletRequest request) {
         String grantType = single(form, "grant_type");
         if ("client_credentials".equals(grantType)) {
-            return clientCredentials(form, runtimePolicy.current().accessTokenTtl());
+            return clientCredentials(
+                    form,
+                    request,
+                    runtimePolicy.current().accessTokenTtl()
+            );
         }
         if (!"refresh_token".equals(grantType)
                 || form.keySet().stream().anyMatch(key -> !"grant_type".equals(key))) {
@@ -143,14 +147,17 @@ public class OAuthTokenController {
 
     private ResponseEntity<OAuthTokenVO> clientCredentials(
             MultiValueMap<String, String> form,
+            HttpServletRequest request,
             Duration accessTokenTtl) {
-        String clientId = single(form, "client_id");
-        ClientAssertionAuthentication authentication = clientAuthenticator.authenticate(
-                single(form, "client_assertion_type"), clientId,
-                single(form, "client_assertion"));
+        rejectCredentialBearingFormFields(form);
+        ClientSecretAuthentication authentication =
+                clientAuthenticator.authenticate(request);
         ServiceAccessToken token = clientCredentialsTokens.issue(
                 authentication, resource(single(form, "resource")),
-                single(form, "tenant_id"), scopes(single(form, "scope")), accessTokenTtl);
+                optionalSingle(form, "tenant_id"),
+                scopes(single(form, "scope")),
+                accessTokenTtl
+        );
         long expiresIn = Math.max(0L, Duration.between(clock.instant(),
                 token.expiresAt()).toSeconds());
         return ResponseEntity.ok()
@@ -223,6 +230,34 @@ public class OAuthTokenController {
         List<String> values = form.get(name);
         if (values == null || values.size() != 1) throw oauth("invalid_request");
         return required(values.getFirst());
+    }
+
+    private static String optionalSingle(
+            MultiValueMap<String, String> form,
+            String name
+    ) {
+        List<String> values = form.get(name);
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+        if (values.size() != 1) {
+            throw oauth("invalid_request");
+        }
+        return required(values.getFirst());
+    }
+
+    private static void rejectCredentialBearingFormFields(
+            MultiValueMap<String, String> form
+    ) {
+        Set<String> allowed = Set.of(
+                "grant_type",
+                "resource",
+                "tenant_id",
+                "scope"
+        );
+        if (form.keySet().stream().anyMatch(key -> !allowed.contains(key))) {
+            throw new OAuthException("invalid_client", "OAuth request is invalid");
+        }
     }
 
     private static String required(String value) {

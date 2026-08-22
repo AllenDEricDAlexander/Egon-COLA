@@ -168,6 +168,8 @@ class IdpJwtVerifierTest {
                 .expiresAt(NOW.plusSeconds(300))
                 .claim("principal_type", "SERVICE")
                 .claim("client_id", "rbac3-service")
+                .claim("app_id", "rbac3-service-app")
+                .claim("scope_context", "TENANT")
                 .claim("tid", "tenant-1")
                 .claim("scope", List.of("service:authorization:snapshot"))
                 .claim("source_biz", "permission")

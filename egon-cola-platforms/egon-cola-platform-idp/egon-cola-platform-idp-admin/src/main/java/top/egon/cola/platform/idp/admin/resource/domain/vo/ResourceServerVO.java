@@ -1,7 +1,6 @@
 package top.egon.cola.platform.idp.admin.resource.domain.vo;
 
 import java.time.Instant;
-import java.util.List;
 
 /**
  * Resource Server 管理视图。
@@ -17,10 +16,8 @@ import java.util.List;
  * @param managementClientId 管理 Client；management Client
  * @param rbacApplicationCode RBAC3 应用；RBAC3 application
  * @param entryPermissionCode USER 入口权限；USER entry permission
- * @param admissionTicketTtlSeconds 准入票据有效秒数；admission-ticket lifetime in seconds
  * @param status Resource Server 状态；Resource Server status
  * @param version 乐观锁和投影版本；optimistic-lock and projection version
- * @param keys 公开凭证；public credentials
  * @param createdAt 创建时间；creation instant
  * @param updatedAt 最后更新时间；last update instant
  */
@@ -34,20 +31,9 @@ public record ResourceServerVO(
         String managementClientId,
         String rbacApplicationCode,
         String entryPermissionCode,
-        int admissionTicketTtlSeconds,
         String status,
         long version,
-        List<ClientJwkVO> keys,
         Instant createdAt,
         Instant updatedAt
 ) {
-
-    /**
-     * 复制公开凭证列表。
-     *
-     * <p>Copies the public-credential list.</p>
-     */
-    public ResourceServerVO {
-        keys = List.copyOf(keys);
-    }
 }

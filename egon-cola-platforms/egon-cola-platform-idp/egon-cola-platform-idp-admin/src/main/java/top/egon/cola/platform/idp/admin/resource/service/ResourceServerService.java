@@ -2,7 +2,6 @@ package top.egon.cola.platform.idp.admin.resource.service;
 
 import top.egon.cola.platform.idp.admin.resource.domain.dto.BatchClientResourceGrantDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.BatchResourceServerActionDTO;
-import top.egon.cola.platform.idp.admin.resource.domain.dto.CreateClientJwkDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.CreateResourceServerDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.DeleteClientResourceGrantDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.ResourceVersionDTO;
@@ -13,10 +12,9 @@ import top.egon.cola.platform.idp.admin.resource.domain.vo.ResourceServerVO;
 import java.util.List;
 
 /**
- * Resource Server、公开凭证和 Client Grant 的管理用例入口。
+ * Resource Server 和 Client Grant 的管理用例入口。
  *
- * <p>Management use-case entry point for Resource Servers, public credentials, and Client
- * Grants.</p>
+ * <p>Management use-case entry point for Resource Servers and Client Grants.</p>
  */
 public interface ResourceServerService {
 
@@ -69,38 +67,6 @@ public interface ResourceServerService {
     ResourceServerVO disable(
             String resourceServerId,
             ResourceVersionDTO command
-    );
-
-    /**
-     * 增加公开 JWK。
-     *
-     * <p>Adds a public JWK.</p>
-     *
-     * @param resourceServerId Resource Server 标识；Resource Server identifier
-     * @param command 密钥输入；key input
-     * @return 更新结果；updated view
-     */
-    ResourceServerVO addKey(
-            String resourceServerId,
-            CreateClientJwkDTO command
-    );
-
-    /**
-     * 禁用一个公开 JWK。
-     *
-     * <p>Disables one public JWK.</p>
-     *
-     * @param resourceServerId Resource Server 标识；Resource Server identifier
-     * @param kid JWK kid；JWK kid
-     * @param expectedResourceVersion Resource 期望版本；expected Resource version
-     * @param expectedKeyVersion 密钥期望版本；expected key version
-     * @return 更新结果；updated view
-     */
-    ResourceServerVO removeKey(
-            String resourceServerId,
-            String kid,
-            long expectedResourceVersion,
-            long expectedKeyVersion
     );
 
     /**
