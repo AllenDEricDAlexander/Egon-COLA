@@ -6,7 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.iam.role.assignment.domain.po.UserRoleAssignmentPO;
 import top.egon.cola.platform.rbac3.admin.bootstrap.domain.Rbac3DevelopmentTopology;
-import top.egon.cola.platform.rbac3.admin.iam.tenant.domain.po.TenantPO;
+import top.egon.cola.platform.rbac3.admin.iam.authorizationstate.repository.TenantAuthorizationStateRepository;
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.po.UserPO;
 import top.egon.cola.platform.rbac3.admin.iam.application.domain.po.ApplicationPO;
 import top.egon.cola.platform.rbac3.admin.iam.permission.domain.po.PermissionPO;
@@ -16,8 +16,6 @@ import top.egon.cola.platform.rbac3.admin.iam.role.domain.po.RolePermissionPO;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import top.egon.cola.platform.rbac3.admin.bootstrap.repository.DevelopmentBootstrapPort;
 import top.egon.cola.platform.rbac3.admin.bootstrap.domain.vo.ApplicationDefinitionVO;
@@ -79,6 +77,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
      * Meaning and usage: when reading, passing, or updating `clock`, preserve `JpaDevelopmentTopologyBootstrapRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
     private final Clock clock;
+    private final TenantAuthorizationStateRepository authorizationState;
 
     /**
      * 构造器 `JpaDevelopmentTopologyBootstrapRepository` 用于创建并初始化 `JpaDevelopmentTopologyBootstrapRepository` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -90,14 +89,18 @@ public class JpaDevelopmentTopologyBootstrapRepository
      * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param authorizationState 输入参数 `authorizationState`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public JpaDevelopmentTopologyBootstrapRepository(
             EntityManager entityManager,
             LongIdGenerator idGenerator,
-            Clock clock) {
+            Clock clock,
+            TenantAuthorizationStateRepository authorizationState) {
         this.entityManager = Objects.requireNonNull(entityManager, "entityManager");
         this.idGenerator = Objects.requireNonNull(idGenerator, "idGenerator");
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.authorizationState = Objects.requireNonNull(
+                authorizationState, "authorizationState");
     }
 
     /**
@@ -107,41 +110,25 @@ public class JpaDevelopmentTopologyBootstrapRepository
      * 用法：调用 `bootstrap` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
      * Usage: provide contract-compliant arguments before calling `bootstrap`, then continue the business flow using its result, exception, or side effect.
      *
-     * @param tenantCode 输入参数 `tenantCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param username 输入参数 `username`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param identitySub 输入参数 `identitySub`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     @Override
     @Transactional
-    public void bootstrap(String tenantCode, String identitySub) {
+    public void bootstrap(String tenantId, String identitySub) {
         acquireLock();
         Instant now = clock.instant();
-        String normalizedTenantCode = normalize(tenantCode);
-        TenantPO tenant = findTenant(normalizedTenantCode);
+        Long normalizedTenantId = normalizeTenantId(tenantId);
+        authorizationState.ensureVerifiedTenant(
+                TenantAuthorizationStateRepository.VerifiedTenant.of(normalizedTenantId),
+                ACTOR);
         boolean changed = false;
-        if (tenant == null) {
-            tenant = new TenantPO(
-                    idGenerator.nextLongId(),
-                    normalizedTenantCode,
-                    "Development " + normalizedTenantCode,
-                    ACTOR,
-                    now
-            );
-            tenant.configure(
-                    Map.of("builtInApplicationCode", "rbac3-admin"),
-                    ACTOR,
-                    now
-            );
-            tenant.activate(ACTOR, now);
-            entityManager.persist(tenant);
-            changed = true;
-        }
         String normalizedIdentitySub = required(identitySub, "identitySub");
-        UserPO user = findUser(tenant.getId(), normalizedIdentitySub);
+        UserPO user = findUser(normalizedTenantId, normalizedIdentitySub);
         if (user == null) {
             user = new UserPO(
                     idGenerator.nextLongId(),
-                    tenant.getId(),
+                    normalizedTenantId,
                     normalizedIdentitySub,
                     top.egon.cola.platform.rbac3.admin.iam.user.domain.enums.UserStatusEnum.ACTIVE,
                     ACTOR,
@@ -152,10 +139,10 @@ public class JpaDevelopmentTopologyBootstrapRepository
         }
 
         for (var definition : Rbac3DevelopmentTopology.applications()) {
-            changed |= ensureApplication(tenant.getId(), user.getId(), definition, now);
+            changed |= ensureApplication(normalizedTenantId, user.getId(), definition, now);
         }
         if (changed) {
-            tenant.incrementPolicyVersion(ACTOR, now);
+            authorizationState.increment(normalizedTenantId, ACTOR);
             user.advanceAuthorizationVersion(user.getAuthVersion(), ACTOR, now);
         }
         entityManager.flush();
@@ -172,25 +159,6 @@ public class JpaDevelopmentTopologyBootstrapRepository
         entityManager.createNativeQuery("select pg_advisory_xact_lock(:lockKey)")
                 .setParameter("lockKey", BOOTSTRAP_LOCK_KEY)
                 .getSingleResult();
-    }
-
-    /**
-     * 方法 `findTenant` 按照 `JpaDevelopmentTopologyBootstrapRepository` 的职责处理输入，完成 `find Tenant` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `findTenant` processes its inputs according to `JpaDevelopmentTopologyBootstrapRepository`'s responsibility, performs the `find Tenant` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `findTenant` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `findTenant`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param tenantCode 输入参数 `tenantCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    private TenantPO findTenant(String tenantCode) {
-        return singleOrNull(entityManager.createQuery("""
-                        select tenant from TenantEntity tenant
-                         where lower(tenant.code) = :tenantCode
-                        """, TenantPO.class)
-                .setParameter("tenantCode", tenantCode)
-                .getResultList(), "tenant");
     }
 
     /**
@@ -475,20 +443,28 @@ public class JpaDevelopmentTopologyBootstrapRepository
     }
 
     /**
-     * 方法 `normalize` 按照 `JpaDevelopmentTopologyBootstrapRepository` 的职责处理输入，完成 `normalize` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `normalize` processes its inputs according to `JpaDevelopmentTopologyBootstrapRepository`'s responsibility, performs the `normalize` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     * 方法 `normalizeTenantId` 按照 `JpaDevelopmentTopologyBootstrapRepository` 的职责处理输入，完成 `normalizeTenantId` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `normalizeTenantId` processes its inputs according to `JpaDevelopmentTopologyBootstrapRepository`'s responsibility, performs the `normalizeTenantId` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
      *
-     * 用法：调用 `normalize` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `normalize`, then continue the business flow using its result, exception, or side effect.
+     * 用法：调用 `normalizeTenantId` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `normalizeTenantId`, then continue the business flow using its result, exception, or side effect.
      *
      * @param value 输入参数 `value`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private static String normalize(String value) {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("tenantCode is required");
+    private static Long normalizeTenantId(String value) {
+        if (value == null || value.isBlank() || !value.equals(value.trim())) {
+            throw new IllegalArgumentException("tenantId is invalid");
         }
-        return value.trim().toLowerCase(Locale.ROOT);
+        try {
+            long parsed = Long.parseLong(value);
+            if (parsed <= 0L) {
+                throw new NumberFormatException("tenant id must be positive");
+            }
+            return parsed;
+        } catch (NumberFormatException invalid) {
+            throw new IllegalArgumentException("tenantId is invalid", invalid);
+        }
     }
 
     private static String required(String value, String name) {

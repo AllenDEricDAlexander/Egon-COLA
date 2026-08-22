@@ -13,7 +13,7 @@ import java.util.Set;
 public final class Rbac3PlatformAdminBootstrapCli {
 
     private static final String COMMAND = "bootstrap-platform-admin";
-    private static final Set<String> ALLOWED_OPTIONS = Set.of("--tenant-code", "--identity-sub");
+    private static final Set<String> ALLOWED_OPTIONS = Set.of("--tenant-id", "--identity-sub");
 
     private final PlatformAdminBootstrapService bootstrapPort;
 
@@ -24,9 +24,22 @@ public final class Rbac3PlatformAdminBootstrapCli {
     public int run(String[] arguments) {
         Objects.requireNonNull(arguments, "arguments");
         Map<String, String> options = parse(arguments);
-        bootstrapPort.bootstrap(required(options, "--tenant-code"),
+        bootstrapPort.bootstrap(tenantId(options),
                 required(options, "--identity-sub"));
         return 0;
+    }
+
+    private static String tenantId(Map<String, String> options) {
+        String value = required(options, "--tenant-id");
+        try {
+            long parsed = Long.parseLong(value);
+            if (parsed <= 0L) {
+                throw new NumberFormatException("tenant id must be positive");
+            }
+            return Long.toString(parsed);
+        } catch (NumberFormatException invalid) {
+            throw new IllegalArgumentException("--tenant-id is invalid", invalid);
+        }
     }
 
     private static Map<String, String> parse(String[] arguments) {

@@ -3,6 +3,7 @@ package top.egon.cola.platform.rbac3.admin.bootstrap.service.internal;
 import org.springframework.stereotype.Service;
 import top.egon.cola.platform.rbac3.admin.bootstrap.repository.PlatformAdminBootstrapRepository;
 import top.egon.cola.platform.rbac3.admin.bootstrap.service.PlatformAdminBootstrapService;
+import top.egon.cola.platform.rbac3.admin.iam.user.repository.IdentityTenantMembershipDirectory;
 
 import java.util.Objects;
 
@@ -15,6 +16,7 @@ public final class DefaultPlatformAdminBootstrapService
         implements PlatformAdminBootstrapService {
 
     private final PlatformAdminBootstrapRepository repository;
+    private final IdentityTenantMembershipDirectory memberships;
 
     /**
      * 使用必需的初始化仓储创建服务。
@@ -23,12 +25,15 @@ public final class DefaultPlatformAdminBootstrapService
      * @param repository 平台管理员初始化仓储；platform administrator bootstrap repository
      */
     public DefaultPlatformAdminBootstrapService(
-            PlatformAdminBootstrapRepository repository) {
+            PlatformAdminBootstrapRepository repository,
+            IdentityTenantMembershipDirectory memberships) {
         this.repository = Objects.requireNonNull(repository, "repository");
+        this.memberships = Objects.requireNonNull(memberships, "memberships");
     }
 
     @Override
-    public void bootstrap(String tenantCode, String identitySub) {
-        repository.bootstrap(tenantCode, identitySub);
+    public void bootstrap(String tenantId, String identitySub) {
+        memberships.requireActive(tenantId, identitySub);
+        repository.bootstrap(tenantId, identitySub);
     }
 }

@@ -6,5 +6,5 @@ package top.egon.cola.platform.rbac3.admin.bootstrap.service;
 @FunctionalInterface
 public interface PlatformAdminBootstrapService {
 
-    void bootstrap(String tenantCode, String identitySub);
+    void bootstrap(String tenantId, String identitySub);
 }

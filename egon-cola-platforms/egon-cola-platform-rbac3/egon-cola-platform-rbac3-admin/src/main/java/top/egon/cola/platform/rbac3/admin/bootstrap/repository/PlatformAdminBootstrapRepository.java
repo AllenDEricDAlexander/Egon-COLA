@@ -11,8 +11,8 @@ public interface PlatformAdminBootstrapRepository {
      * 在单个事务边界内初始化平台管理员及其内置权限。
      * Bootstraps the platform administrator and built-in permissions within one transaction boundary.
      *
-     * @param tenantCode 租户编码；tenant code
+     * @param tenantId 外部租户标识；external tenant id
      * @param identitySub IdP 主体标识；IdP subject
      */
-    void bootstrap(String tenantCode, String identitySub);
+    void bootstrap(String tenantId, String identitySub);
 }

@@ -14,18 +14,19 @@ class Rbac3PlatformAdminBootstrapCliIT {
         var port = new SingleUseBootstrapPort();
         var cli = new Rbac3PlatformAdminBootstrapCli(port);
         int result = cli.run(new String[]{
-                        "bootstrap-platform-admin", "--tenant-code", "platform",
+                        "bootstrap-platform-admin", "--tenant-id", "17",
                 "--identity-sub", "idp-subject"
         });
         assertEquals(0, result);
         assertEquals("idp-subject", port.identitySub);
+        assertEquals("17", port.tenantId);
 
         assertThrows(IllegalStateException.class, () -> cli.run(new String[]{
-                        "bootstrap-platform-admin", "--tenant-code", "platform",
+                        "bootstrap-platform-admin", "--tenant-id", "17",
                 "--identity-sub", "other"
         }));
         assertThrows(IllegalArgumentException.class, () -> cli.run(new String[]{
-                        "bootstrap-platform-admin", "--tenant-code", "platform",
+                        "bootstrap-platform-admin", "--tenant-id", "17",
                 "--identity-sub", "idp-subject", "--password", "leak"
         }));
     }
@@ -33,14 +34,16 @@ class Rbac3PlatformAdminBootstrapCliIT {
     private static final class SingleUseBootstrapPort
             implements PlatformAdminBootstrapService {
         private boolean initialized;
+        private String tenantId;
         private String identitySub;
 
         @Override
-        public synchronized void bootstrap(String tenantCode, String identitySub) {
+        public synchronized void bootstrap(String tenantId, String identitySub) {
             if (initialized) {
                 throw new IllegalStateException("platform administrator already exists");
             }
             initialized = true;
+            this.tenantId = tenantId;
             this.identitySub = identitySub;
         }
     }

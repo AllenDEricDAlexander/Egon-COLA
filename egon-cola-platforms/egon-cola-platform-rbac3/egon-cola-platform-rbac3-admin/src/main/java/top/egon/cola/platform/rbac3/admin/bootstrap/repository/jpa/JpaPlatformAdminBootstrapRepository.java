@@ -8,7 +8,7 @@ import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
 import top.egon.cola.platform.rbac3.admin.iam.role.assignment.domain.po.UserRoleAssignmentPO;
 import top.egon.cola.platform.rbac3.admin.bootstrap.repository.PlatformAdminBootstrapRepository;
-import top.egon.cola.platform.rbac3.admin.iam.tenant.domain.po.TenantPO;
+import top.egon.cola.platform.rbac3.admin.iam.authorizationstate.repository.TenantAuthorizationStateRepository;
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.po.UserPO;
 import top.egon.cola.platform.rbac3.admin.iam.application.domain.po.ApplicationPO;
 import top.egon.cola.platform.rbac3.admin.iam.permission.domain.po.PermissionPO;
@@ -18,10 +18,8 @@ import top.egon.cola.platform.rbac3.admin.iam.role.domain.po.RolePermissionPO;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.regex.Pattern;
 import top.egon.cola.platform.rbac3.admin.iam.permission.domain.enums.PermissionRiskLevelEnum;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RoleTypeEnum;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RoleRiskLevelEnum;
@@ -70,15 +68,6 @@ public class JpaPlatformAdminBootstrapRepository
      * Meaning and usage: when reading, passing, or updating `ROLE_CODE`, preserve `JpaPlatformAdminBootstrapRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
     private static final String ROLE_CODE = "ROLE_PLATFORM_ADMIN";
-    /**
-     * 字段 `TENANT_CODE` 表示 `JpaPlatformAdminBootstrapRepository` 中与 `TENANT CODE` 相关的状态、依赖、配置或结果（声明类型 `Pattern`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `TENANT_CODE` stores the `TENANT CODE`-related state, dependency, configuration, or result of `JpaPlatformAdminBootstrapRepository` (declared type `Pattern`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `TENANT_CODE` 时应保持 `JpaPlatformAdminBootstrapRepository` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `TENANT_CODE`, preserve `JpaPlatformAdminBootstrapRepository`'s lifecycle, immutability, and thread-safety constraints.
-     */
-    private static final Pattern TENANT_CODE = Pattern.compile("^[a-z][a-z0-9-]{2,63}$");
-
     /**
      * 字段 `PLATFORM_PERMISSIONS` 表示 `JpaPlatformAdminBootstrapRepository` 中与 `PLATFORM PERMISSIONS` 相关的状态、依赖、配置或结果（声明类型 `List&lt;String&gt;`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `PLATFORM_PERMISSIONS` stores the `PLATFORM PERMISSIONS`-related state, dependency, configuration, or result of `JpaPlatformAdminBootstrapRepository` (declared type `List&lt;String&gt;`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -165,6 +154,7 @@ public class JpaPlatformAdminBootstrapRepository
      * Meaning and usage: when reading, passing, or updating `clock`, preserve `JpaPlatformAdminBootstrapRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
     private final Clock clock;
+    private final TenantAuthorizationStateRepository authorizationState;
 
     /**
      * 构造器 `JpaPlatformAdminBootstrapRepository` 用于创建并初始化 `JpaPlatformAdminBootstrapRepository` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -178,18 +168,22 @@ public class JpaPlatformAdminBootstrapRepository
      * @param auditPort 输入参数 `auditPort`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param eventPort 输入参数 `eventPort`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param authorizationState 输入参数 `authorizationState`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public JpaPlatformAdminBootstrapRepository(
             EntityManager entityManager,
             LongIdGenerator idGenerator,
             AuditPort auditPort,
             AuthorizationEventPublisher eventPort,
-            Clock clock) {
+            Clock clock,
+            TenantAuthorizationStateRepository authorizationState) {
         this.entityManager = Objects.requireNonNull(entityManager, "entityManager");
         this.idGenerator = Objects.requireNonNull(idGenerator, "idGenerator");
         this.auditPort = Objects.requireNonNull(auditPort, "auditPort");
         this.eventPort = Objects.requireNonNull(eventPort, "eventPort");
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.authorizationState = Objects.requireNonNull(
+                authorizationState, "authorizationState");
     }
 
     /**
@@ -199,34 +193,30 @@ public class JpaPlatformAdminBootstrapRepository
      * 用法：调用 `bootstrap` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
      * Usage: provide contract-compliant arguments before calling `bootstrap`, then continue the business flow using its result, exception, or side effect.
      *
-     * @param tenantCode 输入参数 `tenantCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param identitySub 输入参数 `identitySub`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     @Override
     @Transactional
-    public void bootstrap(String tenantCode, String identitySub) {
-        String normalizedTenantCode = normalizeTenantCode(tenantCode);
+    public void bootstrap(String tenantId, String identitySub) {
+        Long normalizedTenantId = normalizeTenantId(tenantId);
         String normalizedIdentitySub = required(identitySub, "identitySub");
         acquireLock();
-        rejectExistingAdministrator(normalizedTenantCode);
-        rejectExistingTenant(normalizedTenantCode);
+        rejectExistingAdministrator(normalizedTenantId);
+        authorizationState.ensureVerifiedTenant(
+                TenantAuthorizationStateRepository.VerifiedTenant.of(normalizedTenantId),
+                ACTOR);
 
         Instant now = clock.instant();
-        Long tenantId = idGenerator.nextLongId();
         Long applicationId = idGenerator.nextLongId();
         Long roleId = idGenerator.nextLongId();
         Long userId = idGenerator.nextLongId();
 
-        TenantPO tenant = new TenantPO(
-                tenantId, normalizedTenantCode, "Platform", ACTOR, now);
-        tenant.configure(Map.of("builtInApplicationCode", APPLICATION_CODE), ACTOR, now);
-        tenant.activate(ACTOR, now);
-        entityManager.persist(tenant);
         entityManager.persist(new ApplicationPO(
-                applicationId, tenantId, APPLICATION_CODE,
+                applicationId, normalizedTenantId, APPLICATION_CODE,
                 "RBAC3 System Administration", 0, ACTOR, now));
         RolePO administratorRole = new RolePO(
-                roleId, tenantId, applicationId, ROLE_CODE,
+                roleId, normalizedTenantId, applicationId, ROLE_CODE,
                 "Platform Security Administrator", RoleTypeEnum.MANAGEMENT,
                 RoleRiskLevelEnum.CRITICAL, true, null, 0, null, ACTOR, now);
         entityManager.persist(administratorRole);
@@ -234,39 +224,39 @@ public class JpaPlatformAdminBootstrapRepository
         for (String permissionCode : PLATFORM_PERMISSIONS) {
             Long permissionId = idGenerator.nextLongId();
             entityManager.persist(new PermissionPO(
-                    permissionId, tenantId, applicationId, permissionCode,
+                    permissionId, normalizedTenantId, applicationId, permissionCode,
                     permissionName(permissionCode), risk(permissionCode),
                     "Built-in RBAC3 platform administration capability", ACTOR, now));
             entityManager.persist(new RolePermissionPO(
-                    idGenerator.nextLongId(), tenantId, applicationId, roleId,
+                    idGenerator.nextLongId(), normalizedTenantId, applicationId, roleId,
                     permissionId, now, null, ACTOR, now));
         }
 
         UserPO administrator = new UserPO(
-                userId, tenantId, normalizedIdentitySub,
+                userId, normalizedTenantId, normalizedIdentitySub,
                 top.egon.cola.platform.rbac3.admin.iam.user.domain.enums.UserStatusEnum.ACTIVE,
                 ACTOR, now);
         administrator.advanceAuthorizationVersion(0, ACTOR, now);
         entityManager.persist(administrator);
         UserRoleAssignmentPO assignment = new UserRoleAssignmentPO(
-                idGenerator.nextLongId(), tenantId, userId, roleId,
+                idGenerator.nextLongId(), normalizedTenantId, userId, roleId,
                 UserRoleAssignmentTypeEnum.DIRECT, now, null,
-                "BOOTSTRAP", normalizedTenantCode, "Initial platform administrator",
+                "BOOTSTRAP", normalizedTenantId.toString(), "Initial platform administrator",
                 null, ACTOR, now);
         entityManager.persist(assignment);
-        tenant.incrementPolicyVersion(ACTOR, now);
         entityManager.flush();
-        insertSelfClosure(tenantId, applicationId, roleId);
+        authorizationState.increment(normalizedTenantId, ACTOR);
+        insertSelfClosure(normalizedTenantId, applicationId, roleId);
 
-        String requestId = "bootstrap:" + tenantId;
+        String requestId = "bootstrap:" + normalizedTenantId;
         auditPort.append(new AuditEventVO(
-                tenantId.toString(), "PLATFORM_ADMIN_BOOTSTRAPPED", ACTOR,
+                normalizedTenantId.toString(), "PLATFORM_ADMIN_BOOTSTRAPPED", ACTOR,
                 "USER", userId.toString(), requestId, requestId,
-                Map.of("tenantCode", normalizedTenantCode,
+                Map.of("tenantId", normalizedTenantId.toString(),
                         "identitySub", normalizedIdentitySub,
                         "roleCode", ROLE_CODE), now));
         eventPort.enqueue(new AuthorizationEventVO(
-                tenantId.toString(), "USER", userId.toString(),
+                normalizedTenantId.toString(), "USER", userId.toString(),
                 "ASSIGNMENT_CHANGED",
                 Map.of("assignmentId", assignment.getId().toString(),
                         "userId", userId.toString(),
@@ -295,49 +285,27 @@ public class JpaPlatformAdminBootstrapRepository
      * 用法：调用 `rejectExistingAdministrator` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
      * Usage: provide contract-compliant arguments before calling `rejectExistingAdministrator`, then continue the business flow using its result, exception, or side effect.
      *
-     * @param tenantCode 输入参数 `tenantCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
-    private void rejectExistingAdministrator(String tenantCode) {
+    private void rejectExistingAdministrator(Long tenantId) {
         Number count = (Number) entityManager.createNativeQuery("""
                         select count(*)
                           from rbac3_user_role_assignment assignment
                           join rbac3_role role
                             on role.tenant_id = assignment.tenant_id
                            and role.id = assignment.role_id
-                          join rbac3_tenant tenant
-                            on tenant.id = assignment.tenant_id
-                         where lower(tenant.code) = :tenantCode
+                         where assignment.tenant_id = :tenantId
                            and role.role_code = :roleCode
                            and assignment.status = 'ACTIVE'
                            and assignment.valid_from <= current_timestamp
                            and (assignment.valid_to is null
                                 or assignment.valid_to > current_timestamp)
                         """)
-                .setParameter("tenantCode", tenantCode)
+                .setParameter("tenantId", tenantId)
                 .setParameter("roleCode", ROLE_CODE)
                 .getSingleResult();
         if (count.longValue() > 0) {
             throw new IllegalStateException("platform administrator already exists");
-        }
-    }
-
-    /**
-     * 方法 `rejectExistingTenant` 按照 `JpaPlatformAdminBootstrapRepository` 的职责处理输入，完成 `reject Existing Tenant` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `rejectExistingTenant` processes its inputs according to `JpaPlatformAdminBootstrapRepository`'s responsibility, performs the `reject Existing Tenant` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `rejectExistingTenant` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `rejectExistingTenant`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param tenantCode 输入参数 `tenantCode`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     */
-    private void rejectExistingTenant(String tenantCode) {
-        Number count = (Number) entityManager.createNativeQuery(
-                        "select count(*) from rbac3_tenant where lower(code) = :tenantCode")
-                .setParameter("tenantCode", tenantCode)
-                .getSingleResult();
-        if (count.longValue() > 0) {
-            throw new IllegalStateException(
-                    "platform tenant already exists; use the explicit recovery runbook");
         }
     }
 
@@ -366,22 +334,28 @@ public class JpaPlatformAdminBootstrapRepository
     }
 
     /**
-     * 方法 `normalizeTenantCode` 按照 `JpaPlatformAdminBootstrapRepository` 的职责处理输入，完成 `normalize Tenant Code` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `normalizeTenantCode` processes its inputs according to `JpaPlatformAdminBootstrapRepository`'s responsibility, performs the `normalize Tenant Code` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     * 方法 `normalizeTenantId` 按照 `JpaPlatformAdminBootstrapRepository` 的职责处理输入，完成 `normalizeTenantId` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `normalizeTenantId` processes its inputs according to `JpaPlatformAdminBootstrapRepository`'s responsibility, performs the `normalizeTenantId` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
      *
-     * 用法：调用 `normalizeTenantCode` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `normalizeTenantCode`, then continue the business flow using its result, exception, or side effect.
+     * 用法：调用 `normalizeTenantId` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `normalizeTenantId`, then continue the business flow using its result, exception, or side effect.
      *
      * @param value 输入参数 `value`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private static String normalizeTenantCode(String value) {
-        String normalized = Objects.requireNonNull(value, "tenantCode")
-                .trim().toLowerCase(Locale.ROOT);
-        if (!TENANT_CODE.matcher(normalized).matches()) {
-            throw new IllegalArgumentException("tenant code is invalid");
+    private static Long normalizeTenantId(String value) {
+        if (value == null || value.isBlank() || !value.equals(value.trim())) {
+            throw new IllegalArgumentException("tenantId is invalid");
         }
-        return normalized;
+        try {
+            long parsed = Long.parseLong(value);
+            if (parsed <= 0L) {
+                throw new NumberFormatException("tenant id must be positive");
+            }
+            return parsed;
+        } catch (NumberFormatException invalid) {
+            throw new IllegalArgumentException("tenantId is invalid", invalid);
+        }
     }
 
     private static String required(String value, String name) {

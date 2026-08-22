@@ -11,6 +11,7 @@ import top.egon.cola.platform.rbac3.admin.iam.user.domain.dto.UpdateUserCommandD
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.enums.UserStatusEnum;
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.po.UserPO;
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.vo.UserDirectoryVO;
+import top.egon.cola.platform.rbac3.admin.iam.user.repository.IdentityTenantMembershipDirectory;
 import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
@@ -26,14 +27,17 @@ public class UserCrudFacade {
     private final EntityManager entityManager;
     private final LongIdGenerator idGenerator;
     private final DatabaseClock databaseClock;
+    private final IdentityTenantMembershipDirectory memberships;
 
     public UserCrudFacade(
             EntityManager entityManager,
             LongIdGenerator idGenerator,
-            DatabaseClock databaseClock) {
+            DatabaseClock databaseClock,
+            IdentityTenantMembershipDirectory memberships) {
         this.entityManager = entityManager;
         this.idGenerator = idGenerator;
         this.databaseClock = databaseClock;
+        this.memberships = memberships;
     }
 
     @Transactional
@@ -42,6 +46,7 @@ public class UserCrudFacade {
             CreateUserCommandDTO command,
             String actorId) {
         String identitySub = required(command.identitySub(), "identitySub");
+        memberships.requireActive(tenantId.toString(), identitySub);
         boolean exists = !entityManager.createQuery("""
                         select u.id from UserEntity u
                          where u.tenantId = :tenantId and u.identitySub = :identitySub
@@ -69,6 +74,9 @@ public class UserCrudFacade {
             String actorId) {
         UserPO user = require(tenantId, userId, true);
         String identitySub = required(command.identitySub(), "identitySub");
+        if (user.getStatus() == UserStatusEnum.ACTIVE) {
+            memberships.requireActive(tenantId.toString(), identitySub);
+        }
         boolean exists = !entityManager.createQuery("""
                         select u.id from UserEntity u
                          where u.tenantId = :tenantId and u.identitySub = :identitySub

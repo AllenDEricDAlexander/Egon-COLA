@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import top.egon.cola.platform.rbac3.admin.bootstrap.repository.DevelopmentBootstrapPort;
+import top.egon.cola.platform.rbac3.admin.iam.user.repository.IdentityTenantMembershipDirectory;
 
 import java.util.Arrays;
 import java.util.List;
@@ -24,18 +25,21 @@ import java.util.Objects;
 public class Rbac3DevelopmentBootstrap implements ApplicationRunner {
 
     private final DevelopmentBootstrapPort bootstrap;
-    private final List<String> tenantCodes;
+    private final IdentityTenantMembershipDirectory memberships;
+    private final List<String> tenantIds;
     private final String identitySub;
 
     public Rbac3DevelopmentBootstrap(
             DevelopmentBootstrapPort bootstrap,
-            @Value("${egon.rbac3.development-bootstrap.tenant-codes:${egon.rbac3.development-bootstrap.tenant-code:default}}")
-            String tenantCodes,
+            IdentityTenantMembershipDirectory memberships,
+            @Value("${egon.rbac3.development-bootstrap.tenant-ids:}")
+            String tenantIds,
             @Value("${egon.rbac3.development-bootstrap.identity-sub:}")
             String identitySub) {
         this.bootstrap = Objects.requireNonNull(bootstrap, "bootstrap");
-        this.tenantCodes = Arrays.stream(required(tenantCodes, "tenantCodes").split(","))
-                .map(value -> required(value, "tenantCode"))
+        this.memberships = Objects.requireNonNull(memberships, "memberships");
+        this.tenantIds = Arrays.stream(required(tenantIds, "tenantIds").split(","))
+                .map(Rbac3DevelopmentBootstrap::tenantId)
                 .distinct()
                 .toList();
         this.identitySub = required(identitySub, "identitySub");
@@ -43,7 +47,23 @@ public class Rbac3DevelopmentBootstrap implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        tenantCodes.forEach(tenantCode -> bootstrap.bootstrap(tenantCode, identitySub));
+        tenantIds.forEach(tenantId -> {
+            memberships.requireActive(tenantId, identitySub);
+            bootstrap.bootstrap(tenantId, identitySub);
+        });
+    }
+
+    private static String tenantId(String value) {
+        String normalized = required(value, "tenantId");
+        try {
+            long parsed = Long.parseLong(normalized);
+            if (parsed <= 0L) {
+                throw new NumberFormatException("tenant id must be positive");
+            }
+            return Long.toString(parsed);
+        } catch (NumberFormatException invalid) {
+            throw new IllegalArgumentException("tenantId is invalid", invalid);
+        }
     }
 
     private static String required(String value, String name) {

@@ -6,13 +6,22 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import top.egon.cola.platform.rbac3.admin.iam.user.service.UserCrudFacade;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class UserControllerTest {
+
+    @Test
+    void keepsUserCrudFacadeAsTheWriteBoundary() {
+        assertThat(Arrays.stream(UserController.class.getDeclaredFields())
+                .map(Field::getType))
+                .contains(UserCrudFacade.class);
+    }
 
     @Test
     void declaresUserCrudRoutesUnderIam() {
