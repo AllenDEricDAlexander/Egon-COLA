@@ -53,7 +53,7 @@ ACK, operation, and configuration-client projection data.
 | `egon-cola-component-rpc-ddc-adapter` | Composition adapter under `components/rpc`: protobuf contracts, direct gRPC clients/providers, HMAC metadata, and Spring Boot wiring |
 | `egon-cola-platform-dynamic-config-center-admin` | Human REST Admin plus direct gRPC facades, PostgreSQL persistence, Redis cache/leases, and synchronous publish state machine |
 | `egon-cola-platform-dynamic-config-center-admin-web` | Standalone management console (React + antd + Vite, pure Node project outside the Maven reactor); build and deployment instructions live in `egon-cola-platform-dynamic-config-center-admin-web/README.md` |
-| `egon-cola-platform-dynamic-config-center-test` | Starter samples, black-box consumer verification, and cross-boundary admission lifecycle acceptance tests |
+| `egon-cola-platform-dynamic-config-center-test` | Starter samples, black-box consumer verification, and cross-boundary identity/lease lifecycle acceptance tests |
 
 The Admin web UI has been extracted from the jar (`/ddc-admin` is no longer served
 by Admin). The console deploys as its own container, points at Admin via
@@ -232,30 +232,29 @@ The Admin accepts leases from 5 to 300 seconds, and the heartbeat interval must
 be shorter than the lease. Every register request creates a new `leaseId`.
 Redis bucket TTL is authoritative; heartbeat never recreates a missing lease.
 
-### IdP admission boundary
+### IdP SERVICE token and lease boundary
 
 Every configuration-client, HTTP Provider, RPC Provider, and internal-Gateway
-register or heartbeat request carries a fresh IdP Admission Ticket bound to the
-exact `bizCode + appCode + env + instanceId`. DDC verifies the ticket signature,
-dedicated token type, `ddc-registry` audience, logical Resource identity,
-resource version, physical triple, instance ID, credential ID, and expiry. Its
-lease expiry is capped at the Ticket expiry even when the requested lease is
-longer; raw tickets are never stored in registry or audit state.
+registration or heartbeat obtains a fresh IdP SERVICE token through the standard
+Spring OAuth2 Client `client_credentials` flow. The grant targets the DDC
+Resource with `grantContext: PLATFORM` and the least-privilege registration
+scope. DDC verifies the signed token, exact audience, source/application
+identity, scope, instance binding, nonce/replay state, and expiry; it does not
+accept a second registration ticket or RPC credential.
 
-An enabled application is approved once at the Resource triple, so all of its
-instances may register without per-instance approval. A process must obtain a
-valid Ticket before advertising readiness. If IdP is unavailable, an existing
-lease may run only until its current Ticket expires: no new registration and no
-heartbeat can extend the lease beyond that boundary. The runtime enters recovery
-and becomes not ready when it cannot renew safely.
+An enabled Resource is approved at its logical `bizCode + appCode + env` triple,
+so instances do not require individual catalog approval. Lease expiry is capped
+by the SERVICE token validity boundary, raw tokens are never stored in registry
+or audit state, and a missing/expired token cannot create or extend a lease. If
+IdP is unavailable, an existing lease runs only until its current token-bound
+expiry; the runtime enters recovery and becomes not ready when it cannot renew
+safely.
 
-Disabling a Resource publishes an IdP lifecycle event that removes only leases
-whose `bizCode + appCode + env` match the disabled Resource. Re-enable the
-Resource, restore a valid owner public key/credential, and let each instance
-obtain a new Ticket and lease to recover. Apply IdP V2 before DDC V8 consumers;
-V8 is a breaking protocol migration, has both PostgreSQL and SQLite variants,
-and must be rolled forward rather than by editing or reversing existing Flyway
-files.
+Disabling a Resource removes only leases whose logical triple matches the
+disabled Resource. Re-enable the Resource, restore the required IdP grant, and
+let each instance obtain a fresh SERVICE token and lease. Apply the IdP V5 and
+compatible DDC release together; this is a breaking protocol migration and
+existing Flyway files must not be edited or reversed.
 
 ## Service Registry
 
@@ -383,11 +382,27 @@ Business application:
 
 ```yaml
 spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          egon-idp:
+            client-id: ${EGON_IDP_APP_KEY}
+            client-secret: ${EGON_IDP_APP_SECRET}
+            authorization-grant-type: client_credentials
+            client-authentication-method: client_secret_basic
+        provider:
+          egon-idp:
+            token-uri: ${EGON_IDP_TOKEN_URI}
   config:
     import: ddc:application.yml
 
 egon:
   cola:
+    platform:
+      idp:
+        service-client:
+          app-id: ${EGON_IDP_APP_ID}
     component:
       ddc:
         enabled: true
@@ -428,6 +443,13 @@ egon:
         consistency:
           fail-fast: true
 ```
+
+The TLS `private-key-path` above is a transport certificate key only; it is not
+an OAuth client credential. OAuth client identity is the IdP-administered
+`appId`/`client_id` and one-time Secret. Keep all Secret values outside this
+document and follow the
+[cutover runbook](../../docs/runbooks/unified-identity-oauth-client-tenant-cutover.md)
+for release ordering and restore evidence.
 
 Use `optional:ddc:application.yml` when absence of the remote document is allowed.
 DDC contributes one PropertySource above local ConfigData and below Spring Boot's

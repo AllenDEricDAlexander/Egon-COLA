@@ -1,5 +1,20 @@
 {
-  "fixtureVersion": 1,
+  "fixtureVersion": 2,
+  "identity": {
+    "tenantAuthority": "idp",
+    "serviceToken": {
+      "grantContext": "PLATFORM",
+      "resourceUri": "https://api.egon.internal/local/ddc/registry",
+      "requiredScope": "ddc:registration:write"
+    },
+    "permissions": [
+      "idp:oauth-client:read",
+      "idp:oauth-client:create",
+      "idp:oauth-client:update",
+      "idp:tenant:read",
+      "idp:tenant:manage"
+    ]
+  },
   "server": {
     "serverCode": "unified-local",
     "displayName": "Unified Identity Local MCP",

@@ -5,6 +5,44 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "${script_dir}/lib/common.sh"
 
+static_only=false
+if [[ "${1:-}" == '--static-only' ]]; then
+  static_only=true
+  shift
+fi
+
+verify_static_contract() {
+  local file forbidden
+  local files=(
+    "${script_dir}/verify-local-stack.sh"
+    "${script_dir}/prepare-local-stack.sh"
+    "${script_dir}/fixtures/unified-platform-release.json"
+  )
+  forbidden='private_key_jwt|client[_-]?jwk|IDP_[A-Z0-9_]*ADMISSION|[A-Z0-9_]*RESOURCE_ADMISSION|/api/rbac3/v1/platform/tenants|/iam/tenants|targetTenantId|rbac3UserId'
+  for file in "${files[@]}"; do
+    [[ -f "${file}" ]] || unified_platform_fail "missing static verification file: ${file}"
+    if rg -n -i --pcre2 "${forbidden}" "${file}" \
+        | rg -v 'forbidden=' >/dev/null; then
+      unified_platform_fail "legacy identity or tenant symbol found in ${file}"
+    fi
+  done
+  jq -e '
+    .fixtureVersion >= 2
+    and .identity.tenantAuthority == "idp"
+    and .identity.serviceToken.grantContext == "PLATFORM"
+    and (.identity.permissions | index("idp:tenant:manage"))
+  ' "${script_dir}/fixtures/unified-platform-release.json" >/dev/null \
+    || unified_platform_fail 'release fixture lacks IdP tenant and PLATFORM token contracts'
+  printf 'Unified platform static identity/tenant contract passed.\n'
+}
+
+if [[ "${static_only}" == 'true' ]]; then
+  unified_platform_require_command rg
+  unified_platform_require_command jq
+  verify_static_contract
+  exit 0
+fi
+
 legacy_script="${unified_platform_repo_root}/scripts/unified-identity-local.sh"
 ddc_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/target/egon-cola-platform-dynamic-config-center-admin-exec.jar"
 mcp_remote_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-mcp-remote/target/gateway-test-mcp-remote-exec.jar"
@@ -423,9 +461,9 @@ verify_authenticated_json rbac3-runtime \
 verify_authenticated_json rbac3-mutations \
   "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/runtime/mutations?limit=20" \
   "${rbac3_admin_token_file}" '.data != null'
-verify_authenticated_json rbac3-tenants \
-  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/platform/tenants?page=0&size=20" \
-  "${rbac3_admin_token_file}" '.data != null'
+verify_authenticated_json idp-tenants \
+  "${IDP_ADMIN_WEB_URL}/api/v1/identity/tenants?page=0&size=20" \
+  "${idp_admin_token_file}" 'type == "array"'
 verify_authenticated_json rbac3-users \
   "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/users?page=0&size=20" \
   "${rbac3_admin_token_file}" '.data != null'

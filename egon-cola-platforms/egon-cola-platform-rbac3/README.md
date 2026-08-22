@@ -3,8 +3,9 @@
 RBAC3 is a tenant-isolated permission control plane and runtime enforcement
 system. It manages applications, resource manifests, role DAGs, assignments,
 constraints, active role sets, authorization snapshots, audit evidence, and
-Gateway/DDC publication. The implementation lives under `egon-cola-platforms`
-and is delivered as one system, not as staged feature subsets.
+Gateway/DDC publication while retaining only authorization state for each
+external tenant ID. IdP owns the tenant catalog and identity-sub memberships;
+RBAC3 does not create or administer those facts.
 
 Chinese documentation: [README.zh-CN.md](README.zh-CN.md).
 
@@ -48,19 +49,23 @@ There is no `rbac3-test` artifact and no aggregate runtime library.
    establish a fail-closed Fence.
 4. Projection workers build immutable user authorization snapshots in the
    dedicated runtime Redis client; the Fence opens only after projection.
-5. Starter or Gateway verifies the IdP USER JWT, exact subject/Tenant and
-   policy versions, then applies Function, Data, Field and Participation rules.
+5. Starter or Gateway verifies the IdP USER JWT, asks the IdP membership
+   directory for the exact subject/tenant fact, and applies policy-version,
+   Function, Data, Field and Participation rules.
 6. Admin reports interface Definitions to Gateway Admin with the exact DDC v3
    `bizCode + appCode` identity, registers its `HTTP_PROVIDER` lease in DDC,
    and observes the explicit Gateway Release.
 7. Gateway obtains provider instances from DDC and routes only when Definition,
    Lease, Release, consistency, authorization snapshot and Fence checks all agree.
 
+For the operator migration and restore order, follow the
+[unified identity cutover runbook](../../docs/runbooks/unified-identity-oauth-client-tenant-cutover.md).
+
 ## OAuth Resource authorization boundary
 
 RBAC3 owns USER authorization only. Before IdP issues or refreshes a USER token
-for an exact `bizCode + appCode + environment` Resource, RBAC3 confirms the
-user's tenant membership and application-entry permission. After authentication,
+for an exact `bizCode + appCode + environment` Resource, the IdP directory and
+RBAC3 application-entry policy confirm the user's tenant membership. After authentication,
 the downstream Starter applies the user's interface, data, field, participation,
 and active-role policies. USER tokens contain identity claims only, so permission
 changes remain effective through RBAC3's snapshot and fence rules.
@@ -74,12 +79,12 @@ a token for `permission/rbac3@prod` unless that target's separate RBAC3 entry
 decision also succeeds, while service-to-service access is governed exclusively
 by IdP Service Grants.
 
-RBAC3 Admin uses its own exact Resource URI and owner-only admission private-key
-file for DDC registration. Disabling that Resource stops new tokens/tickets and
-revokes only the RBAC3 triple's leases; recovery requires re-enabling it,
-restoring the valid key and grants, and obtaining a fresh Ticket. Apply IdP V2
-and DDC V8 before deploying this contract. Roll back with a forward fix because
-old service-permission and unauthenticated-registration paths are intentionally
+RBAC3 Admin obtains its DDC-audience PLATFORM SERVICE token through Spring
+OAuth2 Client using the IdP-administered app ID and one-time Secret. DDC binds
+the token audience, scope, source, instance, replay state, and lease expiry; no
+second registration credential is used. Apply IdP V5 and the compatible DDC/RBAC
+release together. Roll back with a coordinated forward fix because old
+service-permission and unauthenticated-registration paths are intentionally
 removed.
 
 See [architecture.md](docs/architecture.md) for algorithms and design patterns,
@@ -93,12 +98,13 @@ Configuration scope and service scope are different identities:
 
 - Configuration resource identity is `bizCode + appCode + env + resourceName`;
   namespace bindings control visibility but are not part of that identity.
-  RBAC3 owns a `CONFIG_CLIENT` lease, pulls the YAML policy document, and
+  DDC owns the `CONFIG_CLIENT` lease, while RBAC3 consumes the YAML policy
+  document and
   accepts only validated monotonically versioned snapshots.
 - Service scope is `bizCode + appCode + env + namespace + serviceKind + protocol
-  + serviceName + group + version`. RBAC3 owns a separate `HTTP_PROVIDER` lease;
-  Gateway obtains unexpired provider instances from this scope and routes to the
-  advertised host/port.
+  + serviceName + group + version`. RBAC3 uses a separate `HTTP_PROVIDER` lease;
+  the provider obtains it from DDC with a PLATFORM SERVICE token and Gateway
+  obtains unexpired instances from this scope.
 
 The two leases may share an instance ID but never a lease credential or state.
 At startup, the configuration client must hold a `CONFIG_CLIENT` lease and be

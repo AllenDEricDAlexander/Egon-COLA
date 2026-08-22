@@ -5,6 +5,10 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "${script_dir}/lib/common.sh"
 
+if [[ "${1:-}" == '--static-only' ]]; then
+  exec "${script_dir}/verify-local-stack.sh" --static-only
+fi
+
 for command in java npm curl jq openssl psql createdb redis-cli awk; do
   unified_platform_require_command "${command}"
 done

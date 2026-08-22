@@ -1,8 +1,9 @@
 # Egon COLA Unified Identity Provider
 
 The IdP is the single authority for workforce identities, credentials, browser
-SSO, OAuth clients, authorization codes, access tokens, refresh-token families,
-signing keys, and identity-security audit events.
+SSO, OAuth clients, administrator-provisioned app IDs and one-time client
+Secrets, tenant catalog/memberships, authorization codes, access tokens,
+refresh-token families, signing keys, and identity-security audit events.
 
 ## Boundaries
 
@@ -14,15 +15,20 @@ signing keys, and identity-security audit events.
   the executable IdP control plane.
 - `admin-web` is the React administration and login/consent application.
 
-The IdP does not own tenants, tenant memberships, roles, permissions, data
-scopes, field policies, or RBAC versions. RBAC3 remains the authority for those
-facts. Access tokens contain only stable identity and token-security claims.
+The IdP owns tenant catalog and membership facts. RBAC3 owns roles, permissions,
+data scopes, field policies, policy snapshots, and authorization versions; it
+keeps only external-tenant authorization state and never provides tenant or
+membership CRUD. Access tokens contain stable identity, target, context, and
+token-security claims.
+
+For the operator cutover, follow
+[`unified-identity-oauth-client-tenant-cutover.md`](../../docs/runbooks/unified-identity-oauth-client-tenant-cutover.md).
 
 See
 [`docs/superpowers/specs/2026-08-01-unified-identity-platform-design.md`](../../docs/superpowers/specs/2026-08-01-unified-identity-platform-design.md)
 for the approved requirements and architecture.
 
-## OAuth Resource Server admission
+## OAuth Resource and service-client configuration
 
 One Resource Server is the exact logical triple
 `bizCode + appCode + environment`, and the triple maps to exactly one absolute
@@ -32,22 +38,21 @@ runtime facts below that logical Resource; they are never approved one by one.
 OAuth authorization requests use the RFC 8707 `resource` parameter and every
 access token has exactly one `aud` value equal to that URI.
 
-Provision a Resource in this order:
+Provision a Resource and its service clients in this order:
 
-1. Apply the IdP V2, DDC V8, and Gateway V11 migrations before deploying code
+1. Apply IdP V5 and the compatible DDC/RBAC migrations before deploying code
    that requires the new contracts.
 2. Create the Resource Server and its exact business/application/environment
    identity, then enable it.
-3. Generate each Resource owner key pair in the deployment environment. Keep
-   the private key in an owner-only absolute-path file and register only the
-   public key and `kid` in IdP. During rotation, publish the new public key,
-   deploy the new `kid` and private key, verify admission, and only then disable
-   the old key.
-4. Add USER client-to-Resource grants and configure the RBAC3 application-entry
-   permission. Add SERVICE grants for an exact source Client, target Resource,
-   tenant, and allowed-scope set.
-5. Configure the Resource URI, triple, instance ID, management Client, `kid`,
-   private-key path, admission endpoint, and renewal skew locally, then deploy.
+3. An IdP administrator creates each Confidential Client, confirms its `appId`
+   and `client_id`, and returns a client Secret once. Store that Secret only in
+   the consumer's Secret Manager and rotate it through the IdP Admin Web.
+4. Add USER grants and the RBAC3 application-entry permission. Add SERVICE
+   grants for an exact source Client, target Resource, explicit `TENANT` or
+   `PLATFORM` context, and allowed-scope set.
+5. Configure consumers with Spring Security OAuth2 Client
+   `client_credentials`/`client_secret_basic`; DDC registration uses a
+   DDC-audience `PLATFORM` SERVICE token and no second registration credential.
 
 Representative access-token claims, with identifiers shortened and all
 credentials omitted, are:
@@ -64,13 +69,10 @@ downstream service. SERVICE token target, tenant, and scope authorization is
 owned entirely by IdP Service Grants; token issuance never calls RBAC3 and no
 refresh token is issued for `client_credentials`.
 
-Disabling a Resource stops new user tokens, service tokens, and admission
-tickets and emits a DDC revocation event for only the matching triple. Recovery
-requires re-enabling the Resource, restoring at least one valid public key and
-the required grants, then allowing instances to obtain fresh tickets and leases.
-Rollback is forward-fix only after the migrations are applied: old binaries that
-depend on the removed audience table or unauthenticated DDC contracts are not
-compatible, and existing Flyway files must not be edited or down-migrated.
-
-The approved end-to-end decisions and swimlanes are in
-[`2026-08-10-oauth2-resource-server-admission-design.md`](../../docs/superpowers/specs/2026-08-10-oauth2-resource-server-admission-design.md).
+Disabling a Resource stops new user and service tokens and emits a DDC
+revocation event for only the matching triple. Recovery requires re-enabling the
+Resource and required grants, then allowing instances to obtain a fresh
+SERVICE token and lease. Rollback is forward-fix only after the migrations are
+applied: old binaries that depend on removed client-key or registration
+contracts are not compatible, and existing Flyway files must not be edited or
+down-migrated.
