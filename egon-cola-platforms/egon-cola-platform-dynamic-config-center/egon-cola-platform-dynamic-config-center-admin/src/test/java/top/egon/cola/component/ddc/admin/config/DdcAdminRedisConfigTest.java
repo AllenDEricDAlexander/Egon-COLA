@@ -8,9 +8,10 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.ddc.admin.repository.DdcInstanceRepository;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionVerifier;
+import top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationCredentialVerifier;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterAutoConfiguration;
+import top.egon.cola.platform.idp.starter.security.ServiceAccessTokenVerifier;
 import top.egon.cola.platform.idp.starter.state.IdentityResourceServerStateReader;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -19,7 +20,7 @@ import static org.mockito.Mockito.mock;
 class DdcAdminRedisConfigTest {
 
     @Test
-    void createsAdmissionVerifierWhenIdpStateReaderComesFromAutoConfiguration() {
+    void createsRegistrationVerifierWhenIdpServiceTokenVerifierComesFromAutoConfiguration() {
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         IdpStarterAutoConfiguration.class
@@ -41,7 +42,7 @@ class DdcAdminRedisConfigTest {
                             IdentityResourceServerStateReader.class
                     );
                     assertThat(context).hasSingleBean(
-                            DdcAdmissionVerifier.class
+                            DdcRegistrationCredentialVerifier.class
                     );
                 });
     }
@@ -67,6 +68,11 @@ class DdcAdminRedisConfigTest {
         @Bean
         DdcScopeGate ddcScopeGate() {
             return mock(DdcScopeGate.class);
+        }
+
+        @Bean
+        ServiceAccessTokenVerifier serviceAccessTokenVerifier() {
+            return mock(ServiceAccessTokenVerifier.class);
         }
     }
 }

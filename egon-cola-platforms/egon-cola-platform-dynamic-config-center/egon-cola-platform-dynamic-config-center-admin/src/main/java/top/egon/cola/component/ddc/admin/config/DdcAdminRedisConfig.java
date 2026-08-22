@@ -9,9 +9,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtException;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigLeaseRedisRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcInstanceRepository;
@@ -19,15 +16,19 @@ import top.egon.cola.component.ddc.admin.repository.DdcRedisRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcServiceRegistryRedisRepository;
 import top.egon.cola.component.ddc.admin.security.rpc.DdcNonceStore;
 import top.egon.cola.component.ddc.admin.security.rpc.RedisDdcNonceStore;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionVerifier;
-import top.egon.cola.component.ddc.admin.security.admission.IdpJwtDdcAdmissionVerifier;
+import top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationCredentialVerifier;
+import top.egon.cola.component.ddc.admin.security.registration.IdpJwtDdcRegistrationCredentialVerifier;
 import top.egon.cola.component.ddc.admin.service.lease.DdcConfigLeaseService;
 import top.egon.cola.component.ddc.admin.service.lease.DdcLeaseExpiryScanner;
 import top.egon.cola.component.ddc.admin.service.lease.DdcLeaseValidator;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.component.ddc.admin.service.registry.DdcServiceRegistryService;
 import top.egon.cola.component.ddc.redis.DdcRedisClientFactory;
-import top.egon.cola.platform.idp.starter.state.IdentityResourceServerStateReader;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.security.ServiceAccessTokenVerifier;
+
+import java.net.URI;
+import java.util.Objects;
 
 @Configuration
 @EnableScheduling
@@ -75,51 +76,40 @@ public class DdcAdminRedisConfig {
         return new DdcConfigLeaseRedisRepository(redissonClient, objectMapper);
     }
 
-    /**
-     * 创建统一的 IdP Resource Server 准入票据校验器。
-     *
-     * <p>Creates the shared IdP Resource Server admission-ticket verifier.</p>
-     *
-     * @param resourceStates IdP 权威 Resource Server 运行态读取器；authoritative IdP Resource
-     * Server runtime reader
-     * @param properties DDC Admin 配置；DDC Admin settings
-     * @return 准入校验器；admission verifier
-     */
+    /** Creates the DDC verifier backed by the shared IdP SERVICE-token verifier. */
     @Bean
-    @ConditionalOnBean(name = "ddcAdminRedissonClient")
-    @ConditionalOnMissingBean(DdcAdmissionVerifier.class)
-    public DdcAdmissionVerifier ddcAdmissionVerifier(
-            IdentityResourceServerStateReader resourceStates,
-            DdcAdminProperties properties
+    @ConditionalOnBean(
+            value = ServiceAccessTokenVerifier.class,
+            name = "ddcAdminRedissonClient"
+    )
+    @ConditionalOnMissingBean(DdcRegistrationCredentialVerifier.class)
+    public DdcRegistrationCredentialVerifier ddcRegistrationCredentialVerifier(
+            ServiceAccessTokenVerifier serviceTokens,
+            DdcAdminProperties properties,
+            IdpStarterProperties idpProperties
     ) {
-        DdcAdminProperties.Admission admission = properties.getAdmission();
-        String issuer = firstText(
-                admission.getIssuer(),
-                properties.getSecurity().getJwt().getIssuer(),
-                "urn:egon:unconfigured:idp"
-        );
-        String jwkSetUri = firstText(
-                admission.getJwkSetUri(),
-                properties.getSecurity().getJwt().getJwkSetUri(),
+        DdcAdminProperties.Registration registration =
+                properties.getRegistration();
+        String resourceServerId = firstText(
+                registration.getResourceServerId(),
+                idpProperties.getResourceServerId(),
                 null
         );
-        JwtDecoder decoder;
-        if (hasText(jwkSetUri)) {
-            decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri.trim())
-                    .validateType(false)
-                    .build();
-        } else {
-            decoder = token -> {
-                    throw new JwtException(
-                            "DDC admission JWK Set URI is not configured"
-                    );
-                };
-        }
-        return new IdpJwtDdcAdmissionVerifier(
-                decoder,
-                resourceStates,
-                issuer,
-                "ddc-registry"
+        URI resourceUri = registration.getResourceUri() != null
+                ? registration.getResourceUri()
+                : idpProperties.getResourceUri();
+        return new IdpJwtDdcRegistrationCredentialVerifier(
+                serviceTokens,
+                required(resourceServerId, "DDC Resource Server id"),
+                Objects.requireNonNull(
+                        resourceUri,
+                        "DDC Resource URI is required"
+                ),
+                required(
+                        registration.getRequiredScope(),
+                        "DDC registration scope"
+                ),
+                java.time.Clock.systemUTC()
         );
     }
 
@@ -128,12 +118,12 @@ public class DdcAdminRedisConfig {
     @ConditionalOnMissingBean
     public DdcConfigLeaseService ddcConfigLeaseService(
             DdcConfigLeaseRedisRepository repository,
-            DdcAdmissionVerifier admissionVerifier,
+            DdcRegistrationCredentialVerifier registrationVerifier,
             DdcAdminProperties properties) {
         return new DdcConfigLeaseService(
                 repository,
                 new DdcLeaseValidator(properties),
-                admissionVerifier
+                registrationVerifier
         );
     }
 
@@ -153,12 +143,12 @@ public class DdcAdminRedisConfig {
             DdcServiceRegistryRedisRepository repository,
             DdcAdminProperties properties,
             DdcScopeGate scopeGate,
-            DdcAdmissionVerifier admissionVerifier) {
+            DdcRegistrationCredentialVerifier registrationVerifier) {
         return new DdcServiceRegistryService(
                 repository,
                 new DdcLeaseValidator(properties),
                 scopeGate,
-                admissionVerifier
+                registrationVerifier
         );
     }
 
@@ -194,6 +184,14 @@ public class DdcAdminRedisConfig {
             return primary.trim();
         }
         return hasText(fallback) ? fallback.trim() : defaultValue;
+    }
+
+    /** Returns a required non-blank configuration value. */
+    private String required(String value, String description) {
+        if (!hasText(value)) {
+            throw new IllegalStateException(description + " is required");
+        }
+        return value.trim();
     }
 
     /**

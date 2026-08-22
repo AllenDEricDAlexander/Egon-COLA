@@ -79,6 +79,23 @@ class DdcAdminSecurityPropertiesTest {
     }
 
     @Test
+    void registrationScopeMustRemainConfigured() {
+        contextRunner
+                .withPropertyValues(
+                        "egon.cola.component.ddc.admin.security.local-dev=true",
+                        "egon.cola.component.ddc.admin.rpc.signature-enabled=false",
+                        "egon.cola.component.ddc.admin.registration.required-scope="
+                )
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure())
+                            .hasRootCauseMessage(
+                                    "DDC registration scope is required"
+                            );
+                });
+    }
+
+    @Test
     void enabledRpcSignaturesRequireSharedNonceStore() {
         rpcContextRunner
                 .withPropertyValues(

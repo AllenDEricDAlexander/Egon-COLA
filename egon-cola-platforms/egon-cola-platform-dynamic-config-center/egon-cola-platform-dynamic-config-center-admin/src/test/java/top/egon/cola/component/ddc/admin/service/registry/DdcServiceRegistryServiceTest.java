@@ -3,8 +3,8 @@ package top.egon.cola.component.ddc.admin.service.registry;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import top.egon.cola.component.ddc.admin.repository.DdcServiceRegistryRedisRepository;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionException;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionVerifier;
+import top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationAuthenticationException;
+import top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationCredentialVerifier;
 import top.egon.cola.component.ddc.admin.service.lease.DdcLeaseValidator;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
@@ -29,7 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionTestFixture.verifier;
+import static top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationTestFixture.verifier;
 
 class DdcServiceRegistryServiceTest {
 
@@ -56,7 +56,7 @@ class DdcServiceRegistryServiceTest {
                 DdcServiceInstance.class
         );
         verify(repository, org.mockito.Mockito.times(2)).register(
-                instances.capture()
+                instances.capture(), any()
         );
         assertThat(instances.getAllValues()).allSatisfy(instance -> {
             assertThat(instance.resourceServerId()).isEqualTo("resource-1");
@@ -101,12 +101,12 @@ class DdcServiceRegistryServiceTest {
     }
 
     @Test
-    void admissionFailureBlocksProviderRegistrationAndHeartbeat() {
+    void registrationFailureBlocksProviderRegistrationAndHeartbeat() {
         DdcServiceRegistryRedisRepository repository = mock(
                 DdcServiceRegistryRedisRepository.class
         );
-        DdcAdmissionVerifier rejecting = (ticket, biz, app, env, instance) -> {
-            throw new DdcAdmissionException(
+        DdcRegistrationCredentialVerifier rejecting = (token, biz, app, env, instance) -> {
+            throw new DdcRegistrationAuthenticationException(
                     DdcErrorStatus.RESOURCE_ADMISSION_INVALID
             );
         };
@@ -118,15 +118,15 @@ class DdcServiceRegistryServiceTest {
         DdcServiceRegistration registration = registration(Map.of());
 
         assertThatThrownBy(() -> service.register(registration))
-                .isInstanceOf(DdcAdmissionException.class);
+                .isInstanceOf(DdcRegistrationAuthenticationException.class);
         DdcServiceLeaseRequest request = new DdcServiceLeaseRequest();
         request.setServiceKey(registration.serviceKey());
         request.setInstanceId(registration.instanceId());
         request.setLeaseId("lease-1");
-        request.setAdmissionTicket(registration.admissionTicket());
+        request.setRegistrationToken(registration.registrationToken());
         assertThatThrownBy(() -> service.heartbeat(request))
-                .isInstanceOf(DdcAdmissionException.class);
-        verify(repository, org.mockito.Mockito.never()).register(any());
+                .isInstanceOf(DdcRegistrationAuthenticationException.class);
+        verify(repository, org.mockito.Mockito.never()).register(any(), any());
         verify(repository, org.mockito.Mockito.never())
                 .heartbeat(any(), any(), any());
     }
@@ -143,13 +143,13 @@ class DdcServiceRegistryServiceTest {
     private DdcServiceRegistryService service(
             DdcServiceRegistryRedisRepository repository,
             java.util.function.Supplier<String> leaseIds,
-            DdcAdmissionVerifier admissionVerifier
+            DdcRegistrationCredentialVerifier registrationVerifier
     ) {
         return new DdcServiceRegistryService(
                 repository,
                 new DdcLeaseValidator(),
                 mock(DdcScopeGate.class),
-                admissionVerifier,
+                registrationVerifier,
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 leaseIds
         );
@@ -174,7 +174,7 @@ class DdcServiceRegistryServiceTest {
                 metadata,
                 30,
                 10,
-                "test-admission-ticket"
+                "test-registration-token"
         );
     }
 }

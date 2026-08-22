@@ -27,7 +27,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionTestFixture.claims;
+import static top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationTestFixture.identity;
 
 class DdcConfigLeaseRedisRepositoryTest {
 
@@ -69,7 +69,7 @@ class DdcConfigLeaseRedisRepositoryTest {
                 "instance-1", "lease-1", DdcLeaseRole.CONFIG_CLIENT,
                 30, 10, NOW, NOW.plusSeconds(30));
 
-        repository.register(identity, session, NOW, claims(NOW.plusSeconds(60)));
+        repository.register(identity, session, NOW, identity(NOW.plusSeconds(60)));
         var registered = new ObjectMapper().readTree(stored.get());
         assertThat(registered.path("resourceServerId").asText())
                 .isEqualTo("resource-1");
@@ -79,12 +79,12 @@ class DdcConfigLeaseRedisRepositoryTest {
         assertThat(registered.path("admissionExpiresAt").asLong())
                 .isEqualTo(NOW.plusSeconds(60).toEpochMilli());
         assertThat(stored.get())
-                .doesNotContain("admissionTicket")
-                .doesNotContain("test-admission-ticket");
+                .doesNotContain("registrationToken")
+                .doesNotContain("test-registration-token");
         DdcHeartbeatRequest request = request("lease-1");
         var heartbeat = repository.heartbeat(
                 request,
-                claims(NOW.plusSeconds(20)),
+                identity(NOW.plusSeconds(20)),
                 NOW.plusSeconds(5)
         );
         var deregister = repository.deregister(request);
@@ -137,7 +137,7 @@ class DdcConfigLeaseRedisRepositoryTest {
                 identity,
                 session,
                 NOW,
-                claims(NOW.plusSeconds(60), 0L)
+                identity(NOW.plusSeconds(60), 0L)
         );
 
         assertThat(repository.activeTargets(
@@ -169,7 +169,7 @@ class DdcConfigLeaseRedisRepositoryTest {
 
         assertThat(repository.heartbeat(
                 request("lease-2"),
-                claims(NOW.plusSeconds(60)),
+                identity(NOW.plusSeconds(60)),
                 NOW
         ).status())
                 .isEqualTo(DdcLeaseOperationStatus.LEASE_MISMATCH);

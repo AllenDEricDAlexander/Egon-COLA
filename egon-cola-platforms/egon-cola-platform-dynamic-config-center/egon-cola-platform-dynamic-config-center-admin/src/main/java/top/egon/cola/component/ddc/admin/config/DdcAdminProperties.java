@@ -2,6 +2,7 @@ package top.egon.cola.component.ddc.admin.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,8 +21,8 @@ public class DdcAdminProperties {
 
     private Publish publish = new Publish();
 
-    /** Resource Server 准入验证配置；Resource Server admission verification settings. */
-    private Admission admission = new Admission();
+    /** DDC registration credential verification settings. */
+    private Registration registration = new Registration();
 
     public long getMaxConfigBytes() {
         return maxConfigBytes;
@@ -72,25 +73,25 @@ public class DdcAdminProperties {
     }
 
     /**
-     * 返回 Resource Server 准入验证配置。
+     * 返回 DDC registration credential verification settings。
      *
-     * <p>Returns Resource Server admission verification settings.</p>
+     * <p>Returns DDC registration credential verification settings.</p>
      *
-     * @return 准入配置；admission settings
+     * @return registration 配置；registration settings
      */
-    public Admission getAdmission() {
-        return admission;
+    public Registration getRegistration() {
+        return registration;
     }
 
     /**
-     * 设置 Resource Server 准入验证配置。
+     * 设置 DDC registration credential verification settings。
      *
-     * <p>Sets Resource Server admission verification settings.</p>
+     * <p>Sets DDC registration credential verification settings.</p>
      *
-     * @param admission 准入配置；admission settings
+     * @param registration registration 配置；registration settings
      */
-    public void setAdmission(Admission admission) {
-        this.admission = admission;
+    public void setRegistration(Registration registration) {
+        this.registration = registration;
     }
 
     public static class Redis {
@@ -412,87 +413,85 @@ public class DdcAdminProperties {
     }
 
     /**
-     * IdP Resource Server Admission Ticket 验证配置。
+     * IdP PLATFORM SERVICE registration verification settings。
      *
-     * <p>IdP Resource Server Admission Ticket verification settings.</p>
+     * <p>IdP PLATFORM SERVICE registration verification settings.</p>
      */
-    public static class Admission {
+    public static class Registration {
 
-        /** IdP Issuer；IdP issuer. */
-        private String issuer;
+        /** DDC Resource Server stable identifier. */
+        private String resourceServerId;
 
-        /** IdP JWK Set 地址；IdP JWK Set URI. */
-        private String jwkSetUri;
+        /** DDC Resource URI used as the token audience. */
+        private URI resourceUri;
 
-        /** IdP Resource 主投影 Redis 键前缀；IdP Resource primary-projection Redis key prefix. */
-        private String resourceProjectionPrefix = "identity:resource-server:";
+        /** Least-privilege registration scope. */
+        private String requiredScope = "ddc:registration:write";
 
         /**
-         * 返回期望 IdP Issuer。
+         * 返回 DDC Resource Server 稳定标识。
          *
-         * <p>Returns the expected IdP issuer.</p>
+         * <p>Returns the DDC Resource Server stable identifier.</p>
          *
-         * @return IdP Issuer；IdP issuer
+         * @return Resource Server stable identifier
          */
-        public String getIssuer() {
-            return issuer;
+        public String getResourceServerId() {
+            return resourceServerId;
         }
 
         /**
-         * 设置期望 IdP Issuer。
+         * 设置 DDC Resource Server 稳定标识。
          *
-         * <p>Sets the expected IdP issuer.</p>
+         * <p>Sets the DDC Resource Server stable identifier.</p>
          *
-         * @param issuer IdP Issuer；IdP issuer
+         * @param resourceServerId Resource Server stable identifier
          */
-        public void setIssuer(String issuer) {
-            this.issuer = issuer;
+        public void setResourceServerId(String resourceServerId) {
+            this.resourceServerId = resourceServerId;
         }
 
         /**
-         * 返回 IdP JWK Set 地址。
+         * 返回 DDC Resource URI。
          *
-         * <p>Returns the IdP JWK Set URI.</p>
+         * <p>Returns the DDC Resource URI.</p>
          *
-         * @return JWK Set 地址；JWK Set URI
+         * @return Resource URI
          */
-        public String getJwkSetUri() {
-            return jwkSetUri;
+        public URI getResourceUri() {
+            return resourceUri;
         }
 
         /**
-         * 设置 IdP JWK Set 地址。
+         * 设置 DDC Resource URI。
          *
-         * <p>Sets the IdP JWK Set URI.</p>
+         * <p>Sets the DDC Resource URI.</p>
          *
-         * @param jwkSetUri JWK Set 地址；JWK Set URI
+         * @param resourceUri Resource URI
          */
-        public void setJwkSetUri(String jwkSetUri) {
-            this.jwkSetUri = jwkSetUri;
+        public void setResourceUri(URI resourceUri) {
+            this.resourceUri = resourceUri;
         }
 
         /**
-         * 返回 IdP Resource 主投影 Redis 键前缀。
+         * 返回 DDC registration scope。
          *
-         * <p>Returns the IdP Resource primary-projection Redis key prefix.</p>
+         * <p>Returns the least-privilege DDC registration scope.</p>
          *
-         * @return Redis 键前缀；Redis key prefix
+         * @return registration scope
          */
-        public String getResourceProjectionPrefix() {
-            return resourceProjectionPrefix;
+        public String getRequiredScope() {
+            return requiredScope;
         }
 
         /**
-         * 设置 IdP Resource 主投影 Redis 键前缀。
+         * 设置 DDC registration scope。
          *
-         * <p>Sets the IdP Resource primary-projection Redis key prefix.</p>
+         * <p>Sets the least-privilege DDC registration scope.</p>
          *
-         * @param resourceProjectionPrefix Redis 键前缀；Redis key prefix
+         * @param requiredScope registration scope
          */
-        public void setResourceProjectionPrefix(
-                String resourceProjectionPrefix
-        ) {
-            this.resourceProjectionPrefix = resourceProjectionPrefix;
+        public void setRequiredScope(String requiredScope) {
+            this.requiredScope = requiredScope;
         }
     }
 

@@ -9,8 +9,8 @@ import org.redisson.api.RLock;
 import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionClaims;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionException;
+import top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationAuthenticationException;
+import top.egon.cola.component.ddc.admin.security.registration.VerifiedDdcRegistrationIdentity;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
 import top.egon.cola.component.ddc.redis.DdcRedisKeys;
 import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
@@ -44,12 +44,12 @@ public class DdcConfigLeaseRedisRepository {
     public void register(DdcInstanceIdentity identity,
                          DdcLeaseSession session,
                          Instant lastHeartbeatAt,
-                         DdcAdmissionClaims admission) {
+                         VerifiedDdcRegistrationIdentity registration) {
         RLock lock = scopeLock(identity.bizCode(), identity.env(), identity.appCode());
         lock.lock();
         try {
             lease(identity.bizCode(), identity.env(), identity.appCode(), identity.instanceId())
-                    .set(toJson(identity, session, lastHeartbeatAt, admission),
+                    .set(toJson(identity, session, lastHeartbeatAt, registration),
                             ttl(lastHeartbeatAt, session.leaseExpireAt()));
             instances(identity.bizCode(), identity.env(), identity.appCode())
                     .add(identity.instanceId());
@@ -60,7 +60,7 @@ public class DdcConfigLeaseRedisRepository {
 
     public DdcLeaseOperationResult heartbeat(
             DdcHeartbeatRequest request,
-            DdcAdmissionClaims admission,
+            VerifiedDdcRegistrationIdentity registration,
             Instant heartbeatAt) {
         RLock lock = scopeLock(request.getBizCode(), request.getEnv(), request.getAppCode());
         lock.lock();
@@ -73,21 +73,26 @@ public class DdcConfigLeaseRedisRepository {
             if (!sameIdentity(current, request.getInstanceId(), request.getLeaseId())) {
                 return new DdcLeaseOperationResult(DdcLeaseOperationStatus.LEASE_MISMATCH, null);
             }
-            if (!sameAdmissionResource(current, admission)) {
-                throw new DdcAdmissionException(
+            if (!sameRegistrationIdentity(current, request, registration)) {
+                throw new DdcRegistrationAuthenticationException(
                         DdcErrorStatus.RESOURCE_ADMISSION_BINDING_MISMATCH
                 );
             }
             long leaseSeconds = current.path("leaseSeconds").asLong();
             Instant requestedExpireAt = heartbeatAt.plusSeconds(leaseSeconds);
-            Instant leaseExpireAt = requestedExpireAt.isBefore(admission.expiresAt())
-                    ? requestedExpireAt : admission.expiresAt();
+            Instant leaseExpireAt = requestedExpireAt.isBefore(registration.expiresAt())
+                    ? requestedExpireAt : registration.expiresAt();
             ObjectNode renewed = (ObjectNode) current;
             renewed.put("lastHeartbeatAt", heartbeatAt.toEpochMilli());
             renewed.put("leaseExpireAt", leaseExpireAt.toEpochMilli());
-            renewed.put("resourceVersion", admission.resourceVersion());
-            renewed.put("credentialId", admission.credentialId());
-            renewed.put("admissionExpiresAt", admission.expiresAt().toEpochMilli());
+            renewed.put("resourceVersion", registration.resourceVersion());
+            renewed.put("credentialId", registration.credentialId());
+            renewed.put("admissionExpiresAt", registration.expiresAt().toEpochMilli());
+            renewed.put("appId", registration.appId());
+            renewed.put("clientId", registration.clientId());
+            renewed.put("sourceBizCode", registration.bizCode());
+            renewed.put("sourceAppCode", registration.appCode());
+            renewed.put("sourceEnvironment", registration.environment());
             renewed.put("status", "ONLINE");
             lease(request.getBizCode(), request.getEnv(), request.getAppCode(), request.getInstanceId())
                     .set(json(renewed), ttl(heartbeatAt, leaseExpireAt));
@@ -263,7 +268,7 @@ public class DdcConfigLeaseRedisRepository {
     private String toJson(DdcInstanceIdentity identity,
                           DdcLeaseSession session,
                           Instant lastHeartbeatAt,
-                          DdcAdmissionClaims admission) {
+                          VerifiedDdcRegistrationIdentity registration) {
         Map<String, Object> value = new LinkedHashMap<>();
         value.put("instanceId", identity.instanceId());
         value.put("leaseId", session.leaseId());
@@ -280,10 +285,15 @@ public class DdcConfigLeaseRedisRepository {
         value.put("registeredAt", session.registeredAt().toEpochMilli());
         value.put("lastHeartbeatAt", lastHeartbeatAt.toEpochMilli());
         value.put("leaseExpireAt", session.leaseExpireAt().toEpochMilli());
-        value.put("resourceServerId", admission.resourceServerId());
-        value.put("resourceVersion", admission.resourceVersion());
-        value.put("credentialId", admission.credentialId());
-        value.put("admissionExpiresAt", admission.expiresAt().toEpochMilli());
+        value.put("resourceServerId", registration.resourceServerId());
+        value.put("resourceVersion", registration.resourceVersion());
+        value.put("credentialId", registration.credentialId());
+        value.put("admissionExpiresAt", registration.expiresAt().toEpochMilli());
+        value.put("appId", registration.appId());
+        value.put("clientId", registration.clientId());
+        value.put("sourceBizCode", registration.bizCode());
+        value.put("sourceAppCode", registration.appCode());
+        value.put("sourceEnvironment", registration.environment());
         value.put("status", "ONLINE");
         return json(value);
     }
@@ -337,13 +347,22 @@ public class DdcConfigLeaseRedisRepository {
                 <= resourceVersion;
     }
 
-    private boolean sameAdmissionResource(
+    private boolean sameRegistrationIdentity(
             JsonNode lease,
-            DdcAdmissionClaims admission
+            DdcHeartbeatRequest request,
+            VerifiedDdcRegistrationIdentity registration
     ) {
-        return admission.resourceServerId().equals(
-                lease.path("resourceServerId").asText()
-        );
+        return registration.resourceServerId().equals(
+                    lease.path("resourceServerId").asText())
+                && registration.appId().equals(lease.path("appId").asText())
+                && registration.clientId().equals(lease.path("clientId").asText())
+                && registration.credentialId().equals(
+                        lease.path("credentialId").asText())
+                && registration.bizCode().equals(lease.path("sourceBizCode").asText())
+                && registration.appCode().equals(lease.path("sourceAppCode").asText())
+                && registration.environment().equals(
+                        lease.path("sourceEnvironment").asText())
+                && request.getInstanceId().equals(lease.path("instanceId").asText());
     }
 
     private boolean isActive(JsonNode lease,

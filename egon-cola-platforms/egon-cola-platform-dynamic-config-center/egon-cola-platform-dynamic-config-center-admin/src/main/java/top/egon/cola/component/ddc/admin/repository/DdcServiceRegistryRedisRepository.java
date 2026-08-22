@@ -12,8 +12,8 @@ import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionClaims;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionException;
+import top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationAuthenticationException;
+import top.egon.cola.component.ddc.admin.security.registration.VerifiedDdcRegistrationIdentity;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
 import top.egon.cola.component.ddc.redis.DdcRedisKeys;
 import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
@@ -49,6 +49,13 @@ public class DdcServiceRegistryRedisRepository {
     }
 
     public void register(DdcServiceInstance instance) {
+        register(instance, null);
+    }
+
+    /** Persists an instance together with the verified registration identity. */
+    public void register(
+            DdcServiceInstance instance,
+            VerifiedDdcRegistrationIdentity registration) {
         DdcServiceKey serviceKey = instance.serviceKey();
         RLock lock = serviceLock(serviceKey);
         lock.lock();
@@ -62,7 +69,7 @@ public class DdcServiceRegistryRedisRepository {
             long serviceRevision = serviceRevision(serviceKey).incrementAndGet();
             long catalogRevision = addServiceCatalog(serviceKey);
             instanceBucket(serviceKey, instance.instanceId()).set(
-                    instanceJson(instance, serviceRevision),
+                    instanceJson(instance, serviceRevision, registration),
                     ttl(instance.lastHeartbeatAt(), instance.leaseExpireAt())
             );
             serviceInstances(serviceKey).add(
@@ -77,7 +84,7 @@ public class DdcServiceRegistryRedisRepository {
 
     public DdcLeaseOperationResult heartbeat(
             DdcServiceLeaseRequest request,
-            DdcAdmissionClaims admission,
+            VerifiedDdcRegistrationIdentity registration,
             Instant heartbeatAt) {
         DdcServiceKey serviceKey = request.getServiceKey();
         RLock lock = serviceLock(serviceKey);
@@ -91,27 +98,27 @@ public class DdcServiceRegistryRedisRepository {
             if (!sameIdentity(instance, request)) {
                 return new DdcLeaseOperationResult(DdcLeaseOperationStatus.LEASE_MISMATCH, null);
             }
-            if (!admission.resourceServerId().equals(instance.resourceServerId())) {
-                throw new DdcAdmissionException(
+            if (!sameRegistrationIdentity(current, request, registration)) {
+                throw new DdcRegistrationAuthenticationException(
                         DdcErrorStatus.RESOURCE_ADMISSION_BINDING_MISMATCH
                 );
             }
             Instant requestedExpireAt = heartbeatAt.plusSeconds(
                     instance.leaseSeconds()
             );
-            Instant leaseExpireAt = requestedExpireAt.isBefore(admission.expiresAt())
-                    ? requestedExpireAt : admission.expiresAt();
+            Instant leaseExpireAt = requestedExpireAt.isBefore(registration.expiresAt())
+                    ? requestedExpireAt : registration.expiresAt();
             DdcServiceInstance renewed = new DdcServiceInstance(
                     instance.instanceId(), instance.leaseId(), instance.serviceKey(),
                     instance.host(), instance.port(), instance.secure(), instance.metadata(),
                     instance.leaseSeconds(), instance.heartbeatIntervalSeconds(),
                     instance.registeredAt(), heartbeatAt, leaseExpireAt,
                     instance.status(), instance.revision(),
-                    admission.resourceServerId(), admission.resourceVersion(),
-                    admission.credentialId(), admission.expiresAt()
+                    registration.resourceServerId(), registration.resourceVersion(),
+                    registration.credentialId(), registration.expiresAt()
             );
             instanceBucket(serviceKey, request.getInstanceId()).set(
-                    instanceJson(renewed, renewed.revision()),
+                    instanceJson(renewed, renewed.revision(), registration),
                     ttl(heartbeatAt, leaseExpireAt)
             );
             serviceInstances(serviceKey).add(
@@ -376,6 +383,33 @@ public class DdcServiceRegistryRedisRepository {
                 && request.getServiceKey().equals(instance.serviceKey());
     }
 
+    private boolean sameRegistrationIdentity(
+            String currentJson,
+            DdcServiceLeaseRequest request,
+            VerifiedDdcRegistrationIdentity registration) {
+        JsonNode current = readJson(currentJson);
+        return request.getInstanceId().equals(current.path("instanceId").asText())
+                && registration.resourceServerId().equals(
+                        current.path("resourceServerId").asText())
+                && registration.appId().equals(current.path("appId").asText())
+                && registration.clientId().equals(current.path("clientId").asText())
+                && registration.credentialId().equals(
+                        current.path("credentialId").asText())
+                && registration.bizCode().equals(current.path("sourceBizCode").asText())
+                && registration.appCode().equals(current.path("sourceAppCode").asText())
+                && registration.environment().equals(
+                        current.path("sourceEnvironment").asText());
+    }
+
+    private JsonNode readJson(String value) {
+        try {
+            return objectMapper.readTree(value);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException(
+                    "deserialize DDC service instance failed", exception);
+        }
+    }
+
     private boolean hasActiveAdmission(
             DdcServiceInstance instance,
             Instant now
@@ -492,11 +526,25 @@ public class DdcServiceRegistryRedisRepository {
     }
 
     private String instanceJson(DdcServiceInstance instance, long revision) {
+        return instanceJson(instance, revision, null);
+    }
+
+    private String instanceJson(
+            DdcServiceInstance instance,
+            long revision,
+            VerifiedDdcRegistrationIdentity registration) {
         ObjectNode value = objectMapper.valueToTree(instance);
         value.put("revision", revision);
         value.put("serviceKeyCanonical", instance.serviceKey().canonicalValue());
         value.put("lastHeartbeatAtEpochMillis", instance.lastHeartbeatAt().toEpochMilli());
         value.put("leaseExpireAtEpochMillis", instance.leaseExpireAt().toEpochMilli());
+        if (registration != null) {
+            value.put("appId", registration.appId());
+            value.put("clientId", registration.clientId());
+            value.put("sourceBizCode", registration.bizCode());
+            value.put("sourceAppCode", registration.appCode());
+            value.put("sourceEnvironment", registration.environment());
+        }
         return json(value);
     }
 
@@ -507,6 +555,11 @@ public class DdcServiceRegistryRedisRepository {
                 JsonNode lastHeartbeatAt = objectNode.remove("lastHeartbeatAtEpochMillis");
                 JsonNode leaseExpireAt = objectNode.remove("leaseExpireAtEpochMillis");
                 objectNode.remove("serviceKeyCanonical");
+                objectNode.remove("appId");
+                objectNode.remove("clientId");
+                objectNode.remove("sourceBizCode");
+                objectNode.remove("sourceAppCode");
+                objectNode.remove("sourceEnvironment");
                 if (lastHeartbeatAt != null && lastHeartbeatAt.canConvertToLong()) {
                     objectNode.put("lastHeartbeatAt",
                             Instant.ofEpochMilli(lastHeartbeatAt.longValue()).toString());

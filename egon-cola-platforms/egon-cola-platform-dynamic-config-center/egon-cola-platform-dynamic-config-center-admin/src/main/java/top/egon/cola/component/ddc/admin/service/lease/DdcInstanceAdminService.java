@@ -43,7 +43,7 @@ public class DdcInstanceAdminService {
         fillInstance(instance, request);
         instance.setLeaseId(session.leaseId());
         instance.setLeaseExpireAt(localTime(session.leaseExpireAt()));
-        fillAdmission(instance, admitted.admission());
+        fillRegistration(instance, admitted.registration());
         instance.setStatus(InstanceStatus.ONLINE.name());
         instance.setLastHeartbeatAt(LocalDateTime.now());
         instance.setUpdatedAt(LocalDateTime.now());
@@ -64,7 +64,7 @@ public class DdcInstanceAdminService {
                 instance.setStatus(InstanceStatus.ONLINE.name());
                 instance.setLastHeartbeatAt(LocalDateTime.now());
                 instance.setLeaseExpireAt(localTime(result.leaseExpireAt()));
-                fillAdmission(instance, admitted.admission());
+                fillRegistration(instance, admitted.registration());
                 instance.setRuntimeMetadata(request.getMetadata());
                 instance.setUpdatedAt(LocalDateTime.now());
                 instanceRepository.save(instance);
@@ -133,13 +133,13 @@ public class DdcInstanceAdminService {
         instance.setRuntimeMetadata(request.getMetadata());
     }
 
-    private void fillAdmission(
+    private void fillRegistration(
             DdcInstanceEntity instance,
-            top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionClaims admission
+            top.egon.cola.component.ddc.admin.security.registration.VerifiedDdcRegistrationIdentity registration
     ) {
-        instance.setResourceServerId(admission.resourceServerId());
-        instance.setResourceVersion(admission.resourceVersion());
-        instance.setCredentialId(admission.credentialId());
-        instance.setAdmissionExpiresAt(localTime(admission.expiresAt()));
+        instance.setResourceServerId(registration.resourceServerId());
+        instance.setResourceVersion(registration.resourceVersion());
+        instance.setCredentialId(registration.credentialId());
+        instance.setAdmissionExpiresAt(localTime(registration.expiresAt()));
     }
 }

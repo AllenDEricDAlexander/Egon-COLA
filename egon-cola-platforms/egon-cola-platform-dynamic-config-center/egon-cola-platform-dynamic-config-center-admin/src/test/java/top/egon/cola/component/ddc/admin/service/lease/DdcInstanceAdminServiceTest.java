@@ -25,7 +25,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionTestFixture.claims;
+import static top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationTestFixture.identity;
 
 @ResourceLock("java.util.TimeZone.default")
 class DdcInstanceAdminServiceTest {
@@ -79,7 +79,7 @@ class DdcInstanceAdminServiceTest {
             when(leaseService.registerAdmitted(request)).thenReturn(
                     new DdcConfigLeaseService.AdmittedRegistration(
                             session,
-                            claims(expiry.plusSeconds(10))
+                            identity(expiry.plusSeconds(10))
                     )
             );
             when(repository.findByInstanceId(request.getInstanceId()))
@@ -128,7 +128,7 @@ class DdcInstanceAdminServiceTest {
         request.setSdkVersion("5.2.3");
         request.setLeaseSeconds(30);
         request.setHeartbeatIntervalSeconds(10);
-        request.setAdmissionTicket("test-admission-ticket");
+        request.setRegistrationToken("test-registration-token");
         return request;
     }
 }

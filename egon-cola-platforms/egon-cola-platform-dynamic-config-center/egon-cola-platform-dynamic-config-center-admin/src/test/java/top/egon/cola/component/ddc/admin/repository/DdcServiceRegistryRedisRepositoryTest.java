@@ -2,6 +2,7 @@ package top.egon.cola.component.ddc.admin.repository;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -34,7 +35,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionTestFixture.claims;
+import static top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationTestFixture.identity;
 
 class DdcServiceRegistryRedisRepositoryTest {
 
@@ -171,14 +172,14 @@ class DdcServiceRegistryRedisRepositoryTest {
         when(redisson.<String>getBucket(
                 DdcRedisKeys.registryInstance(SERVICE_KEY, "provider-1"), StringCodec.INSTANCE
         )).thenReturn(bucket);
-        when(bucket.get()).thenReturn(objectMapper.writeValueAsString(instance()));
+        when(bucket.get()).thenReturn(registrationJson(instance()));
         DdcServiceRegistryRedisRepository repository =
                 new DdcServiceRegistryRedisRepository(redisson, objectMapper);
         DdcServiceLeaseRequest request = leaseRequest("different-lease");
 
         assertThat(repository.heartbeat(
                 request,
-                claims(NOW.plusSeconds(60)),
+                identity(NOW.plusSeconds(60)),
                 NOW
         ).status())
                 .isEqualTo(DdcLeaseOperationStatus.LEASE_MISMATCH);
@@ -206,7 +207,7 @@ class DdcServiceRegistryRedisRepositoryTest {
                 DdcRedisKeys.registryInstance(SERVICE_KEY, "provider-1"),
                 StringCodec.INSTANCE
         )).thenReturn(bucket);
-        when(bucket.get()).thenReturn(objectMapper.writeValueAsString(instance()));
+        when(bucket.get()).thenReturn(registrationJson(instance()));
         when(redisson.<String>getScoredSortedSet(
                 DdcRedisKeys.registryService(SERVICE_KEY),
                 StringCodec.INSTANCE
@@ -223,7 +224,7 @@ class DdcServiceRegistryRedisRepositoryTest {
 
         var result = repository.heartbeat(
                 leaseRequest("lease-1"),
-                claims(NOW.plusSeconds(12)),
+                identity(NOW.plusSeconds(12)),
                 NOW.plusSeconds(5)
         );
 
@@ -239,8 +240,8 @@ class DdcServiceRegistryRedisRepositoryTest {
         assertThat(stored.path("admissionExpiresAt").asLong())
                 .isEqualTo(NOW.plusSeconds(12).getEpochSecond());
         assertThat(storedJson.getValue())
-                .doesNotContain("admissionTicket")
-                .doesNotContain("test-admission-ticket");
+                .doesNotContain("registrationToken")
+                .doesNotContain("test-registration-token");
     }
 
     @Test
@@ -366,8 +367,19 @@ class DdcServiceRegistryRedisRepositoryTest {
         request.setServiceKey(SERVICE_KEY);
         request.setInstanceId("provider-1");
         request.setLeaseId(leaseId);
-        request.setAdmissionTicket("test-admission-ticket");
+        request.setRegistrationToken("test-registration-token");
         return request;
+    }
+
+    private String registrationJson(DdcServiceInstance instance)
+            throws Exception {
+        ObjectNode json = objectMapper.valueToTree(instance);
+        json.put("appId", "app-id");
+        json.put("clientId", "client-id");
+        json.put("sourceBizCode", "default");
+        json.put("sourceAppCode", "demo");
+        json.put("sourceEnvironment", "dev");
+        return objectMapper.writeValueAsString(json);
     }
 
     private String catalogKey() {

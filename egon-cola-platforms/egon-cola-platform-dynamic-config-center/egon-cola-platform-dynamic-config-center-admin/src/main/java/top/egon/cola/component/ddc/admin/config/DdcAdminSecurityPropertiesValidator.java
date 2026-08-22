@@ -33,7 +33,27 @@ public final class DdcAdminSecurityPropertiesValidator {
                 );
             }
         }
+        validateRegistration(properties.getRegistration());
         validateRpc(properties.getRpc());
+    }
+
+    private static void validateRegistration(
+            DdcAdminProperties.Registration registration) {
+        if (registration == null) {
+            throw new IllegalStateException(
+                    "DDC registration settings are required"
+            );
+        }
+        required(
+                registration.getRequiredScope(),
+                "DDC registration scope is required"
+        );
+        if (registration.getResourceUri() != null
+                && !registration.getResourceUri().isAbsolute()) {
+            throw new IllegalStateException(
+                    "DDC registration Resource URI must be absolute"
+            );
+        }
     }
 
     private static void validateRpc(DdcAdminProperties.Rpc rpc) {

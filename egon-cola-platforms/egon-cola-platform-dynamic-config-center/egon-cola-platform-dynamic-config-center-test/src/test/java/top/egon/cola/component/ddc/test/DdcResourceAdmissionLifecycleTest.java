@@ -3,9 +3,9 @@ package top.egon.cola.component.ddc.test;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import top.egon.cola.component.ddc.admin.repository.DdcServiceRegistryRedisRepository;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionClaims;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionException;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionVerifier;
+import top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationAuthenticationException;
+import top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationCredentialVerifier;
+import top.egon.cola.component.ddc.admin.security.registration.VerifiedDdcRegistrationIdentity;
 import top.egon.cola.component.ddc.admin.service.lease.DdcLeaseValidator;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.component.ddc.admin.service.registry.DdcServiceRegistryService;
@@ -48,13 +48,13 @@ class DdcResourceAdmissionLifecycleTest {
         ArgumentCaptor<DdcServiceInstance> instances =
                 ArgumentCaptor.forClass(DdcServiceInstance.class);
         verify(repository, org.mockito.Mockito.times(2))
-                .register(instances.capture());
+                .register(instances.capture(), any());
         assertThat(instances.getAllValues())
                 .extracting(DdcServiceInstance::instanceId)
                 .containsExactly("idp-1", "idp-2");
         assertThatThrownBy(() -> service.register(
                 registration("forged-rbac3-1", "rbac3")))
-                .isInstanceOf(DdcAdmissionException.class);
+                .isInstanceOf(DdcRegistrationAuthenticationException.class);
     }
 
     @Test
@@ -70,20 +70,20 @@ class DdcResourceAdmissionLifecycleTest {
         assertThat(lease.leaseExpireAt()).isBeforeOrEqualTo(EXPIRES_AT);
         assertThatThrownBy(() -> service.register(
                 registration("idp-2", "idp")))
-                .isInstanceOf(DdcAdmissionException.class);
+                .isInstanceOf(DdcRegistrationAuthenticationException.class);
         DdcServiceLeaseRequest heartbeat = new DdcServiceLeaseRequest();
         heartbeat.setServiceKey(admitted.serviceKey());
         heartbeat.setInstanceId(admitted.instanceId());
         heartbeat.setLeaseId(lease.leaseId());
-        heartbeat.setAdmissionTicket(admitted.admissionTicket());
+        heartbeat.setRegistrationToken(admitted.registrationToken());
         assertThatThrownBy(() -> service.heartbeat(heartbeat))
-                .isInstanceOf(DdcAdmissionException.class);
+                .isInstanceOf(DdcRegistrationAuthenticationException.class);
         verify(repository, never()).heartbeat(any(), any(), any());
     }
 
     private DdcServiceRegistryService service(
             DdcServiceRegistryRedisRepository repository,
-            DdcAdmissionVerifier verifier
+            DdcRegistrationCredentialVerifier verifier
     ) {
         return new DdcServiceRegistryService(
                 repository,
@@ -103,38 +103,41 @@ class DdcResourceAdmissionLifecycleTest {
                         DdcServiceKind.HTTP_PROVIDER, appCode + "-admin",
                         "default", "5.3.3", "http"),
                 "10.0.0.8", 8080, false, Map.of(), 30, 10,
-                "ticket:" + instanceId);
+                "token:" + instanceId);
     }
 
     private static final class MutableVerifier
-            implements DdcAdmissionVerifier {
+            implements DdcRegistrationCredentialVerifier {
 
         private final AtomicBoolean available = new AtomicBoolean(true);
 
         @Override
-        public DdcAdmissionClaims verify(
-                String ticket,
+        public VerifiedDdcRegistrationIdentity verify(
+                String token,
                 String bizCode,
                 String appCode,
                 String env,
                 String instanceId
         ) {
             if (!available.get()) {
-                throw new DdcAdmissionException(
+                throw new DdcRegistrationAuthenticationException(
                         DdcErrorStatus.RESOURCE_ADMISSION_INVALID);
             }
             if (!"permission".equals(bizCode)
                     || !"idp".equals(appCode)
                     || !"prod".equals(env)
-                    || !("ticket:" + instanceId).equals(ticket)) {
-                throw new DdcAdmissionException(
+                    || !("token:" + instanceId).equals(token)) {
+                throw new DdcRegistrationAuthenticationException(
                         DdcErrorStatus.RESOURCE_ADMISSION_BINDING_MISMATCH);
             }
-            return new DdcAdmissionClaims(
+            return new VerifiedDdcRegistrationIdentity(
+                    "app-id",
+                    "client-id",
                     "permission-idp-prod",
                     "https://api.egon.internal/prod/permission/idp",
                     7L, bizCode, appCode, env, instanceId, "idp-key-1",
-                    EXPIRES_AT.minusSeconds(60), EXPIRES_AT);
+                    "token-1", EXPIRES_AT.minusSeconds(60), EXPIRES_AT,
+                    java.util.Set.of("ddc:registration:write"));
         }
     }
 }

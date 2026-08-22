@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionTestFixture.claims;
+import static top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationTestFixture.identity;
 import static org.awaitility.Awaitility.await;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -120,7 +120,7 @@ class DdcRedisClusterIT {
                 "demo", "test", "default", "switch"
         )).isEqualTo(1L);
 
-        leases.register(identity, session, NOW, claims(NOW.plusSeconds(5)));
+        leases.register(identity, session, NOW, identity(NOW.plusSeconds(5)));
         assertThat(leases.activeTargets(
                 "demo", "test", "default", NOW
         )).hasSize(1);
@@ -144,13 +144,13 @@ class DdcRedisClusterIT {
                 );
         DdcServiceInstance instance = instance();
 
-        registry.register(instance);
+        registry.register(instance, identity(NOW.plusSeconds(60)));
         assertThat(registry.getInstances(instance.serviceKey(), NOW).instances())
                 .extracting(DdcServiceInstance::instanceId)
                 .containsExactly(instance.instanceId());
         assertThat(registry.heartbeat(
                 serviceLease(instance),
-                claims(NOW.plusSeconds(60)),
+                identity(NOW.plusSeconds(60)),
                 NOW.plusSeconds(1)
         ).status())
                 .isEqualTo(DdcLeaseOperationStatus.RENEWED);
@@ -240,7 +240,7 @@ class DdcRedisClusterIT {
         request.setServiceKey(instance.serviceKey());
         request.setInstanceId(instance.instanceId());
         request.setLeaseId(instance.leaseId());
-        request.setAdmissionTicket("test-admission-ticket");
+        request.setRegistrationToken("test-registration-token");
         return request;
     }
 }

@@ -2,8 +2,8 @@ package top.egon.cola.component.ddc.admin.service.lease;
 
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionClaims;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionException;
+import top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationAuthenticationException;
+import top.egon.cola.component.ddc.admin.security.registration.VerifiedDdcRegistrationIdentity;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
 import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.config.DdcInstanceRegisterRequest;
@@ -81,33 +81,33 @@ public class DdcLeaseValidator {
     }
 
     /**
-     * 将租约到期时间限制在 Admission Ticket 到期时间以内。
+     * 将租约到期时间限制在 SERVICE Token 到期时间以内。
      *
-     * <p>Caps the lease expiration at the Admission Ticket expiration.</p>
+     * <p>Caps the lease expiration at the SERVICE Token expiration.</p>
      *
      * @param now 当前时间；current time
      * @param requestedLeaseSeconds 请求租约秒数；requested lease duration in seconds
-     * @param admission 已验证准入声明；verified admission claims
-     * @return 请求租约与票据到期时间中的较早者；earlier of the requested lease and ticket
+     * @param registration 已验证注册身份；verified registration identity
+     * @return 请求租约与 Token 到期时间中的较早者；earlier of the requested lease and Token
      * expiration
-     * @throws DdcAdmissionException 票据在租约建立前已经到期时抛出；if the ticket has already
+     * @throws DdcRegistrationAuthenticationException Token 在租约建立前已经到期时抛出；if the Token has already
      * expired before the lease can be established
      */
     public Instant capLeaseExpireAt(
             Instant now,
             int requestedLeaseSeconds,
-            DdcAdmissionClaims admission
+            VerifiedDdcRegistrationIdentity registration
     ) {
         Objects.requireNonNull(now, "now");
-        Objects.requireNonNull(admission, "admission");
-        if (!admission.expiresAt().isAfter(now)) {
-            throw new DdcAdmissionException(
+        Objects.requireNonNull(registration, "registration");
+        if (!registration.expiresAt().isAfter(now)) {
+            throw new DdcRegistrationAuthenticationException(
                     DdcErrorStatus.RESOURCE_ADMISSION_EXPIRED
             );
         }
         Instant requested = now.plusSeconds(requestedLeaseSeconds);
-        return requested.isBefore(admission.expiresAt())
-                ? requested : admission.expiresAt();
+        return requested.isBefore(registration.expiresAt())
+                ? requested : registration.expiresAt();
     }
 
     private void validateIdentity(

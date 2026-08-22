@@ -3,8 +3,8 @@ package top.egon.cola.component.ddc.admin.service.registry;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.repository.DdcServiceRegistryRedisRepository;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionClaims;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionVerifier;
+import top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationCredentialVerifier;
+import top.egon.cola.component.ddc.admin.security.registration.VerifiedDdcRegistrationIdentity;
 import top.egon.cola.component.ddc.admin.service.lease.DdcLeaseValidator;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
@@ -29,7 +29,7 @@ public class DdcServiceRegistryService {
 
     private final DdcScopeGate scopeGate;
 
-    private final DdcAdmissionVerifier admissionVerifier;
+    private final DdcRegistrationCredentialVerifier registrationVerifier;
 
     private final Clock clock;
 
@@ -38,12 +38,12 @@ public class DdcServiceRegistryService {
     public DdcServiceRegistryService(DdcServiceRegistryRedisRepository repository,
                                      DdcLeaseValidator leaseValidator,
                                      DdcScopeGate scopeGate,
-                                     DdcAdmissionVerifier admissionVerifier) {
+                                     DdcRegistrationCredentialVerifier registrationVerifier) {
         this(
                 repository,
                 leaseValidator,
                 scopeGate,
-                admissionVerifier,
+                registrationVerifier,
                 Clock.systemUTC(),
                 UuidV7::simpleString
         );
@@ -52,13 +52,13 @@ public class DdcServiceRegistryService {
     DdcServiceRegistryService(DdcServiceRegistryRedisRepository repository,
                               DdcLeaseValidator leaseValidator,
                               DdcScopeGate scopeGate,
-                              DdcAdmissionVerifier admissionVerifier,
+                              DdcRegistrationCredentialVerifier registrationVerifier,
                               Clock clock,
                               Supplier<String> leaseIdSupplier) {
         this.repository = repository;
         this.leaseValidator = leaseValidator;
         this.scopeGate = scopeGate;
-        this.admissionVerifier = admissionVerifier;
+        this.registrationVerifier = registrationVerifier;
         this.clock = clock;
         this.leaseIdSupplier = leaseIdSupplier;
     }
@@ -71,8 +71,8 @@ public class DdcServiceRegistryService {
                 serviceKey.appCode(),
                 serviceKey.env()
         );
-        DdcAdmissionClaims admission = admissionVerifier.verify(
-                registration.admissionTicket(),
+        VerifiedDdcRegistrationIdentity registrationIdentity = registrationVerifier.verify(
+                registration.registrationToken(),
                 serviceKey.bizCode(),
                 serviceKey.appCode(),
                 serviceKey.env(),
@@ -89,7 +89,7 @@ public class DdcServiceRegistryService {
                 leaseValidator.capLeaseExpireAt(
                         now,
                         registration.leaseSeconds(),
-                        admission
+                        registrationIdentity
                 )
         );
         repository.register(new DdcServiceInstance(
@@ -107,25 +107,25 @@ public class DdcServiceRegistryService {
                 session.leaseExpireAt(),
                 "ONLINE",
                 0L,
-                admission.resourceServerId(),
-                admission.resourceVersion(),
-                admission.credentialId(),
-                admission.expiresAt()
-        ));
+                registrationIdentity.resourceServerId(),
+                registrationIdentity.resourceVersion(),
+                registrationIdentity.credentialId(),
+                registrationIdentity.expiresAt()
+        ), registrationIdentity);
         return session;
     }
 
     public DdcLeaseOperationResult heartbeat(DdcServiceLeaseRequest request) {
         validateOperation(request);
         DdcServiceKey serviceKey = request.getServiceKey();
-        DdcAdmissionClaims admission = admissionVerifier.verify(
-                request.getAdmissionTicket(),
+        VerifiedDdcRegistrationIdentity registrationIdentity = registrationVerifier.verify(
+                request.getRegistrationToken(),
                 serviceKey.bizCode(),
                 serviceKey.appCode(),
                 serviceKey.env(),
                 request.getInstanceId()
         );
-        return repository.heartbeat(request, admission, clock.instant());
+        return repository.heartbeat(request, registrationIdentity, clock.instant());
     }
 
     public DdcLeaseOperationResult deregister(DdcServiceLeaseRequest request) {
@@ -153,7 +153,7 @@ public class DdcServiceRegistryService {
         request.setServiceKey(registration.serviceKey());
         request.setInstanceId(registration.instanceId());
         request.setLeaseId(session.leaseId());
-        request.setAdmissionTicket(registration.admissionTicket());
+        request.setRegistrationToken(registration.registrationToken());
         return request;
     }
 

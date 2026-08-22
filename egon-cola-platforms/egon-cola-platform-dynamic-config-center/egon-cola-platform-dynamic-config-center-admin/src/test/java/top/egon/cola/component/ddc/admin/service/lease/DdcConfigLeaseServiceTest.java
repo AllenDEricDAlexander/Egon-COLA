@@ -3,8 +3,8 @@ package top.egon.cola.component.ddc.admin.service.lease;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigLeaseRedisRepository;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionException;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionVerifier;
+import top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationAuthenticationException;
+import top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationCredentialVerifier;
 import top.egon.cola.component.ddc.error.DdcErrorStatus;
 import top.egon.cola.component.ddc.model.config.DdcHeartbeatRequest;
 import top.egon.cola.component.ddc.model.config.DdcInstanceRegisterRequest;
@@ -30,7 +30,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionTestFixture.verifier;
+import static top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationTestFixture.verifier;
 
 class DdcConfigLeaseServiceTest {
 
@@ -112,7 +112,7 @@ class DdcConfigLeaseServiceTest {
     }
 
     @Test
-    void capsRegistrationLeaseAtAdmissionExpiry() {
+    void capsRegistrationLeaseAtTokenExpiry() {
         DdcConfigLeaseRedisRepository repository = mock(
                 DdcConfigLeaseRedisRepository.class
         );
@@ -125,21 +125,21 @@ class DdcConfigLeaseServiceTest {
     }
 
     @Test
-    void admissionFailureBlocksRegistrationAndHeartbeatBeforeRedis() {
+    void registrationFailureBlocksRegistrationAndHeartbeatBeforeRedis() {
         DdcConfigLeaseRedisRepository repository = mock(
                 DdcConfigLeaseRedisRepository.class
         );
-        DdcAdmissionVerifier rejecting = (ticket, biz, app, env, instance) -> {
-            throw new DdcAdmissionException(
+        DdcRegistrationCredentialVerifier rejecting = (token, biz, app, env, instance) -> {
+            throw new DdcRegistrationAuthenticationException(
                     DdcErrorStatus.RESOURCE_ADMISSION_INVALID
             );
         };
         DdcConfigLeaseService service = service(repository, rejecting);
 
         assertThatThrownBy(() -> service.register(registerRequest()))
-                .isInstanceOf(DdcAdmissionException.class);
+                .isInstanceOf(DdcRegistrationAuthenticationException.class);
         assertThatThrownBy(() -> service.heartbeat(heartbeatRequest("lease-1")))
-                .isInstanceOf(DdcAdmissionException.class);
+                .isInstanceOf(DdcRegistrationAuthenticationException.class);
         verifyNoInteractions(repository);
     }
 
@@ -162,13 +162,13 @@ class DdcConfigLeaseServiceTest {
 
     private DdcConfigLeaseService service(
             DdcConfigLeaseRedisRepository repository,
-            DdcAdmissionVerifier admissionVerifier
+            DdcRegistrationCredentialVerifier registrationVerifier
     ) {
         AtomicInteger sequence = new AtomicInteger();
         return new DdcConfigLeaseService(
                 repository,
                 new DdcLeaseValidator(),
-                admissionVerifier,
+                registrationVerifier,
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 () -> "lease-" + sequence.incrementAndGet()
         );
@@ -186,7 +186,7 @@ class DdcConfigLeaseServiceTest {
         request.setSdkVersion("5.2.3");
         request.setLeaseSeconds(30);
         request.setHeartbeatIntervalSeconds(10);
-        request.setAdmissionTicket("test-admission-ticket");
+        request.setRegistrationToken("test-registration-token");
         return request;
     }
 
@@ -197,7 +197,7 @@ class DdcConfigLeaseServiceTest {
         request.setBizCode("default");
         request.setAppCode("demo");
         request.setEnv("dev");
-        request.setAdmissionTicket("test-admission-ticket");
+        request.setRegistrationToken("test-registration-token");
         return request;
     }
 }

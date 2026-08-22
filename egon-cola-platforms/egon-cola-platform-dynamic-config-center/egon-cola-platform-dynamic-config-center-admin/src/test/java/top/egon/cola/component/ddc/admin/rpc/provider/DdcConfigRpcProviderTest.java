@@ -101,7 +101,7 @@ class DdcConfigRpcProviderTest {
         value.setLeaseSeconds(30);
         value.setHeartbeatIntervalSeconds(10);
         value.setMetadata(Map.of("zone", "east"));
-        value.setAdmissionTicket("test-admission-ticket");
+        value.setRegistrationToken("test-registration-token");
         return value;
     }
 
@@ -117,7 +117,7 @@ class DdcConfigRpcProviderTest {
         value.setPid("100");
         value.setSdkVersion("5.3.3");
         value.setMetadata(Map.of("zone", "east"));
-        value.setAdmissionTicket("test-admission-ticket");
+        value.setRegistrationToken("test-registration-token");
         return value;
     }
 
