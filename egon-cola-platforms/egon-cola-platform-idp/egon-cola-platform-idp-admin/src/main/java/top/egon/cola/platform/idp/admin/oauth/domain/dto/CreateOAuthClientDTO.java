@@ -2,6 +2,7 @@ package top.egon.cola.platform.idp.admin.oauth.domain.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientEntity;
 
@@ -12,6 +13,8 @@ import java.util.List;
  *
  * <p>Input data for creating an OAuth Public or machine Confidential Client.</p>
  *
+ * @param appId 稳定业务应用身份，CONFIDENTIAL 必填；stable application identity, required for
+ *              CONFIDENTIAL clients
  * @param clientId Client 标识；Client identifier
  * @param clientName Client 展示名称；Client display name
  * @param clientType Client 类型，缺省为 PUBLIC；Client type, defaulting to PUBLIC
@@ -22,6 +25,7 @@ import java.util.List;
  * Resource URIs
  */
 public record CreateOAuthClientDTO(
+        @Pattern(regexp = "[a-z][a-z0-9-]{2,127}") String appId,
         @NotBlank String clientId,
         @NotBlank String clientName,
         IdentityClientEntity.ClientType clientType,
@@ -40,6 +44,15 @@ public record CreateOAuthClientDTO(
         clientType = clientType == null
                 ? IdentityClientEntity.ClientType.PUBLIC
                 : clientType;
+        if (appId != null && appId.isBlank()) {
+            throw new IllegalArgumentException("appId is required when supplied");
+        }
+        if (clientType == IdentityClientEntity.ClientType.CONFIDENTIAL
+                && (appId == null || appId.isBlank())) {
+            throw new IllegalArgumentException(
+                    "confidential client requires appId"
+            );
+        }
     }
 
     /**
@@ -63,9 +76,41 @@ public record CreateOAuthClientDTO(
             List<String> resourceUris
     ) {
         this(
+                null,
                 clientId,
                 clientName,
                 IdentityClientEntity.ClientType.PUBLIC,
+                accessTokenTtlSeconds,
+                refreshTokenTtlSeconds,
+                redirectUris,
+                resourceUris
+        );
+    }
+
+    /**
+     * 创建兼容旧调用方的 Client 输入。
+     *
+     * <p>Creates a compatibility input for callers that already provide the client type.</p>
+     *
+     * <p>Legacy Confidential bootstrap callers use the client id as appId until their
+     * configuration is migrated to the explicit constructor.</p>
+     */
+    public CreateOAuthClientDTO(
+            String clientId,
+            String clientName,
+            IdentityClientEntity.ClientType clientType,
+            int accessTokenTtlSeconds,
+            int refreshTokenTtlSeconds,
+            List<String> redirectUris,
+            List<String> resourceUris
+    ) {
+        this(
+                clientType == IdentityClientEntity.ClientType.CONFIDENTIAL
+                        ? clientId
+                        : null,
+                clientId,
+                clientName,
+                clientType,
                 accessTokenTtlSeconds,
                 refreshTokenTtlSeconds,
                 redirectUris,

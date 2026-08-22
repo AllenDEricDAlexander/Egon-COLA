@@ -1,5 +1,6 @@
 package top.egon.cola.platform.idp.admin.oauth.controller;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,8 +19,11 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.CreateOAuthClientDTO;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.OAuthValueDTO;
+import top.egon.cola.platform.idp.admin.oauth.domain.dto.RotateClientSecretDTO;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.UpdateOAuthClientDTO;
+import top.egon.cola.platform.idp.admin.oauth.domain.vo.CreatedOAuthClientVO;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthClientVO;
+import top.egon.cola.platform.idp.admin.oauth.domain.vo.RotatedClientSecretVO;
 import top.egon.cola.platform.idp.admin.oauth.service.OAuthClientService;
 import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthorizationPort;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
@@ -73,12 +77,29 @@ public class OAuthClientController {
     @GatewayOperation(name = "idp-oauth-client-create-v1",
             summary = "创建OAuth客户端", externalAccessible = true,
             tags = {"idp", "oauth-client"})
-    public OAuthClientVO create(
+    public CreatedOAuthClientVO create(
             @Valid @RequestBody CreateOAuthClientDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal IdentityPrincipal principal,
+            HttpServletResponse response
     ) {
         authorization.require(principal, "idp:oauth-client:create");
-        return clients.create(request);
+        response.setHeader("Cache-Control", "no-store");
+        return clients.create(request, operator(principal));
+    }
+
+    @PostMapping("/{clientId}/secret-rotations")
+    @GatewayOperation(name = "idp-oauth-client-secret-rotate-v1",
+            summary = "轮换OAuth客户端Secret", externalAccessible = true,
+            tags = {"idp", "oauth-client", "secret"})
+    public RotatedClientSecretVO rotateSecret(
+            @PathVariable("clientId") String clientId,
+            @Valid @RequestBody RotateClientSecretDTO request,
+            @AuthenticationPrincipal IdentityPrincipal principal,
+            HttpServletResponse response
+    ) {
+        authorization.require(principal, "idp:oauth-client:update");
+        response.setHeader("Cache-Control", "no-store");
+        return clients.rotateSecret(clientId, request, operator(principal));
     }
 
     @PatchMapping("/{clientId}")
@@ -144,5 +165,9 @@ public class OAuthClientController {
     ) {
         authorization.require(principal, "idp:oauth-client:update");
         return clients.deleteResourceUri(clientId, request.value());
+    }
+
+    private static String operator(IdentityPrincipal principal) {
+        return principal == null ? "SYSTEM" : principal.subject();
     }
 }

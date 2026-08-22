@@ -5,20 +5,31 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.CreateOAuthClientDTO;
+import top.egon.cola.platform.idp.admin.oauth.domain.dto.RotateClientSecretDTO;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.UpdateOAuthClientDTO;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientRedirectUriEntity;
+import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientSecretEntity;
+import top.egon.cola.platform.idp.admin.oauth.domain.vo.CreatedOAuthClientVO;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthClientVO;
+import top.egon.cola.platform.idp.admin.oauth.domain.vo.RotatedClientSecretVO;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRedirectUriRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
+import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientSecretRepository;
 import top.egon.cola.platform.idp.admin.oauth.service.OAuthClientService;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientResourceGrantEntity;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityResourceServerEntity;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepository;
+import top.egon.cola.platform.idp.core.audit.IdentitySecurityEvent;
+import top.egon.cola.platform.idp.core.audit.IdentitySecurityEventPort;
+import top.egon.cola.platform.idp.core.port.PasswordHashPort;
 
+import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -30,12 +41,12 @@ import java.util.Objects;
  * <p>Management use-case implementation for OAuth Clients, browser redirects, and
  * USER_DELEGATION grants.</p>
  *
- * <p>PUBLIC Client 保留授权码 + PKCE 所需浏览器数据；机器 CONFIDENTIAL Client 只创建主记录，
- * 后续 JWK 和 Service Grant 由 Resource Server 管理域维护。</p>
+ * <p>PUBLIC Client 保留授权码 + PKCE 所需浏览器数据；机器 CONFIDENTIAL Client 同时维护
+ * hash-only Secret 生命周期，Service Grant 仍由 Resource Server 管理域维护。</p>
  *
  * <p>PUBLIC Clients retain browser data required by authorization code plus PKCE. Machine
- * CONFIDENTIAL Clients create only their master record; JWKs and Service Grants are subsequently
- * managed by the Resource Server administration domain.</p>
+ * CONFIDENTIAL Clients manage a hash-only Secret lifecycle; Service Grants remain managed by the
+ * Resource Server administration domain.</p>
  */
 @Service
 public class OAuthClientServiceImpl implements OAuthClientService {
@@ -52,11 +63,23 @@ public class OAuthClientServiceImpl implements OAuthClientService {
     /** Client Resource Grant 仓储；Client Resource Grant repository. */
     private final IdentityClientResourceGrantRepository grants;
 
+    /** Client Secret 仓储；Client Secret repository. */
+    private final IdentityClientSecretRepository secrets;
+
     /** 全局 ID 生成器；global identifier generator. */
     private final LongIdGenerator ids;
 
     /** UTC 业务时钟；UTC business clock. */
     private final Clock clock;
+
+    /** Secret Argon2id 哈希端口；Secret Argon2id hashing port. */
+    private final PasswordHashPort passwordHashes;
+
+    /** 身份安全审计事件端口；identity security-audit event port. */
+    private final IdentitySecurityEventPort securityEvents;
+
+    /** Secret CSPRNG；cryptographically secure random source. */
+    private final SecureRandom secureRandom;
 
     /**
      * 创建生产 OAuth Client 管理服务。
@@ -67,7 +90,11 @@ public class OAuthClientServiceImpl implements OAuthClientService {
      * @param redirects 回调地址仓储；redirect-URI repository
      * @param resources Resource Server 仓储；Resource Server repository
      * @param grants Client Resource Grant 仓储；Client Resource Grant repository
+     * @param secrets Client Secret 仓储；Client Secret repository
      * @param ids 全局 ID 生成器；global identifier generator
+     * @param passwordHashes Secret 哈希端口；Secret hashing port
+     * @param securityEvents 安全审计事件端口；security-audit event port
+     * @param secureRandom 密码学随机源；cryptographically secure random source
      */
     @Autowired
     public OAuthClientServiceImpl(
@@ -75,9 +102,24 @@ public class OAuthClientServiceImpl implements OAuthClientService {
             IdentityClientRedirectUriRepository redirects,
             IdentityResourceServerRepository resources,
             IdentityClientResourceGrantRepository grants,
-            LongIdGenerator ids
+            IdentityClientSecretRepository secrets,
+            LongIdGenerator ids,
+            PasswordHashPort passwordHashes,
+            IdentitySecurityEventPort securityEvents,
+            SecureRandom secureRandom
     ) {
-        this(clients, redirects, resources, grants, ids, Clock.systemUTC());
+        this(
+                clients,
+                redirects,
+                resources,
+                grants,
+                secrets,
+                ids,
+                Clock.systemUTC(),
+                passwordHashes,
+                securityEvents,
+                secureRandom
+        );
     }
 
     /**
@@ -89,23 +131,41 @@ public class OAuthClientServiceImpl implements OAuthClientService {
      * @param redirects 回调地址仓储；redirect-URI repository
      * @param resources Resource Server 仓储；Resource Server repository
      * @param grants Client Resource Grant 仓储；Client Resource Grant repository
+     * @param secrets Client Secret 仓储；Client Secret repository
      * @param ids 全局 ID 生成器；global identifier generator
      * @param clock UTC 业务时钟；UTC business clock
+     * @param passwordHashes Secret 哈希端口；Secret hashing port
+     * @param securityEvents 安全审计事件端口；security-audit event port
+     * @param secureRandom 密码学随机源；cryptographically secure random source
      */
     OAuthClientServiceImpl(
             IdentityClientRepository clients,
             IdentityClientRedirectUriRepository redirects,
             IdentityResourceServerRepository resources,
             IdentityClientResourceGrantRepository grants,
+            IdentityClientSecretRepository secrets,
             LongIdGenerator ids,
-            Clock clock
+            Clock clock,
+            PasswordHashPort passwordHashes,
+            IdentitySecurityEventPort securityEvents,
+            SecureRandom secureRandom
     ) {
         this.clients = Objects.requireNonNull(clients, "clients");
         this.redirects = Objects.requireNonNull(redirects, "redirects");
         this.resources = Objects.requireNonNull(resources, "resources");
         this.grants = Objects.requireNonNull(grants, "grants");
+        this.secrets = Objects.requireNonNull(secrets, "secrets");
         this.ids = Objects.requireNonNull(ids, "ids");
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.passwordHashes = Objects.requireNonNull(
+                passwordHashes,
+                "passwordHashes"
+        );
+        this.securityEvents = Objects.requireNonNull(
+                securityEvents,
+                "securityEvents"
+        );
+        this.secureRandom = Objects.requireNonNull(secureRandom, "secureRandom");
     }
 
     /** {@inheritDoc} */
@@ -121,10 +181,34 @@ public class OAuthClientServiceImpl implements OAuthClientService {
     /** {@inheritDoc} */
     @Transactional
     @Override
-    public OAuthClientVO create(CreateOAuthClientDTO command) {
+    public CreatedOAuthClientVO create(CreateOAuthClientDTO command) {
+        return create(command, "SYSTEM");
+    }
+
+    /** {@inheritDoc} */
+    @Transactional
+    @Override
+    public CreatedOAuthClientVO create(
+            CreateOAuthClientDTO command,
+            String operatorSub
+    ) {
         Objects.requireNonNull(command, "command");
+        String operator = operator(operatorSub);
         if (clients.existsById(command.clientId())) {
             throw new IllegalStateException("OAuth client already exists");
+        }
+        if (command.clientType() == IdentityClientEntity.ClientType.PUBLIC
+                && command.appId() != null) {
+            throw new IllegalArgumentException(
+                    "public client must not register appId"
+            );
+        }
+        if (command.clientType() == IdentityClientEntity.ClientType.CONFIDENTIAL
+                && clients.findAll().stream().anyMatch(existing ->
+                existing.getClientType()
+                        == IdentityClientEntity.ClientType.CONFIDENTIAL
+                        && command.appId().equals(existing.getAppId()))) {
+            throw new IllegalStateException("OAuth appId already exists");
         }
         List<String> redirectValues = exactValues(
                 command.redirectUris(),
@@ -159,6 +243,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
             );
         } else {
             client = IdentityClientEntity.createConfidential(
+                    command.appId(),
                     command.clientId(),
                     command.clientName(),
                     command.accessTokenTtlSeconds(),
@@ -181,7 +266,180 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                 resource(value),
                 now
         ));
-        return view(client, redirectValues, resourceValues);
+        if (client.getClientType() == IdentityClientEntity.ClientType.PUBLIC) {
+            securityEvents.append(new IdentitySecurityEvent(
+                    "IDENTITY_OAUTH_CLIENT_CREATED",
+                    operator,
+                    "CLIENT_CREATED:" + client.getClientId(),
+                    "ADMIN_API",
+                    now
+            ));
+            return new CreatedOAuthClientVO(
+                    client.getClientId(),
+                    client.getAppId(),
+                    client.getClientName(),
+                    client.getClientType().name(),
+                    client.getStatus().name(),
+                    null,
+                    null,
+                    client.getVersion(),
+                    client.getCreatedAt()
+            );
+        }
+        CreatedOAuthClientVO created = createSecret(client, now);
+        securityEvents.append(new IdentitySecurityEvent(
+                "IDENTITY_OAUTH_CLIENT_CREATED",
+                operator,
+                "CLIENT_CREATED:" + client.getClientId(),
+                "ADMIN_API",
+                now
+        ));
+        return created;
+    }
+
+    /**
+     * 轮换 Confidential Client 的 active Secret。
+     *
+     * <p>Rotates the active Secret for a Confidential Client.</p>
+     */
+    @Transactional
+    @Override
+    public RotatedClientSecretVO rotateSecret(
+            String clientId,
+            RotateClientSecretDTO command
+    ) {
+        return rotateSecret(clientId, command, "SYSTEM");
+    }
+
+    /** {@inheritDoc} */
+    @Transactional
+    @Override
+    public RotatedClientSecretVO rotateSecret(
+            String clientId,
+            RotateClientSecretDTO command,
+            String operatorSub
+    ) {
+        Objects.requireNonNull(command, "command");
+        String operator = operator(operatorSub);
+        if (command.expectedVersion() < 0L) {
+            throw new IllegalArgumentException("expectedVersion must not be negative");
+        }
+        IdentityClientEntity client = clients.findByClientIdForUpdate(
+                        exact(clientId, "clientId")
+                )
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "OAuth client was not found"
+                ));
+        if (client.getClientType()
+                != IdentityClientEntity.ClientType.CONFIDENTIAL) {
+            throw new IllegalArgumentException(
+                    "secret rotation requires a confidential OAuth Client"
+            );
+        }
+        if (client.getStatus() != IdentityClientEntity.Status.ACTIVE) {
+            throw new IllegalStateException(
+                    "disabled OAuth client cannot rotate its secret"
+            );
+        }
+        if (client.getVersion() != command.expectedVersion()) {
+            throw new IllegalStateException("stale OAuth client version");
+        }
+        IdentityClientSecretEntity active = secrets
+                .findActiveByClientIdForUpdate(client.getClientId())
+                .orElseThrow(() -> new IllegalStateException(
+                        "active OAuth client secret was not found"
+                ));
+        Instant now = clock.instant();
+        byte[] randomBytes = new byte[32];
+        char[] rawSecret = null;
+        try {
+            secureRandom.nextBytes(randomBytes);
+            String plaintext = Base64.getUrlEncoder()
+                    .withoutPadding()
+                    .encodeToString(randomBytes);
+            rawSecret = plaintext.toCharArray();
+            String secretHash = passwordHashes.encode(rawSecret);
+            String secretHint = plaintext.substring(plaintext.length() - 4);
+            active.revoke(now);
+            secrets.save(active);
+            secrets.flush();
+            client.rotateSecret(command.expectedVersion(), now);
+            clients.save(client);
+            secrets.save(IdentityClientSecretEntity.create(
+                    String.valueOf(ids.nextId()),
+                    client.getClientId(),
+                    secretHash,
+                    secretHint,
+                    now
+            ));
+            RotatedClientSecretVO rotated = new RotatedClientSecretVO(
+                    client.getClientId(),
+                    client.getAppId(),
+                    plaintext,
+                    secretHint,
+                    client.getVersion(),
+                    now
+            );
+            securityEvents.append(new IdentitySecurityEvent(
+                    "IDENTITY_OAUTH_CLIENT_SECRET_ROTATED",
+                    operator,
+                    "SECRET_ROTATED:" + client.getClientId(),
+                    "ADMIN_API",
+                    now
+            ));
+            return rotated;
+        } finally {
+            Arrays.fill(randomBytes, (byte) 0);
+            if (rawSecret != null) {
+                Arrays.fill(rawSecret, '\0');
+            }
+        }
+    }
+
+    /**
+     * 生成并保存一个 Confidential Client 的初始 Secret。
+     *
+     * <p>Generates and persists the initial Secret for a Confidential Client.</p>
+     */
+    private CreatedOAuthClientVO createSecret(
+            IdentityClientEntity client,
+            Instant now
+    ) {
+        byte[] randomBytes = new byte[32];
+        char[] rawSecret = null;
+        try {
+            secureRandom.nextBytes(randomBytes);
+            String plaintext = Base64.getUrlEncoder()
+                    .withoutPadding()
+                    .encodeToString(randomBytes);
+            rawSecret = plaintext.toCharArray();
+            String secretHash = passwordHashes.encode(rawSecret);
+            String secretHint = plaintext.substring(plaintext.length() - 4);
+            secrets.save(IdentityClientSecretEntity.create(
+                    String.valueOf(ids.nextId()),
+                    client.getClientId(),
+                    secretHash,
+                    secretHint,
+                    now
+            ));
+            secrets.flush();
+            return new CreatedOAuthClientVO(
+                    client.getClientId(),
+                    client.getAppId(),
+                    client.getClientName(),
+                    client.getClientType().name(),
+                    client.getStatus().name(),
+                    plaintext,
+                    secretHint,
+                    client.getVersion(),
+                    client.getCreatedAt()
+            );
+        } finally {
+            Arrays.fill(randomBytes, (byte) 0);
+            if (rawSecret != null) {
+                Arrays.fill(rawSecret, '\0');
+            }
+        }
     }
 
     /** {@inheritDoc} */
@@ -322,11 +580,16 @@ public class OAuthClientServiceImpl implements OAuthClientService {
      * @param resourceUris USER_DELEGATION Resource URI；USER_DELEGATION Resource URIs
      * @return Client 管理视图；Client management view
      */
-    private static OAuthClientVO view(
+    private OAuthClientVO view(
             IdentityClientEntity client,
             List<String> redirectUris,
             List<String> resourceUris
     ) {
+        IdentityClientSecretEntity activeSecret = client.getClientType()
+                == IdentityClientEntity.ClientType.CONFIDENTIAL
+                ? secrets.findActiveByClientId(client.getClientId())
+                .orElse(null)
+                : null;
         return new OAuthClientVO(
                 client.getClientId(),
                 client.getClientName(),
@@ -339,7 +602,10 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                 List.copyOf(resourceUris),
                 client.getVersion(),
                 client.getCreatedAt(),
-                client.getUpdatedAt()
+                client.getUpdatedAt(),
+                client.getAppId(),
+                activeSecret == null ? null : activeSecret.getSecretHint(),
+                activeSecret == null ? null : activeSecret.getStatus().name()
         );
     }
 
@@ -461,5 +727,18 @@ public class OAuthClientServiceImpl implements OAuthClientService {
             throw new IllegalArgumentException(field + " is required");
         }
         return value;
+    }
+
+    /**
+     * 校验审计操作者 Subject，避免事件端口收到无法持久化的值。
+     *
+     * <p>Validates the audit operator subject before publishing an event.</p>
+     */
+    private static String operator(String value) {
+        String validated = exact(value, "operatorSub");
+        if (!validated.matches("[A-Za-z0-9._~-]{1,64}")) {
+            throw new IllegalArgumentException("operatorSub has invalid format");
+        }
+        return validated;
     }
 }

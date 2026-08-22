@@ -16,10 +16,10 @@ import java.util.Objects;
  * <p>Persistence object for the OAuth Client master record.</p>
  *
  * <p>PUBLIC Client 用于浏览器授权码 + PKCE；CONFIDENTIAL Client 用于机器
- * {@code private_key_jwt} 和 Client Credentials，不保存 Client Secret。</p>
+ * Client Credentials，不保存 Client Secret 明文。</p>
  *
  * <p>PUBLIC Clients use authorization code plus PKCE; CONFIDENTIAL Clients use machine
- * {@code private_key_jwt} and Client Credentials and store no Client Secret.</p>
+ * Client Credentials and store no plaintext Client Secret.</p>
  */
 @Entity
 @Table(name = "identity_client")
@@ -29,6 +29,10 @@ public class IdentityClientEntity {
     @Id
     @Column(name = "client_id", length = 128)
     private String clientId;
+
+    /** 稳定业务应用身份；stable business application identity. */
+    @Column(name = "app_id", length = 128)
+    private String appId;
 
     /** Client 展示名称；Client display name. */
     @Column(name = "client_name", nullable = false, length = 200)
@@ -121,6 +125,7 @@ public class IdentityClientEntity {
      *
      * <p>Creates an ACTIVE machine Confidential Client that authenticates only with keys.</p>
      *
+     * @param appId 稳定业务应用身份；stable business application identity
      * @param clientId Client 标识；Client identifier
      * @param clientName Client 展示名称；Client display name
      * @param accessTokenTtlSeconds Access Token 最大有效秒数；maximum access-token lifetime
@@ -131,6 +136,7 @@ public class IdentityClientEntity {
      * @return 新 Confidential Client；new Confidential Client
      */
     public static IdentityClientEntity createConfidential(
+            String appId,
             String clientId,
             String clientName,
             int accessTokenTtlSeconds,
@@ -145,6 +151,7 @@ public class IdentityClientEntity {
                 "refresh token TTL"
         );
         IdentityClientEntity entity = new IdentityClientEntity();
+        entity.appId = appId(appId);
         entity.clientId = required(clientId, "clientId");
         entity.clientName = required(clientName, "clientName");
         entity.clientType = ClientType.CONFIDENTIAL;
@@ -158,9 +165,37 @@ public class IdentityClientEntity {
         return entity;
     }
 
+    /**
+     * 创建兼容旧开发 Bootstrap 的 Confidential Client。
+     *
+     * <p>Creates a Confidential Client for legacy development bootstrap callers by using the
+     * client id as the temporary stable application identity.</p>
+     */
+    public static IdentityClientEntity createConfidential(
+            String clientId,
+            String clientName,
+            int accessTokenTtlSeconds,
+            int refreshTokenTtlSeconds,
+            Instant now
+    ) {
+        return createConfidential(
+                clientId,
+                clientId,
+                clientName,
+                accessTokenTtlSeconds,
+                refreshTokenTtlSeconds,
+                now
+        );
+    }
+
     /** @return Client 标识；Client identifier */
     public String getClientId() {
         return clientId;
+    }
+
+    /** @return 稳定业务应用身份；stable business application identity */
+    public String getAppId() {
+        return appId;
     }
 
     /** @return Client 展示名称；Client display name */
@@ -252,6 +287,22 @@ public class IdentityClientEntity {
     }
 
     /**
+     * 为 Secret 轮换执行受锁保护的版本递增。
+     *
+     * <p>Advances the Client version for a lock-protected Secret rotation.</p>
+     *
+     * @param expectedVersion 期望版本；expected version
+     * @param now 更新时间；update instant
+     */
+    public void rotateSecret(long expectedVersion, Instant now) {
+        if (version != expectedVersion) {
+            throw new IllegalStateException("stale OAuth client version");
+        }
+        version = Math.addExact(version, 1L);
+        updatedAt = Objects.requireNonNull(now, "now");
+    }
+
+    /**
      * 校验必填且无首尾空白的文本。
      *
      * <p>Validates required text without surrounding whitespace.</p>
@@ -270,6 +321,15 @@ public class IdentityClientEntity {
             );
         }
         return value;
+    }
+
+    /** 校验稳定业务应用身份格式；validates the stable application identity format. */
+    private static String appId(String value) {
+        String validated = required(value, "appId");
+        if (!validated.matches("[a-z][a-z0-9-]{2,127}")) {
+            throw new IllegalArgumentException("appId has invalid format");
+        }
+        return validated;
     }
 
     /**
@@ -297,7 +357,7 @@ public class IdentityClientEntity {
     public enum ClientType {
         /** 浏览器或本地应用 Public Client；browser or native Public Client. */
         PUBLIC,
-        /** 能安全保存 RSA 私钥的机器 Confidential Client；machine Confidential Client. */
+        /** 能安全保存应用 Secret 的机器 Confidential Client；machine Confidential Client. */
         CONFIDENTIAL
     }
 

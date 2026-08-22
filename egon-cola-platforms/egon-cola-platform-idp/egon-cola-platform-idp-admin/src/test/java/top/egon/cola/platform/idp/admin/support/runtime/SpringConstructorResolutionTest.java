@@ -13,6 +13,7 @@ import top.egon.cola.platform.idp.admin.identity.repo.IdentityUserDirectory;
 import top.egon.cola.platform.idp.admin.identity.service.impl.IdentityUserServiceImpl;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRedirectUriRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
+import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientSecretRepository;
 import top.egon.cola.platform.idp.admin.oauth.repo.JpaOAuthClientStore;
 import top.egon.cola.platform.idp.admin.oauth.service.impl.OAuthClientServiceImpl;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
@@ -27,6 +28,8 @@ import top.egon.cola.platform.idp.core.port.OAuthClientStore;
 import top.egon.cola.platform.idp.core.port.PasswordCredentialStore;
 import top.egon.cola.platform.idp.core.port.PasswordHashPort;
 import top.egon.cola.platform.idp.core.port.RefreshTokenStore;
+
+import java.security.SecureRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -52,6 +55,10 @@ class SpringConstructorResolutionTest {
                 IdentityClientRedirectUriRepository.class,
                 IdentityResourceServerRepository.class,
                 IdentityClientResourceGrantRepository.class,
+                IdentityClientSecretRepository.class,
+                PasswordHashPort.class,
+                IdentitySecurityEventPort.class,
+                SecureRandom.class,
                 LongIdGenerator.class
         )) {
             context.registerBean(OAuthClientServiceImpl.class);

@@ -1,8 +1,11 @@
 package top.egon.cola.platform.idp.admin.oauth.service;
 
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.CreateOAuthClientDTO;
+import top.egon.cola.platform.idp.admin.oauth.domain.dto.RotateClientSecretDTO;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.UpdateOAuthClientDTO;
+import top.egon.cola.platform.idp.admin.oauth.domain.vo.CreatedOAuthClientVO;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthClientVO;
+import top.egon.cola.platform.idp.admin.oauth.domain.vo.RotatedClientSecretVO;
 
 import java.util.List;
 
@@ -15,7 +18,23 @@ public interface OAuthClientService {
 
     List<OAuthClientVO> list();
 
-    OAuthClientVO create(CreateOAuthClientDTO command);
+    CreatedOAuthClientVO create(CreateOAuthClientDTO command);
+
+    CreatedOAuthClientVO create(
+            CreateOAuthClientDTO command,
+            String operatorSub
+    );
+
+    RotatedClientSecretVO rotateSecret(
+            String clientId,
+            RotateClientSecretDTO command
+    );
+
+    RotatedClientSecretVO rotateSecret(
+            String clientId,
+            RotateClientSecretDTO command,
+            String operatorSub
+    );
 
     OAuthClientVO update(String clientId, UpdateOAuthClientDTO command);
 
