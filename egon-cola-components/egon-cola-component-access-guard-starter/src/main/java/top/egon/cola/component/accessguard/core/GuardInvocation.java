@@ -29,8 +29,8 @@ public record GuardInvocation(
         entryType = Objects.requireNonNull(entryType, "entryType");
         kind = Objects.requireNonNull(kind, "kind");
         continuation = Objects.requireNonNull(continuation, "continuation");
-        if (kind != GuardInvocationKind.OPERATION && executable == null) {
-            throw new IllegalArgumentException("executable is required for methods and constructors");
+        if (kind == GuardInvocationKind.METHOD && executable == null) {
+            throw new IllegalArgumentException("executable is required for methods");
         }
     }
 

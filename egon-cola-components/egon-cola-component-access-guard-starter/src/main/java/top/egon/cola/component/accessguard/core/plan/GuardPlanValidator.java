@@ -7,7 +7,6 @@ import top.egon.cola.component.accessguard.execution.JsonRejectValueParser;
 import top.egon.cola.component.accessguard.execution.TimeLimitMode;
 import top.egon.cola.component.accessguard.execution.TimeLimiterType;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.util.Objects;
@@ -76,13 +75,7 @@ public final class GuardPlanValidator {
         Objects.requireNonNull(executable, "executable");
         Objects.requireNonNull(plan, "plan");
         ExecutionConfig execution = plan.execution();
-        if (executable instanceof Constructor<?>) {
-            if (execution.timeLimit().enabled() || execution.rejection().mode() != RejectionMode.THROW) {
-                throw new IllegalArgumentException("constructors support admission and THROW rejection only");
-            }
-            return;
-        }
-        Method method = (Method) executable;
+        Method method = (Method) Objects.requireNonNull(executable, "executable");
         ExecutionConfig.RejectionConfig rejection = execution.rejection();
         if (rejection.mode() == RejectionMode.FALLBACK) {
             Objects.requireNonNull(fallbackCache, "fallbackCache")

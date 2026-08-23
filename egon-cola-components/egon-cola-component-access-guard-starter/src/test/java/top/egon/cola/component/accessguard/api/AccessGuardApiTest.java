@@ -1,6 +1,9 @@
 package top.egon.cola.component.accessguard.api;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.accessguard.autoconfigure.AccessGuardEngine;
+import top.egon.cola.component.accessguard.core.GuardEntryType;
+import top.egon.cola.component.accessguard.core.GuardInvocationKind;
 import top.egon.cola.component.accessguard.core.GuardDecision;
 import top.egon.cola.component.accessguard.core.GuardOutcome;
 
@@ -27,12 +30,26 @@ class AccessGuardApiTest {
     @Test
     void annotationsExposeOnlyApprovedTargets() {
         assertThat(AccessGuard.class.getAnnotation(Target.class).value())
-                .containsExactlyInAnyOrder(ElementType.TYPE, ElementType.METHOD, ElementType.CONSTRUCTOR);
+                .containsExactlyInAnyOrder(ElementType.TYPE, ElementType.METHOD);
         assertThat(GuardKey.class.getAnnotation(Target.class).value())
                 .containsExactlyInAnyOrder(ElementType.PARAMETER, ElementType.FIELD, ElementType.RECORD_COMPONENT);
         assertThat(AllowListGuard.class.getAnnotation(Target.class).value()).containsExactly(ElementType.METHOD);
         assertThat(RateLimitGuard.class.getAnnotation(Target.class).value()).containsExactly(ElementType.METHOD);
         assertThat(TimeLimitGuard.class.getAnnotation(Target.class).value()).containsExactly(ElementType.METHOD);
+    }
+
+    @Test
+    void entryModelExposesOnlyAopAndProgrammaticMethods() throws Exception {
+        assertThat(AccessGuardEngine.values())
+                .containsExactly(AccessGuardEngine.AOP, AccessGuardEngine.DISABLED);
+        assertThat(GuardEntryType.values())
+                .containsExactly(GuardEntryType.AOP, GuardEntryType.PROGRAMMATIC);
+        assertThat(GuardInvocationKind.values())
+                .containsExactly(GuardInvocationKind.METHOD, GuardInvocationKind.OPERATION);
+        String removedType = "top.egon.cola.component.accessguard.api.AccessGuard"
+                + "AgentIntegration";
+        assertThatThrownBy(() -> Class.forName(removedType))
+                .isInstanceOf(ClassNotFoundException.class);
     }
 
     @Test

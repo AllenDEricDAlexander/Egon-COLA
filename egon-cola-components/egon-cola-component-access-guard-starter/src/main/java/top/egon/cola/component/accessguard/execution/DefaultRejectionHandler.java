@@ -37,9 +37,6 @@ public final class DefaultRejectionHandler implements RejectionHandler {
     }
 
     private static Object returnNull(GuardInvocation invocation) {
-        if (invocation.kind() == GuardInvocationKind.CONSTRUCTOR) {
-            throw new IllegalArgumentException("constructors do not support RETURN_NULL");
-        }
         if (returnType(invocation).isPrimitive()) {
             throw new IllegalArgumentException("primitive return types do not support RETURN_NULL");
         }
@@ -53,6 +50,6 @@ public final class DefaultRejectionHandler implements RejectionHandler {
         if (invocation.executable() instanceof Method method) {
             return method.getReturnType();
         }
-        throw new IllegalArgumentException("constructors do not support rejection values");
+        throw new IllegalArgumentException("rejection values require a method executable");
     }
 }

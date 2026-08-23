@@ -6,8 +6,6 @@ import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.util.ClassUtils;
 import top.egon.cola.component.accessguard.adapter.aop.GuardBinding;
 import top.egon.cola.component.accessguard.adapter.aop.GuardBindingResolver;
-import top.egon.cola.component.accessguard.api.AccessGuard;
-import top.egon.cola.component.accessguard.api.AccessGuardAgentIntegration;
 import top.egon.cola.component.accessguard.core.plan.GuardPlan;
 import top.egon.cola.component.accessguard.core.plan.GuardPlanResolver;
 import top.egon.cola.component.accessguard.core.plan.GuardPlanValidator;
@@ -16,7 +14,6 @@ import top.egon.cola.component.accessguard.execution.JsonRejectValueParser;
 import top.egon.cola.component.accessguard.store.AccessGuardStorageIntegration;
 import top.egon.cola.component.accessguard.execution.reactive.ReactiveGuardExecutor;
 
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
@@ -33,7 +30,6 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
     private final FallbackMethodCache fallbackCache;
     private final JsonRejectValueParser jsonParser;
     private final ListableBeanFactory beanFactory;
-    private final ObjectProvider<AccessGuardAgentIntegration> integrations;
     private final ObjectProvider<AccessGuardStorageIntegration> storageIntegrations;
     private final ObjectProvider<ReactiveGuardExecutor> reactiveExecutors;
 
@@ -45,7 +41,6 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
             FallbackMethodCache fallbackCache,
             JsonRejectValueParser jsonParser,
             ListableBeanFactory beanFactory,
-            ObjectProvider<AccessGuardAgentIntegration> integrations,
             ObjectProvider<AccessGuardStorageIntegration> storageIntegrations,
             ObjectProvider<ReactiveGuardExecutor> reactiveExecutors
     ) {
@@ -56,14 +51,12 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
         this.fallbackCache = Objects.requireNonNull(fallbackCache, "fallbackCache");
         this.jsonParser = Objects.requireNonNull(jsonParser, "jsonParser");
         this.beanFactory = Objects.requireNonNull(beanFactory, "beanFactory");
-        this.integrations = Objects.requireNonNull(integrations, "integrations");
         this.storageIntegrations = Objects.requireNonNull(storageIntegrations, "storageIntegrations");
         this.reactiveExecutors = Objects.requireNonNull(reactiveExecutors, "reactiveExecutors");
     }
 
     @Override
     public void afterSingletonsInstantiated() {
-        validateEngineIntegration();
         if (!properties.getRules().isEmpty()
                 && (properties.getKey().getHmacSecret() == null
                 || properties.getKey().getHmacSecret().isBlank())) {
@@ -73,18 +66,6 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
         properties.getRules().keySet().forEach(planResolver::resolve);
         if (properties.getEngine() != AccessGuardEngine.DISABLED) {
             validateGuardedBeans();
-        }
-    }
-
-    private void validateEngineIntegration() {
-        if (properties.getEngine() != AccessGuardEngine.AGENT) {
-            return;
-        }
-        List<AccessGuardAgentIntegration> installed = integrations.orderedStream().toList();
-        if (installed.size() != 1) {
-            throw new IllegalStateException(
-                    "Access Guard engine=AGENT requires exactly one integration from "
-                            + "egon-cola-component-bytecode-starter; found " + installed.size());
         }
     }
 
@@ -114,18 +95,6 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
     }
 
     private void validateGuardedType(Class<?> type) {
-        for (Constructor<?> constructor : type.getDeclaredConstructors()) {
-            if (constructor.isAnnotationPresent(AccessGuard.class)) {
-                if (properties.getEngine() == AccessGuardEngine.AOP) {
-                    throw new IllegalStateException(
-                            "AOP mode does not support guarded constructor " + constructor.toGenericString());
-                }
-                bindingResolver.resolve(constructor).ifPresent(binding -> {
-                    GuardPlan plan = planResolver.resolve(binding.ruleId()).plan();
-                    planValidator.validateExecution(constructor, plan, fallbackCache, jsonParser);
-                });
-            }
-        }
         for (Method method : allMethods(type)) {
             bindingResolver.resolve(method, type).ifPresent(binding -> validateBinding(method, binding));
         }

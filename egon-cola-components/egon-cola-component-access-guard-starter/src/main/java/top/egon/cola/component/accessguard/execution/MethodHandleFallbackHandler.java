@@ -2,10 +2,9 @@ package top.egon.cola.component.accessguard.execution;
 
 import top.egon.cola.component.accessguard.api.GuardedOperation;
 import top.egon.cola.component.accessguard.core.GuardInvocation;
-import top.egon.cola.component.accessguard.core.GuardInvocationKind;
 import top.egon.cola.component.accessguard.core.GuardOutcome;
 
-import java.lang.reflect.Executable;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -27,11 +26,8 @@ public final class MethodHandleFallbackHandler implements FallbackHandler {
         if (programmatic instanceof GuardedOperation<?> operation) {
             return operation.execute();
         }
-        if (invocation.kind() == GuardInvocationKind.CONSTRUCTOR) {
-            throw new IllegalArgumentException("constructors do not support fallback");
-        }
-        Executable executable = Objects.requireNonNull(invocation.executable(), "executable");
-        FallbackMethodCache.Binding binding = cache.binding(executable, fallbackMethod);
+        Method method = (Method) Objects.requireNonNull(invocation.executable(), "executable");
+        FallbackMethodCache.Binding binding = cache.binding(method, fallbackMethod);
         List<Object> arguments = new ArrayList<>();
         if (!binding.staticMethod()) {
             arguments.add(Objects.requireNonNull(invocation.target(), "instance fallback requires a target"));

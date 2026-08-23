@@ -3,6 +3,7 @@ package top.egon.cola.component.accessguard.autoconfigure;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
+import org.springframework.boot.context.properties.ConfigurationPropertiesBindException;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -50,10 +51,14 @@ class AccessGuardAutoConfigurationTest {
     }
 
     @Test
-    void agentModeWithoutIntegrationFailsWithActionableMessage() {
+    void removedAgentEngineFailsBindingWithPropertyAndValue() {
         contextRunner.withPropertyValues("egon.cola.component.access-guard.engine=AGENT")
-                .run(context -> assertThat(context).hasFailed()
-                        .getFailure().hasMessageContaining("egon-cola-component-bytecode-starter"));
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    Throwable failure = context.getStartupFailure();
+                    assertThat(failure).hasCauseInstanceOf(ConfigurationPropertiesBindException.class);
+                    assertThat(causeMessages(failure)).contains("engine", "AGENT");
+                });
     }
 
     @Test
@@ -106,5 +111,13 @@ class AccessGuardAutoConfigurationTest {
         public String draw() {
             return "ok";
         }
+    }
+
+    private static String causeMessages(Throwable failure) {
+        StringBuilder messages = new StringBuilder();
+        for (Throwable current = failure; current != null; current = current.getCause()) {
+            messages.append(current.getMessage()).append('\n');
+        }
+        return messages.toString();
     }
 }

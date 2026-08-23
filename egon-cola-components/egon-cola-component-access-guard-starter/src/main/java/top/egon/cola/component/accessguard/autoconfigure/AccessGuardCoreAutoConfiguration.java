@@ -306,7 +306,6 @@ public class AccessGuardCoreAutoConfiguration {
             FallbackMethodCache fallbackCache,
             JsonRejectValueParser jsonParser,
             org.springframework.beans.factory.ListableBeanFactory beanFactory,
-            ObjectProvider<top.egon.cola.component.accessguard.api.AccessGuardAgentIntegration> integrations,
             ObjectProvider<AccessGuardStorageIntegration> storageIntegrations,
             ObjectProvider<ReactiveGuardExecutor> reactiveExecutors
     ) {
@@ -318,7 +317,6 @@ public class AccessGuardCoreAutoConfiguration {
                 fallbackCache,
                 jsonParser,
                 beanFactory,
-                integrations,
                 storageIntegrations,
                 reactiveExecutors);
     }
