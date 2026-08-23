@@ -1,0 +1,17 @@
+type Query {
+  user(id: ID!): User
+  permissions(userId: ID!): [Permission!]!
+}
+
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  status: String!
+}
+
+type Permission {
+  code: String!
+  name: String!
+  children: [Permission!]!
+}

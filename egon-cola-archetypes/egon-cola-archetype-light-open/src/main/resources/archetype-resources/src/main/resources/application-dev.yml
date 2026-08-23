@@ -1,0 +1,24 @@
+#set( $symbol_dollar = '$' )
+spring:
+  flyway:
+    enabled: ${symbol_dollar}{FLYWAY_ENABLED:true}
+    baseline-on-migrate: ${symbol_dollar}{FLYWAY_BASELINE_ON_MIGRATE:false}
+    validate-on-migrate: true
+    validate-migration-naming: true
+    clean-disabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: false
+
+app:
+  integrations:
+    rabbitmq:
+      enabled: ${symbol_dollar}{RABBITMQ_ENABLED:true}
+    redis:
+      enabled: ${symbol_dollar}{REDIS_ENABLED:true}
+    external-http:
+      enabled: ${symbol_dollar}{EXTERNAL_HTTP_ENABLED:true}
+      user-base-url: ${symbol_dollar}{USER_SERVICE_BASE_URL:http://localhost:18081}
+      teaching-base-url: ${symbol_dollar}{TEACHING_SERVICE_BASE_URL:http://localhost:18082}

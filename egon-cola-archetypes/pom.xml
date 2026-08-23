@@ -58,6 +58,9 @@
         <module>egon-cola-archetype-light</module>
         <module>egon-cola-archetype-service</module>
         <module>egon-cola-archetype-web</module>
+        <module>egon-cola-archetype-light-open</module>
+        <module>egon-cola-archetype-service-open</module>
+        <module>egon-cola-archetype-web-open</module>
     </modules>
 
     <properties>

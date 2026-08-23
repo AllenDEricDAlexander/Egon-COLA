@@ -1,0 +1,103 @@
+package ${package}.adapter;
+
+import ${package}.adapter.teaching.graphql.SchoolClassResolver;
+import ${package}.adapter.user.graphql.UserResolver;
+import ${package}.adapter.handler.OrganizationGraphQlExceptionResolver;
+import ${package}.application.teaching.manage.GradeManage;
+import ${package}.application.teaching.manage.SchoolClassManage;
+import ${package}.application.user.manage.PermissionManage;
+import ${package}.application.user.manage.RoleManage;
+import ${package}.application.user.manage.UserManage;
+import ${package}.application.user.query.UserDetailQuery;
+import ${package}.application.teaching.query.SchoolClassDetailQuery;
+import ${package}.application.teaching.result.GradeDetailResult;
+import ${package}.application.teaching.result.SchoolClassDetailResult;
+import ${package}.application.user.result.UserDetailResult;
+import ${package}.application.exceptions.OrganizationApplicationException;
+import ${package}.application.exceptions.OrganizationFailureType;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.graphql.GraphQlTest;
+import org.springframework.graphql.ExecutionGraphQlService;
+import org.springframework.graphql.test.tester.ExecutionGraphQlServiceTester;
+import org.springframework.graphql.test.tester.GraphQlTester;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+
+@GraphQlTest
+@Import({UserResolver.class, SchoolClassResolver.class, OrganizationGraphQlExceptionResolver.class})
+class OrganizationGraphQlContractTest {
+
+    @Autowired
+    private ExecutionGraphQlService executionGraphQlService;
+
+    private GraphQlTester graphQlTester;
+
+    @MockitoBean
+    private UserManage userManage;
+    @MockitoBean
+    private RoleManage roleManage;
+    @MockitoBean
+    private PermissionManage permissionManage;
+    @MockitoBean
+    private GradeManage gradeManage;
+    @MockitoBean
+    private SchoolClassManage schoolClassManage;
+
+    @BeforeEach
+    void setUp() {
+        graphQlTester = ExecutionGraphQlServiceTester.create(executionGraphQlService);
+    }
+
+    @Test
+    void exposesBothDomainQueriesAndMutations() {
+        when(gradeManage.createGrade(any()))
+                .thenReturn(new GradeDetailResult("g-1", "GRADE_ONE", "Grade One", "ACTIVE"));
+        when(userManage.getUser(new UserDetailQuery("u-1")))
+                .thenReturn(new UserDetailResult("u-1", "Mario", "mario@example.com", "ACTIVE", List.of()));
+        when(schoolClassManage.getSchoolClass(new SchoolClassDetailQuery("g-1", "c-1")))
+                .thenReturn(new SchoolClassDetailResult(
+                        "c-1", "Class One", "GRADE_ONE", "Grade One", "ACTIVE", List.of()));
+
+        graphQlTester.document("mutation { createGrade(input:{code:\"GRADE_ONE\",name:\"Grade One\"})"
+                        + " { code name status } }")
+                .execute()
+                .path("createGrade.code").entity(String.class).isEqualTo("GRADE_ONE");
+
+        graphQlTester.document("query { user(id:\"u-1\") { id email status roleCodes } }")
+                .execute()
+                .path("user.id").entity(String.class).isEqualTo("u-1");
+
+        graphQlTester.document(
+                        "query { schoolClass(gradeId:\"g-1\",id:\"c-1\") { id gradeCode status } }")
+                .execute()
+                .path("schoolClass.id").entity(String.class).isEqualTo("c-1");
+    }
+
+    @Test
+    void exposesStableErrorExtensions() {
+        when(userManage.getUser(eq(new UserDetailQuery("missing"))))
+                .thenThrow(new OrganizationApplicationException(
+                        OrganizationFailureType.NOT_FOUND, "ORG_NOT_FOUND", "User not found"));
+
+        graphQlTester.document("query { user(id:\"missing\") { id } }")
+                .execute()
+                .errors().satisfy(errors -> org.assertj.core.api.Assertions.assertThat(
+                                errors.getFirst().getExtensions())
+                        .containsKeys("code", "traceId", "timestamp", "fieldErrors"));
+    }
+
+    @SpringBootConfiguration
+    @EnableAutoConfiguration
+    static class TestApplication {
+    }
+}
