@@ -13,7 +13,7 @@ spring:
       - optional:configtree:/run/secrets/
   threads:
     virtual:
-      enabled: ${symbol_dollar}{SPRING_THREADS_VIRTUAL_ENABLED:true}
+      enabled: ${symbol_dollar}{SPRING_THREADS_VIRTUAL_ENABLED:false}
   lifecycle:
     timeout-per-shutdown-phase: ${symbol_dollar}{SHUTDOWN_TIMEOUT:30s}
   task:
@@ -25,7 +25,8 @@ spring:
       pool:
         core-size: ${symbol_dollar}{ASYNC_CORE_SIZE:8}
         max-size: ${symbol_dollar}{ASYNC_MAX_SIZE:32}
-        queue-capacity: ${symbol_dollar}{ASYNC_QUEUE_CAPACITY:500}
+        queue-capacity: ${symbol_dollar}{ASYNC_QUEUE_CAPACITY:1000}
+        keep-alive: ${symbol_dollar}{ASYNC_KEEP_ALIVE:60s}
     scheduling:
       shutdown:
         await-termination: true
@@ -83,22 +84,29 @@ management:
     livenessstate:
       enabled: true
 
+egon:
+  cola:
+    component:
+      id:
+        machine-id: ${symbol_dollar}{EGON_ID_MACHINE_ID}
+      dtp:
+        enabled: ${symbol_dollar}{DTP_ENABLED:true}
+        app-name: ${symbol_dollar}{DTP_APP_NAME:${symbol_dollar}{spring.application.name}}
+        instance-id: ${symbol_dollar}{DTP_INSTANCE_ID:${symbol_dollar}{INSTANCE_ID:${symbol_dollar}{HOSTNAME:local}}}
+        registry:
+          type: redis
+          redis:
+            host: ${symbol_dollar}{DTP_REDIS_HOST:${symbol_dollar}{SPRING_DATA_REDIS_HOST:127.0.0.1}}
+            port: ${symbol_dollar}{DTP_REDIS_PORT:${symbol_dollar}{SPRING_DATA_REDIS_PORT:6379}}
+            password: ${symbol_dollar}{DTP_REDIS_PASSWORD:${symbol_dollar}{SPRING_DATA_REDIS_PASSWORD:}}
+        report:
+          enabled: ${symbol_dollar}{DTP_REPORT_ENABLED:true}
+          interval: ${symbol_dollar}{DTP_REPORT_INTERVAL:20s}
+
 mybatis-plus:
   mapper-locations: classpath*:/mybatis/mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true
-
-dubbo:
-  application:
-    name: ${symbol_dollar}{spring.application.name}
-  registry:
-    address: ${symbol_dollar}{DUBBO_REGISTRY_ADDRESS:N/A}
-  protocol:
-    name: tri
-    port: ${symbol_dollar}{DUBBO_PORT:50051}
-  provider:
-    timeout: 3000
-    retries: 0
 
 logging:
   file:
@@ -106,13 +114,11 @@ logging:
   group:
     web-stack: org.springframework.web,org.springframework.http,org.apache.catalina,org.apache.coyote
     persistence: org.mybatis,org.mybatis.spring,com.baomidou.mybatisplus,org.springframework.jdbc
-    rpc: org.apache.dubbo,io.grpc
     messaging: org.springframework.kafka,org.springframework.amqp
   level:
     root: info
     web-stack: info
     persistence: warn
-    rpc: info
     messaging: info
     ${groupId}: info
   logback:

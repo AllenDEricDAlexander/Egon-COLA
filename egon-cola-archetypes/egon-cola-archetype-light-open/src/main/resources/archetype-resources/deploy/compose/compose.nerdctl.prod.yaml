@@ -15,7 +15,12 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       APP_DATASOURCE_MODE: "SHARDING"
       SERVER_PORT: ${APPLICATION_PORT:-8080}
-      DUBBO_PORT: ${DUBBO_PORT:-50051}
+      EGON_ID_MACHINE_ID: ${EGON_ID_MACHINE_ID:?Set EGON_ID_MACHINE_ID}
+      DTP_ENABLED: ${DTP_ENABLED:-true}
+      DTP_REDIS_HOST: redis
+      DTP_REDIS_PORT: 6379
+      DTP_REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD}
+      DTP_REPORT_ENABLED: ${DTP_REPORT_ENABLED:-true}
       LIGHT_SHARDING_MASTER_DATA_URL: jdbc:postgresql://postgres-master-data:5432/${POSTGRES_DB}
       LIGHT_SHARDING_SHARD_0_URL: jdbc:postgresql://postgres-shard-0:5432/${POSTGRES_DB}
       LIGHT_SHARDING_SHARD_1_URL: jdbc:postgresql://postgres-shard-1:5432/${POSTGRES_DB}
@@ -40,10 +45,8 @@ services:
       NACOS_NAMESPACE: ${NACOS_NAMESPACE:-prod}
       NACOS_USERNAME: ${NACOS_USERNAME:?Set NACOS_USERNAME}
       NACOS_PASSWORD: ${NACOS_PASSWORD:?Set NACOS_PASSWORD}
-      DUBBO_REGISTRY_ADDRESS: nacos://nacos:8848
     ports:
       - "${APPLICATION_PORT:-8080}:${APPLICATION_PORT:-8080}"
-      - "${DUBBO_PORT:-50051}:${DUBBO_PORT:-50051}"
     read_only: true
     tmpfs:
       - /tmp:size=128m,mode=1777

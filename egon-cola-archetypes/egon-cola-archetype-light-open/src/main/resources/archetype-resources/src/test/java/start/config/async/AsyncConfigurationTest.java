@@ -1,11 +1,14 @@
-package ${package}.start;
+package ${package}.start.config.async;
 
+import ${package}.start.StudentManagementApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import org.springframework.test.context.ActiveProfiles;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @ActiveProfiles("test")
 @SpringBootTest(
@@ -19,19 +22,18 @@ import top.egon.cola.component.common.id.generator.LongIdGenerator;
                 "spring.cloud.nacos.discovery.enabled=false",
                 "spring.cloud.nacos.config.enabled=false"
         })
-class StudentManagementApplicationTest {
-    @Autowired
-    private LongIdGenerator idGenerator;
+class AsyncConfigurationTest {
 
     @Autowired
-    private ThreadPoolTaskExecutor applicationTaskExecutor;
+    @Qualifier("applicationTaskExecutor")
+    private ThreadPoolTaskExecutor executor;
 
     @Test
-    void contextLoads() {
-        org.assertj.core.api.Assertions.assertThat(idGenerator.nextLongId()).isPositive();
-        org.assertj.core.api.Assertions.assertThat(applicationTaskExecutor.getCorePoolSize())
-                .isEqualTo(8);
-        org.assertj.core.api.Assertions.assertThat(applicationTaskExecutor.getMaxPoolSize())
-                .isEqualTo(32);
+    void uses_the_single_bounded_application_executor() {
+        assertThat(executor).isNotNull();
+        assertThat(executor.getThreadPoolExecutor().getCorePoolSize()).isEqualTo(8);
+        assertThat(executor.getThreadPoolExecutor().getMaximumPoolSize()).isEqualTo(32);
+        assertThat(executor.getThreadPoolExecutor().getQueue().remainingCapacity())
+                .isEqualTo(1000);
     }
 }

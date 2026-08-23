@@ -22,9 +22,3 @@ spring:
         server-addr: ${symbol_dollar}{NACOS_SERVER_ADDR:127.0.0.1:8848}
         namespace: ${symbol_dollar}{NACOS_NAMESPACE:dev}
         group: ${symbol_dollar}{NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
-
-dubbo:
-  application:
-    name: ${symbol_dollar}{spring.application.name}
-  registry:
-    address: ${symbol_dollar}{DUBBO_REGISTRY_ADDRESS:N/A}

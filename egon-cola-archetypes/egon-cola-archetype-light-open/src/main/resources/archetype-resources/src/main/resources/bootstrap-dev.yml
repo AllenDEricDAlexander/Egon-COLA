@@ -17,7 +17,3 @@ spring:
         server-addr: ${symbol_dollar}{NACOS_SERVER_ADDR}
         namespace: ${symbol_dollar}{NACOS_NAMESPACE:dev}
         group: ${symbol_dollar}{NACOS_DISCOVERY_GROUP:DEV_GROUP}
-
-dubbo:
-  registry:
-    address: ${symbol_dollar}{DUBBO_REGISTRY_ADDRESS:nacos://${symbol_dollar}{NACOS_SERVER_ADDR}}

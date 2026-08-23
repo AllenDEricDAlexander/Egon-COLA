@@ -7,7 +7,3 @@ spring:
         enabled: false
       discovery:
         enabled: false
-
-dubbo:
-  registry:
-    address: N/A
