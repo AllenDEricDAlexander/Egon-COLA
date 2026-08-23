@@ -10,7 +10,9 @@ import top.egon.cola.component.accessguard.api.AccessGuard;
 import top.egon.cola.component.accessguard.api.AccessGuardRejectedException;
 import top.egon.cola.component.accessguard.api.GuardRequest;
 import top.egon.cola.component.accessguard.core.DefaultGuardEngine;
+import top.egon.cola.component.accessguard.core.GuardAdmissionPipeline;
 import top.egon.cola.component.accessguard.core.GuardDecision;
+import top.egon.cola.component.accessguard.core.GuardExecutionCoordinator;
 import top.egon.cola.component.accessguard.core.GuardOutcome;
 import top.egon.cola.component.accessguard.core.GuardResolution;
 import top.egon.cola.component.accessguard.core.failure.DefaultFailurePolicyResolver;
@@ -138,7 +140,7 @@ class AccessGuardEntryContractTest {
             }
             return invocation.continuation().execute();
         };
-        return new DefaultGuardEngine(
+        GuardAdmissionPipeline pipeline = new GuardAdmissionPipeline(
                 ruleId -> snapshot(scenario),
                 (invocation, config) -> new GuardKeyResolution(
                         GuardKeyScope.GLOBAL, List.of(), KEY_HASH),
@@ -146,6 +148,10 @@ class AccessGuardEntryContractTest {
                 Map.of(GuardPolicyType.PENALTY_BOX, penalty, GuardPolicyType.RATE_LIMIT, localRate),
                 new DefaultFailurePolicyResolver(),
                 (context, config) -> new PenaltyState(0, false, null, null),
+                () -> 0L,
+                "LOCAL",
+                "CONTRACT");
+        GuardExecutionCoordinator coordinator = new GuardExecutionCoordinator(
                 timeLimiter,
                 (invocation, outcome, config) -> {
                     if (config.mode() == RejectionMode.FALLBACK) {
@@ -154,9 +160,8 @@ class AccessGuardEntryContractTest {
                     throw new AccessGuardRejectedException(outcome);
                 },
                 () -> 0L,
-                "LOCAL",
-                "CONTRACT",
                 new CompositeGuardEventPublisher(List.of(events::add)));
+        return new DefaultGuardEngine(pipeline, coordinator);
     }
 
     private static GuardPlanSnapshot snapshot(Scenario scenario) {

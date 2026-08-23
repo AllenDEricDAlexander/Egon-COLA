@@ -11,7 +11,9 @@ import org.springframework.context.annotation.Bean;
 import top.egon.cola.component.accessguard.adapter.aop.GuardBindingResolver;
 import top.egon.cola.component.accessguard.adapter.programmatic.DefaultAccessGuardClient;
 import top.egon.cola.component.accessguard.api.AccessGuardClient;
+import top.egon.cola.component.accessguard.core.GuardAdmissionPipeline;
 import top.egon.cola.component.accessguard.core.DefaultGuardEngine;
+import top.egon.cola.component.accessguard.core.GuardExecutionCoordinator;
 import top.egon.cola.component.accessguard.core.GuardEngine;
 import top.egon.cola.component.accessguard.core.failure.DefaultFailurePolicyResolver;
 import top.egon.cola.component.accessguard.core.failure.FailurePolicyResolver;
@@ -218,6 +220,29 @@ public class AccessGuardCoreAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    public GuardAdmissionPipeline accessGuardAdmissionPipeline(
+            GuardPlanResolver planResolver,
+            GuardKeyResolver keyResolver,
+            @Qualifier("accessGuardAdmissionPolicies") List<GuardPolicy> policies,
+            @Qualifier("accessGuardLocalPolicies") Map<GuardPolicyType, GuardPolicy> localPolicies,
+            FailurePolicyResolver failurePolicyResolver,
+            PenaltyService penaltyService,
+            AccessGuardProperties properties
+    ) {
+        return new GuardAdmissionPipeline(
+                planResolver,
+                keyResolver,
+                policies,
+                localPolicies,
+                failurePolicyResolver,
+                penaltyService,
+                System::nanoTime,
+                properties.getStorage().name(),
+                properties.getEngine().name());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public FallbackMethodCache accessGuardFallbackMethodCache() {
         return new FallbackMethodCache();
     }
@@ -250,32 +275,26 @@ public class AccessGuardCoreAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean(GuardEngine.class)
-    public DefaultGuardEngine accessGuardEngine(
-            GuardPlanResolver planResolver,
-            GuardKeyResolver keyResolver,
-            @Qualifier("accessGuardAdmissionPolicies") List<GuardPolicy> policies,
-            @Qualifier("accessGuardLocalPolicies") Map<GuardPolicyType, GuardPolicy> localPolicies,
-            FailurePolicyResolver failurePolicyResolver,
-            PenaltyService penaltyService,
+    @ConditionalOnMissingBean
+    public GuardExecutionCoordinator accessGuardExecutionCoordinator(
             TimeLimiter timeLimiter,
             RejectionHandler rejectionHandler,
-            AccessGuardProperties properties,
             ObjectProvider<GuardEventPublisher> eventPublishers
     ) {
-        return new DefaultGuardEngine(
-                planResolver,
-                keyResolver,
-                policies,
-                localPolicies,
-                failurePolicyResolver,
-                penaltyService,
+        return new GuardExecutionCoordinator(
                 timeLimiter,
                 rejectionHandler,
                 System::nanoTime,
-                properties.getStorage().name(),
-                properties.getEngine().name(),
                 eventPublishers.getIfAvailable(GuardEventPublisher::noop));
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(GuardEngine.class)
+    public DefaultGuardEngine accessGuardEngine(
+            GuardAdmissionPipeline admissionPipeline,
+            GuardExecutionCoordinator executionCoordinator
+    ) {
+        return new DefaultGuardEngine(admissionPipeline, executionCoordinator);
     }
 
     @Bean

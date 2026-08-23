@@ -23,6 +23,7 @@ import top.egon.cola.component.accessguard.key.GuardKeyScope;
 import top.egon.cola.component.accessguard.observability.CompositeGuardEventPublisher;
 import top.egon.cola.component.accessguard.observability.GuardEvent;
 import top.egon.cola.component.accessguard.observability.GuardEventListener;
+import top.egon.cola.component.accessguard.observability.GuardEventPublisher;
 import top.egon.cola.component.accessguard.policy.allow.AllowListMode;
 import top.egon.cola.component.accessguard.policy.allow.AllowListPolicy;
 import top.egon.cola.component.accessguard.policy.deny.DenyListPolicy;
@@ -44,8 +45,79 @@ import java.util.ArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class DefaultGuardEngineTest {
+
+    @Test
+    void evaluateDelegatesAndFinishesAdmission() throws Exception {
+        GuardAdmissionPipeline pipeline = mock(GuardAdmissionPipeline.class);
+        GuardExecutionCoordinator coordinator = mock(GuardExecutionCoordinator.class);
+        PreparedGuardExecution prepared = mock(PreparedGuardExecution.class);
+        GuardInvocation invocation = invocation(new AtomicInteger());
+        GuardAdmission admission = new GuardAdmission(
+                GuardOutcome.allowed("draw", 1L),
+                snapshot(FailurePolicies.defaults(), AllowListMode.GATE).plan().execution(),
+                ObservabilityConfig.defaults(),
+                0L);
+        when(pipeline.evaluate(invocation)).thenReturn(admission);
+        when(coordinator.prepare(invocation, admission)).thenReturn(prepared);
+        when(prepared.admission()).thenReturn(admission.outcome());
+
+        DefaultGuardEngine engine = new DefaultGuardEngine(pipeline, coordinator);
+
+        assertThat(engine.evaluate(invocation)).isEqualTo(admission.outcome());
+        verify(pipeline).evaluate(invocation);
+        verify(coordinator).prepare(invocation, admission);
+        verify(prepared).finish(admission.outcome());
+    }
+
+    @Test
+    void prepareDelegatesAdmissionOnce() throws Exception {
+        GuardAdmissionPipeline pipeline = mock(GuardAdmissionPipeline.class);
+        GuardExecutionCoordinator coordinator = mock(GuardExecutionCoordinator.class);
+        PreparedGuardExecution prepared = mock(PreparedGuardExecution.class);
+        GuardInvocation invocation = invocation(new AtomicInteger());
+        GuardAdmission admission = new GuardAdmission(
+                GuardOutcome.allowed("draw", 1L),
+                snapshot(FailurePolicies.defaults(), AllowListMode.GATE).plan().execution(),
+                ObservabilityConfig.defaults(),
+                0L);
+        when(pipeline.evaluate(invocation)).thenReturn(admission);
+        when(coordinator.prepare(invocation, admission)).thenReturn(prepared);
+
+        DefaultGuardEngine engine = new DefaultGuardEngine(pipeline, coordinator);
+
+        assertThat(engine.prepare(invocation)).isSameAs(prepared);
+        verify(pipeline).evaluate(invocation);
+        verify(coordinator).prepare(invocation, admission);
+    }
+
+    @Test
+    void executeUnwrapsCoordinatorResult() throws Throwable {
+        GuardAdmissionPipeline pipeline = mock(GuardAdmissionPipeline.class);
+        GuardExecutionCoordinator coordinator = mock(GuardExecutionCoordinator.class);
+        PreparedGuardExecution prepared = mock(PreparedGuardExecution.class);
+        GuardInvocation invocation = invocation(new AtomicInteger());
+        GuardAdmission admission = new GuardAdmission(
+                GuardOutcome.allowed("draw", 1L),
+                snapshot(FailurePolicies.defaults(), AllowListMode.GATE).plan().execution(),
+                ObservabilityConfig.defaults(),
+                0L);
+        when(pipeline.evaluate(invocation)).thenReturn(admission);
+        when(coordinator.prepare(invocation, admission)).thenReturn(prepared);
+        when(coordinator.execute(prepared)).thenReturn(
+                new GuardExecutionResult<>("result", admission.outcome()));
+
+        DefaultGuardEngine engine = new DefaultGuardEngine(pipeline, coordinator);
+
+        assertThat(engine.execute(invocation)).isEqualTo("result");
+        verify(pipeline).evaluate(invocation);
+        verify(coordinator).prepare(invocation, admission);
+        verify(coordinator).execute(prepared);
+    }
 
     @Test
     void allowListNeverBypassesDenyList() throws Exception {
@@ -172,10 +244,11 @@ class DefaultGuardEngineTest {
             throw new TimeLimitExceededException(config.timeout());
         };
         RejectionHandler fallback = (invocation, outcome, config) -> "fallback";
-        DefaultGuardEngine engine = executionEngine(snapshot, Map.of(TimeLimiterType.VIRTUAL_THREAD, timedOut), fallback);
+        EngineFixture fixture = executionEngine(snapshot, Map.of(TimeLimiterType.VIRTUAL_THREAD, timedOut), fallback);
         AtomicInteger businessCalls = new AtomicInteger();
 
-        GuardExecutionResult<Object> result = engine.executeWithOutcome(invocation(businessCalls));
+        GuardExecutionResult<Object> result = fixture.coordinator().execute(
+                fixture.engine().prepare(invocation(businessCalls)));
 
         assertThat(result.value()).isEqualTo("fallback");
         assertThat(result.outcome().type()).isEqualTo(GuardOutcomeType.DEGRADED);
@@ -197,7 +270,7 @@ class DefaultGuardEngineTest {
         GuardPlanSnapshot snapshot = snapshot(FailurePolicies.defaults(), AllowListMode.GATE, execution);
         List<GuardEvent> events = new ArrayList<>();
         GuardEventListener listener = events::add;
-        DefaultGuardEngine engine = executionEngine(
+        EngineFixture fixture = executionEngine(
                 snapshot,
                 Map.of(TimeLimiterType.VIRTUAL_THREAD, (invocation, config) -> {
                     throw new TimeLimitExceededException(config.timeout());
@@ -205,7 +278,8 @@ class DefaultGuardEngineTest {
                 (invocation, outcome, config) -> "fallback",
                 new CompositeGuardEventPublisher(List.of(listener)));
 
-        GuardExecutionResult<Object> result = engine.executeWithOutcome(invocation(new AtomicInteger()));
+        GuardExecutionResult<Object> result = fixture.coordinator().execute(
+                fixture.engine().prepare(invocation(new AtomicInteger())));
 
         assertThat(events).singleElement()
                 .extracting(GuardEvent::outcome)
@@ -220,14 +294,14 @@ class DefaultGuardEngineTest {
         RejectionHandler failedRenderer = (invocation, outcome, config) -> {
             throw new IllegalStateException("render failed");
         };
-        DefaultGuardEngine engine = executionEngine(
+        EngineFixture fixture = executionEngine(
                 snapshot,
                 Map.of(),
                 failedRenderer,
                 (rule, version, hash) -> true);
         AtomicInteger businessCalls = new AtomicInteger();
 
-        assertThatThrownBy(() -> engine.execute(invocation(businessCalls)))
+        assertThatThrownBy(() -> fixture.engine().execute(invocation(businessCalls)))
                 .isInstanceOf(AccessGuardRejectedException.class);
         assertThat(businessCalls).hasValue(0);
     }
@@ -246,7 +320,7 @@ class DefaultGuardEngineTest {
         AllowListPolicy allow = new AllowListPolicy(allowStore);
         PenaltyBoxPolicy penalty = new PenaltyBoxPolicy(penaltyStore);
         RateLimitPolicy rate = new RateLimitPolicy(rateBackend);
-        return new DefaultGuardEngine(
+        GuardAdmissionPipeline pipeline = new GuardAdmissionPipeline(
                 ruleId -> snapshot,
                 (invocation, config) -> new GuardKeyResolution(GuardKeyScope.KEY, List.of(), hash()),
                 List.of(deny, allow, penalty, rate),
@@ -256,6 +330,14 @@ class DefaultGuardEngineTest {
                 System::nanoTime,
                 "LOCAL",
                 "PROGRAMMATIC");
+        GuardExecutionCoordinator coordinator = new GuardExecutionCoordinator(
+                new RoutingTimeLimiter(Map.of()),
+                (invocation, rejected, config) -> {
+                    throw new AccessGuardRejectedException(rejected);
+                },
+                System::nanoTime,
+                GuardEventPublisher.noop());
+        return new DefaultGuardEngine(pipeline, coordinator);
     }
 
     private static GuardPlanSnapshot snapshot(FailurePolicies failures, AllowListMode allowMode) {
@@ -290,7 +372,7 @@ class DefaultGuardEngineTest {
         return new GuardPlanSnapshot("draw", 1L, Instant.EPOCH, "test", plan, "fingerprint");
     }
 
-    private static DefaultGuardEngine executionEngine(
+    private static EngineFixture executionEngine(
             GuardPlanSnapshot snapshot,
             Map<TimeLimiterType, TimeLimiter> timeLimiters,
             RejectionHandler rejectionHandler
@@ -298,7 +380,7 @@ class DefaultGuardEngineTest {
         return executionEngine(snapshot, timeLimiters, rejectionHandler, (rule, version, hash) -> false);
     }
 
-    private static DefaultGuardEngine executionEngine(
+    private static EngineFixture executionEngine(
             GuardPlanSnapshot snapshot,
             Map<TimeLimiterType, TimeLimiter> timeLimiters,
             RejectionHandler rejectionHandler,
@@ -309,22 +391,22 @@ class DefaultGuardEngineTest {
         PenaltyBoxPolicy penalty = new PenaltyBoxPolicy(key -> Optional.empty());
         RateLimitPolicy rate = new RateLimitPolicy(
                 request -> new RateLimitDecision(true, 1, Duration.ZERO));
-        return new DefaultGuardEngine(
+        GuardAdmissionPipeline pipeline = new GuardAdmissionPipeline(
                 ruleId -> snapshot,
                 (invocation, config) -> new GuardKeyResolution(GuardKeyScope.KEY, List.of(), hash()),
                 List.of(deny, allow, penalty, rate),
                 Map.of(GuardPolicyType.PENALTY_BOX, penalty, GuardPolicyType.RATE_LIMIT, rate),
                 new DefaultFailurePolicyResolver(),
                 (context, config) -> new top.egon.cola.component.accessguard.store.PenaltyState(0, false, null, null),
-                new RoutingTimeLimiter(timeLimiters),
-                rejectionHandler,
                 System::nanoTime,
                 "LOCAL",
-                "PROGRAMMATIC",
-                eventPublisher);
+                "PROGRAMMATIC");
+        GuardExecutionCoordinator coordinator = new GuardExecutionCoordinator(
+                new RoutingTimeLimiter(timeLimiters), rejectionHandler, System::nanoTime, eventPublisher);
+        return new EngineFixture(new DefaultGuardEngine(pipeline, coordinator), coordinator);
     }
 
-    private static DefaultGuardEngine executionEngine(
+    private static EngineFixture executionEngine(
             GuardPlanSnapshot snapshot,
             Map<TimeLimiterType, TimeLimiter> timeLimiters,
             RejectionHandler rejectionHandler,
@@ -335,18 +417,23 @@ class DefaultGuardEngineTest {
         PenaltyBoxPolicy penalty = new PenaltyBoxPolicy(key -> Optional.empty());
         RateLimitPolicy rate = new RateLimitPolicy(
                 request -> new RateLimitDecision(true, 1, Duration.ZERO));
-        return new DefaultGuardEngine(
+        GuardAdmissionPipeline pipeline = new GuardAdmissionPipeline(
                 ruleId -> snapshot,
                 (invocation, config) -> new GuardKeyResolution(GuardKeyScope.KEY, List.of(), hash()),
                 List.of(deny, allow, penalty, rate),
                 Map.of(GuardPolicyType.PENALTY_BOX, penalty, GuardPolicyType.RATE_LIMIT, rate),
                 new DefaultFailurePolicyResolver(),
                 (context, config) -> new top.egon.cola.component.accessguard.store.PenaltyState(0, false, null, null),
-                timeLimiters,
-                rejectionHandler,
                 System::nanoTime,
                 "LOCAL",
                 "PROGRAMMATIC");
+        GuardExecutionCoordinator coordinator = new GuardExecutionCoordinator(
+                new RoutingTimeLimiter(timeLimiters), rejectionHandler, System::nanoTime,
+                GuardEventPublisher.noop());
+        return new EngineFixture(new DefaultGuardEngine(pipeline, coordinator), coordinator);
+    }
+
+    private record EngineFixture(DefaultGuardEngine engine, GuardExecutionCoordinator coordinator) {
     }
 
     private static GuardInvocation invocation(AtomicInteger calls) throws Exception {
