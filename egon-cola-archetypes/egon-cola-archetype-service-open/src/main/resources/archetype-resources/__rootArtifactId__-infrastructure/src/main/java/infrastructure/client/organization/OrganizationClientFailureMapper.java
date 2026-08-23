@@ -3,10 +3,10 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.client.organization;
 
-import top.egon.cola.organization.facade.exceptions.OrganizationFacadeException;
 import ${package}.domain.client.ExternalDependencyException;
 import ${package}.domain.client.ExternalDependencyFailure;
-import java.util.Locale;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import org.apache.dubbo.rpc.RpcException;
 
 final class OrganizationClientFailureMapper {
@@ -17,9 +17,20 @@ final class OrganizationClientFailureMapper {
     }
 
     static ExternalDependencyException map(RuntimeException failure) {
-        if (failure instanceof OrganizationFacadeException facadeFailure) {
-            String code = facadeFailure.code();
-            return failure(category(code), code, facadeFailure);
+        if (failure instanceof StatusRuntimeException statusFailure) {
+            Status.Code code = statusFailure.getStatus().getCode();
+            ExternalDependencyFailure category = switch (code) {
+                case DEADLINE_EXCEEDED -> ExternalDependencyFailure.TIMEOUT;
+                case UNAVAILABLE -> ExternalDependencyFailure.UNAVAILABLE;
+                case NOT_FOUND -> ExternalDependencyFailure.NOT_FOUND;
+                case INVALID_ARGUMENT -> ExternalDependencyFailure.VALIDATION_FAILED;
+                case PERMISSION_DENIED, FAILED_PRECONDITION -> ExternalDependencyFailure.BUSINESS_REJECTED;
+                default -> ExternalDependencyFailure.SERVICE_FAILURE;
+            };
+            String externalCode = statusFailure.getTrailers() == null
+                    ? code.name() : statusFailure.getTrailers().get(
+                    io.grpc.Metadata.Key.of("x-egon-error-code", io.grpc.Metadata.ASCII_STRING_MARSHALLER));
+            return failure(category, externalCode == null ? code.name() : externalCode, statusFailure);
         }
         if (failure instanceof RpcException rpcFailure) {
             ExternalDependencyFailure category = rpcFailure.isTimeout()
@@ -37,22 +48,6 @@ final class OrganizationClientFailureMapper {
                 "NULL_RESPONSE",
                 "organization dependency returned an invalid response for " + operation,
                 null);
-    }
-
-    private static ExternalDependencyFailure category(String code) {
-        String normalized = code == null ? "" : code.toUpperCase(Locale.ROOT);
-        if (normalized.contains("NOT_FOUND")) {
-            return ExternalDependencyFailure.NOT_FOUND;
-        }
-        if (normalized.contains("VALIDATION") || normalized.contains("INVALID")) {
-            return ExternalDependencyFailure.VALIDATION_FAILED;
-        }
-        if (normalized.contains("CONFLICT")
-                || normalized.contains("FORBIDDEN")
-                || normalized.contains("REJECTED")) {
-            return ExternalDependencyFailure.BUSINESS_REJECTED;
-        }
-        return ExternalDependencyFailure.SERVICE_FAILURE;
     }
 
     private static ExternalDependencyException failure(

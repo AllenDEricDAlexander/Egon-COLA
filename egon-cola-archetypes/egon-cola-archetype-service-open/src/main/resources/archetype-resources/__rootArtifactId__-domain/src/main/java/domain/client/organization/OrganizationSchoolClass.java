@@ -6,11 +6,11 @@ package ${package}.domain.client.organization;
 import java.util.List;
 
 public record OrganizationSchoolClass(
-        String id,
+        long id,
         String name,
         String gradeCode,
         String status,
-        List<String> userIds) {
+        List<Long> userIds) {
 
     public OrganizationSchoolClass {
         userIds = List.copyOf(userIds);

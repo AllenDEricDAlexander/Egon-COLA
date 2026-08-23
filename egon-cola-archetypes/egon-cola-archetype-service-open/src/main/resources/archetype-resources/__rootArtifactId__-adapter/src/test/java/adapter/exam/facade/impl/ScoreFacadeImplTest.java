@@ -4,20 +4,18 @@
 package ${package}.adapter.exam.facade.impl;
 
 import ${package}.adapter.exam.converter.ScoreFacadeConverter;
-import ${package}.adapter.exam.facade.impl.ScoreFacadeImpl;
-import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
 import ${package}.adapter.exam.validators.ScoreFacadeValidator;
+import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
 import ${package}.application.exam.command.RecordScoreCommand;
 import ${package}.application.exam.manage.ScoreManage;
 import ${package}.application.exam.query.GetScoreQuery;
 import ${package}.application.exam.result.ScoreResult;
-import top.egon.cola.evaluation.facade.exam.dto.GetScoreRequest;
-import top.egon.cola.evaluation.facade.exam.dto.RecordScoreRequest;
+import ${package}.facade.evaluation.v1.GetScoreRequest;
+import ${package}.facade.evaluation.v1.RecordScoreRequest;
+import ${package}.facade.evaluation.v1.Score;
 import org.junit.jupiter.api.Test;
-import org.mapstruct.factory.Mappers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,13 +29,13 @@ class ScoreFacadeImplTest {
         when(manage.record(command)).thenReturn(new ScoreResult(
                 1004L, 1002L, 1001L, 2001L, 92, "RECORDED"));
         ScoreFacadeImpl facade = new ScoreFacadeImpl(
-                manage, Mappers.getMapper(ScoreFacadeConverter.class), new ScoreFacadeValidator(),
-                new GlobalFacadeExceptionHandler());
+                manage, new ScoreFacadeConverter(), new ScoreFacadeValidator(),
+                new GlobalFacadeExceptionHandler(() -> 9001L));
 
-        var response = facade.recordScore(new RecordScoreRequest("1002", "2001", 92));
+        Score response = facade.recordScore(RecordScoreRequest.newBuilder()
+                .setExamId(1002L).setStudentId(2001L).setPoints(92).build());
 
-        assertTrue(response.isSuccess());
-        assertEquals("1004", response.getData().id());
+        assertEquals(1004L, response.getId());
         verify(manage).record(command);
     }
 
@@ -46,14 +44,15 @@ class ScoreFacadeImplTest {
         ScoreManage manage = mock(ScoreManage.class);
         GetScoreQuery query = new GetScoreQuery(1002L, 1004L);
         when(manage.get(query)).thenReturn(new ScoreResult(
-            1004L, 1002L, 1001L, 2001L, 92, "RECORDED"));
+                1004L, 1002L, 1001L, 2001L, 92, "RECORDED"));
         ScoreFacadeImpl facade = new ScoreFacadeImpl(
-            manage, Mappers.getMapper(ScoreFacadeConverter.class), new ScoreFacadeValidator(),
-            new GlobalFacadeExceptionHandler());
+                manage, new ScoreFacadeConverter(), new ScoreFacadeValidator(),
+                new GlobalFacadeExceptionHandler(() -> 9001L));
 
-        var response = facade.getScore(new GetScoreRequest("1002", "1004"));
+        Score response = facade.getScore(GetScoreRequest.newBuilder()
+                .setExamId(1002L).setScoreId(1004L).build());
 
-        assertTrue(response.isSuccess());
+        assertEquals(1004L, response.getId());
         verify(manage).get(query);
     }
 }

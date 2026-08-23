@@ -4,19 +4,19 @@
 package ${package}.adapter.exam.facade.impl;
 
 import ${package}.adapter.exam.converter.ExamFacadeConverter;
-import ${package}.adapter.exam.facade.impl.ExamFacadeImpl;
-import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
 import ${package}.adapter.exam.validators.ExamFacadeValidator;
+import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
 import ${package}.application.exam.command.CreateExamCommand;
 import ${package}.application.exam.manage.ExamManage;
 import ${package}.application.exam.result.ExamDetailResult;
-import top.egon.cola.evaluation.facade.exam.dto.CreateExamRequest;
+import ${package}.facade.evaluation.v1.CreateExamRequest;
+import ${package}.facade.evaluation.v1.Exam;
+import com.google.protobuf.Timestamp;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
-import org.mapstruct.factory.Mappers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,17 +29,21 @@ class ExamFacadeImplTest {
         CreateExamCommand command = new CreateExamCommand(
                 1001L, "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60));
         when(manage.create(command)).thenReturn(new ExamDetailResult(
-                1002L, 1001L, "Midterm",
-                Instant.EPOCH, Instant.EPOCH.plusSeconds(60), "DRAFT"));
+                1002L, 1001L, "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60), "DRAFT"));
         ExamFacadeImpl facade = new ExamFacadeImpl(
-                manage, Mappers.getMapper(ExamFacadeConverter.class), new ExamFacadeValidator(),
-                new GlobalFacadeExceptionHandler());
+                manage, new ExamFacadeConverter(), new ExamFacadeValidator(),
+                new GlobalFacadeExceptionHandler(() -> 9001L));
 
-        var response = facade.createExam(new CreateExamRequest(
-                "1001", "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
+        Exam response = facade.createExam(CreateExamRequest.newBuilder()
+                .setCourseId(1001L).setTitle("Midterm")
+                .setStartsAt(timestamp(Instant.EPOCH))
+                .setEndsAt(timestamp(Instant.EPOCH.plusSeconds(60))).build());
 
-        assertTrue(response.isSuccess());
-        assertEquals("1002", response.getData().id());
+        assertEquals(1002L, response.getId());
         verify(manage).create(command);
+    }
+
+    private static Timestamp timestamp(Instant instant) {
+        return Timestamp.newBuilder().setSeconds(instant.getEpochSecond()).setNanos(instant.getNano()).build();
     }
 }

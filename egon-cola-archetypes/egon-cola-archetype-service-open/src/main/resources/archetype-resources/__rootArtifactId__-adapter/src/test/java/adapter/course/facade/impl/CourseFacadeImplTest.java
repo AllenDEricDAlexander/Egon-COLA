@@ -4,19 +4,19 @@
 package ${package}.adapter.course.facade.impl;
 
 import ${package}.adapter.course.converter.CourseFacadeConverter;
-import ${package}.adapter.course.facade.impl.CourseFacadeImpl;
-import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
 import ${package}.adapter.course.validators.CourseFacadeValidator;
+import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
 import ${package}.application.course.command.CreateCourseCommand;
 import ${package}.application.course.manage.CourseManage;
 import ${package}.application.course.result.CourseResult;
+import ${package}.facade.evaluation.v1.Course;
+import ${package}.facade.evaluation.v1.CreateCourseRequest;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import org.junit.jupiter.api.Test;
-import org.mapstruct.factory.Mappers;
-import top.egon.cola.evaluation.facade.course.dto.CreateCourseRequest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -28,30 +28,30 @@ class CourseFacadeImplTest {
     void shouldValidateConvertDelegateAndReturnCourse() {
         CourseManage manage = mock(CourseManage.class);
         CreateCourseCommand command = new CreateCourseCommand("MATH-101", "Math", 3);
-        when(manage.create(command)).thenReturn(
-                new CourseResult(1001L, "MATH-101", "Math", 3, "ACTIVE"));
+        when(manage.create(command)).thenReturn(new CourseResult(1001L, "MATH-101", "Math", 3, "ACTIVE"));
         CourseFacadeImpl facade = new CourseFacadeImpl(
-                manage, Mappers.getMapper(CourseFacadeConverter.class), new CourseFacadeValidator(),
-                new GlobalFacadeExceptionHandler());
+                manage, new CourseFacadeConverter(), new CourseFacadeValidator(),
+                new GlobalFacadeExceptionHandler(() -> 9001L));
 
-        var response = facade.create(new CreateCourseRequest("MATH-101", "Math", 3));
+        Course response = facade.createCourse(CreateCourseRequest.newBuilder()
+                .setCode("MATH-101").setName("Math").setCredit(3).build());
 
-        assertTrue(response.isSuccess());
-        assertEquals("1001", response.getData().id());
+        assertEquals(1001L, response.getId());
         verify(manage).create(command);
     }
 
     @Test
-    void shouldFailWhenApplicationReturnsNull() {
+    void shouldMapNullApplicationResultToInternalStatus() {
         CourseManage manage = mock(CourseManage.class);
         when(manage.create(any())).thenReturn(null);
         CourseFacadeImpl facade = new CourseFacadeImpl(
-                manage, Mappers.getMapper(CourseFacadeConverter.class), new CourseFacadeValidator(),
-                new GlobalFacadeExceptionHandler());
+                manage, new CourseFacadeConverter(), new CourseFacadeValidator(),
+                new GlobalFacadeExceptionHandler(() -> 9001L));
 
-        var response = facade.create(new CreateCourseRequest("MATH-101", "Math", 3));
+        StatusRuntimeException failure = assertThrows(StatusRuntimeException.class,
+                () -> facade.createCourse(CreateCourseRequest.newBuilder()
+                        .setCode("MATH-101").setName("Math").setCredit(3).build()));
 
-        assertFalse(response.isSuccess());
-        assertEquals("INTERNAL_ERROR", response.getCode());
+        assertEquals(Status.Code.INTERNAL, failure.getStatus().getCode());
     }
 }

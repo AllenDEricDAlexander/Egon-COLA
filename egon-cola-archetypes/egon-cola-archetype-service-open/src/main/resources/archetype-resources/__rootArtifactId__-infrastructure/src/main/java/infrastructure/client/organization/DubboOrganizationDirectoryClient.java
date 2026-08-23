@@ -3,14 +3,17 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.client.organization;
 
-import top.egon.cola.organization.facade.teaching.dto.SchoolClassDetailDTO;
-import top.egon.cola.organization.facade.user.dto.UserDetailDTO;
-import top.egon.cola.organization.facade.teaching.SchoolClassFacade;
-import top.egon.cola.organization.facade.user.UserFacade;
 import ${package}.domain.client.ExternalDependencyException;
 import ${package}.domain.client.organization.OrganizationDirectoryPort;
 import ${package}.domain.client.organization.OrganizationSchoolClass;
 import ${package}.domain.client.organization.OrganizationUser;
+import ${package}.facade.organization.v1.GetSchoolClassRequest;
+import ${package}.facade.organization.v1.GetUserRequest;
+import ${package}.facade.organization.v1.SchoolClass;
+import ${package}.facade.organization.v1.SchoolClassService;
+import ${package}.facade.organization.v1.User;
+import ${package}.facade.organization.v1.UserService;
+import java.util.List;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -24,33 +27,31 @@ public class DubboOrganizationDirectoryClient implements OrganizationDirectoryPo
             version = "${symbol_dollar}{app.integrations.organization.version:1.0.0}",
             retries = 0,
             check = true)
-    private UserFacade userFacade;
+    private UserService userService;
 
     @DubboReference(
             group = "${symbol_dollar}{app.integrations.organization.group:student-management-organization}",
             version = "${symbol_dollar}{app.integrations.organization.version:1.0.0}",
             retries = 0,
             check = true)
-    private SchoolClassFacade schoolClassFacade;
+    private SchoolClassService schoolClassService;
 
     public DubboOrganizationDirectoryClient() {
     }
 
-    DubboOrganizationDirectoryClient(
-            UserFacade userFacade,
-            SchoolClassFacade schoolClassFacade) {
-        this.userFacade = userFacade;
-        this.schoolClassFacade = schoolClassFacade;
+    DubboOrganizationDirectoryClient(UserService userService, SchoolClassService schoolClassService) {
+        this.userService = userService;
+        this.schoolClassService = schoolClassService;
     }
 
     @Override
-    public OrganizationUser getUser(String userId) {
+    public OrganizationUser getUser(long userId) {
         try {
-            UserDetailDTO response = userFacade.getUser(userId);
+            User response = userService.getUser(GetUserRequest.newBuilder().setUserId(userId).build());
             if (response == null) {
                 throw OrganizationClientFailureMapper.incompatible("getUser");
             }
-            return new OrganizationUser(response.id(), response.name(), response.status());
+            return new OrganizationUser(response.getId(), response.getName(), response.getStatus());
         } catch (ExternalDependencyException failure) {
             throw failure;
         } catch (RuntimeException failure) {
@@ -59,18 +60,19 @@ public class DubboOrganizationDirectoryClient implements OrganizationDirectoryPo
     }
 
     @Override
-    public OrganizationSchoolClass getSchoolClass(String gradeId, String schoolClassId) {
+    public OrganizationSchoolClass getSchoolClass(long gradeId, long schoolClassId) {
         try {
-            SchoolClassDetailDTO response = schoolClassFacade.getSchoolClass(gradeId, schoolClassId);
+            SchoolClass response = schoolClassService.getSchoolClass(GetSchoolClassRequest.newBuilder()
+                    .setGradeId(gradeId)
+                    .setSchoolClassId(schoolClassId)
+                    .build());
             if (response == null) {
                 throw OrganizationClientFailureMapper.incompatible("getSchoolClass");
             }
+            List<Long> userIds = response.getUserIdsList().stream().map(Long::valueOf).toList();
             return new OrganizationSchoolClass(
-                    response.id(),
-                    response.name(),
-                    response.gradeCode(),
-                    response.status(),
-                    response.userIds());
+                    response.getId(), response.getName(), response.getGradeCode(),
+                    response.getStatus(), userIds);
         } catch (ExternalDependencyException failure) {
             throw failure;
         } catch (RuntimeException failure) {

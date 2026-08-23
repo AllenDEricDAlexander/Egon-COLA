@@ -4,61 +4,73 @@
 package ${package}.adapter.course.facade.impl;
 
 import ${package}.adapter.course.converter.CourseFacadeConverter;
-import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
 import ${package}.adapter.course.validators.CourseFacadeValidator;
+import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
 import ${package}.application.course.command.CreateCourseCommand;
 import ${package}.application.course.manage.CourseManage;
 import ${package}.application.course.query.GetCourseQuery;
 import ${package}.application.course.query.PageCourseQuery;
-import top.egon.cola.evaluation.facade.course.CourseFacade;
-import top.egon.cola.evaluation.facade.dto.PageResponse;
-import top.egon.cola.evaluation.facade.dto.SingleResponse;
-import top.egon.cola.evaluation.facade.course.dto.CourseResponse;
-import top.egon.cola.evaluation.facade.course.dto.CourseScheduleResponse;
-import top.egon.cola.evaluation.facade.course.dto.CreateCourseRequest;
-import top.egon.cola.evaluation.facade.course.dto.GetCourseRequest;
-import top.egon.cola.evaluation.facade.course.dto.PageCourseRequest;
-import top.egon.cola.evaluation.facade.course.dto.ScheduleCourseRequest;
-import java.util.List;
+import ${package}.facade.evaluation.v1.Course;
+import ${package}.facade.evaluation.v1.CourseSchedule;
+import ${package}.facade.evaluation.v1.CreateCourseRequest;
+import ${package}.facade.evaluation.v1.DubboCourseServiceTriple;
+import ${package}.facade.evaluation.v1.GetCourseRequest;
+import ${package}.facade.evaluation.v1.PageCourseResponse;
+import ${package}.facade.evaluation.v1.PageCoursesRequest;
+import ${package}.facade.evaluation.v1.ScheduleCourseRequest;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.validation.annotation.Validated;
 
-@DubboService(interfaceClass = CourseFacade.class, version = "1.0.0", group = "course")
-@Validated
+@DubboService(version = "1.0.0", group = "course")
 @RequiredArgsConstructor
-public class CourseFacadeImpl implements CourseFacade {
-    @Qualifier("courseManage") private final CourseManage courseManage;
+public class CourseFacadeImpl extends DubboCourseServiceTriple.CourseServiceImplBase {
+
+    @Qualifier("courseManage")
+    private final CourseManage courseManage;
     private final CourseFacadeConverter converter;
     private final CourseFacadeValidator validator;
     private final GlobalFacadeExceptionHandler exceptionHandler;
 
-    public SingleResponse<CourseResponse> create(CreateCourseRequest request) {
-        try { validator.require(request); return SingleResponse.of(converter.toResponse(
-                courseManage.create(new CreateCourseCommand(request.code(), request.name(), request.credit())))); }
-        catch (RuntimeException failure) { return exceptionHandler.toFailure(failure); }
-    }
-    public SingleResponse<CourseScheduleResponse> scheduleCourse(ScheduleCourseRequest request) {
-        try { validator.require(request); return SingleResponse.of(converter.toResponse(
-                courseManage.schedule(converter.toCommand(request)))); }
-        catch (RuntimeException failure) { return exceptionHandler.toFailure(failure); }
-    }
-    public SingleResponse<CourseResponse> getCourse(GetCourseRequest request) {
-        try { validator.require(request); return SingleResponse.of(converter.toResponse(
-                courseManage.get(new GetCourseQuery(parseId(request.courseId()))))); }
-        catch (RuntimeException failure) { return exceptionHandler.toFailure(failure); }
-    }
-    public SingleResponse<PageResponse<CourseResponse>> pageCourses(PageCourseRequest request) {
+    @Override
+    public Course createCourse(CreateCourseRequest request) {
         try {
             validator.require(request);
-            var page = courseManage.page(new PageCourseQuery(request.currentPage(), request.pageSize()));
-            List<CourseResponse> records = page.records().stream().map(converter::toResponse).toList();
-            return SingleResponse.of(PageResponse.of(records, page.currentPage(), page.totalPages(), page.pageSize(), page.totalCount()));
-        } catch (RuntimeException failure) { return exceptionHandler.toFailure(failure); }
+            return converter.toResponse(courseManage.create(
+                    new CreateCourseCommand(request.getCode(), request.getName(), request.getCredit())));
+        } catch (RuntimeException failure) {
+            throw exceptionHandler.toStatus(failure);
+        }
     }
 
-    private static long parseId(String value) {
-        return Long.parseLong(value);
+    @Override
+    public CourseSchedule scheduleCourse(ScheduleCourseRequest request) {
+        try {
+            validator.require(request);
+            return converter.toResponse(courseManage.schedule(converter.toCommand(request)));
+        } catch (RuntimeException failure) {
+            throw exceptionHandler.toStatus(failure);
+        }
+    }
+
+    @Override
+    public Course getCourse(GetCourseRequest request) {
+        try {
+            validator.require(request);
+            return converter.toResponse(courseManage.get(new GetCourseQuery(request.getCourseId())));
+        } catch (RuntimeException failure) {
+            throw exceptionHandler.toStatus(failure);
+        }
+    }
+
+    @Override
+    public PageCourseResponse pageCourses(PageCoursesRequest request) {
+        try {
+            validator.require(request);
+            return converter.toPage(courseManage.page(
+                    new PageCourseQuery(request.getCurrentPage(), request.getPageSize())));
+        } catch (RuntimeException failure) {
+            throw exceptionHandler.toStatus(failure);
+        }
     }
 }

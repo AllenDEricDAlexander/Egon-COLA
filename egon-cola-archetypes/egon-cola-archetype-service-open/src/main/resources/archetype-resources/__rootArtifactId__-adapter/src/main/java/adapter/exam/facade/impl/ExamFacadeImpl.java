@@ -2,27 +2,68 @@
 #set( $symbol_dollar = '$' )
 #set( $symbol_escape = '\\' )
 package ${package}.adapter.exam.facade.impl;
+
 import ${package}.adapter.exam.converter.ExamFacadeConverter;
-import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
 import ${package}.adapter.exam.validators.ExamFacadeValidator;
+import ${package}.adapter.handler.GlobalFacadeExceptionHandler;
 import ${package}.application.exam.manage.ExamManage;
 import ${package}.application.exam.query.GetExamQuery;
-import top.egon.cola.evaluation.facade.exam.ExamFacade;
-import top.egon.cola.evaluation.facade.dto.SingleResponse;
-import top.egon.cola.evaluation.facade.exam.dto.*;
+import ${package}.facade.evaluation.v1.AttachExamPaperRequest;
+import ${package}.facade.evaluation.v1.CreateExamRequest;
+import ${package}.facade.evaluation.v1.Exam;
+import ${package}.facade.evaluation.v1.ExamPaper;
+import ${package}.facade.evaluation.v1.DubboExamServiceTriple;
+import ${package}.facade.evaluation.v1.GetExamRequest;
+import ${package}.facade.evaluation.v1.PublishExamRequest;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.config.annotation.DubboService;
-@DubboService(interfaceClass = ExamFacade.class, version = "1.0.0", group = "exam")
-@RequiredArgsConstructor
-public class ExamFacadeImpl implements ExamFacade {
-    private final ExamManage examManage; private final ExamFacadeConverter converter;
-    private final ExamFacadeValidator validator; private final GlobalFacadeExceptionHandler handler;
-    public SingleResponse<ExamResponse> createExam(CreateExamRequest request) { try { validator.require(request); return SingleResponse.of(converter.toResponse(examManage.create(converter.toCommand(request)))); } catch (RuntimeException e) { return handler.toFailure(e); } }
-    public SingleResponse<ExamPaperResponse> attachPaper(AttachExamPaperRequest request) { try { validator.require(request); return SingleResponse.of(converter.toResponse(examManage.attachPaper(converter.toCommand(request)))); } catch (RuntimeException e) { return handler.toFailure(e); } }
-    public SingleResponse<ExamResponse> publishExam(PublishExamRequest request) { try { validator.require(request); return SingleResponse.of(converter.toResponse(examManage.publish(converter.toCommand(request)))); } catch (RuntimeException e) { return handler.toFailure(e); } }
-    public SingleResponse<ExamResponse> getExam(GetExamRequest request) { try { validator.require(request); return SingleResponse.of(converter.toResponse(examManage.get(new GetExamQuery(parseId(request.examId()))))); } catch (RuntimeException e) { return handler.toFailure(e); } }
 
-    private static long parseId(String value) {
-        return Long.parseLong(value);
+@DubboService(version = "1.0.0", group = "exam")
+@RequiredArgsConstructor
+public class ExamFacadeImpl extends DubboExamServiceTriple.ExamServiceImplBase {
+
+    private final ExamManage examManage;
+    private final ExamFacadeConverter converter;
+    private final ExamFacadeValidator validator;
+    private final GlobalFacadeExceptionHandler handler;
+
+    @Override
+    public Exam createExam(CreateExamRequest request) {
+        try {
+            validator.require(request);
+            return converter.toResponse(examManage.create(converter.toCommand(request)));
+        } catch (RuntimeException failure) {
+            throw handler.toStatus(failure);
+        }
+    }
+
+    @Override
+    public ExamPaper attachPaper(AttachExamPaperRequest request) {
+        try {
+            validator.require(request);
+            return converter.toResponse(examManage.attachPaper(converter.toCommand(request)));
+        } catch (RuntimeException failure) {
+            throw handler.toStatus(failure);
+        }
+    }
+
+    @Override
+    public Exam publishExam(PublishExamRequest request) {
+        try {
+            validator.require(request);
+            return converter.toResponse(examManage.publish(converter.toCommand(request)));
+        } catch (RuntimeException failure) {
+            throw handler.toStatus(failure);
+        }
+    }
+
+    @Override
+    public Exam getExam(GetExamRequest request) {
+        try {
+            validator.require(request);
+            return converter.toResponse(examManage.get(new GetExamQuery(request.getExamId())));
+        } catch (RuntimeException failure) {
+            throw handler.toStatus(failure);
+        }
     }
 }
