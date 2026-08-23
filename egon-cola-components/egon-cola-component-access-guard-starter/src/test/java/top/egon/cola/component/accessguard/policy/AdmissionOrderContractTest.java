@@ -5,7 +5,9 @@ import top.egon.cola.component.accessguard.policy.allow.AllowListPolicy;
 import top.egon.cola.component.accessguard.policy.deny.DenyListPolicy;
 import top.egon.cola.component.accessguard.policy.penalty.PenaltyBoxPolicy;
 import top.egon.cola.component.accessguard.policy.ratelimit.RateLimitPolicy;
+import top.egon.cola.component.accessguard.core.failure.FailurePoint;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -20,8 +22,19 @@ class AdmissionOrderContractTest {
         RateLimitPolicy rate = new RateLimitPolicy(request ->
                 new top.egon.cola.component.accessguard.store.RateLimitDecision(true, 1, java.time.Duration.ZERO));
 
-        assertThat(AdmissionPolicies.builtIns(deny, allow, penalty, rate))
-                .extracting(GuardPolicy::id)
+        assertThat(GuardPolicyType.canonicalOrder())
+                .containsExactly(GuardPolicyType.DENY_LIST, GuardPolicyType.ALLOW_LIST,
+                        GuardPolicyType.PENALTY_BOX, GuardPolicyType.RATE_LIMIT);
+        assertThat(GuardPolicyType.canonicalOrder())
+                .extracting(GuardPolicyType::id)
                 .containsExactly("deny-list", "allow-list", "penalty-box", "rate-limit");
+        assertThat(GuardPolicyType.canonicalOrder())
+                .extracting(GuardPolicyType::failurePoint)
+                .containsExactly(FailurePoint.DENY_LIST_STORE, FailurePoint.ALLOW_LIST_STORE,
+                        FailurePoint.PENALTY_STORE, FailurePoint.RATE_LIMIT_BACKEND);
+        assertThat(List.of(deny, allow, penalty, rate))
+                .extracting(GuardPolicy::type)
+                .containsExactly(GuardPolicyType.DENY_LIST, GuardPolicyType.ALLOW_LIST,
+                        GuardPolicyType.PENALTY_BOX, GuardPolicyType.RATE_LIMIT);
     }
 }

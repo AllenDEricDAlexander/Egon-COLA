@@ -4,12 +4,13 @@ import top.egon.cola.component.accessguard.core.GuardDecision;
 import top.egon.cola.component.accessguard.core.plan.AdmissionConfig;
 import top.egon.cola.component.accessguard.policy.GuardContext;
 import top.egon.cola.component.accessguard.policy.GuardPolicy;
+import top.egon.cola.component.accessguard.policy.GuardPolicyType;
 import top.egon.cola.component.accessguard.policy.PolicyResult;
 import top.egon.cola.component.accessguard.store.RateLimitBackend;
 import top.egon.cola.component.accessguard.store.RateLimitDecision;
 import top.egon.cola.component.accessguard.store.RateLimitRequest;
 
-public final class RateLimitPolicy implements GuardPolicy<AdmissionConfig.RateLimitConfig> {
+public final class RateLimitPolicy implements GuardPolicy {
 
     private final RateLimitBackend backend;
 
@@ -18,12 +19,13 @@ public final class RateLimitPolicy implements GuardPolicy<AdmissionConfig.RateLi
     }
 
     @Override
-    public String id() {
-        return "rate-limit";
+    public GuardPolicyType type() {
+        return GuardPolicyType.RATE_LIMIT;
     }
 
     @Override
-    public PolicyResult evaluate(GuardContext context, AdmissionConfig.RateLimitConfig config) {
+    public PolicyResult evaluate(GuardContext context, AdmissionConfig admission) {
+        AdmissionConfig.RateLimitConfig config = admission.rateLimit();
         if (!config.enabled()) {
             return PolicyResult.pass();
         }

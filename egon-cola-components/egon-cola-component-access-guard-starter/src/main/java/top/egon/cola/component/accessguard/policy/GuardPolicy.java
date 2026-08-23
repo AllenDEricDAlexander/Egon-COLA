@@ -1,8 +1,10 @@
 package top.egon.cola.component.accessguard.policy;
 
-public interface GuardPolicy<C extends PolicyConfig> {
+import top.egon.cola.component.accessguard.core.plan.AdmissionConfig;
 
-    String id();
+public interface GuardPolicy {
 
-    PolicyResult evaluate(GuardContext context, C config);
+    GuardPolicyType type();
+
+    PolicyResult evaluate(GuardContext context, AdmissionConfig admission);
 }

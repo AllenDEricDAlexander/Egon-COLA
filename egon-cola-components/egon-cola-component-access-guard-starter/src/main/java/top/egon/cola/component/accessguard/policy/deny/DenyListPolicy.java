@@ -4,10 +4,11 @@ import top.egon.cola.component.accessguard.core.GuardDecision;
 import top.egon.cola.component.accessguard.core.plan.AdmissionConfig;
 import top.egon.cola.component.accessguard.policy.GuardContext;
 import top.egon.cola.component.accessguard.policy.GuardPolicy;
+import top.egon.cola.component.accessguard.policy.GuardPolicyType;
 import top.egon.cola.component.accessguard.policy.PolicyResult;
 import top.egon.cola.component.accessguard.store.DenyListStore;
 
-public final class DenyListPolicy implements GuardPolicy<AdmissionConfig.DenyListConfig> {
+public final class DenyListPolicy implements GuardPolicy {
 
     private final DenyListStore store;
 
@@ -16,12 +17,13 @@ public final class DenyListPolicy implements GuardPolicy<AdmissionConfig.DenyLis
     }
 
     @Override
-    public String id() {
-        return "deny-list";
+    public GuardPolicyType type() {
+        return GuardPolicyType.DENY_LIST;
     }
 
     @Override
-    public PolicyResult evaluate(GuardContext context, AdmissionConfig.DenyListConfig config) {
+    public PolicyResult evaluate(GuardContext context, AdmissionConfig admission) {
+        AdmissionConfig.DenyListConfig config = admission.denyList();
         if (!config.enabled()) {
             return PolicyResult.pass();
         }

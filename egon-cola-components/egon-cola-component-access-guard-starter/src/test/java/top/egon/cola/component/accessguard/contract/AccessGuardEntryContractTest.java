@@ -32,12 +32,12 @@ import top.egon.cola.component.accessguard.key.GuardKeyResolution;
 import top.egon.cola.component.accessguard.key.GuardKeyScope;
 import top.egon.cola.component.accessguard.observability.CompositeGuardEventPublisher;
 import top.egon.cola.component.accessguard.observability.GuardEvent;
-import top.egon.cola.component.accessguard.policy.AdmissionPolicies;
 import top.egon.cola.component.accessguard.policy.allow.AllowListMode;
 import top.egon.cola.component.accessguard.policy.allow.AllowListPolicy;
 import top.egon.cola.component.accessguard.policy.deny.DenyListPolicy;
 import top.egon.cola.component.accessguard.policy.penalty.PenaltyBoxPolicy;
 import top.egon.cola.component.accessguard.policy.ratelimit.RateLimitPolicy;
+import top.egon.cola.component.accessguard.policy.GuardPolicyType;
 import top.egon.cola.component.accessguard.store.PenaltyState;
 import top.egon.cola.component.accessguard.store.RateLimitDecision;
 import top.egon.cola.component.accessguard.store.StoreOperationException;
@@ -112,7 +112,7 @@ class AccessGuardEntryContractTest {
 
     private static DefaultGuardEngine engine(Scenario scenario, List<GuardEvent> events) {
         DenyListPolicy deny = new DenyListPolicy((ruleId, dataVersion, keyHash) -> {
-            if (scenario == Scenario.FAIL_OPEN || scenario == Scenario.LOCAL_FALLBACK) {
+            if (scenario == Scenario.FAIL_OPEN) {
                 throw new StoreOperationException("primary unavailable");
             }
             return scenario == Scenario.DENY || scenario == Scenario.FALLBACK;
@@ -122,10 +122,16 @@ class AccessGuardEntryContractTest {
                 ? Optional.of(new PenaltyState(
                 3, true, Instant.EPOCH.plusSeconds(60), Instant.EPOCH.plusSeconds(600)))
                 : Optional.empty());
-        RateLimitPolicy rate = new RateLimitPolicy(request -> scenario == Scenario.RATE_LIMIT
-                ? new RateLimitDecision(false, 0, Duration.ofSeconds(1))
-                : new RateLimitDecision(true, 1, Duration.ZERO));
-        DenyListPolicy localDeny = new DenyListPolicy((ruleId, dataVersion, keyHash) -> false);
+        RateLimitPolicy rate = new RateLimitPolicy(request -> {
+            if (scenario == Scenario.LOCAL_FALLBACK) {
+                throw new StoreOperationException("primary unavailable");
+            }
+            return scenario == Scenario.RATE_LIMIT
+                    ? new RateLimitDecision(false, 0, Duration.ofSeconds(1))
+                    : new RateLimitDecision(true, 1, Duration.ZERO);
+        });
+        RateLimitPolicy localRate = new RateLimitPolicy(request ->
+                new RateLimitDecision(true, 1, Duration.ZERO));
         TimeLimiter timeLimiter = (invocation, config) -> {
             if (scenario == Scenario.TIMEOUT) {
                 throw new TimeLimitExceededException(config.timeout());
@@ -136,8 +142,8 @@ class AccessGuardEntryContractTest {
                 ruleId -> snapshot(scenario),
                 (invocation, config) -> new GuardKeyResolution(
                         GuardKeyScope.GLOBAL, List.of(), KEY_HASH),
-                AdmissionPolicies.builtIns(deny, allow, penalty, rate),
-                Map.of("deny-list", localDeny, "penalty-box", penalty, "rate-limit", rate),
+                List.of(deny, allow, penalty, rate),
+                Map.of(GuardPolicyType.PENALTY_BOX, penalty, GuardPolicyType.RATE_LIMIT, localRate),
                 new DefaultFailurePolicyResolver(),
                 (context, config) -> new PenaltyState(0, false, null, null),
                 timeLimiter,
@@ -167,7 +173,7 @@ class AccessGuardEntryContractTest {
                         Duration.ofMinutes(1),
                         Duration.ofMinutes(10)),
                 new AdmissionConfig.RateLimitConfig(
-                        scenario == Scenario.RATE_LIMIT,
+                        scenario == Scenario.RATE_LIMIT || scenario == Scenario.LOCAL_FALLBACK,
                         AdmissionConfig.RateLimitAlgorithm.TOKEN_BUCKET,
                         10,
                         10,
@@ -204,7 +210,7 @@ class AccessGuardEntryContractTest {
         if (scenario == Scenario.FAIL_OPEN) {
             policies.put(FailurePoint.DENY_LIST_STORE, FailurePolicy.FAIL_OPEN);
         } else if (scenario == Scenario.LOCAL_FALLBACK) {
-            policies.put(FailurePoint.DENY_LIST_STORE, FailurePolicy.LOCAL_FALLBACK);
+            policies.put(FailurePoint.RATE_LIMIT_BACKEND, FailurePolicy.LOCAL_FALLBACK);
         }
         return new FailurePolicies(policies);
     }

@@ -7,7 +7,7 @@ public record GuardContext(
         long planVersion,
         String stateVersion,
         String keyHash,
-        Set<String> bypassedPolicies
+        Set<GuardPolicyType> bypassedPolicies
 ) {
 
     public GuardContext {
@@ -32,7 +32,7 @@ public record GuardContext(
         return new GuardContext(ruleId, planVersion, stateVersion, keyHash, Set.of());
     }
 
-    public GuardContext withBypassedPolicies(Set<String> policies) {
+    public GuardContext withBypassedPolicies(Set<GuardPolicyType> policies) {
         return new GuardContext(ruleId, planVersion, stateVersion, keyHash, policies);
     }
 

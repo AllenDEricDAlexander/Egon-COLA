@@ -1,6 +1,5 @@
 package top.egon.cola.component.accessguard.core.plan;
 
-import top.egon.cola.component.accessguard.policy.PolicyConfig;
 import top.egon.cola.component.accessguard.policy.allow.AllowListMode;
 
 import java.time.Duration;
@@ -20,7 +19,7 @@ public record AdmissionConfig(
         rateLimit = Objects.requireNonNull(rateLimit, "rateLimit");
     }
 
-    public record DenyListConfig(boolean enabled, String dataVersion) implements PolicyConfig {
+    public record DenyListConfig(boolean enabled, String dataVersion) {
 
         public DenyListConfig {
             dataVersion = requireVersion(dataVersion);
@@ -31,7 +30,7 @@ public record AdmissionConfig(
         }
     }
 
-    public record AllowListConfig(boolean enabled, AllowListMode mode, String dataVersion) implements PolicyConfig {
+    public record AllowListConfig(boolean enabled, AllowListMode mode, String dataVersion) {
 
         public AllowListConfig {
             mode = Objects.requireNonNull(mode, "mode");
@@ -48,7 +47,7 @@ public record AdmissionConfig(
             long threshold,
             Duration violationTtl,
             Duration penaltyTtl
-    ) implements PolicyConfig {
+    ) {
 
         public PenaltyBoxConfig {
             violationTtl = Objects.requireNonNull(violationTtl, "violationTtl");
@@ -63,7 +62,7 @@ public record AdmissionConfig(
             long refillTokens,
             Duration refillPeriod,
             long requestedTokens
-    ) implements PolicyConfig {
+    ) {
 
         public RateLimitConfig {
             algorithm = Objects.requireNonNull(algorithm, "algorithm");

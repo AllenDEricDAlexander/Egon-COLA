@@ -24,7 +24,7 @@ import top.egon.cola.component.accessguard.execution.TimeLimiter;
 import top.egon.cola.component.accessguard.execution.TimeLimiterType;
 import top.egon.cola.component.accessguard.policy.GuardContext;
 import top.egon.cola.component.accessguard.policy.GuardPolicy;
-import top.egon.cola.component.accessguard.policy.PolicyConfig;
+import top.egon.cola.component.accessguard.policy.GuardPolicyType;
 import top.egon.cola.component.accessguard.policy.PolicyResult;
 import top.egon.cola.component.accessguard.policy.penalty.PenaltyService;
 import top.egon.cola.component.accessguard.observability.GuardEventPublisher;
@@ -32,21 +32,23 @@ import top.egon.cola.component.accessguard.observability.GuardInvocationFinalize
 import top.egon.cola.component.accessguard.store.StoreOperationException;
 
 import java.time.Duration;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 public final class DefaultGuardEngine implements GuardEngine {
 
-    private static final List<String> BUILT_IN_POLICY_IDS =
-            List.of("deny-list", "allow-list", "penalty-box", "rate-limit");
+    private static final List<GuardPolicyType> BUILT_IN_POLICY_TYPES =
+            GuardPolicyType.canonicalOrder();
 
     private final GuardPlanResolver planResolver;
     private final GuardKeyResolver keyResolver;
-    private final List<GuardPolicy<?>> policies;
-    private final Map<String, GuardPolicy<?>> localPolicies;
+    private final List<GuardPolicy> policies;
+    private final Map<GuardPolicyType, GuardPolicy> localPolicies;
     private final FailurePolicyResolver failurePolicyResolver;
     private final PenaltyService penaltyService;
     private final TimeLimiter timeLimiter;
@@ -59,8 +61,8 @@ public final class DefaultGuardEngine implements GuardEngine {
     public DefaultGuardEngine(
             GuardPlanResolver planResolver,
             GuardKeyResolver keyResolver,
-            List<GuardPolicy<?>> policies,
-            Map<String, GuardPolicy<?>> localPolicies,
+            List<GuardPolicy> policies,
+            Map<GuardPolicyType, GuardPolicy> localPolicies,
             FailurePolicyResolver failurePolicyResolver,
             PenaltyService penaltyService,
             LongSupplier ticker,
@@ -86,8 +88,8 @@ public final class DefaultGuardEngine implements GuardEngine {
     public DefaultGuardEngine(
             GuardPlanResolver planResolver,
             GuardKeyResolver keyResolver,
-            List<GuardPolicy<?>> policies,
-            Map<String, GuardPolicy<?>> localPolicies,
+            List<GuardPolicy> policies,
+            Map<GuardPolicyType, GuardPolicy> localPolicies,
             FailurePolicyResolver failurePolicyResolver,
             PenaltyService penaltyService,
             Map<TimeLimiterType, TimeLimiter> timeLimiters,
@@ -114,8 +116,8 @@ public final class DefaultGuardEngine implements GuardEngine {
     public DefaultGuardEngine(
             GuardPlanResolver planResolver,
             GuardKeyResolver keyResolver,
-            List<GuardPolicy<?>> policies,
-            Map<String, GuardPolicy<?>> localPolicies,
+            List<GuardPolicy> policies,
+            Map<GuardPolicyType, GuardPolicy> localPolicies,
             FailurePolicyResolver failurePolicyResolver,
             PenaltyService penaltyService,
             TimeLimiter timeLimiter,
@@ -142,8 +144,8 @@ public final class DefaultGuardEngine implements GuardEngine {
     public DefaultGuardEngine(
             GuardPlanResolver planResolver,
             GuardKeyResolver keyResolver,
-            List<GuardPolicy<?>> policies,
-            Map<String, GuardPolicy<?>> localPolicies,
+            List<GuardPolicy> policies,
+            Map<GuardPolicyType, GuardPolicy> localPolicies,
             FailurePolicyResolver failurePolicyResolver,
             PenaltyService penaltyService,
             TimeLimiter timeLimiter,
@@ -155,8 +157,8 @@ public final class DefaultGuardEngine implements GuardEngine {
     ) {
         this.planResolver = Objects.requireNonNull(planResolver, "planResolver");
         this.keyResolver = Objects.requireNonNull(keyResolver, "keyResolver");
-        this.policies = List.copyOf(Objects.requireNonNull(policies, "policies"));
-        this.localPolicies = Map.copyOf(Objects.requireNonNull(localPolicies, "localPolicies"));
+        this.policies = validatePolicies(policies);
+        this.localPolicies = validateLocalPolicies(localPolicies);
         this.failurePolicyResolver = Objects.requireNonNull(failurePolicyResolver, "failurePolicyResolver");
         this.penaltyService = Objects.requireNonNull(penaltyService, "penaltyService");
         this.timeLimiter = Objects.requireNonNull(timeLimiter, "timeLimiter");
@@ -165,10 +167,6 @@ public final class DefaultGuardEngine implements GuardEngine {
         this.storage = requireText(storage, "storage");
         this.engine = requireText(engine, "engine");
         this.eventPublisher = Objects.requireNonNull(eventPublisher, "eventPublisher");
-        List<String> policyIds = this.policies.stream().map(GuardPolicy::id).toList();
-        if (!policyIds.equals(BUILT_IN_POLICY_IDS)) {
-            throw new IllegalArgumentException("built-in policies must use the fixed order " + BUILT_IN_POLICY_IDS);
-        }
     }
 
     @Override
@@ -229,18 +227,18 @@ public final class DefaultGuardEngine implements GuardEngine {
                 plan.stateVersion(),
                 keyResolution.keyHash());
         GuardExecutionState state = GuardExecutionState.initial(snapshot, context);
-        for (GuardPolicy<?> policy : policies) {
-            if (state.bypassedPolicies().contains(policy.id())) {
+        for (GuardPolicy policy : policies) {
+            GuardPolicyType policyType = policy.type();
+            if (state.bypassedPolicies().contains(policyType)) {
                 continue;
             }
-            PolicyConfig config = configFor(plan.admission(), policy.id());
             PolicyResult result;
             try {
-                result = evaluatePolicy(policy, state.context(), config);
+                result = policy.evaluate(state.context(), plan.admission());
             } catch (StoreOperationException exception) {
-                FailureResolution resolution = resolveStoreFailure(policy, state.context(), config, plan);
+                FailureResolution resolution = resolveStoreFailure(policy, state.context(), plan);
                 GuardOutcome terminal = terminalFailureOutcome(
-                        invocation.ruleId(), snapshot, policy.id(), resolution, startedAt);
+                        invocation.ruleId(), snapshot, policyType, resolution, startedAt);
                 if (terminal != null) {
                     return terminal;
                 }
@@ -253,17 +251,17 @@ public final class DefaultGuardEngine implements GuardEngine {
                 state = state.degraded(
                         GuardDecision.STORE_FAILED,
                         guardResolution,
-                        policy.id(),
+                        policyType.id(),
                         resolution.failure());
             }
             if (!result.allowed()) {
-                recordRateLimitViolation(policy.id(), result, state.context(), plan.admission().penaltyBox());
+                recordRateLimitViolation(policyType, result, state.context(), plan.admission().penaltyBox());
                 return outcome(
                         GuardOutcomeType.REJECTED,
                         result.decision(),
                         GuardResolution.THROWN,
                         invocation.ruleId(),
-                        policy.id(),
+                        policyType.id(),
                         snapshot.version(),
                         result.retryAfter(),
                         state.failure(),
@@ -504,19 +502,18 @@ public final class DefaultGuardEngine implements GuardEngine {
     }
 
     private FailureResolution resolveStoreFailure(
-            GuardPolicy<?> policy,
+            GuardPolicy policy,
             GuardContext context,
-            PolicyConfig config,
             GuardPlan plan
     ) {
         GuardFailure failure = new GuardFailure("STORE", "OPERATION_FAILED");
         Supplier<PolicyResult> localFallback = null;
-        GuardPolicy<?> localPolicy = localPolicies.get(policy.id());
+        GuardPolicy localPolicy = localPolicies.get(policy.type());
         if (localPolicy != null) {
-            localFallback = () -> evaluatePolicy(localPolicy, context, config);
+            localFallback = () -> localPolicy.evaluate(context, plan.admission());
         }
         return failurePolicyResolver.resolve(
-                failurePoint(policy.id()),
+                policy.type().failurePoint(),
                 plan.failurePolicies(),
                 failure,
                 localFallback);
@@ -525,7 +522,7 @@ public final class DefaultGuardEngine implements GuardEngine {
     private GuardOutcome terminalFailureOutcome(
             String ruleId,
             GuardPlanSnapshot snapshot,
-            String policyId,
+            GuardPolicyType policyType,
             FailureResolution resolution,
             long startedAt
     ) {
@@ -535,7 +532,7 @@ public final class DefaultGuardEngine implements GuardEngine {
                     GuardDecision.STORE_FAILED,
                     GuardResolution.THROWN,
                     ruleId,
-                    policyId,
+                    policyType.id(),
                     snapshot.version(),
                     Duration.ZERO,
                     resolution.failure(),
@@ -547,7 +544,7 @@ public final class DefaultGuardEngine implements GuardEngine {
                     resolution.localResult().decision(),
                     GuardResolution.LOCAL_FALLBACK,
                     ruleId,
-                    policyId,
+                    policyType.id(),
                     snapshot.version(),
                     resolution.localResult().retryAfter(),
                     resolution.failure(),
@@ -557,12 +554,13 @@ public final class DefaultGuardEngine implements GuardEngine {
     }
 
     private void recordRateLimitViolation(
-            String policyId,
+            GuardPolicyType policyType,
             PolicyResult result,
             GuardContext context,
             AdmissionConfig.PenaltyBoxConfig config
     ) {
-        if (!"rate-limit".equals(policyId) || result.decision() != GuardDecision.RATE_LIMITED || !config.enabled()) {
+        if (policyType != GuardPolicyType.RATE_LIMIT
+                || result.decision() != GuardDecision.RATE_LIMITED || !config.enabled()) {
             return;
         }
         try {
@@ -610,33 +608,46 @@ public final class DefaultGuardEngine implements GuardEngine {
         };
     }
 
-    private static FailurePoint failurePoint(String policyId) {
-        return switch (policyId) {
-            case "deny-list" -> FailurePoint.DENY_LIST_STORE;
-            case "allow-list" -> FailurePoint.ALLOW_LIST_STORE;
-            case "penalty-box" -> FailurePoint.PENALTY_STORE;
-            case "rate-limit" -> FailurePoint.RATE_LIMIT_BACKEND;
-            default -> throw new IllegalArgumentException("Unknown built-in policy " + policyId);
-        };
+    private static List<GuardPolicy> validatePolicies(List<GuardPolicy> policies) {
+        Objects.requireNonNull(policies, "policies");
+        EnumMap<GuardPolicyType, GuardPolicy> indexed = new EnumMap<>(GuardPolicyType.class);
+        for (GuardPolicy policy : policies) {
+            GuardPolicy nonNullPolicy = Objects.requireNonNull(policy, "policy");
+            GuardPolicyType type = Objects.requireNonNull(nonNullPolicy.type(), "policy.type");
+            if (indexed.put(type, nonNullPolicy) != null) {
+                throw new IllegalArgumentException("duplicate built-in policy type " + type);
+            }
+        }
+        List<GuardPolicyType> types = policies.stream().map(GuardPolicy::type).toList();
+        if (!types.equals(BUILT_IN_POLICY_TYPES)
+                || !indexed.keySet().equals(Set.copyOf(BUILT_IN_POLICY_TYPES))) {
+            throw new IllegalArgumentException(
+                    "built-in policies must use the fixed order " + BUILT_IN_POLICY_TYPES);
+        }
+        return List.copyOf(policies);
     }
 
-    private static PolicyConfig configFor(AdmissionConfig admission, String policyId) {
-        return switch (policyId) {
-            case "deny-list" -> admission.denyList();
-            case "allow-list" -> admission.allowList();
-            case "penalty-box" -> admission.penaltyBox();
-            case "rate-limit" -> admission.rateLimit();
-            default -> throw new IllegalArgumentException("Unknown built-in policy " + policyId);
-        };
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <C extends PolicyConfig> PolicyResult evaluatePolicy(
-            GuardPolicy<?> policy,
-            GuardContext context,
-            PolicyConfig config
+    private static Map<GuardPolicyType, GuardPolicy> validateLocalPolicies(
+            Map<GuardPolicyType, GuardPolicy> localPolicies
     ) {
-        return ((GuardPolicy<C>) policy).evaluate(context, (C) config);
+        Objects.requireNonNull(localPolicies, "localPolicies");
+        EnumMap<GuardPolicyType, GuardPolicy> indexed = new EnumMap<>(GuardPolicyType.class);
+        for (Map.Entry<GuardPolicyType, GuardPolicy> entry : localPolicies.entrySet()) {
+            GuardPolicyType key = Objects.requireNonNull(entry.getKey(), "local policy type");
+            GuardPolicy policy = Objects.requireNonNull(entry.getValue(), "local policy");
+            if (policy.type() != key) {
+                throw new IllegalArgumentException(
+                        "local policy key does not match policy type: " + key);
+            }
+            if (indexed.put(key, policy) != null) {
+                throw new IllegalArgumentException("duplicate local policy type " + key);
+            }
+        }
+        Set<GuardPolicyType> expected = Set.of(GuardPolicyType.PENALTY_BOX, GuardPolicyType.RATE_LIMIT);
+        if (!indexed.keySet().equals(expected)) {
+            throw new IllegalArgumentException("local policies must provide exactly " + expected);
+        }
+        return Map.copyOf(indexed);
     }
 
     private static String requireText(String value, String name) {

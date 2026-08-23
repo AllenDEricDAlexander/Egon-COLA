@@ -2,6 +2,7 @@ package top.egon.cola.component.accessguard.core;
 
 import top.egon.cola.component.accessguard.core.plan.GuardPlanSnapshot;
 import top.egon.cola.component.accessguard.policy.GuardContext;
+import top.egon.cola.component.accessguard.policy.GuardPolicyType;
 
 import java.util.LinkedHashSet;
 import java.util.Objects;
@@ -10,7 +11,7 @@ import java.util.Set;
 public record GuardExecutionState(
         GuardPlanSnapshot snapshot,
         GuardContext context,
-        Set<String> bypassedPolicies,
+        Set<GuardPolicyType> bypassedPolicies,
         GuardDecision degradedDecision,
         GuardResolution degradedResolution,
         String degradedPolicy,
@@ -31,13 +32,13 @@ public record GuardExecutionState(
         return new GuardExecutionState(snapshot, context, Set.of(), null, null, "", null);
     }
 
-    public GuardExecutionState withBypassedPolicies(Set<String> policies) {
+    public GuardExecutionState withBypassedPolicies(Set<GuardPolicyType> policies) {
         if (policies == null || policies.isEmpty()) {
             return this;
         }
-        LinkedHashSet<String> merged = new LinkedHashSet<>(bypassedPolicies);
+        LinkedHashSet<GuardPolicyType> merged = new LinkedHashSet<>(bypassedPolicies);
         merged.addAll(policies);
-        Set<String> bypasses = Set.copyOf(merged);
+        Set<GuardPolicyType> bypasses = Set.copyOf(merged);
         return new GuardExecutionState(
                 snapshot,
                 context.withBypassedPolicies(bypasses),

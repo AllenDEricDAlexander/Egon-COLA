@@ -4,11 +4,12 @@ import top.egon.cola.component.accessguard.core.GuardDecision;
 import top.egon.cola.component.accessguard.core.plan.AdmissionConfig;
 import top.egon.cola.component.accessguard.policy.GuardContext;
 import top.egon.cola.component.accessguard.policy.GuardPolicy;
+import top.egon.cola.component.accessguard.policy.GuardPolicyType;
 import top.egon.cola.component.accessguard.policy.PolicyResult;
 import top.egon.cola.component.accessguard.store.PenaltyKey;
 import top.egon.cola.component.accessguard.store.PenaltyStore;
 
-public final class PenaltyBoxPolicy implements GuardPolicy<AdmissionConfig.PenaltyBoxConfig> {
+public final class PenaltyBoxPolicy implements GuardPolicy {
 
     private final PenaltyStore store;
 
@@ -17,12 +18,13 @@ public final class PenaltyBoxPolicy implements GuardPolicy<AdmissionConfig.Penal
     }
 
     @Override
-    public String id() {
-        return "penalty-box";
+    public GuardPolicyType type() {
+        return GuardPolicyType.PENALTY_BOX;
     }
 
     @Override
-    public PolicyResult evaluate(GuardContext context, AdmissionConfig.PenaltyBoxConfig config) {
+    public PolicyResult evaluate(GuardContext context, AdmissionConfig admission) {
+        AdmissionConfig.PenaltyBoxConfig config = admission.penaltyBox();
         if (!config.enabled()) {
             return PolicyResult.pass();
         }

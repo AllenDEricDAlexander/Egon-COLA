@@ -41,8 +41,8 @@ import top.egon.cola.component.accessguard.key.contributor.GlobalKeyContributor;
 import top.egon.cola.component.accessguard.key.contributor.GuardKeyContributor;
 import top.egon.cola.component.accessguard.key.contributor.HttpHeaderKeyContributor;
 import top.egon.cola.component.accessguard.key.contributor.PrincipalKeyContributor;
-import top.egon.cola.component.accessguard.policy.AdmissionPolicies;
 import top.egon.cola.component.accessguard.policy.GuardPolicy;
+import top.egon.cola.component.accessguard.policy.GuardPolicyType;
 import top.egon.cola.component.accessguard.policy.allow.AllowListPolicy;
 import top.egon.cola.component.accessguard.policy.deny.DenyListPolicy;
 import top.egon.cola.component.accessguard.policy.penalty.DefaultPenaltyService;
@@ -197,23 +197,23 @@ public class AccessGuardCoreAutoConfiguration {
     }
 
     @Bean("accessGuardAdmissionPolicies")
-    public List<GuardPolicy<?>> accessGuardAdmissionPolicies(
+    public List<GuardPolicy> accessGuardAdmissionPolicies(
             DenyListPolicy denyList,
             AllowListPolicy allowList,
             PenaltyBoxPolicy penaltyBox,
             RateLimitPolicy rateLimit
     ) {
-        return AdmissionPolicies.builtIns(denyList, allowList, penaltyBox, rateLimit);
+        return List.of(denyList, allowList, penaltyBox, rateLimit);
     }
 
     @Bean("accessGuardLocalPolicies")
-    public Map<String, GuardPolicy<?>> accessGuardLocalPolicies(
+    public Map<GuardPolicyType, GuardPolicy> accessGuardLocalPolicies(
             LocalPenaltyStore penaltyStore,
             LocalRateLimitBackend rateLimitBackend
     ) {
         return Map.of(
-                "penalty-box", new PenaltyBoxPolicy(penaltyStore),
-                "rate-limit", new RateLimitPolicy(rateLimitBackend));
+                GuardPolicyType.PENALTY_BOX, new PenaltyBoxPolicy(penaltyStore),
+                GuardPolicyType.RATE_LIMIT, new RateLimitPolicy(rateLimitBackend));
     }
 
     @Bean
@@ -254,8 +254,8 @@ public class AccessGuardCoreAutoConfiguration {
     public DefaultGuardEngine accessGuardEngine(
             GuardPlanResolver planResolver,
             GuardKeyResolver keyResolver,
-            @Qualifier("accessGuardAdmissionPolicies") List<GuardPolicy<?>> policies,
-            @Qualifier("accessGuardLocalPolicies") Map<String, GuardPolicy<?>> localPolicies,
+            @Qualifier("accessGuardAdmissionPolicies") List<GuardPolicy> policies,
+            @Qualifier("accessGuardLocalPolicies") Map<GuardPolicyType, GuardPolicy> localPolicies,
             FailurePolicyResolver failurePolicyResolver,
             PenaltyService penaltyService,
             TimeLimiter timeLimiter,

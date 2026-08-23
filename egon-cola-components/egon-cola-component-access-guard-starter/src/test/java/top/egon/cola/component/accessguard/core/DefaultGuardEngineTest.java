@@ -23,12 +23,12 @@ import top.egon.cola.component.accessguard.key.GuardKeyScope;
 import top.egon.cola.component.accessguard.observability.CompositeGuardEventPublisher;
 import top.egon.cola.component.accessguard.observability.GuardEvent;
 import top.egon.cola.component.accessguard.observability.GuardEventListener;
-import top.egon.cola.component.accessguard.policy.AdmissionPolicies;
 import top.egon.cola.component.accessguard.policy.allow.AllowListMode;
 import top.egon.cola.component.accessguard.policy.allow.AllowListPolicy;
 import top.egon.cola.component.accessguard.policy.deny.DenyListPolicy;
 import top.egon.cola.component.accessguard.policy.penalty.PenaltyBoxPolicy;
 import top.egon.cola.component.accessguard.policy.ratelimit.RateLimitPolicy;
+import top.egon.cola.component.accessguard.policy.GuardPolicyType;
 import top.egon.cola.component.accessguard.store.PenaltyStore;
 import top.egon.cola.component.accessguard.store.RateLimitDecision;
 import top.egon.cola.component.accessguard.store.StoreOperationException;
@@ -249,8 +249,8 @@ class DefaultGuardEngineTest {
         return new DefaultGuardEngine(
                 ruleId -> snapshot,
                 (invocation, config) -> new GuardKeyResolution(GuardKeyScope.KEY, List.of(), hash()),
-                AdmissionPolicies.builtIns(deny, allow, penalty, rate),
-                Map.of("penalty-box", penalty, "rate-limit", rate),
+                List.of(deny, allow, penalty, rate),
+                Map.of(GuardPolicyType.PENALTY_BOX, penalty, GuardPolicyType.RATE_LIMIT, rate),
                 failureResolver,
                 (context, config) -> new top.egon.cola.component.accessguard.store.PenaltyState(0, false, null, null),
                 System::nanoTime,
@@ -312,8 +312,8 @@ class DefaultGuardEngineTest {
         return new DefaultGuardEngine(
                 ruleId -> snapshot,
                 (invocation, config) -> new GuardKeyResolution(GuardKeyScope.KEY, List.of(), hash()),
-                AdmissionPolicies.builtIns(deny, allow, penalty, rate),
-                Map.of("penalty-box", penalty, "rate-limit", rate),
+                List.of(deny, allow, penalty, rate),
+                Map.of(GuardPolicyType.PENALTY_BOX, penalty, GuardPolicyType.RATE_LIMIT, rate),
                 new DefaultFailurePolicyResolver(),
                 (context, config) -> new top.egon.cola.component.accessguard.store.PenaltyState(0, false, null, null),
                 new RoutingTimeLimiter(timeLimiters),
@@ -338,8 +338,8 @@ class DefaultGuardEngineTest {
         return new DefaultGuardEngine(
                 ruleId -> snapshot,
                 (invocation, config) -> new GuardKeyResolution(GuardKeyScope.KEY, List.of(), hash()),
-                AdmissionPolicies.builtIns(deny, allow, penalty, rate),
-                Map.of("penalty-box", penalty, "rate-limit", rate),
+                List.of(deny, allow, penalty, rate),
+                Map.of(GuardPolicyType.PENALTY_BOX, penalty, GuardPolicyType.RATE_LIMIT, rate),
                 new DefaultFailurePolicyResolver(),
                 (context, config) -> new top.egon.cola.component.accessguard.store.PenaltyState(0, false, null, null),
                 timeLimiters,

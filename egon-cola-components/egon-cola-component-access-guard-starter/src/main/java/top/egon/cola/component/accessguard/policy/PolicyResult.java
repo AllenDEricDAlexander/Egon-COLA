@@ -8,7 +8,7 @@ import java.util.Set;
 public record PolicyResult(
         boolean allowed,
         GuardDecision decision,
-        Set<String> bypassedPolicies,
+        Set<GuardPolicyType> bypassedPolicies,
         Duration retryAfter,
         long remainingTokens
 ) {
@@ -21,7 +21,7 @@ public record PolicyResult(
             throw new IllegalArgumentException("PASS must be allowed and rejections must not be allowed");
         }
         bypassedPolicies = bypassedPolicies == null ? Set.of() : Set.copyOf(bypassedPolicies);
-        if (bypassedPolicies.contains("deny-list")) {
+        if (bypassedPolicies.contains(GuardPolicyType.DENY_LIST)) {
             throw new IllegalArgumentException("deny-list cannot be bypassed");
         }
         retryAfter = retryAfter == null ? Duration.ZERO : retryAfter;
@@ -34,7 +34,7 @@ public record PolicyResult(
         return new PolicyResult(true, GuardDecision.PASS, Set.of(), Duration.ZERO, -1L);
     }
 
-    public static PolicyResult passWithBypass(Set<String> bypassedPolicies) {
+    public static PolicyResult passWithBypass(Set<GuardPolicyType> bypassedPolicies) {
         return new PolicyResult(true, GuardDecision.PASS, bypassedPolicies, Duration.ZERO, -1L);
     }
 
