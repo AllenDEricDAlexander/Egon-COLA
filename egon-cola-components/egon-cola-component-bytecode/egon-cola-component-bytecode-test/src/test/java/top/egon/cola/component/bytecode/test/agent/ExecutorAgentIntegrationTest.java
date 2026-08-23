@@ -16,7 +16,7 @@ class ExecutorAgentIntegrationTest {
 
         assertEquals(0, result.exitCode(), output);
         assertTrue(output.contains("Egon bytecode Agent state=ACTIVE"), output);
-        assertTrue(output.contains("protocol=1.0"), output);
+        assertTrue(output.contains("protocol=2.0"), output);
         assertTrue(output.contains("effectiveFeatures=[EXECUTOR]"), output);
         assertTrue(output.contains("EXECUTOR_AGENT_OK"), output);
         assertFalse(output.contains("sample.bytecode.agent.*"), output);
