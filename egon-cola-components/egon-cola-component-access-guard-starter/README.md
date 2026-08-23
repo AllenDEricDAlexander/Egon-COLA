@@ -11,14 +11,13 @@ It provides one unified runtime model for:
 - Programmatic guard execution
 - `CompletionStage` lifecycle governance
 - Reactor `Mono` / `Flux` lifecycle governance
-- Optional Bytecode Agent enhancement
 - Local or Redisson-backed guard state
 - Metrics, structured events, logging, and an Actuator endpoint
 
 The component is intended for business entry points such as coupon claims, lotteries, login attempts, payment
 operations, risk checks, expensive queries, and hot API protection.
 
-> Current document target: Egon COLA `5.3.2`, Java 21+, Spring Boot 3.5.x.
+> Current document target: Egon COLA `5.3.3`, Java 21+, Spring Boot 3.5.x.
 
 ---
 
@@ -37,7 +36,7 @@ handlers. That fragmentation creates several problems:
 Access Guard centralizes these concerns around a named rule.
 
 ```text
-method / constructor / programmatic request
+proxied method / programmatic request
                     |
                     v
               resolve rule
@@ -63,7 +62,7 @@ The policy order is fixed and is part of the public contract.
 
 | Capability                | Description                                                                                 |
 |---------------------------|---------------------------------------------------------------------------------------------|
-| Unified rule engine       | AOP, programmatic, async, reactive, and Agent entries share the same rule semantics.        |
+| Unified rule engine       | AOP, programmatic, async, and reactive entries share the same rule semantics.              |
 | Deny list                 | Reject known blocked identities before all bypass decisions.                                |
 | Allow list                | Work as a gate or bypass only selected downstream policies.                                 |
 | Penalty box               | Escalate repeated rate-limit violations into a temporary penalty.                           |
@@ -74,7 +73,7 @@ The policy order is fixed and is part of the public contract.
 | Failure policies          | Configure fail-closed, fail-open, or local fallback by failure point.                       |
 | Async lifecycle           | Track `CompletionStage` completion, timeout, cancellation, and rejection.                   |
 | Reactive lifecycle        | Apply rules lazily at subscription and emit one terminal outcome.                           |
-| Agent mode                | Govern private/static/self-invoked methods and explicitly annotated constructors.           |
+| AOP boundary              | Governs proxied type/method join points; private, static, constructor, and self-invoked paths stay explicit. |
 | Observability             | Publish final/stage events, Micrometer metrics, logs, and a read-only endpoint.             |
 | Strict startup validation | Unknown properties and invalid rule combinations fail application startup.                  |
 
@@ -88,7 +87,6 @@ The policy order is fixed and is part of the public contract.
 - A non-empty HMAC secret when at least one rule exists
 - A `RedissonClient` when `storage: REDISSON` is selected
 - Reactor only when guarding `Mono` or `Flux`
-- `egon-cola-component-bytecode-starter` and the Java Agent when using `AGENT`
 
 ---
 
@@ -100,7 +98,7 @@ The policy order is fixed and is part of the public contract.
 <dependency>
     <groupId>top.egon</groupId>
     <artifactId>egon-cola-component-access-guard-starter</artifactId>
-    <version>5.3.2</version>
+    <version>5.3.3</version>
 </dependency>
 ```
 
@@ -112,7 +110,7 @@ The policy order is fixed and is part of the public contract.
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-components-bom</artifactId>
-            <version>5.3.2</version>
+            <version>5.3.3</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -127,7 +125,7 @@ The policy order is fixed and is part of the public contract.
 </dependencies>
 ```
 
-Optional integrations such as Redisson, Actuator, Micrometer, Reactor, and Bytecode Agent support must still be
+Optional integrations such as Redisson, Actuator, Micrometer, and Reactor support must still be
 available in the application when selected.
 
 ---
@@ -248,7 +246,6 @@ Targets:
 
 - type
 - method
-- explicit constructor
 
 Attributes:
 
@@ -342,7 +339,7 @@ egon:
       access-guard:
         enabled: true
 
-        # AOP, AGENT, DISABLED
+        # AOP, DISABLED
         engine: AOP
 
         # LOCAL, REDISSON
@@ -468,7 +465,7 @@ This behavior is intentional. Access governance should fail during deployment, n
 | Property             | Default | Description                                                    |
 |----------------------|--------:|----------------------------------------------------------------|
 | `enabled`            |  `true` | Enables the starter.                                           |
-| `engine`             |   `AOP` | Selects `AOP`, `AGENT`, or `DISABLED`.                         |
+| `engine`             |   `AOP` | Selects `AOP` or `DISABLED`.                                  |
 | `storage`            | `LOCAL` | Selects local or Redisson-backed policy state.                 |
 | `defaults.rejection` | `THROW` | Default rejection behavior for rules without an explicit mode. |
 
@@ -1636,6 +1633,7 @@ Supports:
 
 Limitations:
 
+- private and static methods are not Spring AOP join points;
 - cannot intercept constructors;
 - cannot intercept self-invocation that bypasses the Spring proxy;
 - cannot govern objects not created or called through the Spring proxy.
@@ -1656,7 +1654,7 @@ public class OrderService {
 }
 ```
 
-Move the guarded method to another Bean, call through the proxy, use the programmatic client, or select Agent mode.
+Move the guarded method to another Bean, call through the proxy, or use the programmatic client.
 
 ### 23.2 Disabled
 
@@ -1664,7 +1662,7 @@ Move the guarded method to another Bean, call through the proxy, use the program
 engine: DISABLED
 ```
 
-Base infrastructure remains available, but AOP and Agent execution are not activated.
+Base infrastructure remains available, but automatic AOP execution is not activated.
 
 This can be useful for:
 
@@ -1672,81 +1670,36 @@ This can be useful for:
 - local diagnosis;
 - applications using only selected programmatic infrastructure.
 
-### 23.3 Agent
+### 23.3 Programmatic execution
 
-```yaml
-engine: AGENT
-```
-
-Add:
-
-```xml
-<dependency>
-    <groupId>top.egon</groupId>
-    <artifactId>egon-cola-component-bytecode-starter</artifactId>
-    <version>5.3.2</version>
-</dependency>
-```
-
-Launch with the Egon Bytecode Agent:
-
-```bash
-java \
-  "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.3.2.jar=enabled=true,features=access-guard,include=com.example.*" \
-  -jar application.jar
-```
-
-The Agent must be installed at JVM startup. Attach/retransform mode is not the normal runtime contract.
-
-Agent mode supports additional bytecode paths such as:
-
-- private methods;
-- static methods;
-- same-class calls;
-- recursive calls;
-- final methods;
-- synchronized methods, subject to timeout restrictions;
-- non-Spring objects;
-- explicit constructors.
-
-AOP and Agent engines are mutually exclusive.
-
----
-
-## 24. Constructor Governance
-
-Constructor interception requires Agent mode and an explicit constructor annotation.
+When a call does not cross a Spring proxy, use the explicit `AccessGuardClient` API. The client supports admission-only
+evaluation and guarded execution for `GuardRequest` operations; it does not make arbitrary calls implicitly governed.
 
 ```java
-public class SecureClient {
-
-    @AccessGuard("client-construction")
-    public SecureClient(@GuardKey("tenant") String tenantId) {
-        initialize(tenantId);
-    }
-}
+Result result = accessGuardClient.execute(
+        new GuardRequest("task", args, attributes, Result.class, fallback),
+        operation
+);
 ```
 
-Restrictions:
+## 24. AOP coverage and migration boundaries
 
-- only explicit constructor annotations are transformed;
-- a type annotation does not automatically guard every constructor;
-- governance runs before the first `this(...)` or `super(...)` call;
-- no initialized receiver is available;
-- only admission policies are supported;
-- rejection mode must be `THROW`;
-- time limit is not supported;
-- fallback is not supported;
-- JSON/null return replacement is not supported.
+Automatic governance is intentionally limited to Spring AOP method join points. The annotation is source-compatible only
+on types and methods; constructor annotations therefore fail compilation. For construction checks, put the guard on a
+factory or application-service method that creates the object.
 
-Use constructor governance carefully. Guarding infrastructure created before Spring runtime readiness can create startup
-cycles or fail-closed behavior.
+Legacy `engine=AGENT` configuration is no longer a supported enum value and fails fast during configuration binding. The
+removed Bytecode `access-guard` feature must be deleted from Agent feature lists; retain Bytecode only for its supported
+Executor, Method Extension, and Method Observation capabilities. Upgrade the retained Bytecode artifacts as one coherent
+Bridge protocol-major-2 set and restart the JVM; never mix protocol-major-1 and protocol-major-2 artifacts.
 
-Prefer guarding factory or application-service methods unless constructor interception is truly required.
+For private, static, self-invoked, constructor, or non-Spring paths, choose one of these explicit migrations:
 
----
+- move the governed call to a proxied public service/factory method;
+- call `AccessGuardClient` at the application boundary;
+- set `engine: DISABLED` when the application deliberately owns all explicit guard calls.
 
-## 25. Synchronized and Static Methods in Agent Mode
+## 25. Synchronized and Static Methods
 
 ### Static method
 
@@ -1757,11 +1710,13 @@ public static Result execute(String id) {
 }
 ```
 
-When fallback is used, the fallback must also be static.
+Spring AOP does not intercept static methods. Use a proxied instance method or the programmatic client when a static
+entry point must be governed; fallback validation for governed instance methods is unchanged.
 
 ### Synchronized method
 
-The Agent preserves the original monitor boundary.
+Synchronized instance methods retain their normal monitor semantics when invoked through a Spring proxy. A time limit
+does not guarantee that downstream work has stopped after the caller receives a timeout.
 
 ```java
 @AccessGuard("critical-section")
@@ -1770,8 +1725,8 @@ public synchronized Result update(String id) {
 }
 ```
 
-Time-limit execution that moves the method body to another thread is not valid for synchronized methods because that
-would change monitor semantics.
+If a synchronized method must be governed, keep the protected operation on its intended execution boundary and use
+cooperative downstream deadlines for cancellation.
 
 ---
 
@@ -2210,15 +2165,15 @@ A dedicated guard annotation must bind a single matching policy
 
 Use `@AccessGuard` or simplify the rule.
 
-### AOP constructor annotation
+### Constructor annotation in source
 
 Symptom:
 
 ```text
-AOP mode does not support guarded constructor
+@AccessGuard is not applicable to constructor declarations
 ```
 
-Use Agent mode or guard a factory method.
+Move the guard to a factory or application-service method, or call `AccessGuardClient` explicitly.
 
 ### Missing Redisson client
 
@@ -2305,7 +2260,7 @@ When local and production behavior differ:
 6. Check rule `data-version`.
 7. Check whether multiple service instances are using local state.
 8. Check clock and Redis latency.
-9. Check whether an Agent is actually installed at JVM startup.
+9. Check whether the call crosses a Spring proxy; otherwise use `AccessGuardClient` explicitly.
 
 ---
 
@@ -2356,24 +2311,16 @@ Validate:
 - application namespaces do not collide;
 - key TTL behavior matches production expectations.
 
-### 33.4 Agent verification
-
-Run a forked JVM with:
-
-```bash
--Xverify:all
--javaagent:/path/to/egon-cola-component-bytecode-agent-5.3.2.jar=enabled=true,features=access-guard,include=com.example.*
-```
+### 33.4 Entry-boundary verification
 
 Test:
 
-- private method;
-- same-class invocation;
-- static method and static fallback;
-- synchronized method restrictions;
-- explicit constructor;
-- runtime-not-ready behavior;
-- duplicate execution does not occur through proxies.
+- proxied type-level and method-level AOP bindings;
+- self-invocation and non-Spring calls remain outside automatic coverage;
+- explicit `AccessGuardClient` evaluation and execution;
+- `CompletionStage` and Reactor lifecycle completion;
+- rejection, fallback, timeout, and final-event parity;
+- AOP and programmatic calls do not execute the business operation after admission rejection.
 
 ---
 
@@ -2395,13 +2342,13 @@ Before enabling a rule in production:
 - [ ] Actuator exposure is protected.
 - [ ] Load tests include multiple instances.
 - [ ] Redis degradation has been tested.
-- [ ] Agent mode has been verified in the real launch command.
+- [ ] The actual Spring proxy boundary or explicit `AccessGuardClient` path has been verified.
 
 ---
 
 ## 35. Migration from Access Guard V1
 
-Version `5.3.2` is a source-breaking V2 model. It does not package a V1 compatibility facade.
+Version `5.3.3` is a source-breaking V2 model. It does not package a V1 compatibility facade.
 
 | V1 concept                      | V2 replacement                                        |
 |---------------------------------|-------------------------------------------------------|
@@ -2449,7 +2396,7 @@ The module test suite covers the implementation contract, including:
 - Reactor lifecycle;
 - local bounded state;
 - Redisson scripts under gated integration tests;
-- test-scoped Java Agent processes.
+- AOP and programmatic entry-boundary fixtures.
 
 Passing Maven tests does not by itself prove:
 
@@ -2458,7 +2405,7 @@ Passing Maven tests does not by itself prove:
 - network partition behavior;
 - clock skew behavior;
 - cancellation of uninterruptible I/O;
-- production Agent packaging and launch scripts.
+- production Spring proxy topology and explicit-client call sites.
 
 Validate these properties in the target environment.
 
@@ -2516,15 +2463,13 @@ redisson:
   application: order-service
 ```
 
-### Agent
+### AOP and explicit Client
 
 ```yaml
-engine: AGENT
+engine: AOP
 ```
 
-```bash
--javaagent:egon-cola-component-bytecode-agent-5.3.2.jar=enabled=true,features=access-guard,include=com.example.*
-```
+Automatic governance applies to proxied methods only. Use `AccessGuardClient` for explicit operation boundaries.
 
 ---
 

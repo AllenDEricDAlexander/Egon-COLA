@@ -13,7 +13,7 @@ The bytecode component checks compiled classes against the standard Egon COLA ar
 | `egon-cola-component-bytecode-core` | ASM-based class transformation and architecture rule engine | No |
 | `egon-cola-component-bytecode-runtime` | Runtime enhancement, metrics, sinks, and failure isolation | Yes |
 | `egon-cola-component-bytecode-agent` | Shaded `premain` Java Agent artifact | Yes |
-| `egon-cola-component-bytecode-starter` | Spring Boot configuration, actuator exposure, and optional Method Extension / Access Guard integration | Yes |
+| `egon-cola-component-bytecode-starter` | Spring Boot configuration, actuator exposure, and optional Method Extension integration | Yes |
 | `egon-cola-component-bytecode-architecture-maven-plugin` | Build-time architecture verification goal | No |
 | `egon-cola-component-bytecode-test` | Generated-project and runtime verification | No |
 | `egon-cola-component-bytecode-benchmark` | JMH benchmark for architecture scanning | No |
@@ -36,7 +36,7 @@ The runtime enhancement has two independently installed parts. Add the Spring st
 
 ```bash
 java -Xverify:all \
-  "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.2.3.jar=enabled=true,features=executor;observation;method-extension;access-guard,include=com.example.*,observation-include=com.example.*" \
+  "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.3.3.jar=enabled=true,features=executor;observation;method-extension,include=com.example.*,observation-include=com.example.*" \
   -jar application.jar
 ```
 
@@ -49,7 +49,6 @@ enabled: true
 features:
   - executor
   - observation
-  - access-guard
 include:
   - com.example.*
 exclude:
@@ -158,12 +157,12 @@ egon:
   cola:
     component:
       method-extension:
-        engine: AGENT
+        engine: "AGENT"
         not-ready-policy: PROCEED
 ```
 
 ```bash
-java "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.2.3.jar=enabled=true,features=method-extension,include=com.example.*" \
+java "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.3.3.jar=enabled=true,features=method-extension,include=com.example.*" \
   -jar application.jar
 ```
 
@@ -173,30 +172,22 @@ The Handler runs before Method Observation. A rejected invocation therefore prod
 
 Spring marks the runtime ready only after singleton initialization. Before that point, `not-ready-policy` controls `PROCEED`, `REJECT`, or `FAIL`; the default is `PROCEED`. Method metadata is cached per application `ClassLoader` without retaining application loaders globally. Events include bounded method and Handler identities and outcomes, but never arguments, return payloads, credentials, or exception messages.
 
-## Access Guard Agent Semantics
+## Access Guard Boundary
 
-Access Guard Agent mode reuses the existing annotations, rule resolver, white/black lists, rate limiter, failure strategy, rejection handling, and events. Add both optional starters, select the mutually exclusive `AGENT` engine, and enable the matching Agent feature:
+Access Guard is not a Bytecode capability. The Access Guard starter provides Spring AOP method governance and an explicit
+`AccessGuardClient`; it is not exported by this starter and must not be added to the Agent feature list.
 
-```yaml
-egon:
-  cola:
-    component:
-      access-guard:
-        engine: AGENT
-```
+The legacy `access-guard` feature value is rejected by the Agent parser. Remove it from deployment configuration and
+configure the Guard starter with `engine: AOP` or `engine: DISABLED`. Methods outside the Spring proxy boundary, including
+private/static methods, constructors, self-invocation, and non-Spring objects, require an explicit application migration.
 
-```bash
-java "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.2.3.jar=enabled=true,features=access-guard,include=com.example.*" \
-  -jar application.jar
-```
+The retained Agent capabilities are exactly `executor`, `observation`, and `method-extension`. When Method Extension and
+Observation both apply, the stable order is Method Extension, Method Observation, then the business body. A rejection from
+Method Extension therefore prevents the observed business method from being entered.
 
-Supported method targets are public/private instance methods and static methods, including same-class, recursive, final, synchronized, proxied, and non-Spring invocations. Protected, package-private, abstract, native, synthetic, bridge methods, and class initializers fail explicitly. A static guarded method may only use a static fallback. Synchronized methods retain their original monitor boundary; timeout execution is rejected because moving the body to another thread would violate that boundary.
-
-Public/private constructors support only aggregate `@AccessGuard`. The guard runs before the first `this(...)` or direct `super(...)` call and therefore has no initialized receiver. Constructor rules support key resolution from parameters, Header, IP, or `all`, plus white/black lists, rate limiting, fail strategy, and events. They reject timeout, fallback, `returnJson`, `LOCAL_FALLBACK`, return replacement, and instance-state access. Every annotated constructor in a successful `this(...)` chain is evaluated once. A custom key resolver used by constructors must also implement `ExecutableAccessKeyResolver`.
-
-When features overlap, the stable invocation order is Method Extension, Access Guard, Method Observation, then the business body. A Method Extension rejection or Access Guard rejection never reaches Method Observation. Agent `failure-policy=mark-fatal` records state `FAILED` and prevents Spring context completion without halting the JVM or terminating class loading; `skip-class` and runtime `FAIL_OPEN` preserve their documented fail-open boundaries. Avoid constructor guards on framework/bootstrap infrastructure that is created before the Agent runtime becomes ready.
-
-Access Guard diagnostics preserve the same privacy contract as the other runtime features: no arguments, return payloads, credentials, cookies, authorization headers, exception messages, raw include patterns, or object text are emitted.
+Bridge protocol major `2` is the coherent runtime contract for the retained artifacts. Upgrade the Agent, bridge, runtime,
+core, and starter artifacts together and restart the JVM. A mixed protocol-major-1/2 classpath fails startup; rollback must
+restore the complete previous artifact set and restart the JVM.
 
 ## Metrics, Status, And Privacy
 
@@ -215,7 +206,7 @@ Executor tags are `executor`, `executor_type`, `result`, `exception_group`, and 
 
 Actuator is optional and is not pulled transitively by the starter. If Actuator is already installed and the endpoint is exposed, `GET /actuator/egonbytecode` reports Agent/runtime versions, protocol, state, requested/effective features, bounded counts and recent failures, dispatcher registration, metadata counts, and aggregate observation counts. It never reports raw include/exclude patterns, Agent arguments, method descriptors, class owners, arguments, returns, exception messages, tasks, `Future` objects, request IDs, trace IDs, or captured context. Agent startup output likewise prints only pattern counts and SHA-256 digests.
 
-States are `DISABLED`, `STARTING`, `ACTIVE`, `DEGRADED`, and `FAILED`; a missing Agent is reported by the starter as `AGENT_UNAVAILABLE`. A running Agent with a different protocol major fails Spring startup. The Agent does not support Attach, `agentmain`, redefinition, retransformation, bootstrap/JDK transformation, or transformed-class dumps.
+States are `DISABLED`, `STARTING`, `ACTIVE`, `DEGRADED`, and `FAILED`; a missing Agent is reported by the starter as `AGENT_UNAVAILABLE`. A running Agent with a protocol major other than `2` fails Spring startup. The Agent does not support Attach, `agentmain`, redefinition, retransformation, bootstrap/JDK transformation, or transformed-class dumps.
 
 ## Maven Plugin
 

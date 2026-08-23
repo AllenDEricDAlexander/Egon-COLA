@@ -13,7 +13,7 @@
 | `egon-cola-component-bytecode-core` | 基于 ASM 的类转换和架构规则引擎 | 否 |
 | `egon-cola-component-bytecode-runtime` | 运行时增强、指标、Sink 和故障隔离 | 是 |
 | `egon-cola-component-bytecode-agent` | shaded `premain` Java Agent 产物 | 是 |
-| `egon-cola-component-bytecode-starter` | Spring Boot 配置、Actuator，以及可选的 Method Extension / Access Guard 集成 | 是 |
+| `egon-cola-component-bytecode-starter` | Spring Boot 配置、Actuator，以及可选的 Method Extension 集成 | 是 |
 | `egon-cola-component-bytecode-architecture-maven-plugin` | 构建期架构校验 goal | 否 |
 | `egon-cola-component-bytecode-test` | 生成工程和运行时验证 | 否 |
 | `egon-cola-component-bytecode-benchmark` | 架构扫描 JMH 基准测试 | 否 |
@@ -35,7 +35,7 @@ API/runtime/Agent/starter；需要架构检查时，再在构建中单独使用 
 
 ```bash
 java -Xverify:all \
-  "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.2.3.jar=enabled=true,features=executor;observation;method-extension;access-guard,include=com.example.*,observation-include=com.example.*" \
+  "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.3.3.jar=enabled=true,features=executor;observation;method-extension,include=com.example.*,observation-include=com.example.*" \
   -jar application.jar
 ```
 
@@ -48,7 +48,6 @@ enabled: true
 features:
   - executor
   - observation
-  - access-guard
 include:
   - com.example.*
 exclude:
@@ -157,12 +156,12 @@ egon:
   cola:
     component:
       method-extension:
-        engine: AGENT
+        engine: "AGENT"
         not-ready-policy: PROCEED
 ```
 
 ```bash
-java "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.2.3.jar=enabled=true,features=method-extension,include=com.example.*" \
+java "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.3.3.jar=enabled=true,features=method-extension,include=com.example.*" \
   -jar application.jar
 ```
 
@@ -172,30 +171,19 @@ Handler 在方法观测之前运行。因此，被拒绝的调用会产生 Metho
 
 Spring 只会在单例初始化完成后将运行时标记为就绪。在此之前，`not-ready-policy` 控制 `PROCEED`、`REJECT` 或 `FAIL`；默认值是 `PROCEED`。方法元数据按应用 `ClassLoader` 缓存，且不会全局持有应用 ClassLoader。事件包含有界的方法和 Handler 标识及结果，但绝不包含参数、返回载荷、凭据或异常消息。
 
-## Access Guard Agent 语义
+## Access Guard 边界
 
-Access Guard Agent 模式复用现有注解、规则解析器、白名单/黑名单、限流器、故障策略、拒绝处理和事件。请添加两个可选 starter，选择互斥的 `AGENT` 引擎，并启用对应的 Agent 功能：
+Access Guard 不是 Bytecode 能力。Access Guard starter 提供 Spring AOP 方法治理和显式 `AccessGuardClient`；它不会由
+本 starter 导出，也不能加入 Agent 的功能列表。
 
-```yaml
-egon:
-  cola:
-    component:
-      access-guard:
-        engine: AGENT
-```
+旧的 `access-guard` 功能值会被 Agent parser 拒绝。应从部署配置中移除，并在 Guard starter 中使用 `engine: AOP` 或
+`engine: DISABLED`。超出 Spring Proxy 边界的 private/static 方法、构造器、自调用和非 Spring 对象，需要业务侧显式迁移。
 
-```bash
-java "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.2.3.jar=enabled=true,features=access-guard,include=com.example.*" \
-  -jar application.jar
-```
+保留的 Agent 能力严格为 `executor`、`observation` 和 `method-extension`。Method Extension 与方法观测同时生效时，顺序固定为
+Method Extension、Method Observation、业务方法体；Method Extension 拒绝会阻止被观测的业务方法进入。
 
-支持的方法目标包括 public/private 实例方法和 static 方法，也包括同类、递归、final、synchronized、代理和非 Spring 调用。protected、package-private、abstract、native、synthetic、bridge 方法和类初始化器会明确失败。static 受保护方法只能使用 static fallback。synchronized 方法保留原有 monitor 边界；由于将方法体移到另一个线程会破坏该边界，因此会拒绝超时执行。
-
-public/private 构造器仅支持聚合注解 `@AccessGuard`。Guard 在第一次 `this(...)` 或直接 `super(...)` 调用之前运行，因此此时不存在已初始化的 receiver。构造器规则支持从参数、Header、IP 或 `all` 中解析 key，也支持白名单/黑名单、限流、失败策略和事件。它们拒绝 timeout、fallback、`returnJson`、`LOCAL_FALLBACK`、返回值替换和实例状态访问。成功的 `this(...)` 调用链中，每个带注解的构造器都会评估一次。构造器使用的自定义 key 解析器还必须实现 `ExecutableAccessKeyResolver`。
-
-当多个功能重叠时，稳定的调用顺序依次是 Method Extension、Access Guard、方法观测，最后是业务方法体。Method Extension 拒绝或 Access Guard 拒绝永远不会进入方法观测。Agent 的 `failure-policy=mark-fatal` 会记录 `FAILED` 状态并阻止 Spring 上下文完成，但不会终止 JVM 或结束类加载；`skip-class` 和运行时 `FAIL_OPEN` 保留其文档约定的 fail-open 边界。请避免对 Agent 运行时就绪之前创建的框架/bootstrap 基础设施使用构造器 Guard。
-
-Access Guard 诊断遵循与其他运行时功能相同的隐私契约：不会输出参数、返回载荷、凭据、cookie、authorization header、异常消息、原始 include 模式或对象文本。
+Bridge protocol major `2` 是保留 artifact 的一致运行时契约。Agent、bridge、runtime、core 和 starter 必须整套升级并重启 JVM。
+protocol-major-1/2 混用会在启动时失败；回滚必须恢复完整的上一套 artifact 并重启 JVM。
 
 ## 指标、状态与隐私
 
@@ -214,7 +202,7 @@ Executor 标签为 `executor`、`executor_type`、`result`、`exception_group` �
 
 Actuator 是可选的，starter 不会传递引入它。如果应用已安装 Actuator 并公开了该端点，`GET /actuator/egonbytecode` 会报告 Agent/运行时版本、协议、状态、请求/生效功能、有界计数与近期故障、dispatcher 注册、元数据计数和聚合观测计数。它绝不会报告原始 include/exclude 模式、Agent 参数、方法 descriptor、类 owner、参数、返回值、异常消息、任务、`Future` 对象、request ID、trace ID 或捕获的上下文。Agent 启动输出同样只打印模式数量和 SHA-256 摘要。
 
-状态包括 `DISABLED`、`STARTING`、`ACTIVE`、`DEGRADED` 和 `FAILED`；starter 会将缺少 Agent 报告为 `AGENT_UNAVAILABLE`。运行中的 Agent 如果协议主版本不同，会导致 Spring 启动失败。Agent 不支持 Attach、`agentmain`、重定义、重新转换、bootstrap/JDK 转换或转换后类转储。
+状态包括 `DISABLED`、`STARTING`、`ACTIVE`、`DEGRADED` 和 `FAILED`；starter 会将缺少 Agent 报告为 `AGENT_UNAVAILABLE`。运行中的 Agent 如果协议主版本不是 `2`，会导致 Spring 启动失败。Agent 不支持 Attach、`agentmain`、重定义、重新转换、bootstrap/JDK 转换或转换后类转储。
 
 ## Maven 插件
 

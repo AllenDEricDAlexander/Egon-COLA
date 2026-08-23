@@ -10,13 +10,12 @@
 - 程序化 Guard 调用
 - `CompletionStage` 完整生命周期治理
 - Reactor `Mono` / `Flux` 完整生命周期治理
-- 可选 Bytecode Agent 增强
 - 本地或 Redisson 分布式状态
 - 指标、结构化事件、日志与 Actuator 端点
 
 适用场景包括抽奖、优惠券领取、登录防刷、支付提交、风险校验、昂贵查询、热点接口保护，以及需要在业务方法边界统一执行准入规则的场景。
 
-> 本文档对应 Egon COLA `5.3.2`、Java 21+、Spring Boot 3.5.x。
+> 本文档对应 Egon COLA `5.3.3`、Java 21+、Spring Boot 3.5.x。
 
 ---
 
@@ -34,7 +33,7 @@
 Access Guard 通过一个具名规则统一这些能力。
 
 ```text
-方法 / 构造器 / 程序化请求
+代理方法 / 程序化请求
               |
               v
             解析规则
@@ -60,7 +59,7 @@ DenyList -> AllowList -> PenaltyBox -> RateLimit
 
 | 能力              | 说明                                  |
 |-----------------|-------------------------------------|
-| 统一规则引擎          | AOP、程序化、异步、响应式和 Agent 入口共享同一套规则语义。  |
+| 统一规则引擎          | AOP、程序化、异步和响应式入口共享同一套规则语义。          |
 | DenyList        | 在所有绕过逻辑之前拒绝已封禁身份。                   |
 | AllowList       | 可作为准入门禁，也可只跳过指定的下游策略。               |
 | PenaltyBox      | 将连续限流违规升级为临时处罚。                     |
@@ -71,7 +70,7 @@ DenyList -> AllowList -> PenaltyBox -> RateLimit
 | 故障策略            | 按故障点配置 fail-closed、fail-open 或本地兜底。 |
 | 异步生命周期          | 跟踪 `CompletionStage` 的完成、超时、取消和拒绝。  |
 | 响应式生命周期         | 在订阅时惰性执行，并只发布一个终态结果。                |
-| Agent 模式        | 支持 private、static、自调用和显式构造器等字节码路径。  |
+| AOP 边界          | 治理经过代理的类型/方法连接点；private、static、构造器和自调用路径需显式处理。 |
 | 可观测性            | 支持终态/阶段事件、Micrometer 指标、日志和只读端点。    |
 | 严格启动校验          | 未知配置与非法规则组合直接使应用启动失败。               |
 
@@ -85,7 +84,6 @@ DenyList -> AllowList -> PenaltyBox -> RateLimit
 - 只要配置了规则，就必须提供非空 HMAC Secret
 - 选择 `storage: REDISSON` 时必须提供 `RedissonClient`
 - 保护 `Mono` / `Flux` 时需要 Reactor
-- 使用 `AGENT` 时需要 `egon-cola-component-bytecode-starter` 与 Java Agent
 
 ---
 
@@ -97,7 +95,7 @@ DenyList -> AllowList -> PenaltyBox -> RateLimit
 <dependency>
     <groupId>top.egon</groupId>
     <artifactId>egon-cola-component-access-guard-starter</artifactId>
-    <version>5.3.2</version>
+    <version>5.3.3</version>
 </dependency>
 ```
 
@@ -109,7 +107,7 @@ DenyList -> AllowList -> PenaltyBox -> RateLimit
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-components-bom</artifactId>
-            <version>5.3.2</version>
+            <version>5.3.3</version>
             <type>pom</type>
             <scope>import</scope>
         </dependency>
@@ -124,7 +122,7 @@ DenyList -> AllowList -> PenaltyBox -> RateLimit
 </dependencies>
 ```
 
-Redisson、Actuator、Micrometer、Reactor 和 Bytecode Agent 等可选能力，在启用时仍需由业务应用提供对应依赖和运行环境。
+Redisson、Actuator、Micrometer 和 Reactor 等可选能力，在启用时仍需由业务应用提供对应依赖和运行环境。
 
 ---
 
@@ -254,7 +252,6 @@ public PaymentResult submit(@GuardKey("customer") Long customerId) {
 
 - 类型
 - 方法
-- 显式构造器
 
 属性：
 
@@ -354,7 +351,7 @@ egon:
       access-guard:
         enabled: true
 
-        # AOP、AGENT、DISABLED
+        # AOP、DISABLED
         engine: AOP
 
         # LOCAL、REDISSON
@@ -480,7 +477,7 @@ egon:
 | 属性                   |     默认值 | 说明                             |
 |----------------------|--------:|--------------------------------|
 | `enabled`            |  `true` | 是否启用组件。                        |
-| `engine`             |   `AOP` | 选择 `AOP`、`AGENT` 或 `DISABLED`。 |
+| `engine`             |   `AOP` | 选择 `AOP` 或 `DISABLED`。          |
 | `storage`            | `LOCAL` | 选择本地或 Redisson 状态。             |
 | `defaults.rejection` | `THROW` | 规则未指定时的默认拒绝模式。                 |
 
@@ -1658,6 +1655,7 @@ engine: AOP
 
 限制：
 
+- private 和 static 方法不是 Spring AOP 连接点；
 - 不能拦截构造器；
 - 不能覆盖绕过 Proxy 的自调用；
 - 不能治理没有经过 Spring Proxy 的对象。
@@ -1684,7 +1682,6 @@ public class OrderService {
 - 将 Guard 方法移到另一个 Bean；
 - 通过 Proxy 调用；
 - 使用程序化客户端；
-- 使用 Agent 模式。
 
 ### 23.2 Disabled
 
@@ -1692,7 +1689,7 @@ public class OrderService {
 engine: DISABLED
 ```
 
-基础设施可以保留，但不启用 AOP 或 Agent 执行。
+基础设施可以保留，但不启用自动 AOP 执行。
 
 适合：
 
@@ -1700,81 +1697,34 @@ engine: DISABLED
 - 本地诊断；
 - 只使用部分程序化能力。
 
-### 23.3 Agent
+### 23.3 程序化执行
 
-```yaml
-engine: AGENT
-```
-
-增加：
-
-```xml
-
-<dependency>
-    <groupId>top.egon</groupId>
-    <artifactId>egon-cola-component-bytecode-starter</artifactId>
-    <version>5.3.2</version>
-</dependency>
-```
-
-启动：
-
-```bash
-java \
-  "-javaagent:/opt/egon/egon-cola-component-bytecode-agent-5.3.2.jar=enabled=true,features=access-guard,include=com.example.*" \
-  -jar application.jar
-```
-
-Agent 必须在 JVM 启动时安装。
-
-Agent 模式额外支持：
-
-- private 方法；
-- static 方法；
-- 同类调用；
-- 递归调用；
-- final 方法；
-- synchronized 方法，但受超时限制；
-- 非 Spring 对象；
-- 显式构造器。
-
-AOP 和 Agent 互斥。
-
----
-
-## 24. 构造器治理
-
-构造器拦截必须使用 Agent 模式，并显式标注构造器。
+没有经过 Spring Proxy 的调用应显式使用 `AccessGuardClient`。客户端支持针对 `GuardRequest` 的准入评估和受保护执行，
+不会隐式接管任意业务调用。
 
 ```java
-public class SecureClient {
-
-    @AccessGuard("client-construction")
-    public SecureClient(@GuardKey("tenant") String tenantId) {
-        initialize(tenantId);
-    }
-}
+Result result = accessGuardClient.execute(
+        new GuardRequest("task", args, attributes, Result.class, fallback),
+        operation
+);
 ```
 
-限制：
+## 24. AOP 覆盖范围与迁移边界
 
-- 只增强显式标注的构造器；
-- 类型注解不会自动保护所有构造器；
-- Guard 在第一个 `this(...)` 或 `super(...)` 前执行；
-- 此时没有初始化完成的 receiver；
-- 只支持准入策略；
-- 拒绝模式必须是 `THROW`；
-- 不支持 TimeLimit；
-- 不支持 fallback；
-- 不支持 JSON/null 返回替换。
+自动治理只覆盖 Spring AOP 方法连接点。注解只对类型和方法声明有效，因此构造器上的 `@AccessGuard` 会在编译期失败。
+需要保护对象创建时，应将规则放到创建对象的工厂或 Application Service 方法上。
 
-构造器治理需要谨慎。保护 Spring 尚未准备好之前创建的基础设施对象，可能形成启动循环或 fail-closed。
+旧的 `engine=AGENT` 配置已经不是支持的枚举值，配置绑定会快速失败。已删除的 Bytecode `access-guard` 能力必须从 Agent
+功能列表中移除；Bytecode 只保留 Executor、Method Extension 和 Method Observation。保留的 Bytecode artifact 必须作为同一套
+Bridge protocol-major-2 版本升级并重启 JVM，不得混用 protocol-major-1 与 protocol-major-2。
 
-除非确有必要，优先保护工厂方法或 Application Service 方法。
+对于 private、static、自调用、构造器或非 Spring 路径，可采用以下显式迁移方式：
 
----
+- 将治理调用移动到经过代理的 public Service/Factory 方法；
+- 在应用边界调用 `AccessGuardClient`；
+- 如果应用完全自行管理显式调用，则设置 `engine: DISABLED`。
 
-## 25. Agent 模式下的 synchronized 与 static
+## 25. Synchronized 与 Static 方法
 
 ### Static 方法
 
@@ -1786,11 +1736,12 @@ public static Result execute(String id) {
 }
 ```
 
-使用 fallback 时，fallback 也必须是 static。
+Spring AOP 不拦截 static 方法。需要治理 static 入口时，应改为代理实例方法或使用程序化客户端；实例方法的 fallback
+校验规则不变。
 
 ### Synchronized 方法
 
-Agent 保留原始 monitor 边界：
+通过 Spring Proxy 调用的 synchronized 实例方法仍保留正常 monitor 语义。超时返回不保证下游工作已经停止。
 
 ```java
 
@@ -1800,7 +1751,7 @@ public synchronized Result update(String id) {
 }
 ```
 
-将方法体移动到其他线程的 TimeLimit 会改变同步语义，因此不允许。
+如果必须治理 synchronized 方法，应保持受保护操作在预期执行边界内，并让下游通过 deadline 协作取消。
 
 ---
 
@@ -2237,15 +2188,15 @@ A dedicated guard annotation must bind a single matching policy
 
 改用 `@AccessGuard`，或者简化规则。
 
-### AOP 模式标注构造器
+### 源码中的构造器注解
 
 报错：
 
 ```text
-AOP mode does not support guarded constructor
+@AccessGuard is not applicable to constructor declarations
 ```
 
-改用 Agent，或保护工厂方法。
+将规则移动到工厂方法或 Application Service 方法，或显式调用 `AccessGuardClient`。
 
 ### RedissonClient 不存在
 
@@ -2331,7 +2282,7 @@ primitive return types do not support RETURN_NULL
 6. 检查 `data-version`。
 7. 检查是否多实例却使用 LOCAL。
 8. 检查时钟与 Redis 延迟。
-9. 检查生产 JVM 是否真的加载了 Agent。
+9. 检查调用是否经过 Spring Proxy；否则显式使用 `AccessGuardClient`。
 
 ---
 
@@ -2382,24 +2333,16 @@ class DrawGuardTest {
 - 应用命名空间不冲突；
 - TTL 行为符合生产预期。
 
-### 33.4 Agent 验证
-
-Fork JVM：
-
-```bash
--Xverify:all
--javaagent:/path/to/egon-cola-component-bytecode-agent-5.3.2.jar=enabled=true,features=access-guard,include=com.example.*
-```
+### 33.4 入口边界验证
 
 验证：
 
-- private 方法；
-- 同类调用；
-- static 方法与 static fallback；
-- synchronized 限制；
-- 显式构造器；
-- Runtime 未就绪行为；
-- 代理场景不会重复治理。
+- 经过代理的类型级和方法级 AOP 绑定；
+- 自调用和非 Spring 调用不自动治理；
+- 显式 `AccessGuardClient` 评估与执行；
+- `CompletionStage` 和 Reactor 生命周期完成；
+- 拒绝、fallback、超时和终态事件一致性；
+- AOP 与程序化入口在准入拒绝后都不执行业务方法。
 
 ---
 
@@ -2419,13 +2362,13 @@ Fork JVM：
 - [ ] Actuator 端点受保护。
 - [ ] 已进行多实例压测。
 - [ ] 已演练 Redis 降级。
-- [ ] Agent 模式已验证真实启动命令。
+- [ ] 已验证真实 Spring Proxy 边界或显式 `AccessGuardClient` 调用路径。
 
 ---
 
 ## 35. 从 Access Guard V1 迁移
 
-`5.3.2` 是源码不兼容的 V2 模型，不再提供 V1 兼容门面。
+`5.3.3` 是源码不兼容的 V2 模型，不再提供 V1 兼容门面。
 
 | V1 概念           | V2 替代                                                 |
 |-----------------|-------------------------------------------------------|
@@ -2473,7 +2416,7 @@ Fork JVM：
 - Reactor 生命周期；
 - 本地有界状态；
 - 受门控的 Redisson 脚本集成；
-- 测试级 Java Agent 进程。
+- AOP 与程序化入口边界 fixture。
 
 Maven 测试通过并不能自动证明：
 
@@ -2482,7 +2425,7 @@ Maven 测试通过并不能自动证明：
 - 网络分区行为；
 - 时钟偏差；
 - 不可中断 I/O 一定被取消；
-- 生产 Agent 打包与启动脚本正确。
+- 生产 Spring Proxy 拓扑与显式 Client 调用路径正确。
 
 这些仍需要在目标环境验证。
 
@@ -2542,15 +2485,13 @@ redisson:
     application: order-service
 ```
 
-### Agent
+### AOP 与显式 Client
 
 ```yaml
-engine: AGENT
+engine: AOP
 ```
 
-```bash
--javaagent:egon-cola-component-bytecode-agent-5.3.2.jar=enabled=true,features=access-guard,include=com.example.*
-```
+自动治理只作用于经过代理的方法；其他边界显式使用 `AccessGuardClient`。
 
 ---
 
