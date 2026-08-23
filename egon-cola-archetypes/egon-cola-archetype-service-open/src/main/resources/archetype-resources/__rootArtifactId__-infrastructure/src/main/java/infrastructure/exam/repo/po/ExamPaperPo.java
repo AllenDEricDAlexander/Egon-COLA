@@ -3,28 +3,27 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.exam.repo.po;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
-@Entity
-@Table(name = "exam_paper")
+@TableName("exam_paper")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class ExamPaperPo {
-    @Id private Long id;
-    @Column(name = "exam_id", nullable = false) private Long examId;
-    @Column(nullable = false) private String title;
-    @Column(name = "total_points", nullable = false) private int totalPoints;
-    @Column(nullable = false) private String status;
-    @Column(name = "created_at", nullable = false) private Instant createdAt;
-    @Column(name = "updated_at", nullable = false) private Instant updatedAt;
+    @TableId(value = "id", type = IdType.INPUT) private Long id;
+    @TableField("exam_id") private Long examId;
+    private String title;
+    @TableField("total_points") private int totalPoints;
+    private String status;
+    @TableField("created_at") private Instant createdAt;
+    @TableField("updated_at") private Instant updatedAt;
     public Long getId() { return id; } public Long getExamId() { return examId; }
     public String getTitle() { return title; } public int getTotalPoints() { return totalPoints; }
     public String getStatus() { return status; } public Instant getCreatedAt() { return createdAt; }

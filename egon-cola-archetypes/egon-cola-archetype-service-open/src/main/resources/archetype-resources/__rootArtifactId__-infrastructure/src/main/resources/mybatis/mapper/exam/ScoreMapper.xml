@@ -1,0 +1,43 @@
+#set( $symbol_pound = '#' )
+#set( $symbol_dollar = '$' )
+#set( $symbol_escape = '\\' )
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="${package}.infrastructure.exam.repo.mapper.ScoreMapper">
+    <resultMap id="ScoreResultMap" type="${package}.infrastructure.exam.repo.po.ScorePo">
+        <id column="id" property="id"/>
+        <result column="exam_id" property="examId"/>
+        <result column="course_id" property="courseId"/>
+        <result column="student_id" property="studentId"/>
+        <result column="points" property="points"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectByExamIdAndId" resultMap="ScoreResultMap">
+        SELECT id, exam_id, course_id, student_id, points, status, created_at, updated_at
+        FROM score
+        WHERE exam_id = #{examId} AND id = #{id}
+    </select>
+
+    <select id="countByExamIdAndStudentId" resultType="long">
+        SELECT COUNT(*) FROM score
+        WHERE exam_id = #{examId} AND student_id = #{studentId}
+    </select>
+
+    <select id="selectPageByExamId" resultMap="ScoreResultMap">
+        SELECT id, exam_id, course_id, student_id, points, status, created_at, updated_at
+        FROM score
+        WHERE exam_id = #{examId}
+        ORDER BY created_at DESC, id ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByExamId" resultType="long">
+        SELECT COUNT(*) FROM score
+        WHERE exam_id = #{examId}
+    </select>
+</mapper>

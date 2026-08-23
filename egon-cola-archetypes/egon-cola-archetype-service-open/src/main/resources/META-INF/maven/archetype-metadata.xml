@@ -239,6 +239,7 @@
                         <include>**/*.yaml</include>
                         <include>**/*.properties</include>
                         <include>**/*.sql</include>
+                        <include>**/*.md</include>
                         <include>.gitkeep</include>
                     </includes>
                 </fileSet>

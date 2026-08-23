@@ -1,11 +1,10 @@
--- 变更内容：初始化 Evaluation 分片节点中的排课、考试、试卷和成绩物理分表。
--- 影响范围：每个 shard 库的 course_schedule_0/1、exam_0/1、exam_paper_0/1 和 score_0/1。
--- 兼容性说明：仅初始化新建分片节点；考试族按 exam_id 同库同表后缀，且不建立指向 master_data 库 course 的跨库外键。
+-- Manual operator change: create Evaluation sharded schema.
+-- Target: every PostgreSQL shard_N primary; apply with the same bytes per shard.
 
 CREATE TABLE course_schedule_0 (
-    id VARCHAR(36) PRIMARY KEY,
-    course_id VARCHAR(36) NOT NULL,
-    class_id VARCHAR(64) NOT NULL,
+    id BIGINT PRIMARY KEY,
+    course_id BIGINT NOT NULL,
+    class_id BIGINT NOT NULL,
     starts_at TIMESTAMP NOT NULL,
     ends_at TIMESTAMP NOT NULL,
     status VARCHAR(32) NOT NULL,
@@ -15,9 +14,9 @@ CREATE TABLE course_schedule_0 (
 );
 
 CREATE TABLE course_schedule_1 (
-    id VARCHAR(36) PRIMARY KEY,
-    course_id VARCHAR(36) NOT NULL,
-    class_id VARCHAR(64) NOT NULL,
+    id BIGINT PRIMARY KEY,
+    course_id BIGINT NOT NULL,
+    class_id BIGINT NOT NULL,
     starts_at TIMESTAMP NOT NULL,
     ends_at TIMESTAMP NOT NULL,
     status VARCHAR(32) NOT NULL,
@@ -27,8 +26,8 @@ CREATE TABLE course_schedule_1 (
 );
 
 CREATE TABLE exam_0 (
-    id VARCHAR(36) PRIMARY KEY,
-    course_id VARCHAR(36) NOT NULL,
+    id BIGINT PRIMARY KEY,
+    course_id BIGINT NOT NULL,
     title VARCHAR(128) NOT NULL,
     starts_at TIMESTAMP NOT NULL,
     ends_at TIMESTAMP NOT NULL,
@@ -39,8 +38,8 @@ CREATE TABLE exam_0 (
 );
 
 CREATE TABLE exam_1 (
-    id VARCHAR(36) PRIMARY KEY,
-    course_id VARCHAR(36) NOT NULL,
+    id BIGINT PRIMARY KEY,
+    course_id BIGINT NOT NULL,
     title VARCHAR(128) NOT NULL,
     starts_at TIMESTAMP NOT NULL,
     ends_at TIMESTAMP NOT NULL,
@@ -51,8 +50,8 @@ CREATE TABLE exam_1 (
 );
 
 CREATE TABLE exam_paper_0 (
-    id VARCHAR(36) PRIMARY KEY,
-    exam_id VARCHAR(36) NOT NULL,
+    id BIGINT PRIMARY KEY,
+    exam_id BIGINT NOT NULL,
     title VARCHAR(128) NOT NULL,
     total_points INTEGER NOT NULL,
     status VARCHAR(32) NOT NULL,
@@ -64,8 +63,8 @@ CREATE TABLE exam_paper_0 (
 );
 
 CREATE TABLE exam_paper_1 (
-    id VARCHAR(36) PRIMARY KEY,
-    exam_id VARCHAR(36) NOT NULL,
+    id BIGINT PRIMARY KEY,
+    exam_id BIGINT NOT NULL,
     title VARCHAR(128) NOT NULL,
     total_points INTEGER NOT NULL,
     status VARCHAR(32) NOT NULL,
@@ -77,10 +76,10 @@ CREATE TABLE exam_paper_1 (
 );
 
 CREATE TABLE score_0 (
-    id VARCHAR(36) PRIMARY KEY,
-    exam_id VARCHAR(36) NOT NULL,
-    course_id VARCHAR(36) NOT NULL,
-    student_id VARCHAR(64) NOT NULL,
+    id BIGINT PRIMARY KEY,
+    exam_id BIGINT NOT NULL,
+    course_id BIGINT NOT NULL,
+    student_id BIGINT NOT NULL,
     points INTEGER NOT NULL,
     status VARCHAR(32) NOT NULL,
     created_at TIMESTAMP NOT NULL,
@@ -91,10 +90,10 @@ CREATE TABLE score_0 (
 );
 
 CREATE TABLE score_1 (
-    id VARCHAR(36) PRIMARY KEY,
-    exam_id VARCHAR(36) NOT NULL,
-    course_id VARCHAR(36) NOT NULL,
-    student_id VARCHAR(64) NOT NULL,
+    id BIGINT PRIMARY KEY,
+    exam_id BIGINT NOT NULL,
+    course_id BIGINT NOT NULL,
+    student_id BIGINT NOT NULL,
     points INTEGER NOT NULL,
     status VARCHAR(32) NOT NULL,
     created_at TIMESTAMP NOT NULL,

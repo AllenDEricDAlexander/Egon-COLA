@@ -8,6 +8,9 @@ spring:
       - classpath:datasource/sharding-readwrite.yml
       - optional:file:./config/application-secrets.yml
       - optional:configtree:/run/secrets/
+  sql:
+    init:
+      mode: never
   threads:
     virtual:
       enabled: ${symbol_dollar}{SPRING_THREADS_VIRTUAL_ENABLED:true}
@@ -27,6 +30,11 @@ spring:
       shutdown:
         await-termination: true
         await-termination-period: ${symbol_dollar}{SCHEDULING_AWAIT_TERMINATION:30s}
+
+mybatis-plus:
+  mapper-locations: classpath*:mybatis/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: ${symbol_dollar}{APP_TIME_ZONE:Asia/Shanghai}

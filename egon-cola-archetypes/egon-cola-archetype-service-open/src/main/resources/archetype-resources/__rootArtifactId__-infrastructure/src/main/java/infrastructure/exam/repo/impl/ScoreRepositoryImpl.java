@@ -2,56 +2,77 @@
 #set( $symbol_dollar = '$' )
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.exam.repo.impl;
+
 import ${package}.domain.common.Page;
 import ${package}.domain.exam.entities.Score;
 import ${package}.domain.exam.repos.ScoreRepository;
 import ${package}.domain.exam.vos.ExamId;
 import ${package}.infrastructure.exam.repo.converter.ScoreConverter;
-import ${package}.infrastructure.exam.repo.jpa.ScoreJpaRepository;
+import ${package}.infrastructure.exam.repo.mapper.ScoreMapper;
 import ${package}.infrastructure.exam.repo.po.ScorePo;
 import ${package}.infrastructure.validators.EvaluationPersistenceValidator;
-import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+
 @Repository
 @RequiredArgsConstructor
 public class ScoreRepositoryImpl implements ScoreRepository {
-    private final ScoreJpaRepository repository;
+
+    private final ScoreMapper mapper;
     private final ScoreConverter converter;
     private final EvaluationPersistenceValidator validator;
-    private final EntityManager entityManager;
+
+    @Override
     @Transactional
     public Score save(Score score) {
-        ScorePo po = repository.findByExamIdAndId(score.getExamId().value(), score.getId())
-                .map(existing -> converter.updatePo(score, existing))
-                .orElseGet(() -> persist(converter.toPo(score, Instant.now())));
         try {
-            repository.flush();
+            ScorePo existing = mapper.selectByExamIdAndId(
+                    score.getExamId().value(), score.getId());
+            ScorePo po;
+            int affected;
+            if (existing == null) {
+                po = converter.toPo(score, Instant.now());
+                affected = mapper.insert(po);
+            } else {
+                po = converter.updatePo(score, existing);
+                affected = mapper.updateById(po);
+            }
+            requireAffected(affected, "save score");
             return converter.toDomain(po);
+        } catch (DataIntegrityViolationException failure) {
+            throw validator.translate("save score", failure);
         }
-        catch (DataIntegrityViolationException failure) { throw validator.translate("save score", failure); }
     }
+
+    @Override
     public Optional<Score> findByExamIdAndId(ExamId examId, long id) {
-        return repository.findByExamIdAndId(examId.value(), id).map(converter::toDomain);
+        return Optional.ofNullable(mapper.selectByExamIdAndId(examId.value(), id))
+                .map(converter::toDomain);
     }
+
+    @Override
     public boolean existsByExamIdAndStudentId(ExamId id, long studentId) {
-        return repository.countByExamIdAndStudentId(id.value(), studentId) > 0;
+        return mapper.countByExamIdAndStudentId(id.value(), studentId) > 0;
     }
+
+    @Override
     public Page<Score> findPageByExamId(ExamId id, int currentPage, int pageSize) {
-        var pageable = PageRequest.of(Math.max(1, currentPage) - 1, pageSize,
-                Sort.by(Sort.Order.desc("createdAt"), Sort.Order.asc("id")));
-        var page = repository.findByExamId(id.value(), pageable);
-        return Page.of(page.getContent().stream().map(converter::toDomain).toList(),
-                currentPage, page.getTotalPages(), pageSize, page.getTotalElements());
+        long offset = (long) (Math.max(1, currentPage) - 1) * pageSize;
+        var records = mapper.selectPageByExamId(id.value(), offset, pageSize).stream()
+                .map(converter::toDomain)
+                .toList();
+        long totalCount = mapper.countByExamId(id.value());
+        int totalPages = pageSize <= 0 ? 0 : (int) ((totalCount + pageSize - 1) / pageSize);
+        return Page.of(records, currentPage, totalPages, pageSize, totalCount);
     }
-    private ScorePo persist(ScorePo po) {
-        entityManager.persist(po);
-        return po;
+
+    private static void requireAffected(int affected, String operation) {
+        if (affected != 1) {
+            throw new IllegalStateException(operation + " affected " + affected + " rows");
+        }
     }
 }

@@ -4,41 +4,34 @@
 package ${package}.infrastructure.course.repo.po;
 
 import java.time.LocalDateTime;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
-@Entity
-@Table(name = "course")
+@TableName("course")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class CoursePo {
 
-    @Id
-    @Column(name = "id", nullable = false, length = 64)
+    @TableId(value = "id", type = IdType.INPUT)
     private Long id;
 
-    @Column(name = "code", nullable = false, length = 96)
     private String code;
 
-    @Column(name = "name", nullable = false, length = 128)
     private String name;
 
-    @Column(name = "credit", nullable = false)
     private int credit;
 
-    @Column(name = "status", nullable = false, length = 32)
     private String status;
 
-    @Column(name = "created_at", nullable = false)
+    @TableField("created_at")
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false)
+    @TableField("updated_at")
     private LocalDateTime updatedAt;
 
     public Long getId() {

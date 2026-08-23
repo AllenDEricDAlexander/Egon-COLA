@@ -6,7 +6,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import javax.sql.DataSource;
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -16,24 +15,23 @@ import org.springframework.core.io.ClassPathResource;
 class EvaluationDataSourceModeTest {
 
     @Test
-    void shouldProvideFinalMigrationsWithGlobalDailySequenceAndHeaders() throws Exception {
+    void shouldProvideManualSqlWithBigintHeaders() throws Exception {
         List<String> resources = List.of(
-                "db/migration/sharding/master-data/"
-                        + "V20260726_001__init_evaluation_master_data_schema.sql",
-                "db/migration/sharding/shard/"
-                        + "V20260726_002__init_evaluation_sharded_schema.sql");
+                "db/manual/postgresql/master-data/"
+                        + "001__create_evaluation_master_data_schema.sql",
+                "db/manual/postgresql/shard/"
+                        + "002__create_evaluation_sharded_schema.sql");
 
         for (String resource : resources) {
             String sql = new ClassPathResource(resource)
                     .getContentAsString(StandardCharsets.UTF_8);
             assertThat(sql)
-                    .startsWith("-- 变更内容：")
-                    .contains("\n-- 影响范围：")
-                    .contains("\n-- 兼容性说明：");
+                    .contains("BIGINT")
+                    .doesNotContainIgnoringCase("flyway", "uuid");
         }
         assertThat(resources)
                 .extracting(path -> path.substring(
-                        path.indexOf('V') + 10, path.indexOf("__")))
+                        path.lastIndexOf('/') + 1, path.indexOf("__")))
                 .containsExactly("001", "002");
     }
 
@@ -57,7 +55,6 @@ class EvaluationDataSourceModeTest {
                     .isEqualTo("SHARDING");
             assertThat(context.getBean(DataSource.class).getClass().getName())
                     .contains("ShardingSphereDataSource");
-            assertThat(context.getBeansOfType(Flyway.class)).isEmpty();
         }
     }
 
@@ -73,10 +70,6 @@ class EvaluationDataSourceModeTest {
                     .containsExactly("test");
             assertThat(context.getBean(DataSource.class).getClass().getName())
                     .contains("ShardingSphereDataSource");
-            assertThat(context.getBeansOfType(Flyway.class)).isEmpty();
-            assertThat(context.getBean(
-                            jakarta.persistence.EntityManagerFactory.class))
-                    .isNotNull();
         }
     }
 

@@ -7,9 +7,8 @@ import ${package}.domain.course.entities.CourseSchedule;
 import ${package}.domain.course.repos.CourseScheduleRepository;
 import ${package}.domain.course.vos.CourseId;
 import ${package}.infrastructure.course.repo.converter.CourseScheduleConverter;
-import ${package}.infrastructure.course.repo.jpa.CourseScheduleJpaRepository;
+import ${package}.infrastructure.course.repo.mapper.CourseScheduleMapper;
 import ${package}.infrastructure.course.repo.po.CourseSchedulePo;
-import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -19,32 +18,38 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 @RequiredArgsConstructor
 public class CourseScheduleRepositoryImpl implements CourseScheduleRepository {
-    private final CourseScheduleJpaRepository repository;
+
+    private final CourseScheduleMapper mapper;
     private final CourseScheduleConverter converter;
-    private final EntityManager entityManager;
 
     @Override
     @Transactional
     public CourseSchedule save(CourseSchedule schedule) {
-        CourseSchedulePo po = repository.findByCourseIdAndId(
-                        schedule.getCourseId().value(), schedule.getId())
-                .map(existing -> converter.updatePo(schedule, existing))
-                .orElseGet(() -> persist(converter.toPo(schedule)));
-        repository.flush();
+        CourseSchedulePo existing = mapper.selectByCourseIdAndId(
+                schedule.getCourseId().value(), schedule.getId());
+        CourseSchedulePo po;
+        int affected;
+        if (existing == null) {
+            po = converter.toPo(schedule);
+            affected = mapper.insert(po);
+        } else {
+            po = converter.updatePo(schedule, existing);
+            affected = mapper.updateById(po);
+        }
+        requireAffected(affected, "save course schedule");
         return converter.toDomain(po);
     }
 
     @Override
     public List<CourseSchedule> findOverlapping(
             CourseId courseId, long classId, Instant startsAt, Instant endsAt) {
-        return repository
-                .findByCourseIdAndClassIdAndStartsAtLessThanAndEndsAtGreaterThan(
-                        courseId.value(), classId, endsAt, startsAt)
+        return mapper.selectOverlapping(courseId.value(), classId, endsAt, startsAt)
                 .stream().map(converter::toDomain).toList();
     }
 
-    private CourseSchedulePo persist(CourseSchedulePo po) {
-        entityManager.persist(po);
-        return po;
+    private static void requireAffected(int affected, String operation) {
+        if (affected != 1) {
+            throw new IllegalStateException(operation + " affected " + affected + " rows");
+        }
     }
 }

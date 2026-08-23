@@ -1,17 +1,8 @@
 #set( $symbol_dollar = '$' )
 spring:
-  flyway:
-    enabled: ${symbol_dollar}{FLYWAY_ENABLED:true}
-    clean-disabled: false
-    validate-on-migrate: true
-    validate-migration-naming: true
-  jpa:
-    hibernate:
-      # ShardingSphere does not load complete metadata from the H2 route-probe stores.
-      # Flyway schema parity and routing are verified by dedicated integration tests.
-      ddl-auto: none
-    open-in-view: false
-    show-sql: false
+  sql:
+    init:
+      mode: never
 
 app:
   datasource:
@@ -40,17 +31,6 @@ app:
         jdbc-url: ${symbol_dollar}{EVALUATION_SHARDING_SHARD_1_URL:jdbc:h2:mem:${rootArtifactId}-test-shard-1;MODE=PostgreSQL;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
         username: ${symbol_dollar}{EVALUATION_SHARDING_USERNAME:sa}
         password: "${symbol_dollar}{EVALUATION_SHARDING_PASSWORD:}"
-    flyway:
-      targets:
-        - data-source-name: master_data
-          locations:
-            - classpath:db/migration/sharding/master-data
-        - data-source-name: shard_0
-          locations:
-            - classpath:db/migration/sharding/shard
-        - data-source-name: shard_1
-          locations:
-            - classpath:db/migration/sharding/shard
   integrations:
     organization:
       enabled: false
