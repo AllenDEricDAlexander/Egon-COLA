@@ -11,7 +11,7 @@ import org.springframework.boot.context.properties.source.MapConfigurationProper
 class ShardingDataSourcePropertiesTest {
 
     @Test
-    void shouldBindPhysicalDataSourcesRoutingAndFlywayTargets() {
+    void shouldBindPhysicalDataSourcesAndRouting() {
         Map<String, Object> values = Map.ofEntries(
                 Map.entry("app.sharding.config", "classpath:sharding/rules.yml"),
                 Map.entry("app.sharding.routing.node-count", "4"),
@@ -28,13 +28,7 @@ class ShardingDataSourcePropertiesTest {
                         "app.sharding.physical-data-sources[0].jdbc-url",
                         "jdbc:h2:mem:master-data"),
                 Map.entry("app.sharding.physical-data-sources[0].username", "sa"),
-                Map.entry("app.sharding.physical-data-sources[0].password", "secret"),
-                Map.entry(
-                        "app.sharding.flyway.targets[0].data-source-name",
-                        "master_data"),
-                Map.entry(
-                        "app.sharding.flyway.targets[0].locations[0]",
-                        "classpath:db/migration/sharding/master-data"));
+                Map.entry("app.sharding.physical-data-sources[0].password", "secret"));
 
         ShardingDataSourceProperties properties = new Binder(
                         new MapConfigurationPropertySource(values))
@@ -50,8 +44,5 @@ class ShardingDataSourcePropertiesTest {
                             .isEqualTo(ShardingDataSourceProperties.DataSourceRole.PRIMARY);
                     assertThat(dataSource.toString()).doesNotContain("secret");
                 });
-        assertThat(properties.flyway().targets()).singleElement()
-                .satisfies(target -> assertThat(target.locations())
-                        .containsExactly("classpath:db/migration/sharding/master-data"));
     }
 }

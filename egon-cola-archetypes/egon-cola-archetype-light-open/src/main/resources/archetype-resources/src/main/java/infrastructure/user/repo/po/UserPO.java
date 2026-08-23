@@ -1,38 +1,32 @@
 package ${package}.infrastructure.user.repo.po;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.IdType;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 
-@Entity
-@Table(name = "users")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@TableName("users")
+@NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Setter
 public class UserPO {
-    @Id
-    @Column(length = 36)
+    @TableId(value = "id", type = IdType.INPUT)
     private Long id;
-    @Column(name = "external_id", nullable = false, unique = true)
+    @TableField("external_id")
     private String externalId;
-    @Column(nullable = false)
+    @TableField("name")
     private String name;
-    @Column(nullable = false, unique = true)
+    @TableField("email")
     private String email;
-    @Column(nullable = false)
+    @TableField("status")
     private String status;
-    @Column(name = "created_at", nullable = false)
+    @TableField("created_at")
     private Instant createdAt;
-
-    public Long getId() { return id; }
-    public String getExternalId() { return externalId; }
-    public String getName() { return name; }
-    public String getEmail() { return email; }
-    public String getStatus() { return status; }
-    public Instant getCreatedAt() { return createdAt; }
 }

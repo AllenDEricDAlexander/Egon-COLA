@@ -8,11 +8,11 @@ import ${package}.domain.teaching.vos.CourseSchedule;
 import ${package}.domain.teaching.vos.SchoolClassId;
 import ${package}.infrastructure.teaching.repo.converter.CoursePOConverter;
 import ${package}.infrastructure.teaching.repo.converter.SchoolClassPOConverter;
-import ${package}.infrastructure.teaching.repo.jpa.ClassCourseScheduleJpaRepository;
-import ${package}.infrastructure.teaching.repo.jpa.CourseJpaRepository;
-import ${package}.infrastructure.teaching.repo.jpa.SchoolClassJpaRepository;
+import ${package}.infrastructure.teaching.repo.mapper.ClassCourseScheduleMapper;
+import ${package}.infrastructure.teaching.repo.mapper.CourseMapper;
+import ${package}.infrastructure.teaching.repo.mapper.SchoolClassMapper;
 import ${package}.infrastructure.teaching.repo.po.ClassCourseSchedulePO;
-import jakarta.persistence.EntityManager;
+import ${package}.infrastructure.teaching.repo.po.CoursePO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,26 +24,30 @@ import top.egon.cola.component.common.id.generator.LongIdGenerator;
 @Repository("schoolClassRepository")
 @RequiredArgsConstructor
 public class SchoolClassRepositoryImpl implements SchoolClassRepository {
-    private final SchoolClassJpaRepository schoolClassJpaRepository;
-    private final CourseJpaRepository courseJpaRepository;
-    private final ClassCourseScheduleJpaRepository scheduleJpaRepository;
+    private final SchoolClassMapper schoolClassMapper;
+    private final CourseMapper courseMapper;
+    private final ClassCourseScheduleMapper scheduleMapper;
     private final SchoolClassPOConverter schoolClassConverter;
     private final CoursePOConverter courseConverter;
     private final LongIdGenerator idGenerator;
-    private final EntityManager entityManager;
 
     @Override
     public SchoolClass save(SchoolClass schoolClass) {
-        return schoolClassConverter.toDomain(
-                schoolClassJpaRepository.save(schoolClassConverter.toPO(schoolClass)));
+        var po = schoolClassConverter.toPO(schoolClass);
+        int affected = schoolClassMapper.selectById(po.getId()) == null
+                ? schoolClassMapper.insert(po)
+                : schoolClassMapper.updateById(po);
+        requireAffected(affected, "school class");
+        return schoolClassConverter.toDomain(po);
     }
 
     @Override
     public Optional<SchoolClassAggregate> findAggregateById(SchoolClassId schoolClassId) {
-        return schoolClassJpaRepository.findById(schoolClassId.value()).map(schoolClassPO -> {
+        return Optional.ofNullable(schoolClassMapper.selectById(schoolClassId.value()))
+                .map(schoolClassPO -> {
             SchoolClassAggregate aggregate = new SchoolClassAggregate(
                     schoolClassConverter.toDomain(schoolClassPO));
-            scheduleJpaRepository.findBySchoolClassIdOrderByStartsAt(schoolClassId.value())
+            scheduleMapper.findBySchoolClassIdOrderByStartsAt(schoolClassId.value())
                     .forEach(schedulePO -> restoreSchedule(aggregate, schedulePO));
             return aggregate;
         });
@@ -54,26 +58,36 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
     public void saveAggregate(SchoolClassAggregate aggregate) {
         save(aggregate.schoolClass());
         aggregate.schedules().forEach(schedule -> {
-            Course course = courseJpaRepository.findByCourseCode(schedule.courseCode().value())
-                    .map(courseConverter::toDomain)
-                    .orElseThrow(() -> new IllegalStateException("scheduled course not found"));
-            entityManager.persist(new ClassCourseSchedulePO(
+            CoursePO coursePO = courseMapper.findByCourseCode(schedule.courseCode().value());
+            if (coursePO == null) {
+                throw new IllegalStateException("scheduled course not found");
+            }
+            Course course = courseConverter.toDomain(coursePO);
+            requireAffected(scheduleMapper.insertSchedule(new ClassCourseSchedulePO(
                     idGenerator.nextLongId(),
                     aggregate.schoolClass().id().value(),
                     course.id(),
                     schedule.startsAt(),
                     schedule.endsAt(),
-                    Instant.now()));
+                    Instant.now())), "class course schedule");
         });
-        entityManager.flush();
     }
 
     private void restoreSchedule(
             SchoolClassAggregate aggregate, ClassCourseSchedulePO schedulePO) {
-        Course course = courseJpaRepository.findById(schedulePO.getCourseId())
-                .map(courseConverter::toDomain)
-                .orElseThrow(() -> new IllegalStateException("scheduled course not found"));
+        CoursePO coursePO = courseMapper.selectById(schedulePO.getCourseId());
+        if (coursePO == null) {
+            throw new IllegalStateException("scheduled course not found");
+        }
+        Course course = courseConverter.toDomain(coursePO);
         aggregate.schedule(course, new CourseSchedule(
                 course.code(), schedulePO.getStartsAt(), schedulePO.getEndsAt()));
+    }
+
+    private static void requireAffected(int affected, String operation) {
+        if (affected != 1) {
+            throw new IllegalStateException(operation + " persistence affected " + affected
+                    + " rows");
+        }
     }
 }

@@ -1,29 +1,22 @@
 package ${package}.start;
 
 import org.apache.dubbo.config.spring.context.annotation.EnableDubbo;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
-import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 @SpringBootApplication(
-        scanBasePackages = "${package}",
-        exclude = FlywayAutoConfiguration.class)
+        scanBasePackages = "${package}")
 @EnableDubbo(scanBasePackages = {
         "${package}.adapter.user.rpc",
         "${package}.adapter.teaching.rpc"
 })
-@EnableJpaRepositories(basePackages = {
-        "${package}.infrastructure.user.repo.jpa",
-        "${package}.infrastructure.teaching.repo.jpa"
-}, enableDefaultTransactions = false)
-@EntityScan(basePackages = {
-        "${package}.infrastructure.user.repo.po",
-        "${package}.infrastructure.teaching.repo.po"
+@MapperScan(basePackages = {
+        "${package}.infrastructure.user.repo.mapper",
+        "${package}.infrastructure.teaching.repo.mapper"
 })
 public class StudentManagementApplication {
 

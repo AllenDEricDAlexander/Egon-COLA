@@ -1,4 +1,4 @@
 /**
- * Teaching Domain repository implementations backed by JPA.
+ * Teaching Domain repository implementations backed by MyBatis Mapper contracts.
  */
 package ${package}.infrastructure.teaching.repo.impl;

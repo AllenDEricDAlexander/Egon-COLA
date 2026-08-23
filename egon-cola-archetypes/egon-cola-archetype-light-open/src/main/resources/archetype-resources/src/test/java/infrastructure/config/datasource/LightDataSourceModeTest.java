@@ -6,18 +6,15 @@ import ${package}.infrastructure.teaching.repo.po.ClassCourseSchedulePO;
 import ${package}.infrastructure.teaching.service.impl.CourseDomainServiceImpl;
 import ${package}.infrastructure.teaching.service.impl.SchoolClassDomainServiceImpl;
 import ${package}.infrastructure.user.service.impl.UserDomainServiceImpl;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import javax.sql.DataSource;
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.core.io.ClassPathResource;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 class LightDataSourceModeTest {
@@ -66,23 +63,13 @@ class LightDataSourceModeTest {
     }
 
     @Test
-    void shouldProvideFinalMigrationsWithGlobalDailySequenceAndHeaders() throws Exception {
-        List<String> resources = List.of(
-                "db/migration/sharding/master-data/"
-                        + "V20260726_001__init_light_master_data_schema.sql",
-                "db/migration/sharding/shard/"
-                        + "V20260726_002__init_light_sharded_schema.sql");
-
-        for (String resource : resources) {
-            String sql = new ClassPathResource(resource)
-                    .getContentAsString(StandardCharsets.UTF_8);
-            assertThat(sql)
-                    .startsWith("-- 变更内容：")
-                    .contains("\n-- 影响范围：")
-                    .contains("\n-- 兼容性说明：");
-        }
-        assertThat(resources).extracting(path -> path.substring(path.indexOf('V') + 10, path.indexOf("__")))
-                .containsExactly("001", "002");
+    void shouldKeepSchemaProvisioningOutsideRuntimeResources() {
+        assertThat(getClass().getClassLoader()
+                .getResource("db/manual/postgresql/master-data/001__create_light_master_data_schema.sql"))
+                .isNotNull();
+        assertThat(getClass().getClassLoader()
+                .getResource("db/migration/sharding/master-data/V20260726_001__init_light_master_data_schema.sql"))
+                .isNull();
     }
 
     @Test
@@ -92,7 +79,7 @@ class LightDataSourceModeTest {
     }
 
     @Test
-    void shouldDefaultToShardingSphereWithoutLogicalFlywayBean() {
+    void shouldDefaultToShardingSphereWithoutSchemaUpdaterBean() {
         try (ConfigurableApplicationContext context = new SpringApplicationBuilder(
                         ${package}.start.StudentManagementApplication.class)
                 .web(WebApplicationType.NONE)
@@ -105,7 +92,8 @@ class LightDataSourceModeTest {
                     .isEqualTo("SHARDING");
             assertThat(context.getBean(DataSource.class).getClass().getName())
                     .contains("ShardingSphereDataSource");
-            assertThat(context.getBeansOfType(Flyway.class)).isEmpty();
+            assertThat(context.getBeansOfType(org.apache.ibatis.session.SqlSessionFactory.class))
+                    .hasSize(1);
         }
     }
 
@@ -121,10 +109,8 @@ class LightDataSourceModeTest {
                     .containsExactly("test");
             assertThat(context.getBean(DataSource.class).getClass().getName())
                     .contains("ShardingSphereDataSource");
-            assertThat(context.getBeansOfType(Flyway.class)).isEmpty();
-            assertThat(context.getBean(
-                            jakarta.persistence.EntityManagerFactory.class))
-                    .isNotNull();
+            assertThat(context.getBeansOfType(org.apache.ibatis.session.SqlSessionFactory.class))
+                    .hasSize(1);
         }
     }
 

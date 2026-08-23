@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="${package}.infrastructure.teaching.repo.mapper.CourseMapper">
+    <resultMap id="CourseResultMap" type="${package}.infrastructure.teaching.repo.po.CoursePO">
+        <id property="id" column="id" jdbcType="BIGINT"/>
+        <result property="courseCode" column="course_code" jdbcType="VARCHAR"/>
+        <result property="name" column="name" jdbcType="VARCHAR"/>
+        <result property="status" column="status" jdbcType="VARCHAR"/>
+        <result property="createdAt" column="created_at" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <select id="findByCourseCode" resultMap="CourseResultMap">
+        SELECT id, course_code, name, status, created_at
+        FROM courses
+        WHERE course_code = #{courseCode,jdbcType=VARCHAR}
+    </select>
+</mapper>

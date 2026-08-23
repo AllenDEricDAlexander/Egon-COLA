@@ -1,36 +1,32 @@
 package ${package}.infrastructure.teaching.repo.po;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
-import lombok.AccessLevel;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.IdType;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(
-        name = "class_course_schedules",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_class_course_start",
-                columnNames = {"school_class_id", "course_id", "starts_at"}))
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@TableName("class_course_schedules")
+@NoArgsConstructor
+@Getter
+@Setter
 public class ClassCourseSchedulePO {
-    @Id
-    @Column(length = 36)
+    @TableId(value = "id", type = IdType.INPUT)
     private Long id;
-    @Column(name = "school_class_id", nullable = false, length = 36)
+    @TableField("school_class_id")
     private Long schoolClassId;
-    @Column(name = "course_id", nullable = false, length = 36)
+    @TableField("course_id")
     private Long courseId;
-    @Column(name = "starts_at", nullable = false)
+    @TableField("starts_at")
     private LocalDateTime startsAt;
-    @Column(name = "ends_at", nullable = false)
+    @TableField("ends_at")
     private LocalDateTime endsAt;
-    @Column(name = "created_at", nullable = false)
+    @TableField("created_at")
     private Instant createdAt;
 
     public ClassCourseSchedulePO(
@@ -48,10 +44,4 @@ public class ClassCourseSchedulePO {
         this.createdAt = createdAt;
     }
 
-    public Long getId() { return id; }
-    public Long getSchoolClassId() { return schoolClassId; }
-    public Long getCourseId() { return courseId; }
-    public LocalDateTime getStartsAt() { return startsAt; }
-    public LocalDateTime getEndsAt() { return endsAt; }
-    public Instant getCreatedAt() { return createdAt; }
 }

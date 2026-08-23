@@ -1,7 +1,6 @@
 package ${package}.infrastructure.config.datasource;
 
 import javax.sql.DataSource;
-import org.springframework.boot.autoconfigure.flyway.FlywayProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,10 +12,7 @@ import org.springframework.core.io.ResourceLoader;
  * Creates the application's only logical data source through ShardingSphere.
  */
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties({
-    DataSourceModeProperties.class,
-    FlywayProperties.class
-})
+@EnableConfigurationProperties(DataSourceModeProperties.class)
 public class ShardingSphereDataSourceConfiguration {
 
     @Bean
@@ -50,29 +46,21 @@ public class ShardingSphereDataSourceConfiguration {
     }
 
     @Bean
-    PhysicalDataSourceFlywayMigrator physicalDataSourceFlywayMigrator() {
-        return new PhysicalDataSourceFlywayMigrator();
-    }
-
-    @Bean
     ShardingDataSourceBootstrapper shardingDataSourceBootstrapper(
             PhysicalDataSourceFactory physicalDataSourceFactory,
             ShardingYamlLoader shardingYamlLoader,
-            ShardingTopologyValidator shardingTopologyValidator,
-            PhysicalDataSourceFlywayMigrator physicalDataSourceFlywayMigrator) {
+            ShardingTopologyValidator shardingTopologyValidator) {
         return new ShardingDataSourceBootstrapper(
                 physicalDataSourceFactory,
                 shardingYamlLoader,
-                shardingTopologyValidator,
-                physicalDataSourceFlywayMigrator);
+                shardingTopologyValidator);
     }
 
     @Bean
     @Primary
     DataSource dataSource(
             ShardingDataSourceBootstrapper bootstrapper,
-            ShardingDataSourceProperties properties,
-            FlywayProperties flywayProperties) {
-        return bootstrapper.createDataSource(properties, flywayProperties);
+            ShardingDataSourceProperties properties) {
+        return bootstrapper.createDataSource(properties);
     }
 }

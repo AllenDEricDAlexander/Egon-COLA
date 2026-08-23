@@ -1,9 +1,9 @@
--- 变更内容：初始化 Light 模板中通过 NoneShardingStrategy 路由的主数据表结构。
--- 影响范围：master_data 逻辑数据源内的 users、roles、permissions、user_roles、role_permissions、courses 表及其约束。
--- 兼容性说明：本脚手架尚未执行迁移，不涉及历史数据、在线迁移或回滚兼容。
+-- 变更内容：初始化 Light Open 主数据表与 BIGINT 技术主键。
+-- 影响范围：master_data primary 内的 users、roles、permissions、user_roles、role_permissions、courses。
+-- 兼容性说明：这是新 open schema 的首次建库脚本，不导入旧模板数据，不执行在线转换。
 
 CREATE TABLE users (
-    id VARCHAR(36) PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     external_id VARCHAR(64) NOT NULL,
     name VARCHAR(120) NOT NULL,
     email VARCHAR(160) NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE permissions (
 );
 
 CREATE TABLE user_roles (
-    user_id VARCHAR(36) NOT NULL,
+    user_id BIGINT NOT NULL,
     role_code VARCHAR(64) NOT NULL,
     assigned_at TIMESTAMP NOT NULL,
     PRIMARY KEY (user_id, role_code),
@@ -47,7 +47,7 @@ CREATE TABLE role_permissions (
 );
 
 CREATE TABLE courses (
-    id VARCHAR(36) PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
     course_code VARCHAR(64) NOT NULL,
     name VARCHAR(120) NOT NULL,
     status VARCHAR(32) NOT NULL,

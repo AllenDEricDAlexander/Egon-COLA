@@ -1,16 +1,8 @@
 #set( $symbol_dollar = '$' )
 spring:
-  flyway:
-    enabled: ${symbol_dollar}{FLYWAY_ENABLED:true}
-    baseline-on-migrate: ${symbol_dollar}{FLYWAY_BASELINE_ON_MIGRATE:false}
-    validate-on-migrate: true
-    validate-migration-naming: true
-    clean-disabled: true
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
-    show-sql: false
+  sql:
+    init:
+      mode: never
 
 management:
   endpoint:

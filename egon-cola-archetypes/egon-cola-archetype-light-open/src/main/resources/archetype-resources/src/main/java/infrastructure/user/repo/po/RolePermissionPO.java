@@ -1,36 +1,28 @@
 package ${package}.infrastructure.user.repo.po;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.IdClass;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
 
-@Entity
-@Table(name = "role_permissions")
-@IdClass(RolePermissionPO.Key.class)
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@TableName("role_permissions")
+@NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Setter
 public class RolePermissionPO {
-    @Id
-    @Column(name = "role_code")
+    @TableField("role_code")
     private String roleCode;
-    @Id
-    @Column(name = "permission_code")
+    @TableField("permission_code")
     private String permissionCode;
-    @Column(name = "granted_at", nullable = false)
+    @TableField("granted_at")
     private Instant grantedAt;
-
-    public String getRoleCode() { return roleCode; }
-    public String getPermissionCode() { return permissionCode; }
-    public Instant getGrantedAt() { return grantedAt; }
 
     @NoArgsConstructor
     @AllArgsConstructor

@@ -1,31 +1,28 @@
 package ${package}.infrastructure.user.repo.po;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.IdType;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 
-@Entity
-@Table(name = "roles")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@TableName("roles")
+@NoArgsConstructor
 @AllArgsConstructor
+@Getter
+@Setter
 public class RolePO {
-    @Id
+    @TableId(value = "code", type = IdType.INPUT)
     private String code;
-    @Column(nullable = false)
+    @TableField("name")
     private String name;
-    @Column(nullable = false)
+    @TableField("status")
     private String status;
-    @Column(name = "created_at", nullable = false)
+    @TableField("created_at")
     private Instant createdAt;
-
-    public String getCode() { return code; }
-    public String getName() { return name; }
-    public String getStatus() { return status; }
-    public Instant getCreatedAt() { return createdAt; }
 }

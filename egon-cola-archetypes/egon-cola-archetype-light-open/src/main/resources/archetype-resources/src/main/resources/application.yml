@@ -2,6 +2,9 @@
 spring:
   profiles:
     default: dev
+  sql:
+    init:
+      mode: never
   config:
     import:
       - classpath:datasource/sharding.yml
@@ -80,6 +83,11 @@ management:
     livenessstate:
       enabled: true
 
+mybatis-plus:
+  mapper-locations: classpath*:/mybatis/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
 dubbo:
   application:
     name: ${symbol_dollar}{spring.application.name}
@@ -97,7 +105,7 @@ logging:
     path: ${symbol_dollar}{LOG_HOME:./logs}
   group:
     web-stack: org.springframework.web,org.springframework.http,org.apache.catalina,org.apache.coyote
-    persistence: org.mybatis,org.mybatis.spring,com.baomidou.mybatisplus,org.springframework.jdbc,org.hibernate.SQL
+    persistence: org.mybatis,org.mybatis.spring,com.baomidou.mybatisplus,org.springframework.jdbc
     rpc: org.apache.dubbo,io.grpc
     messaging: org.springframework.kafka,org.springframework.amqp
   level:

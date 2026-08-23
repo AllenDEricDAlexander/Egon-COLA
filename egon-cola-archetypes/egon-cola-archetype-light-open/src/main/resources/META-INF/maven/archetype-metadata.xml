@@ -89,6 +89,7 @@
         <include>**/*.sql</include>
         <include>**/*.xml</include>
         <include>**/*.graphqls</include>
+        <include>**/*.md</include>
         <include>META-INF/**</include>
       </includes>
     </fileSet>
