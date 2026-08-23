@@ -106,7 +106,7 @@ class BytecodeAutoConfigurationTest {
                 "FAILED",
                 BridgeProtocol.MAJOR,
                 BridgeProtocol.MINOR,
-                Set.of(BridgeCapability.ACCESS_GUARD),
+                Set.of(BridgeCapability.EXECUTOR),
                 Set.of(),
                 0,
                 1,

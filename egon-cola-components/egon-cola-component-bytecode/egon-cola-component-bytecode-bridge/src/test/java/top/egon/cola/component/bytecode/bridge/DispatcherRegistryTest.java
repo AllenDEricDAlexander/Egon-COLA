@@ -17,8 +17,10 @@ class DispatcherRegistryTest {
     void rejectsDuplicateLiveDispatcherAndAllowsRegistrationAfterClose() {
         ClassLoader loader = new ClassLoader() {
         };
-        TestDispatcher first = new TestDispatcher(1, 0, Set.of(BridgeCapability.EXECUTOR));
-        TestDispatcher second = new TestDispatcher(1, 0, Set.of(BridgeCapability.EXECUTOR));
+        TestDispatcher first = new TestDispatcher(
+                BridgeProtocol.MAJOR, 0, Set.of(BridgeCapability.EXECUTOR));
+        TestDispatcher second = new TestDispatcher(
+                BridgeProtocol.MAJOR, 0, Set.of(BridgeCapability.EXECUTOR));
 
         DispatcherRegistration registration = DispatcherRegistry.register(loader, "runtime-1", first);
         assertThrows(IllegalStateException.class,
@@ -36,11 +38,14 @@ class DispatcherRegistryTest {
     void rejectsMajorMismatchAndNegotiatesCapabilitiesAcrossMinorVersions() {
         ClassLoader loader = new ClassLoader() {
         };
+        assertEquals(2, BridgeProtocol.MAJOR);
         assertThrows(IllegalArgumentException.class, () -> DispatcherRegistry.register(
-                loader, "runtime", new TestDispatcher(2, 0, Set.of(BridgeCapability.EXECUTOR))));
+                loader, "runtime", new TestDispatcher(
+                        BridgeProtocol.MAJOR + 1, 0, Set.of(BridgeCapability.EXECUTOR))));
 
         TestDispatcher newerMinor = new TestDispatcher(
-                1, 3, Set.of(BridgeCapability.EXECUTOR, BridgeCapability.OBSERVATION));
+                BridgeProtocol.MAJOR, 3,
+                Set.of(BridgeCapability.EXECUTOR, BridgeCapability.OBSERVATION));
         try (DispatcherRegistration ignored = DispatcherRegistry.register(
                 loader, "runtime", newerMinor)) {
             BridgeStatus status = DispatcherRegistry.status(loader);
@@ -66,7 +71,8 @@ class DispatcherRegistryTest {
         ClassLoader loader = new ClassLoader() {
         };
         DispatcherRegistry.register(loader, "runtime",
-                new TestDispatcher(1, 0, Set.of(BridgeCapability.EXECUTOR)));
+                new TestDispatcher(
+                        BridgeProtocol.MAJOR, 0, Set.of(BridgeCapability.EXECUTOR)));
         return new WeakReference<>(loader);
     }
 

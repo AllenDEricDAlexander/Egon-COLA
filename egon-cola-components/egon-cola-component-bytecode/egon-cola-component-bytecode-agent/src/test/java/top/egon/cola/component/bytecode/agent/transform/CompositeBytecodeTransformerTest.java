@@ -51,7 +51,7 @@ class CompositeBytecodeTransformerTest {
     @Test
     void marksFatalButLeavesClassLoadingToTheJvm() throws Exception {
         AgentConfiguration configuration = new AgentConfigurationLoader().load(
-                "enabled=true,features=access-guard,include=application.*," +
+                "enabled=true,features=executor,include=application.*," +
                         "failure-policy=mark-fatal");
         AgentStateStore stateStore = new AgentStateStore("test", 4);
         stateStore.start(configuration);

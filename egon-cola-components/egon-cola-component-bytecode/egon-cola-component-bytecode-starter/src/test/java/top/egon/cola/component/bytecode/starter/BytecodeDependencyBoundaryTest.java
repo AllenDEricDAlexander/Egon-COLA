@@ -20,7 +20,7 @@ class BytecodeDependencyBoundaryTest {
         assertFalse(pom.contains("egon-cola-component-dynamic-thread-pool-starter"));
         assertFalse(pom.contains("redisson"));
         assertFalse(pom.contains("spring-web"));
-        assertTrue(optional(pom, "egon-cola-component-access-guard-starter"));
+        assertFalse(optional(pom, "egon-cola-component-access-guard-starter"));
         assertTrue(optional(pom, "egon-cola-component-method-extension-starter"));
     }
 

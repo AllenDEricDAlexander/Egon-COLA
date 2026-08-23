@@ -26,38 +26,4 @@ public final class EgonPolicyBridge {
         }
     }
 
-    public static Object invokeGuarded(BridgeGuardedInvocation invocation) throws Throwable {
-        BytecodeRuntimeDispatcher dispatcher = DispatcherRegistry
-                .dispatcher(invocation.declaringClass(), BridgeCapability.ACCESS_GUARD)
-                .orElse(null);
-        return dispatcher == null
-                ? invocation.proceed() : dispatcher.invokeGuarded(invocation);
-    }
-
-    public static ConstructorGuardDecision guardConstructor(
-            Class<?> declaringClass,
-            long methodId,
-            Object[] arguments,
-            BridgeFailHint failHint
-    ) {
-        BridgeConstructorInvocation invocation = new BridgeConstructorInvocation(
-                declaringClass, methodId, arguments, failHint);
-        BytecodeRuntimeDispatcher dispatcher = DispatcherRegistry
-                .dispatcher(declaringClass, BridgeCapability.ACCESS_GUARD)
-                .orElse(null);
-        if (dispatcher == null) {
-            return failHint == BridgeFailHint.FAIL_CLOSED
-                    ? ConstructorGuardDecision.throwing(new IllegalStateException(
-                    "Access Guard constructor runtime is unavailable"))
-                    : ConstructorGuardDecision.allow();
-        }
-        try {
-            ConstructorGuardDecision decision = dispatcher.guardConstructor(invocation);
-            return decision == null ? ConstructorGuardDecision.allow() : decision;
-        } catch (Throwable failure) {
-            return failHint == BridgeFailHint.FAIL_CLOSED
-                    ? ConstructorGuardDecision.throwing(failure)
-                    : ConstructorGuardDecision.allow();
-        }
-    }
 }

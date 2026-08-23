@@ -30,7 +30,7 @@ class AgentConfigurationLoaderTest {
                 """);
         Properties system = new Properties();
         system.setProperty("egon.cola.bytecode.enabled", "false");
-        system.setProperty("egon.cola.bytecode.features", "access-guard");
+        system.setProperty("egon.cola.bytecode.features", "executor");
         system.setProperty("egon.cola.bytecode.include", "system.application.*");
         Map<String, String> environment = Map.of(
                 "EGON_COLA_BYTECODE_ENABLED", "false",
@@ -60,6 +60,13 @@ class AgentConfigurationLoaderTest {
         assertThrows(IllegalArgumentException.class,
                 () -> new AgentConfigurationLoader(new Properties(), Map.of())
                         .load("enabled=true,features=executor"));
+    }
+
+    @Test
+    void rejectsRemovedAccessGuardFeature() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new AgentConfigurationLoader(new Properties(), Map.of())
+                        .load("enabled=true,features=access-guard,include=application.*"));
     }
 
     @Test

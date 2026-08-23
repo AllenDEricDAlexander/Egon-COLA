@@ -46,12 +46,4 @@ public interface BytecodeRuntimeDispatcher {
     default InvocationDecision evaluateMethodExtension(BridgeMethodInvocation invocation) {
         return InvocationDecision.proceed();
     }
-
-    default Object invokeGuarded(BridgeGuardedInvocation invocation) throws Throwable {
-        return invocation.proceed();
-    }
-
-    default ConstructorGuardDecision guardConstructor(BridgeConstructorInvocation invocation) {
-        return ConstructorGuardDecision.allow();
-    }
 }

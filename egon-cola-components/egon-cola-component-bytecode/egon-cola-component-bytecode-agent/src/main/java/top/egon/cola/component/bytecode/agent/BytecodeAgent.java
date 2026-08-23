@@ -3,7 +3,6 @@ package top.egon.cola.component.bytecode.agent;
 import top.egon.cola.component.bytecode.agent.transform.CompositeBytecodeTransformer;
 import top.egon.cola.component.bytecode.bridge.BridgeCapability;
 import top.egon.cola.component.bytecode.core.enhance.ApplicationClassEnhancer;
-import top.egon.cola.component.bytecode.core.enhance.accessguard.AccessGuardMatcher;
 import top.egon.cola.component.bytecode.core.enhance.methodextension.MethodExtensionMatcher;
 import top.egon.cola.component.bytecode.core.enhance.observation.ObservationMatcher;
 
@@ -41,9 +40,7 @@ public final class BytecodeAgent {
                     configuration.features().contains(BridgeCapability.EXECUTOR),
                     observationMatcher,
                     configuration.methodExtensionEnabled()
-                            ? new MethodExtensionMatcher() : null,
-                    configuration.accessGuardEnabled()
-                            ? new AccessGuardMatcher() : null
+                            ? new MethodExtensionMatcher() : null
             );
             CompositeBytecodeTransformer transformer = new CompositeBytecodeTransformer(
                     new ClassNameFilter(configuration),
