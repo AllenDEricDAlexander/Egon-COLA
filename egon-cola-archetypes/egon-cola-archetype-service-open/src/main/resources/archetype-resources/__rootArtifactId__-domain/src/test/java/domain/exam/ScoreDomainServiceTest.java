@@ -24,25 +24,25 @@ class ScoreDomainServiceTest {
 
     @BeforeEach
     void setUp() {
-        Course course = Course.create("course-1", new CourseCode("MATH-101"), "Math", 3);
+        Course course = Course.create(1L, new CourseCode("MATH-101"), "Math", 3);
         exam = examService.createExam(
-                "exam-1", course, "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60));
-        paper = examService.attachPaper("paper-1", exam, "Paper", 100);
+                1L, course, "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60));
+        paper = examService.attachPaper(1L, exam, "Paper", 100);
         examService.publishExam(exam, paper);
     }
 
     @Test
     void shouldRejectDuplicateOrOutOfRangeScore() {
         assertThrows(EvaluationDomainException.class, () -> scoreService.recordScore(
-                "score-1", exam, paper, "student-1", 101, false));
+                1L, exam, paper, 1L, 101, false));
         assertThrows(EvaluationDomainException.class, () -> scoreService.recordScore(
-                "score-2", exam, paper, "student-1", 90, true));
+                2L, exam, paper, 1L, 90, true));
     }
 
     @Test
     void shouldRecordValidScore() {
         var score = scoreService.recordScore(
-                "score-1", exam, paper, "student-1", 90, false);
+                1L, exam, paper, 1L, 90, false);
 
         assertEquals(90, score.getPoints().value());
         assertEquals("RECORDED", score.getStatus().name());

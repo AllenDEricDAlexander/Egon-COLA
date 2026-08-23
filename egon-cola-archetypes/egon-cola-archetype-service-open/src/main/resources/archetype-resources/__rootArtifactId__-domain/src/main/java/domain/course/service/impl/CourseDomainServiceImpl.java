@@ -18,15 +18,15 @@ public final class CourseDomainServiceImpl implements CourseDomainService {
     private final CourseDomainValidator validator = new CourseDomainValidator();
 
     @Override
-    public Course createCourse(String id, CourseCode code, String name, int credit) {
+    public Course createCourse(long id, CourseCode code, String name, int credit) {
         return Course.create(id, code, name, credit);
     }
 
     @Override
     public CourseSchedule scheduleCourse(
-            String id,
+            long id,
             Course course,
-            String classId,
+            long classId,
             Instant startsAt,
             Instant endsAt,
             List<CourseSchedule> overlaps) {

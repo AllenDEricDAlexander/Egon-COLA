@@ -15,4 +15,11 @@ public class ExamApplicationValidator {
                     ApplicationErrorCode.VALIDATION_FAILED, field + " must not be blank");
         }
     }
+
+    public void positive(long value, String field) {
+        if (value <= 0) {
+            throw new ApplicationException(
+                    ApplicationErrorCode.VALIDATION_FAILED, field + " must be positive");
+        }
+    }
 }

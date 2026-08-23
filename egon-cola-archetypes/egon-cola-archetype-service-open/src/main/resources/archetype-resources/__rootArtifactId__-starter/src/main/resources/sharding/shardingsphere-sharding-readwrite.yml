@@ -39,11 +39,11 @@ rules:
         databaseStrategy:
           standard:
             shardingColumn: course_id
-            shardingAlgorithmName: uuid_v7_database_bucket
+            shardingAlgorithmName: snowflake_long_database_bucket
         tableStrategy:
           standard:
             shardingColumn: course_id
-            shardingAlgorithmName: uuid_v7_table_bucket
+            shardingAlgorithmName: snowflake_long_table_bucket
         auditStrategy:
           auditorNames:
             - sharding_key_required_auditor
@@ -53,11 +53,11 @@ rules:
         databaseStrategy:
           standard:
             shardingColumn: id
-            shardingAlgorithmName: uuid_v7_database_bucket
+            shardingAlgorithmName: snowflake_long_database_bucket
         tableStrategy:
           standard:
             shardingColumn: id
-            shardingAlgorithmName: uuid_v7_table_bucket
+            shardingAlgorithmName: snowflake_long_table_bucket
         auditStrategy:
           auditorNames:
             - sharding_key_required_auditor
@@ -67,11 +67,11 @@ rules:
         databaseStrategy:
           standard:
             shardingColumn: exam_id
-            shardingAlgorithmName: uuid_v7_database_bucket
+            shardingAlgorithmName: snowflake_long_database_bucket
         tableStrategy:
           standard:
             shardingColumn: exam_id
-            shardingAlgorithmName: uuid_v7_table_bucket
+            shardingAlgorithmName: snowflake_long_table_bucket
         auditStrategy:
           auditorNames:
             - sharding_key_required_auditor
@@ -81,11 +81,11 @@ rules:
         databaseStrategy:
           standard:
             shardingColumn: exam_id
-            shardingAlgorithmName: uuid_v7_database_bucket
+            shardingAlgorithmName: snowflake_long_database_bucket
         tableStrategy:
           standard:
             shardingColumn: exam_id
-            shardingAlgorithmName: uuid_v7_table_bucket
+            shardingAlgorithmName: snowflake_long_table_bucket
         auditStrategy:
           auditorNames:
             - sharding_key_required_auditor
@@ -93,19 +93,19 @@ rules:
     bindingTables:
       - exam,exam_paper,score
     shardingAlgorithms:
-      uuid_v7_database_bucket:
+      snowflake_long_database_bucket:
         type: CLASS_BASED
         props:
           strategy: STANDARD
-          algorithmClassName: ${package}.infrastructure.config.datasource.UuidV7BucketShardingAlgorithm
+          algorithmClassName: ${package}.infrastructure.config.datasource.SnowflakeLongShardingAlgorithm
           target: database
           node-count: ${symbol_dollar}{app.sharding.routing.node-count}
           node-map: ${symbol_dollar}{app.sharding.routing.node-map}
-      uuid_v7_table_bucket:
+      snowflake_long_table_bucket:
         type: CLASS_BASED
         props:
           strategy: STANDARD
-          algorithmClassName: ${package}.infrastructure.config.datasource.UuidV7BucketShardingAlgorithm
+          algorithmClassName: ${package}.infrastructure.config.datasource.SnowflakeLongShardingAlgorithm
           target: table
           node-count: ${symbol_dollar}{app.sharding.routing.node-count}
           node-map: ${symbol_dollar}{app.sharding.routing.node-map}

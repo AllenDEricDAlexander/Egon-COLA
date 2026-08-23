@@ -6,8 +6,8 @@ package ${package}.application.exam.result;
 import java.time.Instant;
 
 public record ExamDetailResult(
-        String id,
-        String courseId,
+        long id,
+        long courseId,
         String title,
         Instant startsAt,
         Instant endsAt,

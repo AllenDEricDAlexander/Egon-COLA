@@ -18,13 +18,13 @@ class ExamRepositoryTest {
     @Test
     void shouldRoundTripExamPersistenceModel() {
         Exam exam = new Exam(
-                new ExamId("exam-1"), new CourseId("course-1"), "Midterm",
+                new ExamId(1002L), new CourseId(1001L), "Midterm",
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), ExamStatus.DRAFT);
         ExamConverter converter = new ExamConverter();
 
         Exam restored = converter.toDomain(converter.toPo(exam));
 
-        assertEquals("exam-1", restored.getId().value());
-        assertEquals("course-1", restored.getCourseId().value());
+        assertEquals(1002L, restored.getId().value());
+        assertEquals(1001L, restored.getCourseId().value());
     }
 }

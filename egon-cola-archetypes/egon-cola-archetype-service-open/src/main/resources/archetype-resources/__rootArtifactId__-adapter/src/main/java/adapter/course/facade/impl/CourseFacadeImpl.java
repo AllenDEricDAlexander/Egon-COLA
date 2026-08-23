@@ -46,7 +46,7 @@ public class CourseFacadeImpl implements CourseFacade {
     }
     public SingleResponse<CourseResponse> getCourse(GetCourseRequest request) {
         try { validator.require(request); return SingleResponse.of(converter.toResponse(
-                courseManage.get(new GetCourseQuery(request.courseId())))); }
+                courseManage.get(new GetCourseQuery(parseId(request.courseId()))))); }
         catch (RuntimeException failure) { return exceptionHandler.toFailure(failure); }
     }
     public SingleResponse<PageResponse<CourseResponse>> pageCourses(PageCourseRequest request) {
@@ -56,5 +56,9 @@ public class CourseFacadeImpl implements CourseFacade {
             List<CourseResponse> records = page.records().stream().map(converter::toResponse).toList();
             return SingleResponse.of(PageResponse.of(records, page.currentPage(), page.totalPages(), page.pageSize(), page.totalCount()));
         } catch (RuntimeException failure) { return exceptionHandler.toFailure(failure); }
+    }
+
+    private static long parseId(String value) {
+        return Long.parseLong(value);
     }
 }

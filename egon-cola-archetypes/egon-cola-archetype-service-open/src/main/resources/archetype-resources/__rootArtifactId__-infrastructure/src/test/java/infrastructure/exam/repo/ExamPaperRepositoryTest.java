@@ -23,14 +23,14 @@ import static org.mockito.Mockito.when;
 class ExamPaperRepositoryTest {
     @Test void shouldRoundTripPaper() {
         var converter = new ExamPaperConverter();
-        var paper = new ExamPaper("paper-1", new ExamId("exam-1"), "Paper", 100, ExamPaperStatus.DRAFT);
+        var paper = new ExamPaper(1003L, new ExamId(1002L), "Paper", 100, ExamPaperStatus.DRAFT);
         assertEquals(100, converter.toDomain(converter.toPo(paper, Instant.EPOCH)).getTotalPoints());
     }
 
     @Test
     void shouldExposeExamAwarePointLookup() throws NoSuchMethodException {
         ExamPaperJpaRepository.class.getMethod(
-                "findByExamIdAndId", String.class, String.class);
+                "findByExamIdAndId", Long.class, Long.class);
     }
 
     @Test
@@ -41,8 +41,8 @@ class ExamPaperRepositoryTest {
                 jpaRepository, new ExamPaperConverter(),
                 new EvaluationPersistenceValidator(), entityManager);
         ExamPaper paper = new ExamPaper(
-                "paper-1", new ExamId("exam-1"), "Paper", 100, ExamPaperStatus.DRAFT);
-        when(jpaRepository.findByExamIdAndId("exam-1", "paper-1"))
+                1003L, new ExamId(1002L), "Paper", 100, ExamPaperStatus.DRAFT);
+        when(jpaRepository.findByExamIdAndId(1002L, 1003L))
                 .thenReturn(Optional.empty());
 
         repository.save(paper);

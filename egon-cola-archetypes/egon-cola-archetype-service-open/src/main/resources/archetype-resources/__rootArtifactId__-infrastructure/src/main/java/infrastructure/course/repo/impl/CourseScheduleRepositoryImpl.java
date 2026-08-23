@@ -36,7 +36,7 @@ public class CourseScheduleRepositoryImpl implements CourseScheduleRepository {
 
     @Override
     public List<CourseSchedule> findOverlapping(
-            CourseId courseId, String classId, Instant startsAt, Instant endsAt) {
+            CourseId courseId, long classId, Instant startsAt, Instant endsAt) {
         return repository
                 .findByCourseIdAndClassIdAndStartsAtLessThanAndEndsAtGreaterThan(
                         courseId.value(), classId, endsAt, startsAt)

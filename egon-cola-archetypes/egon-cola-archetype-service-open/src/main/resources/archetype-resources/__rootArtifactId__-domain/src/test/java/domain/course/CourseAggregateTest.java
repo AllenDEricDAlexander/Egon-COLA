@@ -21,23 +21,23 @@ class CourseAggregateTest {
     @Test
     void shouldRejectInvalidScheduleWindowAndBlankClass() {
         Course course = service.createCourse(
-                "course-1", new CourseCode("MATH-101"), "Math", 3);
+                1L, new CourseCode("MATH-101"), "Math", 3);
 
         assertThrows(EvaluationDomainException.class, () -> service.scheduleCourse(
-                "schedule-1", course, " ", Instant.EPOCH, Instant.EPOCH.plusSeconds(60), List.of()));
+                1L, course, 0L, Instant.EPOCH, Instant.EPOCH.plusSeconds(60), List.of()));
         assertThrows(EvaluationDomainException.class, () -> service.scheduleCourse(
-                "schedule-1", course, "class-1", Instant.EPOCH.plusSeconds(60), Instant.EPOCH, List.of()));
+                1L, course, 1L, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, List.of()));
     }
 
     @Test
     void shouldAllowHalfOpenAdjacentSchedules() {
         Course course = service.createCourse(
-                "course-1", new CourseCode("MATH-101"), "Math", 3);
+                1L, new CourseCode("MATH-101"), "Math", 3);
         var existing = service.scheduleCourse(
-                "schedule-1", course, "class-1", Instant.EPOCH, Instant.EPOCH.plusSeconds(60), List.of());
+                1L, course, 1L, Instant.EPOCH, Instant.EPOCH.plusSeconds(60), List.of());
 
         assertDoesNotThrow(() -> service.scheduleCourse(
-                "schedule-2", course, "class-1",
+                2L, course, 1L,
                 Instant.EPOCH.plusSeconds(60), Instant.EPOCH.plusSeconds(120), List.of(existing)));
     }
 }

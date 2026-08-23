@@ -6,12 +6,12 @@ package ${package}.domain.exam.vos;
 import ${package}.domain.common.EvaluationDomainErrorCode;
 import ${package}.domain.common.EvaluationDomainException;
 
-public record ExamId(String value) {
+public record ExamId(long value) {
 
     public ExamId {
-        if (value == null || value.isBlank()) {
+        if (value <= 0) {
             throw new EvaluationDomainException(
-                    EvaluationDomainErrorCode.VALIDATION_FAILED, "exam id must not be blank");
+                    EvaluationDomainErrorCode.VALIDATION_FAILED, "exam id must be positive");
         }
     }
 }

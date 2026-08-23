@@ -25,7 +25,7 @@ class RabbitCourseEventPublisherTest {
         RabbitCourseEventPublisher publisher = new RabbitCourseEventPublisher(
                 template, "evaluation.events", "course.scheduled");
         CourseSchedule schedule = new CourseSchedule(
-                "schedule-1", new CourseId("course-1"), "class-1",
+                3001L, new CourseId(1001L), 2001L,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), CourseScheduleStatus.SCHEDULED);
 
         publisher.courseScheduled(schedule);
@@ -33,6 +33,6 @@ class RabbitCourseEventPublisherTest {
         verify(template).convertAndSend(
                 eq("evaluation.events"), eq("course.scheduled"),
                 argThat((Object message) ->
-                        ((CourseScheduledMessage) message).scheduleId().equals("schedule-1")));
+                        ((CourseScheduledMessage) message).scheduleId() == 3001L));
     }
 }

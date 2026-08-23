@@ -37,10 +37,10 @@ public class ScoreRepositoryImpl implements ScoreRepository {
         }
         catch (DataIntegrityViolationException failure) { throw validator.translate("save score", failure); }
     }
-    public Optional<Score> findByExamIdAndId(ExamId examId, String id) {
+    public Optional<Score> findByExamIdAndId(ExamId examId, long id) {
         return repository.findByExamIdAndId(examId.value(), id).map(converter::toDomain);
     }
-    public boolean existsByExamIdAndStudentId(ExamId id, String studentId) {
+    public boolean existsByExamIdAndStudentId(ExamId id, long studentId) {
         return repository.countByExamIdAndStudentId(id.value(), studentId) > 0;
     }
     public Page<Score> findPageByExamId(ExamId id, int currentPage, int pageSize) {

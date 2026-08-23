@@ -17,13 +17,13 @@ class ExamAggregateTest {
     @Test
     void shouldRejectInvalidExamWindowAndPaperPoints() {
         var service = new ExamDomainServiceImpl();
-        Course course = Course.create("course-1", new CourseCode("MATH-101"), "Math", 3);
+        Course course = Course.create(1L, new CourseCode("MATH-101"), "Math", 3);
 
         assertThrows(EvaluationDomainException.class, () -> service.createExam(
-                "exam-1", course, "Midterm", Instant.EPOCH.plusSeconds(1), Instant.EPOCH));
+                1L, course, "Midterm", Instant.EPOCH.plusSeconds(1), Instant.EPOCH));
         var exam = service.createExam(
-                "exam-1", course, "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60));
+                1L, course, "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60));
         assertThrows(EvaluationDomainException.class,
-                () -> service.attachPaper("paper-1", exam, "Paper", 0));
+                () -> service.attachPaper(1L, exam, "Paper", 0));
     }
 }

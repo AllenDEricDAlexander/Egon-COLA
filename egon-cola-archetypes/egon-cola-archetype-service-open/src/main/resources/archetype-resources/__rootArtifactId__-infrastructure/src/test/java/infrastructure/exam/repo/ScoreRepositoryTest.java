@@ -26,15 +26,15 @@ import static org.mockito.Mockito.when;
 class ScoreRepositoryTest {
     @Test void shouldRoundTripScore() {
         var converter = new ScoreConverter();
-        var score = new Score("score-1", new ExamId("exam-1"), new CourseId("course-1"),
-                "student-1", new ScoreValue(90), ScoreStatus.RECORDED);
+        var score = new Score(1004L, new ExamId(1002L), new CourseId(1001L),
+                2001L, new ScoreValue(90), ScoreStatus.RECORDED);
         assertEquals(90, converter.toDomain(converter.toPo(score, Instant.EPOCH)).getPoints().value());
     }
 
     @Test
     void shouldExposeExamAwarePointLookup() throws NoSuchMethodException {
-        ScoreRepository.class.getMethod("findByExamIdAndId", ExamId.class, String.class);
-        ScoreJpaRepository.class.getMethod("findByExamIdAndId", String.class, String.class);
+        ScoreRepository.class.getMethod("findByExamIdAndId", ExamId.class, long.class);
+        ScoreJpaRepository.class.getMethod("findByExamIdAndId", Long.class, Long.class);
     }
 
     @Test
@@ -45,9 +45,9 @@ class ScoreRepositoryTest {
                 jpaRepository, new ScoreConverter(),
                 new EvaluationPersistenceValidator(), entityManager);
         Score score = new Score(
-                "score-1", new ExamId("exam-1"), new CourseId("course-1"),
-                "student-1", new ScoreValue(90), ScoreStatus.RECORDED);
-        when(jpaRepository.findByExamIdAndId("exam-1", "score-1"))
+                1004L, new ExamId(1002L), new CourseId(1001L),
+                2001L, new ScoreValue(90), ScoreStatus.RECORDED);
+        when(jpaRepository.findByExamIdAndId(1002L, 1004L))
                 .thenReturn(Optional.empty());
 
         repository.save(score);

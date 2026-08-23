@@ -9,10 +9,10 @@ import ${package}.domain.exam.entities.Score;
 
 public interface ScoreDomainService {
     Score recordScore(
-            String id,
+            long id,
             Exam exam,
             ExamPaper paper,
-            String studentId,
+            long studentId,
             int points,
             boolean duplicate);
 }

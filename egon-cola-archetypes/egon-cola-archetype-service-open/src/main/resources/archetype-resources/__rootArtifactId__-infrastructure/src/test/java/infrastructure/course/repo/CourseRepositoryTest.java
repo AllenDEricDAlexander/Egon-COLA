@@ -23,9 +23,9 @@ class CourseRepositoryTest {
     void shouldRoundTripCoursePersistenceModel() {
         CoursePoMapper poMapper = mock(CoursePoMapper.class);
         CourseDomainMapper domainMapper = mock(CourseDomainMapper.class);
-        Course course = Course.create("course-1", new CourseCode("MATH-101"), "Math", 3);
+        Course course = Course.create(1001L, new CourseCode("MATH-101"), "Math", 3);
         CoursePo mappedPo = new CoursePo(
-                "course-1", "ignored", "Math", 3, "ACTIVE",
+                1001L, "ignored", "Math", 3, "ACTIVE",
                 LocalDateTime.MIN, LocalDateTime.MAX);
         when(poMapper.convert(course)).thenReturn(mappedPo);
         Course restored = new Course();

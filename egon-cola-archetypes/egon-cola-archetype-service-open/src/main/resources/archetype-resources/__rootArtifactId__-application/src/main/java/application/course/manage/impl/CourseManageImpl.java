@@ -28,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
-import top.egon.cola.component.common.id.generator.IdGenerator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 @Service("courseManage")
 @Validated
@@ -45,7 +45,7 @@ public class CourseManageImpl implements CourseManage {
 
     private final CourseApplicationValidator validator;
 
-    private final IdGenerator idGenerator;
+    private final LongIdGenerator idGenerator;
 
     @Override
     @Transactional
@@ -57,7 +57,7 @@ public class CourseManageImpl implements CourseManage {
                     ApplicationErrorCode.COURSE_CODE_DUPLICATED, "course code already exists");
         }
         Course course = courseDomainService.createCourse(
-                idGenerator.nextId(), code, command.name(), command.credit());
+                idGenerator.nextLongId(), code, command.name(), command.credit());
         return converter.toResult(courseRepository.save(course));
     }
 
@@ -70,7 +70,7 @@ public class CourseManageImpl implements CourseManage {
                 .orElseThrow(() -> new ApplicationException(
                         ApplicationErrorCode.COURSE_NOT_FOUND, "course not found"));
         CourseSchedule schedule = courseDomainService.scheduleCourse(
-                idGenerator.nextId(), course, command.classId(),
+                idGenerator.nextLongId(), course, command.classId(),
                 command.startsAt(), command.endsAt(), courseScheduleRepository.findOverlapping(
                         courseId, command.classId(), command.startsAt(), command.endsAt()));
         CourseSchedule saved = courseScheduleRepository.save(schedule);

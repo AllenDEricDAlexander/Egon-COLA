@@ -10,7 +10,8 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import top.egon.cola.component.common.id.generator.UuidV7Generator;
+import org.springframework.context.annotation.Profile;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 @SpringBootApplication(
         scanBasePackages = "${package}",
@@ -30,8 +31,9 @@ import top.egon.cola.component.common.id.generator.UuidV7Generator;
 public class EvaluationServiceApplication {
 
     @Bean
-    UuidV7Generator uuidV7Generator() {
-        return new UuidV7Generator();
+    @Profile("test")
+    LongIdGenerator testLongIdGenerator() {
+        return () -> 2001L;
     }
 
     public static void main(String[] args) {

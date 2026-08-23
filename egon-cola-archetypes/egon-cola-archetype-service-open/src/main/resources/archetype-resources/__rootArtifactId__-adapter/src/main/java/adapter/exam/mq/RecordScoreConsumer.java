@@ -21,6 +21,7 @@ public class RecordScoreConsumer {
             queues = "${symbol_dollar}{app.integrations.rabbitmq.score-command-queue}",
             autoStartup = "${symbol_dollar}{app.integrations.rabbitmq.listener-auto-startup:false}")
     public void consume(RecordScoreMessage message) {
-        scoreManage.record(new RecordScoreCommand(message.examId(), message.studentId(), message.points()));
+        scoreManage.record(new RecordScoreCommand(
+                Long.parseLong(message.examId()), Long.parseLong(message.studentId()), message.points()));
     }
 }

@@ -10,37 +10,36 @@ import org.apache.shardingsphere.sharding.api.sharding.standard.PreciseShardingV
 import org.apache.shardingsphere.sharding.api.sharding.standard.RangeShardingValue;
 import org.junit.jupiter.api.Test;
 
-class UuidV7BucketShardingAlgorithmTest {
+class SnowflakeLongShardingAlgorithmTest {
 
-    private static final String UUID_V7 = "018f5f9c-4f6a-7c2b-8a1d-123456789abc";
+    private static final long LONG_KEY = 42L;
     private static final DataNodeInfo DATA_NODE_INFO = new DataNodeInfo("records_", 1, '0');
 
     @Test
     void databaseAndTableStrategiesSelectTheSamePhysicalNode() {
         ShardingNodeMap nodeMap = nodeMap();
-        ShardingNodeMap.PhysicalNode expected = nodeMap.route(UUID_V7);
-        UuidV7BucketShardingAlgorithm database = algorithm("database");
-        UuidV7BucketShardingAlgorithm table = algorithm("table");
+        ShardingNodeMap.PhysicalNode expected = nodeMap.route(LONG_KEY);
+        SnowflakeLongShardingAlgorithm database = algorithm("database");
+        SnowflakeLongShardingAlgorithm table = algorithm("table");
 
         assertThat(database.doSharding(
-                List.of("shard_0", "shard_1"), precise(UUID_V7)))
+                List.of("shard_0", "shard_1"), precise(LONG_KEY)))
                 .isEqualTo(expected.database());
         assertThat(table.doSharding(
-                List.of("records_0", "records_1"), precise(UUID_V7)))
+                List.of("records_0", "records_1"), precise(LONG_KEY)))
                 .isEqualTo("records_" + expected.tableSuffix());
     }
 
     @Test
     void rejectsInvalidKeyUnavailableTargetAndRangeRouting() {
-        UuidV7BucketShardingAlgorithm database = algorithm("database");
+        SnowflakeLongShardingAlgorithm database = algorithm("database");
 
         assertThatThrownBy(() -> database.doSharding(
-                List.of("shard_0", "shard_1"),
-                precise("550e8400-e29b-41d4-a716-446655440000")))
+                List.of("shard_0", "shard_1"), precise(0L)))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("UUIDv7");
+                .hasMessageContaining("positive");
         assertThatThrownBy(() -> database.doSharding(
-                List.of("other"), precise(UUID_V7)))
+                List.of("other"), precise(LONG_KEY)))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("target");
         assertThatThrownBy(() -> database.doSharding(
@@ -50,10 +49,10 @@ class UuidV7BucketShardingAlgorithmTest {
                 .hasMessageContaining("range");
     }
 
-    private static UuidV7BucketShardingAlgorithm algorithm(String target) {
+    private static SnowflakeLongShardingAlgorithm algorithm(String target) {
         Properties properties = properties();
         properties.setProperty("target", target);
-        UuidV7BucketShardingAlgorithm result = new UuidV7BucketShardingAlgorithm();
+        SnowflakeLongShardingAlgorithm result = new SnowflakeLongShardingAlgorithm();
         result.init(properties);
         return result;
     }
@@ -71,7 +70,7 @@ class UuidV7BucketShardingAlgorithmTest {
         return properties;
     }
 
-    private static PreciseShardingValue<String> precise(String value) {
+    private static PreciseShardingValue<Long> precise(long value) {
         return new PreciseShardingValue<>("records", "id", DATA_NODE_INFO, value);
     }
 }

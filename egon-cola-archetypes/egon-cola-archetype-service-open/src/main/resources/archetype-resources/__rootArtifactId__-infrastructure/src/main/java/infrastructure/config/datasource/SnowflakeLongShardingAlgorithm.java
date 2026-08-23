@@ -9,9 +9,9 @@ import org.apache.shardingsphere.sharding.api.sharding.standard.RangeShardingVal
 import org.apache.shardingsphere.sharding.api.sharding.standard.StandardShardingAlgorithm;
 
 /**
- * Routes a UUIDv7 key to the database or table represented by the same stable slot.
+ * Routes a positive Snowflake Long key to the database or table represented by the same stable slot.
  */
-public final class UuidV7BucketShardingAlgorithm implements StandardShardingAlgorithm<String> {
+public final class SnowflakeLongShardingAlgorithm implements StandardShardingAlgorithm<Long> {
 
     private ShardingNodeMap nodeMap;
     private Target target;
@@ -33,11 +33,11 @@ public final class UuidV7BucketShardingAlgorithm implements StandardShardingAlgo
     @Override
     public String doSharding(
             Collection<String> availableTargetNames,
-            PreciseShardingValue<String> shardingValue) {
+            PreciseShardingValue<Long> shardingValue) {
         if (nodeMap == null || target == null) {
             throw new IllegalStateException("sharding algorithm must be initialized");
         }
-        if (shardingValue == null) {
+        if (shardingValue == null || shardingValue.getValue() == null) {
             throw new IllegalArgumentException("sharding value must not be null");
         }
         ShardingNodeMap.PhysicalNode node = nodeMap.route(shardingValue.getValue());
@@ -54,7 +54,7 @@ public final class UuidV7BucketShardingAlgorithm implements StandardShardingAlgo
     @Override
     public Collection<String> doSharding(
             Collection<String> availableTargetNames,
-            RangeShardingValue<String> shardingValue) {
+            RangeShardingValue<Long> shardingValue) {
         throw new UnsupportedOperationException("range sharding is not supported");
     }
 

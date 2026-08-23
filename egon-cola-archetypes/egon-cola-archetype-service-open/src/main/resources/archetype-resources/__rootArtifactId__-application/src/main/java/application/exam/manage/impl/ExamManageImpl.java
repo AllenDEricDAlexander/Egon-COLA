@@ -27,7 +27,7 @@ import ${package}.domain.exam.vos.ExamId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.IdGenerator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 @Service("evaluationExamManage")
 @RequiredArgsConstructor
@@ -40,17 +40,16 @@ public class ExamManageImpl implements ExamManage {
     private final ExamDomainService examDomainService;
     private final ExamApplicationConverter converter;
     private final ExamApplicationValidator validator;
-    private final IdGenerator idGenerator;
+    private final LongIdGenerator idGenerator;
 
     @Override
     @Transactional
     public ExamDetailResult create(CreateExamCommand command) {
-        validator.notBlank(command.courseId(), "courseId");
         validator.notBlank(command.title(), "title");
         Course course = courseRepository.findById(new CourseId(command.courseId()))
                 .orElseThrow(() -> failure(ApplicationErrorCode.COURSE_NOT_FOUND, "course not found"));
         Exam exam = examDomainService.createExam(
-                idGenerator.nextId(), course, command.title(),
+                idGenerator.nextLongId(), course, command.title(),
                 command.startsAt(), command.endsAt());
         return converter.toResult(examRepository.save(exam));
     }
@@ -60,7 +59,7 @@ public class ExamManageImpl implements ExamManage {
     public ExamPaperResult attachPaper(AttachExamPaperCommand command) {
         Exam exam = requireExam(command.examId());
         ExamPaper paper = examDomainService.attachPaper(
-                idGenerator.nextId(), exam, command.title(), command.totalPoints());
+                idGenerator.nextLongId(), exam, command.title(), command.totalPoints());
         return converter.toResult(examPaperRepository.save(paper));
     }
 
@@ -83,8 +82,8 @@ public class ExamManageImpl implements ExamManage {
         return converter.toResult(requireExam(query.examId()));
     }
 
-    private Exam requireExam(String examId) {
-        validator.notBlank(examId, "examId");
+    private Exam requireExam(long examId) {
+        validator.positive(examId, "examId");
         return examRepository.findById(new ExamId(examId))
                 .orElseThrow(() -> failure(ApplicationErrorCode.EXAM_NOT_FOUND, "exam not found"));
     }

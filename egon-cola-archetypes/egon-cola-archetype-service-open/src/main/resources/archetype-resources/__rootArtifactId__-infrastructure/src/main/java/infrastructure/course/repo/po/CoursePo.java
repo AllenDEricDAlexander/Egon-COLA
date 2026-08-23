@@ -21,7 +21,7 @@ public class CoursePo {
 
     @Id
     @Column(name = "id", nullable = false, length = 64)
-    private String id;
+    private Long id;
 
     @Column(name = "code", nullable = false, length = 96)
     private String code;
@@ -41,7 +41,7 @@ public class CoursePo {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public String getId() {
+    public Long getId() {
         return id;
     }
 

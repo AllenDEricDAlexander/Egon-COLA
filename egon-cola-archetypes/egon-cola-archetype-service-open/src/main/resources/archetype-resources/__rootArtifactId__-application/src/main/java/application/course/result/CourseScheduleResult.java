@@ -6,9 +6,9 @@ package ${package}.application.course.result;
 import java.time.Instant;
 
 public record CourseScheduleResult(
-        String id,
-        String courseId,
-        String classId,
+        long id,
+        long courseId,
+        long classId,
         Instant startsAt,
         Instant endsAt,
         String status) {

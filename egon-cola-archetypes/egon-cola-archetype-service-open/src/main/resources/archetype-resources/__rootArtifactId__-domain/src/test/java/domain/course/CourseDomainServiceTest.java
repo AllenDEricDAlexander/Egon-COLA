@@ -22,7 +22,7 @@ class CourseDomainServiceTest {
     @Test
     void shouldNormalizeCourseCode() {
         Course course = service.createCourse(
-                "course-1", new CourseCode(" math-101 "), "Math", 3);
+                1L, new CourseCode(" math-101 "), "Math", 3);
 
         assertEquals("MATH-101", course.getCode().value());
     }
@@ -30,14 +30,14 @@ class CourseDomainServiceTest {
     @Test
     void shouldRejectOverlappingSchedule() {
         Course course = service.createCourse(
-                "course-1", new CourseCode("MATH-101"), "Math", 3);
+                1L, new CourseCode("MATH-101"), "Math", 3);
         CourseSchedule existing = service.scheduleCourse(
-                "schedule-1", course, "class-1",
+                1L, course, 1L,
                 Instant.parse("2026-09-01T01:00:00Z"),
                 Instant.parse("2026-09-01T02:00:00Z"), List.of());
 
         assertThrows(EvaluationDomainException.class, () -> service.scheduleCourse(
-                "schedule-2", course, "class-1",
+                2L, course, 1L,
                 Instant.parse("2026-09-01T01:30:00Z"),
                 Instant.parse("2026-09-01T02:30:00Z"), List.of(existing)));
     }

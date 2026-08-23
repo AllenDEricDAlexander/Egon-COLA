@@ -8,14 +8,14 @@ import ${package}.domain.exam.vos.ExamId;
 
 public final class ExamPaper {
 
-    private final String id;
+    private final long id;
     private final ExamId examId;
     private final String title;
     private final int totalPoints;
     private ExamPaperStatus status;
 
     public ExamPaper(
-            String id,
+            long id,
             ExamId examId,
             String title,
             int totalPoints,
@@ -28,7 +28,7 @@ public final class ExamPaper {
     }
 
     public void publish() { status = ExamPaperStatus.PUBLISHED; }
-    public String getId() { return id; }
+    public long getId() { return id; }
     public ExamId getExamId() { return examId; }
     public String getTitle() { return title; }
     public int getTotalPoints() { return totalPoints; }

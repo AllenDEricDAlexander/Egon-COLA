@@ -22,7 +22,7 @@ public final class ExamDomainServiceImpl implements ExamDomainService {
 
     @Override
     public Exam createExam(
-            String id, Course course, String title, Instant startsAt, Instant endsAt) {
+            long id, Course course, String title, Instant startsAt, Instant endsAt) {
         validator.validateExam(course, title, startsAt, endsAt);
         return new Exam(
                 new ExamId(id), new CourseId(course.getId()), title.trim(),
@@ -30,7 +30,7 @@ public final class ExamDomainServiceImpl implements ExamDomainService {
     }
 
     @Override
-    public ExamPaper attachPaper(String id, Exam exam, String title, int totalPoints) {
+    public ExamPaper attachPaper(long id, Exam exam, String title, int totalPoints) {
         validator.validatePaper(title, totalPoints);
         return new ExamPaper(
                 id, exam.getId(), title.trim(), totalPoints, ExamPaperStatus.DRAFT);

@@ -18,20 +18,20 @@ import java.time.Instant;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class ScorePo {
-    @Id private String id;
-    @Column(name = "exam_id", nullable = false) private String examId;
-    @Column(name = "course_id", nullable = false) private String courseId;
-    @Column(name = "student_id", nullable = false) private String studentId;
+    @Id private Long id;
+    @Column(name = "exam_id", nullable = false) private Long examId;
+    @Column(name = "course_id", nullable = false) private Long courseId;
+    @Column(name = "student_id", nullable = false) private Long studentId;
     @Column(nullable = false) private int points;
     @Column(nullable = false) private String status;
     @Column(name = "created_at", nullable = false) private Instant createdAt;
     @Column(name = "updated_at", nullable = false) private Instant updatedAt;
-    public String getId() { return id; } public String getExamId() { return examId; }
-    public String getCourseId() { return courseId; } public String getStudentId() { return studentId; }
+    public Long getId() { return id; } public Long getExamId() { return examId; }
+    public Long getCourseId() { return courseId; } public Long getStudentId() { return studentId; }
     public int getPoints() { return points; } public String getStatus() { return status; }
     public Instant getCreatedAt() { return createdAt; }
     public void update(
-            String courseId, String studentId, int points, String status, Instant updatedAt) {
+            Long courseId, Long studentId, int points, String status, Instant updatedAt) {
         this.courseId = courseId;
         this.studentId = studentId;
         this.points = points;

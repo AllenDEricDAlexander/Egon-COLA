@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -36,11 +37,11 @@ class CourseManageTest {
                 repository, mock(CourseScheduleRepository.class), mock(CourseEventPublisher.class),
                 new CourseDomainServiceImpl(),
                 new CourseApplicationConverter(), new CourseApplicationValidator(),
-                () -> "01901234-5678-7abc-8def-0123456789ab");
+                () -> 1001L);
 
         var result = manage.create(new CreateCourseCommand(" math-101 ", "Math", 3));
 
-        assertEquals("01901234-5678-7abc-8def-0123456789ab", result.id());
+        assertEquals(1001L, result.id());
         assertEquals("MATH-101", result.code());
     }
 
@@ -49,22 +50,22 @@ class CourseManageTest {
         CourseRepository courseRepository = mock(CourseRepository.class);
         CourseScheduleRepository scheduleRepository = mock(CourseScheduleRepository.class);
         Course course = Course.create(
-                "01901234-5678-7abc-8def-0123456789ab",
+                1001L,
                 new CourseCode("MATH-101"), "Math", 3);
         when(courseRepository.findById(new CourseId(course.getId())))
                 .thenReturn(Optional.of(course));
-        when(scheduleRepository.findOverlapping(any(), any(), any(), any()))
+        when(scheduleRepository.findOverlapping(any(), anyLong(), any(), any()))
                 .thenReturn(List.of());
         when(scheduleRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         CourseManageImpl manage = new CourseManageImpl(
                 courseRepository, scheduleRepository, mock(CourseEventPublisher.class),
                 new CourseDomainServiceImpl(),
                 new CourseApplicationConverter(), new CourseApplicationValidator(),
-                () -> "01901234-5678-7abc-8def-0123456789ac");
+                () -> 1002L);
 
         var result = manage.schedule(new ScheduleCourseCommand(
-                course.getId(), "class-1", Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
+                course.getId(), 2001L, Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
 
-        assertEquals("01901234-5678-7abc-8def-0123456789ac", result.id());
+        assertEquals(1002L, result.id());
     }
 }

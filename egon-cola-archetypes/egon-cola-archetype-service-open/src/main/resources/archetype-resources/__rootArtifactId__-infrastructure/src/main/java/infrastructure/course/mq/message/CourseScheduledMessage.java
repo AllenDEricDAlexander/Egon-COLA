@@ -4,4 +4,4 @@
 package ${package}.infrastructure.course.mq.message;
 import java.time.Instant;
 public record CourseScheduledMessage(
-        String scheduleId, String courseId, String classId, Instant startsAt, Instant endsAt) { }
+        long scheduleId, long courseId, long classId, Instant startsAt, Instant endsAt) { }

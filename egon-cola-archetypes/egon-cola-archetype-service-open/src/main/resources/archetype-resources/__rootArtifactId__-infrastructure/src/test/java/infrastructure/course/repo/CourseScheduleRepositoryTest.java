@@ -27,14 +27,14 @@ class CourseScheduleRepositoryTest {
     @Test
     void shouldRoundTripCourseSchedulePersistenceModel() {
         CourseSchedule schedule = new CourseSchedule(
-                "schedule-1", new CourseId("course-1"), "class-1",
+                3001L, new CourseId(1001L), 2001L,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), CourseScheduleStatus.SCHEDULED);
         CourseScheduleConverter converter = new CourseScheduleConverter();
 
         CourseSchedule restored = converter.toDomain(converter.toPo(schedule));
 
-        assertEquals("schedule-1", restored.getId());
-        assertEquals(new CourseId("course-1"), restored.getCourseId());
+        assertEquals(3001L, restored.getId());
+        assertEquals(new CourseId(1001L), restored.getCourseId());
         assertEquals(CourseScheduleStatus.SCHEDULED, restored.getStatus());
     }
 
@@ -45,9 +45,9 @@ class CourseScheduleRepositoryTest {
         CourseScheduleRepositoryImpl repository = new CourseScheduleRepositoryImpl(
                 jpaRepository, new CourseScheduleConverter(), entityManager);
         CourseSchedule schedule = new CourseSchedule(
-                "schedule-1", new CourseId("course-1"), "class-1",
+                3001L, new CourseId(1001L), 2001L,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), CourseScheduleStatus.SCHEDULED);
-        when(jpaRepository.findByCourseIdAndId("course-1", "schedule-1"))
+        when(jpaRepository.findByCourseIdAndId(1001L, 3001L))
                 .thenReturn(Optional.empty());
 
         repository.save(schedule);

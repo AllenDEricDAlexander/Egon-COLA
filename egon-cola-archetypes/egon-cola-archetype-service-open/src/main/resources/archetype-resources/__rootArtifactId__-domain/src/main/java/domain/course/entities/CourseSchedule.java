@@ -9,17 +9,17 @@ import java.time.Instant;
 
 public final class CourseSchedule {
 
-    private final String id;
+    private final long id;
     private final CourseId courseId;
-    private final String classId;
+    private final long classId;
     private final Instant startsAt;
     private final Instant endsAt;
     private final CourseScheduleStatus status;
 
     public CourseSchedule(
-            String id,
+            long id,
             CourseId courseId,
-            String classId,
+            long classId,
             Instant startsAt,
             Instant endsAt,
             CourseScheduleStatus status) {
@@ -35,9 +35,9 @@ public final class CourseSchedule {
         return startsAt.isBefore(candidateEnd) && candidateStart.isBefore(endsAt);
     }
 
-    public String getId() { return id; }
+    public long getId() { return id; }
     public CourseId getCourseId() { return courseId; }
-    public String getClassId() { return classId; }
+    public long getClassId() { return classId; }
     public Instant getStartsAt() { return startsAt; }
     public Instant getEndsAt() { return endsAt; }
     public CourseScheduleStatus getStatus() { return status; }

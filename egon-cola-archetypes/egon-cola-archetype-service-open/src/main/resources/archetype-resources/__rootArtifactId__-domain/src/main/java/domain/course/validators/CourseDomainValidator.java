@@ -14,7 +14,7 @@ public final class CourseDomainValidator {
 
     public void validateSchedule(
             Course course,
-            String classId,
+            long classId,
             Instant startsAt,
             Instant endsAt,
             List<CourseSchedule> overlaps) {
@@ -22,7 +22,7 @@ public final class CourseDomainValidator {
             throw new EvaluationDomainException(
                     EvaluationDomainErrorCode.COURSE_INACTIVE, "only active courses can be scheduled");
         }
-        if (classId == null || classId.isBlank() || startsAt == null || endsAt == null
+        if (classId <= 0 || startsAt == null || endsAt == null
                 || !startsAt.isBefore(endsAt)) {
             throw new EvaluationDomainException(
                     EvaluationDomainErrorCode.VALIDATION_FAILED, "invalid course schedule");

@@ -3,5 +3,5 @@
 #set( $symbol_escape = '\\' )
 package ${package}.application.course.result;
 
-public record CourseResult(String id, String code, String name, int credit, String status) {
+public record CourseResult(long id, String code, String name, int credit, String status) {
 }

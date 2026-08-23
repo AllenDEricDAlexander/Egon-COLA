@@ -17,10 +17,10 @@ public final class ScoreDomainServiceImpl implements ScoreDomainService {
 
     @Override
     public Score recordScore(
-            String id,
+            long id,
             Exam exam,
             ExamPaper paper,
-            String studentId,
+            long studentId,
             int points,
             boolean duplicate) {
         validator.validate(exam, paper, studentId, points, duplicate);

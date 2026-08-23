@@ -7,7 +7,7 @@ import ${package}.infrastructure.course.repo.po.CoursePo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
-public interface CourseJpaRepository extends JpaRepository<CoursePo, String> {
+public interface CourseJpaRepository extends JpaRepository<CoursePo, Long> {
 
     long countByCode(String code);
 

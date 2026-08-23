@@ -14,11 +14,11 @@ final class TestEvaluationModels {
 
     private static final ExamDomainServiceImpl SERVICE = new ExamDomainServiceImpl();
     private static final Course COURSE = Course.create(
-            "course-1", new CourseCode("MATH-101"), "Math", 3);
+            1001L, new CourseCode("MATH-101"), "Math", 3);
     private static final Exam EXAM = SERVICE.createExam(
-            "exam-1", COURSE, "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60));
+            1002L, COURSE, "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60));
     private static final ExamPaper PAPER = SERVICE.attachPaper(
-            "paper-1", EXAM, "Paper", 100);
+            1003L, EXAM, "Paper", 100);
 
     static {
         SERVICE.publishExam(EXAM, PAPER);

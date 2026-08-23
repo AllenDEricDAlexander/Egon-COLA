@@ -9,9 +9,9 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface CourseScheduleJpaRepository extends JpaRepository<CourseSchedulePo, String> {
-    Optional<CourseSchedulePo> findByCourseIdAndId(String courseId, String id);
+public interface CourseScheduleJpaRepository extends JpaRepository<CourseSchedulePo, Long> {
+    Optional<CourseSchedulePo> findByCourseIdAndId(Long courseId, Long id);
 
     List<CourseSchedulePo> findByCourseIdAndClassIdAndStartsAtLessThanAndEndsAtGreaterThan(
-            String courseId, String classId, Instant endsAt, Instant startsAt);
+            Long courseId, Long classId, Instant endsAt, Instant startsAt);
 }

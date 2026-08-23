@@ -26,7 +26,7 @@ import ${package}.domain.exam.vos.ExamId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.IdGenerator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 @Service("scoreManage")
 @RequiredArgsConstructor
@@ -39,13 +39,13 @@ public class ScoreManageImpl implements ScoreManage {
     private final ScoreDomainService scoreDomainService;
     private final ExamApplicationConverter converter;
     private final ExamApplicationValidator validator;
-    private final IdGenerator idGenerator;
+    private final LongIdGenerator idGenerator;
 
     @Override
     @Transactional
     public ScoreResult record(RecordScoreCommand command) {
-        validator.notBlank(command.examId(), "examId");
-        validator.notBlank(command.studentId(), "studentId");
+        validator.positive(command.examId(), "examId");
+        validator.positive(command.studentId(), "studentId");
         ExamId examId = new ExamId(command.examId());
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> failure(ApplicationErrorCode.EXAM_NOT_FOUND, "exam not found"));
@@ -55,7 +55,7 @@ public class ScoreManageImpl implements ScoreManage {
         boolean duplicate = scoreRepository.existsByExamIdAndStudentId(
                 examId, command.studentId());
         Score score = scoreDomainService.recordScore(
-                idGenerator.nextId(), exam, paper,
+                idGenerator.nextLongId(), exam, paper,
                 command.studentId(), command.points(), duplicate);
         Score saved = scoreRepository.save(score);
         examEventPublisher.scoreRecorded(saved);
@@ -64,8 +64,8 @@ public class ScoreManageImpl implements ScoreManage {
 
     @Override
     public ScoreResult get(GetScoreQuery query) {
-        validator.notBlank(query.examId(), "examId");
-        validator.notBlank(query.scoreId(), "scoreId");
+        validator.positive(query.examId(), "examId");
+        validator.positive(query.scoreId(), "scoreId");
         return scoreRepository.findByExamIdAndId(new ExamId(query.examId()), query.scoreId())
                 .map(converter::toResult)
                 .orElseThrow(() -> failure(ApplicationErrorCode.SCORE_NOT_FOUND, "score not found"));
@@ -73,7 +73,7 @@ public class ScoreManageImpl implements ScoreManage {
 
     @Override
     public PageResult<ScoreResult> page(PageScoreQuery query) {
-        validator.notBlank(query.examId(), "examId");
+        validator.positive(query.examId(), "examId");
         Page<Score> page = scoreRepository.findPageByExamId(
                 new ExamId(query.examId()), query.currentPage(), query.pageSize());
         return PageResult.of(

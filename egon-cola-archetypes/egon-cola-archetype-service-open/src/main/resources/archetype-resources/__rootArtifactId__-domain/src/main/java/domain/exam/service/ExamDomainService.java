@@ -9,7 +9,7 @@ import ${package}.domain.exam.entities.ExamPaper;
 import java.time.Instant;
 
 public interface ExamDomainService {
-    Exam createExam(String id, Course course, String title, Instant startsAt, Instant endsAt);
-    ExamPaper attachPaper(String id, Exam exam, String title, int totalPoints);
+    Exam createExam(long id, Course course, String title, Instant startsAt, Instant endsAt);
+    ExamPaper attachPaper(long id, Exam exam, String title, int totalPoints);
     Exam publishExam(Exam exam, ExamPaper paper);
 }

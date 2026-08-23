@@ -3,5 +3,5 @@
 #set( $symbol_escape = '\\' )
 package ${package}.application.exam.query;
 
-public record PageScoreQuery(String examId, int currentPage, int pageSize) {
+public record PageScoreQuery(long examId, int currentPage, int pageSize) {
 }

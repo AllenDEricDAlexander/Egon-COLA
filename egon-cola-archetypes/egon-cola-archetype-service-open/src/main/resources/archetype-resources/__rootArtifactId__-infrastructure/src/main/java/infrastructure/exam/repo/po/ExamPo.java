@@ -18,8 +18,8 @@ import java.time.Instant;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class ExamPo {
-    @Id private String id;
-    @Column(name = "course_id", nullable = false) private String courseId;
+    @Id private Long id;
+    @Column(name = "course_id", nullable = false) private Long courseId;
     @Column(nullable = false) private String title;
     @Column(name = "starts_at", nullable = false) private Instant startsAt;
     @Column(name = "ends_at", nullable = false) private Instant endsAt;
@@ -27,7 +27,7 @@ public class ExamPo {
     @Column(name = "created_at", nullable = false) private Instant createdAt;
     @Column(name = "updated_at", nullable = false) private Instant updatedAt;
 
-    public String getId() { return id; } public String getCourseId() { return courseId; }
+    public Long getId() { return id; } public Long getCourseId() { return courseId; }
     public String getTitle() { return title; } public Instant getStartsAt() { return startsAt; }
     public Instant getEndsAt() { return endsAt; } public String getStatus() { return status; }
     public Instant getCreatedAt() { return createdAt; }

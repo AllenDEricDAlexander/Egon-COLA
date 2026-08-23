@@ -11,12 +11,12 @@ import java.util.List;
 
 public interface CourseDomainService {
 
-    Course createCourse(String id, CourseCode code, String name, int credit);
+    Course createCourse(long id, CourseCode code, String name, int credit);
 
     CourseSchedule scheduleCourse(
-            String id,
+            long id,
             Course course,
-            String classId,
+            long classId,
             Instant startsAt,
             Instant endsAt,
             List<CourseSchedule> overlaps);

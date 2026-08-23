@@ -31,20 +31,20 @@ class ExamManageTest {
     void shouldCreateExamForExistingCourse() {
         CourseRepository courses = mock(CourseRepository.class);
         ExamRepository exams = mock(ExamRepository.class);
-        Course course = Course.create("course-1", new CourseCode("MATH-101"), "Math", 3);
-        when(courses.findById(new CourseId("course-1"))).thenReturn(Optional.of(course));
+        Course course = Course.create(1001L, new CourseCode("MATH-101"), "Math", 3);
+        when(courses.findById(new CourseId(1001L))).thenReturn(Optional.of(course));
         when(exams.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         ExamManageImpl manage = new ExamManageImpl(
                 courses, exams, mock(ExamPaperRepository.class), mock(ExamEventPublisher.class),
                 new ExamDomainServiceImpl(),
                 new ExamApplicationConverter(), new ExamApplicationValidator(),
-                () -> "01901234-5678-7abc-8def-0123456789ad");
+                () -> 1002L);
 
         var result = manage.create(new CreateExamCommand(
-                "course-1", "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
+                1001L, "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
 
-        assertEquals("01901234-5678-7abc-8def-0123456789ad", result.id());
-        assertEquals("course-1", result.courseId());
+        assertEquals(1002L, result.id());
+        assertEquals(1001L, result.courseId());
     }
 
     @Test
@@ -52,8 +52,8 @@ class ExamManageTest {
         ExamRepository exams = mock(ExamRepository.class);
         ExamPaperRepository papers = mock(ExamPaperRepository.class);
         var exam = new ExamDomainServiceImpl().createExam(
-                "01901234-5678-7abc-8def-0123456789ad",
-                Course.create("course-1", new CourseCode("MATH-101"), "Math", 3),
+                1002L,
+                Course.create(1001L, new CourseCode("MATH-101"), "Math", 3),
                 "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60));
         when(exams.findById(exam.getId())).thenReturn(Optional.of(exam));
         when(papers.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -61,12 +61,12 @@ class ExamManageTest {
                 mock(CourseRepository.class), exams, papers, mock(ExamEventPublisher.class),
                 new ExamDomainServiceImpl(),
                 new ExamApplicationConverter(), new ExamApplicationValidator(),
-                () -> "01901234-5678-7abc-8def-0123456789ae");
+                () -> 1003L);
 
         var result = manage.attachPaper(new AttachExamPaperCommand(
                 exam.getId().value(), "Midterm paper", 100));
 
-        assertEquals("01901234-5678-7abc-8def-0123456789ae", result.id());
+        assertEquals(1003L, result.id());
         assertEquals(exam.getId().value(), result.examId());
     }
 }

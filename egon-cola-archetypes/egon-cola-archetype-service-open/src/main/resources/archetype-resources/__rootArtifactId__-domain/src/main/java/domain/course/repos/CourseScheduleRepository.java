@@ -14,7 +14,7 @@ public interface CourseScheduleRepository {
 
     List<CourseSchedule> findOverlapping(
             CourseId courseId,
-            String classId,
+            long classId,
             Instant startsAt,
             Instant endsAt);
 }

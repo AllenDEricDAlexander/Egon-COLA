@@ -19,9 +19,9 @@ class ExamDomainServiceTest {
 
     @Test
     void shouldRequirePaperBeforePublishingExam() {
-        Course course = Course.create("course-1", new CourseCode("MATH-101"), "Math", 3);
+        Course course = Course.create(1L, new CourseCode("MATH-101"), "Math", 3);
         var exam = service.createExam(
-                "exam-1", course, "Midterm",
+                1L, course, "Midterm",
                 Instant.parse("2026-10-01T01:00:00Z"),
                 Instant.parse("2026-10-01T03:00:00Z"));
 
@@ -30,12 +30,12 @@ class ExamDomainServiceTest {
 
     @Test
     void shouldPublishExamAndPaperTogether() {
-        Course course = Course.create("course-1", new CourseCode("MATH-101"), "Math", 3);
+        Course course = Course.create(1L, new CourseCode("MATH-101"), "Math", 3);
         var exam = service.createExam(
-                "exam-1", course, "Midterm",
+                1L, course, "Midterm",
                 Instant.parse("2026-10-01T01:00:00Z"),
                 Instant.parse("2026-10-01T03:00:00Z"));
-        var paper = service.attachPaper("paper-1", exam, "Midterm paper", 100);
+        var paper = service.attachPaper(1L, exam, "Midterm paper", 100);
 
         service.publishExam(exam, paper);
 

@@ -29,7 +29,7 @@ class CourseFacadeImplTest {
         CourseManage manage = mock(CourseManage.class);
         CreateCourseCommand command = new CreateCourseCommand("MATH-101", "Math", 3);
         when(manage.create(command)).thenReturn(
-                new CourseResult("course-1", "MATH-101", "Math", 3, "ACTIVE"));
+                new CourseResult(1001L, "MATH-101", "Math", 3, "ACTIVE"));
         CourseFacadeImpl facade = new CourseFacadeImpl(
                 manage, Mappers.getMapper(CourseFacadeConverter.class), new CourseFacadeValidator(),
                 new GlobalFacadeExceptionHandler());
@@ -37,7 +37,7 @@ class CourseFacadeImplTest {
         var response = facade.create(new CreateCourseRequest("MATH-101", "Math", 3));
 
         assertTrue(response.isSuccess());
-        assertEquals("course-1", response.getData().id());
+        assertEquals("1001", response.getData().id());
         verify(manage).create(command);
     }
 

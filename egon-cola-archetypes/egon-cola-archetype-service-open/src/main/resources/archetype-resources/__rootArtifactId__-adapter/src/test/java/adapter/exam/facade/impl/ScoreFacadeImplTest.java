@@ -27,31 +27,31 @@ class ScoreFacadeImplTest {
     @Test
     void shouldValidateConvertDelegateAndReturnScore() {
         ScoreManage manage = mock(ScoreManage.class);
-        RecordScoreCommand command = new RecordScoreCommand("exam-1", "student-1", 92);
+        RecordScoreCommand command = new RecordScoreCommand(1002L, 2001L, 92);
         when(manage.record(command)).thenReturn(new ScoreResult(
-                "score-1", "exam-1", "course-1", "student-1", 92, "RECORDED"));
+                1004L, 1002L, 1001L, 2001L, 92, "RECORDED"));
         ScoreFacadeImpl facade = new ScoreFacadeImpl(
                 manage, Mappers.getMapper(ScoreFacadeConverter.class), new ScoreFacadeValidator(),
                 new GlobalFacadeExceptionHandler());
 
-        var response = facade.recordScore(new RecordScoreRequest("exam-1", "student-1", 92));
+        var response = facade.recordScore(new RecordScoreRequest("1002", "2001", 92));
 
         assertTrue(response.isSuccess());
-        assertEquals("score-1", response.getData().id());
+        assertEquals("1004", response.getData().id());
         verify(manage).record(command);
     }
 
     @Test
     void shouldDelegateExamAwareScoreQuery() {
         ScoreManage manage = mock(ScoreManage.class);
-        GetScoreQuery query = new GetScoreQuery("exam-1", "score-1");
+        GetScoreQuery query = new GetScoreQuery(1002L, 1004L);
         when(manage.get(query)).thenReturn(new ScoreResult(
-            "score-1", "exam-1", "course-1", "student-1", 92, "RECORDED"));
+            1004L, 1002L, 1001L, 2001L, 92, "RECORDED"));
         ScoreFacadeImpl facade = new ScoreFacadeImpl(
             manage, Mappers.getMapper(ScoreFacadeConverter.class), new ScoreFacadeValidator(),
             new GlobalFacadeExceptionHandler());
 
-        var response = facade.getScore(new GetScoreRequest("exam-1", "score-1"));
+        var response = facade.getScore(new GetScoreRequest("1002", "1004"));
 
         assertTrue(response.isSuccess());
         verify(manage).get(query);
