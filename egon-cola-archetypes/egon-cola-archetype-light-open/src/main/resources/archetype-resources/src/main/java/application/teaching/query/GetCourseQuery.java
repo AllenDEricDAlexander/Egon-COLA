@@ -1,9 +1,9 @@
 package ${package}.application.teaching.query;
 
-public record GetCourseQuery(String courseId) {
+public record GetCourseQuery(long courseId) {
     public GetCourseQuery {
-        if (courseId == null || courseId.isBlank()) {
-            throw new IllegalArgumentException("courseId must not be blank");
+        if (courseId <= 0) {
+            throw new IllegalArgumentException("courseId must be positive");
         }
     }
 }

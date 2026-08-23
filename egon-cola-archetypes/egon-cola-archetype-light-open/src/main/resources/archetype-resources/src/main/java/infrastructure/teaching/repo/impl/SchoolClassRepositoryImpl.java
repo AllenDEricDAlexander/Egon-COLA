@@ -19,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Optional;
-import top.egon.cola.component.common.id.generator.IdGenerator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 @Repository("schoolClassRepository")
 @RequiredArgsConstructor
@@ -29,7 +29,7 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
     private final ClassCourseScheduleJpaRepository scheduleJpaRepository;
     private final SchoolClassPOConverter schoolClassConverter;
     private final CoursePOConverter courseConverter;
-    private final IdGenerator idGenerator;
+    private final LongIdGenerator idGenerator;
     private final EntityManager entityManager;
 
     @Override
@@ -58,7 +58,7 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
                     .map(courseConverter::toDomain)
                     .orElseThrow(() -> new IllegalStateException("scheduled course not found"));
             entityManager.persist(new ClassCourseSchedulePO(
-                    idGenerator.nextId(),
+                    idGenerator.nextLongId(),
                     aggregate.schoolClass().id().value(),
                     course.id(),
                     schedule.startsAt(),

@@ -16,9 +16,10 @@ import ${package}.infrastructure.teaching.service.impl.SchoolClassDomainServiceI
 import ${package}.infrastructure.user.service.impl.PermissionDomainServiceImpl;
 import ${package}.infrastructure.user.service.impl.RoleDomainServiceImpl;
 import ${package}.infrastructure.user.service.impl.UserDomainServiceImpl;
+import ${package}.infrastructure.TestLongIdGeneratorConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import top.egon.cola.component.common.id.generator.UuidV7Generator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,7 +37,7 @@ class LocalAdapterConfigurationTest {
                     PermissionDomainServiceImpl.class,
                     SchoolClassDomainServiceImpl.class,
                     CourseDomainServiceImpl.class,
-                    UuidV7Generator.class);
+                    TestLongIdGeneratorConfiguration.class);
 
     @Test
     void assembles_one_local_implementation_for_every_domain_port() {
@@ -62,4 +63,5 @@ class LocalAdapterConfigurationTest {
         assertThat(context.getBean(names[0]).getClass().getPackageName())
                 .startsWith("${package}.infrastructure");
     }
+
 }

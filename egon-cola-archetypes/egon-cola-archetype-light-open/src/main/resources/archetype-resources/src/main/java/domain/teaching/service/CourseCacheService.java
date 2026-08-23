@@ -6,11 +6,11 @@ import java.time.Duration;
 import java.util.Optional;
 
 public interface CourseCacheService {
-    Optional<CourseSnapshot> getCourse(String courseId);
+    Optional<CourseSnapshot> getCourse(long courseId);
 
     void putCourse(CourseSnapshot course);
 
-    void evictCourse(String courseId);
+    void evictCourse(long courseId);
 
     boolean claimIdempotency(String key, Duration ttl);
 }

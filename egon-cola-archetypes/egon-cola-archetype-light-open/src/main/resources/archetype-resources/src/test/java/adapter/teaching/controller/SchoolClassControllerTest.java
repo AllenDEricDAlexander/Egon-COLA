@@ -14,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -37,10 +38,12 @@ class SchoolClassControllerTest {
     private MockMvc mockMvc;
     @MockitoBean
     private SchoolClassManage schoolClassManage;
+    @MockitoBean
+    private LongIdGenerator idGenerator;
 
     @Test
     void creates_school_class_with_typed_context() throws Exception {
-        when(schoolClassManage.create(any())).thenReturn(new SchoolClassResult("class-1", "Class One", "2026-FALL", "ACTIVE", 0));
+        when(schoolClassManage.create(any())).thenReturn(new SchoolClassResult(3001L, "Class One", "2026-FALL", "ACTIVE", 0));
         mockMvc.perform(post("/api/school-classes")
                         .header("X-Operator-Id", "operator-1")
                         .header("X-Request-Id", "request-1")
@@ -56,9 +59,9 @@ class SchoolClassControllerTest {
     @Test
     void gets_school_class() throws Exception {
         when(schoolClassManage.get(any())).thenReturn(
-                new SchoolClassResult("class-1", "Class One", "2026-FALL", "ACTIVE", 2));
+                new SchoolClassResult(3001L, "Class One", "2026-FALL", "ACTIVE", 2));
 
-        mockMvc.perform(get("/api/school-classes/class-1"))
+        mockMvc.perform(get("/api/school-classes/3001"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.scheduleCount").value(2));
     }

@@ -45,7 +45,7 @@ class TeachingApplicationValidatorTest {
     void rejects_invalid_schedule_interval() {
         LocalDateTime startsAt = LocalDateTime.of(2026, 9, 1, 10, 0);
         ScheduleCourseCommand command = new ScheduleCourseCommand(
-                "class-1", "course-math", startsAt, startsAt, "operator-1", "request-1");
+                3001L, 2001L, startsAt, startsAt, "operator-1", "request-1");
 
         TeachingUseCaseException error = assertThrows(
                 TeachingUseCaseException.class, () -> validator.validate(command));
@@ -65,7 +65,7 @@ class TeachingApplicationValidatorTest {
 
     private ScheduleCourseCommand validCommand() {
         return new ScheduleCourseCommand(
-                "class-1", "course-math",
+                3001L, 2001L,
                 LocalDateTime.of(2026, 9, 1, 9, 0),
                 LocalDateTime.of(2026, 9, 1, 10, 0),
                 "operator-1", "request-1");

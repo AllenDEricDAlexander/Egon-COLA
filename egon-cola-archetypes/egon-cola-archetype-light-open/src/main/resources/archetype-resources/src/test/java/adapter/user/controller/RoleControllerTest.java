@@ -13,6 +13,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,11 +36,13 @@ class RoleControllerTest {
 
     @MockitoBean
     private RoleManage roleManage;
+    @MockitoBean
+    private LongIdGenerator idGenerator;
 
     @Test
     void assigns_role() throws Exception {
-        when(roleManage.assignRole(any())).thenReturn(new UserResult("user-1", "Mario", "mario@example.com", "ACTIVE"));
-        mockMvc.perform(post("/api/users/user-1/roles")
+        when(roleManage.assignRole(any())).thenReturn(new UserResult(1001L, "Mario", "mario@example.com", "ACTIVE"));
+        mockMvc.perform(post("/api/users/1001/roles")
                         .header("X-Operator-Id", "operator-1")
                         .header("X-Request-Id", "request-1")
                         .contentType("application/json")
@@ -54,7 +57,7 @@ class RoleControllerTest {
 
     @Test
     void rejects_missing_role_code() throws Exception {
-        mockMvc.perform(post("/api/users/user-1/roles")
+        mockMvc.perform(post("/api/users/1001/roles")
                         .contentType("application/json")
                         .content("{}"))
                 .andExpect(status().isBadRequest());

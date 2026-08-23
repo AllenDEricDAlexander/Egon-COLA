@@ -1,4 +1,4 @@
 package ${package}.application.teaching.query;
 
-public record GetSchoolClassQuery(String schoolClassId) {
+public record GetSchoolClassQuery(long schoolClassId) {
 }

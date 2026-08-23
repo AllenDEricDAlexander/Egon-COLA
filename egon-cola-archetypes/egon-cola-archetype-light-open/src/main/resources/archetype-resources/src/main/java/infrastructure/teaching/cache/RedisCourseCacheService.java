@@ -29,7 +29,7 @@ public class RedisCourseCacheService implements CourseCacheService {
     private final Duration ttl;
 
     @Override
-    public Optional<CourseSnapshot> getCourse(String courseId) {
+    public Optional<CourseSnapshot> getCourse(long courseId) {
         String payload = redisTemplate.opsForValue().get(courseKey(courseId));
         if (payload == null) {
             return Optional.empty();
@@ -47,12 +47,12 @@ public class RedisCourseCacheService implements CourseCacheService {
             redisTemplate.opsForValue().set(
                     courseKey(course.id()), objectMapper.writeValueAsString(course), ttl);
         } catch (JsonProcessingException exception) {
-            throw validator.invalidCachePayload(course.id(), exception);
+            throw validator.invalidCachePayload(Long.toString(course.id()), exception);
         }
     }
 
     @Override
-    public void evictCourse(String courseId) {
+    public void evictCourse(long courseId) {
         transactionCompletionExecutor.executeAfterCommit(() -> redisTemplate.delete(courseKey(courseId)));
     }
 
@@ -67,7 +67,7 @@ public class RedisCourseCacheService implements CourseCacheService {
         return claimed;
     }
 
-    private String courseKey(String courseId) {
+    private String courseKey(long courseId) {
         return applicationName + ":course:" + courseId;
     }
 

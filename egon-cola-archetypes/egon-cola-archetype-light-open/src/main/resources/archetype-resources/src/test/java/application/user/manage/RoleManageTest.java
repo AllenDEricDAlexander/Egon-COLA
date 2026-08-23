@@ -49,14 +49,14 @@ class RoleManageTest {
         Role role = role(RoleStatus.ACTIVE);
         UserAggregate aggregate = new UserAggregate(user);
         aggregate.assign(role);
-        when(userRepository.findById(new UserId("u-1"))).thenReturn(Optional.of(user));
+        when(userRepository.findById(new UserId(1001L))).thenReturn(Optional.of(user));
         when(roleRepository.findByCode(new RoleCode("teacher"))).thenReturn(Optional.of(role));
         when(roleDomainService.assignRole(any(UserAggregate.class), any(Role.class))).thenReturn(aggregate);
-        when(convertor.toResult(user)).thenReturn(new UserResult("u-1", "Mario", "mario@example.com", "ACTIVE"));
+        when(convertor.toResult(user)).thenReturn(new UserResult(1001L, "Mario", "mario@example.com", "ACTIVE"));
 
         UserResult result = manage.assignRole(command());
 
-        assertEquals("u-1", result.id());
+        assertEquals(1001L, result.id());
         verify(userRepository).saveRoles(aggregate);
         verify(userEventPublisher).publish(any());
     }
@@ -65,7 +65,7 @@ class RoleManageTest {
     void translates_disabled_user_failure() {
         User user = user(UserStatus.DISABLED);
         Role role = role(RoleStatus.ACTIVE);
-        when(userRepository.findById(new UserId("u-1"))).thenReturn(Optional.of(user));
+        when(userRepository.findById(new UserId(1001L))).thenReturn(Optional.of(user));
         when(roleRepository.findByCode(new RoleCode("teacher"))).thenReturn(Optional.of(role));
         when(roleDomainService.assignRole(any(), any()))
                 .thenThrow(new UserDomainException("USER_NOT_ACTIVE", "user must be active"));
@@ -79,7 +79,7 @@ class RoleManageTest {
     void translates_archived_role_failure() {
         User user = user(UserStatus.ACTIVE);
         Role role = role(RoleStatus.ARCHIVED);
-        when(userRepository.findById(new UserId("u-1"))).thenReturn(Optional.of(user));
+        when(userRepository.findById(new UserId(1001L))).thenReturn(Optional.of(user));
         when(roleRepository.findByCode(new RoleCode("teacher"))).thenReturn(Optional.of(role));
         when(roleDomainService.assignRole(any(), any()))
                 .thenThrow(new UserDomainException("ROLE_NOT_ACTIVE", "role must be active"));
@@ -90,11 +90,11 @@ class RoleManageTest {
     }
 
     private AssignRoleCommand command() {
-        return new AssignRoleCommand("u-1", "teacher", "operator-1", "request-1");
+        return new AssignRoleCommand(1001L, "teacher", "operator-1", "request-1");
     }
 
     private User user(UserStatus status) {
-        return new User(new UserId("u-1"), "Mario", "mario@example.com", status);
+        return new User(new UserId(1001L), "Mario", "mario@example.com", status);
     }
 
     private Role role(RoleStatus status) {

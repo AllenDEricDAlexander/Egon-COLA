@@ -10,17 +10,17 @@ import ${package}.domain.teaching.vos.SchoolClassId;
 import ${package}.domain.teaching.vos.Semester;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import top.egon.cola.component.common.id.generator.IdGenerator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 @Service("schoolClassDomainService")
 @RequiredArgsConstructor
 public class SchoolClassDomainServiceImpl implements SchoolClassDomainService {
-    private final IdGenerator idGenerator;
+    private final LongIdGenerator idGenerator;
 
     @Override
     public SchoolClass createSchoolClass(String name, Semester semester) {
         return new SchoolClass(
-                new SchoolClassId(idGenerator.nextId()),
+                new SchoolClassId(idGenerator.nextLongId()),
                 name,
                 semester,
                 SchoolClassStatus.ACTIVE);

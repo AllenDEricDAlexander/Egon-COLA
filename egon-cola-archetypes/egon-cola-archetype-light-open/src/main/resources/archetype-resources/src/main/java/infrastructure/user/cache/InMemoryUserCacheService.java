@@ -19,18 +19,18 @@ public class InMemoryUserCacheService implements UserCacheService {
     private final TransactionCompletionExecutor transactionCompletionExecutor;
 
     @Override
-    public Optional<UserSnapshot> getUser(String userId) {
-        return Optional.ofNullable(users.get(userId));
+    public Optional<UserSnapshot> getUser(long userId) {
+        return Optional.ofNullable(users.get(Long.toString(userId)));
     }
 
     @Override
     public void putUser(UserSnapshot user) {
-        users.put(user.id(), user);
+        users.put(Long.toString(user.id()), user);
     }
 
     @Override
-    public void evictUser(String userId) {
-        transactionCompletionExecutor.executeAfterCommit(() -> users.remove(userId));
+    public void evictUser(long userId) {
+        transactionCompletionExecutor.executeAfterCommit(() -> users.remove(Long.toString(userId)));
     }
 
     @Override

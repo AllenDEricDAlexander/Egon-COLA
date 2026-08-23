@@ -35,7 +35,7 @@ public class UserFacadeImpl implements UserFacade {
     public UserDetailDTO assignRole(AssignRoleDTO request) {
         try {
             return toDto(roleManage.assignRole(new AssignRoleCommand(
-                    request.userId(), request.roleCode(), request.operatorId(), request.requestId())));
+                    parseId(request.userId(), "userId"), request.roleCode(), request.operatorId(), request.requestId())));
         } catch (UserUseCaseException exception) {
             throw publicFailure(exception);
         }
@@ -44,14 +44,24 @@ public class UserFacadeImpl implements UserFacade {
     @Override
     public UserDetailDTO getUser(String userId) {
         try {
-            return toDto(userManage.get(new GetUserQuery(userId)));
+            return toDto(userManage.get(new GetUserQuery(parseId(userId, "userId"))));
         } catch (UserUseCaseException exception) {
             throw publicFailure(exception);
         }
     }
 
     private static UserDetailDTO toDto(UserResult result) {
-        return new UserDetailDTO(result.id(), result.name(), result.email(), result.status());
+        return new UserDetailDTO(Long.toString(result.id()), result.name(), result.email(), result.status());
+    }
+
+    private static long parseId(String value, String field) {
+        try {
+            long id = Long.parseLong(value);
+            if (id <= 0) throw new NumberFormatException(field);
+            return id;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(field + " must be a positive decimal Long", exception);
+        }
     }
 
     private static UserFacadeException publicFailure(UserUseCaseException exception) {

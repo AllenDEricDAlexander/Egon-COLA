@@ -30,14 +30,24 @@ public class CourseFacadeImpl implements CourseFacade {
     @Override
     public CourseDTO getCourse(String courseId) {
         try {
-            return toDto(courseManage.get(new GetCourseQuery(courseId)));
+            return toDto(courseManage.get(new GetCourseQuery(parseId(courseId, "courseId"))));
         } catch (TeachingUseCaseException exception) {
             throw publicFailure(exception);
         }
     }
 
     private static CourseDTO toDto(CourseResult result) {
-        return new CourseDTO(result.id(), result.code(), result.name(), result.status());
+        return new CourseDTO(Long.toString(result.id()), result.code(), result.name(), result.status());
+    }
+
+    private static long parseId(String value, String field) {
+        try {
+            long id = Long.parseLong(value);
+            if (id <= 0) throw new NumberFormatException(field);
+            return id;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(field + " must be a positive decimal Long", exception);
+        }
     }
 
     private static TeachingFacadeException publicFailure(TeachingUseCaseException exception) {

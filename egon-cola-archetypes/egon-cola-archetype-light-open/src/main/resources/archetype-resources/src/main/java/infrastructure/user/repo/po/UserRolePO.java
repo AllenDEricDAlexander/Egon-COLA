@@ -21,21 +21,21 @@ import java.util.Objects;
 public class UserRolePO {
     @Id
     @Column(name = "user_id", length = 36)
-    private String userId;
+    private Long userId;
     @Id
     @Column(name = "role_code")
     private String roleCode;
     @Column(name = "assigned_at", nullable = false)
     private Instant assignedAt;
 
-    public String getUserId() { return userId; }
+    public Long getUserId() { return userId; }
     public String getRoleCode() { return roleCode; }
     public Instant getAssignedAt() { return assignedAt; }
 
     @NoArgsConstructor
     @AllArgsConstructor
     public static final class Key implements Serializable {
-        private String userId;
+        private Long userId;
         private String roleCode;
 
         @Override

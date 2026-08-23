@@ -12,6 +12,7 @@ import ${package}.domain.teaching.vos.CourseSchedule;
 import ${package}.domain.teaching.vos.SchoolClassId;
 import ${package}.domain.teaching.vos.Semester;
 import ${package}.infrastructure.JpaTestApplication;
+import ${package}.infrastructure.TestLongIdGeneratorConfiguration;
 import ${package}.infrastructure.teaching.repo.converter.CoursePOConverter;
 import ${package}.infrastructure.teaching.repo.converter.CoursePOMapper;
 import ${package}.infrastructure.teaching.repo.converter.CoursePOMapperImpl;
@@ -27,7 +28,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ActiveProfiles;
-import top.egon.cola.component.common.id.generator.UuidV7Generator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.time.LocalDateTime;
 import java.time.Instant;
@@ -55,11 +56,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
         SchoolClassPOConverter.class,
         CoursePOConverter.class,
         CoursePOMapperImpl.class,
-        UuidV7Generator.class
+        TestLongIdGeneratorConfiguration.class
 })
 class SchoolClassRepositoryImplTest {
-    private static final String SCHOOL_CLASS_ID = "018f5f9c-4f6a-7c2b-8a1d-123456789ab3";
-    private static final String COURSE_ID = "018f5f9c-4f6a-7c2b-8a1d-123456789ab2";
+    private static final long SCHOOL_CLASS_ID = 1003L;
+    private static final long COURSE_ID = 1002L;
 
     @Autowired SchoolClassRepository schoolClassRepository;
     @Autowired CourseRepository courseRepository;
@@ -103,7 +104,7 @@ class SchoolClassRepositoryImplTest {
     @Test
     void updates_target_when_mapping_course() {
         CoursePO target = new CoursePO(
-                "old", "old", "Old", "INACTIVE", Instant.EPOCH);
+                999L, "old", "Old", "INACTIVE", Instant.EPOCH);
 
         CoursePO mapped = coursePOMapper.convert(course(), target);
 
@@ -136,4 +137,5 @@ class SchoolClassRepositoryImplTest {
                 && normalized.matches(".*where [a-z0-9_]+\\.id=\\?.*")
                 && !normalized.contains("school_class_id=?");
     }
+
 }

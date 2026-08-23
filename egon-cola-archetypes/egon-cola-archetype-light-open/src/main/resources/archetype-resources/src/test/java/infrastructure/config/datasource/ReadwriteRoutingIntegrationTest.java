@@ -102,8 +102,8 @@ class ReadwriteRoutingIntegrationTest {
 
         DataSource logical = YamlShardingSphereDataSourceFactory.createDataSource(
                 physical, classShardingRule());
-        String schoolClassId = "019ba346-0000-7000-8000-000000000101";
-        String scheduleId = "019ba346-0000-7000-8000-000000000102";
+        long schoolClassId = 2_147_483_648L;
+        long scheduleId = 2_147_483_649L;
         try {
             registerTables(
                     logical,
@@ -112,10 +112,10 @@ class ReadwriteRoutingIntegrationTest {
                     classCourseScheduleTable());
             try (Connection connection = logical.getConnection()) {
                 connection.setAutoCommit(false);
-                execute(connection, "INSERT INTO school_classes(id) VALUES ('"
-                        + schoolClassId + "')");
+                execute(connection, "INSERT INTO school_classes(id) VALUES ("
+                        + schoolClassId + ")");
                 execute(connection, "INSERT INTO class_course_schedules(id, school_class_id)"
-                        + " VALUES ('" + scheduleId + "', '" + schoolClassId + "')");
+                        + " VALUES (" + scheduleId + ", " + schoolClassId + ")");
                 connection.commit();
             }
 
@@ -154,11 +154,11 @@ class ReadwriteRoutingIntegrationTest {
             executeUnchecked(
                     dataSource,
                     "CREATE TABLE school_classes_" + suffix
-                            + "(id VARCHAR(36) PRIMARY KEY)");
+                            + "(id BIGINT PRIMARY KEY)");
             executeUnchecked(
                     dataSource,
                     "CREATE TABLE class_course_schedules_" + suffix
-                            + "(id VARCHAR(36) PRIMARY KEY, school_class_id VARCHAR(36) NOT NULL)");
+                            + "(id BIGINT PRIMARY KEY, school_class_id BIGINT NOT NULL)");
         }
     }
 
@@ -191,14 +191,14 @@ class ReadwriteRoutingIntegrationTest {
     }
 
     private static ShardingSphereTable schoolClassTable() {
-        return table("school_classes", column("id", Types.VARCHAR, true, false));
+        return table("school_classes", column("id", Types.BIGINT, true, false));
     }
 
     private static ShardingSphereTable classCourseScheduleTable() {
         return table(
                 "class_course_schedules",
-                column("id", Types.VARCHAR, true, false),
-                column("school_class_id", Types.VARCHAR, false, false));
+                column("id", Types.BIGINT, true, false),
+                column("school_class_id", Types.BIGINT, false, false));
     }
 
     private static ShardingSphereTable table(
@@ -230,17 +230,17 @@ class ReadwriteRoutingIntegrationTest {
     private static Set<String> writtenDataSources(
             Map<String, DataSource> dataSources,
             Collection<String> tablePrefixes,
-            Collection<String> ids) throws SQLException {
+            Collection<Long> ids) throws SQLException {
         Set<String> result = new LinkedHashSet<>();
         for (Map.Entry<String, DataSource> entry : dataSources.entrySet()) {
             int count = 0;
             for (String tablePrefix : tablePrefixes) {
                 for (int suffix = 0; suffix < 2; suffix++) {
-                    for (String id : ids) {
+                    for (Long id : ids) {
                         count += queryCount(
                                 entry.getValue(),
                                 "SELECT COUNT(*) FROM " + tablePrefix + "_" + suffix
-                                        + " WHERE id = '" + id + "'");
+                                        + " WHERE id = " + id);
                     }
                 }
             }
@@ -346,11 +346,11 @@ class ReadwriteRoutingIntegrationTest {
                         databaseStrategy:
                           standard:
                             shardingColumn: id
-                            shardingAlgorithmName: uuid_v7_database_bucket
+                            shardingAlgorithmName: snowflake_long_database_bucket
                         tableStrategy:
                           standard:
                             shardingColumn: id
-                            shardingAlgorithmName: uuid_v7_table_bucket
+                            shardingAlgorithmName: snowflake_long_table_bucket
                         auditStrategy:
                           auditorNames:
                             - sharding_key_required_auditor
@@ -360,11 +360,11 @@ class ReadwriteRoutingIntegrationTest {
                         databaseStrategy:
                           standard:
                             shardingColumn: school_class_id
-                            shardingAlgorithmName: uuid_v7_database_bucket
+                            shardingAlgorithmName: snowflake_long_database_bucket
                         tableStrategy:
                           standard:
                             shardingColumn: school_class_id
-                            shardingAlgorithmName: uuid_v7_table_bucket
+                            shardingAlgorithmName: snowflake_long_table_bucket
                         auditStrategy:
                           auditorNames:
                             - sharding_key_required_auditor
@@ -372,19 +372,19 @@ class ReadwriteRoutingIntegrationTest {
                     bindingTables:
                       - school_classes,class_course_schedules
                     shardingAlgorithms:
-                      uuid_v7_database_bucket:
+                      snowflake_long_database_bucket:
                         type: CLASS_BASED
                         props:
                           strategy: STANDARD
-                          algorithmClassName: ${package}.infrastructure.config.datasource.UuidV7BucketShardingAlgorithm
+                          algorithmClassName: ${package}.infrastructure.config.datasource.SnowflakeLongShardingAlgorithm
                           target: database
                           node-count: 4
                           node-map: 0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1
-                      uuid_v7_table_bucket:
+                      snowflake_long_table_bucket:
                         type: CLASS_BASED
                         props:
                           strategy: STANDARD
-                          algorithmClassName: ${package}.infrastructure.config.datasource.UuidV7BucketShardingAlgorithm
+                          algorithmClassName: ${package}.infrastructure.config.datasource.SnowflakeLongShardingAlgorithm
                           target: table
                           node-count: 4
                           node-map: 0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1

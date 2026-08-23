@@ -17,7 +17,7 @@ import java.time.Instant;
 public class SchoolClassPO {
     @Id
     @Column(length = 36)
-    private String id;
+    private Long id;
     @Column(nullable = false)
     private String name;
     @Column(nullable = false)
@@ -27,7 +27,7 @@ public class SchoolClassPO {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    public String getId() { return id; }
+    public Long getId() { return id; }
     public String getName() { return name; }
     public String getSemester() { return semester; }
     public String getStatus() { return status; }

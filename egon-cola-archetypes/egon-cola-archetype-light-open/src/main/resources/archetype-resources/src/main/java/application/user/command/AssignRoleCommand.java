@@ -1,12 +1,14 @@
 package ${package}.application.user.command;
 
 public record AssignRoleCommand(
-        String userId,
+        long userId,
         String roleCode,
         String operatorId,
         String idempotencyKey) {
     public AssignRoleCommand {
-        requireText(userId, "userId");
+        if (userId <= 0) {
+            throw new IllegalArgumentException("userId must be positive");
+        }
         requireText(roleCode, "roleCode");
     }
 

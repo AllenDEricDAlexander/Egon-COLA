@@ -39,7 +39,7 @@ class SchoolClassAggregateTest {
     @Test
     void rejects_scheduling_for_inactive_class() {
         SchoolClass schoolClass = new SchoolClass(
-                new SchoolClassId("class-1"), "Class One", new Semester("2026-FALL"),
+                new SchoolClassId(3001L), "Class One", new Semester("2026-FALL"),
                 SchoolClassStatus.ARCHIVED);
         SchoolClassAggregate aggregate = new SchoolClassAggregate(schoolClass);
 
@@ -50,7 +50,7 @@ class SchoolClassAggregateTest {
     @Test
     void rejects_disabled_course() {
         SchoolClassAggregate aggregate = activeClass();
-        Course course = new Course("course-math", new CourseCode("math"), "math", CourseStatus.DISABLED);
+        Course course = new Course(2001L, new CourseCode("math"), "math", CourseStatus.DISABLED);
 
         assertThrows(TeachingDomainException.class,
                 () -> aggregate.schedule(course, schedule("math", 9, 10)));
@@ -58,13 +58,14 @@ class SchoolClassAggregateTest {
 
     private static SchoolClassAggregate activeClass() {
         SchoolClass schoolClass = new SchoolClass(
-                new SchoolClassId("class-1"), "Class One", new Semester("2026-FALL"),
+                new SchoolClassId(3001L), "Class One", new Semester("2026-FALL"),
                 SchoolClassStatus.ACTIVE);
         return new SchoolClassAggregate(schoolClass);
     }
 
     private static Course activeCourse(String code) {
-        return new Course("course-" + code, new CourseCode(code), code, CourseStatus.ACTIVE);
+        return new Course(code.equals("math") ? 2001L : 2002L,
+                new CourseCode(code), code, CourseStatus.ACTIVE);
     }
 
     private static CourseSchedule schedule(String code, int startsAtHour, int endsAtHour) {

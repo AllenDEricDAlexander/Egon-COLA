@@ -65,7 +65,7 @@ public class UserManageImpl implements UserManage {
                 .orElseGet(() -> loadAndCache(query.userId()));
     }
 
-    private UserResult loadAndCache(String userId) {
+    private UserResult loadAndCache(long userId) {
         User user = userRepository.findById(new UserId(userId))
                 .orElseThrow(() -> new UserUseCaseException("USER_NOT_FOUND", "user not found"));
         UserSnapshot snapshot = convertor.toSnapshot(user);

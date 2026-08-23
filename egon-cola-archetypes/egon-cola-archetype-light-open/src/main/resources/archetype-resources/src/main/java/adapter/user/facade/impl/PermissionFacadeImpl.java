@@ -34,12 +34,22 @@ public class PermissionFacadeImpl implements PermissionFacade {
     @Override
     public List<PermissionDetailDTO> getUserPermissions(String userId) {
         try {
-            return permissionManage.getByUser(new GetUserPermissionsQuery(userId)).stream()
+            return permissionManage.getByUser(new GetUserPermissionsQuery(parseId(userId, "userId"))).stream()
                     .map(permission -> new PermissionDetailDTO(
                             permission.code(), permission.name(), List.of()))
                     .toList();
         } catch (UserUseCaseException exception) {
             throw new UserFacadeException(exception.getCode(), exception.getMessage());
+        }
+    }
+
+    private static long parseId(String value, String field) {
+        try {
+            long id = Long.parseLong(value);
+            if (id <= 0) throw new NumberFormatException(field);
+            return id;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(field + " must be a positive decimal Long", exception);
         }
     }
 }

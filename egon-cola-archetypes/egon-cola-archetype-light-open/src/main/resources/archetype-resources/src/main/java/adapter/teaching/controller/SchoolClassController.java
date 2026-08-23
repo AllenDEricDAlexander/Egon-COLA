@@ -38,7 +38,7 @@ public class SchoolClassController {
     @GetMapping("/{schoolClassId}")
     public SchoolClassDetailVO get(@PathVariable String schoolClassId) {
         return convertor.toSchoolClass(
-                schoolClassManage.get(new GetSchoolClassQuery(schoolClassId)));
+                schoolClassManage.get(new GetSchoolClassQuery(parseId(schoolClassId, "schoolClassId"))));
     }
 
     @PostMapping("/{schoolClassId}/courses/{courseId}/schedule")
@@ -49,11 +49,21 @@ public class SchoolClassController {
         validator.validateSchedule(request);
         RequestContext context = RequestContextHolder.currentOrAnonymous();
         return convertor.toSchoolClass(schoolClassManage.schedule(new ScheduleCourseCommand(
-                schoolClassId,
-                courseId,
+                parseId(schoolClassId, "schoolClassId"),
+                parseId(courseId, "courseId"),
                 request.startsAt(),
                 request.endsAt(),
                 context.operatorId(),
                 context.requestId())));
+    }
+
+    private static long parseId(String value, String field) {
+        try {
+            long id = Long.parseLong(value);
+            if (id <= 0) throw new NumberFormatException();
+            return id;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(field + " must be a positive decimal Long", exception);
+        }
     }
 }

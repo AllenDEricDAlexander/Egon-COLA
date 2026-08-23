@@ -38,8 +38,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SchoolClassManageTest {
-    private static final String SCHOOL_CLASS_ID = "018f5f9c-4f6a-7c2b-8a1d-123456789ab3";
-    private static final String COURSE_ID = "018f5f9c-4f6a-7c2b-8a1d-123456789ab2";
+    private static final long SCHOOL_CLASS_ID = 1003L;
+    private static final long COURSE_ID = 1002L;
 
     @Mock SchoolClassDomainService schoolClassDomainService;
     @Mock SchoolClassRepository schoolClassRepository;

@@ -21,7 +21,7 @@ import java.time.Instant;
 public class CoursePO {
     @Id
     @Column(length = 36)
-    private String id;
+    private Long id;
     @Column(name = "course_code", nullable = false, unique = true)
     private String courseCode;
     @Column(nullable = false)

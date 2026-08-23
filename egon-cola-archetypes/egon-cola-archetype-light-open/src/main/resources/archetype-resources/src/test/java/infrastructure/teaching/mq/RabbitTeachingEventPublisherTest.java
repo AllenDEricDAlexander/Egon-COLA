@@ -19,9 +19,9 @@ class RabbitTeachingEventPublisherTest {
                 rabbitTemplate, new TransactionCompletionExecutor(), "sample.domain");
         TransactionTemplate transaction = new TransactionTemplate(new DataSourceTransactionManager(
                 new DriverManagerDataSource("jdbc:h2:mem:rabbit-teaching;DB_CLOSE_DELAY=-1", "sa", "")));
-        TeachingEvent classEvent = TeachingEvent.classCreated("class-1");
-        TeachingEvent courseEvent = TeachingEvent.courseCreated("course-1");
-        TeachingEvent scheduleEvent = TeachingEvent.courseScheduled("class-1");
+        TeachingEvent classEvent = TeachingEvent.classCreated(3001L);
+        TeachingEvent courseEvent = TeachingEvent.courseCreated(2001L);
+        TeachingEvent scheduleEvent = TeachingEvent.courseScheduled(3001L);
 
         transaction.executeWithoutResult(status -> publisher.publish(classEvent));
         transaction.executeWithoutResult(status -> publisher.publish(courseEvent));

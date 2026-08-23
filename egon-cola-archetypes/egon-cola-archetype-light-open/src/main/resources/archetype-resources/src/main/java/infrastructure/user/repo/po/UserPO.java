@@ -17,7 +17,7 @@ import java.time.Instant;
 public class UserPO {
     @Id
     @Column(length = 36)
-    private String id;
+    private Long id;
     @Column(name = "external_id", nullable = false, unique = true)
     private String externalId;
     @Column(nullable = false)
@@ -29,7 +29,7 @@ public class UserPO {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
-    public String getId() { return id; }
+    public Long getId() { return id; }
     public String getExternalId() { return externalId; }
     public String getName() { return name; }
     public String getEmail() { return email; }

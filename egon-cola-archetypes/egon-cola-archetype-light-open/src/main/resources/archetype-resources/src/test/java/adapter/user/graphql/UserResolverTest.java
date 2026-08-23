@@ -32,9 +32,9 @@ class UserResolverTest {
     @Test
     void resolves_user_through_graphql_boundary() {
         when(userManage.get(any()))
-                .thenReturn(new UserResult("user-1", "Mario", "mario@example.com", "ACTIVE"));
+                .thenReturn(new UserResult(1001L, "Mario", "mario@example.com", "ACTIVE"));
 
-        graphQlTester.document("{ user(id: \"user-1\") { id name email status } }")
+        graphQlTester.document("{ user(id: \"1001\") { id name email status } }")
                 .execute()
                 .path("user.name").entity(String.class).isEqualTo("Mario");
     }
@@ -44,7 +44,7 @@ class UserResolverTest {
         when(permissionManage.getByUser(any())).thenReturn(List.of(
                 new PermissionDetailResult("course:read", "Read courses")));
 
-        graphQlTester.document("{ permissions(userId: \"user-1\") { code name children { code } } }")
+        graphQlTester.document("{ permissions(userId: \"1001\") { code name children { code } } }")
                 .execute()
                 .path("permissions[0].code").entity(String.class).isEqualTo("course:read")
                 .path("permissions[0].children").entityList(Object.class).hasSize(0);

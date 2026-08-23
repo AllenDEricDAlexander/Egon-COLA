@@ -21,12 +21,22 @@ public class CourseResolver {
 
     @QueryMapping
     public CourseDetailVO course(@Argument String id) {
-        return convertor.toCourse(courseManage.get(new GetCourseQuery(id)));
+        return convertor.toCourse(courseManage.get(new GetCourseQuery(parseId(id))));
     }
 
     @QueryMapping
     public SchoolClassDetailVO schoolClass(@Argument String id) {
         return convertor.toSchoolClass(
-                schoolClassManage.get(new GetSchoolClassQuery(id)));
+                schoolClassManage.get(new GetSchoolClassQuery(parseId(id))));
+    }
+
+    private static long parseId(String value) {
+        try {
+            long id = Long.parseLong(value);
+            if (id <= 0) throw new NumberFormatException();
+            return id;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("id must be a positive decimal Long", exception);
+        }
     }
 }

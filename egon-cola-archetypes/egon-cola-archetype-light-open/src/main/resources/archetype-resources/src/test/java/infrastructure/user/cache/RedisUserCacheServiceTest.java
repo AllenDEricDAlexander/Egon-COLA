@@ -30,17 +30,17 @@ class RedisUserCacheServiceTest {
         RedisUserCacheService cache = new RedisUserCacheService(
                 redis, objectMapper, new UserInfrastructureValidator(),
                 new TransactionCompletionExecutor(), "sample", Duration.ofMinutes(10));
-        UserSnapshot snapshot = new UserSnapshot("u-1", "Mario", "mario@example.com", UserStatus.ACTIVE);
+        UserSnapshot snapshot = new UserSnapshot(1001L, "Mario", "mario@example.com", UserStatus.ACTIVE);
         String json = objectMapper.writeValueAsString(snapshot);
-        when(values.get("sample:user:u-1")).thenReturn(json);
+        when(values.get("sample:user:1001")).thenReturn(json);
         when(values.setIfAbsent("sample:idempotency:user:req-1", "1", Duration.ofMinutes(5)))
                 .thenReturn(true);
 
         cache.putUser(snapshot);
-        assertEquals(snapshot, cache.getUser("u-1").orElseThrow());
+        assertEquals(snapshot, cache.getUser(1001L).orElseThrow());
         assertTrue(cache.claimIdempotency("req-1", Duration.ofMinutes(5)));
 
-        verify(values).set("sample:user:u-1", json, Duration.ofMinutes(10));
+        verify(values).set("sample:user:1001", json, Duration.ofMinutes(10));
         verify(values).setIfAbsent("sample:idempotency:user:req-1", "1", Duration.ofMinutes(5));
     }
 
@@ -53,13 +53,13 @@ class RedisUserCacheServiceTest {
         TransactionTemplate transaction = new TransactionTemplate(new DataSourceTransactionManager(
                 new DriverManagerDataSource("jdbc:h2:mem:redis-user;DB_CLOSE_DELAY=-1", "sa", "")));
 
-        transaction.executeWithoutResult(status -> cache.evictUser("u-1"));
-        verify(redis).delete("sample:user:u-1");
+        transaction.executeWithoutResult(status -> cache.evictUser(1001L));
+        verify(redis).delete("sample:user:1001");
 
         transaction.executeWithoutResult(status -> {
-            cache.evictUser("u-2");
+            cache.evictUser(1002L);
             status.setRollbackOnly();
         });
-        verify(redis, org.mockito.Mockito.never()).delete("sample:user:u-2");
+        verify(redis, org.mockito.Mockito.never()).delete("sample:user:1002");
     }
 }

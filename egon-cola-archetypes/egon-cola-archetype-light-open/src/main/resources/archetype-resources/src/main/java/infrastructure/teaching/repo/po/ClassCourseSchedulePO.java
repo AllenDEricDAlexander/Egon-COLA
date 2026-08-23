@@ -21,11 +21,11 @@ import java.time.LocalDateTime;
 public class ClassCourseSchedulePO {
     @Id
     @Column(length = 36)
-    private String id;
+    private Long id;
     @Column(name = "school_class_id", nullable = false, length = 36)
-    private String schoolClassId;
+    private Long schoolClassId;
     @Column(name = "course_id", nullable = false, length = 36)
-    private String courseId;
+    private Long courseId;
     @Column(name = "starts_at", nullable = false)
     private LocalDateTime startsAt;
     @Column(name = "ends_at", nullable = false)
@@ -34,9 +34,9 @@ public class ClassCourseSchedulePO {
     private Instant createdAt;
 
     public ClassCourseSchedulePO(
-            String id,
-            String schoolClassId,
-            String courseId,
+            Long id,
+            Long schoolClassId,
+            Long courseId,
             LocalDateTime startsAt,
             LocalDateTime endsAt,
             Instant createdAt) {
@@ -48,9 +48,9 @@ public class ClassCourseSchedulePO {
         this.createdAt = createdAt;
     }
 
-    public String getId() { return id; }
-    public String getSchoolClassId() { return schoolClassId; }
-    public String getCourseId() { return courseId; }
+    public Long getId() { return id; }
+    public Long getSchoolClassId() { return schoolClassId; }
+    public Long getCourseId() { return courseId; }
     public LocalDateTime getStartsAt() { return startsAt; }
     public LocalDateTime getEndsAt() { return endsAt; }
     public Instant getCreatedAt() { return createdAt; }

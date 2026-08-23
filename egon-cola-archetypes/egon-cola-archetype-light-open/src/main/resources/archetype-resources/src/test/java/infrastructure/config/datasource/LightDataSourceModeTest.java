@@ -11,7 +11,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
@@ -19,7 +18,7 @@ import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.io.ClassPathResource;
-import top.egon.cola.component.common.id.generator.UuidV7Generator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 class LightDataSourceModeTest {
 
@@ -27,24 +26,24 @@ class LightDataSourceModeTest {
             "0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1";
 
     @Test
-    void shouldUseUuidV7ForEverySurrogateKey() {
-        UuidV7Generator idGenerator = new UuidV7Generator();
-        String userId = new UserDomainServiceImpl(idGenerator)
+    void shouldUsePositiveLongForEverySurrogateKey() {
+        LongIdGenerator idGenerator = new SequenceLongIdGenerator();
+        long userId = new UserDomainServiceImpl(idGenerator)
                 .createUser("external-1", "Mario", "mario@example.com")
                 .id()
                 .value();
-        String courseId = new CourseDomainServiceImpl(idGenerator)
+        long courseId = new CourseDomainServiceImpl(idGenerator)
                 .createCourse(
                         new ${package}.domain.teaching.vos.CourseCode("math"),
                         "Mathematics")
                 .id();
-        String schoolClassId = new SchoolClassDomainServiceImpl(idGenerator)
+        long schoolClassId = new SchoolClassDomainServiceImpl(idGenerator)
                 .createSchoolClass(
                         "Class One",
                         new ${package}.domain.teaching.vos.Semester("2026-FALL"))
                 .id()
                 .value();
-        String scheduleId = idGenerator.nextId();
+        long scheduleId = idGenerator.nextLongId();
         ClassCourseSchedulePO schedule = new ClassCourseSchedulePO(
                 scheduleId,
                 schoolClassId,
@@ -53,13 +52,13 @@ class LightDataSourceModeTest {
                 LocalDateTime.of(2026, 9, 1, 10, 0),
                 Instant.now());
 
-        assertThat(List.<String>of(userId, courseId, schoolClassId, schedule.getId()))
-                .allSatisfy(LightDataSourceModeTest::assertUuidV7);
+        assertThat(List.of(userId, courseId, schoolClassId, schedule.getId()))
+                .allSatisfy(id -> assertThat(id).isPositive());
     }
 
     @Test
     void shouldRouteClassAndScheduleByTheSameSchoolClassId() {
-        String schoolClassId = new UuidV7Generator().nextId();
+        long schoolClassId = 42L;
         ShardingNodeMap nodeMap = ShardingNodeMap.parse("4", NODE_MAP);
 
         assertThat(nodeMap.route(schoolClassId))
@@ -170,8 +169,12 @@ class LightDataSourceModeTest {
                 + "DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1";
     }
 
-    private static void assertUuidV7(String value) {
-        assertThat(value).hasSize(36);
-        assertThat(UUID.fromString(value).version()).isEqualTo(7);
+    private static final class SequenceLongIdGenerator implements LongIdGenerator {
+        private long next = 100L;
+
+        @Override
+        public long nextLongId() {
+            return next++;
+        }
     }
 }

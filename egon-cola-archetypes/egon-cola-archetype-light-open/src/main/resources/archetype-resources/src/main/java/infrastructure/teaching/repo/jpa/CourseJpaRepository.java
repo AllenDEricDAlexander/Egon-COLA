@@ -7,6 +7,6 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository("teachingCourseJpaRepository")
-public interface CourseJpaRepository extends JpaRepository<CoursePO, String> {
+public interface CourseJpaRepository extends JpaRepository<CoursePO, Long> {
     Optional<CoursePO> findByCourseCode(String courseCode);
 }

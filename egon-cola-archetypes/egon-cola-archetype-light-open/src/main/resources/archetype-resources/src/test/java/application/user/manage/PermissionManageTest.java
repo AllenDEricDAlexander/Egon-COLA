@@ -84,11 +84,11 @@ class PermissionManageTest {
     @Test
     void queries_permissions_for_user() {
         Permission permission = permission(PermissionStatus.ACTIVE);
-        when(permissionRepository.findByUserId(new UserId("u-1")))
+        when(permissionRepository.findByUserId(new UserId(1001L)))
                 .thenReturn(List.of(permission));
 
         List<PermissionDetailResult> result = manage.getByUser(
-                new GetUserPermissionsQuery("u-1"));
+                new GetUserPermissionsQuery(1001L));
 
         assertEquals(List.of(new PermissionDetailResult("course:read", "Read courses")), result);
     }

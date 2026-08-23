@@ -26,9 +26,19 @@ public class RoleController {
     public UserDetailVO assignRole(@PathVariable String userId, @Valid @RequestBody AssignRoleRequest request) {
         RequestContext context = RequestContextHolder.currentOrAnonymous();
         return convertor.toUserDetail(roleManage.assignRole(new AssignRoleCommand(
-                userId,
+                parseId(userId),
                 request.roleCode(),
                 context.operatorId(),
                 context.requestId())));
+    }
+
+    private static long parseId(String value) {
+        try {
+            long id = Long.parseLong(value);
+            if (id <= 0) throw new NumberFormatException();
+            return id;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("userId must be a positive decimal Long", exception);
+        }
     }
 }

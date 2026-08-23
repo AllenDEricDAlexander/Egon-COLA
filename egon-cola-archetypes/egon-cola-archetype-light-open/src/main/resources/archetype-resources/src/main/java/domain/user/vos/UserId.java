@@ -1,9 +1,9 @@
 package ${package}.domain.user.vos;
 
-public record UserId(String value) {
+public record UserId(long value) {
     public UserId {
-        if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("user id must not be blank");
+        if (value <= 0) {
+            throw new IllegalArgumentException("user id must be positive");
         }
     }
 }

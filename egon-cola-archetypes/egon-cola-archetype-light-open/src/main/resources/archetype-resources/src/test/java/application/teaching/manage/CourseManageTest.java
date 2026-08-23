@@ -28,13 +28,14 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CourseManageTest {
-    private static final String COURSE_ID = "018f5f9c-4f6a-7c2b-8a1d-123456789ab2";
+    private static final long COURSE_ID = 1002L;
 
     @Mock CourseDomainService courseDomainService;
     @Mock CourseRepository courseRepository;
@@ -83,7 +84,7 @@ class CourseManageTest {
         CourseResult result = manage.get(new GetCourseQuery(COURSE_ID));
 
         assertEquals("math", result.code());
-        verify(courseRepository, never()).findById(any());
+        verify(courseRepository, never()).findById(anyLong());
     }
 
     @Test

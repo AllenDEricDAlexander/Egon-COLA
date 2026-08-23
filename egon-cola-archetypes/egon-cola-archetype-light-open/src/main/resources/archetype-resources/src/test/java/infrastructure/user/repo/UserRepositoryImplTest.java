@@ -53,8 +53,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
         PermissionPOConverter.class
 })
 class UserRepositoryImplTest {
-    private static final String USER_ID = "018f5f9c-4f6a-7c2b-8a1d-123456789ab1";
-    private static final String OTHER_USER_ID = "018f5f9c-4f6a-7c2b-8a1d-123456789ab4";
+    private static final long USER_ID = 1001L;
+    private static final long OTHER_USER_ID = 1004L;
 
     @Autowired UserRepository userRepository;
     @Autowired RoleRepository roleRepository;
@@ -96,7 +96,7 @@ class UserRepositoryImplTest {
         assertThrows(PersistenceException.class, entityManager::flush);
     }
 
-    private User user(String id, String email) {
+    private User user(long id, String email) {
         return new User(new UserId(id), "ext-" + id, "Mario", email, UserStatus.ACTIVE);
     }
 }

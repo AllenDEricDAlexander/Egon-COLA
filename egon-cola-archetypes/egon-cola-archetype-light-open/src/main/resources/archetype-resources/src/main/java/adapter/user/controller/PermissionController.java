@@ -42,6 +42,16 @@ public class PermissionController {
     @GetMapping("/users/{userId}/permissions")
     public List<PermissionTreeVO> getUserPermissions(@PathVariable String userId) {
         return convertor.toPermissionTree(
-                permissionManage.getByUser(new GetUserPermissionsQuery(userId)));
+                permissionManage.getByUser(new GetUserPermissionsQuery(parseId(userId))));
+    }
+
+    private static long parseId(String value) {
+        try {
+            long id = Long.parseLong(value);
+            if (id <= 0) throw new NumberFormatException();
+            return id;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("userId must be a positive decimal Long", exception);
+        }
     }
 }

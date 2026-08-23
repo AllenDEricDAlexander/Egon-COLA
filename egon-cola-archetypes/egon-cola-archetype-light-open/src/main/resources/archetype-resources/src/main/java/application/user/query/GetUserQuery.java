@@ -1,9 +1,9 @@
 package ${package}.application.user.query;
 
-public record GetUserQuery(String userId) {
+public record GetUserQuery(long userId) {
     public GetUserQuery {
-        if (userId == null || userId.isBlank()) {
-            throw new IllegalArgumentException("userId must not be blank");
+        if (userId <= 0) {
+            throw new IllegalArgumentException("userId must be positive");
         }
     }
 }

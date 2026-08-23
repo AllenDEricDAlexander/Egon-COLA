@@ -29,7 +29,7 @@ public class RedisUserCacheService implements UserCacheService {
     private final Duration ttl;
 
     @Override
-    public Optional<UserSnapshot> getUser(String userId) {
+    public Optional<UserSnapshot> getUser(long userId) {
         String payload = redisTemplate.opsForValue().get(userKey(userId));
         if (payload == null) {
             return Optional.empty();
@@ -47,12 +47,12 @@ public class RedisUserCacheService implements UserCacheService {
             redisTemplate.opsForValue().set(
                     userKey(user.id()), objectMapper.writeValueAsString(user), ttl);
         } catch (JsonProcessingException exception) {
-            throw validator.invalidCachePayload(user.id(), exception);
+            throw validator.invalidCachePayload(Long.toString(user.id()), exception);
         }
     }
 
     @Override
-    public void evictUser(String userId) {
+    public void evictUser(long userId) {
         transactionCompletionExecutor.executeAfterCommit(() -> redisTemplate.delete(userKey(userId)));
     }
 
@@ -67,7 +67,7 @@ public class RedisUserCacheService implements UserCacheService {
         return claimed;
     }
 
-    private String userKey(String userId) {
+    private String userKey(long userId) {
         return applicationName + ":user:" + userId;
     }
 

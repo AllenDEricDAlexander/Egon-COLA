@@ -28,13 +28,13 @@ class RedisCourseCacheServiceTest {
                 redis, objectMapper, new TeachingInfrastructureValidator(),
                 new TransactionCompletionExecutor(), "sample", Duration.ofMinutes(10));
         CourseSnapshot snapshot = new CourseSnapshot(
-                "course-1", new CourseCode("COURSE-001"), "Mathematics", CourseStatus.ACTIVE);
+                2001L, new CourseCode("COURSE-001"), "Mathematics", CourseStatus.ACTIVE);
         String json = objectMapper.writeValueAsString(snapshot);
-        when(values.get("sample:course:course-1")).thenReturn(json);
+        when(values.get("sample:course:2001")).thenReturn(json);
 
         cache.putCourse(snapshot);
 
-        assertEquals(snapshot, cache.getCourse("course-1").orElseThrow());
-        verify(values).set("sample:course:course-1", json, Duration.ofMinutes(10));
+        assertEquals(snapshot, cache.getCourse(2001L).orElseThrow());
+        verify(values).set("sample:course:2001", json, Duration.ofMinutes(10));
     }
 }

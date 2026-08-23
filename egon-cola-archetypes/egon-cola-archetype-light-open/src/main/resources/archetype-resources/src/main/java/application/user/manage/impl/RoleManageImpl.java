@@ -45,7 +45,7 @@ public class RoleManageImpl implements RoleManage {
     @Transactional
     public UserResult assignRole(AssignRoleCommand command) {
         applicationValidator.validate(command);
-        User user = userRepository.findById(new UserId(command.userId()))
+            User user = userRepository.findById(new UserId(command.userId()))
                 .orElseThrow(() -> new UserUseCaseException("USER_NOT_FOUND", "user not found"));
         Role role = roleRepository.findByCode(new RoleCode(command.roleCode()))
                 .orElseThrow(() -> new UserUseCaseException("ROLE_NOT_FOUND", "role not found"));

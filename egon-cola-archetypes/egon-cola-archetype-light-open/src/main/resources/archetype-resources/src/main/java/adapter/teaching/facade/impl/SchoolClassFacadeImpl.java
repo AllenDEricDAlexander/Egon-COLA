@@ -33,7 +33,8 @@ public class SchoolClassFacadeImpl implements SchoolClassFacade {
     public SchoolClassDetailDTO scheduleCourse(ScheduleCourseDTO request) {
         try {
             return toDto(schoolClassManage.schedule(new ScheduleCourseCommand(
-                    request.schoolClassId(), request.courseId(), request.startsAt(), request.endsAt(),
+                    parseId(request.schoolClassId(), "schoolClassId"), parseId(request.courseId(), "courseId"),
+                    request.startsAt(), request.endsAt(),
                     request.operatorId(), request.requestId())));
         } catch (TeachingUseCaseException exception) {
             throw publicFailure(exception);
@@ -43,7 +44,7 @@ public class SchoolClassFacadeImpl implements SchoolClassFacade {
     @Override
     public SchoolClassDetailDTO getSchoolClass(String schoolClassId) {
         try {
-            return toDto(schoolClassManage.get(new GetSchoolClassQuery(schoolClassId)));
+            return toDto(schoolClassManage.get(new GetSchoolClassQuery(parseId(schoolClassId, "schoolClassId"))));
         } catch (TeachingUseCaseException exception) {
             throw publicFailure(exception);
         }
@@ -51,7 +52,17 @@ public class SchoolClassFacadeImpl implements SchoolClassFacade {
 
     private static SchoolClassDetailDTO toDto(SchoolClassResult result) {
         return new SchoolClassDetailDTO(
-                result.id(), result.name(), result.semester(), result.status(), result.scheduleCount());
+                Long.toString(result.id()), result.name(), result.semester(), result.status(), result.scheduleCount());
+    }
+
+    private static long parseId(String value, String field) {
+        try {
+            long id = Long.parseLong(value);
+            if (id <= 0) throw new NumberFormatException(field);
+            return id;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(field + " must be a positive decimal Long", exception);
+        }
     }
 
     private static TeachingFacadeException publicFailure(TeachingUseCaseException exception) {

@@ -16,7 +16,7 @@ class UserAggregateTest {
     @Test
     void assigns_active_role_to_active_user() {
         UserAggregate aggregate = new UserAggregate(
-                new User(new UserId("u-1"), "Mario", "mario@example.com", UserStatus.ACTIVE));
+                new User(new UserId(1001L), "Mario", "mario@example.com", UserStatus.ACTIVE));
 
         aggregate.assign(new Role(new RoleCode("teacher"), "Teacher", RoleStatus.ACTIVE));
 
@@ -26,7 +26,7 @@ class UserAggregateTest {
     @Test
     void rejects_role_assignment_for_disabled_user() {
         UserAggregate aggregate = new UserAggregate(
-                new User(new UserId("u-1"), "Mario", "mario@example.com", UserStatus.DISABLED));
+                new User(new UserId(1001L), "Mario", "mario@example.com", UserStatus.DISABLED));
         Role role = new Role(new RoleCode("teacher"), "Teacher", RoleStatus.ACTIVE);
 
         assertThrows(UserDomainException.class, () -> aggregate.assign(role));

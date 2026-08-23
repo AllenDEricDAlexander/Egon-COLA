@@ -65,7 +65,7 @@ public class CourseManageImpl implements CourseManage {
                 .orElseGet(() -> loadAndCache(query.courseId()));
     }
 
-    private CourseResult loadAndCache(String courseId) {
+    private CourseResult loadAndCache(long courseId) {
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new TeachingUseCaseException("COURSE_NOT_FOUND", "course not found"));
         CourseSnapshot snapshot = convertor.toSnapshot(course);

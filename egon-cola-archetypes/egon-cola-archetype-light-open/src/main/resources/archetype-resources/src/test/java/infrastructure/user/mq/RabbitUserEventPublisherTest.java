@@ -19,7 +19,7 @@ class RabbitUserEventPublisherTest {
         RabbitUserEventPublisher publisher = new RabbitUserEventPublisher(
                 rabbitTemplate, new TransactionCompletionExecutor(), "sample.domain");
         TransactionTemplate transaction = transactionTemplate();
-        UserEvent created = UserEvent.created("u-1");
+        UserEvent created = UserEvent.created(1001L);
 
         transaction.executeWithoutResult(status -> {
             publisher.publish(created);
@@ -31,7 +31,7 @@ class RabbitUserEventPublisherTest {
         transaction.executeWithoutResult(status -> publisher.publish(authorization));
         verify(rabbitTemplate).convertAndSend("sample.domain", "authorization.changed", authorization);
 
-        UserEvent rolledBack = UserEvent.created("u-2");
+        UserEvent rolledBack = UserEvent.created(1002L);
         transaction.executeWithoutResult(status -> {
             publisher.publish(rolledBack);
             status.setRollbackOnly();

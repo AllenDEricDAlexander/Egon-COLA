@@ -19,18 +19,18 @@ public class InMemoryCourseCacheService implements CourseCacheService {
     private final TransactionCompletionExecutor transactionCompletionExecutor;
 
     @Override
-    public Optional<CourseSnapshot> getCourse(String courseId) {
-        return Optional.ofNullable(courses.get(courseId));
+    public Optional<CourseSnapshot> getCourse(long courseId) {
+        return Optional.ofNullable(courses.get(Long.toString(courseId)));
     }
 
     @Override
     public void putCourse(CourseSnapshot course) {
-        courses.put(course.id(), course);
+        courses.put(Long.toString(course.id()), course);
     }
 
     @Override
-    public void evictCourse(String courseId) {
-        transactionCompletionExecutor.executeAfterCommit(() -> courses.remove(courseId));
+    public void evictCourse(long courseId) {
+        transactionCompletionExecutor.executeAfterCommit(() -> courses.remove(Long.toString(courseId)));
     }
 
     @Override

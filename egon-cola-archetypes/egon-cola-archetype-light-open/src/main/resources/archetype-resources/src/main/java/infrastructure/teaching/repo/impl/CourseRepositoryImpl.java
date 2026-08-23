@@ -22,7 +22,7 @@ public class CourseRepositoryImpl implements CourseRepository {
     }
 
     @Override
-    public Optional<Course> findById(String courseId) {
+    public Optional<Course> findById(long courseId) {
         return courseJpaRepository.findById(courseId).map(converter::toDomain);
     }
 
