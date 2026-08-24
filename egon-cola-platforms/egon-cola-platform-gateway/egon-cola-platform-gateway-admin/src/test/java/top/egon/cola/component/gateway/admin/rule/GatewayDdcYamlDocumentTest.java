@@ -81,6 +81,18 @@ class GatewayDdcYamlDocumentTest {
                 .hasMessageContaining("unsupported");
     }
 
+    @Test
+    void readsGatewayYamlDocumentsLargerThanSnakeYamlDefaultLimit() {
+        String largeValue = "x".repeat(3_100_000);
+        String content = GatewayDdcYamlDocument.ACTIVE_CONFIG_KEY
+                + ": " + largeValue + "\n";
+
+        assertThat(document.leafValue(
+                content,
+                GatewayDdcYamlDocument.ACTIVE_CONFIG_KEY
+        )).hasValue(largeValue);
+    }
+
     private DdcYamlConfigFormatStrategy loader() {
         return new DdcYamlConfigFormatStrategy();
     }

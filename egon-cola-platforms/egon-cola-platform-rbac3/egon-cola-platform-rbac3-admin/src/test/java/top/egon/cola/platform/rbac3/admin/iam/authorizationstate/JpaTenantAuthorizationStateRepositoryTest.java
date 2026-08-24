@@ -27,6 +27,17 @@ class JpaTenantAuthorizationStateRepositoryTest {
             new JpaTenantAuthorizationStateRepository(entityManager, clock);
 
     @Test
+    void requiresExistingStateWithoutALockForReadPaths() {
+        TenantAuthorizationStatePO state =
+                new TenantAuthorizationStatePO(10001L, "migration", NOW);
+        when(entityManager.find(TenantAuthorizationStatePO.class, 10001L))
+                .thenReturn(state);
+
+        assertThat(repository.require(10001L)).isSameAs(state);
+        verify(entityManager).find(TenantAuthorizationStatePO.class, 10001L);
+    }
+
+    @Test
     void requiresExistingStateWithPessimisticLock() {
         TenantAuthorizationStatePO state =
                 new TenantAuthorizationStatePO(10001L, "migration", NOW);

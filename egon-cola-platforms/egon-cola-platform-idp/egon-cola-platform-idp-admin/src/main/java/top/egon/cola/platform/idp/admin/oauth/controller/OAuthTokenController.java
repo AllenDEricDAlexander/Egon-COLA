@@ -13,11 +13,11 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthErrorVO;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthTokenVO;
-import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthUserTokenResultVO;
 import top.egon.cola.platform.idp.admin.oauth.service.impl.ClientSecretBasicAuthenticator;
 import top.egon.cola.platform.idp.admin.support.ddc.IdpRuntimePolicy;
 import top.egon.cola.platform.idp.admin.token.service.impl.ClientCredentialsTokenService;
@@ -48,6 +48,11 @@ import java.util.TreeSet;
         entityDomainName = "OAuth 协议域",
         code = "idp-oauth-token",
         name = "IdP OAuth Token 接口组")
+@EgonHttpService(
+        serviceName = "idp-admin",
+        group = "default",
+        version = "1.0.0",
+        basePath = "/")
 public class OAuthTokenController {
 
     private final TokenFacade tokens;
@@ -80,7 +85,7 @@ public class OAuthTokenController {
             summary = "刷新 USER Access Token 或签发 SERVICE Access Token",
             externalAccessible = true,
             tags = {"idp", "oauth"})
-    public ResponseEntity<?> token(
+    public ResponseEntity<OAuthTokenVO> token(
             @RequestParam MultiValueMap<String, String> form,
             HttpServletRequest request) {
         String grantType = single(form, "grant_type");
@@ -103,7 +108,7 @@ public class OAuthTokenController {
                 .header(HttpHeaders.SET_COOKIE, accessCookie(pair).toString())
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
                 .header("Pragma", "no-cache")
-                .body(new OAuthUserTokenResultVO("Bearer", expiresIn));
+                .body(new OAuthTokenVO(null, "Bearer", expiresIn, null));
     }
 
     @PostMapping(value = "/oauth2/revoke", consumes = "application/x-www-form-urlencoded")
@@ -163,7 +168,12 @@ public class OAuthTokenController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
                 .header("Pragma", "no-cache")
-                .body(new OAuthTokenVO(token.accessToken(), token.tokenType(), expiresIn));
+                .body(new OAuthTokenVO(
+                        token.accessToken(),
+                        token.tokenType(),
+                        expiresIn,
+                        String.join(" ", new TreeSet<>(token.scopes()))
+                ));
     }
 
     private ResponseCookie accessCookie(UserTokenPair pair) {

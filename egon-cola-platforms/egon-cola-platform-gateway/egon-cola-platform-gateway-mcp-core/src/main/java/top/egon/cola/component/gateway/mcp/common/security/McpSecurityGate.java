@@ -471,7 +471,8 @@ public final class McpSecurityGate {
              *
              * 用法 / Usage: 该字段通过 {@code McpSecurityGate.IdentityContext} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpSecurityGate.IdentityContext}; do not couple callers to its representation when the owning type exposes an API.
              */
-            long minimumPolicyVersion
+            long minimumPolicyVersion,
+            String userAccessToken
     ) {
 
         /**
@@ -508,6 +509,51 @@ public final class McpSecurityGate {
             nonNegative(minimumAuthVersion, "minimumAuthVersion");
             nonNegative(minimumContextVersion, "minimumContextVersion");
             nonNegative(minimumPolicyVersion, "minimumPolicyVersion");
+            userAccessToken = optional(userAccessToken);
+        }
+
+        public IdentityContext(
+                String issuer,
+                String subjectId,
+                String tenantId,
+                String clientId,
+                String tokenId,
+                String resourceUri,
+                Instant issuedAt,
+                Instant expiresAt,
+                long minimumAuthVersion,
+                long minimumContextVersion,
+                long minimumPolicyVersion) {
+            this(
+                    issuer,
+                    subjectId,
+                    tenantId,
+                    clientId,
+                    tokenId,
+                    resourceUri,
+                    issuedAt,
+                    expiresAt,
+                    minimumAuthVersion,
+                    minimumContextVersion,
+                    minimumPolicyVersion,
+                    null
+            );
+        }
+
+        @Override
+        public String toString() {
+            return "IdentityContext[issuer=" + issuer
+                    + ", subjectId=<redacted>, tenantId=" + tenantId
+                    + ", clientId=" + clientId
+                    + ", tokenId=<redacted>, resourceUri=" + resourceUri
+                    + ", issuedAt=" + issuedAt
+                    + ", expiresAt=" + expiresAt
+                    + ", minimumAuthVersion=" + minimumAuthVersion
+                    + ", minimumContextVersion=" + minimumContextVersion
+                    + ", minimumPolicyVersion=" + minimumPolicyVersion
+                    + ", userAccessToken="
+                    + (userAccessToken == null ? "<absent>" : "<redacted>")
+                    + ']';
         }
 
         /**
@@ -531,8 +577,21 @@ public final class McpSecurityGate {
                     permissions,
                     minimumAuthVersion,
                     minimumContextVersion,
-                    minimumPolicyVersion
+                    minimumPolicyVersion,
+                    userAccessToken
             );
+        }
+
+        private static String bearerToken(Map<String, Object> attributes) {
+            Object value = attributes.get("originalBearerToken");
+            if (!(value instanceof String text) || text.isBlank()) {
+                return null;
+            }
+            String normalized = text.trim();
+            if (normalized.regionMatches(true, 0, "Bearer ", 0, 7)) {
+                normalized = normalized.substring(7).trim();
+            }
+            return optional(normalized);
         }
 
         /**
@@ -574,7 +633,8 @@ public final class McpSecurityGate {
                     ),
                     optionalNumber(attributes, "rbac3.auth-version"),
                     optionalNumber(attributes, "rbac3.context-version"),
-                    optionalNumber(attributes, "rbac3.policy-version")
+                    optionalNumber(attributes, "rbac3.policy-version"),
+                    bearerToken(attributes)
             );
         }
 
@@ -695,6 +755,18 @@ public final class McpSecurityGate {
         private static String required(String value, String field) {
             if (value == null || value.isBlank()) {
                 throw new IllegalArgumentException(field + " is required");
+            }
+            return value.trim();
+        }
+
+        private static String optional(String value) {
+            if (value == null || value.isBlank()) {
+                return null;
+            }
+            if (value.length() > 16_384) {
+                throw new IllegalArgumentException(
+                        "userAccessToken exceeds maximum length"
+                );
             }
             return value.trim();
         }

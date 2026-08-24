@@ -8,6 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,12 @@ class Rbac3MigrationContractTest {
             "db/migration/V7__globalize_resource_catalog_and_remove_manifest.sql";
     private static final String EXTERNAL_TENANT_MIGRATION =
             "db/migration/V8__externalize_tenant_authority.sql";
+    private static final String APPLICATION_CODE_COMPATIBILITY_MIGRATION =
+            "db/migration/V9__restore_application_code_compatibility.sql";
+    private static final String BUILTIN_AUTHORIZATION_MIGRATION =
+            "db/migration/V10__seed_builtin_roles_and_permissions.sql";
+    private static final String BUILTIN_BUSINESS_ACCESS_MIGRATION =
+            "db/migration/V11__seed_builtin_user_business_access.sql";
     private static final Pattern TABLE_PATTERN = Pattern.compile(
             "create\\s+table\\s+(rbac3_[a-z0-9_]+)\\s*\\((.*?)\\);",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
@@ -112,7 +119,10 @@ class Rbac3MigrationContractTest {
             MIGRATION, STRONG_AUTH_MIGRATION, IDP_MIGRATION,
             TENANT_SESSION_MIGRATION, STATELESS_IDENTITY_MIGRATION,
                 DDC_AUTHORIZATION_SCOPE_MIGRATION, GLOBAL_CATALOG_MIGRATION,
-                EXTERNAL_TENANT_MIGRATION);
+                EXTERNAL_TENANT_MIGRATION,
+                APPLICATION_CODE_COMPATIBILITY_MIGRATION,
+                BUILTIN_AUTHORIZATION_MIGRATION,
+                BUILTIN_BUSINESS_ACCESS_MIGRATION);
         assertThat(resourceSql(STRONG_AUTH_MIGRATION))
                 .contains("add column strong_authenticated_at timestamptz")
                 .contains("ck_rbac3_session_strong_authentication_time");
@@ -343,6 +353,53 @@ class Rbac3MigrationContractTest {
     }
 
     @Test
+    void applicationCodeCompatibilityKeepsCanonicalApplicationId()
+            throws IOException {
+        String sql = resourceSql(APPLICATION_CODE_COMPATIBILITY_MIGRATION);
+
+        assertThat(sql)
+                .contains("add column application_code varchar(128)")
+                .contains("foreign key (application_id, application_code)")
+                .contains("references rbac3_application (id, application_code)")
+                .contains("create function rbac3_sync_application_identity()")
+                .contains("new.application_id is null and new.application_code is not null")
+                .contains("new.application_code is null and new.application_id is not null")
+                .contains("using errcode = '23503'")
+                .contains("using errcode = '23502'");
+    }
+
+    @Test
+    void builtinAuthorizationIsSeededBySqlWithoutOwningTenantCatalog()
+            throws IOException {
+        String sql = resourceSql(BUILTIN_AUTHORIZATION_MIGRATION);
+        String businessAccessSql = resourceSql(
+                BUILTIN_BUSINESS_ACCESS_MIGRATION);
+
+        assertThat(sql)
+                .contains("insert into rbac3_application")
+                .contains("insert into rbac3_permission")
+                .contains("insert into rbac3_role")
+                .contains("insert into rbac3_role_permission")
+                .contains("insert into rbac3_user_role_assignment")
+                .contains("rbac3.bootstrap.tenant_ids")
+                .contains("rbac3.bootstrap.identity_sub")
+                .contains("rbac3_local_admin")
+                .contains("idp_local_admin")
+                .contains("gateway_local_admin")
+                .contains("ddc_local_admin")
+                .contains("mock_local_admin")
+                .contains("mock_local_entry")
+                .doesNotContain("insert into rbac3_tenant (");
+        assertThat(businessAccessSql)
+                .contains("insert into rbac3_user_business_access")
+                .contains("assignment.source_type = 'development'")
+                .contains("assignment.source_id = 'flyway-v10'")
+                .contains("'flyway-v11:' || seed.ddc_business_id")
+                .contains("application.application_code = 'mock-backend'")
+                .contains("then 'identity'");
+    }
+
+    @Test
     void positionAutoAssignmentAndImmutableFactsAreDatabaseProtected()
             throws IOException {
         Map<String, String> tables = tableBodies(migrationSql());
@@ -434,9 +491,15 @@ class Rbac3MigrationContractTest {
         try (var files = Files.list(migrationDirectory)) {
             return files.filter(Files::isRegularFile)
                     .map(path -> "db/migration/" + path.getFileName())
-                    .sorted()
+                    .sorted(Comparator.comparingInt(this::migrationVersion))
                     .toList();
         }
+    }
+
+    private int migrationVersion(String resource) {
+        int separator = resource.indexOf("__");
+        int marker = resource.lastIndexOf("/V", separator);
+        return Integer.parseInt(resource.substring(marker + 2, separator));
     }
 
     private String normalize(String value) {

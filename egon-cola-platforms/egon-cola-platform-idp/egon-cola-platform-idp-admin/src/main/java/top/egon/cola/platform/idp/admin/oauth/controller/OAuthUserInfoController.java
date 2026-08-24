@@ -22,7 +22,7 @@ import java.util.Objects;
         businessDomainName = "平台治理域",
         entityDomainCode = "identity-profile",
         entityDomainName = "统一身份本人信息域",
-        code = "identity-profile",
+        code = "oauth-userinfo",
         name = "统一身份本人信息接口组")
 @EgonHttpService(
         serviceName = "idp-admin",
@@ -38,7 +38,7 @@ public class OAuthUserInfoController {
             externalAccessible = true,
             tags = {"idp", "oauth"})
     public OAuthUserInfoVO userInfo(
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         IdentityPrincipal identity = Objects.requireNonNull(
                 principal,

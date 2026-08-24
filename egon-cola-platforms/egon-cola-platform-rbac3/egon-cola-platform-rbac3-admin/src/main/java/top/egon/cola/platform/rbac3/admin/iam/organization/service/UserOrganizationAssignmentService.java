@@ -20,7 +20,7 @@ import java.util.Objects;
 
 /** Manages explicit user-to-organization memberships owned by RBAC. */
 @Service
-public final class UserOrganizationAssignmentService {
+public class UserOrganizationAssignmentService {
 
     private final EntityManager entityManager;
     private final LongIdGenerator idGenerator;

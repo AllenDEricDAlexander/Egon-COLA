@@ -11,7 +11,6 @@ import top.egon.cola.component.ddc.admin.repository.DdcInstanceRepository;
 import top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationCredentialVerifier;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterAutoConfiguration;
-import top.egon.cola.platform.idp.starter.security.ServiceAccessTokenVerifier;
 import top.egon.cola.platform.idp.starter.state.IdentityResourceServerStateReader;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -68,11 +67,6 @@ class DdcAdminRedisConfigTest {
         @Bean
         DdcScopeGate ddcScopeGate() {
             return mock(DdcScopeGate.class);
-        }
-
-        @Bean
-        ServiceAccessTokenVerifier serviceAccessTokenVerifier() {
-            return mock(ServiceAccessTokenVerifier.class);
         }
     }
 }

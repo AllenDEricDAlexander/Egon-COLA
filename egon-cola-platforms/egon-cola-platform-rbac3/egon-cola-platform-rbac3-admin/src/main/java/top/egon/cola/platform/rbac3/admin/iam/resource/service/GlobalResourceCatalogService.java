@@ -17,7 +17,7 @@ import java.util.List;
 
 /** Global application/resource catalog queries and manual resource lifecycle operations. */
 @Service
-public final class GlobalResourceCatalogService {
+public class GlobalResourceCatalogService {
 
     private final EntityManager entityManager;
     private final DatabaseClock clock;

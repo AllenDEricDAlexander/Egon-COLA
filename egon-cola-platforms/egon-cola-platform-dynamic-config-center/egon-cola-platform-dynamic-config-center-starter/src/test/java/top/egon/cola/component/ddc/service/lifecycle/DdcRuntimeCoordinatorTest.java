@@ -22,6 +22,7 @@ import top.egon.cola.component.ddc.state.DdcLocalConfigState;
 import top.egon.cola.component.ddc.redis.DdcRedisTopicSubscription;
 import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
 import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 
 import java.net.URI;
@@ -169,6 +170,10 @@ class DdcRuntimeCoordinatorTest {
                 .isEqualTo("service-token-1");
         assertThat(adminClient.heartbeatToken)
                 .isEqualTo("service-token-2");
+        assertThat(serviceTokens.requests.getFirst().audience())
+                .isEqualTo(URI.create(
+                        "https://api.example/ddc-registration"
+                ));
         assertThat(coordinator.currentSession().orElseThrow()
                 .leaseExpireAt()).isEqualTo(adminClient.heartbeatExpireAt);
         coordinator.stop();
@@ -362,6 +367,9 @@ class DdcRuntimeCoordinatorTest {
         properties.setAppCode("demo");
         properties.setEnv("dev");
         properties.setNamespace("default");
+        properties.setRegistrationResourceUri(URI.create(
+                "https://api.example/ddc-registration"
+        ));
         properties.getConsistency().setFailFast(failFast);
         properties.getInstance().setLeaseSeconds(30);
         properties.getInstance().setHeartbeatIntervalSeconds(10);
@@ -535,6 +543,7 @@ class DdcRuntimeCoordinatorTest {
         IdpServiceOAuth2Client client = mock(IdpServiceOAuth2Client.class);
         RecordingServiceTokens tokens = new RecordingServiceTokens(client);
         when(client.authorize(any())).thenAnswer(invocation -> {
+            tokens.requests.add(invocation.getArgument(0));
             int sequence = tokens.calls.incrementAndGet();
             if (tokens.failures.getAndUpdate(value -> Math.max(0, value - 1)) > 0) {
                 throw new IllegalStateException("IdP service token unavailable");
@@ -564,6 +573,9 @@ class DdcRuntimeCoordinatorTest {
         private final AtomicInteger calls = new AtomicInteger();
 
         private final AtomicInteger failures = new AtomicInteger();
+
+        private final List<IdpServiceTokenRequest> requests =
+                new ArrayList<>();
 
         private RecordingServiceTokens(IdpServiceOAuth2Client client) {
             this.client = client;

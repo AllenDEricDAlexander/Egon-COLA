@@ -6,9 +6,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import top.egon.cola.component.ddc.model.management.DdcManagementConfigClientInstance;
+import top.egon.cola.component.ddc.model.management.DdcManagementServiceCatalog;
+import top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayProjectionEnvelopeVO;
+import top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayProviderInstanceVO;
 import top.egon.cola.component.gateway.admin.runtime.service.GatewayProjectionService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+
+import java.util.List;
 
 /**
  * 中文说明：{@code GatewayProjectionController} 是接口控制器，位于当前 Gateway 模块的相关包中，负责网关投影控制器相关的职责与边界。
@@ -57,7 +63,7 @@ public class GatewayProjectionController {
      */
     @GatewayOperation(externalAccessible = true)
     @GetMapping("/gateway-groups/{gatewayGroupId}/engine-nodes")
-    public top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayProjectionEnvelopeVO<?> engineNodes(
+    public GatewayProjectionEnvelopeVO<List<DdcManagementConfigClientInstance>> engineNodes(
             @PathVariable String gatewayGroupId) {
         return service.engineNodes(gatewayGroupId);
     }
@@ -80,7 +86,7 @@ public class GatewayProjectionController {
      */
     @GatewayOperation(externalAccessible = true)
     @GetMapping("/providers/services")
-    public top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayProjectionEnvelopeVO<?> services(
+    public GatewayProjectionEnvelopeVO<DdcManagementServiceCatalog> services(
             @RequestParam String bizCode,
             @RequestParam String appCode,
             @RequestParam String env,
@@ -121,7 +127,7 @@ public class GatewayProjectionController {
      */
     @GatewayOperation(externalAccessible = true)
     @GetMapping("/providers/instances")
-    public top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayProjectionEnvelopeVO<?> instances(
+    public GatewayProjectionEnvelopeVO<List<GatewayProviderInstanceVO>> instances(
             @RequestParam String bizCode,
             @RequestParam String appCode,
             @RequestParam String env,

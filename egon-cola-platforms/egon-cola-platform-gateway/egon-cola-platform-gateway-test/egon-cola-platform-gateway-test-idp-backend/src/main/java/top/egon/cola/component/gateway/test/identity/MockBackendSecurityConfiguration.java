@@ -38,7 +38,9 @@ public class MockBackendSecurityConfiguration {
                         .anyRequest().denyAll())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(new HttpStatusEntryPoint(
-                                HttpStatus.UNAUTHORIZED)))
+                                HttpStatus.UNAUTHORIZED))
+                        .accessDeniedHandler((request, response, error) ->
+                                response.sendError(HttpStatus.FORBIDDEN.value())))
                 .addFilterBefore(idpFilter, AnonymousAuthenticationFilter.class)
                 .addFilterAfter(rbac3Filter, IdpBearerAuthenticationFilter.class);
         return http.build();

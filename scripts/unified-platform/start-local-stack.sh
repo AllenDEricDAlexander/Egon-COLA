@@ -21,6 +21,28 @@ mcp_user_token_file="${unified_platform_runtime_dir}/mcp-user.at"
 gateway_group_file="${unified_platform_runtime_dir}/gateway-group.id"
 default_tenant_id=
 
+resolve_local_advertised_host() {
+  local candidate="${UNIFIED_PLATFORM_ADVERTISED_HOST:-}" interface_name
+  if [[ -z "${candidate}" ]] && command -v route >/dev/null 2>&1 \
+      && command -v ipconfig >/dev/null 2>&1; then
+    interface_name="$(route -n get default 2>/dev/null \
+      | awk '/interface:/{print $2; exit}')"
+    if [[ -n "${interface_name}" ]]; then
+      candidate="$(ipconfig getifaddr "${interface_name}" 2>/dev/null || true)"
+    fi
+  fi
+  if [[ -z "${candidate}" ]] && command -v hostname >/dev/null 2>&1; then
+    candidate="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
+  fi
+  [[ -n "${candidate}" && "${candidate}" != "127.0.0.1" \
+      && "${candidate}" != "localhost" ]] \
+    || unified_platform_fail \
+      "a non-loopback provider host is required; set UNIFIED_PLATFORM_ADVERTISED_HOST"
+  printf '%s' "${candidate}"
+}
+
+local_advertised_host="$(resolve_local_advertised_host)"
+
 for command in java curl jq openssl psql redis-cli npm; do
   unified_platform_require_command "${command}"
 done
@@ -57,16 +79,28 @@ export UNIFIED_IDENTITY_DDC_URL="${DDC_BASE_URL}"
 export UNIFIED_IDENTITY_DDC_RPC_TARGET="${DDC_RPC_TARGET}"
 export UNIFIED_IDENTITY_MOCK_URL="${MOCK_BACKEND_BASE_URL}"
 export UNIFIED_IDENTITY_GATEWAY_URL="${GATEWAY_BASE_URL}"
+export UNIFIED_IDENTITY_ADVERTISED_HOST="${local_advertised_host}"
 export UNIFIED_IDENTITY_SKIP_BUILD="${UNIFIED_PLATFORM_SKIP_BUILD:-false}"
 export UNIFIED_IDENTITY_DEFER_GATEWAY_RELEASE=true
 
-prepare_admin_web_login_environments() {
-  local userinfo
+default_user_access_token() {
+  local access_token
   [[ -s "${default_cookie_jar}" ]] \
     || unified_platform_fail "default tenant Gateway cookie jar is unavailable"
-  userinfo="$(curl --max-time 10 -fsS -b "${default_cookie_jar}" \
-    "${GATEWAY_BASE_URL}/oauth2/userinfo")" \
-    || unified_platform_fail "Gateway USER cookie could not resolve /oauth2/userinfo"
+  access_token="$(awk 'BEGIN { FS="\t" } { sub(/^#HttpOnly_/, "", $1) } $0 !~ /^#/ && ($6 == "__Host-egon_user_at" || $6 == "egon_user_at_local") { value=$7 } END { print value }' \
+    "${default_cookie_jar}")"
+  [[ "${access_token}" =~ ^[^.[:space:]]+\.[^.[:space:]]+\.[^.[:space:]]+$ ]] \
+    || unified_platform_fail "default tenant USER Access Token cookie is unavailable"
+  printf '%s' "${access_token}"
+}
+
+prepare_admin_web_login_environments() {
+  local userinfo access_token
+  access_token="$(default_user_access_token)"
+  userinfo="$(curl --max-time 10 -fsS \
+    -H "Authorization: Bearer ${access_token}" \
+    "${IDP_BASE_URL}/oauth2/userinfo")" \
+    || unified_platform_fail "IdP USER Access Token could not resolve /oauth2/userinfo"
   default_tenant_id="$(jq -er '.tid' <<<"${userinfo}")"
   [[ "${default_tenant_id}" =~ ^[1-9][0-9]*$ ]] \
     || unified_platform_fail "default tenant access token has an invalid tenant ID"
@@ -86,7 +120,7 @@ gateway_api() {
   [[ -s "${gateway_control_plane_service_token_file}" ]] \
     || unified_platform_fail "Gateway control-plane SERVICE token is unavailable"
   response_file="$(mktemp "${unified_platform_runtime_dir}/gateway-api.XXXXXX")"
-  local arguments=(--max-time 30 -sS -X "${method}"
+  local arguments=(--max-time 120 -sS -X "${method}"
     -H "Authorization: Bearer $(<"${gateway_control_plane_service_token_file}")"
     -H 'Content-Type: application/json')
   if [[ -n "${idempotency_key}" ]]; then
@@ -114,24 +148,23 @@ issue_mcp_user_token() {
 
 ensure_mcp_user_delegation() {
   local resource_id=identity-gateway-test-mcp-provider-local
-  local resource_response resource_version response_file status body
+  local resource_response resource_version response_file status body access_token
   if issue_mcp_user_token >/dev/null 2>&1; then
     return
   fi
-  [[ -s "${default_cookie_jar}" ]] \
-    || unified_platform_fail "default tenant Gateway cookie jar is unavailable"
+  access_token="$(default_user_access_token)"
   response_file="$(mktemp "${unified_platform_runtime_dir}/idp-api.XXXXXX")"
   resource_response="$(curl --max-time 30 -fsS \
-    -b "${default_cookie_jar}" \
-    "${GATEWAY_BASE_URL}/api/v1/identity/resource-servers/${resource_id}")" \
+    -H "Authorization: Bearer ${access_token}" \
+    "${IDP_BASE_URL}/api/v1/identity/resource-servers/${resource_id}")" \
     || unified_platform_fail "MCP provider Resource is unavailable"
   resource_version="$(jq -er '.version' <<<"${resource_response}")"
   body="$(jq -cn --argjson version "${resource_version}" \
     '{grantType:"USER_DELEGATION",tenantId:null,allowedScopes:[],expectedResourceVersion:$version,expectedGrantVersion:null}')"
   status="$(curl --max-time 30 -sS -o "${response_file}" -w '%{http_code}' \
-    -X PUT -b "${default_cookie_jar}" \
+    -X PUT -H "Authorization: Bearer ${access_token}" \
     -H 'Content-Type: application/json' -d "${body}" \
-    "${GATEWAY_BASE_URL}/api/v1/identity/clients/mock-backend/resources/${resource_id}")"
+    "${IDP_BASE_URL}/api/v1/identity/clients/mock-backend/resources/${resource_id}")"
   if [[ ! "${status}" =~ ^2[0-9][0-9]$ ]]; then
     body="$(<"${response_file}")"
     rm -f "${response_file}"
@@ -160,7 +193,7 @@ package_mcp_fixtures() {
 }
 
 write_extra_service_env_files() {
-  local file redis_password
+  local file properties_file redis_password
   redis_password="$(<"${unified_platform_secret_dir}/redis.password")"
 
   file="${unified_platform_env_dir}/mcp-remote.env"
@@ -188,8 +221,16 @@ write_extra_service_env_files() {
   file="${unified_platform_env_dir}/mcp-provider.env"
   : >"${file}"
   chmod 600 "${file}"
+  properties_file="${unified_platform_env_dir}/mcp-provider.properties"
+  : >"${properties_file}"
+  chmod 600 "${properties_file}"
+  unified_platform_write_env "${file}" UNIFIED_PLATFORM_RUNTIME_DIR \
+    "${unified_platform_runtime_dir}"
   unified_platform_write_env "${file}" MCP_TEST_PROVIDER_PORT 18161
-  unified_platform_write_env "${file}" MCP_TEST_PROVIDER_HOST 127.0.0.1
+  unified_platform_write_env "${file}" MCP_TEST_PROVIDER_HOST \
+    "${local_advertised_host}"
+  unified_platform_write_env "${file}" MCP_TEST_PROVIDER_DECLARED_HOSTS \
+    127.0.0.1
   unified_platform_write_env "${file}" MCP_TEST_PROVIDER_INSTANCE_ID mcp-provider-local-1
   unified_platform_write_env "${file}" MCP_TEST_PROVIDER_BUILD_ID \
     "$(unified_platform_local_build_id "${mcp_provider_jar}")"
@@ -201,16 +242,43 @@ write_extra_service_env_files() {
   unified_platform_write_env "${file}" MCP_PROVIDER_RESOURCE_URI \
     https://api.egon.internal/local/identity/gateway-test-mcp-provider
   unified_platform_write_env "${file}" \
-    MCP_PROVIDER_RESOURCE_MANAGEMENT_CLIENT_ID mcp-provider-service
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_CLIENT_ID \
+    mcp-provider-service
   unified_platform_write_env "${file}" \
-    MCP_PROVIDER_RESOURCE_MANAGEMENT_KEY_ID mcp-provider-local
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_CLIENT_SECRET \
+    "$(<"${unified_platform_secret_dir}/mcp-provider-service.secret")"
   unified_platform_write_env "${file}" \
-    MCP_PROVIDER_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
-    "${unified_platform_secret_dir}/mcp-provider-private.pem"
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_AUTHORIZATION_GRANT_TYPE \
+    client_credentials
   unified_platform_write_env "${file}" \
-    MCP_PROVIDER_RESOURCE_ADMISSION_RPC_TARGET "${IDP_RPC_TARGET}"
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_CLIENT_AUTHENTICATION_METHOD \
+    client_secret_basic
   unified_platform_write_env "${file}" \
-    IDP_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT true
+    SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_EGON_IDP_TOKEN_URI \
+    "${IDP_BASE_URL}/oauth2/token"
+  unified_platform_write_env "${file}" \
+    EGON_COLA_PLATFORM_IDP_SERVICE_CLIENT_APP_ID mcp-provider-service
+  unified_platform_write_env "${file}" \
+    EGON_COLA_PLATFORM_IDP_SERVICE_CLIENT_REGISTRATION_ID egon-idp
+  unified_platform_write_property "${properties_file}" \
+    spring.security.oauth2.client.registration.egon-idp.client-id \
+    mcp-provider-service
+  unified_platform_write_property "${properties_file}" \
+    spring.security.oauth2.client.registration.egon-idp.client-secret \
+    "$(<"${unified_platform_secret_dir}/mcp-provider-service.secret")"
+  unified_platform_write_property "${properties_file}" \
+    spring.security.oauth2.client.registration.egon-idp.authorization-grant-type \
+    client_credentials
+  unified_platform_write_property "${properties_file}" \
+    spring.security.oauth2.client.registration.egon-idp.client-authentication-method \
+    client_secret_basic
+  unified_platform_write_property "${properties_file}" \
+    spring.security.oauth2.client.provider.egon-idp.token-uri \
+    "${IDP_BASE_URL}/oauth2/token"
+  unified_platform_write_property "${properties_file}" \
+    egon.cola.platform.idp.service-client.app-id mcp-provider-service
+  unified_platform_write_property "${properties_file}" \
+    egon.cola.platform.idp.service-client.registration-id egon-idp
   unified_platform_write_env "${file}" MCP_PROVIDER_REDIS_ADDRESS \
     redis://127.0.0.1:6379
   unified_platform_write_env "${file}" MCP_PROVIDER_REDIS_DATABASE 8
@@ -221,24 +289,15 @@ write_extra_service_env_files() {
   unified_platform_write_env "${file}" \
     EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED true
   unified_platform_write_env "${file}" \
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_TOKEN_ENDPOINT \
-    "${IDP_BASE_URL}/oauth2/token"
-  unified_platform_write_env "${file}" \
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_CLIENT_ID \
-    mcp-provider-service
-  unified_platform_write_env "${file}" \
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_KEY_ID \
-    mcp-provider-local
-  unified_platform_write_env "${file}" \
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_PRIVATE_KEY_FILE \
-    "${unified_platform_secret_dir}/mcp-provider-private.pem"
-  unified_platform_write_env "${file}" \
     EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_RESOURCE_URI \
     https://api.egon.internal/local/permission/rbac3
   unified_platform_write_env "${file}" \
     EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_SCOPES \
     "service:authorization:decide service:authorization:snapshot service:identity:resolve"
   unified_platform_write_env "${file}" DDC_ENABLED true
+  unified_platform_write_env "${file}" \
+    EGON_COLA_COMPONENT_DDC_REGISTRATION_RESOURCE_URI \
+    https://api.egon.internal/local/platform/ddc
   unified_platform_write_env "${file}" DDC_BIZ_CODE identity
   unified_platform_write_env "${file}" DDC_APP_CODE gateway-test-mcp-provider
   unified_platform_write_env "${file}" DDC_ENV local

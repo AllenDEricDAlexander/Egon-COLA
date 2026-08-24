@@ -96,31 +96,38 @@ public final class RoleActivationFacade {
             return new ResolvedActivationVO(resolution, facts);
         });
 
-        if (result.changed()) {
-            try {
-                runtimeStore.createFence(command.tenantId(), command.identitySub(),
-                        result.mutationId(), FENCE_TTL);
-                transaction.markFenced(result.mutationId(), now);
-                UserSnapshotProjectionVO projection = snapshotProjector.project(
-                        new ProjectionCommandDTO(
-                                command.tenantId(), command.identitySub(), command.userId(),
-                                result.authVersion(), result.policyVersion(),
-                                result.expiresAt(), result.resolved().resolution(),
-                                result.resolved().facts(), now));
-                runtimeStore.publish(new RuntimePublicationVO(
-                        command.tenantId(), command.identitySub(), command.userId(),
-                        result.authVersion(), result.policyVersion(), projection));
+        boolean changed = result.changed();
+        if (changed) {
+            runtimeStore.createFence(command.tenantId(), command.identitySub(),
+                    result.mutationId(), FENCE_TTL);
+            transaction.markFenced(result.mutationId(), now);
+        }
+        try {
+            // An idempotent activation can still be the first request after a runtime
+            // restart, so publish the same resolved snapshot when the role set is unchanged.
+            UserSnapshotProjectionVO projection = snapshotProjector.project(
+                    new ProjectionCommandDTO(
+                            command.tenantId(), command.identitySub(), command.userId(),
+                            result.authVersion(), result.policyVersion(),
+                            result.expiresAt(), result.resolved().resolution(),
+                            result.resolved().facts(), now));
+            runtimeStore.publish(new RuntimePublicationVO(
+                    command.tenantId(), command.identitySub(), command.userId(),
+                    result.authVersion(), result.policyVersion(), projection));
+            if (changed) {
                 transaction.markCompleted(result.mutationId(), now);
-            } catch (RuntimeException exception) {
+            }
+        } catch (RuntimeException exception) {
+            if (changed) {
                 try {
                     transaction.markRecoveryRequired(
                             result.mutationId(), "AUTH_PROPAGATION_PENDING", now);
                 } catch (RuntimeException recoveryFailure) {
                     exception.addSuppressed(recoveryFailure);
                 }
-                throw new Rbac3RuleViolation(
-                        "AUTH_PROPAGATION_PENDING", List.of(result.mutationId()));
             }
+            throw new Rbac3RuleViolation(
+                    "AUTH_PROPAGATION_PENDING", List.of(result.mutationId()));
         }
 
         return new ReplaceActiveRolesResult(

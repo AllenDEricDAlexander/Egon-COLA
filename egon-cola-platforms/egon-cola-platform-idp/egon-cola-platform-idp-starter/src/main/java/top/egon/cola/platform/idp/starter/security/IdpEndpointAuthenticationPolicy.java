@@ -37,6 +37,10 @@ public final class IdpEndpointAuthenticationPolicy {
          */
         SERVICE,
         /**
+         * An explicitly shared endpoint accepting either verified principal type.
+         */
+        USER_OR_SERVICE,
+        /**
          * The endpoint policy is missing or ambiguous and must be rejected.
          */
         DENY
@@ -44,6 +48,7 @@ public final class IdpEndpointAuthenticationPolicy {
 
     private final List<String> publicPathPatterns;
     private final List<String> servicePathPatterns;
+    private final List<String> sharedPathPatterns;
     private final Requirement defaultRequirement;
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
@@ -67,8 +72,25 @@ public final class IdpEndpointAuthenticationPolicy {
             Collection<String> publicPathPatterns,
             Collection<String> servicePathPatterns,
             boolean defaultApplicationRequirement) {
+        this(
+                publicPathPatterns,
+                servicePathPatterns,
+                List.of(),
+                defaultApplicationRequirement
+        );
+    }
+
+    /**
+     * Creates a policy with explicit public, SERVICE-only and shared paths.
+     */
+    public IdpEndpointAuthenticationPolicy(
+            Collection<String> publicPathPatterns,
+            Collection<String> servicePathPatterns,
+            Collection<String> sharedPathPatterns,
+            boolean defaultApplicationRequirement) {
         this.publicPathPatterns = patterns(publicPathPatterns, "publicPathPatterns");
         this.servicePathPatterns = patterns(servicePathPatterns, "servicePathPatterns");
+        this.sharedPathPatterns = patterns(sharedPathPatterns, "sharedPathPatterns");
         this.defaultRequirement = defaultApplicationRequirement
                 ? Requirement.USER : Requirement.DENY;
     }
@@ -100,7 +122,11 @@ public final class IdpEndpointAuthenticationPolicy {
         boolean publicEndpoint = matches(publicPathPatterns, path);
         boolean serviceEndpoint = matches(servicePathPatterns, path)
                 || INTERNAL_REFRESH_STATUS_PATH.equals(path);
-        if (publicEndpoint && serviceEndpoint) {
+        boolean sharedEndpoint = matches(sharedPathPatterns, path);
+        int matchedRequirements = (publicEndpoint ? 1 : 0)
+                + (serviceEndpoint ? 1 : 0)
+                + (sharedEndpoint ? 1 : 0);
+        if (matchedRequirements > 1) {
             return Requirement.DENY;
         }
         if (publicEndpoint) {
@@ -108,6 +134,9 @@ public final class IdpEndpointAuthenticationPolicy {
         }
         if (serviceEndpoint) {
             return Requirement.SERVICE;
+        }
+        if (sharedEndpoint) {
+            return Requirement.USER_OR_SERVICE;
         }
         return defaultRequirement;
     }

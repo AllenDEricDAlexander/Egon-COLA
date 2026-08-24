@@ -73,6 +73,24 @@ class HttpRbac3AuthorizationClientTest {
     }
 
     @Test
+    void fetchAcceptsExplicitUserTokenOutsideServletRequestContext()
+            throws Exception {
+        AtomicReference<String> requestedUserToken = new AtomicReference<>();
+        HttpRbac3AuthorizationClient client = client(
+                (uri, serviceToken, userToken, timeout) -> {
+                    requestedUserToken.set(userToken);
+                    return new HttpRbac3AuthorizationClient.HttpResponse(
+                            200,
+                            responseBody()
+                    );
+                });
+
+        client.fetch("finance", principal(), "explicit-user-at");
+
+        assertThat(requestedUserToken).hasValue("explicit-user-at");
+    }
+
+    @Test
     void deniedAndTransientStatusesAreClassifiedWithoutLeakingCredential()
             throws Exception {
         setVerifiedUserToken("do-not-leak-user-token");

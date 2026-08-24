@@ -36,6 +36,8 @@ public record McpProtocolInspectRequestDTO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.mcp.domain.dto.McpProtocolInspectRequestDTO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.mcp.domain.dto.McpProtocolInspectRequestDTO}; do not couple callers to its representation when the owning type exposes an API.
          */
+        @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
+                allowArbitraryJson = true)
         @NotNull Map<String, Object> params
 ) {
 }

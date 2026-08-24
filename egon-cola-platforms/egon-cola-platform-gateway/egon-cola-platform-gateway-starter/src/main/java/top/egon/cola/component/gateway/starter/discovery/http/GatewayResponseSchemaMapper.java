@@ -82,7 +82,7 @@ public final class GatewayResponseSchemaMapper {
             validate(returnType, declaration, method.toGenericString());
         }
         Map<String, Object> result = new LinkedHashMap<>(
-                schemaMapper.schema(returnType)
+                schemaMapper.schema(returnType, method)
         );
         result.put(
                 "x-egon-schema-model",

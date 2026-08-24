@@ -47,21 +47,16 @@ egon:
         jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
         resource-server-id: ${GATEWAY_ENGINE_RESOURCE_SERVER_ID:}
         resource-uri: ${GATEWAY_ENGINE_RESOURCE_URI:}
-        admission:
-          biz-code: ${DDC_BIZ_CODE:identity}
-          app-code: ${DDC_APP_CODE:gateway-engine-default}
-          environment: ${DDC_ENV:local}
-          instance-id: ${GATEWAY_ENGINE_DDC_INSTANCE_ID:}
-          management-client-id: ${GATEWAY_ENGINE_RESOURCE_MANAGEMENT_CLIENT_ID:}
-          kid: ${GATEWAY_ENGINE_RESOURCE_MANAGEMENT_KEY_ID:}
-          private-key-path: ${GATEWAY_ENGINE_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE:}
-          rpc-target: ${GATEWAY_ENGINE_RESOURCE_ADMISSION_RPC_TARGET:}
-          rpc-timeout: ${GATEWAY_ENGINE_RESOURCE_ADMISSION_RPC_TIMEOUT:3s}
-          renewal-skew: ${GATEWAY_ENGINE_RESOURCE_ADMISSION_RENEWAL_SKEW:30s}
         gateway:
           enabled: ${IDP_GATEWAY_ENABLED:true}
           issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
           jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+          idp-refresh-uri: ${IDP_REFRESH_URI:http://127.0.0.1:18120/oauth2/token}
+          access-token-cookie-name: ${IDP_ACCESS_TOKEN_COOKIE_NAME:__Host-egon_user_at}
+          refresh-token-cookie-name: ${IDP_REFRESH_TOKEN_COOKIE_NAME:__Host-egon_user_rt}
+          refresh-status-resource-uri: ${IDP_REFRESH_STATUS_RESOURCE_URI:https://api.egon.internal/local/permission/idp}
+          refresh-status-scopes: ${IDP_REFRESH_STATUS_SCOPES:idp:refresh-token:validate}
+          trusted-origins: ${IDP_GATEWAY_TRUSTED_ORIGINS:}
           user-state-key-prefix: "identity:v1:user:"
           runtime:
             redis-enabled: true
@@ -101,6 +96,7 @@ egon:
         biz-code: ${DDC_BIZ_CODE:infra}
         env: ${DDC_ENV:local}
         app-code: ${DDC_APP_CODE:ge}
+        max-config-bytes: ${DDC_MAX_CONFIG_BYTES:1048576}
         instance:
           id: ${GATEWAY_ENGINE_DDC_INSTANCE_ID:}
         rpc:
@@ -154,10 +150,6 @@ egon:
               cleanup-interval: ${GATEWAY_MCP_TASK_CLEANUP_INTERVAL:PT10M}
               service-token:
                 enabled: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_ENABLED:false}
-                token-endpoint: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_ENDPOINT:http://127.0.0.1:18120/oauth2/token}
-                client-id: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_CLIENT_ID:}
-                key-id: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_KEY_ID:}
-                private-key-file: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_PRIVATE_KEY_FILE:}
                 scopes: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_SCOPES:mcp:operation:invoke}
                 renewal-skew: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_RENEWAL_SKEW:30s}
             remote:

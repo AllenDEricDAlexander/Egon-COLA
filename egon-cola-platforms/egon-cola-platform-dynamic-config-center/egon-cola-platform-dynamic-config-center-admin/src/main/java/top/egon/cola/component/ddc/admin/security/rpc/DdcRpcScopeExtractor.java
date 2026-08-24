@@ -75,6 +75,10 @@ public final class DdcRpcScopeExtractor {
             case MANAGEMENT + "GetPublishTask",
                  MANAGEMENT + "RetryPublishTask" -> Scope.unscoped(
                     "MANAGEMENT");
+            case MANAGEMENT + "GetBiz",
+                 MANAGEMENT + "ListBizs",
+                 MANAGEMENT + "GetApp",
+                 MANAGEMENT + "ListApps" -> Scope.unscoped("MANAGEMENT");
             case MANAGEMENT + "GetConfigClients" -> managementScope(
                     type(request, GetConfigClientsRequest.class).getScope());
             case MANAGEMENT + "GetScopeBindings" -> scopeBindingQuery(

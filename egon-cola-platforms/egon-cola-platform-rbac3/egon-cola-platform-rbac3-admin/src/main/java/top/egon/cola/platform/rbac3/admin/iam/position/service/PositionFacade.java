@@ -20,7 +20,7 @@ import java.util.Objects;
 
 /** Owns CRUD for MANUAL positions and keeps them bound to one organization. */
 @Service
-public final class PositionFacade {
+public class PositionFacade {
 
     private final EntityManager entityManager;
     private final LongIdGenerator idGenerator;

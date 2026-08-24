@@ -146,6 +146,15 @@ unified_platform_write_env() {
   printf '%s=%q\n' "${key}" "${value}" >>"${file}"
 }
 
+unified_platform_write_property() {
+  local file="$1" key="$2" value="$3"
+  value="${value//\\/\\\\}"
+  value="${value//$'\t'/\\t}"
+  value="${value//$'\r'/\\r}"
+  value="${value//$'\n'/\\n}"
+  printf '%s=%s\n' "${key}" "${value}" >>"${file}"
+}
+
 unified_platform_local_build_id() {
   local jar="$1" digest
   [[ -s "${jar}" ]] \
@@ -160,12 +169,14 @@ unified_platform_write_frontend_login_env() {
   local web_dir="$1" tenant_id="$2"
   local file="${web_dir}/.env.local"
   local marker='# Managed by scripts/unified-platform for Gateway USER cookies.'
+  local legacy_marker='# Managed by scripts/unified-platform for local SSO.'
   [[ "${tenant_id}" =~ ^[1-9][0-9]*$ ]] \
     || unified_platform_fail "default tenant ID must be a positive integer"
   [[ -d "${web_dir}" ]] \
     || unified_platform_fail "frontend directory is missing: ${web_dir}"
   if [[ -e "${file}" ]] \
-      && [[ "$(sed -n '1p' "${file}")" != "${marker}" ]]; then
+      && [[ "$(sed -n '1p' "${file}")" != "${marker}" ]] \
+      && [[ "$(sed -n '1p' "${file}")" != "${legacy_marker}" ]]; then
     unified_platform_fail \
       "refusing to overwrite unmanaged frontend environment: ${file}"
   fi

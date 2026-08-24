@@ -1,7 +1,9 @@
 package top.egon.cola.platform.idp.admin.support.bootstrap;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientEntity;
+import top.egon.cola.platform.idp.admin.oauth.domain.vo.CreatedOAuthClientVO;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthClientVO;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
 import top.egon.cola.platform.idp.admin.oauth.service.OAuthClientService;
@@ -12,6 +14,7 @@ import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepo
 import top.egon.cola.platform.idp.admin.resource.service.ResourceServerProjectionService;
 
 import java.time.Instant;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,6 +28,9 @@ import static org.mockito.Mockito.when;
 
 class IdpDevelopmentClientBootstrapTest {
 
+    @TempDir
+    Path secretDirectory;
+
     @Test
     void createsOnlyMissingPublicClients() throws Exception {
         OAuthClientService clients = mock(OAuthClientService.class);
@@ -37,6 +43,7 @@ class IdpDevelopmentClientBootstrapTest {
         ResourceServerProjectionService projections =
                 mock(ResourceServerProjectionService.class);
         when(clients.list()).thenReturn(List.of(client("idp-admin-web")));
+        stubClientCreation(clients);
         when(clientEntities.findById(any())).thenReturn(Optional.of(
                 machineClient("management-client")
         ));
@@ -46,7 +53,8 @@ class IdpDevelopmentClientBootstrapTest {
                         resources,
                         grants,
                         clientEntities,
-                        projections
+                        projections,
+                        secretDirectory
                 );
 
         bootstrap.afterSingletonsInstantiated();
@@ -110,6 +118,36 @@ class IdpDevelopmentClientBootstrapTest {
                         && grant.getGrantType()
                         == IdentityClientResourceGrantEntity.GrantType
                         .CLIENT_CREDENTIALS));
+        verify(grants).save(argThat(grant ->
+                grant.getClientId().equals("idp-service")
+                        && grant.getResourceServerId().equals(
+                        "platform-ddc-local")
+                        && grant.getGrantContext()
+                        == top.egon.cola.platform.idp.contract
+                        .ServiceTokenContext.PLATFORM
+                        && grant.getTenantId() == null
+                        && grant.getAllowedScopes().contains(
+                        "ddc:registration:write")));
+        verify(grants).save(argThat(grant ->
+                grant.getClientId().equals("ddc-service")
+                        && grant.getResourceServerId().equals(
+                        "platform-ddc-local")
+                        && grant.getGrantContext()
+                        == top.egon.cola.platform.idp.contract
+                        .ServiceTokenContext.PLATFORM
+                        && grant.getTenantId() == null
+                        && grant.getAllowedScopes().contains(
+                        "ddc:registration:write")));
+        verify(grants).save(argThat(grant ->
+                grant.getClientId().equals("gateway-engine-service")
+                        && grant.getResourceServerId().equals(
+                        "permission-idp-local")
+                        && grant.getGrantContext()
+                        == top.egon.cola.platform.idp.contract
+                        .ServiceTokenContext.PLATFORM
+                        && grant.getTenantId() == null
+                        && grant.getAllowedScopes().contains(
+                        "idp:refresh-token:validate")));
         verify(grants, atLeastOnce()).save(any(
                 IdentityClientResourceGrantEntity.class
         ));
@@ -139,6 +177,7 @@ class IdpDevelopmentClientBootstrapTest {
                         Instant.EPOCH
                 );
         when(clients.list()).thenReturn(List.of());
+        stubClientCreation(clients);
         when(clientEntities.findById(any())).thenReturn(Optional.of(
                 machineClient("management-client")
         ));
@@ -154,6 +193,7 @@ class IdpDevelopmentClientBootstrapTest {
                         grants,
                         clientEntities,
                         projections,
+                        secretDirectory.toString(),
                         "tenant-42,tenant-84"
                 );
 
@@ -161,21 +201,21 @@ class IdpDevelopmentClientBootstrapTest {
 
         verify(grants).save(argThat(grant -> grant == existing
                 && grant.getVersion() == 1L
-                && grant.getTenantId().equals("tenant-42")
+                && "tenant-42".equals(grant.getTenantId())
                 && grant.getAllowedScopes().contains(
                         "service:authorization:decide")));
         verify(grants).save(argThat(grant -> grant != existing
                 && grant.getClientId().equals("idp-service")
                 && grant.getResourceServerId().equals(
                         "permission-rbac3-local")
-                && grant.getTenantId().equals("tenant-84")
+                && "tenant-84".equals(grant.getTenantId())
                 && grant.getAllowedScopes().contains(
                         "service:authorization:decide")));
         verify(projections).projectServiceGrant(existing);
         verify(projections).projectServiceGrant(argThat(grant ->
                 grant != existing
                         && grant.getClientId().equals("idp-service")
-                        && grant.getTenantId().equals("tenant-84")));
+                        && "tenant-84".equals(grant.getTenantId())));
     }
 
     @Test
@@ -197,6 +237,7 @@ class IdpDevelopmentClientBootstrapTest {
                 List.of("ddc-admin-web"), 0,
                 java.time.Instant.EPOCH, java.time.Instant.EPOCH
         )));
+        stubClientCreation(clients);
         when(clientEntities.findById(any())).thenReturn(Optional.of(
                 machineClient("management-client")
         ));
@@ -206,7 +247,8 @@ class IdpDevelopmentClientBootstrapTest {
                         resources,
                         grants,
                         clientEntities,
-                        projections
+                        projections,
+                        secretDirectory
                 );
 
         bootstrap.afterSingletonsInstantiated();
@@ -226,6 +268,30 @@ class IdpDevelopmentClientBootstrapTest {
                 clientId, clientId, "PUBLIC", "ACTIVE", true,
                 900, 604800, List.of(), List.of(), 0,
                 java.time.Instant.EPOCH, java.time.Instant.EPOCH);
+    }
+
+    private static void stubClientCreation(OAuthClientService clients) {
+        when(clients.create(any())).thenAnswer(invocation -> {
+            var command = invocation.<top.egon.cola.platform.idp.admin.oauth.domain.dto.CreateOAuthClientDTO>
+                    getArgument(0);
+            return new CreatedOAuthClientVO(
+                    command.clientId(),
+                    command.appId(),
+                    command.clientName(),
+                    command.clientType().name(),
+                    "ACTIVE",
+                    command.clientType()
+                            == IdentityClientEntity.ClientType.CONFIDENTIAL
+                            ? "local-test-secret"
+                            : null,
+                    command.clientType()
+                            == IdentityClientEntity.ClientType.CONFIDENTIAL
+                            ? "cret"
+                            : null,
+                    0L,
+                    Instant.EPOCH
+            );
+        });
     }
 
     private static IdentityClientEntity machineClient(String clientId) {

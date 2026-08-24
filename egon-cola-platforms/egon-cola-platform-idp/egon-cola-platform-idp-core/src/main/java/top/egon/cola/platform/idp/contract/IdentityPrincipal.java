@@ -60,6 +60,19 @@ public record IdentityPrincipal(
     }
 
     /**
+     * Returns this USER identity for principal projections that also support an RBAC3 wrapper.
+     *
+     * <p>The method keeps Spring Security's {@code @AuthenticationPrincipal(expression =
+     * "identity()") } projection stable for both the native IdP principal and the RBAC3
+     * {@code Rbac3UserDetails} wrapper.</p>
+     *
+     * @return this verified USER identity
+     */
+    public IdentityPrincipal identity() {
+        return this;
+    }
+
+    /**
      * 返回 USER 主体类型。
      *
      * <p>Returns the USER principal type.</p>

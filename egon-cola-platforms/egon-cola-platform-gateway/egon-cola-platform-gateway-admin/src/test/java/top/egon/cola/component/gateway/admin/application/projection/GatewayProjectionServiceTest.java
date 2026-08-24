@@ -92,7 +92,7 @@ class GatewayProjectionServiceTest {
                 Clock.fixed(now, ZoneOffset.UTC)
         );
 
-        service.instances(new top.egon.cola.component.gateway.admin.runtime.domain.dto.GatewayProviderQueryDTO(
+        var projection = service.instances(new top.egon.cola.component.gateway.admin.runtime.domain.dto.GatewayProviderQueryDTO(
                 "test-biz",
                 "orders",
                 "test",
@@ -104,6 +104,7 @@ class GatewayProjectionServiceTest {
                 null
         ));
 
+        assertThat(projection.value()).isEmpty();
         verify(client).getInstances(new DdcManagementServiceQuery(
                 "test-biz",
                 "gateway",
@@ -540,6 +541,30 @@ class GatewayProjectionServiceTest {
             DdcManagementServiceKey rpc,
             List<DdcManagementConfigClientInstance> engines
     ) implements DdcManagementClient {
+
+        @Override
+        public Optional<top.egon.cola.component.ddc.model.management.DdcManagementBiz>
+                getBiz(top.egon.cola.component.ddc.model.management.DdcManagementBizLookup lookup) {
+            return Optional.empty();
+        }
+
+        @Override
+        public List<top.egon.cola.component.ddc.model.management.DdcManagementBiz>
+                listBizs(top.egon.cola.component.ddc.model.management.DdcManagementBizQuery query) {
+            return List.of();
+        }
+
+        @Override
+        public Optional<top.egon.cola.component.ddc.model.management.DdcManagementApp>
+                getApp(String ddcApplicationId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public List<top.egon.cola.component.ddc.model.management.DdcManagementApp>
+                listApps(top.egon.cola.component.ddc.model.management.DdcManagementAppQuery query) {
+            return List.of();
+        }
 
         @Override
         public Optional<DdcManagementConfig> findConfig(

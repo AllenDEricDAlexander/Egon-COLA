@@ -46,6 +46,9 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
     /** IdP client registration and resource settings. */
     private final IdpStarterProperties idpProperties;
 
+    /** DDC PLATFORM Resource URI used as the registration token audience. */
+    private final URI registrationResourceUri;
+
     private final ScheduledExecutorService scheduler;
 
     private final AtomicReference<DdcHttpRegistrationState> state =
@@ -76,6 +79,24 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
             DdcHttpRegistrationRuntimeProperties properties,
             IdpServiceOAuth2Client serviceClient,
             IdpStarterProperties idpProperties) {
+        this(
+                registry,
+                serviceKeyFactory,
+                properties,
+                serviceClient,
+                idpProperties,
+                idpProperties.getResourceUri()
+        );
+    }
+
+    /** Creates the runtime with an explicit DDC PLATFORM token audience. */
+    public DdcHttpRegistrationRuntime(
+            DdcServiceRegistryClient registry,
+            DdcServiceKeyFactory serviceKeyFactory,
+            DdcHttpRegistrationRuntimeProperties properties,
+            IdpServiceOAuth2Client serviceClient,
+            IdpStarterProperties idpProperties,
+            URI registrationResourceUri) {
         this.registry = Objects.requireNonNull(registry, "registry");
         this.serviceKeyFactory = Objects.requireNonNull(
                 serviceKeyFactory,
@@ -84,6 +105,10 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
         this.properties = Objects.requireNonNull(properties, "properties");
         this.serviceClient = Objects.requireNonNull(serviceClient, "serviceClient");
         this.idpProperties = Objects.requireNonNull(idpProperties, "idpProperties");
+        this.registrationResourceUri = Objects.requireNonNull(
+                registrationResourceUri,
+                "registrationResourceUri"
+        );
         this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(
                     runnable,
@@ -283,12 +308,10 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
     private String registrationToken() {
         IdpStarterProperties.ServiceClient client = idpProperties.getServiceClient();
         client.validate();
-        URI audience = Objects.requireNonNull(
-                idpProperties.getResourceUri(), "egon.cola.platform.idp.resource-uri");
         return serviceClient.authorize(new IdpServiceTokenRequest(
                 client.getRegistrationId(),
                 client.getAppId(),
-                audience,
+                registrationResourceUri,
                 ServiceTokenContext.PLATFORM,
                 null,
                 Set.of(DdcHttpRegistrationProperties.REGISTRATION_SCOPE)

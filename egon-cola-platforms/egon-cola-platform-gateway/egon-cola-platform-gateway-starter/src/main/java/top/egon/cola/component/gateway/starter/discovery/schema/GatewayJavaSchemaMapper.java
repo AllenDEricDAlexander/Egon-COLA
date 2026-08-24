@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.introspect.AnnotatedMember;
 import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
+import org.springframework.web.multipart.MultipartFile;
+import top.egon.cola.component.gateway.contract.reporting.GatewayDynamicJson;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
@@ -351,6 +353,8 @@ public final class GatewayJavaSchemaMapper {
                 result = type("string");
             } else if (raw == UUID.class) {
                 result = formatted("string", "uuid");
+            } else if (MultipartFile.class.isAssignableFrom(raw)) {
+                result = formatted("string", "binary");
             } else if (raw == LocalDate.class) {
                 result = formatted("string", "date");
             } else if (Set.of(
@@ -372,7 +376,7 @@ public final class GatewayJavaSchemaMapper {
                 result = type("number");
             } else if (type.isArrayType()) {
                 result = array(metadata.allowsArbitraryJson(type)
-                        ? new LinkedHashMap<>()
+                        ? dynamicContent(type, metadata, depth)
                         : node(
                                 requireContent(type, "array"),
                                 emptyMetadata(),
@@ -381,7 +385,7 @@ public final class GatewayJavaSchemaMapper {
             } else if (type.isCollectionLikeType()
                     || Collection.class.isAssignableFrom(raw)) {
                 result = array(metadata.allowsArbitraryJson(type)
-                        ? new LinkedHashMap<>()
+                        ? dynamicContent(type, metadata, depth)
                         : node(
                                 requireContent(type, "collection"),
                                 emptyMetadata(),
@@ -401,7 +405,7 @@ public final class GatewayJavaSchemaMapper {
                 result.put(
                         "additionalProperties",
                         metadata.allowsArbitraryJson(type)
-                                ? new LinkedHashMap<>()
+                                ? dynamicContent(type, metadata, depth)
                                 : node(
                                         requireContent(type, "map"),
                                         emptyMetadata(),
@@ -424,6 +428,22 @@ public final class GatewayJavaSchemaMapper {
             metadata.applyConstraints(result, type);
             metadata.applyDocumentation(result, type);
             return result;
+        }
+
+        private Map<String, Object> dynamicContent(
+                JavaType container,
+                FieldMetadata metadata,
+                int depth) {
+            JavaType content = container.getContentType();
+            if (content == null) {
+                throw new IllegalArgumentException(
+                        "gateway schema container type is incomplete: "
+                                + container.toCanonical()
+                );
+            }
+            return content.getRawClass() == Object.class
+                    ? new LinkedHashMap<>()
+                    : node(content, metadata, depth + 1);
         }
 
         /**
@@ -508,6 +528,9 @@ public final class GatewayJavaSchemaMapper {
         /** Gateway-specific field declaration, or {@code null}. 网关字段声明，不存在时为 {@code null}。 */
         private final GatewaySchemaField gateway;
 
+        /** Contract-level arbitrary JSON marker, independent of the Starter annotation package. */
+        private final boolean contractDynamicJson;
+
         /** Not-null constraint, or {@code null}. 非空约束，不存在时为 {@code null}。 */
         private final NotNull notNull;
         /** Not-blank constraint, or {@code null}. 非空白约束，不存在时为 {@code null}。 */
@@ -547,6 +570,10 @@ public final class GatewayJavaSchemaMapper {
                 GatewaySchemaField gateway,
                 AnnotationLookup lookup) {
             this.gateway = gateway;
+            this.contractDynamicJson = annotation(
+                    lookup,
+                    GatewayDynamicJson.class
+            ) != null;
             this.notNull = annotation(lookup, NotNull.class);
             this.notBlank = annotation(lookup, NotBlank.class);
             this.notEmpty = annotation(lookup, NotEmpty.class);
@@ -570,6 +597,7 @@ public final class GatewayJavaSchemaMapper {
          */
         private FieldMetadata(FieldMetadata source) {
             this.gateway = source.gateway;
+            this.contractDynamicJson = source.contractDynamicJson;
             this.notNull = source.notNull;
             this.notBlank = source.notBlank;
             this.notEmpty = source.notEmpty;
@@ -641,19 +669,23 @@ public final class GatewayJavaSchemaMapper {
          * @return {@code true} when an unconstrained JSON node should be used
          */
         private boolean allowsArbitraryJson(JavaType source) {
-            if (gateway == null || !gateway.allowArbitraryJson()) {
+            boolean starterDynamicJson = gateway != null
+                    && gateway.allowArbitraryJson();
+            if (!starterDynamicJson && !contractDynamicJson) {
                 return false;
             }
-            if (gateway.implementation() != Void.class
-                    || gateway.type() != GatewaySchemaType.AUTO) {
+            if (starterDynamicJson
+                    && (gateway.implementation() != Void.class
+                    || gateway.type() != GatewaySchemaType.AUTO)) {
                 throw new IllegalArgumentException(
                         "allowArbitraryJson cannot be combined with schema "
                                 + "implementation or type overrides"
                 );
             }
-            JavaType target = source.isContainerType()
-                    ? source.getContentType()
-                    : source;
+            JavaType target = source;
+            while (target != null && target.isContainerType()) {
+                target = target.getContentType();
+            }
             if (target != null && target.getRawClass() != Object.class) {
                 throw new IllegalArgumentException(
                         "allowArbitraryJson is redundant for "

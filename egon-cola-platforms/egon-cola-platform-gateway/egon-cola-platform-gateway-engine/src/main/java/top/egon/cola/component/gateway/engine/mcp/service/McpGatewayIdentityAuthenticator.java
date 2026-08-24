@@ -195,8 +195,9 @@ public final class McpGatewayIdentityAuthenticator
                         result.forwardingCredential() == null
                                 ? null
                                 : result.forwardingCredential()
-                                .tokenReference(),
-                        request
+                                        .tokenReference(),
+                        request,
+                        server.resourceUri()
                 ))
                 .onErrorResume(ignored -> Mono.empty());
     }
@@ -209,18 +210,21 @@ public final class McpGatewayIdentityAuthenticator
      * @param principal 参数 principal；parameter principal。
      * @param bearer 参数 bearer；parameter bearer。
      * @param request 参数 请求；parameter request。
+     * @param resourceUri 参数 资源Uri；parameter resource URI。
      * @return 返回 身份 的处理结果；returns the result of the operation.
      */
     private Map<String, Object> identity(
             GatewayPrincipal principal,
             String bearer,
-            McpHttpRequest request) {
+            McpHttpRequest request,
+            String resourceUri) {
         LinkedHashMap<String, Object> result = new LinkedHashMap<>();
         result.put("identity.issuer", issuer);
         result.put("identity.subject", principal.principalId());
         result.put("callerId", principal.principalId());
         result.put("identity.tenant-id", principal.tenantId());
         result.put("tenantId", principal.tenantId());
+        result.put("identity.resource-uri", required(resourceUri, "resourceUri"));
         principal.attributes().forEach(result::put);
         if (bearer != null) {
             result.put("originalBearerToken", "Bearer " + bearer);

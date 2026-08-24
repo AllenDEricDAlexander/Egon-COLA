@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.OAuthLoginDTO;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthCsrfVO;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthLoginErrorVO;
@@ -47,6 +48,11 @@ import java.util.Objects;
         entityDomainName = "OAuth 协议域",
         code = "idp-oauth-login",
         name = "IdP OAuth 登录接口组")
+@EgonHttpService(
+        serviceName = "idp-admin",
+        group = "default",
+        version = "1.0.0",
+        basePath = "/")
 public class OAuthLoginController {
 
     public static final String CSRF_COOKIE_NAME = "EGON_IDP_CSRF";

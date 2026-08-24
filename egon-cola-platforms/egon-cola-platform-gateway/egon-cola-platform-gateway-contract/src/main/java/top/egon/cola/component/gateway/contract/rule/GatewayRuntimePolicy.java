@@ -1,5 +1,7 @@
 package top.egon.cola.component.gateway.contract.rule;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -19,9 +21,8 @@ public record GatewayRuntimePolicy(
         policyId = required(policyId, "policyId");
         type = required(type, "type");
         scope = required(scope, "scope");
-        configuration = Map.copyOf(Objects.requireNonNull(
-                configuration,
-                "configuration"
+        configuration = Collections.unmodifiableMap(new LinkedHashMap<>(
+                Objects.requireNonNull(configuration, "configuration")
         ));
     }
 

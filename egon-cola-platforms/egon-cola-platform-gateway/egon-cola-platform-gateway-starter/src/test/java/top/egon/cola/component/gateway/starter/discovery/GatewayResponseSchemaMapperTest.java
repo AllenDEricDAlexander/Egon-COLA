@@ -6,6 +6,7 @@ import top.egon.cola.component.common.core.pojo.PageResultRecord;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.gateway.starter.annotation.GatewayResponseSchema;
+import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaShape;
 import top.egon.cola.component.gateway.starter.discovery.http.GatewayResponseSchemaMapper;
 
@@ -45,6 +46,14 @@ class GatewayResponseSchemaMapperTest {
                 .contains("pageNo")
                 .contains("pageSize")
                 .contains("hasNext");
+    }
+
+    @Test
+    void allowsExplicitArbitraryJsonAtResponseRoot() throws Exception {
+        Map<String, Object> schema = schema("dynamicResult");
+
+        assertThat(schema).containsEntry("type", "object");
+        assertThat(map(schema.get("additionalProperties"))).isEmpty();
     }
 
     private void assertResultPayload(String methodName, String expectedType)
@@ -149,6 +158,12 @@ class GatewayResponseSchemaMapperTest {
                 )
         )
         static PageResultRecord<Payload> pageResult() {
+            return null;
+        }
+
+        @GatewayOperation
+        @GatewaySchemaField(allowArbitraryJson = true)
+        static Map<String, Object> dynamicResult() {
             return null;
         }
     }

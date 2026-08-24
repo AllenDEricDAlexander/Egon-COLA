@@ -167,9 +167,13 @@ public class DdcInstanceService {
     private String registrationToken() {
         IdpStarterProperties.ServiceClient client = idpProperties.getServiceClient();
         client.validate();
-        URI resource = java.util.Objects.requireNonNull(
-                idpProperties.getResourceUri(),
-                "egon.cola.platform.idp.resource-uri");
+        URI resource = properties.getRegistrationResourceUri();
+        if (resource == null) {
+            resource = idpProperties.getResourceUri();
+        }
+        resource = java.util.Objects.requireNonNull(
+                resource,
+                "egon.cola.component.ddc.registration-resource-uri");
         return serviceClient.authorize(new IdpServiceTokenRequest(
                 client.getRegistrationId(),
                 client.getAppId(),

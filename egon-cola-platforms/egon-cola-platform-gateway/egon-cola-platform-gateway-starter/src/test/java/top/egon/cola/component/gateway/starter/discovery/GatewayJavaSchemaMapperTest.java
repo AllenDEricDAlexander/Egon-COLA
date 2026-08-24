@@ -10,6 +10,8 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.multipart.MultipartFile;
+import top.egon.cola.component.gateway.contract.reporting.GatewayDynamicJson;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaRequired;
 import top.egon.cola.component.gateway.starter.discovery.schema.GatewayJavaSchemaMapper;
@@ -134,6 +136,49 @@ class GatewayJavaSchemaMapperTest {
     }
 
     @Test
+    void preservesNestedContainerShapeAtDynamicJsonBoundary()
+            throws Exception {
+        Map<String, Object> schema = mapper.schema(
+                Fixtures.class.getDeclaredMethod("dynamicDocuments")
+                        .getGenericReturnType()
+        );
+
+        Map<String, Object> payloads = map(
+                map(schema.get("properties")).get("payloads")
+        );
+        Map<String, Object> items = map(payloads.get("items"));
+        assertThat(payloads).containsEntry("type", "array");
+        assertThat(items).containsEntry("type", "object");
+        assertThat(map(items.get("additionalProperties"))).isEmpty();
+    }
+
+    @Test
+    void mapsMultipartFileToBinaryString() throws Exception {
+        Map<String, Object> schema = mapper.schema(
+                Fixtures.class.getDeclaredMethod("multipartFile")
+                        .getGenericReturnType()
+        );
+
+        assertThat(schema)
+                .containsEntry("type", "string")
+                .containsEntry("format", "binary");
+    }
+
+    @Test
+    void allowsContractOwnedDynamicJsonBoundary() throws Exception {
+        Map<String, Object> schema = mapper.schema(
+                Fixtures.class.getDeclaredMethod("contractDocument")
+                        .getGenericReturnType()
+        );
+
+        Map<String, Object> payload = map(
+                map(schema.get("properties")).get("payload")
+        );
+        assertThat(payload).containsEntry("type", "object");
+        assertThat(map(payload.get("additionalProperties"))).isEmpty();
+    }
+
+    @Test
     void rejectsSchemasBeyondTheDepthSafetyLimit() {
         com.fasterxml.jackson.databind.JavaType type =
                 new ObjectMapper().constructType(String.class);
@@ -168,6 +213,18 @@ class GatewayJavaSchemaMapperTest {
         }
 
         static DynamicDocument dynamicDocument() {
+            return null;
+        }
+
+        static DynamicDocuments dynamicDocuments() {
+            return null;
+        }
+
+        static MultipartFile multipartFile() {
+            return null;
+        }
+
+        static ContractDocument contractDocument() {
             return null;
         }
     }
@@ -248,6 +305,17 @@ class GatewayJavaSchemaMapperTest {
     private record DynamicDocument(
             @GatewaySchemaField(allowArbitraryJson = true)
             Map<String, Object> payload
+    ) {
+    }
+
+    private record DynamicDocuments(
+            @GatewaySchemaField(allowArbitraryJson = true)
+            List<Map<String, Object>> payloads
+    ) {
+    }
+
+    private record ContractDocument(
+            @GatewayDynamicJson Map<String, Object> payload
     ) {
     }
 

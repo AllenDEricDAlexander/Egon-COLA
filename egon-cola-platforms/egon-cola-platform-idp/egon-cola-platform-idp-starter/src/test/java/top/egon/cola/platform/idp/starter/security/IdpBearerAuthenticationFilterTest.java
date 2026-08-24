@@ -117,6 +117,50 @@ class IdpBearerAuthenticationFilterTest {
         verifyNoInteractions(userVerifier);
     }
 
+    @Test
+    void sharedPathAcceptsAnExplicitServicePrincipal() throws Exception {
+        UserAccessTokenVerifier userVerifier = mock(UserAccessTokenVerifier.class);
+        ServiceAccessTokenVerifier serviceVerifier = mock(ServiceAccessTokenVerifier.class);
+        ServiceIdentityPrincipal principal = new ServiceIdentityPrincipal(
+                "service-1",
+                "tenant-1",
+                "service-1",
+                "service-token-1",
+                RESOURCE_URI,
+                1L,
+                Set.of("gateway:application:read"),
+                "platform",
+                "gateway-admin",
+                "local",
+                "credential-1",
+                Instant.parse("2026-08-02T08:00:00Z"),
+                Instant.parse("2026-08-02T08:01:00Z"));
+        when(userVerifier.verify("service-token"))
+                .thenReturn(new AccessTokenVerification.Invalid<>(
+                        "JWT_PRINCIPAL_TYPE_INVALID"));
+        when(serviceVerifier.verify("service-token"))
+                .thenReturn(new AccessTokenVerification.Valid<>(principal));
+        var filter = new IdpBearerAuthenticationFilter(
+                userVerifier,
+                serviceVerifier,
+                new IdpEndpointAuthenticationPolicy(
+                        List.of(),
+                        List.of(),
+                        List.of("/api/v1/gateway/admin/**"),
+                        true),
+                new ObjectMapper());
+        var request = new MockHttpServletRequest(
+                "GET", "/api/v1/gateway/admin/applications");
+        request.addHeader("Authorization", "Bearer service-token");
+        var chain = new CapturingFilterChain();
+
+        filter.doFilter(request, new MockHttpServletResponse(), chain);
+
+        assertThat(chain.principal).isEqualTo(principal);
+        verify(userVerifier).verify("service-token");
+        verify(serviceVerifier).verify("service-token");
+    }
+
     private IdpBearerAuthenticationFilter filter() {
         Instant now = Instant.parse("2026-08-02T08:00:00Z");
         return new IdpBearerAuthenticationFilter(

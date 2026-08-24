@@ -6,9 +6,11 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -28,6 +30,7 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import top.egon.cola.platform.idp.starter.client.IdpClientCredentialsRequestEntityConverter;
 import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.security.CurrentIdentity;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
 import top.egon.cola.platform.idp.starter.security.IdpEndpointAuthenticationPolicy;
 import top.egon.cola.platform.idp.starter.security.IdpJwtVerifier;
@@ -57,6 +60,7 @@ import java.util.List;
  * authorization decisions.</p>
  */
 @AutoConfiguration
+@AutoConfigureAfter(OAuth2ClientAutoConfiguration.class)
 @EnableConfigurationProperties({
         IdpStarterProperties.class
 })
@@ -72,6 +76,13 @@ public class IdpStarterAutoConfiguration {
      * <p>Creates the IdP Starter auto-configuration instance.</p>
      */
     public IdpStarterAutoConfiguration() {
+    }
+
+    /** Exposes the request-bound verified USER identity accessor. */
+    @Bean
+    @ConditionalOnMissingBean
+    public CurrentIdentity currentIdentity() {
+        return new CurrentIdentity();
     }
 
     /** Creates the request converter used by the standard client-credentials provider. */

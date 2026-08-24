@@ -7,8 +7,11 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.CreateOAuthClientDTO;
+import top.egon.cola.platform.idp.admin.oauth.domain.dto.RotateClientSecretDTO;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientEntity;
+import top.egon.cola.platform.idp.admin.oauth.domain.vo.CreatedOAuthClientVO;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthClientVO;
+import top.egon.cola.platform.idp.admin.oauth.domain.vo.RotatedClientSecretVO;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
 import top.egon.cola.platform.idp.admin.oauth.service.OAuthClientService;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientResourceGrantEntity;
@@ -18,6 +21,10 @@ import top.egon.cola.platform.idp.admin.resource.repo.IdentityResourceServerRepo
 import top.egon.cola.platform.idp.admin.resource.service.ResourceServerProjectionService;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -187,6 +194,11 @@ public class IdpDevelopmentClientBootstrap
             "service:identity:resolve"
     );
 
+    /** Gateway USER 在线状态检查所需的 IdP 内部 Scope。 */
+    private static final Set<String> GATEWAY_REFRESH_STATUS_SCOPES = Set.of(
+            "idp:refresh-token:validate"
+    );
+
     /**
      * Gateway Admin 控制面 Service Token 所需 Scope；scopes required by the Gateway Admin
      * control-plane Service Token.
@@ -218,6 +230,17 @@ public class IdpDevelopmentClientBootstrap
     private static final Set<String> MCP_TASK_SERVICE_SCOPES =
             Set.of("mcp:operation:invoke");
 
+    /** 需要向 DDC 注册的本地服务 Client；local service Clients registering with DDC. */
+    private static final List<String> DDC_REGISTRATION_CLIENTS = List.of(
+            "ddc-service",
+            "idp-service",
+            "rbac3-service",
+            "gateway-admin-service",
+            "gateway-engine-service",
+            "mock-backend-service",
+            "mcp-provider-service"
+    );
+
     /** OAuth Client 管理服务；OAuth Client management service. */
     private final OAuthClientService clients;
 
@@ -236,6 +259,9 @@ public class IdpDevelopmentClientBootstrap
     /** RBAC3 本地服务授权绑定的精确租户集合；exact tenants bound to local RBAC3 service grants. */
     private final Set<String> rbac3ServiceTenantIds;
 
+    /** 本地机器 Client Secret 目录；local machine-Client Secret directory. */
+    private final Path secretDirectory;
+
     /**
      * 创建开发拓扑初始化器。
      *
@@ -252,6 +278,8 @@ public class IdpDevelopmentClientBootstrap
             IdentityClientResourceGrantRepository grants,
             IdentityClientRepository clientEntities,
             ResourceServerProjectionService projections,
+            @Value("${egon.idp.development-bootstrap.key-directory:target/local-unified-platform/secrets}")
+            String secretDirectory,
             @Value("${egon.idp.development-bootstrap.rbac3-service-tenant-ids:default}")
             String rbac3ServiceTenantIds
     ) {
@@ -266,6 +294,10 @@ public class IdpDevelopmentClientBootstrap
                 projections,
                 "projections"
         );
+        this.secretDirectory = Path.of(Objects.requireNonNull(
+                secretDirectory,
+                "secretDirectory"
+        )).toAbsolutePath().normalize();
         this.rbac3ServiceTenantIds = tenantIds(rbac3ServiceTenantIds);
     }
 
@@ -274,7 +306,8 @@ public class IdpDevelopmentClientBootstrap
             IdentityResourceServerRepository resources,
             IdentityClientResourceGrantRepository grants,
             IdentityClientRepository clientEntities,
-            ResourceServerProjectionService projections
+            ResourceServerProjectionService projections,
+            Path secretDirectory
     ) {
         this(
                 clients,
@@ -282,6 +315,7 @@ public class IdpDevelopmentClientBootstrap
                 grants,
                 clientEntities,
                 projections,
+                secretDirectory.toString(),
                 "default"
         );
     }
@@ -308,6 +342,8 @@ public class IdpDevelopmentClientBootstrap
         ));
         RESOURCES.forEach(this::reconcileResourceAndGrant);
         reconcileRbac3ServiceGrants();
+        reconcileDdcPlatformServiceGrants();
+        reconcileGatewayRefreshStatusGrant();
         reconcileGatewayAdminServiceGrants();
         reconcileMcpTaskServiceGrants();
     }
@@ -369,7 +405,7 @@ public class IdpDevelopmentClientBootstrap
             OAuthClientVO existing
     ) {
         if (existing == null) {
-            clients.create(new CreateOAuthClientDTO(
+            CreatedOAuthClientVO created = clients.create(new CreateOAuthClientDTO(
                     client.clientId(),
                     client.clientName(),
                     IdentityClientEntity.ClientType.CONFIDENTIAL,
@@ -378,6 +414,7 @@ public class IdpDevelopmentClientBootstrap
                     List.of(),
                     List.of()
             ));
+            writeSecret(client.clientId(), created.clientSecret());
             return;
         }
         if (!IdentityClientEntity.ClientType.CONFIDENTIAL.name()
@@ -387,6 +424,68 @@ public class IdpDevelopmentClientBootstrap
                             + client.clientId()
             );
         }
+        Path secretFile = secretFile(client.clientId());
+        if (!"ACTIVE".equals(existing.secretStatus())
+                || !Files.isRegularFile(secretFile)) {
+            RotatedClientSecretVO rotated = clients.rotateSecret(
+                    client.clientId(),
+                    new RotateClientSecretDTO(existing.version())
+            );
+            writeSecret(client.clientId(), rotated.clientSecret());
+        }
+    }
+
+    /** 将一次性 Secret 原子写入 owner-only 本地文件。 */
+    private void writeSecret(String clientId, String secret) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                    "local machine Client secret was not returned: " + clientId
+            );
+        }
+        Path target = secretFile(clientId);
+        Path temporary = null;
+        try {
+            Files.createDirectories(secretDirectory);
+            Files.setPosixFilePermissions(
+                    secretDirectory,
+                    PosixFilePermissions.fromString("rwx------")
+            );
+            temporary = Files.createTempFile(
+                    secretDirectory,
+                    "." + clientId + ".",
+                    ".secret"
+            );
+            Files.writeString(temporary, secret, StandardCharsets.UTF_8);
+            Files.setPosixFilePermissions(
+                    temporary,
+                    PosixFilePermissions.fromString("rw-------")
+            );
+            Files.move(
+                    temporary,
+                    target,
+                    StandardCopyOption.ATOMIC_MOVE,
+                    StandardCopyOption.REPLACE_EXISTING
+            );
+        } catch (java.io.IOException exception) {
+            throw new IllegalStateException(
+                    "local machine Client secret could not be stored: "
+                            + clientId,
+                    exception
+            );
+        } finally {
+            if (temporary != null) {
+                try {
+                    Files.deleteIfExists(temporary);
+                } catch (java.io.IOException ignored) {
+                    // The primary failure already preserves the safe error boundary.
+                }
+            }
+        }
+    }
+
+    /** 返回一个受限目录内的稳定 Secret 文件。 */
+    private Path secretFile(String clientId) {
+        return secretDirectory.resolve(clientId + ".secret").normalize();
     }
 
     /**
@@ -617,6 +716,91 @@ public class IdpDevelopmentClientBootstrap
             grants.save(grant);
             projections.projectServiceGrant(grant);
         });
+    }
+
+    /** 给本地服务登记 DDC PLATFORM 注册授权。 */
+    private void reconcileDdcPlatformServiceGrants() {
+        String target = "platform-ddc-local";
+        String allowedScopes = "[\"ddc:registration:write\"]";
+        DDC_REGISTRATION_CLIENTS.forEach(clientId -> {
+            Optional<IdentityClientResourceGrantEntity> existing =
+                    grants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
+                            clientId,
+                            target,
+                            IdentityClientResourceGrantEntity.GrantType
+                                    .CLIENT_CREDENTIALS,
+                            null
+                    );
+            IdentityClientResourceGrantEntity grant = existing.orElseGet(() ->
+                    IdentityClientResourceGrantEntity
+                            .platformClientCredentials(
+                                    "dev-ddc-platform-grant-" + clientId,
+                                    clientId,
+                                    target,
+                                    allowedScopes,
+                                    Instant.now()
+                            ));
+            if (existing.isPresent()
+                    && allowedScopes.equals(grant.getAllowedScopes())
+                    && grant.getStatus()
+                    == IdentityClientResourceGrantEntity.Status.ACTIVE) {
+                return;
+            }
+            if (existing.isPresent()) {
+                grant.update(
+                        IdentityClientResourceGrantEntity.GrantType
+                                .CLIENT_CREDENTIALS,
+                        null,
+                        allowedScopes,
+                        grant.getVersion(),
+                        Instant.now()
+                );
+            }
+            grants.save(grant);
+            projections.projectServiceGrant(grant);
+        });
+    }
+
+    /** 给 Gateway Engine 登记 IdP Refresh Token 状态检查的 PLATFORM 授权。 */
+    private void reconcileGatewayRefreshStatusGrant() {
+        String allowedScopes = GATEWAY_REFRESH_STATUS_SCOPES.stream()
+                .sorted()
+                .map(scope -> "\"" + scope + "\"")
+                .collect(Collectors.joining(",", "[", "]"));
+        Optional<IdentityClientResourceGrantEntity> existing =
+                grants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
+                        "gateway-engine-service",
+                        "permission-idp-local",
+                        IdentityClientResourceGrantEntity.GrantType
+                                .CLIENT_CREDENTIALS,
+                        null
+                );
+        IdentityClientResourceGrantEntity grant = existing.orElseGet(() ->
+                IdentityClientResourceGrantEntity.platformClientCredentials(
+                        "dev-idp-refresh-status-platform-grant-gateway-engine",
+                        "gateway-engine-service",
+                        "permission-idp-local",
+                        allowedScopes,
+                        Instant.now()
+                ));
+        if (existing.isPresent()
+                && allowedScopes.equals(grant.getAllowedScopes())
+                && grant.getStatus()
+                == IdentityClientResourceGrantEntity.Status.ACTIVE) {
+            return;
+        }
+        if (existing.isPresent()) {
+            grant.update(
+                    IdentityClientResourceGrantEntity.GrantType
+                            .CLIENT_CREDENTIALS,
+                    null,
+                    allowedScopes,
+                    grant.getVersion(),
+                    Instant.now()
+            );
+        }
+        grants.save(grant);
+        projections.projectServiceGrant(grant);
     }
 
     /**

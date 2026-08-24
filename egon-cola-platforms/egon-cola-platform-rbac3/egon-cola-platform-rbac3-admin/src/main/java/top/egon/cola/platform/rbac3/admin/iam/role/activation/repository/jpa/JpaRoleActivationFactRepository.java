@@ -93,14 +93,21 @@ public class JpaRoleActivationFactRepository
         long tenant = Long.parseLong(tenantId);
         long user = Long.parseLong(userId);
         Object[] versions = one("""
-                select u.auth_version, u.directory_snapshot_version, u.status
+                select u.auth_version,
+                       coalesce((
+                           select max(snapshot.snapshot_version)
+                             from rbac3_directory_snapshot snapshot
+                            where snapshot.tenant_id = u.tenant_id
+                              and snapshot.status = 'ACTIVE'
+                       ), 0),
+                       u.status
                   from rbac3_user u
                  where u.tenant_id = :tenantId and u.id = :userId
                 """, Map.of("tenantId", tenant, "userId", user));
         if (!"ACTIVE".equals(text(versions[2]))) {
             throw new Rbac3RuleViolation("AUTHORIZATION_SUBJECT_INVALID");
         }
-        long policyVersion = authorizationState.requireForUpdate(tenant).getPolicyVersion();
+        long policyVersion = authorizationState.require(tenant).getPolicyVersion();
 
         List<Object[]> roleRows = rows("""
                 select r.id, r.application_id, r.role_code, r.role_name,
@@ -108,8 +115,7 @@ public class JpaRoleActivationFactRepository
                        landing.resource_code, r.landing_priority
                   from rbac3_role r
              left join rbac3_resource landing
-                    on landing.tenant_id = r.tenant_id
-                   and landing.application_id = r.application_id
+                    on landing.application_id = r.application_id
                    and landing.id = r.landing_route_id
                  where r.tenant_id = :tenantId
                 """, Map.of("tenantId", tenant));
@@ -167,10 +173,18 @@ public class JpaRoleActivationFactRepository
         Map<String, ApplicationFactVO> applications =
                 new TreeMap<>();
         for (Object[] row : rows("""
-                select id, application_code, application_name
-                  from rbac3_application
-                 where tenant_id = :tenantId and status = 'ACTIVE'
-                """, Map.of("tenantId", tenant))) {
+                select application.id, application.application_code,
+                       application.application_name
+                  from rbac3_application application
+                  join rbac3_tenant_application tenant_application
+                    on tenant_application.application_id = application.id
+                   and tenant_application.tenant_id = :tenantId
+                 where application.status = 'ACTIVE'
+                   and tenant_application.status = 'ACTIVE'
+                   and tenant_application.valid_from <= :now
+                   and (tenant_application.valid_to is null
+                        or tenant_application.valid_to > :now)
+                """, Map.of("tenantId", tenant, "now", databaseNow))) {
             String applicationId = text(row[0]);
             applications.put(applicationId,
                     new ApplicationFactVO(
@@ -246,7 +260,8 @@ public class JpaRoleActivationFactRepository
                 select rp.role_id, p.permission_code
                   from rbac3_role_permission rp
                   join rbac3_permission p
-                    on p.tenant_id = rp.tenant_id and p.id = rp.permission_id
+                    on p.application_id = rp.application_id
+                   and p.id = rp.permission_id
                  where rp.tenant_id = :tenantId
                    and rp.status = 'ACTIVE' and p.status = 'ACTIVE'
                    and rp.valid_from <= :now
@@ -260,19 +275,18 @@ public class JpaRoleActivationFactRepository
         for (Object[] row : rows("""
                 select d.role_id, p.permission_code, d.scope_type,
                        ref.ref_type, ref.ref_id,
-                       coalesce(d.directory_snapshot_version, u.directory_snapshot_version),
-                       u.primary_org_unit_id
+                       coalesce(d.directory_snapshot_version, 0),
+                       cast(null as bigint)
                   from rbac3_data_rule d
                   join rbac3_permission p
-                    on p.tenant_id = d.tenant_id and p.id = d.permission_id
-                  join rbac3_user u
-                    on u.tenant_id = d.tenant_id and u.id = :userId
+                    on p.application_id = d.application_id
+                   and p.id = d.permission_id
              left join rbac3_data_rule_ref ref
                     on ref.tenant_id = d.tenant_id and ref.data_rule_id = d.id
                  where d.tenant_id = :tenantId and d.status = 'ACTIVE'
                    and d.valid_from <= :now
                    and (d.valid_to is null or d.valid_to > :now)
-                """, Map.of("tenantId", tenantId, "userId", userId, "now", now))) {
+                """, Map.of("tenantId", tenantId, "now", now))) {
             String scopeType = text(row[2]);
             String dimension;
             String referenceId;
@@ -306,10 +320,10 @@ public class JpaRoleActivationFactRepository
                        definition.field_code, f.access_level
                   from rbac3_field_rule f
                   join rbac3_field_definition definition
-                    on definition.tenant_id = f.tenant_id
+                    on definition.application_id = f.application_id
                    and definition.id = f.field_definition_id
                   join rbac3_resource resource
-                    on resource.tenant_id = definition.tenant_id
+                    on resource.application_id = definition.application_id
                    and resource.id = definition.resource_id
                  where f.tenant_id = :tenantId and f.status = 'ACTIVE'
                    and definition.status = 'ACTIVE' and resource.status = 'ACTIVE'
@@ -327,11 +341,18 @@ public class JpaRoleActivationFactRepository
                             else definition.default_access end
                   from rbac3_field_definition definition
                   join rbac3_resource resource
-                    on resource.tenant_id = definition.tenant_id
+                    on resource.application_id = definition.application_id
                    and resource.id = definition.resource_id
-                 where definition.tenant_id = :tenantId
-                   and definition.status = 'ACTIVE' and resource.status = 'ACTIVE'
-                """, Map.of("tenantId", tenantId)).stream()
+                  join rbac3_tenant_application tenant_application
+                    on tenant_application.application_id = definition.application_id
+                   and tenant_application.tenant_id = :tenantId
+                 where definition.status = 'ACTIVE'
+                   and resource.status = 'ACTIVE'
+                   and tenant_application.status = 'ACTIVE'
+                   and tenant_application.valid_from <= :now
+                   and (tenant_application.valid_to is null
+                        or tenant_application.valid_to > :now)
+                """, Map.of("tenantId", tenantId, "now", now)).stream()
                 .map(row -> new AuthorizationRuleFacts.FieldDefinitionFact(
                         text(row[0]), text(row[1]),
                         FieldAccessLevel.valueOf(text(row[2]))))
@@ -341,11 +362,18 @@ public class JpaRoleActivationFactRepository
                 select resource.resource_code, permission.permission_code
                   from rbac3_resource resource
                   join rbac3_permission permission
-                    on permission.tenant_id = resource.tenant_id
+                    on permission.application_id = resource.application_id
                    and permission.id = resource.required_permission_id
-                 where resource.tenant_id = :tenantId
-                   and resource.status = 'ACTIVE' and permission.status = 'ACTIVE'
-                """, Map.of("tenantId", tenantId)).stream()
+                  join rbac3_tenant_application tenant_application
+                    on tenant_application.application_id = resource.application_id
+                   and tenant_application.tenant_id = :tenantId
+                 where resource.status = 'ACTIVE'
+                   and permission.status = 'ACTIVE'
+                   and tenant_application.status = 'ACTIVE'
+                   and tenant_application.valid_from <= :now
+                   and (tenant_application.valid_to is null
+                        or tenant_application.valid_to > :now)
+                """, Map.of("tenantId", tenantId, "now", now)).stream()
                 .map(row -> new AuthorizationRuleFacts.ResourceFact(
                         text(row[0]), text(row[1])))
                 .toList();
@@ -355,11 +383,10 @@ public class JpaRoleActivationFactRepository
                        permission.permission_code
                   from rbac3_role role
                   join rbac3_resource route
-                    on route.tenant_id = role.tenant_id
-                   and route.application_id = role.application_id
+                    on route.application_id = role.application_id
                    and route.id = role.landing_route_id
                   join rbac3_permission permission
-                    on permission.tenant_id = route.tenant_id
+                    on permission.application_id = route.application_id
                    and permission.id = route.required_permission_id
                  where role.tenant_id = :tenantId and role.status = 'ACTIVE'
                    and route.status = 'ACTIVE' and permission.status = 'ACTIVE'

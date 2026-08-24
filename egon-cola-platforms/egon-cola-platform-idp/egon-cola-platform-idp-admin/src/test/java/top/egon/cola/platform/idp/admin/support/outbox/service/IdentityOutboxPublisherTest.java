@@ -95,7 +95,7 @@ class IdentityOutboxPublisherTest {
         publisher.append(new IdentitySecurityEvent(
                 "IDENTITY_TOKEN_REVOKED",
                 "alice-sub",
-                "PASSWORD_CHANGED",
+                "SECRET_ROTATED:idp-service",
                 "SELF_SERVICE",
                 NOW
         ));
@@ -105,7 +105,7 @@ class IdentityOutboxPublisherTest {
         IdentityOutboxEventEntity event = captureOutbox();
         assertThat(event.getAggregateId()).isEqualTo("alice-sub");
         assertThat(event.getPayload())
-                .contains("PASSWORD_CHANGED")
+                .contains("SECRET_ROTATED:idp-service")
                 .doesNotContain("passwordHash", "refreshToken");
     }
 

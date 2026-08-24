@@ -28,7 +28,7 @@ class PostgresqlRoleImpactSourceTest {
         RoleImpactVO impact = new RoleImpactVO(
                 "31", List.of("20"), List.of("20", "31"),
                 "HIGH", 7, List.of());
-        when(stateStore.requireForUpdate(17L)).thenReturn(state);
+        when(stateStore.require(17L)).thenReturn(state);
         when(roles.impact("17", "31")).thenReturn(impact);
 
         var snapshot = new PostgresqlRoleImpactRepository(

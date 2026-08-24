@@ -54,17 +54,6 @@ egon.cola.platform:
     jwk-set-uri: ${IDP_JWK_SET_URI}
     resource-server-id: ${RBAC3_RESOURCE_SERVER_ID}
     resource-uri: ${RBAC3_RESOURCE_URI}
-    admission:
-      biz-code: ${RBAC3_RESOURCE_BIZ_CODE:permission}
-      app-code: ${RBAC3_RESOURCE_APP_CODE:rbac3}
-      environment: ${DEPLOYMENT_ENV}
-      instance-id: ${RBAC3_INSTANCE_ID}
-      management-client-id: ${RBAC3_RESOURCE_MANAGEMENT_CLIENT_ID}
-      kid: ${RBAC3_RESOURCE_MANAGEMENT_KEY_ID}
-      private-key-path: ${RBAC3_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE}
-      rpc-target: ${RBAC3_RESOURCE_ADMISSION_RPC_TARGET}
-      rpc-timeout: ${RBAC3_RESOURCE_ADMISSION_RPC_TIMEOUT:3s}
-      renewal-skew: ${RBAC3_RESOURCE_ADMISSION_RENEWAL_SKEW:30s}
   rbac3:
     enabled: ${UNIFIED_IDENTITY_ENABLED:true}
     register-filter: false
@@ -77,10 +66,6 @@ egon.cola.platform:
       endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT}
       service-token:
         enabled: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED:true}
-        token-endpoint: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_TOKEN_ENDPOINT:}
-        client-id: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_CLIENT_ID:}
-        key-id: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_KEY_ID:}
-        private-key-file: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_PRIVATE_KEY_FILE:}
         resource-uri: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_RESOURCE_URI:}
         scopes: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_SCOPES:}
         renewal-skew: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_RENEWAL_SKEW:30s}
@@ -143,6 +128,9 @@ egon:
             registry:
               access-key: ${DDC_RPC_REGISTRY_ACCESS_KEY}
               secret-key: ${DDC_RPC_REGISTRY_SECRET_KEY}
+            management:
+              access-key: ${DDC_RPC_MANAGEMENT_ACCESS_KEY}
+              secret-key: ${DDC_RPC_MANAGEMENT_SECRET_KEY}
         redis:
           enabled: true
           mode: ${DDC_REGISTRY_REDIS_MODE:SINGLE}

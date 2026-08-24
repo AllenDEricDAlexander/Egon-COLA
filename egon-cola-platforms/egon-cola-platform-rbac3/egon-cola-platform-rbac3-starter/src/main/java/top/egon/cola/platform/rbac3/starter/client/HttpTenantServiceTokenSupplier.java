@@ -2,7 +2,10 @@ package top.egon.cola.platform.rbac3.starter.client;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import top.egon.cola.platform.idp.starter.admission.PrivateKeyJwtAssertionFactory;
+import top.egon.cola.platform.idp.contract.ServiceTokenContext;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 
 import java.io.IOException;
 import java.net.URI;
@@ -49,6 +52,12 @@ public final class HttpTenantServiceTokenSupplier
      * Meaning and usage: when reading, passing, or updating `clientId`, preserve `HttpTenantServiceTokenSupplier`'s lifecycle, immutability, and thread-safety constraints.
      */
     private final String clientId;
+
+    /** Spring Security OAuth2 Client facade used by the production path. */
+    private final IdpServiceOAuth2Client serviceClient;
+
+    /** IdP registration settings used by the production path. */
+    private final IdpStarterProperties idpProperties;
 
     /** 每次请求创建新 Assertion 的工厂；factory creating a new assertion for every request.
      * 含义与用法：读取、传递或更新 `assertions` 时应保持 `HttpTenantServiceTokenSupplier` 的生命周期、不可变性和线程安全约束。
@@ -109,22 +118,25 @@ public final class HttpTenantServiceTokenSupplier
      * Usage: create the instance through `HttpTenantServiceTokenSupplier`'s constructor entry point and do not bypass the validation and initialization constraints established there.
      */
     public HttpTenantServiceTokenSupplier(
-            URI tokenEndpoint,
-            PrivateKeyJwtAssertionFactory assertions,
-            ObjectMapper objectMapper,
+            IdpServiceOAuth2Client serviceClient,
+            IdpStarterProperties idpProperties,
             URI resourceUri,
-            Set<String> scopes,
-            Duration renewalSkew,
-            Clock clock
+            Set<String> scopes
     ) {
-        this(
-                Objects.requireNonNull(assertions, "assertions").clientId(),
-                assertions::create,
-                resourceUri,
-                scopes,
-                renewalSkew,
-                clock,
-                httpEndpoint(tokenEndpoint, objectMapper)
+        this.clientId = null;
+        this.assertions = null;
+        this.resourceUri = resource(resourceUri);
+        this.scopes = normalizedScopes(scopes);
+        this.renewalSkew = null;
+        this.clock = null;
+        this.endpoint = null;
+        this.serviceClient = Objects.requireNonNull(
+                serviceClient,
+                "serviceClient"
+        );
+        this.idpProperties = Objects.requireNonNull(
+                idpProperties,
+                "idpProperties"
         );
     }
 
@@ -155,6 +167,8 @@ public final class HttpTenantServiceTokenSupplier
         this.renewalSkew = positive(renewalSkew, "renewalSkew");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.endpoint = Objects.requireNonNull(endpoint, "endpoint");
+        this.serviceClient = null;
+        this.idpProperties = null;
     }
 
     /**
@@ -170,6 +184,19 @@ public final class HttpTenantServiceTokenSupplier
     @Override
     public String apply(String tenantId) {
         String exactTenantId = required(tenantId, "tenantId");
+        if (serviceClient != null) {
+            IdpStarterProperties.ServiceClient client =
+                    idpProperties.getServiceClient();
+            client.validate();
+            return serviceClient.authorize(new IdpServiceTokenRequest(
+                    client.getRegistrationId(),
+                    client.getAppId(),
+                    resourceUri,
+                    ServiceTokenContext.TENANT,
+                    exactTenantId,
+                    scopes
+            )).getTokenValue();
+        }
         synchronized (this) {
             CachedToken current = cachedByTenant.get(exactTenantId);
             if (current != null

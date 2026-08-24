@@ -29,6 +29,19 @@ public interface Rbac3AuthorizationClient {
             IdentityPrincipal principal) throws InterruptedException;
 
     /**
+     * Fetches a snapshot with an explicitly carried USER token for non-servlet transports.
+     *
+     * <p>The default keeps existing servlet and test clients source-compatible; production
+     * transports may override it when the verified USER token is carried by the protocol itself.</p>
+     */
+    default SystemAuthorizationSnapshot fetch(
+            String systemCode,
+            IdentityPrincipal principal,
+            String userAccessToken) throws InterruptedException {
+        return fetch(systemCode, principal);
+    }
+
+    /**
      * 类型 `AuthorizationUnavailableException` 位于 `Rbac3AuthorizationClient` 内，是类型，用于承载 `Authorization Unavailable Exception` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
      * Type `AuthorizationUnavailableException` is a type inside `Rbac3AuthorizationClient` and carries the responsibility, state, or contract for `Authorization Unavailable Exception`; callers normally use it through its public API, Spring assembly, or implementation relationship.
      *

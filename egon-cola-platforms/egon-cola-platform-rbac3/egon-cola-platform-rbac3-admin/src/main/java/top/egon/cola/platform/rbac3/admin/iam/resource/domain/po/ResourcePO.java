@@ -129,6 +129,8 @@ public class ResourcePO extends GlobalAuditedPO {
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "mechanical_facts", nullable = false, columnDefinition = "jsonb", updatable = false)
+    @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
+            allowArbitraryJson = true)
     private Map<String, Object> mechanicalFacts;
     /**
      * 字段 `displayMetadata` 表示 `ResourcePO` 中与 `display Metadata` 相关的状态、依赖、配置或结果（声明类型 `Map&lt;String, Object&gt;`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -139,6 +141,8 @@ public class ResourcePO extends GlobalAuditedPO {
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "display_metadata", nullable = false, columnDefinition = "jsonb")
+    @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
+            allowArbitraryJson = true)
     private Map<String, Object> displayMetadata;
     /**
      * 字段 `staleSince` 表示 `ResourcePO` 中与 `stale Since` 相关的状态、依赖、配置或结果（声明类型 `Instant`）；其生命周期和取值含义由声明类型及所属对象共同确定。

@@ -24,6 +24,7 @@ import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import top.egon.cola.component.rpc.consumer.interceptor.RpcClientInterceptorFactory;
 import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.security.CurrentIdentity;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
 import top.egon.cola.platform.idp.starter.security.IdpJwtVerifier;
 import top.egon.cola.platform.idp.starter.security.ServiceScopeAuthorization;
@@ -67,6 +68,7 @@ class IdpStarterAutoConfigurationTest {
             assertThat(context).hasSingleBean(
                     IdentityOAuthClientStateReader.class);
             assertThat(context).hasSingleBean(IdpJwtVerifier.class);
+            assertThat(context).hasSingleBean(CurrentIdentity.class);
             assertThat(context).hasSingleBean(IdpBearerAuthenticationFilter.class);
             assertThat(context).hasSingleBean(ServiceScopeAuthorization.class);
             assertThat(context).hasSingleBean(

@@ -22,7 +22,7 @@ import java.util.Objects;
 
 /** Manages explicit user-to-position memberships owned by RBAC. */
 @Service
-public final class UserPositionAssignmentService {
+public class UserPositionAssignmentService {
 
     private final EntityManager entityManager;
     private final LongIdGenerator idGenerator;

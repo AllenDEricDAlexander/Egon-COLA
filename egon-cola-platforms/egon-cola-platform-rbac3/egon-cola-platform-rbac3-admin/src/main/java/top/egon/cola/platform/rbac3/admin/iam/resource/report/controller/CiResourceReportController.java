@@ -25,7 +25,7 @@ import java.util.Objects;
         group = "default",
         version = "1.0.0",
         basePath = "/api/rbac3/v1")
-public final class CiResourceReportController {
+public class CiResourceReportController {
 
     private final CiResourceReportService service;
 

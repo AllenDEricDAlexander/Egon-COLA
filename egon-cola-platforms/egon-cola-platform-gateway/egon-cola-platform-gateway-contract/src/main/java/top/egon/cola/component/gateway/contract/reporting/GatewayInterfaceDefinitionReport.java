@@ -142,6 +142,7 @@ public record GatewayInterfaceDefinitionReport(
             String sourceType,
             String className,
             String protocol,
+            @GatewayDynamicJson
             Map<String, Object> attributes,
             List<Operation> operations
     ) {
@@ -177,10 +178,15 @@ public record GatewayInterfaceDefinitionReport(
             boolean externalAccessible,
             String gatewaySupport,
             ProviderService providerService,
+            @GatewayDynamicJson
             Map<String, Object> requestSchema,
+            @GatewayDynamicJson
             Map<String, Object> responseSchema,
+            @GatewayDynamicJson
             List<Map<String, Object>> errorSchema,
+            @GatewayDynamicJson
             Map<String, Object> descriptorSnapshot,
+            @GatewayDynamicJson
             Map<String, Object> attributes,
             boolean deprecated
     ) {

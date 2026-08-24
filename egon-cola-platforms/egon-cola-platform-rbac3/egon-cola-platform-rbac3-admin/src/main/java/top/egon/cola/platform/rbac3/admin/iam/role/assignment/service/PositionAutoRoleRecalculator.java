@@ -27,7 +27,7 @@ import java.util.Set;
 
 /** Reconciles POSITION automatic role assignments from current position memberships. */
 @Service
-public final class PositionAutoRoleRecalculator {
+public class PositionAutoRoleRecalculator {
 
     private static final String SOURCE_TYPE = "POSITION_RULE";
 

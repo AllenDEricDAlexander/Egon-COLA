@@ -32,8 +32,8 @@ import java.time.Instant;
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "audit-simulation",
-        name = "审计与授权模拟接口组")
+        code = "audit",
+        name = "审计接口组")
 @EgonHttpService(
         serviceName = "rbac3-admin",
         group = "default",

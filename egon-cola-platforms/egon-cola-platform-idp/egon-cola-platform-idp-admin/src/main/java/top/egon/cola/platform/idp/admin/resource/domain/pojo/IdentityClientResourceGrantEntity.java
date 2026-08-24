@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
+import top.egon.cola.platform.idp.contract.ServiceTokenContext;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -38,6 +39,11 @@ public class IdentityClientResourceGrantEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "grant_type", nullable = false, length = 32)
     private GrantType grantType;
+
+    /** SERVICE 授权上下文；SERVICE authorization context. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "grant_context", length = 16)
+    private ServiceTokenContext grantContext;
 
     /** CLIENT_CREDENTIALS 绑定的租户；tenant bound to CLIENT_CREDENTIALS. */
     @Column(name = "tenant_id", length = 64)
@@ -96,6 +102,7 @@ public class IdentityClientResourceGrantEntity {
                 resourceServerId,
                 GrantType.USER_DELEGATION,
                 null,
+                null,
                 "[]",
                 now
         );
@@ -127,7 +134,28 @@ public class IdentityClientResourceGrantEntity {
                 clientId,
                 resourceServerId,
                 GrantType.CLIENT_CREDENTIALS,
+                ServiceTokenContext.TENANT,
                 required(tenantId, "tenantId"),
+                nonEmptyJsonArray(allowedScopes),
+                now
+        );
+    }
+
+    /** 创建不绑定租户的 PLATFORM 服务授权。 */
+    public static IdentityClientResourceGrantEntity platformClientCredentials(
+            String id,
+            String clientId,
+            String resourceServerId,
+            String allowedScopes,
+            Instant now
+    ) {
+        return create(
+                id,
+                clientId,
+                resourceServerId,
+                GrantType.CLIENT_CREDENTIALS,
+                ServiceTokenContext.PLATFORM,
+                null,
                 nonEmptyJsonArray(allowedScopes),
                 now
         );
@@ -152,6 +180,7 @@ public class IdentityClientResourceGrantEntity {
             String clientId,
             String resourceServerId,
             GrantType grantType,
+            ServiceTokenContext grantContext,
             String tenantId,
             String allowedScopes,
             Instant now
@@ -165,6 +194,7 @@ public class IdentityClientResourceGrantEntity {
                 "resourceServerId"
         );
         entity.grantType = Objects.requireNonNull(grantType, "grantType");
+        entity.grantContext = grantContext;
         entity.tenantId = tenantId;
         entity.allowedScopes = jsonArray(allowedScopes);
         entity.status = Status.ACTIVE;
@@ -192,6 +222,11 @@ public class IdentityClientResourceGrantEntity {
     /** @return 授权类型；grant type */
     public GrantType getGrantType() {
         return grantType;
+    }
+
+    /** @return SERVICE 授权上下文或空；SERVICE authorization context or null */
+    public ServiceTokenContext getGrantContext() {
+        return grantContext;
     }
 
     /** @return 租户标识或空；tenant identifier or {@code null} */
@@ -252,8 +287,14 @@ public class IdentityClientResourceGrantEntity {
                         "USER_DELEGATION must not contain tenant or scopes"
                 );
             }
+            grantContext = null;
         } else {
-            newTenantId = required(newTenantId, "tenantId");
+            grantContext = newTenantId == null
+                    ? ServiceTokenContext.PLATFORM
+                    : ServiceTokenContext.TENANT;
+            if (grantContext == ServiceTokenContext.TENANT) {
+                newTenantId = required(newTenantId, "tenantId");
+            }
             newAllowedScopes = nonEmptyJsonArray(newAllowedScopes);
         }
         grantType = newGrantType;

@@ -90,6 +90,8 @@ import java.util.Set;
          *
          * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
          */
+        @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
+                allowArbitraryJson = true)
         public Map<String, Object> counts() {
             return Map.of(
                     "created", created,

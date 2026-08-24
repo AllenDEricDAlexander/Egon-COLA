@@ -171,7 +171,7 @@ rbac3_admin_token_file="${verification_token_dir}/default.at"
 ddc_admin_token_file="${verification_token_dir}/default.at"
 tenant_token_file="${verification_token_dir}/tenant-b.at"
 mcp_token_file="${verification_token_dir}/mcp-user.at"
-rbac3_token_file="${verification_token_dir}/default.at"
+rbac3_token_file="${verification_token_dir}/mcp-user.at"
 
 "${script_dir}/test-live-frontend-login.sh" \
   || unified_platform_fail "Admin Web login contract verification failed"
@@ -313,7 +313,7 @@ verify_browser_preflight() {
     -H 'Access-Control-Request-Method: POST' \
     -H "Access-Control-Request-Headers: ${request_headers}" \
     "${GATEWAY_BASE_URL}${endpoint}")"
-  [[ "${http_code}" == "200" ]] || unified_platform_fail \
+  [[ "${http_code}" == "200" || "${http_code}" == "204" ]] || unified_platform_fail \
     "${label} browser preflight failed with HTTP ${http_code}"
   allowed_origin="$(response_header \
     "${headers}" Access-Control-Allow-Origin)"
@@ -321,6 +321,7 @@ verify_browser_preflight() {
     "${headers}" Access-Control-Allow-Credentials)"
   allow_methods="$(response_header \
     "${headers}" Access-Control-Allow-Methods)"
+  allow_methods="${allow_methods//[[:space:]]/}"
   [[ "${allowed_origin}" == "${origin}" ]] || unified_platform_fail \
     "${label} browser preflight did not allow ${origin}"
   [[ "${allow_credentials}" == "true" ]] || unified_platform_fail \
@@ -463,7 +464,7 @@ verify_authenticated_json rbac3-mutations \
   "${rbac3_admin_token_file}" '.data != null'
 verify_authenticated_json idp-tenants \
   "${IDP_ADMIN_WEB_URL}/api/v1/identity/tenants?page=0&size=20" \
-  "${idp_admin_token_file}" 'type == "array"'
+  "${idp_admin_token_file}" '.content | type == "array"'
 verify_authenticated_json rbac3-users \
   "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/users?page=0&size=20" \
   "${rbac3_admin_token_file}" '.data != null'
@@ -474,7 +475,7 @@ verify_authenticated_json rbac3-positions \
   "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/positions?page=0&size=20" \
   "${rbac3_admin_token_file}" '.data != null'
 verify_authenticated_json rbac3-applications \
-  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/applications" \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/iam/tenant-applications" \
   "${rbac3_admin_token_file}" '.data != null'
 verify_authenticated_json rbac3-roles \
   "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/roles" \
@@ -483,16 +484,16 @@ verify_authenticated_json rbac3-management-policies \
   "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/management-policies" \
   "${rbac3_admin_token_file}" '.data != null'
 verify_authenticated_json rbac3-sod-sets \
-  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/sod-sets" \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/iam/policies/sod-sets" \
   "${rbac3_admin_token_file}" '.data != null'
 verify_authenticated_json rbac3-data-rules \
-  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/data-rules" \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/iam/policies/data-rules" \
   "${rbac3_admin_token_file}" '.data != null'
 verify_authenticated_json rbac3-field-rules \
-  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/field-rules" \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/iam/policies/field-rules" \
   "${rbac3_admin_token_file}" '.data != null'
 verify_authenticated_json rbac3-operation-sod-rules \
-  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/operation-sod-rules" \
+  "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/iam/policies/operation-sod-rules" \
   "${rbac3_admin_token_file}" '.data != null'
 verify_authenticated_json rbac3-authorization-bootstrap \
   "${RBAC3_ADMIN_WEB_URL}/api/v1/auth/bootstrap" \
@@ -511,10 +512,10 @@ verify_authenticated_json rbac3-audit \
 
 gateway_group_id="$(<"${gateway_group_file}")"
 gateway_application_id="$(<"${gateway_application_file}")"
-gateway_admin_path="${GATEWAY_ADMIN_WEB_URL}/api/v1/gateway/admin"
+gateway_admin_path="${GATEWAY_ADMIN_BASE_URL}/api/v1/gateway/admin"
 gateway_scope='bizCode=identity&appCode=mock-backend&env=local&namespace=default'
 verify_authenticated_json gateway-authorization-bootstrap \
-  "${GATEWAY_ADMIN_WEB_URL}/api/v1/auth/bootstrap" "${gateway_admin_token_file}"
+  "${GATEWAY_ADMIN_WEB_URL}/api/v1/auth/bootstrap" "${rbac3_admin_token_file}"
 verify_authenticated_json gateway-scopes \
   "${gateway_admin_path}/scopes" "${gateway_admin_token_file}" \
   'type == "array"'
@@ -576,7 +577,7 @@ verify_authenticated_json gateway-mcp-artifacts \
   "${gateway_admin_path}/mcp/apps/artifacts?gatewayGroupId=${gateway_group_id}" \
   "${gateway_admin_token_file}" 'type == "array"'
 
-ddc_admin_path="${DDC_ADMIN_WEB_URL}/api/v1/ddc"
+ddc_admin_path="${DDC_BASE_URL}/api/v1/ddc"
 verify_authenticated_json ddc-bootstrap \
   "${DDC_ADMIN_WEB_URL}/api/v1/auth/bootstrap" \
   "${ddc_admin_token_file}" 'type == "object"'

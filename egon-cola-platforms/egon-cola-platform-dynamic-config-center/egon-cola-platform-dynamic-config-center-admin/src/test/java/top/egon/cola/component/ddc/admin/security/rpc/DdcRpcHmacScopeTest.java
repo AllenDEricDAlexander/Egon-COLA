@@ -2,8 +2,12 @@ package top.egon.cola.component.ddc.admin.security.rpc;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcScope;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetAppRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetBizRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetPublishTaskRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.GetServicesRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.ListAppsRequest;
+import top.egon.cola.component.rpc.ddc.contract.proto.v1.ListBizsRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.PullConfigRequest;
 import top.egon.cola.component.rpc.ddc.contract.proto.v1.DdcServiceQuery;
 
@@ -47,6 +51,19 @@ class DdcRpcHmacScopeTest {
         );
         assertThat(task).isEqualTo(new DdcRpcScopeExtractor.Scope(
                 "MANAGEMENT", null, null, null));
+
+        assertThat(extractor.extract(
+                "egon.ddc.v1.DdcManagementService/GetBiz",
+                GetBizRequest.getDefaultInstance())).isEqualTo(task);
+        assertThat(extractor.extract(
+                "egon.ddc.v1.DdcManagementService/ListBizs",
+                ListBizsRequest.getDefaultInstance())).isEqualTo(task);
+        assertThat(extractor.extract(
+                "egon.ddc.v1.DdcManagementService/GetApp",
+                GetAppRequest.getDefaultInstance())).isEqualTo(task);
+        assertThat(extractor.extract(
+                "egon.ddc.v1.DdcManagementService/ListApps",
+                ListAppsRequest.getDefaultInstance())).isEqualTo(task);
     }
 
     @Test

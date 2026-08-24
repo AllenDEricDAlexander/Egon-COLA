@@ -3,12 +3,14 @@ package top.egon.cola.platform.idp.admin.oauth.controller;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthAuthorizationServerMetadataVO;
+import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthJwkSetVO;
 import top.egon.cola.platform.idp.admin.token.service.impl.Rs256TokenService;
 
 import java.net.URI;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -26,6 +28,11 @@ import java.util.Objects;
         entityDomainName = "OAuth 协议域",
         code = "idp-oauth-metadata",
         name = "IdP OAuth 元数据接口组")
+@EgonHttpService(
+        serviceName = "idp-admin",
+        group = "default",
+        version = "1.0.0",
+        basePath = "/")
 public class OAuthMetadataController {
 
     /** 规范化 IdP Issuer；normalized IdP issuer. */
@@ -63,20 +70,15 @@ public class OAuthMetadataController {
             summary = "查询 OAuth Authorization Server 元数据",
             externalAccessible = true,
             tags = {"idp", "oauth"})
-    public Map<String, Object> metadata() {
-        Map<String, Object> metadata = new LinkedHashMap<>();
-        metadata.put("issuer", issuer);
-        metadata.put("token_endpoint", issuer + "/oauth2/token");
-        metadata.put("revocation_endpoint", issuer + "/oauth2/revoke");
-        metadata.put("jwks_uri", issuer + "/oauth2/jwks");
-        metadata.put("grant_types_supported", List.of(
-                "refresh_token",
-                "client_credentials"
-        ));
-        metadata.put("token_endpoint_auth_methods_supported", List.of(
-                "client_secret_basic"
-        ));
-        return Map.copyOf(metadata);
+    public OAuthAuthorizationServerMetadataVO metadata() {
+        return new OAuthAuthorizationServerMetadataVO(
+                issuer,
+                issuer + "/oauth2/token",
+                issuer + "/oauth2/revoke",
+                issuer + "/oauth2/jwks",
+                List.of("refresh_token", "client_credentials"),
+                List.of("client_secret_basic")
+        );
     }
 
     /**
@@ -91,8 +93,34 @@ public class OAuthMetadataController {
             summary = "查询 IdP 公钥 JWK Set",
             externalAccessible = true,
             tags = {"idp", "oauth"})
-    public Map<String, Object> jwks() {
-        return tokens.jwkSet();
+    public OAuthJwkSetVO jwks() {
+        Object rawKeys = tokens.jwkSet().get("keys");
+        if (!(rawKeys instanceof List<?> keys)
+                || keys.size() != 1
+                || !(keys.getFirst() instanceof Map<?, ?> key)) {
+            throw new IllegalStateException("IdP public JWK Set is invalid");
+        }
+        return new OAuthJwkSetVO(List.of(new OAuthJwkSetVO.Jwk(
+                text(key, "kty"),
+                text(key, "e"),
+                text(key, "kid"),
+                text(key, "n"),
+                text(key, "alg"),
+                optionalText(key, "use")
+        )));
+    }
+
+    private static String text(Map<?, ?> values, String key) {
+        String value = optionalText(values, key);
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException("IdP public JWK field is missing: " + key);
+        }
+        return value;
+    }
+
+    private static String optionalText(Map<?, ?> values, String key) {
+        Object value = values.get(key);
+        return value == null ? null : value.toString();
     }
 
     /**

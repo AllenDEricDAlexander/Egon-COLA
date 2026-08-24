@@ -32,8 +32,8 @@ import top.egon.cola.platform.rbac3.admin.simulation.service.AuthorizationSimula
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "audit-simulation",
-        name = "审计与授权模拟接口组")
+        code = "authorization-simulation",
+        name = "授权模拟接口组")
 @EgonHttpService(
         serviceName = "rbac3-admin",
         group = "default",

@@ -165,6 +165,8 @@ public class AuditLogPO {
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "before_snapshot", columnDefinition = "jsonb")
+    @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
+            allowArbitraryJson = true)
     private Map<String, Object> beforeSnapshot;
     /**
      * 字段 `afterSnapshot` 表示 `AuditLogPO` 中与 `after Snapshot` 相关的状态、依赖、配置或结果（声明类型 `Map&lt;String, Object&gt;`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -175,6 +177,8 @@ public class AuditLogPO {
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "after_snapshot", columnDefinition = "jsonb")
+    @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
+            allowArbitraryJson = true)
     private Map<String, Object> afterSnapshot;
     /**
      * 字段 `payloadChecksum` 表示 `AuditLogPO` 中与 `payload Checksum` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。

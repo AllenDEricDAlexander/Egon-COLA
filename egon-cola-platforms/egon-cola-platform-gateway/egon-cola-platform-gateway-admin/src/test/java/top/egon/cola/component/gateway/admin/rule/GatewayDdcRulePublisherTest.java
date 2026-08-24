@@ -163,6 +163,30 @@ class GatewayDdcRulePublisherTest {
         );
 
         @Override
+        public java.util.Optional<top.egon.cola.component.ddc.model.management.DdcManagementBiz>
+                getBiz(top.egon.cola.component.ddc.model.management.DdcManagementBizLookup lookup) {
+            return java.util.Optional.empty();
+        }
+
+        @Override
+        public List<top.egon.cola.component.ddc.model.management.DdcManagementBiz>
+                listBizs(top.egon.cola.component.ddc.model.management.DdcManagementBizQuery query) {
+            return List.of();
+        }
+
+        @Override
+        public java.util.Optional<top.egon.cola.component.ddc.model.management.DdcManagementApp>
+                getApp(String ddcApplicationId) {
+            return java.util.Optional.empty();
+        }
+
+        @Override
+        public List<top.egon.cola.component.ddc.model.management.DdcManagementApp>
+                listApps(top.egon.cola.component.ddc.model.management.DdcManagementAppQuery query) {
+            return List.of();
+        }
+
+        @Override
         public java.util.Optional<DdcManagementConfig> findConfig(
                 DdcManagementConfigQuery query) {
             return java.util.Optional.empty();

@@ -210,14 +210,15 @@ public class ResourceServerProjectionService {
     private String serviceGrantPayload(
             IdentityClientResourceGrantEntity grant
     ) {
-        return json(Map.of(
-                "clientId", grant.getClientId(),
-                "resourceServerId", grant.getResourceServerId(),
-                "tenantId", grant.getTenantId(),
-                "allowedScopes", jsonTree(grant.getAllowedScopes()),
-                "status", grant.getStatus().name(),
-                "version", grant.getVersion()
-        ));
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("clientId", grant.getClientId());
+        payload.put("resourceServerId", grant.getResourceServerId());
+        payload.put("grantContext", grant.getGrantContext().name());
+        payload.put("tenantId", grant.getTenantId());
+        payload.put("allowedScopes", jsonTree(grant.getAllowedScopes()));
+        payload.put("status", grant.getStatus().name());
+        payload.put("version", grant.getVersion());
+        return json(payload);
     }
 
     /**
@@ -297,8 +298,12 @@ public class ResourceServerProjectionService {
     private String serviceGrantKey(
             IdentityClientResourceGrantEntity grant
     ) {
+        String contextKey = grant.getGrantContext()
+                == top.egon.cola.platform.idp.contract.ServiceTokenContext.PLATFORM
+                ? "platform"
+                : grant.getTenantId();
         return SERVICE_GRANT_PREFIX + grant.getClientId() + ":"
-                + grant.getResourceServerId() + ":" + grant.getTenantId();
+                + grant.getResourceServerId() + ":" + contextKey;
     }
 
     /**

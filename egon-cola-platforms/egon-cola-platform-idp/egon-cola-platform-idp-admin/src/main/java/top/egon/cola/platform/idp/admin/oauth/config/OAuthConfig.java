@@ -40,6 +40,7 @@ public class OAuthConfig {
      * @return UTC 时钟；UTC clock
      */
     @Bean
+    @Primary
     @ConditionalOnMissingBean
     Clock idpClock() {
         return Clock.systemUTC();

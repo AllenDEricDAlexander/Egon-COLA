@@ -17,14 +17,17 @@ import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterAutoConfiguration;
 import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
 import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@AutoConfiguration(afterName =
-        "top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfiguration")
+@AutoConfiguration(
+        after = IdpStarterAutoConfiguration.class,
+        afterName = "top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfiguration"
+)
 @EnableConfigurationProperties({
         DdcHttpRegistrationProperties.class,
         DdcProperties.class,
@@ -53,7 +56,7 @@ public class DdcHttpRegistrationAutoConfiguration {
      * @return HTTP 注册运行时 / HTTP registration runtime
      */
     @Bean(destroyMethod = "close")
-    @ConditionalOnBean({DdcServiceRegistryClient.class, IdpServiceOAuth2Client.class})
+    @ConditionalOnBean(DdcServiceRegistryClient.class)
     @ConditionalOnMissingBean(DdcHttpRegistrationRuntime.class)
     public DdcHttpRegistrationRuntime ddcHttpRegistrationRuntime(
             DdcServiceRegistryClient registry,
@@ -75,6 +78,11 @@ public class DdcHttpRegistrationAutoConfiguration {
                 contribution.serviceVersion(),
                 environment
         );
+        java.net.URI registrationResourceUri =
+                ddcProperties.getRegistrationResourceUri();
+        if (registrationResourceUri == null) {
+            registrationResourceUri = idpProperties.getResourceUri();
+        }
         return new DdcHttpRegistrationRuntime(
                 registry,
                 serviceKeyFactory,
@@ -84,7 +92,8 @@ public class DdcHttpRegistrationAutoConfiguration {
                         0
                 ),
                 serviceClient,
-                idpProperties
+                idpProperties,
+                registrationResourceUri
         );
     }
 

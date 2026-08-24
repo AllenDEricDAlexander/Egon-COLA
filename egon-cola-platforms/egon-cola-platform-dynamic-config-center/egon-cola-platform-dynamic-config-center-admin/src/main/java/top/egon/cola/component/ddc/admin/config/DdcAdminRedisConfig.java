@@ -78,10 +78,7 @@ public class DdcAdminRedisConfig {
 
     /** Creates the DDC verifier backed by the shared IdP SERVICE-token verifier. */
     @Bean
-    @ConditionalOnBean(
-            value = ServiceAccessTokenVerifier.class,
-            name = "ddcAdminRedissonClient"
-    )
+    @ConditionalOnBean(name = "ddcAdminRedissonClient")
     @ConditionalOnMissingBean(DdcRegistrationCredentialVerifier.class)
     public DdcRegistrationCredentialVerifier ddcRegistrationCredentialVerifier(
             ServiceAccessTokenVerifier serviceTokens,

@@ -17,7 +17,7 @@ import java.util.Objects;
         businessDomainName = "平台治理域",
         entityDomainCode = "identity-profile",
         entityDomainName = "统一身份本人信息域",
-        code = "identity-profile",
+        code = "identity-profile-me",
         name = "统一身份本人信息接口组")
 @EgonHttpService(
         serviceName = "idp-admin",
@@ -44,7 +44,7 @@ public class IdentityProfileController {
             externalAccessible = true,
             tags = {"idp", "identity"})
     public IdentityPrincipal me(
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:identity:self:read");
         return Objects.requireNonNull(principal, "principal");

@@ -213,11 +213,23 @@ public class GatewayProjectionService {
      * @param query 参数 query；parameter query。
      * @return 返回 instances 的处理结果；returns the result of the operation.
      */
-    public GatewayProjectionEnvelopeVO<DdcManagementServiceSnapshot> instances(
+    public GatewayProjectionEnvelopeVO<List<GatewayProviderInstanceVO>> instances(
             GatewayProviderQueryDTO query) {
         String key = "instances:" + query;
-        return load(key, "DDC_SERVICE_REGISTRY", () -> client()
-                .getInstances(query.ddc()));
+        return load(key, "DDC_SERVICE_REGISTRY", () -> {
+            DdcManagementServiceSnapshot snapshot = client()
+                    .getInstances(query.ddc());
+            if (snapshot.serviceKey() == null) {
+                return List.of();
+            }
+            return snapshot.instances().stream()
+                    .map(instance -> projection(
+                            snapshot.serviceKey(),
+                            instance,
+                            snapshot.observedAt()
+                    ))
+                    .toList();
+        });
     }
 
     /**

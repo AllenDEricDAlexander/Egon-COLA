@@ -59,7 +59,7 @@ public class SigningKeyController {
             summary = "查询签名密钥", externalAccessible = true,
             tags = {"idp", "signing-key"})
     public List<SigningKeyVO> list(
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:signing-key:read");
         return keys.list();
@@ -72,7 +72,7 @@ public class SigningKeyController {
             tags = {"idp", "signing-key"})
     public SigningKeyVO publish(
             @Valid @RequestBody PublishSigningKeyDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:signing-key:publish");
         return keys.publish(request);
@@ -86,7 +86,7 @@ public class SigningKeyController {
             @PathVariable("kid") String kid,
             @RequestParam("expectedVersion")
             @PositiveOrZero long expectedVersion,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:signing-key:activate");
         return keys.activate(kid, expectedVersion);
@@ -100,7 +100,7 @@ public class SigningKeyController {
             @PathVariable("kid") String kid,
             @RequestParam("expectedVersion")
             @PositiveOrZero long expectedVersion,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:signing-key:retire");
         return keys.retire(kid, expectedVersion);

@@ -50,6 +50,24 @@ class IdpEndpointAuthenticationPolicyTest {
                 .isEqualTo(IdpEndpointAuthenticationPolicy.Requirement.PUBLIC);
     }
 
+    @Test
+    void classifiesExplicitlySharedUserAndServicePaths() {
+        IdpEndpointAuthenticationPolicy policy =
+                new IdpEndpointAuthenticationPolicy(
+                        List.of(),
+                        List.of(),
+                        List.of("/api/v1/control/**"),
+                        true
+                );
+
+        assertThat(policy.requirement(request(
+                "GET", "/api/v1/control/applications")))
+                .isEqualTo(
+                        IdpEndpointAuthenticationPolicy.Requirement
+                                .USER_OR_SERVICE
+                );
+    }
+
     private static MockHttpServletRequest request(String method, String path) {
         return new MockHttpServletRequest(method, path);
     }

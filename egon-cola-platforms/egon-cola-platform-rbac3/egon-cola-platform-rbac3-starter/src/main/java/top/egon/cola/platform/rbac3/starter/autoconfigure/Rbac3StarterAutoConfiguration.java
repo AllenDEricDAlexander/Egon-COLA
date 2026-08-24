@@ -17,9 +17,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.authorization.method.AuthorizationManagerBeforeMethodInterceptor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import top.egon.cola.component.common.desensitize.strategy.SensitiveStrategyRegistry;
-import top.egon.cola.platform.idp.starter.admission.OwnerOnlyPrivateKeyLoader;
-import top.egon.cola.platform.idp.starter.admission.PrivateKeyJwtAssertionFactory;
 import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterAutoConfiguration;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
 import top.egon.cola.platform.idp.starter.security.IdpJwtVerifier;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
 import top.egon.cola.platform.rbac3.starter.authorization.DefaultAuthorizationService;
@@ -39,8 +39,6 @@ import top.egon.cola.platform.rbac3.starter.field.Rbac3FieldJacksonModule;
 import top.egon.cola.platform.rbac3.starter.web.Rbac3AuthorizationExceptionHandler;
 
 import java.net.URI;
-import java.nio.file.Path;
-import java.security.SecureRandom;
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
@@ -170,44 +168,20 @@ public class Rbac3StarterAutoConfiguration {
     @ConditionalOnMissingBean
     public Rbac3AuthorizationClient tenantAwareRbac3AuthorizationClient(
             ObjectMapper objectMapper,
-            Rbac3StarterProperties properties) {
+            Rbac3StarterProperties properties,
+            IdpServiceOAuth2Client serviceClient,
+            IdpStarterProperties idpProperties) {
         var authorization = properties.getAuthorization();
         var serviceToken = authorization.getServiceToken();
-        URI tokenEndpoint = URI.create(required(
-                serviceToken.getTokenEndpoint(),
-                "authorization.serviceToken.tokenEndpoint"
-        ));
-        Clock clock = Clock.systemUTC();
-        PrivateKeyJwtAssertionFactory assertions =
-                new PrivateKeyJwtAssertionFactory(
-                        required(
-                                serviceToken.getClientId(),
-                                "authorization.serviceToken.clientId"
-                        ),
-                        required(
-                                serviceToken.getKeyId(),
-                                "authorization.serviceToken.keyId"
-                        ),
-                        tokenEndpoint,
-                        new OwnerOnlyPrivateKeyLoader().load(Path.of(required(
-                                serviceToken.getPrivateKeyFile(),
-                                "authorization.serviceToken.privateKeyFile"
-                        ))),
-                        clock,
-                        new SecureRandom()
-                );
         HttpTenantServiceTokenSupplier credentials =
                 new HttpTenantServiceTokenSupplier(
-                        tokenEndpoint,
-                        assertions,
-                        objectMapper,
+                        serviceClient,
+                        idpProperties,
                         URI.create(required(
                                 serviceToken.getResourceUri(),
                                 "authorization.serviceToken.resourceUri"
                         )),
-                        scopes(serviceToken.getScopes()),
-                        serviceToken.getRenewalSkew(),
-                        clock
+                        scopes(serviceToken.getScopes())
                 );
         return new HttpRbac3AuthorizationClient(
                 URI.create(required(

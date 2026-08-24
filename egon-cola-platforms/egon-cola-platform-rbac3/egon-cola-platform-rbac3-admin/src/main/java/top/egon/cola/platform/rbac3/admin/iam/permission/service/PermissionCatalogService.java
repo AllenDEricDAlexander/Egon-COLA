@@ -15,7 +15,7 @@ import java.util.Objects;
 
 /** Global permission CRUD; tenant role bindings are deliberately outside this service. */
 @Service
-public final class PermissionCatalogService {
+public class PermissionCatalogService {
 
     private final EntityManager entityManager;
     private final LongIdGenerator idGenerator;

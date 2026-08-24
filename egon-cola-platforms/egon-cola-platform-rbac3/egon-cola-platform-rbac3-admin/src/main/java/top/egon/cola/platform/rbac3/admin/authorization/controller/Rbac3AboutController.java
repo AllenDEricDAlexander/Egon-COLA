@@ -18,7 +18,7 @@ import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
         group = "default",
         version = "1.0.0",
         basePath = "/api/v1")
-public final class Rbac3AboutController {
+public class Rbac3AboutController {
 
     private final Rbac3AboutService aboutService;
 

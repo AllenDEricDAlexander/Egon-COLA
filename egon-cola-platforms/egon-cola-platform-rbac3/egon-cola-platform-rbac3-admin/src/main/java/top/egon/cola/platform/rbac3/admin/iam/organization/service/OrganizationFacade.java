@@ -19,7 +19,7 @@ import java.util.Objects;
 
 /** Owns CRUD and tree operations for MANUAL organization records. */
 @Service
-public final class OrganizationFacade {
+public class OrganizationFacade {
 
     private final EntityManager entityManager;
     private final LongIdGenerator idGenerator;

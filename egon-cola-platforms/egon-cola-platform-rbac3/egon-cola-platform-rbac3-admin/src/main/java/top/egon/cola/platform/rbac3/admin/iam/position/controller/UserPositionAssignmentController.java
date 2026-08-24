@@ -36,7 +36,7 @@ import java.util.List;
         group = "default",
         version = "1.0.0",
         basePath = "/api/rbac3/v1")
-public final class UserPositionAssignmentController {
+public class UserPositionAssignmentController {
 
     private final UserPositionAssignmentService service;
 

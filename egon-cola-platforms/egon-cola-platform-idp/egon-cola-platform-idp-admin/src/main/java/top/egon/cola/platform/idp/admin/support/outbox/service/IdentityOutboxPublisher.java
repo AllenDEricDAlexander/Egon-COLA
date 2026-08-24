@@ -202,7 +202,7 @@ public class IdentityOutboxPublisher
         if (value == null
                 || value.isBlank()
                 || value.length() > 128
-                || !value.matches("[A-Za-z0-9._~-]+")) {
+                || !value.matches("[A-Za-z0-9._~:-]+")) {
             throw new IllegalArgumentException("invalid " + field);
         }
         return value;

@@ -55,7 +55,7 @@ public class IdentityAuditController {
     public IdentityAuditPageVO list(
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "50") int size,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
         ) {
         authorization.require(principal, "idp:audit:read");
         return audits.list(new IdentityAuditQueryDTO(page, size));

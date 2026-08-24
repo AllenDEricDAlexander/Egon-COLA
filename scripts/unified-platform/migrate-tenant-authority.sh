@@ -174,8 +174,9 @@ run_psql_query() {
 }
 
 export_rbac3() {
-  local db_url='' freeze_marker='' output='' option tenants_tsv memberships_tsv
-  local tenants_json memberships_json temp_artifact checksum counts_tenants counts_memberships
+    local db_url='' freeze_marker='' output='' option tenants_tsv memberships_tsv
+    local tenants_json memberships_json temp_artifact checksum counts_tenants counts_memberships
+    local membership_query identity_sub_on_user external_identity_table
 
   while (($#)); do
     option="$1"
@@ -201,11 +202,32 @@ export_rbac3() {
   run_psql_query "${db_url}" \
     'SELECT id, code, name, status, settings::text FROM rbac3_tenant ORDER BY id' \
     >"${tenants_tsv}"
-  run_psql_query "${db_url}" \
-    'SELECT tenant_id, identity_sub,
+  if [[ -n "${UNIFIED_PLATFORM_MIGRATION_FIXTURE_DIR:-}" ]]; then
+    identity_sub_on_user=1
+    external_identity_table=0
+  else
+    identity_sub_on_user="$(run_psql_query "${db_url}" \
+      "SELECT count(*) FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'rbac3_user' AND column_name = 'identity_sub'")"
+    external_identity_table="$(run_psql_query "${db_url}" \
+      "SELECT count(*) FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = 'rbac3_external_identity'")"
+  fi
+  if [[ "${identity_sub_on_user//[[:space:]]/}" == '1' ]]; then
+    membership_query='SELECT tenant_id, identity_sub,
        CASE WHEN status = '\''ACTIVE'\'' THEN '\''ACTIVE'\'' ELSE '\''DISABLED'\'' END
-       FROM rbac3_user ORDER BY tenant_id, identity_sub' \
-    >"${memberships_tsv}"
+       FROM rbac3_user ORDER BY tenant_id, identity_sub'
+  elif [[ "${external_identity_table//[[:space:]]/}" == '1' ]]; then
+    membership_query='SELECT u.tenant_id, e.identity_sub,
+       CASE WHEN u.status = '\''ACTIVE'\'' AND e.status = '\''ACTIVE'\''
+            THEN '\''ACTIVE'\'' ELSE '\''DISABLED'\'' END
+       FROM rbac3_user u
+       JOIN rbac3_external_identity e
+         ON e.tenant_id = u.tenant_id AND e.user_id = u.id
+       WHERE upper(e.provider_code) = '\''IDP'\''
+       ORDER BY u.tenant_id, e.identity_sub'
+  else
+    fail 'RBAC3 identity membership source is unavailable'
+  fi
+  run_psql_query "${db_url}" "${membership_query}" >"${memberships_tsv}"
   tsv_to_json tenants "${tenants_tsv}" "${tenants_json}"
   tsv_to_json memberships "${memberships_tsv}" "${memberships_json}"
   counts_tenants="$(jq 'length' "${tenants_json}")"

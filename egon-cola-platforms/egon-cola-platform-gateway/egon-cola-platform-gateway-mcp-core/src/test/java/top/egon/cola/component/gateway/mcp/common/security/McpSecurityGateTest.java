@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -188,6 +189,44 @@ class McpSecurityGateTest {
                 ));
 
         assertEquals("platform", context.clientId());
+    }
+
+    @Test
+    void carriesVerifiedUserTokenToAuthorizationPortForMcpTransport() {
+        AtomicReference<String> carriedToken = new AtomicReference<>();
+        McpSecurityGate gate = new McpSecurityGate(
+                request -> {
+                    carriedToken.set(request.userAccessToken());
+                    return Mono.just(
+                            McpAuthorizationPort.Decision.allowed(1L, 1L, 1L)
+                    );
+                },
+                request -> Mono.just(McpApprovalPort.Result.UNAVAILABLE),
+                new ObjectMapper()
+        );
+        McpSecurityGate.IdentityContext context = new McpSecurityGate.IdentityContext(
+                "https://idp.internal",
+                "alice-sub",
+                "tenant-a",
+                "platform",
+                "token-1",
+                "https://resource.egon.top/gateway-mcp",
+                NOW.minusSeconds(30),
+                NOW.plusSeconds(300),
+                0L,
+                0L,
+                0L,
+                "user-at"
+        );
+
+        Mono.from(gate.authorizeTaskAction(
+                "billing",
+                "pay_invoice",
+                "call",
+                context
+        )).block();
+
+        assertEquals("user-at", carriedToken.get());
     }
 
     private void authorize(

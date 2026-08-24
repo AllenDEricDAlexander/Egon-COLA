@@ -75,7 +75,7 @@ public class ResourceServerController {
             summary = "查询Resource Server", externalAccessible = true,
             tags = {"idp", "resource-server"})
     public List<ResourceServerVO> list(
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:resource-server:read");
         return resources.list();
@@ -92,7 +92,7 @@ public class ResourceServerController {
             tags = {"idp", "resource-server"})
     public ResourceServerVO detail(
             @PathVariable("resourceServerId") String resourceServerId,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:resource-server:read");
         return resources.detail(resourceServerId);
@@ -110,7 +110,7 @@ public class ResourceServerController {
             tags = {"idp", "resource-server"})
     public ResourceServerVO create(
             @Valid @RequestBody CreateResourceServerDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:resource-server:create");
         return resources.create(request);
@@ -128,7 +128,7 @@ public class ResourceServerController {
     public ResourceServerVO enable(
             @PathVariable("resourceServerId") String resourceServerId,
             @Valid @RequestBody ResourceVersionDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:resource-server:status");
         return resources.enable(resourceServerId, request);
@@ -146,7 +146,7 @@ public class ResourceServerController {
     public ResourceServerVO disable(
             @PathVariable("resourceServerId") String resourceServerId,
             @Valid @RequestBody ResourceVersionDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:resource-server:status");
         return resources.disable(resourceServerId, request);
@@ -163,7 +163,7 @@ public class ResourceServerController {
             tags = {"idp", "resource-server"})
     public List<ResourceServerVO> batch(
             @Valid @RequestBody BatchResourceServerActionDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:resource-server:status");
         return resources.batch(request);

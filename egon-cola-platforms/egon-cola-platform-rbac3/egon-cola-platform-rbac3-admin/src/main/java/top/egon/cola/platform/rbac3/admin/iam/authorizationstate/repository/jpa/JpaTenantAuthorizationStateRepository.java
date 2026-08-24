@@ -27,6 +27,21 @@ public class JpaTenantAuthorizationStateRepository
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public TenantAuthorizationStatePO require(Long tenantId) {
+        TenantAuthorizationStatePO state = entityManager.find(
+                TenantAuthorizationStatePO.class,
+                requireTenant(tenantId)
+        );
+        if (state == null) {
+            throw new IllegalStateException(
+                    "tenant authorization state not found"
+            );
+        }
+        return state;
+    }
+
+    @Override
     @Transactional
     public TenantAuthorizationStatePO requireForUpdate(Long tenantId) {
         TenantAuthorizationStatePO state = entityManager.find(

@@ -66,7 +66,7 @@ public class OAuthClientController {
             summary = "查询OAuth客户端", externalAccessible = true,
             tags = {"idp", "oauth-client"})
     public List<OAuthClientVO> list(
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:oauth-client:read");
         return clients.list();
@@ -79,7 +79,7 @@ public class OAuthClientController {
             tags = {"idp", "oauth-client"})
     public CreatedOAuthClientVO create(
             @Valid @RequestBody CreateOAuthClientDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal,
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal,
             HttpServletResponse response
     ) {
         authorization.require(principal, "idp:oauth-client:create");
@@ -94,7 +94,7 @@ public class OAuthClientController {
     public RotatedClientSecretVO rotateSecret(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody RotateClientSecretDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal,
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal,
             HttpServletResponse response
     ) {
         authorization.require(principal, "idp:oauth-client:update");
@@ -109,7 +109,7 @@ public class OAuthClientController {
     public OAuthClientVO update(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody UpdateOAuthClientDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:oauth-client:update");
         return clients.update(clientId, request);
@@ -122,7 +122,7 @@ public class OAuthClientController {
     public OAuthClientVO putRedirect(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody OAuthValueDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:oauth-client:update");
         return clients.putRedirectUri(clientId, request.value());
@@ -135,7 +135,7 @@ public class OAuthClientController {
     public OAuthClientVO deleteRedirect(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody OAuthValueDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:oauth-client:update");
         return clients.deleteRedirectUri(clientId, request.value());
@@ -148,7 +148,7 @@ public class OAuthClientController {
     public OAuthClientVO putResourceUri(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody OAuthValueDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:oauth-client:update");
         return clients.putResourceUri(clientId, request.value());
@@ -161,7 +161,7 @@ public class OAuthClientController {
     public OAuthClientVO deleteResourceUri(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody OAuthValueDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:oauth-client:update");
         return clients.deleteResourceUri(clientId, request.value());

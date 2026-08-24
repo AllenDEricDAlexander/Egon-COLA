@@ -41,6 +41,8 @@ public record GatewayManualDefinitionRequestDTO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualDefinitionRequestDTO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualDefinitionRequestDTO}; do not couple callers to its representation when the owning type exposes an API.
          */
+        @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
+                allowArbitraryJson = true)
         @NotNull Map<String, Object> requestSchema,
         /**
          * 中文说明：保存 响应模式 对应的状态、依赖或配置值；字段类型为 {@code Map<String, Object>}，由 {@code top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualDefinitionRequestDTO} 在其生命周期内读取或更新。
@@ -48,6 +50,8 @@ public record GatewayManualDefinitionRequestDTO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualDefinitionRequestDTO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualDefinitionRequestDTO}; do not couple callers to its representation when the owning type exposes an API.
          */
+        @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
+                allowArbitraryJson = true)
         @NotNull Map<String, Object> responseSchema,
         /**
          * 中文说明：保存 error模式 对应的状态、依赖或配置值；字段类型为 {@code List<Map<String, Object>>}，由 {@code top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualDefinitionRequestDTO} 在其生命周期内读取或更新。
@@ -55,6 +59,8 @@ public record GatewayManualDefinitionRequestDTO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualDefinitionRequestDTO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualDefinitionRequestDTO}; do not couple callers to its representation when the owning type exposes an API.
          */
+        @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
+                allowArbitraryJson = true)
         @NotNull List<Map<String, Object>> errorSchema,
         /**
          * 中文说明：保存 descriptorSnapshot 对应的状态、依赖或配置值；字段类型为 {@code Map<String, Object>}，由 {@code top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualDefinitionRequestDTO} 在其生命周期内读取或更新。
@@ -62,6 +68,8 @@ public record GatewayManualDefinitionRequestDTO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualDefinitionRequestDTO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualDefinitionRequestDTO}; do not couple callers to its representation when the owning type exposes an API.
          */
+        @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
+                allowArbitraryJson = true)
         Map<String, Object> descriptorSnapshot,
         /**
          * 中文说明：保存 attributes 对应的状态、依赖或配置值；字段类型为 {@code Map<String, Object>}，由 {@code top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualDefinitionRequestDTO} 在其生命周期内读取或更新。
@@ -69,6 +77,8 @@ public record GatewayManualDefinitionRequestDTO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualDefinitionRequestDTO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualDefinitionRequestDTO}; do not couple callers to its representation when the owning type exposes an API.
          */
+        @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
+                allowArbitraryJson = true)
         @NotNull Map<String, Object> attributes,
         /**
          * 中文说明：保存 externalAccessible 对应的状态、依赖或配置值；字段类型为 {@code boolean}，由 {@code top.egon.cola.component.gateway.admin.catalog.domain.dto.GatewayManualDefinitionRequestDTO} 在其生命周期内读取或更新。

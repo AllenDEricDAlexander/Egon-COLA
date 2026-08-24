@@ -45,6 +45,7 @@ import top.egon.cola.platform.rbac3.admin.iam.role.repository.jpa.JpaRoleReposit
 import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleFacade;
 import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleEligibilityService;
 import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.MutationWorkDTO;
+import top.egon.cola.platform.rbac3.admin.runtime.repository.InitialAuthorizationContextRepository;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.Rbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.rbac3.admin.runtime.repository.jpa.JpaAuthorizationMutationRepository;
@@ -464,8 +465,10 @@ public class Rbac3ApplicationConfiguration {
     @Bean
     SystemAuthorizationSnapshotService systemAuthorizationSnapshotService(
             RedisAuthorizationRuntimeRepository snapshots,
+            InitialAuthorizationContextRepository initialContexts,
             Clock clock) {
-        return new SystemAuthorizationSnapshotService(snapshots, clock);
+        return new SystemAuthorizationSnapshotService(
+                snapshots, initialContexts, clock);
     }
 
     /**

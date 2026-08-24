@@ -108,6 +108,8 @@ public class GatewayReleaseController {
      * @return 返回 diff 的处理结果；returns the result of the operation.
      */
     @GatewayOperation(externalAccessible = true)
+    @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
+            allowArbitraryJson = true)
     @GetMapping("/releases/{releaseId}/diff")
     public Map<String, Object> diff(@PathVariable String releaseId) {
         return service.diff(releaseId);

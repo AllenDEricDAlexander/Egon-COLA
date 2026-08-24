@@ -6,6 +6,7 @@ import org.springframework.web.method.HandlerMethod;
 import top.egon.cola.component.gateway.contract.identity.GatewayOperationKey;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReport;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
+import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.gateway.starter.discovery.GatewayDefinitionContributor;
@@ -83,24 +84,33 @@ public final class GatewayHttpOperationMapper {
         Map<String, GatewayInterfaceDefinitionReport.Operation> operations =
                 new LinkedHashMap<>();
         mappings.forEach(mapping -> {
-            for (String method : mapping.methods()) {
-                for (String path : mapping.paths()) {
-                    GatewayInterfaceDefinitionReport.Operation operation =
-                            operation(annotation, mapping, method, path);
-                    GatewayInterfaceDefinitionReport.Operation previous =
-                            operations.putIfAbsent(
-                                    operation.operationKey(),
-                                    operation
+            try {
+                for (String method : mapping.methods()) {
+                    for (String path : mapping.paths()) {
+                        GatewayInterfaceDefinitionReport.Operation operation =
+                                operation(annotation, mapping, method, path);
+                        GatewayInterfaceDefinitionReport.Operation previous =
+                                operations.putIfAbsent(
+                                        operation.operationKey(),
+                                        operation
+                                );
+                        if (previous != null
+                                && !previous.methodIdentity().equals(
+                                operation.methodIdentity())) {
+                            throw new IllegalArgumentException(
+                                    "duplicate HTTP operation key "
+                                            + operation.operationKey()
                             );
-                    if (previous != null
-                            && !previous.methodIdentity().equals(
-                            operation.methodIdentity())) {
-                        throw new IllegalArgumentException(
-                                "duplicate HTTP operation key "
-                                        + operation.operationKey()
-                        );
+                        }
                     }
                 }
+            } catch (IllegalArgumentException invalid) {
+                throw new IllegalArgumentException(
+                        "invalid Gateway HTTP operation "
+                                + mapping.handler().getMethod()
+                                .toGenericString(),
+                        invalid
+                );
             }
         });
         return new GatewayDefinitionContributor.DiscoveredInterfaceGroup(
@@ -145,6 +155,14 @@ public final class GatewayHttpOperationMapper {
             String httpMethod,
             String path) {
         HandlerMethod handler = mapping.handler();
+        EgonHttpService service = AnnotatedElementUtils.findMergedAnnotation(
+                handler.getBeanType(),
+                EgonHttpService.class
+        );
+        String providerServiceName = service == null
+                || service.serviceName().isBlank()
+                ? properties.getApplicationCode()
+                : service.serviceName();
         GatewayOperation annotation =
                 AnnotatedElementUtils.findMergedAnnotation(
                         handler.getMethod(),
@@ -204,7 +222,7 @@ public final class GatewayHttpOperationMapper {
                         properties.getEnv(),
                         properties.getNamespace(),
                         "HTTP",
-                        properties.getApplicationCode(),
+                        providerServiceName,
                         "default",
                         properties.getArtifactVersion(),
                         "HTTP"

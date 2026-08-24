@@ -145,11 +145,34 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
         }
         try {
             IdpPrincipal principal;
-            boolean userToken = requirement == IdpEndpointAuthenticationPolicy.Requirement.USER;
-            if (userToken) {
+            boolean userToken;
+            if (requirement
+                    == IdpEndpointAuthenticationPolicy.Requirement.USER_OR_SERVICE) {
                 var verification = userAccessTokenVerifier.verify(token);
                 if (verification instanceof AccessTokenVerification.Valid<?> valid) {
                     principal = valid.principal();
+                    userToken = true;
+                } else if (principalTypeMismatch(verification)) {
+                    var serviceVerification =
+                            serviceAccessTokenVerifier.verify(token);
+                    if (serviceVerification
+                            instanceof AccessTokenVerification.Valid<?> valid) {
+                        principal = valid.principal();
+                        userToken = false;
+                    } else {
+                        unauthorized(response, reason(serviceVerification));
+                        return;
+                    }
+                } else {
+                    unauthorized(response, reason(verification));
+                    return;
+                }
+            } else if (requirement
+                    == IdpEndpointAuthenticationPolicy.Requirement.USER) {
+                var verification = userAccessTokenVerifier.verify(token);
+                if (verification instanceof AccessTokenVerification.Valid<?> valid) {
+                    principal = valid.principal();
+                    userToken = true;
                 } else {
                     unauthorized(response, reason(verification));
                     return;
@@ -158,6 +181,7 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
                 var verification = serviceAccessTokenVerifier.verify(token);
                 if (verification instanceof AccessTokenVerification.Valid<?> valid) {
                     principal = valid.principal();
+                    userToken = false;
                 } else {
                     unauthorized(response, reason(verification));
                     return;
@@ -174,6 +198,12 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
             VerifiedUserTokenCarrier.clear(request);
             SecurityContextHolder.clearContext();
         }
+    }
+
+    private boolean principalTypeMismatch(
+            AccessTokenVerification<?> verification) {
+        return verification instanceof AccessTokenVerification.Invalid<?> invalid
+                && "JWT_PRINCIPAL_TYPE_INVALID".equals(invalid.reasonCode());
     }
 
     private String reason(AccessTokenVerification<?> verification) {

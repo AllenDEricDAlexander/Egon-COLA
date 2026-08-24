@@ -7,6 +7,8 @@ import java.util.Objects;
 /** Persistence boundary for RBAC tenant-scoped authorization versions. */
 public interface TenantAuthorizationStateRepository {
 
+    TenantAuthorizationStatePO require(Long tenantId);
+
     TenantAuthorizationStatePO requireForUpdate(Long tenantId);
 
     TenantAuthorizationStatePO ensureVerifiedTenant(

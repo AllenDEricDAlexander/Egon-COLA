@@ -49,7 +49,16 @@ public final class HttpRbac3AuthorizationClient implements Rbac3AuthorizationCli
     public SystemAuthorizationSnapshot fetch(String systemCode, IdentityPrincipal principal)
             throws InterruptedException {
         Objects.requireNonNull(principal, "principal");
-        String userToken = VerifiedUserTokenCarrier.current();
+        return fetch(systemCode, principal, VerifiedUserTokenCarrier.current());
+    }
+
+    @Override
+    public SystemAuthorizationSnapshot fetch(
+            String systemCode,
+            IdentityPrincipal principal,
+            String userAccessToken) throws InterruptedException {
+        Objects.requireNonNull(principal, "principal");
+        String userToken = requiredUserToken(userAccessToken);
         String serviceToken = serviceTokens.apply(principal.tenantId());
         URI uri = endpoint.resolve("/internal/v1/authorization/snapshots/current?systemCode="
                 + encode(systemCode));
@@ -71,6 +80,15 @@ public final class HttpRbac3AuthorizationClient implements Rbac3AuthorizationCli
         } catch (IOException | RuntimeException exception) {
             throw new AuthorizationUnavailableException("RBAC3_AUTHORIZATION_UNAVAILABLE", exception);
         }
+    }
+
+    private static String requiredUserToken(String value) {
+        if (value == null || value.isBlank() || value.length() > 16_384) {
+            throw new AuthorizationUnavailableException(
+                    "RBAC3_USER_TOKEN_UNAVAILABLE"
+            );
+        }
+        return value.trim();
     }
 
     private static URI secureEndpoint(URI value) {

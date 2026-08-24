@@ -40,12 +40,23 @@ public final class SingleFlightSnapshotLoader {
     }
 
     public SystemAuthorizationSnapshot load(IdentityPrincipal principal) {
-        Objects.requireNonNull(principal, "principal");
-        var key = new AuthorizationSnapshotCache.Key(systemCode, principal.tenantId(), principal.subject());
-        return cached(key).filter(snapshot -> boundTo(snapshot, principal)).orElseGet(() -> join(key, principal));
+        return load(principal, null);
     }
 
-    private SystemAuthorizationSnapshot join(AuthorizationSnapshotCache.Key key, IdentityPrincipal principal) {
+    public SystemAuthorizationSnapshot load(
+            IdentityPrincipal principal,
+            String userAccessToken) {
+        Objects.requireNonNull(principal, "principal");
+        var key = new AuthorizationSnapshotCache.Key(systemCode, principal.tenantId(), principal.subject());
+        return cached(key)
+                .filter(snapshot -> boundTo(snapshot, principal))
+                .orElseGet(() -> join(key, principal, userAccessToken));
+    }
+
+    private SystemAuthorizationSnapshot join(
+            AuthorizationSnapshotCache.Key key,
+            IdentityPrincipal principal,
+            String userAccessToken) {
         CompletableFuture<SystemAuthorizationSnapshot> created = new CompletableFuture<>();
         CompletableFuture<SystemAuthorizationSnapshot> active = flights.putIfAbsent(key, created);
         if (active == null) {
@@ -53,7 +64,7 @@ public final class SingleFlightSnapshotLoader {
             try {
                 SystemAuthorizationSnapshot snapshot = cached(key)
                         .filter(value -> boundTo(value, principal))
-                        .orElseGet(() -> fetch(principal));
+                        .orElseGet(() -> fetch(principal, userAccessToken));
                 created.complete(snapshot);
             } catch (Throwable failure) {
                 created.completeExceptionally(failure);
@@ -74,9 +85,15 @@ public final class SingleFlightSnapshotLoader {
         }
     }
 
-    private SystemAuthorizationSnapshot fetch(IdentityPrincipal principal) {
+    private SystemAuthorizationSnapshot fetch(
+            IdentityPrincipal principal,
+            String userAccessToken) {
         try {
-            SystemAuthorizationSnapshot snapshot = client.fetch(systemCode, principal);
+            SystemAuthorizationSnapshot snapshot = client.fetch(
+                    systemCode,
+                    principal,
+                    userAccessToken
+            );
             if (!boundTo(snapshot, principal)) {
                 throw new Rbac3AuthorizationClient.AuthorizationDeniedException("RBAC3_AUTHORIZATION_BINDING_MISMATCH");
             }

@@ -2,6 +2,7 @@ package top.egon.cola.component.ddc.http.registration;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.actuate.health.Status;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -24,6 +25,7 @@ import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterAutoConfiguration;
 import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
 import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 
@@ -66,6 +68,17 @@ class DdcHttpRegistrationAutoConfigurationTest {
                             this::serviceClient
                     )
                     .withPropertyValues(requiredProperties());
+
+    @Test
+    void runsAfterIdpStarterCreatesTheServiceOAuthClient() {
+        AutoConfiguration configuration =
+                DdcHttpRegistrationAutoConfiguration.class.getAnnotation(
+                        AutoConfiguration.class
+                );
+
+        assertThat(configuration.after())
+                .contains(IdpStarterAutoConfiguration.class);
+    }
 
     @Test
     void registersActualPortExposesHealthAndDeregistersOnClose() {
@@ -197,6 +210,30 @@ class DdcHttpRegistrationAutoConfigurationTest {
         contextRunner.run(context -> assertThat(context).doesNotHaveBean(
                 DdcHttpRegistrationRuntime.class
         ));
+    }
+
+    @Test
+    void requiresOAuthServiceClientWhenHttpRegistrationIsEnabled() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(
+                        DdcHttpRegistrationAutoConfiguration.class
+                ))
+                .withPropertyValues(requiredProperties())
+                .withBean(
+                        DdcServiceKeyFactory.class,
+                        this::serviceKeyFactory
+                )
+                .withBean(
+                        DdcServiceRegistryClient.class,
+                        FakeRegistry::new
+                )
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure())
+                            .hasMessageContaining(
+                                    "IdpServiceOAuth2Client"
+                            );
+                });
     }
 
     @Test

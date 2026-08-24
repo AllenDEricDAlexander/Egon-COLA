@@ -136,7 +136,10 @@ class DdcHttpRegistrationRuntimeTest {
                 serviceKeyFactory(),
                 properties(),
                 serviceTokens.client,
-                idpProperties()
+                idpProperties(),
+                java.net.URI.create(
+                        "https://api.example/ddc-registration"
+                )
         );
 
         assertThrows(
@@ -182,7 +185,10 @@ class DdcHttpRegistrationRuntimeTest {
                 serviceKeyFactory(),
                 properties(),
                 serviceTokens.client,
-                idpProperties()
+                idpProperties(),
+                java.net.URI.create(
+                        "https://api.example/ddc-registration"
+                )
         );
 
         runtime.onHttpServerReady(18080);
@@ -199,7 +205,9 @@ class DdcHttpRegistrationRuntimeTest {
         assertEquals(2, serviceTokens.requests.size());
         IdpServiceTokenRequest request = serviceTokens.requests.getFirst();
         assertEquals(
-                java.net.URI.create("https://api.example/ddc"),
+                java.net.URI.create(
+                        "https://api.example/ddc-registration"
+                ),
                 request.audience()
         );
         assertEquals(ServiceTokenContext.PLATFORM, request.context());

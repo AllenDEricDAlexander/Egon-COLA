@@ -96,7 +96,7 @@ public class JpaUserActiveRoleRepository implements ActivationTransaction, Resel
             String identitySub,
             String userId,
             Instant now) {
-        UserPO user = lockUser(tenantId, userId);
+        UserPO user = requireUser(tenantId, userId);
         if (!identitySub.equals(user.getIdentitySub())) {
             throw new IllegalArgumentException("identity subject does not match RBAC user");
         }
@@ -144,6 +144,15 @@ public class JpaUserActiveRoleRepository implements ActivationTransaction, Resel
     private UserPO lockUser(String tenantId, String userId) {
         UserPO user = entityManager.find(
                 UserPO.class, Long.valueOf(userId), LockModeType.PESSIMISTIC_WRITE);
+        return requireTenantUser(user, tenantId);
+    }
+
+    private UserPO requireUser(String tenantId, String userId) {
+        UserPO user = entityManager.find(UserPO.class, Long.valueOf(userId));
+        return requireTenantUser(user, tenantId);
+    }
+
+    private UserPO requireTenantUser(UserPO user, String tenantId) {
         if (user == null || !Long.valueOf(tenantId).equals(user.getTenantId())) {
             throw new IllegalArgumentException("RBAC user not found");
         }

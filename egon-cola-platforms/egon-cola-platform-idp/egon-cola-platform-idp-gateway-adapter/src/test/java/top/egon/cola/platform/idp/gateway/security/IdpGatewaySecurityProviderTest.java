@@ -139,6 +139,22 @@ class IdpGatewaySecurityProviderTest {
     }
 
     @Test
+    void keepsBearerOnlyRequestsActiveWithoutABrowserRefreshCookie() {
+        IdpUserOnlineStateProvider provider = new IdpUserOnlineStateProvider(
+                token -> Mono.error(new AssertionError("refresh status must not be called")),
+                "__Host-egon_user_rt", "__Host-egon_user_at");
+
+        StepVerifier.create(provider.validateAuthenticated(
+                        context(new GatewayPrincipal(
+                                "identity-1", "USER", "tenant-1", null,
+                                true, Map.of())),
+                        exchange(Map.of())))
+                .assertNext(result -> assertThat(result.outcome())
+                        .isEqualTo(GatewayCredentialOnlineStateResult.Outcome.ACTIVE))
+                .verifyComplete();
+    }
+
+    @Test
     void revokedOrMismatchedRefreshTokenExpiresBothCookies() {
         IdpRefreshTokenStatusClient revoked = token -> Mono.just(
                 new IdpRefreshTokenStatusClient.Response(401, null));

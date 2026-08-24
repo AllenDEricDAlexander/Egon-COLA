@@ -67,7 +67,7 @@ public class PostgresqlRoleImpactRepository
     public RoleImpactSnapshotVO load(
             String tenantId,
             String roleId) {
-        TenantAuthorizationStatePO state = authorizationState.requireForUpdate(
+        TenantAuthorizationStatePO state = authorizationState.require(
                 Long.valueOf(tenantId));
         RoleImpactVO impact = roleImpactQuery.impact(tenantId, roleId);
         long policyVersion = state.getPolicyVersion();

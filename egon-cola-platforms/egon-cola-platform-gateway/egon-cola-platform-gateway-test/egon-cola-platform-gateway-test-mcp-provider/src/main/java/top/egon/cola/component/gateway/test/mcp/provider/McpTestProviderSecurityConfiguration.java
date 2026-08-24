@@ -13,14 +13,27 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
+import top.egon.cola.platform.idp.starter.security.IdpEndpointAuthenticationPolicy;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFilter;
+
+import java.util.List;
 
 @Configuration(proxyBeanMethods = false)
 public class McpTestProviderSecurityConfiguration {
 
     /** Provider Operation 的 SERVICE Scope；SERVICE scope required by provider operations. */
     private static final String SERVICE_SCOPE = "mcp:operation:invoke";
+
+    @Bean
+    IdpEndpointAuthenticationPolicy mcpTestProviderEndpointPolicy() {
+        return new IdpEndpointAuthenticationPolicy(
+                List.of("/actuator/health/**", "/actuator/info"),
+                List.of(),
+                List.of("/api/mcp-fixtures/**"),
+                false
+        );
+    }
 
     @Bean
     SecurityFilterChain mcpTestProviderSecurityFilterChain(

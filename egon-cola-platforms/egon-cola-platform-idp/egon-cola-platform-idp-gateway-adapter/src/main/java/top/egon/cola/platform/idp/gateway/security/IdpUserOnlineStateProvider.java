@@ -33,7 +33,9 @@ public final class IdpUserOnlineStateProvider {
             GatewayExchange exchange) {
         String refreshToken = cookie(exchange, refreshCookieName);
         if (refreshToken == null) {
-            return Mono.just(inactive());
+            // Bearer-only API callers do not carry the browser refresh cookie. Their
+            // already-issued access token remains valid until its own expiry.
+            return Mono.just(GatewayCredentialOnlineStateResult.active());
         }
         return client.validate(refreshToken)
                 .map(response -> evaluate(response, context))

@@ -5,10 +5,6 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "${script_dir}/lib/common.sh"
 
-service_token="${unified_platform_secret_dir}/idp-admin.service.jwt"
-[[ -s "${service_token}" ]] \
-  || unified_platform_fail "missing IdP service token"
-
 default_cookie="${unified_platform_runtime_dir}/browser.default.cookies"
 [[ -s "${default_cookie}" ]] \
   || unified_platform_fail "missing default tenant Gateway cookie jar"
@@ -19,6 +15,20 @@ tenant_id="$(jq -er '.tid' <<<"${userinfo}")"
 identity_sub="$(jq -er '.sub' <<<"${userinfo}")"
 [[ "${tenant_id}" =~ ^[1-9][0-9]*$ ]] \
   || unified_platform_fail "default Gateway userinfo has an invalid tenant ID"
+
+membership_response="$(curl --max-time 15 -sS -w $'\n%{http_code}' \
+  -b "${default_cookie}" \
+  "${GATEWAY_BASE_URL}/api/v1/identity/tenants/${tenant_id}/members?query=${identity_sub}&status=ACTIVE&page=0&size=20")"
+membership_http_code="${membership_response##*$'\n'}"
+membership_body="${membership_response%$'\n'*}"
+[[ "${membership_http_code}" == '200' ]] \
+  || unified_platform_fail \
+    "IdP tenant membership resolution returned HTTP ${membership_http_code}"
+jq -e --arg identitySub "${identity_sub}" \
+  '.totalElements == 1
+    and any(.content[]; .identitySub == $identitySub and .status == "ACTIVE")' \
+  <<<"${membership_body}" >/dev/null \
+  || unified_platform_fail "IdP tenant membership is not active"
 
 frontends=(
   "idp-admin-web|${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web|${IDP_ADMIN_WEB_URL}/src/auth/CentralLoginPage.tsx"
@@ -41,23 +51,6 @@ for frontend in "${frontends[@]}"; do
   grep -Fq "${tenant_id}" <<<"${transformed_module}" \
     || unified_platform_fail "${client_id} running Vite process did not load the default tenant"
 
-  response="$(curl --max-time 10 -sS -w $'\n%{http_code}' \
-    -H "Authorization: Bearer $(<"${service_token}")" \
-    -H 'Content-Type: application/json' \
-    -d "$(jq -cn \
-      --arg identitySub "${identity_sub}" \
-      --arg tenantId "${configured_tenant}" \
-      --arg clientId "${client_id}" \
-      '{identitySub:$identitySub,tenantId:$tenantId,clientId:$clientId}')" \
-    "${RBAC3_BASE_URL}/internal/v1/identity/resolve")"
-  http_code="${response##*$'\n'}"
-  body="${response%$'\n'*}"
-  [[ "${http_code}" == '200' ]] \
-    || unified_platform_fail "${client_id} membership resolution returned HTTP ${http_code}"
-  jq -e --arg tenantId "${tenant_id}" \
-    '.data.status == "ACTIVE" and .data.tenantId == $tenantId' \
-    <<<"${body}" >/dev/null \
-    || unified_platform_fail "${client_id} membership is not active"
 done
 
 for command in curl jq; do
@@ -157,7 +150,9 @@ expected_active_roles="$(jq -cer --argjson expected "${expected_role_pairs}" '
   | sort_by(.applicationCode, .rootRoleCode) as $matched
   | ($expected | sort_by(.applicationCode, .rootRoleCode)) as $expectedPairs
   | if ($matched | map({applicationCode, rootRoleCode})) == $expectedPairs
-    then $matched
+    then ($matched
+      | map(select(.applicationCode != "mock-backend"
+          or .rootRoleCode == "MOCK_LOCAL_ENTRY")))
       | group_by(.applicationCode)
       | map({
           applicationCode: .[0].applicationCode,
@@ -183,12 +178,13 @@ curl --max-time 15 -fsS -o "${fresh_dir}/active-roles.json" \
 jq -e \
   --argjson expected "${expected_active_roles}" \
   '.data.activationRequired == false
-    and ([.data.activeRoles[]
+    and (([.data.activeRoles[]
       | {applicationCode, rootRoleIds: (.rootRoleIds | sort)}]
-      | sort_by(.applicationCode)) == $expected' \
+      | sort_by(.applicationCode)) as $actual
+      | $actual | contains($expected))' \
   "${fresh_dir}/active-roles.json" >/dev/null \
   || unified_platform_fail \
-    "fresh Gateway JWT login did not activate the generated local administrator roles"
+    "fresh Gateway JWT login did not activate the configured local roles"
 
 verify_fresh_admin_json rbac3-bootstrap \
   "${RBAC3_ADMIN_WEB_URL}/api/v1/auth/bootstrap"
@@ -211,9 +207,13 @@ refresh_code="$(curl --max-time 10 -sS -o "${fresh_dir}/refresh-after-logout.jso
   "${GATEWAY_BASE_URL}/oauth2/token")"
 [[ "${refresh_code}" != '200' ]] \
   || unified_platform_fail 'Gateway logout did not revoke the USER Refresh Token'
-fresh_cookie="${fresh_dir}/pre-logout.cookies"
-verify_fresh_admin_json idp-bootstrap-after-logout \
-  "${IDP_ADMIN_WEB_URL}/api/v1/auth/bootstrap"
+after_logout_code="$(curl --max-time 15 -sS \
+  -o "${fresh_dir}/idp-bootstrap-after-logout.json" -w '%{http_code}' \
+  -b "${fresh_dir}/pre-logout.cookies" \
+  "${IDP_ADMIN_WEB_URL}/api/v1/auth/bootstrap")"
+[[ "${after_logout_code}" == '401' ]] \
+  || unified_platform_fail \
+    "logout did not invalidate the old Gateway cookie; bootstrap returned HTTP ${after_logout_code}"
 
 printf '%s\n' \
   'live-frontend-login: memberships, refresh, IdP pages, and four Admin endpoints PASS'

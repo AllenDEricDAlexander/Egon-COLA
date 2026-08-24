@@ -17,7 +17,8 @@ public record McpAuthorizationRequest(
         Set<String> requiredPermissions,
         long minimumAuthVersion,
         long minimumContextVersion,
-        long minimumPolicyVersion
+        long minimumPolicyVersion,
+        String userAccessToken
 ) {
 
     public McpAuthorizationRequest {
@@ -41,6 +42,54 @@ public record McpAuthorizationRequest(
         nonNegative(minimumAuthVersion, "minimumAuthVersion");
         nonNegative(minimumContextVersion, "minimumContextVersion");
         nonNegative(minimumPolicyVersion, "minimumPolicyVersion");
+        userAccessToken = optional(userAccessToken);
+    }
+
+    public McpAuthorizationRequest(
+            String issuer,
+            String subjectId,
+            String tenantId,
+            String clientId,
+            String tokenId,
+            String resourceUri,
+            Instant issuedAt,
+            Instant expiresAt,
+            Set<String> requiredPermissions,
+            long minimumAuthVersion,
+            long minimumContextVersion,
+            long minimumPolicyVersion) {
+        this(
+                issuer,
+                subjectId,
+                tenantId,
+                clientId,
+                tokenId,
+                resourceUri,
+                issuedAt,
+                expiresAt,
+                requiredPermissions,
+                minimumAuthVersion,
+                minimumContextVersion,
+                minimumPolicyVersion,
+                null
+        );
+    }
+
+    @Override
+    public String toString() {
+        return "McpAuthorizationRequest[issuer=" + issuer
+                + ", subjectId=<redacted>, tenantId=" + tenantId
+                + ", clientId=" + clientId
+                + ", tokenId=<redacted>, resourceUri=" + resourceUri
+                + ", issuedAt=" + issuedAt
+                + ", expiresAt=" + expiresAt
+                + ", requiredPermissions=" + requiredPermissions
+                + ", minimumAuthVersion=" + minimumAuthVersion
+                + ", minimumContextVersion=" + minimumContextVersion
+                + ", minimumPolicyVersion=" + minimumPolicyVersion
+                + ", userAccessToken="
+                + (userAccessToken == null ? "<absent>" : "<redacted>")
+                + ']';
     }
 
     private static Set<String> sorted(Set<String> values, String field) {
@@ -62,6 +111,18 @@ public record McpAuthorizationRequest(
     private static String required(String value, String field) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(field + " is required");
+        }
+        return value.trim();
+    }
+
+    private static String optional(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        if (value.length() > 16_384) {
+            throw new IllegalArgumentException(
+                    "userAccessToken exceeds maximum length"
+            );
         }
         return value.trim();
     }

@@ -2,7 +2,9 @@ spring:
   application:
     name: gateway-test-idp-backend
   config:
-    import: optional:ddc:application.yml
+    import:
+      - optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/mock-backend.properties
+      - optional:ddc:application.yml
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
@@ -31,17 +33,6 @@ egon:
         jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
         resource-server-id: ${MOCK_BACKEND_RESOURCE_SERVER_ID:identity-mock-backend-local}
         resource-uri: ${MOCK_BACKEND_RESOURCE_URI:https://api.egon.internal/local/identity/mock-backend}
-        admission:
-          biz-code: ${MOCK_BACKEND_RESOURCE_BIZ_CODE:identity}
-          app-code: ${MOCK_BACKEND_RESOURCE_APP_CODE:mock-backend}
-          environment: ${DEPLOYMENT_ENV:local}
-          instance-id: ${MOCK_BACKEND_INSTANCE_ID:mock-backend-local-1}
-          management-client-id: ${MOCK_BACKEND_RESOURCE_MANAGEMENT_CLIENT_ID:mock-backend-service}
-          kid: ${MOCK_BACKEND_RESOURCE_MANAGEMENT_KEY_ID:mock-backend-local}
-          private-key-path: ${MOCK_BACKEND_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE:/tmp/egon-cola/mock-backend-private.pem}
-          rpc-target: ${MOCK_BACKEND_RESOURCE_ADMISSION_RPC_TARGET:dns:///127.0.0.1:18122}
-          rpc-timeout: ${MOCK_BACKEND_RESOURCE_ADMISSION_RPC_TIMEOUT:3s}
-          renewal-skew: ${MOCK_BACKEND_RESOURCE_ADMISSION_RENEWAL_SKEW:30s}
       rbac3:
         enabled: true
         register-filter: false

@@ -58,7 +58,10 @@ public final class Rbac3McpAuthorizationAdapter
         Objects.requireNonNull(request, "request");
         return Mono.fromCallable(() -> decide(
                 request,
-                snapshotLoader.load(principal(request))
+                snapshotLoader.load(
+                        principal(request),
+                        request.userAccessToken()
+                )
         )).onErrorResume(
                 Rbac3AuthorizationClient.AuthorizationDeniedException.class,
                 failure -> Mono.just(Decision.denied(

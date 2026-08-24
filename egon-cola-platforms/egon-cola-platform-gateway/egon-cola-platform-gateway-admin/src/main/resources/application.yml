@@ -4,7 +4,9 @@ spring:
   profiles:
     default: local
   config:
-    import: optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/gateway-admin.properties
+    import:
+      - optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/gateway-admin.properties
+      - optional:ddc:application.yml
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
@@ -56,17 +58,6 @@ egon:
         jwk-set-uri: ${IDP_JWK_SET_URI}
         resource-server-id: ${GATEWAY_ADMIN_RESOURCE_SERVER_ID}
         resource-uri: ${GATEWAY_ADMIN_RESOURCE_URI}
-        admission:
-          biz-code: ${GATEWAY_ADMIN_RESOURCE_BIZ_CODE:platform}
-          app-code: ${GATEWAY_ADMIN_RESOURCE_APP_CODE:gateway-admin}
-          environment: ${DEPLOYMENT_ENV}
-          instance-id: ${GATEWAY_ADMIN_INSTANCE_ID}
-          management-client-id: ${GATEWAY_ADMIN_RESOURCE_MANAGEMENT_CLIENT_ID}
-          kid: ${GATEWAY_ADMIN_RESOURCE_MANAGEMENT_KEY_ID}
-          private-key-path: ${GATEWAY_ADMIN_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE}
-          rpc-target: ${GATEWAY_ADMIN_RESOURCE_ADMISSION_RPC_TARGET}
-          rpc-timeout: ${GATEWAY_ADMIN_RESOURCE_ADMISSION_RPC_TIMEOUT:3s}
-          renewal-skew: ${GATEWAY_ADMIN_RESOURCE_ADMISSION_RENEWAL_SKEW:30s}
       rbac3:
         enabled: ${UNIFIED_IDENTITY_ENABLED:true}
         register-filter: false
@@ -79,10 +70,6 @@ egon:
           endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT}
           service-token:
             enabled: ${GATEWAY_RBAC3_SERVICE_TOKEN_ENABLED:true}
-            token-endpoint: ${GATEWAY_RBAC3_SERVICE_TOKEN_TOKEN_ENDPOINT}
-            client-id: ${GATEWAY_RBAC3_SERVICE_TOKEN_CLIENT_ID}
-            key-id: ${GATEWAY_RBAC3_SERVICE_TOKEN_KEY_ID}
-            private-key-file: ${GATEWAY_RBAC3_SERVICE_TOKEN_PRIVATE_KEY_FILE}
             resource-uri: ${GATEWAY_RBAC3_SERVICE_TOKEN_RESOURCE_URI}
             scopes: ${GATEWAY_RBAC3_SERVICE_TOKEN_SCOPES}
     component:
@@ -98,6 +85,7 @@ egon:
         biz-code: ${GATEWAY_ADMIN_RESOURCE_BIZ_CODE:platform}
         env: ${DEPLOYMENT_ENV}
         app-code: ${GATEWAY_ADMIN_RESOURCE_APP_CODE:gateway-admin}
+        max-config-bytes: ${DDC_MAX_CONFIG_BYTES:1048576}
         rpc:
           target: ${DDC_RPC_TARGET:dns:///ddc-admin:19080}
           load-balancing-policy: round_robin
@@ -125,7 +113,7 @@ egon:
           enabled: ${DDC_REGISTRY_ENABLED:false}
           http:
             enabled: ${GATEWAY_ADMIN_DDC_REGISTRATION_ENABLED:false}
-            service-name: egon-cola-gateway-admin
+            service-name: gateway-admin
             version: ${GATEWAY_ADMIN_VERSION:5.3.2}
             protocol: http
             advertised-host: ${GATEWAY_ADMIN_DDC_ADVERTISED_HOST:127.0.0.1}

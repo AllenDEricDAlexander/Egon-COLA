@@ -1,6 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.iam.role.service;
 
 import jakarta.persistence.EntityManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import top.egon.cola.platform.rbac3.admin.iam.business.repository.UserBusinessAccessRepository;
 import top.egon.cola.platform.rbac3.admin.iam.business.service.ApplicationCatalogEntry;
@@ -21,6 +23,9 @@ import java.util.Set;
  */
 @Service
 public final class RoleEligibilityService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(
+            RoleEligibilityService.class);
 
     private final EntityManager entityManager;
     private final UserBusinessAccessRepository businessAccessStore;
@@ -64,6 +69,11 @@ public final class RoleEligibilityService {
                     .orElse(null);
             return resolveEffectiveScope(tenant, user, application, at);
         } catch (RuntimeException unavailableOrInvalid) {
+            LOG.debug(
+                    "DDC application eligibility is unavailable for applicationId={}",
+                    applicationId,
+                    unavailableOrInvalid
+            );
             return Optional.empty();
         }
     }
@@ -82,6 +92,11 @@ public final class RoleEligibilityService {
                     .orElse(null);
             return resolveEffectiveScope(tenant, user, application, at).isPresent();
         } catch (RuntimeException unavailableOrInvalid) {
+            LOG.debug(
+                    "DDC application eligibility is unavailable for applicationCode={}",
+                    applicationCode,
+                    unavailableOrInvalid
+            );
             return false;
         }
     }

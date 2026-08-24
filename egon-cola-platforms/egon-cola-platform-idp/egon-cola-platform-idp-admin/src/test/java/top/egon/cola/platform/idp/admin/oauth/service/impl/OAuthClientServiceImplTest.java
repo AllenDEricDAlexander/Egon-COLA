@@ -168,6 +168,33 @@ class OAuthClientServiceImplTest {
     }
 
     @Test
+    void provisionsInitialSecretForMigratedConfidentialClient() {
+        IdentityClientEntity client = IdentityClientEntity.createConfidential(
+                "idp-service-app",
+                "idp-service",
+                "IdP Service",
+                300,
+                86_400,
+                NOW
+        );
+        when(clients.findByClientIdForUpdate("idp-service"))
+                .thenReturn(Optional.of(client));
+        when(secrets.findActiveByClientIdForUpdate("idp-service"))
+                .thenReturn(Optional.empty());
+        when(clients.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(secrets.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        RotatedClientSecretVO provisioned = service.rotateSecret(
+                "idp-service",
+                new RotateClientSecretDTO(0L)
+        );
+
+        assertThat(provisioned.clientSecret()).isNotBlank();
+        verify(secrets).save(any(IdentityClientSecretEntity.class));
+        verify(secrets).flush();
+    }
+
+    @Test
     void rollsBackWhenSecretPersistenceFailsWithoutReturningPlaintext() {
         when(clients.existsById("idp-service")).thenReturn(false);
         when(clients.save(any())).thenAnswer(invocation -> invocation.getArgument(0));

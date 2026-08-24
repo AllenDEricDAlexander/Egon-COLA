@@ -122,7 +122,7 @@ public final class Rs256TokenService implements TokenSigner {
                 .claim("principal_type", claims.principalType().name())
                 .claim("tid", claims.tenantId())
                 .claim("acr", claims.authenticationContext().acr())
-                .claim("auth_time", claims.authenticationContext().authTime())
+                .claim("auth_time", claims.authenticationContext().authTime().getEpochSecond())
                 .id(claims.tokenId())
                 .issuedAt(claims.issuedAt())
                 .notBefore(claims.notBefore())

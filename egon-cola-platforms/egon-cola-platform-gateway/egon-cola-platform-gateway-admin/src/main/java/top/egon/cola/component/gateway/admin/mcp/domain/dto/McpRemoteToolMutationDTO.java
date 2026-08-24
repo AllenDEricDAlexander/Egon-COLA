@@ -67,6 +67,8 @@ public record McpRemoteToolMutationDTO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.mcp.domain.dto.McpRemoteToolMutationDTO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.mcp.domain.dto.McpRemoteToolMutationDTO}; do not couple callers to its representation when the owning type exposes an API.
          */
+        @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
+                allowArbitraryJson = true)
         Object inputSchema,
         /**
          * 中文说明：保存 output模式 对应的状态、依赖或配置值；字段类型为 {@code Object}，由 {@code top.egon.cola.component.gateway.admin.mcp.domain.dto.McpRemoteToolMutationDTO} 在其生命周期内读取或更新。
@@ -74,6 +76,8 @@ public record McpRemoteToolMutationDTO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.mcp.domain.dto.McpRemoteToolMutationDTO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.mcp.domain.dto.McpRemoteToolMutationDTO}; do not couple callers to its representation when the owning type exposes an API.
          */
+        @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
+                allowArbitraryJson = true)
         Object outputSchema,
         /**
          * 中文说明：保存 annotations 对应的状态、依赖或配置值；字段类型为 {@code Map<String, String>}，由 {@code top.egon.cola.component.gateway.admin.mcp.domain.dto.McpRemoteToolMutationDTO} 在其生命周期内读取或更新。

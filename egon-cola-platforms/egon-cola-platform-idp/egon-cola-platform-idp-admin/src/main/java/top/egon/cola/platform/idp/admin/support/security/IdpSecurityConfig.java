@@ -87,7 +87,8 @@ public class IdpSecurityConfig {
                         "/oauth2/login",
                         "/oauth2/token",
                         "/oauth2/revoke",
-                        "/oauth2/logout"
+                        "/oauth2/logout",
+                        "/internal/v1/oauth2/refresh-token/validate"
                 ))
                 .cors(cors -> { })
                 .sessionManagement(session -> session.sessionCreationPolicy(

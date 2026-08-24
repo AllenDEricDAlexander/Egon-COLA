@@ -346,9 +346,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
         }
         IdentityClientSecretEntity active = secrets
                 .findActiveByClientIdForUpdate(client.getClientId())
-                .orElseThrow(() -> new IllegalStateException(
-                        "active OAuth client secret was not found"
-                ));
+                .orElse(null);
         Instant now = clock.instant();
         byte[] randomBytes = new byte[32];
         char[] rawSecret = null;
@@ -360,9 +358,11 @@ public class OAuthClientServiceImpl implements OAuthClientService {
             rawSecret = plaintext.toCharArray();
             String secretHash = passwordHashes.encode(rawSecret);
             String secretHint = plaintext.substring(plaintext.length() - 4);
-            active.revoke(now);
-            secrets.save(active);
-            secrets.flush();
+            if (active != null) {
+                active.revoke(now);
+                secrets.save(active);
+                secrets.flush();
+            }
             client.rotateSecret(command.expectedVersion(), now);
             clients.save(client);
             secrets.save(IdentityClientSecretEntity.create(
@@ -372,6 +372,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                     secretHint,
                     now
             ));
+            secrets.flush();
             RotatedClientSecretVO rotated = new RotatedClientSecretVO(
                     client.getClientId(),
                     client.getAppId(),

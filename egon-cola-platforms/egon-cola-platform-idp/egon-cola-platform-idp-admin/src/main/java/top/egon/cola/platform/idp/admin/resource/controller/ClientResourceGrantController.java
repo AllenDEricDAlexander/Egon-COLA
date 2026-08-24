@@ -81,7 +81,7 @@ public class ClientResourceGrantController {
             @PathVariable("clientId") String clientId,
             @PathVariable("resourceServerId") String resourceServerId,
             @Valid @RequestBody UpsertClientResourceGrantDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:resource-server:grant");
         return resources.putGrant(clientId, resourceServerId, request);
@@ -101,7 +101,7 @@ public class ClientResourceGrantController {
             @PathVariable("clientId") String clientId,
             @PathVariable("resourceServerId") String resourceServerId,
             @Valid @RequestBody DeleteClientResourceGrantDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:resource-server:grant");
         resources.deleteGrant(clientId, resourceServerId, request);
@@ -119,7 +119,7 @@ public class ClientResourceGrantController {
     public List<ClientResourceGrantVO> batch(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody BatchClientResourceGrantDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:resource-server:grant");
         return resources.batchGrants(clientId, request);

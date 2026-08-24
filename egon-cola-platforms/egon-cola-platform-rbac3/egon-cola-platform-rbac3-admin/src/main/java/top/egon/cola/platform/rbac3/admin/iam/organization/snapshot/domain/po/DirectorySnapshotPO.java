@@ -117,6 +117,8 @@ public class DirectorySnapshotPO extends TenantScopedPO {
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
+    @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
+            allowArbitraryJson = true)
     private Map<String, Object> payload;
 
     /**
@@ -128,6 +130,8 @@ public class DirectorySnapshotPO extends TenantScopedPO {
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
+    @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
+            allowArbitraryJson = true)
     private Map<String, Object> counts = new LinkedHashMap<>();
 
     /**

@@ -2,6 +2,7 @@ package top.egon.cola.component.ddc.autoconfigure.properties;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,6 +36,12 @@ public class DdcProperties {
      * 兼容旧作用域模型的命名空间编码。 Namespace code retained for the legacy scope model.
      */
     private String namespace = "default";
+
+    /**
+     * DDC 配置客户端和服务实例注册使用的 PLATFORM Resource URI。
+     * PLATFORM Resource URI used by DDC config-client and service-instance registration.
+     */
+    private URI registrationResourceUri;
 
     /**
      * 引导阶段允许加载的远程 YAML 最大字节数。 Maximum remote YAML bytes allowed during bootstrap.
@@ -149,6 +156,26 @@ public class DdcProperties {
      */
     public void setNamespace(String namespace) {
         this.namespace = namespace;
+    }
+
+    /**
+     * 返回 DDC 注册使用的 PLATFORM Resource URI。
+     * Returns the PLATFORM Resource URI used for DDC registration.
+     *
+     * @return DDC 注册 Resource URI。 DDC registration Resource URI
+     */
+    public URI getRegistrationResourceUri() {
+        return registrationResourceUri;
+    }
+
+    /**
+     * 设置 DDC 注册使用的 PLATFORM Resource URI。
+     * Sets the PLATFORM Resource URI used for DDC registration.
+     *
+     * @param registrationResourceUri DDC 注册 Resource URI。 DDC registration Resource URI
+     */
+    public void setRegistrationResourceUri(URI registrationResourceUri) {
+        this.registrationResourceUri = registrationResourceUri;
     }
 
     /**

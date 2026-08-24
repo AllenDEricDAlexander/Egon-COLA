@@ -39,7 +39,7 @@ import java.util.List;
         group = "default",
         version = "1.0.0",
         basePath = "/api/rbac3/v1")
-public final class ApplicationController {
+public class ApplicationController {
 
     private final TenantApplicationFacade facade;
 

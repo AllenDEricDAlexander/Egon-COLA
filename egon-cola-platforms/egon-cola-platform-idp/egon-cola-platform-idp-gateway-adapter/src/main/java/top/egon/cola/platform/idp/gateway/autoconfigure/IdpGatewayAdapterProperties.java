@@ -2,7 +2,9 @@ package top.egon.cola.platform.idp.gateway.autoconfigure;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.net.URI;
 import java.time.Duration;
+import java.util.Set;
 
 /**
  * 描述 Gateway 接入统一 IdP 时使用的验证与运行时配置。
@@ -48,6 +50,11 @@ public class IdpGatewayAdapterProperties {
     private String accessTokenCookieName = "__Host-egon_user_at";
 
     private String refreshTokenCookieName = "__Host-egon_user_rt";
+
+    private URI refreshStatusResourceUri;
+
+    private Set<String> refreshStatusScopes = Set.of(
+            "idp:refresh-token:validate");
 
     private java.util.Set<String> trustedOrigins = java.util.Set.of();
 
@@ -176,6 +183,22 @@ public class IdpGatewayAdapterProperties {
         this.refreshTokenCookieName = refreshTokenCookieName;
     }
 
+    public URI getRefreshStatusResourceUri() {
+        return refreshStatusResourceUri;
+    }
+
+    public void setRefreshStatusResourceUri(URI refreshStatusResourceUri) {
+        this.refreshStatusResourceUri = refreshStatusResourceUri;
+    }
+
+    public Set<String> getRefreshStatusScopes() {
+        return refreshStatusScopes;
+    }
+
+    public void setRefreshStatusScopes(Set<String> refreshStatusScopes) {
+        this.refreshStatusScopes = refreshStatusScopes;
+    }
+
     public java.util.Set<String> getTrustedOrigins() {
         return trustedOrigins;
     }
@@ -252,6 +275,13 @@ public class IdpGatewayAdapterProperties {
         required(idpRefreshUri, "idpRefreshUri");
         required(accessTokenCookieName, "accessTokenCookieName");
         required(refreshTokenCookieName, "refreshTokenCookieName");
+        resource(refreshStatusResourceUri, "refreshStatusResourceUri");
+        if (refreshStatusScopes == null || refreshStatusScopes.isEmpty()) {
+            throw new IllegalStateException(
+                    "egon.cola.platform.idp.gateway.refreshStatusScopes is required");
+        }
+        refreshStatusScopes.forEach(scope -> required(
+                scope, "refreshStatusScopes"));
         required(resourceStateKeyPrefix, "resourceStateKeyPrefix");
         required(resourceScopeKeyPrefix, "resourceScopeKeyPrefix");
         required(resourceUriKeyPrefix, "resourceUriKeyPrefix");
@@ -271,6 +301,16 @@ public class IdpGatewayAdapterProperties {
         if (value == null || value.isBlank()) {
             throw new IllegalStateException(
                     "egon.cola.platform.idp.gateway." + field + " is required");
+        }
+    }
+
+    private void resource(URI value, String field) {
+        if (value == null || !value.isAbsolute()
+                || value.getFragment() != null
+                || !value.equals(value.normalize())) {
+            throw new IllegalStateException(
+                    "egon.cola.platform.idp.gateway." + field
+                            + " must be an absolute normalized URI without a fragment");
         }
     }
 

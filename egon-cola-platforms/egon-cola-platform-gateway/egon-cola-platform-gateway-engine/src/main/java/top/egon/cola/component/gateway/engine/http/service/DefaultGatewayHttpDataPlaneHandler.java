@@ -1732,6 +1732,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
     }
 
     private static final Set<String> PROTOCOL_COOKIE_NAMES = Set.of(
+            "egon_idp_csrf",
             "__host-egon_user_at",
             "__host-egon_user_rt",
             "egon_user_at_local",

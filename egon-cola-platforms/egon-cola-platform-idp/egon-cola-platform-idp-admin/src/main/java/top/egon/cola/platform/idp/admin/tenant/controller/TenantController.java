@@ -91,7 +91,7 @@ public class TenantController {
             @Min(1) @Max(100) int size,
             @RequestParam(required = false) String query,
             @RequestParam(required = false) IdentityTenantEntity.Status status,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:tenant:read");
         validatePage(page, size);
@@ -117,7 +117,7 @@ public class TenantController {
             tags = {"idp", "tenant"})
     public TenantVO create(
             @Valid @RequestBody CreateTenantDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:tenant:manage");
         return tenant(tenants.create(new TenantService.CreateTenantCommand(
@@ -137,7 +137,7 @@ public class TenantController {
     public TenantVO update(
             @PathVariable String tenantId,
             @Valid @RequestBody UpdateTenantDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:tenant:manage");
         return tenant(tenants.update(
@@ -167,7 +167,7 @@ public class TenantController {
             @RequestParam(required = false) String query,
             @RequestParam(required = false)
             IdentityTenantMembershipEntity.Status status,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:tenant:read");
         validatePage(page, size);
@@ -195,7 +195,7 @@ public class TenantController {
             @PathVariable String tenantId,
             @PathVariable String identitySub,
             @Valid @RequestBody UpsertTenantMembershipDTO request,
-            @AuthenticationPrincipal IdentityPrincipal principal
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
         authorization.require(principal, "idp:tenant:manage");
         TenantMembershipService.MembershipView view = memberships.upsert(

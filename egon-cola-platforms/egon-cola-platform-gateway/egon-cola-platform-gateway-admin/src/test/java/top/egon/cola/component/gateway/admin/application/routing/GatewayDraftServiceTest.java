@@ -149,6 +149,41 @@ class GatewayDraftServiceTest {
     }
 
     @Test
+    void preservesExplicitNullPolicyContentValues() {
+        Fixture fixture = fixture();
+        Map<String, Object> content = new LinkedHashMap<>();
+        content.put("authenticationMode", "NONE");
+        content.put("credentialRecoveryProviderId", null);
+
+        fixture.service.putPolicy(
+                "group-1",
+                "policy-1",
+                new top.egon.cola.component.gateway.admin.routing.domain.dto.GatewayPolicyMutationDTO(
+                        "SECURITY",
+                        "OPERATION",
+                        content,
+                        true,
+                        0L,
+                        "policy-idem-1",
+                        "configure public policy"
+                ),
+                actor(),
+                request()
+        );
+
+        ArgumentCaptor<top.egon.cola.component.gateway.admin.routing.domain.po.GatewayPolicyDraftPO> policy =
+                ArgumentCaptor.forClass(
+                        top.egon.cola.component.gateway.admin.routing.domain.po.GatewayPolicyDraftPO.class
+                );
+        verify(fixture.store).upsertPolicy(policy.capture());
+        assertThat(policy.getValue().content())
+                .containsEntry("authenticationMode", "NONE")
+                .containsKey("credentialRecoveryProviderId");
+        assertThat(policy.getValue().content()
+                .get("credentialRecoveryProviderId")).isNull();
+    }
+
+    @Test
     void reportsRouteTransportErrorsAtDraftFieldPaths() {
         Fixture fixture = fixture();
         when(fixture.store.routes("group-1")).thenReturn(List.of(

@@ -252,7 +252,7 @@ public final class GatewayHttpListener implements AutoCloseable {
         return Mono.defer(() -> {
             response.status(outbound.status());
             outbound.headers().forEach((name, values) ->
-                    values.forEach(value -> response.header(name, value))
+                    values.forEach(value -> response.addHeader(name, value))
             );
             if (outbound.flushMode() == GatewayHttpFlushMode.PER_BUFFER) {
                 Publisher<? extends Publisher<? extends io.netty.buffer.ByteBuf>>

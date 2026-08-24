@@ -41,6 +41,10 @@ public final class GatewayRuleChunkStore implements DdcConfigApplier {
         if (!key.startsWith("gateway.rules.chunk.")) {
             throw new IllegalArgumentException("unexpected rule chunk key");
         }
+        if (value == null) {
+            chunks.remove(key);
+            return;
+        }
         try {
             chunks.put(key, Base64.getDecoder().decode(value));
         } catch (IllegalArgumentException invalid) {

@@ -14,10 +14,12 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import top.egon.cola.platform.idp.starter.security.IdpBearerAuthenticationFilter;
+import top.egon.cola.platform.idp.starter.security.IdpEndpointAuthenticationPolicy;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3BearerAuthenticationFilter;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -29,6 +31,18 @@ import java.util.Map;
 @Configuration(proxyBeanMethods = false)
 @EnableMethodSecurity
 public class GatewayAdminSecurityConfiguration {
+
+    /** Allows the management API to serve both RBAC3 users and scoped publishers. */
+    @Bean
+    public IdpEndpointAuthenticationPolicy
+            gatewayAdminEndpointAuthenticationPolicy() {
+        return new IdpEndpointAuthenticationPolicy(
+                List.of(),
+                List.of(),
+                List.of("/api/v1/gateway/admin/**"),
+                true
+        );
+    }
 
     /**
      * Creates the narrow SERVICE-scope adapter used by Gateway Admin control-plane calls.

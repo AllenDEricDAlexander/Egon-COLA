@@ -63,7 +63,7 @@ class AccessTokenClaimsIT {
                 NOW,
                 NOW,
                 NOW.plusSeconds(300),
-                AuthenticationContext.password()
+                AuthenticationContext.of("PASSWORD", NOW)
         ));
         Jwt jwt = tokens.jwtDecoder().decode(token);
 
@@ -77,7 +77,7 @@ class AccessTokenClaimsIT {
         assertEquals("jti-1", jwt.getId());
         assertEquals(List.of(AUDIENCE), jwt.getAudience());
         assertEquals("PASSWORD", jwt.getClaimAsString("acr"));
-        assertEquals(NOW, (Instant) jwt.getClaim("auth_time"));
+        assertEquals(NOW.getEpochSecond(), ((Number) jwt.getClaim("auth_time")).longValue());
         assertEquals(NOW.plusSeconds(300), jwt.getExpiresAt());
         assertNull(jwt.getClaim("sid"));
         assertNull(jwt.getClaim("client_id"));

@@ -43,7 +43,7 @@ class RoleActivationCandidateServiceTest {
         TenantAuthorizationStatePO state = new TenantAuthorizationStatePO(
                 7L, "bootstrap", NOW);
         state.incrementPolicyVersion("operator", NOW.plusSeconds(1));
-        when(stateStore.requireForUpdate(7L)).thenReturn(state);
+        when(stateStore.require(7L)).thenReturn(state);
         List<String> sqls = new ArrayList<>();
         when(entityManager.createNativeQuery(anyString())).thenAnswer(invocation -> {
             String sql = invocation.getArgument(0, String.class);
@@ -64,7 +64,7 @@ class RoleActivationCandidateServiceTest {
 
         assertThat(facts.policyVersion()).isEqualTo(1L);
         assertThat(sqls).noneMatch(sql -> sql.contains("rbac3_tenant t"));
-        verify(stateStore).requireForUpdate(7L);
+        verify(stateStore).require(7L);
     }
 
     @Test

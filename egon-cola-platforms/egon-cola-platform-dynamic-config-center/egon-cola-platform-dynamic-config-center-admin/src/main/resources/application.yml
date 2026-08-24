@@ -56,23 +56,59 @@ egon:
           endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT:}
           service-token:
             enabled: ${DDC_RBAC3_SERVICE_TOKEN_ENABLED:true}
-            token-endpoint: ${DDC_RBAC3_SERVICE_TOKEN_TOKEN_ENDPOINT:}
-            client-id: ${DDC_RBAC3_SERVICE_TOKEN_CLIENT_ID:}
-            key-id: ${DDC_RBAC3_SERVICE_TOKEN_KEY_ID:}
-            private-key-file: ${DDC_RBAC3_SERVICE_TOKEN_PRIVATE_KEY_FILE:}
             resource-uri: ${DDC_RBAC3_SERVICE_TOKEN_RESOURCE_URI:}
             scopes: ${DDC_RBAC3_SERVICE_TOKEN_SCOPES:}
     component:
       ddc:
-        enabled: false
-        registry:
+        enabled: ${DDC_SELF_REGISTRATION_ENABLED:false}
+        biz-code: ${DDC_RESOURCE_BIZ_CODE:platform}
+        app-code: ${DDC_RESOURCE_APP_CODE:ddc}
+        env: ${DEPLOYMENT_ENV:local}
+        namespace: ${DEPLOYMENT_NAMESPACE:default}
+        max-config-bytes: ${DDC_MAX_CONFIG_BYTES:1048576}
+        instance:
+          id: ${DDC_INSTANCE_ID:ddc-admin-local-1}
+        rpc:
+          target: ${DDC_RPC_TARGET:dns:///127.0.0.1:19080}
+          tls:
+            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:false}
+          auth:
+            runtime:
+              access-key: ${DDC_RPC_RUNTIME_ACCESS_KEY:}
+              secret-key: ${DDC_RPC_RUNTIME_SECRET_KEY:}
+            registry:
+              access-key: ${DDC_RPC_REGISTRY_ACCESS_KEY:}
+              secret-key: ${DDC_RPC_REGISTRY_SECRET_KEY:}
+        redis:
           enabled: false
+          host: ${DDC_REDIS_HOST:127.0.0.1}
+          port: ${DDC_REDIS_PORT:6379}
+          password: ${DDC_REDIS_PASSWORD:}
+          database: ${DDC_REDIS_DATABASE:0}
+        registry:
+          enabled: ${DDC_SELF_REGISTRATION_ENABLED:false}
+          http:
+            enabled: ${DDC_SELF_REGISTRATION_ENABLED:false}
+            instance-id: ${DDC_INSTANCE_ID:ddc-admin-local-1}
+            service-name: ddc-admin
+            group: default
+            version: ${DDC_ARTIFACT_VERSION:local}
+            protocol: http
+            advertised-host: ${DDC_ADVERTISED_HOST:127.0.0.1}
+            port: ${DDC_ADVERTISED_PORT:18150}
+            lease-seconds: 30
+            heartbeat-interval-seconds: 10
+            fail-fast: ${DDC_SELF_REGISTRATION_FAIL_FAST:false}
         admin:
           security:
             local-dev: ${DDC_ADMIN_SECURITY_LOCAL_DEV:false}
+            jwt:
+              issuer: ${DDC_ADMIN_JWT_ISSUER:}
+              audience: ${DDC_ADMIN_JWT_AUDIENCE:}
+              jwk-set-uri: ${DDC_ADMIN_JWT_JWK_SET_URI:}
           transport-security:
             mode: DEVELOPMENT_PLAINTEXT
-          max-config-bytes: 1048576
+          max-config-bytes: ${DDC_MAX_CONFIG_BYTES:1048576}
           registration:
             resource-server-id: ${DDC_RESOURCE_SERVER_ID:}
             resource-uri: ${DDC_RESOURCE_URI:}

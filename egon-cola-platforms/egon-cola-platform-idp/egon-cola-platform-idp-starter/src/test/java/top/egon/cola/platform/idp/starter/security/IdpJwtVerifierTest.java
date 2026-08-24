@@ -151,7 +151,7 @@ class IdpJwtVerifierTest {
                 .claim("tid", "tenant-1")
                 .claim("jti", "token-1")
                 .claim("acr", "PASSWORD")
-                .claim("auth_time", NOW)
+                .claim("auth_time", NOW.getEpochSecond())
                 .build();
     }
 

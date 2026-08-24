@@ -32,6 +32,8 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -381,7 +383,9 @@ public class GatewayDraftService {
                         .toUpperCase(),
                 required(command.policyScope(), "policyScope")
                         .toUpperCase(),
-                Map.copyOf(command.content()),
+                Collections.unmodifiableMap(
+                        new LinkedHashMap<>(command.content())
+                ),
                 command.enabled(),
                 now,
                 actor.actorId()

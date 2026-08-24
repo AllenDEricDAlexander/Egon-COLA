@@ -221,9 +221,9 @@ public class Rbac3PlatformIntegrationConfiguration {
      * @param providerRuntime 输入参数 `providerRuntime`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param providerProperties 输入参数 `providerProperties`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
+    */
     @Bean(name = "ddcHttpRegistrationServerReadyListener")
-    @ConditionalOnProperty(prefix = "egon.cola.component.ddc",
+    @ConditionalOnProperty(prefix = "egon.cola.component.ddc.registry.http",
             name = "enabled", havingValue = "true")
     ApplicationListener<ApplicationEvent> ddcHttpRegistrationServerReadyListener(
             DdcRuntimeCoordinator coordinator,

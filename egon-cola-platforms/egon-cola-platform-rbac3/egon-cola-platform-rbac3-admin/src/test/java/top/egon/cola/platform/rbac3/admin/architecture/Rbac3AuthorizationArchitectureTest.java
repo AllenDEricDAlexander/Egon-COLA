@@ -1,7 +1,9 @@
 package top.egon.cola.platform.rbac3.admin.architecture;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.platform.rbac3.admin.authorization.controller.Rbac3AboutController;
 
+import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -60,6 +62,35 @@ class Rbac3AuthorizationArchitectureTest {
                         .map(symbol -> path + " contains " + symbol)
                         .toList())
                 .isEmpty();
+    }
+
+    @Test
+    void permissionAnnotatedControllersRemainProxyable() throws Exception {
+        assertThat(Modifier.isFinal(Rbac3AboutController.class.getModifiers()))
+                .isFalse();
+        for (Path source : productionSources()) {
+            String content = read(source);
+            if (source.getFileName().toString().endsWith("Controller.java")
+                    && (content.contains("@RequiresPermission")
+                    || content.contains("@RequiresRbac3Permission")
+                    || content.contains("@RequiresServiceScope"))) {
+                assertThat(content)
+                        .as("permission-annotated controller %s", source)
+                        .doesNotContain("public final class");
+            }
+        }
+    }
+
+    @Test
+    void transactionalBeansRemainProxyable() throws Exception {
+        for (Path source : productionSources()) {
+            String content = read(source);
+            if (content.contains("@Transactional")) {
+                assertThat(content)
+                        .as("transactional bean %s", source)
+                        .doesNotContain("public final class");
+            }
+        }
     }
 
     private List<Path> productionSources() throws Exception {

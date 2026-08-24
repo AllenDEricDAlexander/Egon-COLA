@@ -60,6 +60,8 @@ import top.egon.cola.platform.rbac3.admin.iam.position.snapshot.domain.dto.UserP
              * 含义与用法：读取、传递或更新 `counts` 时应保持 `SnapshotModelVO` 的生命周期、不可变性和线程安全约束。
              * Meaning and usage: when reading, passing, or updating `counts`, preserve `SnapshotModelVO`'s lifecycle, immutability, and thread-safety constraints.
              */
+            @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
+                    allowArbitraryJson = true)
             Map<String, Object> counts) {
 
         /**

@@ -197,7 +197,8 @@ public class JpaResourceServerStore implements ResourceServerStore {
                 entity.getTenantId(),
                 scopes(entity),
                 ClientResourceGrant.Status.valueOf(entity.getStatus().name()),
-                entity.getVersion()
+                entity.getVersion(),
+                entity.getGrantContext()
         );
     }
 

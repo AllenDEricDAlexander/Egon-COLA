@@ -29,7 +29,7 @@ import java.util.List;
         group = "default",
         version = "1.0.0",
         basePath = "/api/rbac3/v1")
-public final class PermissionController {
+public class PermissionController {
 
     private final PermissionCatalogService service;
 

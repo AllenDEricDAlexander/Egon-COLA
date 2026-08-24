@@ -12,6 +12,7 @@ import com.nimbusds.jwt.SignedJWT;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -19,6 +20,7 @@ import top.egon.cola.component.gateway.core.security.GatewayAuthenticationProvid
 import top.egon.cola.component.gateway.core.security.GatewayAuthorizationProvider;
 import top.egon.cola.component.gateway.core.security.GatewayCredentialExtractor;
 import top.egon.cola.component.gateway.core.security.GatewayIdentityMapper;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterAutoConfiguration;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
@@ -38,6 +40,17 @@ class IdpGatewayAdapterAutoConfigurationTest {
                     () -> new ObjectMapper().findAndRegisterModules());
 
     @Test
+    void runsBeforeTheServletStarterCreatesGenericStateReaders() {
+        AutoConfiguration configuration =
+                IdpGatewayAdapterAutoConfiguration.class.getAnnotation(
+                        AutoConfiguration.class
+                );
+
+        assertThat(configuration.before())
+                .contains(IdpStarterAutoConfiguration.class);
+    }
+
+    @Test
     void staysDisabledByDefault() {
         runner.run(context -> {
             assertThat(context).doesNotHaveBean(GatewayCredentialExtractor.class);
@@ -52,6 +65,7 @@ class IdpGatewayAdapterAutoConfigurationTest {
                         "egon.cola.platform.idp.gateway.issuer=https://idp.local",
                         "egon.cola.platform.idp.gateway.jwk-set-uri=https://idp.local/oauth2/jwks",
                         "egon.cola.platform.idp.gateway.idp-refresh-uri=https://idp.local/oauth2/token",
+                        "egon.cola.platform.idp.gateway.refresh-status-resource-uri=https://api.idp.local",
                         "egon.cola.platform.idp.gateway.runtime.redis-enabled=false")
                 .withBean("idpGatewayRedissonClient", RedissonClient.class,
                         () -> mock(RedissonClient.class))
@@ -103,6 +117,8 @@ class IdpGatewayAdapterAutoConfigurationTest {
             properties.setIssuer(issuer);
             properties.setJwkSetUri(issuer + "/oauth2/jwks");
             properties.setIdpRefreshUri(issuer + "/oauth2/token");
+            properties.setRefreshStatusResourceUri(
+                    java.net.URI.create("https://api.idp.local"));
             JwtDecoder decoder = new IdpGatewayAdapterAutoConfiguration()
                     .idpGatewayJwtDecoder(properties);
             Instant now = Instant.now();

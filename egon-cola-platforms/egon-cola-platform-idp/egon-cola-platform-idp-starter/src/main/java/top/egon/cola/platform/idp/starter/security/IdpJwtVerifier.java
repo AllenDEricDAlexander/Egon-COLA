@@ -358,10 +358,13 @@ public final class IdpJwtVerifier {
 
     private Instant instant(Jwt jwt, String name) {
         Object value = jwt.getClaims().get(name);
-        if (!(value instanceof Instant instant)) {
-            throw new InvalidTokenException("JWT_CLAIM_INVALID_" + name.toUpperCase());
+        if (value instanceof Instant instant) {
+            return instant;
         }
-        return instant;
+        if (value instanceof Number number && number.longValue() >= 0L) {
+            return Instant.ofEpochSecond(number.longValue());
+        }
+        throw new InvalidTokenException("JWT_CLAIM_INVALID_" + name.toUpperCase());
     }
 
     private static RuntimeException verificationException(AccessTokenVerification<?> result) {

@@ -5,8 +5,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.contract.auth.BootstrapView;
-import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationBootstrapService;
+import top.egon.cola.platform.rbac3.contract.auth.AuthorizationBootstrapView;
+import top.egon.cola.platform.rbac3.contract.auth.Rbac3AboutView;
+import top.egon.cola.platform.rbac3.starter.authorization.Rbac3AboutService;
 import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 
 import java.util.Objects;
@@ -34,7 +35,7 @@ public class GatewayAuthBootstrapController {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayAuthBootstrapController} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayAuthBootstrapController}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private final AuthorizationBootstrapService bootstrap;
+    private final Rbac3AboutService bootstrap;
 
     /**
      * 中文说明：创建 {@code GatewayAuthBootstrapController} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
@@ -43,7 +44,7 @@ public class GatewayAuthBootstrapController {
      * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
      * @param bootstrap 参数 bootstrap；parameter bootstrap。
      */
-    public GatewayAuthBootstrapController(AuthorizationBootstrapService bootstrap) {
+    public GatewayAuthBootstrapController(Rbac3AboutService bootstrap) {
         this.bootstrap = Objects.requireNonNull(bootstrap, "bootstrap");
     }
 
@@ -57,7 +58,8 @@ public class GatewayAuthBootstrapController {
     @GatewayOperation(externalAccessible = true)
     @GetMapping("/bootstrap")
     @RequiresPermission("gateway:read")
-    public BootstrapView bootstrap() {
-        return bootstrap.current();
+    public AuthorizationBootstrapView bootstrap() {
+        Rbac3AboutView about = bootstrap.current();
+        return AuthorizationBootstrapView.from(about);
     }
 }

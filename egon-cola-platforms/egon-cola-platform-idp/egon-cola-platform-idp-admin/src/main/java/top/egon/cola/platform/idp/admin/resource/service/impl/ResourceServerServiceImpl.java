@@ -619,14 +619,18 @@ public class ResourceServerServiceImpl implements ResourceServerService {
                     clock.instant()
             );
         }
+        if (facts.tenantId() == null) {
+            return IdentityClientResourceGrantEntity.platformClientCredentials(
+                    ids.nextId(),
+                    clientId,
+                    resourceServerId,
+                    facts.allowedScopesJson(),
+                    clock.instant()
+            );
+        }
         return IdentityClientResourceGrantEntity.clientCredentials(
-                ids.nextId(),
-                clientId,
-                resourceServerId,
-                facts.tenantId(),
-                facts.allowedScopesJson(),
-                clock.instant()
-        );
+                ids.nextId(), clientId, resourceServerId, facts.tenantId(),
+                facts.allowedScopesJson(), clock.instant());
     }
 
     /**
@@ -696,6 +700,9 @@ public class ResourceServerServiceImpl implements ResourceServerService {
                         "USER_DELEGATION must not contain tenant"
                 );
             }
+            return null;
+        }
+        if (tenantId == null) {
             return null;
         }
         return exact(tenantId, "tenantId");

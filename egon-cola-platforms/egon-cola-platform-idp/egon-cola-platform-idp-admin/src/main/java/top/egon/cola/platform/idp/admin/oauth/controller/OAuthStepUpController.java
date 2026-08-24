@@ -9,6 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.OAuthStepUpDTO;
@@ -33,6 +34,11 @@ import java.util.Objects;
         entityDomainName = "OAuth 协议域",
         code = "idp-oauth-step-up",
         name = "IdP OAuth 二次认证接口组")
+@EgonHttpService(
+        serviceName = "idp-admin",
+        group = "default",
+        version = "1.0.0",
+        basePath = "/")
 public class OAuthStepUpController {
 
     private final IdentityFacade identities;
@@ -58,7 +64,7 @@ public class OAuthStepUpController {
             externalAccessible = true,
             tags = {"idp", "oauth"})
     public ResponseEntity<Void> stepUp(
-            @AuthenticationPrincipal IdentityPrincipal principal,
+            @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal,
             @RequestBody OAuthStepUpDTO request) {
         IdentityPrincipal current = Objects.requireNonNull(principal, "principal");
         char[] password = required(request == null ? null : request.password())

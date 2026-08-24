@@ -640,6 +640,30 @@ class GatewayReleasePublicationCoordinatorTest {
         }
 
         @Override
+        public Optional<top.egon.cola.component.ddc.model.management.DdcManagementBiz>
+                getBiz(top.egon.cola.component.ddc.model.management.DdcManagementBizLookup lookup) {
+            return Optional.empty();
+        }
+
+        @Override
+        public List<top.egon.cola.component.ddc.model.management.DdcManagementBiz>
+                listBizs(top.egon.cola.component.ddc.model.management.DdcManagementBizQuery query) {
+            return List.of();
+        }
+
+        @Override
+        public Optional<top.egon.cola.component.ddc.model.management.DdcManagementApp>
+                getApp(String ddcApplicationId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public List<top.egon.cola.component.ddc.model.management.DdcManagementApp>
+                listApps(top.egon.cola.component.ddc.model.management.DdcManagementAppQuery query) {
+            return List.of();
+        }
+
+        @Override
         public Optional<DdcManagementConfig> findConfig(
                 DdcManagementConfigQuery query) {
             return Optional.ofNullable(configs.get(scope(

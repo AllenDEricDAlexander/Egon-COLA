@@ -14,6 +14,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import top.egon.cola.platform.idp.contract.ServiceTokenContext;
 import top.egon.cola.platform.idp.gateway.runtime.IdpGatewayRedissonConfiguration;
 import top.egon.cola.platform.idp.gateway.security.GatewayResourceServerResolver;
 import top.egon.cola.platform.idp.gateway.security.IdpGatewayJwtVerifier;
@@ -27,6 +28,10 @@ import top.egon.cola.platform.idp.gateway.security.IdpUserCredentialRecoveryProv
 import top.egon.cola.platform.idp.gateway.security.IdpUserOnlineStateProvider;
 import top.egon.cola.platform.idp.gateway.security.ReactorNettyIdpRefreshClient;
 import top.egon.cola.platform.idp.gateway.security.ReactorNettyIdpRefreshTokenStatusClient;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterAutoConfiguration;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 import top.egon.cola.platform.idp.starter.security.RetryingJwtDecoder;
 import top.egon.cola.platform.idp.starter.state.IdentityOAuthClientStateReader;
 import top.egon.cola.platform.idp.starter.state.IdentityResourceServerStateReader;
@@ -46,7 +51,7 @@ import java.util.function.Supplier;
  * verification, Gateway authentication, and trusted-identity mapping. It confirms caller identity
  * only and does not decide whether that identity may access a route.</p>
  */
-@AutoConfiguration
+@AutoConfiguration(before = IdpStarterAutoConfiguration.class)
 @EnableConfigurationProperties(IdpGatewayAdapterProperties.class)
 @ConditionalOnProperty(
         prefix = "egon.cola.platform.idp.gateway",
@@ -225,12 +230,27 @@ public class IdpGatewayAdapterAutoConfiguration {
     @ConditionalOnMissingBean
     public IdpRefreshTokenStatusClient idpRefreshTokenStatusClient(
             IdpGatewayAdapterProperties properties,
-            ObjectProvider<Supplier<String>> serviceAccessTokens,
+            ObjectProvider<IdpServiceOAuth2Client> serviceClients,
+            ObjectProvider<IdpStarterProperties> starterProperties,
             ObjectMapper objectMapper) {
         properties.validate();
-        Supplier<String> serviceAccessToken = serviceAccessTokens.orderedStream()
-                .findFirst()
-                .orElse(() -> "");
+        Supplier<String> serviceAccessToken = () -> {
+            IdpServiceOAuth2Client serviceClient = serviceClients.getIfAvailable();
+            IdpStarterProperties starter = starterProperties.getIfAvailable();
+            if (serviceClient == null || starter == null) {
+                return "";
+            }
+            IdpStarterProperties.ServiceClient client = starter.getServiceClient();
+            client.validate();
+            return serviceClient.authorize(new IdpServiceTokenRequest(
+                    client.getRegistrationId(),
+                    client.getAppId(),
+                    properties.getRefreshStatusResourceUri(),
+                    ServiceTokenContext.PLATFORM,
+                    null,
+                    properties.getRefreshStatusScopes()
+            )).getTokenValue();
+        };
         return new ReactorNettyIdpRefreshTokenStatusClient(
                 statusUri(properties.getIdpRefreshUri()),
                 serviceAccessToken,
