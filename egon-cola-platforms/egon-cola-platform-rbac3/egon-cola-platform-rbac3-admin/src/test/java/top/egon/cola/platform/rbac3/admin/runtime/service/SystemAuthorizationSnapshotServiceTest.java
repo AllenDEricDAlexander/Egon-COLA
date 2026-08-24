@@ -42,14 +42,43 @@ class SystemAuthorizationSnapshotServiceTest {
                 .hasMessage("AUTH_SNAPSHOT_NOT_READY");
     }
 
+    @Test
+    void keepsDdcFailClosedUnlessLocalBootstrapIsEnabled() {
+        var service = service(false);
+
+        assertThatThrownBy(() -> service.snapshot(
+                "1", "alice-sub", "ddc-admin"))
+                .isInstanceOf(Rbac3RuleViolation.class)
+                .hasMessage("AUTH_SNAPSHOT_NOT_READY");
+    }
+
+    @Test
+    void exposesDdcManagementPermissionsForLocalBootstrap() {
+        var service = service(true);
+
+        var snapshot = service.snapshot("1", "alice-sub", "ddc-admin");
+
+        assertThat(snapshot.rbac3UserId()).isEqualTo("101");
+        assertThat(snapshot.permissions()).containsExactlyInAnyOrder(
+                "DDC_READ", "DDC_WRITE", "DDC_PUBLISH", "DDC_CACHE");
+        assertThat(snapshot.authVersion()).isEqualTo(1L);
+        assertThat(snapshot.policyVersion()).isEqualTo(2L);
+    }
+
     private SystemAuthorizationSnapshotService service() {
+        return service(false);
+    }
+
+    private SystemAuthorizationSnapshotService service(
+            boolean ddcInitialContextEnabled) {
         return new SystemAuthorizationSnapshotService(
                 (tenantId, identitySub) -> {
                     throw new Rbac3RuleViolation("AUTH_SNAPSHOT_NOT_READY");
                 },
                 (tenantId, identitySub) -> Optional.of(
                         new InitialAuthorizationContext("101", 1L, 2L)),
-                Clock.fixed(NOW, ZoneOffset.UTC)
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                ddcInitialContextEnabled
         );
     }
 }

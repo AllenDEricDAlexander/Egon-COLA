@@ -27,9 +27,17 @@ public final class SystemAuthorizationSnapshotService {
             "system:role-activation:read",
             "system:role-activation:use"
     );
+    private static final String DDC_ADMIN_SYSTEM = "ddc-admin";
+    private static final Set<String> DDC_BOOTSTRAP_PERMISSIONS = Set.of(
+            "DDC_READ",
+            "DDC_WRITE",
+            "DDC_PUBLISH",
+            "DDC_CACHE"
+    );
     private final AuthorizationSnapshotRepository snapshots;
     private final InitialAuthorizationContextRepository initialContexts;
     private final Clock clock;
+    private final boolean ddcInitialContextEnabled;
 
     public SystemAuthorizationSnapshotService(
             AuthorizationSnapshotRepository snapshots,
@@ -41,10 +49,24 @@ public final class SystemAuthorizationSnapshotService {
             AuthorizationSnapshotRepository snapshots,
             InitialAuthorizationContextRepository initialContexts,
             Clock clock) {
+        this(snapshots, initialContexts, clock, false);
+    }
+
+    /**
+     * Creates the snapshot projector with an optional local DDC bootstrap context.
+     * The bootstrap context is intentionally disabled by default so a deployed
+     * RBAC3 instance still fails closed until its runtime snapshot is published.
+     */
+    public SystemAuthorizationSnapshotService(
+            AuthorizationSnapshotRepository snapshots,
+            InitialAuthorizationContextRepository initialContexts,
+            Clock clock,
+            boolean ddcInitialContextEnabled) {
         this.snapshots = Objects.requireNonNull(snapshots, "snapshots");
         this.initialContexts = Objects.requireNonNull(
                 initialContexts, "initialContexts");
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.ddcInitialContextEnabled = ddcInitialContextEnabled;
     }
 
     public SystemAuthorizationSnapshot snapshot(
@@ -96,7 +118,13 @@ public final class SystemAuthorizationSnapshotService {
             String identitySub,
             String systemCode
     ) {
-        if (!RBAC3_ADMIN_SYSTEM.equals(systemCode)) {
+        Set<String> permissions;
+        if (RBAC3_ADMIN_SYSTEM.equals(systemCode)) {
+            permissions = ROLE_ACTIVATION_PERMISSIONS;
+        } else if (DDC_ADMIN_SYSTEM.equals(systemCode)
+                && ddcInitialContextEnabled) {
+            permissions = DDC_BOOTSTRAP_PERMISSIONS;
+        } else {
             return Optional.empty();
         }
         Instant generatedAt = clock.instant();
@@ -111,7 +139,7 @@ public final class SystemAuthorizationSnapshotService {
                         List.of(),
                         null,
                         null,
-                        ROLE_ACTIVATION_PERMISSIONS,
+                        permissions,
                         Map.of(),
                         Map.of(),
                         "initial:" + context.authVersion()

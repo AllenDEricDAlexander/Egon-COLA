@@ -1,5 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.config.runtime;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -466,9 +467,11 @@ public class Rbac3ApplicationConfiguration {
     SystemAuthorizationSnapshotService systemAuthorizationSnapshotService(
             RedisAuthorizationRuntimeRepository snapshots,
             InitialAuthorizationContextRepository initialContexts,
-            Clock clock) {
+            Clock clock,
+            @Value("${egon.rbac3.initial-context.ddc-enabled:false}")
+            boolean ddcInitialContextEnabled) {
         return new SystemAuthorizationSnapshotService(
-                snapshots, initialContexts, clock);
+                snapshots, initialContexts, clock, ddcInitialContextEnabled);
     }
 
     /**

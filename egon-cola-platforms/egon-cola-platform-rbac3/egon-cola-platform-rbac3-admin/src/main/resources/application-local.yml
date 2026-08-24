@@ -32,6 +32,8 @@ egon.cola.platform:
 
 egon:
   rbac3:
+    initial-context:
+      ddc-enabled: ${RBAC3_INITIAL_DDC_BOOTSTRAP_ENABLED:true}
     development-bootstrap:
       enabled: ${RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED:false}
       auto-activate-local-admin-roles: ${RBAC3_DEVELOPMENT_AUTO_ACTIVATE_LOCAL_ADMIN_ROLES:false}

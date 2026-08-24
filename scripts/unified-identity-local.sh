@@ -909,7 +909,7 @@ write_application_build_ids() {
 }
 
 command_prepare() {
-  for command in java curl jq openssl psql createdb redis-cli awk; do
+  for command in java curl jq openssl psql createdb redis-cli awk nc; do
     require_command "${command}"
   done
   initialize_directories
@@ -969,6 +969,21 @@ wait_http() {
   fail "${name} did not become ready at ${url}"
 }
 
+wait_ddc_rpc() {
+  local target="${ddc_rpc_target##*/}" host port
+  host="${target%:*}"
+  port="${target##*:}"
+  [[ -n "${host}" && "${port}" =~ ^[0-9]+$ ]] \
+    || fail "invalid DDC RPC target: ${ddc_rpc_target}"
+  for ((attempt = 1; attempt <= 90; attempt++)); do
+    if nc -z -w 1 "${host}" "${port}" >/dev/null 2>&1; then
+      return
+    fi
+    sleep 1
+  done
+  fail "DDC RPC did not become ready at ${ddc_rpc_target}"
+}
+
 bootstrap_idp_argument() {
   if database_table_exists "${idp_database}" public.identity_user \
       && database_row_exists "${idp_database}" 'select count(*) from identity_user'; then
@@ -1002,7 +1017,8 @@ resolve_existing_service_tenant_id() {
   if [[ "${service_tenant_id}" =~ ^[1-9][0-9]*$ ]]; then
     return
   fi
-  if database_table_exists "${rbac3_database}" public.rbac3_tenant; then
+  if database_table_exists "${idp_database}" public.identity_tenant \
+      || database_table_exists "${rbac3_database}" public.rbac3_tenant; then
     service_tenant_id="$(rbac3_tenant_id "${service_tenant_id}")"
   fi
 }
@@ -1764,6 +1780,7 @@ command_start() {
   stage "starting DDC"
   start_process ddc "${env_dir}/ddc.env" "${ddc_jar}"
   wait_http ddc "${ddc_url}/actuator/health/readiness"
+  wait_ddc_rpc
 
   stage "starting IdP bootstrap phase without DDC publication"
   idp_argument="$(bootstrap_idp_argument)"
@@ -1820,13 +1837,13 @@ command_start() {
   idp_bootstrap_login default
   stage "loading the default-tenant USER Access Token from its Gateway cookie"
   rbac3_access_token="$(user_access_token_for_tenant default)"
-  stage "activating non-mock roles"
-  activate_roles "${rbac3_access_token}" false
   stage "initializing DDC unified identity topology"
   ddc_access_token="$(user_access_token_for_tenant default)"
   initialize_ddc_topology "${ddc_access_token}"
   stage "reconciling SQL-seeded RBAC3 applications with DDC catalog IDs"
   reconcile_local_rbac3_ddc_catalog
+  stage "activating non-mock roles"
+  activate_roles "${rbac3_access_token}" false
 
   stage "restarting IdP and RBAC3 with admitted DDC publication"
   stop_process rbac3
@@ -1838,6 +1855,7 @@ command_start() {
   stop_process ddc
   start_process ddc "${env_dir}/ddc.env" "${ddc_jar}"
   wait_http ddc "${ddc_url}/actuator/health/readiness"
+  wait_ddc_rpc
   start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}"
   wait_http rbac3 "${rbac3_url}/actuator/health/readiness"
 
@@ -1847,9 +1865,6 @@ command_start() {
   activate_roles "${rbac3_access_token}" false
   wait_ddc_provider_registration permission idp idp-admin
   wait_ddc_provider_registration permission rbac3 rbac3-admin
-  stage "starting Gateway Engine DDC client"
-  start_process gateway-engine "${env_dir}/gateway-engine.env" "${gateway_engine_jar}"
-  wait_http gateway-engine http://127.0.0.1:18182/actuator/health/readiness
 
   stage "starting Gateway Admin"
   start_process gateway-admin "${env_dir}/gateway-admin.env" "${gateway_admin_jar}"
@@ -1868,6 +1883,7 @@ command_start() {
   stop_process ddc
   start_process ddc "${env_dir}/ddc.env" "${ddc_jar}"
   wait_http ddc "${ddc_url}/actuator/health/readiness"
+  wait_ddc_rpc
   stop_process idp
   start_process idp "${env_dir}/idp.env" "${idp_jar}"
   wait_http idp "${idp_url}/actuator/health/readiness"
@@ -1879,6 +1895,13 @@ command_start() {
   stop_process gateway-admin
   start_process gateway-admin "${env_dir}/gateway-admin.env" "${gateway_admin_jar}"
   wait_http gateway-admin "${gateway_admin_url}/actuator/health/readiness"
+
+  stage "waiting for final DDC provider registrations"
+  wait_ddc_provider_registration permission idp idp-admin
+  wait_ddc_provider_registration permission rbac3 rbac3-admin
+  stage "starting Gateway Engine after DDC control plane is ready"
+  start_process gateway-engine "${env_dir}/gateway-engine.env" "${gateway_engine_jar}"
+  wait_http gateway-engine http://127.0.0.1:18182/actuator/health/readiness
 
   stage "starting mock backend"
   start_process mock-backend "${env_dir}/mock-backend.env" "${mock_jar}"

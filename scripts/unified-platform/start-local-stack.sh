@@ -364,6 +364,27 @@ wait_mcp_provider_catalog() {
   unified_platform_fail "MCP Provider Gateway catalog did not become active"
 }
 
+wait_gateway_engine_provider_catalog() {
+  local response
+  for ((attempt = 1; attempt <= 60; attempt++)); do
+    response="$(gateway_api GET \
+      '/api/v1/gateway/admin/providers/instances?bizCode=identity&appCode=gateway-engine-default&env=local&namespace=default' \
+      || true)"
+    if jq -e '
+        [.value[]?
+          | select(.status == "ONLINE"
+              and (.instanceId == "gateway-engine-local-1"
+                  or .instanceId == "gateway-engine-local-2"))]
+        | length == 2
+      ' <<<"${response}" >/dev/null 2>&1; then
+      return
+    fi
+    sleep 1
+  done
+  unified_platform_fail \
+    "Gateway Engine DDC provider registrations did not become ready"
+}
+
 ensure_mcp_server() {
   local group_id="$1" servers server server_id revision response body
   local expected_resource
@@ -740,6 +761,7 @@ unified_platform_start_jar gateway-engine-b \
   "${unified_platform_env_dir}/gateway-engine-b.env" "${gateway_engine_jar}"
 unified_platform_wait_http gateway-engine-b \
   "${GATEWAY_ENGINE_B_BASE_URL}/actuator/health/readiness"
+wait_gateway_engine_provider_catalog
 
 unified_platform_stage "registering and starting local MCP Operation provider"
 initialize_mcp_provider_application

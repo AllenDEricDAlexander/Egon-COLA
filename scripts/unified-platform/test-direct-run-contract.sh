@@ -143,6 +143,7 @@ function_file="${temporary_dir}/resolve-existing-service-tenant-id.sh"
 extract_function resolve_existing_service_tenant_id "${function_file}"
 # shellcheck disable=SC1090
 source "${function_file}"
+idp_database=idp-test
 rbac3_database=rbac3-test
 service_tenant_id=default
 database_table_exists() {
@@ -163,6 +164,7 @@ resolve_existing_service_tenant_id
 [[ "${service_tenant_id}" == '73001' ]] \
   || fail 'an explicit numeric service tenant ID must be preserved'
 unset -f database_table_exists rbac3_tenant_id
+unset idp_database
 
 jq -e '
   .server.resourceUri == "https://api.egon.internal/local/identity/gateway-test-mcp-provider"
@@ -171,6 +173,9 @@ jq -e '
   || fail 'MCP Server fixture must use the exact OAuth Resource URI contract'
 assert_contains "${platform_start_script}" 'ensure_mcp_user_delegation' \
   'local MCP startup must explicitly grant its exact Resource to the OAuth client'
+assert_contains "${platform_start_script}" \
+  'wait_gateway_engine_provider_catalog' \
+  'local MCP release must wait for both Gateway Engine DDC registrations'
 assert_contains "${platform_start_script}" \
   'gateway-admin-control-plane.service.jwt' \
   'Gateway control-plane automation must use the dedicated IdP SERVICE token'
@@ -252,6 +257,13 @@ generated_runtime="${temporary_dir}/generated-runtime"
   printf '%s' 'test-gateway-master-key' >"${secret_dir}/gateway-master-key.base64"
   postgres_password() {
     printf '%s' 'test-postgres-password'
+  }
+  service_tenant_id=default
+  database_table_exists() {
+    return 1
+  }
+  rbac3_jdbc_url() {
+    printf '%s' 'jdbc:postgresql://127.0.0.1:5432/rbac3-test'
   }
   write_service_env_files
 )
@@ -363,10 +375,11 @@ assert_env_equals "${rbac3_env}" RBAC3_INSTANCE_ID rbac3-local-1 \
 assert_env_equals "${rbac3_env}" RBAC3_ARTIFACT_VERSION local \
   'local RBAC3 service identity must use the local artifact version'
 assert_env_equals "${rbac3_env}" \
-  RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED true \
+  EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED true \
   'RBAC3 must acquire internal authorization credentials per target tenant'
 assert_env_equals "${rbac3_env}" \
-  RBAC3_AUTHORIZATION_SERVICE_TOKEN_CLIENT_ID rbac3-service \
+  SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_CLIENT_ID \
+  rbac3-service \
   'RBAC3 tenant-aware credentials must use the approved service Client'
 assert_env_equals "${rbac3_env}" RBAC3_RESOURCE_SERVER_ID \
   permission-rbac3-local \
@@ -512,22 +525,14 @@ assert_env_equals "${ddc_env}" DDC_DECLARED_HOSTS 127.0.0.1 \
 assert_env_equals "${rbac3_env}" DDC_REGISTRY_REDIS_DATABASE 10 \
   'local RBAC3 must use the DDC Registry Redis database'
 
-while IFS='|' read -r service_env client_id key_id private_key; do
+while IFS='|' read -r service_env client_id _ _; do
   assert_env_equals "${generated_runtime}/env/${service_env}.env" \
     EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED true \
     "${service_env} must acquire RBAC3 credentials for the exact USER tenant"
   assert_env_equals "${generated_runtime}/env/${service_env}.env" \
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_CLIENT_ID \
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_CLIENT_ID \
     "${client_id}" \
     "${service_env} must use its own approved OAuth service Client"
-  assert_env_equals "${generated_runtime}/env/${service_env}.env" \
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_KEY_ID \
-    "${key_id}" \
-    "${service_env} must identify its own private_key_jwt key"
-  assert_env_equals "${generated_runtime}/env/${service_env}.env" \
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_PRIVATE_KEY_FILE \
-    "${generated_runtime}/secrets/${private_key}-private.pem" \
-    "${service_env} must use its owner-only private key"
 done <<'SERVICE_TOKENS'
 idp|idp-service|idp-local|idp
 gateway-admin|gateway-admin-service|gateway-admin-local|gateway-admin
@@ -649,6 +654,11 @@ assert_contains "${identity_script}" \
 assert_contains "${identity_script}" \
   'write_env "${file}" EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST false' \
   'direct DDC client startup must reconcile when DDC is still starting'
+assert_contains "${identity_script}" 'wait_ddc_rpc' \
+  'local startup must wait for the DDC RPC listener before starting clients'
+assert_contains "${identity_script}" \
+  'starting Gateway Engine after DDC control plane is ready' \
+  'Gateway Engine must start after the final DDC provider restart'
 assert_contains "${identity_script}" \
   'write_env "${file}" RBAC3_DEVELOPMENT_AUTO_ACTIVATE_LOCAL_ADMIN_ROLES true' \
   'local RBAC3 startup must activate the generated local administrator roles'
