@@ -12,7 +12,7 @@ Egon-COLA is a Java 21 Maven multi-module project that provides cleanly layered 
 
 ## Features
 
-- **Project scaffolding**: Generate light, service, and web business projects with Maven Archetypes.
+- **Project scaffolding**: Generate the original component/platform-backed family or the public-stack `-open` family with Maven Archetypes.
 - **Layering conventions**: Provide explicit boundaries for `common`, `facade`, `domain`, `application`, `infrastructure`, `adapter`, and `starter` layers.
 - **Reusable components**: Offer common contracts, IDs, tracing, dynamic thread pools, RPC, rule engines, access governance, method extension, transactional outbox, and bytecode tooling.
 - **Enterprise platforms**: Include Dynamic Config Center, Gateway, Unified Identity Provider, and RBAC3 permission platform modules.
@@ -49,7 +49,7 @@ starter -> application / domain / infrastructure
 common is shared by the layers where the generated project contract allows it
 ```
 
-The exact rules differ between the light, service, and web archetypes. See the architecture documents under [`egon-cola-archetypes`](egon-cola-archetypes/) and [`egon-cola-components`](egon-cola-components/) before extending a generated project.
+The exact rules differ between the light, service, and web archetypes. See the architecture documents under [`egon-cola-archetypes`](egon-cola-archetypes/) and [`egon-cola-components`](egon-cola-components/) before extending a generated project. The original family follows Egon-COLA components and platforms; the `-open` family is the currently consumable public-stack baseline.
 
 ## Requirements
 
@@ -84,6 +84,12 @@ Verify all three archetypes and their generated projects:
 ./mvnw -B -ntp \
   -pl egon-cola-archetypes/egon-cola-archetype-light,egon-cola-archetypes/egon-cola-archetype-service,egon-cola-archetypes/egon-cola-archetype-web \
   -am clean integration-test
+```
+
+Verify the complete original and Open archetype reactor, including generated-project contracts:
+
+```bash
+./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean verify
 ```
 
 For a complete host-local identity, DDC, Gateway, RBAC3, RPC, and MCP topology, use the [unified identity and MCP local runbook](docs/operations/unified-identity-mcp-local-runbook.md).
@@ -169,13 +175,14 @@ Read the component documentation before copying configuration between environmen
 
 ### Generate a business project
 
-Egon-COLA provides three Maven Archetypes:
+Egon-COLA publishes two parallel archetype families. The original artifact IDs remain available and are not redirected; choose an `-open` artifact when you want the public Spring ecosystem baseline while the Egon-COLA component/platform family continues to evolve.
 
-| Archetype | Use case |
-|---|---|
-| `egon-cola-archetype-light` | Lightweight single-module project for small services, component tests, and quick verification. |
-| `egon-cola-archetype-service` | Backend service focused on Dubbo3 Triple RPC and MQ without HTTP Controllers. |
-| `egon-cola-archetype-web` | Multi-module web service with HTTP adapters, facades, application, domain, and infrastructure layers. |
+| Family | Light | Service | Web |
+|---|---|---|---|
+| Original | `egon-cola-archetype-light` | `egon-cola-archetype-service` | `egon-cola-archetype-web` |
+| Open | `egon-cola-archetype-light-open` | `egon-cola-archetype-service-open` | `egon-cola-archetype-web-open` |
+
+The Open family uses Spring Boot 3.5.16, Spring Cloud 2025.0.3, Spring Cloud Alibaba 2025.0.0.0, Nacos 3.0.3, MyBatis-Plus 3.5.17, ShardingSphere 5.5.3, the Common ID generator, and Dynamic Thread Pool. Service and Web additionally use Dubbo 3.3.6 plus gRPC/Protobuf 1.73.0; Light intentionally has no RPC or Gateway dependency. Light and Web use Springdoc where HTTP APIs exist. The family forbids Spring Data JPA, Flyway/Liquibase, and an embedded Gateway. IDs are `Long` internally, `int64` in Proto, and decimal strings at HTTP/GraphQL boundaries. Database DDL is supplied as manual SQL under each generated project's runbook.
 
 Example:
 
@@ -186,12 +193,14 @@ mvn -B archetype:generate \
   -Dversion=1.0.0-SNAPSHOT \
   -Dpackage=top.egon.orders \
   -DarchetypeGroupId=top.egon \
-  -DarchetypeArtifactId=egon-cola-archetype-web \
+  -DarchetypeArtifactId=egon-cola-archetype-web-open \
   -DarchetypeVersion=5.3.3 \
   -DinteractiveMode=false
 ```
 
 To generate from the locally built archetype catalog, add `-DarchetypeCatalog=local` after installing the repository with `./mvnw clean install`.
+
+See the [Open family architecture overview](egon-cola-archetypes/open-source-archetype-family-architecture.md) and [Open family code style](egon-cola-archetypes/open-source-archetype-code-style.md) for module ownership, protocol boundaries, manual SQL, and live-infrastructure limits.
 
 ### Add a component
 
@@ -239,6 +248,9 @@ Egon-COLA/
 │   ├── egon-cola-archetype-light/
 │   ├── egon-cola-archetype-service/
 │   ├── egon-cola-archetype-web/
+│   ├── egon-cola-archetype-light-open/
+│   ├── egon-cola-archetype-service-open/
+│   ├── egon-cola-archetype-web-open/
 │   ├── egon-cola-evaluation-facade/
 │   └── egon-cola-organization-facade/
 ├── egon-cola-components/             # Reusable components, starters, BOM, and tests
@@ -262,7 +274,7 @@ Egon-COLA/
 └── pom.xml                           # Root aggregation parent, version 5.3.3
 ```
 
-Useful documentation entry points include the [component architecture guide](egon-cola-components/egon-cola-components-architecture.md), [archetype architecture diagrams](egon-cola-archetypes/architecture-mermaid-diagrams.md), and [Maven deployment guide](scripts/maven-deploy.md).
+Useful documentation entry points include the [component architecture guide](egon-cola-components/egon-cola-components-architecture.md), [original archetype architecture diagrams](egon-cola-archetypes/architecture-mermaid-diagrams.md), [Open family architecture overview](egon-cola-archetypes/open-source-archetype-family-architecture.md), [Open family code style](egon-cola-archetypes/open-source-archetype-code-style.md), and [Maven deployment guide](scripts/maven-deploy.md).
 
 ## Deployment
 
@@ -277,6 +289,16 @@ For Maven Central publication, the root reactor should be verified and deployed 
 
 Use [scripts/maven-deploy.md](scripts/maven-deploy.md) for release prerequisites and credential setup. For local platform deployment, start only the platform modules and external services required by the chosen topology; the root build does not start them automatically.
 
+The repository also provides a safe target-listing and verification wrapper:
+
+```bash
+scripts/maven-deploy.sh list
+scripts/maven-deploy.sh archetypes --dry-run
+scripts/maven-deploy.sh egon-cola-archetype-web-open --dry-run
+```
+
+`--publish` is required for a real Maven deploy. The wrapper publishes only Maven reactors; it never starts generated applications or executes database SQL.
+
 ## Compatibility
 
 | Item | Supported baseline or current value |
@@ -285,6 +307,9 @@ Use [scripts/maven-deploy.md](scripts/maven-deploy.md) for release prerequisites
 | Java | 21 baseline; CI verifies JDK 21 and JDK 25 |
 | Maven Wrapper | 3.9.14 |
 | Spring Boot | 3.5.16 in the component and archetype reactors |
+| Open Spring Cloud / Alibaba | 2025.0.3 / 2025.0.0.0 |
+| Open persistence | MyBatis-Plus 3.5.17 and ShardingSphere 5.5.3 |
+| Open service discovery | Nacos 3.0.3 container image |
 | Frontend runtime | Node.js 24 for the Gateway Admin Web and RBAC3 web workflows |
 | CI container | Rocky Linux 10 for the main Java compatibility workflows |
 
@@ -307,6 +332,10 @@ No. The BOM manages public reusable component artifacts. Platform artifacts have
 ### Do Maven tests prove a production topology?
 
 No. Unit, module, and Docker-backed tests prove the behavior covered by those tests. They do not by themselves prove production Redis/PostgreSQL availability, DNS or VIP routing, credentials, multi-process deployment, or high-availability behavior.
+
+### Does the Open family include Gateway or automatic database migration?
+
+No. Gateway is an external Spring Cloud Gateway deployment concern. Open templates provide reviewed manual SQL under `resources`/`deploy/sql`; they do not use Spring Data JPA, Flyway, Liquibase, or automatic schema updates.
 
 ### Where should configuration questions be answered?
 

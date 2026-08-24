@@ -167,6 +167,9 @@ jobs:
             "egon-cola-archetype-light:light"
             "egon-cola-archetype-service:service"
             "egon-cola-archetype-web:web"
+            "egon-cola-archetype-light-open:light-open"
+            "egon-cola-archetype-service-open:service-open"
+            "egon-cola-archetype-web-open:web-open"
           )
 
           ROCKY_HOME="${RUNNER_TEMP}/rocky-home"
@@ -242,6 +245,29 @@ jobs:
 
             popd
           done
+
+      - name: Verify archetype reactor including Open variants
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROCKY_HOME="${RUNNER_TEMP}/rocky-home"
+          mkdir -p "${ROCKY_HOME}" "${HOME}/.m2"
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            --env HOME=/home/runner \
+            --env JAVA_HOME=/opt/java \
+            --env MAVEN_USER_HOME=/home/runner/.m2 \
+            --env "PATH=/opt/java/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+            --volume "${GITHUB_WORKSPACE}:/workspace" \
+            --volume "${ROCKY_HOME}:/home/runner" \
+            --volume "${HOME}/.m2:/home/runner/.m2" \
+            --volume "${JAVA_HOME}:/opt/java:ro" \
+            --workdir /workspace \
+            "${ROCKY_IMAGE}" \
+            bash -lc '
+              set -euo pipefail
+              ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean verify
+            '
 
       - name: Remove self-installed Maven artifacts
         if: always()

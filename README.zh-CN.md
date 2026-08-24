@@ -12,7 +12,7 @@ Egon-COLA 是一个基于 Java 21 的 Maven 多模块工程，提供清晰分层
 
 ## Features
 
-- **工程脚手架**：通过 Maven Archetype 生成 light、service、web 三类业务工程。
+- **工程脚手架**：通过 Maven Archetype 生成基于 Egon 组件/平台的原始族，或基于公开 Spring 生态的 `-open` 族。
 - **分层约束**：明确 `common`、`facade`、`domain`、`application`、`infrastructure`、`adapter`、`starter` 等层之间的职责和依赖方向。
 - **可复用组件**：覆盖通用契约、ID、Trace、动态线程池、RPC、规则引擎、访问治理、方法扩展、事务 Outbox 和字节码工具。
 - **企业级平台**：包含 Dynamic Config Center、Gateway、统一身份提供方 IDP 和 RBAC3 权限平台。
@@ -68,6 +68,8 @@ common 在生成工程约定允许的范围内被各层共享
 
 不同 Archetype 的具体规则并不完全相同：
 
+原始族跟随 Egon-COLA components/platforms 迭代；`-open` 族是当前可以直接使用的开源技术栈基线。具体规则请先阅读 `egon-cola-archetypes` 下的架构文档。
+
 - `light` 适合轻量单模块工程和快速验证。
 - `service` 侧重后端服务、Dubbo3 Triple RPC 和 MQ，不默认暴露 HTTP Controller。
 - `web` 提供包含 HTTP adapter、facade、application、domain、infrastructure 的多模块业务工程。
@@ -107,6 +109,12 @@ cd Egon-COLA
 ./mvnw -B -ntp \
   -pl egon-cola-archetypes/egon-cola-archetype-light,egon-cola-archetypes/egon-cola-archetype-service,egon-cola-archetypes/egon-cola-archetype-web \
   -am clean integration-test
+```
+
+验证包含 Open 族生成工程契约的完整 Archetype Reactor：
+
+```bash
+./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean verify
 ```
 
 如果需要验证统一身份、DDC、Gateway、RBAC3、RPC 和 MCP 的完整本地拓扑，请参考[统一身份与 MCP 本地运行手册](docs/operations/unified-identity-mcp-local-runbook.md)。
@@ -205,13 +213,14 @@ egon:
 
 ### 生成业务工程
 
-Egon-COLA 当前提供三类 Maven Archetype：
+Egon-COLA 并行发布两族 Maven Archetype。原始 Artifact ID 继续保留且不会重定向；如果希望使用公开 Spring 生态基线，请选择带 `-open` 后缀的 Artifact。
 
-| Archetype | 适用场景 |
-|---|---|
-| `egon-cola-archetype-light` | 轻量单模块工程，适合小型服务、组件测试和快速验证。 |
-| `egon-cola-archetype-service` | 纯后端服务，侧重 Dubbo3 Triple RPC 和 MQ，不默认暴露 HTTP Controller。 |
-| `egon-cola-archetype-web` | 包含 HTTP adapter、facade、application、domain、infrastructure 的完整 Web 业务工程。 |
+| 族 | Light | Service | Web |
+|---|---|---|---|
+| 原始 | `egon-cola-archetype-light` | `egon-cola-archetype-service` | `egon-cola-archetype-web` |
+| Open | `egon-cola-archetype-light-open` | `egon-cola-archetype-service-open` | `egon-cola-archetype-web-open` |
+
+Open 族固定使用 Spring Boot 3.5.16、Spring Cloud 2025.0.3、Spring Cloud Alibaba 2025.0.0.0、Nacos 3.0.3、MyBatis-Plus 3.5.17、ShardingSphere 5.5.3，以及 Common ID 生成器、Dynamic Thread Pool；Service/Web 额外使用 Dubbo 3.3.6 和 gRPC/Protobuf 1.73.0，Light 刻意不引入 RPC 或 Gateway。Light/Web 的 HTTP API 使用 Springdoc。Open 族禁止 Spring Data JPA、Flyway/Liquibase 和内置 Gateway。内部 ID 为 `Long`，Proto 使用 `int64`，HTTP/GraphQL 边界使用十进制字符串；数据库 DDL 位于生成工程的手工 SQL Runbook 中。
 
 下面以 Web Archetype 为例：
 
@@ -222,12 +231,14 @@ mvn -B archetype:generate \
   -Dversion=1.0.0-SNAPSHOT \
   -Dpackage=top.egon.orders \
   -DarchetypeGroupId=top.egon \
-  -DarchetypeArtifactId=egon-cola-archetype-web \
+  -DarchetypeArtifactId=egon-cola-archetype-web-open \
   -DarchetypeVersion=5.3.3 \
   -DinteractiveMode=false
 ```
 
 生成完成后，把目标目录作为新项目根目录，使用 IDEA 打开生成工程的 `pom.xml`。如果要使用本地构建的 Archetype，先执行 `./mvnw clean install`，再在命令中增加 `-DarchetypeCatalog=local`。
+
+请参阅 [Open 族架构总览](egon-cola-archetypes/open-source-archetype-family-architecture.md) 和 [Open 族代码规范](egon-cola-archetypes/open-source-archetype-code-style.md)，了解模块责任、协议边界、手工 SQL 和真实基础设施验证边界。
 
 ### 引入组件
 
@@ -281,6 +292,9 @@ Egon-COLA/
 │   ├── egon-cola-archetype-light/
 │   ├── egon-cola-archetype-service/
 │   ├── egon-cola-archetype-web/
+│   ├── egon-cola-archetype-light-open/
+│   ├── egon-cola-archetype-service-open/
+│   ├── egon-cola-archetype-web-open/
 │   ├── egon-cola-evaluation-facade/
 │   └── egon-cola-organization-facade/
 ├── egon-cola-components/             # 可复用组件、Starter、BOM 和测试
@@ -308,6 +322,8 @@ Egon-COLA/
 
 - [组件架构指南](egon-cola-components/egon-cola-components-architecture.md)
 - [Archetype 架构 Mermaid 图](egon-cola-archetypes/architecture-mermaid-diagrams.md)
+- [Open 族架构总览](egon-cola-archetypes/open-source-archetype-family-architecture.md)
+- [Open 族代码规范](egon-cola-archetypes/open-source-archetype-code-style.md)
 - [Maven 发布指南](scripts/maven-deploy.md)
 - [统一身份与 MCP 本地 Runbook](docs/operations/unified-identity-mcp-local-runbook.md)
 
@@ -324,6 +340,16 @@ Maven Central 发布时，应将根 Reactor 作为一个依赖有序的整体执
 
 发布前置条件、签名、凭据和 Sonatype Central Portal 配置见 [scripts/maven-deploy.md](scripts/maven-deploy.md)。本地平台部署则按目标拓扑启动平台和外部依赖，根工程构建不会自动启动这些进程。
 
+仓库同时提供安全的目标列表和验证包装脚本：
+
+```bash
+scripts/maven-deploy.sh list
+scripts/maven-deploy.sh archetypes --dry-run
+scripts/maven-deploy.sh egon-cola-archetype-web-open --dry-run
+```
+
+真实 Maven 发布必须显式传入 `--publish`。该脚本只发布 Maven Reactor，不启动生成的业务应用，也不执行数据库 SQL。
+
 ## Compatibility
 
 | 项目 | 当前基线或值 |
@@ -332,6 +358,9 @@ Maven Central 发布时，应将根 Reactor 作为一个依赖有序的整体执
 | Java | 21 基线；CI 验证 JDK 21 和 JDK 25 |
 | Maven Wrapper | 3.9.14 |
 | Spring Boot | Component 和 Archetype Reactor 使用 3.5.16 |
+| Open Spring Cloud / Alibaba | 2025.0.3 / 2025.0.0.0 |
+| Open 持久化 | MyBatis-Plus 3.5.17 和 ShardingSphere 5.5.3 |
+| Open 服务发现 | Nacos 3.0.3 容器镜像 |
 | 前端运行时 | Gateway Admin Web 和 RBAC3 Web 工作流使用 Node.js 24 |
 | CI 容器 | 主 Java 兼容性工作流使用 Rocky Linux 10 |
 
@@ -354,6 +383,10 @@ Java 源码基线是 21，CI 额外验证 JDK 25 不代表业务项目必须立�
 ### Maven 测试是否等于生产拓扑验证？
 
 不等于。单元测试、模块测试和 Docker-backed 测试只能证明对应测试覆盖的行为，不能单独证明生产 Redis/PostgreSQL、DNS/VIP 路由、凭据、多进程部署或高可用行为。
+
+### Open 族是否内置 Gateway 或自动更新数据库？
+
+不内置。Gateway 属于外部 Spring Cloud Gateway 部署；Open 模板在 `resources`/`deploy/sql` 提供经过测试的手工 SQL，不使用 Spring Data JPA、Flyway、Liquibase，也不会自动刷表。
 
 ### 组件应该使用哪个入口？
 
