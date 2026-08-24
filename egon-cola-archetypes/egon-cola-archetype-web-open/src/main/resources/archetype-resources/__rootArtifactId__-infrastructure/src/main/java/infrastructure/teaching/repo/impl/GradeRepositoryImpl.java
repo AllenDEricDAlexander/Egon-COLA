@@ -19,7 +19,7 @@ public class GradeRepositoryImpl implements GradeRepository {
     private final GradeJpaRepository gradeJpaRepository;
     private final GradePOConverter converter;
 
-    @Override public Optional<Grade> findById(String gradeId) {
+    @Override public Optional<Grade> findById(Long gradeId) {
         return gradeJpaRepository.findById(gradeId).map(converter::toEntity);
     }
 

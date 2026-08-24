@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.util.List;
 import java.util.Optional;
@@ -47,20 +48,21 @@ class PermissionManageImplTest {
     void grantsPermissionAndReturnsPermissionTree() {
         OrganizationRequestContextHolder.set(new OrganizationRequestContext(
             "admin-1", Set.of("ORGANIZATION_ADMIN"), "trace-1"));
-        Role role = new Role("role-student", new RoleCode("STUDENT"), "Student", RoleStatus.ACTIVE);
-        Permission permission = new Permission("permission-class-read", new PermissionCode("CLASS_READ"),
+        Role role = new Role(2001L, new RoleCode("STUDENT"), "Student", RoleStatus.ACTIVE);
+        Permission permission = new Permission(3001L, new PermissionCode("CLASS_READ"),
             "Read school class", PermissionType.API, PermissionStatus.ACTIVE);
         when(roleRepository.findByCode(new RoleCode("STUDENT"))).thenReturn(Optional.of(role));
         when(permissionRepository.findByCode(new PermissionCode("CLASS_READ"))).thenReturn(Optional.of(permission));
-        when(permissionRepository.findByUserId(new UserId("u-1"))).thenReturn(List.of(permission));
+        when(permissionRepository.findByUserId(new UserId(1001L))).thenReturn(List.of(permission));
         PermissionManageImpl manage = new PermissionManageImpl(
-            roleRepository, permissionRepository, new UserApplicationValidator(), idempotency, eventPublisher);
+            roleRepository, permissionRepository, new UserApplicationValidator(), idempotency, eventPublisher,
+            (LongIdGenerator) () -> 4001L);
         when(idempotency.claim("grant-permission", "req-grant")).thenReturn(true);
 
         manage.grantPermission(new GrantPermissionCommand("req-grant", "student", "class_read"));
 
         verify(roleRepository).save(role);
         assertEquals(List.of("CLASS_READ"),
-            manage.getPermissionTree(new PermissionTreeQuery("u-1")).permissionCodes());
+            manage.getPermissionTree(new PermissionTreeQuery(1001L)).permissionCodes());
     }
 }

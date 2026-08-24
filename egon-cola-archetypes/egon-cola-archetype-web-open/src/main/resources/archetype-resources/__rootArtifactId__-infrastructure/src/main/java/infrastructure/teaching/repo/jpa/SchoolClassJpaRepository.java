@@ -5,8 +5,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface SchoolClassJpaRepository extends JpaRepository<SchoolClassPO, String> {
-    Optional<SchoolClassPO> findByGradeIdAndId(String gradeId, String id);
+public interface SchoolClassJpaRepository extends JpaRepository<SchoolClassPO, Long> {
+    Optional<SchoolClassPO> findByGradeIdAndId(Long gradeId, Long id);
 
-    long countByGradeIdAndNameIgnoreCase(String gradeId, String name);
+    long countByGradeIdAndNameIgnoreCase(Long gradeId, String name);
 }

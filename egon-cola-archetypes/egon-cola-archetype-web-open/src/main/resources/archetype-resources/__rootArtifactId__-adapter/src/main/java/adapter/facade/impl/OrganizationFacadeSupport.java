@@ -5,31 +5,34 @@ import ${package}.application.context.OrganizationRequestContextHolder;
 import ${package}.application.exceptions.OrganizationApplicationException;
 import top.egon.cola.organization.facade.exceptions.OrganizationFacadeException;
 import org.apache.dubbo.rpc.RpcContext;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.util.Arrays;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+@Component
+@RequiredArgsConstructor
 public final class OrganizationFacadeSupport {
 
-    private OrganizationFacadeSupport() {
-    }
+    private final LongIdGenerator idGenerator;
 
-    public static String requestId() {
+    public String requestId() {
         String value = attachment("idempotency-key");
-        return value == null || value.isBlank() ? UUID.randomUUID().toString() : value;
+        return value == null || value.isBlank() ? Long.toString(idGenerator.nextLongId()) : value;
     }
 
-    public static void invoke(Runnable action) {
+    public void invoke(Runnable action) {
         invoke(() -> {
             action.run();
             return null;
         });
     }
 
-    public static <T> T invoke(Supplier<T> action) {
+    public <T> T invoke(Supplier<T> action) {
         boolean created = OrganizationRequestContextHolder.current().isEmpty();
         if (created) {
             OrganizationRequestContextHolder.set(context());
@@ -47,9 +50,9 @@ public final class OrganizationFacadeSupport {
         }
     }
 
-    private static OrganizationRequestContext context() {
+    private OrganizationRequestContext context() {
         String actorId = valueOrDefault(attachment("x-actor-id"), "facade-system");
-        String traceId = valueOrDefault(attachment("x-trace-id"), UUID.randomUUID().toString());
+        String traceId = valueOrDefault(attachment("x-trace-id"), Long.toString(idGenerator.nextLongId()));
         String roleHeader = attachment("x-actor-roles");
         Set<String> roles = roleHeader == null || roleHeader.isBlank()
                 ? Set.of("SYSTEM")

@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.util.List;
 import java.util.Optional;
@@ -46,16 +47,16 @@ class RoleManageImplTest {
     void assignsNormalizedRoleThroughAggregate() {
         OrganizationRequestContextHolder.set(new OrganizationRequestContext(
             "admin-1", Set.of("ORGANIZATION_ADMIN"), "trace-1"));
-        when(userRepository.findById(new UserId("u-1"))).thenReturn(Optional.of(
-            new User(new UserId("u-1"), "Mario", "mario@example.com", UserStatus.ACTIVE, List.of())));
+        when(userRepository.findById(new UserId(1001L))).thenReturn(Optional.of(
+            new User(new UserId(1001L), "Mario", "mario@example.com", UserStatus.ACTIVE, List.of())));
         when(roleRepository.findByCode(new RoleCode("STUDENT"))).thenReturn(Optional.of(
-            new Role("role-student", new RoleCode("STUDENT"), "Student", RoleStatus.ACTIVE)));
+            new Role(2001L, new RoleCode("STUDENT"), "Student", RoleStatus.ACTIVE)));
         RoleManageImpl manage = new RoleManageImpl(
             userRepository, roleRepository, new UserApplicationValidator(), userCache, idempotency,
-            eventPublisher);
+            eventPublisher, (LongIdGenerator) () -> 3001L);
         when(idempotency.claim("assign-role", "req-role")).thenReturn(true);
 
-        manage.assignRole(new AssignRoleCommand("req-role", "u-1", "student"));
+        manage.assignRole(new AssignRoleCommand("req-role", 1001L, "student"));
 
         verify(userRepository).save(argThat(
             saved -> saved.roleCodes().contains(new RoleCode("STUDENT"))));

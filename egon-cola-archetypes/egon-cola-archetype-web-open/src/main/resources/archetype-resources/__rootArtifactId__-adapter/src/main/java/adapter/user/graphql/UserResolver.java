@@ -10,6 +10,7 @@ import ${package}.application.user.query.PermissionTreeQuery;
 import ${package}.application.user.query.UserDetailQuery;
 import ${package}.application.user.result.PermissionTreeResult;
 import ${package}.application.user.result.UserDetailResult;
+import ${package}.adapter.facade.impl.OrganizationIdBoundary;
 import lombok.RequiredArgsConstructor;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.ContextValue;
@@ -17,7 +18,7 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 
-import java.util.UUID;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 @Controller
 @RequiredArgsConstructor
@@ -26,15 +27,17 @@ public class UserResolver {
     private final UserManage userManage;
     private final RoleManage roleManage;
     private final PermissionManage permissionManage;
+    private final LongIdGenerator idGenerator;
 
     @QueryMapping
     public UserDetailResult user(@Argument String id) {
-        return userManage.getUser(new UserDetailQuery(id));
+        return userManage.getUser(new UserDetailQuery(OrganizationIdBoundary.parse(id, "userId")));
     }
 
     @QueryMapping
     public PermissionTreeResult permissionTree(@Argument String userId) {
-        return permissionManage.getPermissionTree(new PermissionTreeQuery(userId));
+        return permissionManage.getPermissionTree(new PermissionTreeQuery(
+            OrganizationIdBoundary.parse(userId, "userId")));
     }
 
     @MutationMapping
@@ -48,7 +51,8 @@ public class UserResolver {
     public boolean assignRole(
             @Argument AssignRoleInput input,
             @ContextValue(name = "idempotencyKey", required = false) String key) {
-        roleManage.assignRole(new AssignRoleCommand(requestId(key), input.userId(), input.roleCode()));
+        roleManage.assignRole(new AssignRoleCommand(requestId(key),
+            OrganizationIdBoundary.parse(input.userId(), "userId"), input.roleCode()));
         return true;
     }
 
@@ -61,8 +65,8 @@ public class UserResolver {
         return true;
     }
 
-    private static String requestId(String key) {
-        return key == null || key.isBlank() ? UUID.randomUUID().toString() : key;
+    private String requestId(String key) {
+        return key == null || key.isBlank() ? Long.toString(idGenerator.nextLongId()) : key;
     }
 
     public record CreateUserInput(String name, String email) {}

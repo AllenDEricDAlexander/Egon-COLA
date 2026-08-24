@@ -9,17 +9,17 @@ import java.util.List;
 
 public final class Role {
 
-    private final String id;
+    private final Long id;
     private final RoleCode code;
     private final String name;
     private final RoleStatus status;
     private final List<PermissionCode> permissionCodes;
 
-    public Role(String id, RoleCode code, String name, RoleStatus status) {
+    public Role(Long id, RoleCode code, String name, RoleStatus status) {
         this(id, code, name, status, List.of());
     }
 
-    public Role(String id, RoleCode code, String name, RoleStatus status, List<PermissionCode> permissionCodes) {
+    public Role(Long id, RoleCode code, String name, RoleStatus status, List<PermissionCode> permissionCodes) {
         this.id = id;
         this.code = code;
         this.name = name;
@@ -29,7 +29,7 @@ public final class Role {
 
     public void grant(PermissionCode permissionCode) { permissionCodes.add(permissionCode); }
 
-    public String id() { return id; }
+    public Long id() { return id; }
     public RoleCode code() { return code; }
     public String name() { return name; }
     public RoleStatus status() { return status; }

@@ -24,6 +24,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 @ExtendWith(MockitoExtension.class)
 class RolePermissionControllerTest {
@@ -34,13 +35,15 @@ class RolePermissionControllerTest {
     @Test
     void exposesRoleAndPermissionHttpContracts() throws Exception {
         when(permissionManage.getPermissionTree(any()))
-            .thenReturn(new PermissionTreeResult("u-1", List.of("CLASS_READ")));
+            .thenReturn(new PermissionTreeResult(1001L, List.of("CLASS_READ")));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-            new RoleController(roleManage, Mappers.getMapper(RoleAdapterConverter.class)),
+            new RoleController(roleManage, Mappers.getMapper(RoleAdapterConverter.class),
+                (LongIdGenerator) () -> 9001L),
             new PermissionController(
-                permissionManage, Mappers.getMapper(PermissionAdapterConverter.class))).build();
+                permissionManage, Mappers.getMapper(PermissionAdapterConverter.class),
+                (LongIdGenerator) () -> 9002L)).build();
 
-        mockMvc.perform(post("/api/v1/users/u-1/roles")
+        mockMvc.perform(post("/api/v1/users/1001/roles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"roleCode\":\"STUDENT\"}"))
             .andExpect(status().isNoContent());
@@ -48,7 +51,7 @@ class RolePermissionControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"permissionCode\":\"CLASS_READ\"}"))
             .andExpect(status().isNoContent());
-        mockMvc.perform(get("/api/v1/users/u-1/permissions"))
+        mockMvc.perform(get("/api/v1/users/1001/permissions"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.permissionCodes[0]").value("CLASS_READ"));
     }

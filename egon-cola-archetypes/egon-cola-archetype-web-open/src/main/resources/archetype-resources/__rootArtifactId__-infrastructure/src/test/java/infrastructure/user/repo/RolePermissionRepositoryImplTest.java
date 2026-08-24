@@ -30,10 +30,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ContextConfiguration;
-import top.egon.cola.component.common.id.generator.UuidV7Generator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,8 +42,7 @@ import static org.assertj.core.api.Assertions.assertThat;
     "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 @Import({UserRepositoryImpl.class, RoleRepositoryImpl.class, PermissionRepositoryImpl.class,
-    UserPOConverter.class, RolePOConverter.class, PermissionPOConverter.class,
-    UuidV7Generator.class})
+    UserPOConverter.class, RolePOConverter.class, PermissionPOConverter.class})
 @ContextConfiguration(classes = RolePermissionRepositoryImplTest.TestConfiguration.class)
 class RolePermissionRepositoryImplTest {
 
@@ -55,14 +53,14 @@ class RolePermissionRepositoryImplTest {
 
     @Test
     void persistsRoleAssignmentAndPermissionGrantRelations() {
-        UuidV7Generator idGenerator = new UuidV7Generator();
-        String userId = new UuidV7Generator().nextId();
+        LongIdGenerator idGenerator = () -> 9001L;
+        Long userId = 1001L;
         User user = userRepository.save(new User(
             new UserId(userId), "Mario", "role@example.com", UserStatus.ACTIVE, List.of()));
         Role role = roleRepository.save(new Role(
-            idGenerator.nextId(), new RoleCode("STUDENT"), "Student", RoleStatus.ACTIVE));
+            idGenerator.nextLongId(), new RoleCode("STUDENT"), "Student", RoleStatus.ACTIVE));
         Permission permission = permissionRepository.save(new Permission(
-            idGenerator.nextId(),
+            idGenerator.nextLongId(),
             new PermissionCode("CLASS_READ"),
             "Read school class",
             PermissionType.API,
@@ -79,13 +77,12 @@ class RolePermissionRepositoryImplTest {
             .extracting(User::roleCodes).isEqualTo(List.of(new RoleCode("STUDENT")));
         assertThat(permissionRepository.findByUserId(user.id()))
             .extracting(Permission::code).containsExactly(new PermissionCode("CLASS_READ"));
-        String relationId = rolePermissionJpaRepository
+        Long relationId = rolePermissionJpaRepository
                 .findByRoleId(roleRepository.findByCode(new RoleCode("STUDENT")).orElseThrow()
                         .id())
                 .getFirst()
                 .getId();
-        assertThat(relationId).hasSize(36);
-        assertThat(UUID.fromString(relationId).version()).isEqualTo(7);
+        assertThat(relationId).isPositive();
     }
 
     @Configuration(proxyBeanMethods = false)
@@ -98,5 +95,7 @@ class RolePermissionRepositoryImplTest {
             "${package}.infrastructure.teaching.repo.jpa"
     })
     static class TestConfiguration {
+        @org.springframework.context.annotation.Bean
+        LongIdGenerator idGenerator() { return () -> 9001L; }
     }
 }

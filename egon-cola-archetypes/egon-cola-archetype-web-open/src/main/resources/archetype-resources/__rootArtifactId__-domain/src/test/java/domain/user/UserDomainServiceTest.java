@@ -15,7 +15,7 @@ class UserDomainServiceTest {
 
     @Test
     void createsNormalizedActiveUser() {
-        User user = service.create(new UserId("u-1"), " Mario ", "MARIO@EXAMPLE.COM");
+        User user = service.create(new UserId(1001L), " Mario ", "MARIO@EXAMPLE.COM");
 
         assertEquals("Mario", user.name());
         assertEquals("mario@example.com", user.email());

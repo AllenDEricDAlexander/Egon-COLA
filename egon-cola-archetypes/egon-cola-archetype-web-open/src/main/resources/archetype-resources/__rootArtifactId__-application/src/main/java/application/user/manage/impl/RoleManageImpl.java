@@ -21,9 +21,9 @@ import ${package}.domain.user.vos.UserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Service("roleManage")
 @RequiredArgsConstructor
@@ -35,6 +35,7 @@ public class RoleManageImpl implements RoleManage {
     private final UserCachePort userCache;
     private final CommandIdempotencyPort idempotency;
     private final OrganizationEventPublisher eventPublisher;
+    private final LongIdGenerator idGenerator;
 
     @Override
     @Transactional
@@ -50,8 +51,8 @@ public class RoleManageImpl implements RoleManage {
             userRepository.save(aggregate.user());
             OrganizationTransactionHooks.afterCommit(() -> {
                 userCache.evict(user.id());
-                eventPublisher.publish(new RoleAssignedEvent(UUID.randomUUID().toString(),
-                    user.id().value(), Instant.now(), role.code().value()));
+                eventPublisher.publish(new RoleAssignedEvent(Long.toString(idGenerator.nextLongId()),
+                    user.id().value().toString(), Instant.now(), role.code().value()));
             });
         });
     }

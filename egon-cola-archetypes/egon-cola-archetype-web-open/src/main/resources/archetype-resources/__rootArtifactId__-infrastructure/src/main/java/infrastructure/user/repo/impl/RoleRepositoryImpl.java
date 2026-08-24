@@ -15,7 +15,7 @@ import ${package}.infrastructure.user.repo.po.RolePermissionPO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
-import top.egon.cola.component.common.id.generator.IdGenerator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -28,7 +28,7 @@ public class RoleRepositoryImpl implements RoleRepository {
     private final PermissionJpaRepository permissionJpaRepository;
     private final RolePermissionJpaRepository rolePermissionJpaRepository;
     private final RolePOConverter converter;
-    private final IdGenerator idGenerator;
+    private final LongIdGenerator idGenerator;
 
     @Override
     public Optional<Role> findByCode(RoleCode code) {
@@ -58,10 +58,10 @@ public class RoleRepositoryImpl implements RoleRepository {
         return converter.toEntity(rolePO, codes);
     }
 
-    private void saveRelationIfMissing(String roleId, String permissionId) {
+    private void saveRelationIfMissing(Long roleId, Long permissionId) {
         if (rolePermissionJpaRepository.countByRoleIdAndPermissionId(roleId, permissionId) == 0) {
             rolePermissionJpaRepository.save(new RolePermissionPO(
-                    idGenerator.nextId(), roleId, permissionId, LocalDateTime.now()));
+                    idGenerator.nextLongId(), roleId, permissionId, LocalDateTime.now()));
         }
     }
 }

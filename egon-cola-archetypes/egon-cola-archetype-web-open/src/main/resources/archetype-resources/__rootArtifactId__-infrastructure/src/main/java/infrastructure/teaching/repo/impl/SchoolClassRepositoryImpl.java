@@ -19,7 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.IdGenerator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,7 +32,7 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
     private final GradeJpaRepository gradeJpaRepository;
     private final SchoolClassUserJpaRepository schoolClassUserJpaRepository;
     private final SchoolClassPOConverter converter;
-    private final IdGenerator idGenerator;
+    private final LongIdGenerator idGenerator;
     private final EntityManager entityManager;
 
     @Override
@@ -49,26 +49,26 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
     }
 
     @Override public Optional<SchoolClass> findByGradeIdAndId(
-            String gradeId,
+            Long gradeId,
             SchoolClassId schoolClassId) {
         return schoolClassJpaRepository
                 .findByGradeIdAndId(gradeId, schoolClassId.value())
                 .map(this::restore);
     }
 
-    @Override public boolean existsByGradeIdAndNameIgnoreCase(String gradeId, String name) {
+    @Override public boolean existsByGradeIdAndNameIgnoreCase(Long gradeId, String name) {
         return schoolClassJpaRepository.countByGradeIdAndNameIgnoreCase(gradeId, name) > 0;
     }
 
     @Override
     @Transactional
     public void addUser(
-            String gradeId,
+            Long gradeId,
             SchoolClassId schoolClassId,
             UserId userId) {
         try {
             entityManager.persist(new SchoolClassUserPO(
-                    idGenerator.nextId(),
+                    idGenerator.nextLongId(),
                     gradeId,
                     schoolClassId.value(),
                     userId.value(),
@@ -80,7 +80,7 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
     }
 
     @Override public boolean hasUser(
-            String gradeId,
+            Long gradeId,
             SchoolClassId schoolClassId,
             UserId userId) {
         return schoolClassUserJpaRepository.countByGradeIdAndSchoolClassIdAndUserId(

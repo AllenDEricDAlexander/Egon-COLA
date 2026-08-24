@@ -14,7 +14,7 @@ class GradeDomainServiceTest {
 
     @Test
     void createsNormalizedActiveGrade() {
-        String gradeId = "019ba346-0000-7000-8000-000000000010";
+        Long gradeId = 1001L;
         Grade grade = service.create(gradeId, "grade_one", " Grade One ");
 
         assertEquals(gradeId, grade.id());

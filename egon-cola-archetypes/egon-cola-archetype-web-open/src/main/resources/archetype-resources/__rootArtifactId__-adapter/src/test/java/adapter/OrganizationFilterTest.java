@@ -7,6 +7,7 @@ import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -29,7 +30,7 @@ class OrganizationFilterTest {
             throw new IllegalStateException("boom");
         };
         OrganizationAuthContextFilter auth = new OrganizationAuthContextFilter();
-        OrganizationTraceFilter trace = new OrganizationTraceFilter();
+        OrganizationTraceFilter trace = new OrganizationTraceFilter((LongIdGenerator) () -> 9001L);
 
         assertThrows(IllegalStateException.class,
             () -> trace.doFilter(request, response, (req, res) -> auth.doFilter(req, res, terminal)));

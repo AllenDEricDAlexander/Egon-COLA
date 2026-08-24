@@ -3,5 +3,5 @@ package ${package}.domain.teaching.service;
 import ${package}.domain.teaching.entities.Grade;
 
 public interface GradeDomainService {
-    Grade create(String gradeId, String code, String name);
+    Grade create(Long gradeId, String code, String name);
 }

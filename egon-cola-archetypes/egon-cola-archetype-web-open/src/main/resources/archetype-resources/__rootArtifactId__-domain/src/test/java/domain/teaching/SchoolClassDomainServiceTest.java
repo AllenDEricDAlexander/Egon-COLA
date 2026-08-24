@@ -17,14 +17,14 @@ class SchoolClassDomainServiceTest {
 
     @Test
     void createsClassForActiveGradeAndRejectsArchivedGrade() {
-        Grade grade = new Grade("grade-1", GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE);
-        SchoolClass schoolClass = service.create(new SchoolClassId("class-1"), " Class A ", grade);
+        Grade grade = new Grade(1001L, GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE);
+        SchoolClass schoolClass = service.create(new SchoolClassId(2001L), " Class A ", grade);
 
-        assertEquals("grade-1", schoolClass.gradeId());
+        assertEquals(1001L, schoolClass.gradeId());
         assertEquals("Grade One", schoolClass.gradeName());
         assertThrows(OrganizationDomainException.class, () -> service.create(
-            new SchoolClassId("class-2"), "Class A",
-            new Grade("grade-archived", GradeCode.create("ARCHIVED_GRADE"),
+            new SchoolClassId(2002L), "Class A",
+            new Grade(1002L, GradeCode.create("ARCHIVED_GRADE"),
                 "Archived Grade", GradeStatus.ARCHIVED)));
     }
 }

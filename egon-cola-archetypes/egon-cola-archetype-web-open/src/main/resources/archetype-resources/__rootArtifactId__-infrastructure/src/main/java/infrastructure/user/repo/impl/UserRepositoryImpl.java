@@ -16,7 +16,7 @@ import ${package}.infrastructure.user.repo.po.UserRolePO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
-import top.egon.cola.component.common.id.generator.IdGenerator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -30,7 +30,7 @@ public class UserRepositoryImpl implements UserRepository {
     private final UserRoleJpaRepository userRoleJpaRepository;
     private final RoleJpaRepository roleJpaRepository;
     private final UserPOConverter converter;
-    private final IdGenerator idGenerator;
+    private final LongIdGenerator idGenerator;
 
     @Override
     public User save(User user) {
@@ -55,10 +55,10 @@ public class UserRepositoryImpl implements UserRepository {
         return userJpaRepository.countByEmail(normalizedEmail) > 0;
     }
 
-    private void saveRoleIfMissing(String userId, String roleId) {
+    private void saveRoleIfMissing(Long userId, Long roleId) {
         if (userRoleJpaRepository.countByUserIdAndRoleId(userId, roleId) == 0) {
             userRoleJpaRepository.save(
-                    new UserRolePO(idGenerator.nextId(), userId, roleId, LocalDateTime.now()));
+                    new UserRolePO(idGenerator.nextLongId(), userId, roleId, LocalDateTime.now()));
         }
     }
 

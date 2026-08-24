@@ -19,7 +19,7 @@ import java.util.Optional;
 public class RedisGradeCache implements GradeCachePort {
     private final RedisTemplate<String, Object> redisTemplate;
     private final OrganizationIntegrationProperties properties;
-    @Override public Optional<Grade> findById(String id) {
+    @Override public Optional<Grade> findById(Long id) {
         Object value = redisTemplate.opsForValue().get(OrganizationCacheKey.grade(id));
         if (!(value instanceof GradeCacheValue cached)) return Optional.empty();
         return Optional.of(new Grade(cached.id(), GradeCode.create(cached.code()),
@@ -30,6 +30,6 @@ public class RedisGradeCache implements GradeCachePort {
             new GradeCacheValue(grade.id(), grade.code().value(), grade.name(), grade.status().name()),
             properties.getGradeTtl());
     }
-    @Override public void evict(String id) { redisTemplate.delete(OrganizationCacheKey.grade(id)); }
-    private record GradeCacheValue(String id, String code, String name, String status) {}
+    @Override public void evict(Long id) { redisTemplate.delete(OrganizationCacheKey.grade(id)); }
+    private record GradeCacheValue(Long id, String code, String name, String status) {}
 }

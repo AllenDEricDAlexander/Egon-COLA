@@ -5,13 +5,13 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
-public interface SchoolClassUserJpaRepository extends JpaRepository<SchoolClassUserPO, String> {
+public interface SchoolClassUserJpaRepository extends JpaRepository<SchoolClassUserPO, Long> {
     List<SchoolClassUserPO> findByGradeIdAndSchoolClassId(
-            String gradeId,
-            String schoolClassId);
+            Long gradeId,
+            Long schoolClassId);
 
     long countByGradeIdAndSchoolClassIdAndUserId(
-            String gradeId,
-            String schoolClassId,
-            String userId);
+            Long gradeId,
+            Long schoolClassId,
+            Long userId);
 }

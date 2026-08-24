@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import top.egon.cola.component.common.id.generator.UuidV7Generator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.util.List;
 import java.util.Optional;
@@ -33,7 +33,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -52,45 +52,45 @@ class AssignUserToClassUseCaseTest {
     @Test
     void assignsActiveUserToActiveSchoolClassInOneTransaction() {
         setContext();
-        when(userRepository.findById(new UserId("u-1"))).thenReturn(Optional.of(activeUser("u-1")));
-        when(schoolClassRepository.findByGradeIdAndId("grade-1", new SchoolClassId("c-1")))
-                .thenReturn(Optional.of(activeClass("c-1")));
+        when(userRepository.findById(new UserId(1001L))).thenReturn(Optional.of(activeUser(1001L)));
+        when(schoolClassRepository.findByGradeIdAndId(2001L, new SchoolClassId(3001L)))
+                .thenReturn(Optional.of(activeClass(3001L)));
         when(idempotency.claim("assign-user-to-school-class", "req-1")).thenReturn(true);
         SchoolClassManageImpl manage = manage();
 
-        manage.assignUser(new AssignUserToClassCommand("req-1", "grade-1", "c-1", "u-1"));
+        manage.assignUser(new AssignUserToClassCommand("req-1", 2001L, 3001L, 1001L));
 
         verify(schoolClassRepository)
-                .addUser("grade-1", new SchoolClassId("c-1"), new UserId("u-1"));
+                .addUser(2001L, new SchoolClassId(3001L), new UserId(1001L));
     }
 
     @Test
     void rejectsDuplicateMembershipWithoutWriting() {
         setContext();
-        when(userRepository.findById(new UserId("u-1"))).thenReturn(Optional.of(activeUser("u-1")));
-        when(schoolClassRepository.findByGradeIdAndId("grade-1", new SchoolClassId("c-1")))
-                .thenReturn(Optional.of(activeClass("c-1")));
+        when(userRepository.findById(new UserId(1001L))).thenReturn(Optional.of(activeUser(1001L)));
+        when(schoolClassRepository.findByGradeIdAndId(2001L, new SchoolClassId(3001L)))
+                .thenReturn(Optional.of(activeClass(3001L)));
         when(schoolClassRepository.hasUser(
-                "grade-1", new SchoolClassId("c-1"), new UserId("u-1"))).thenReturn(true);
+                2001L, new SchoolClassId(3001L), new UserId(1001L))).thenReturn(true);
         when(idempotency.claim("assign-user-to-school-class", "req-2")).thenReturn(true);
 
         assertThrows(OrganizationApplicationException.class, () -> manage().assignUser(
-            new AssignUserToClassCommand("req-2", "grade-1", "c-1", "u-1")));
-        verify(schoolClassRepository, never()).addUser(anyString(), any(), any());
+            new AssignUserToClassCommand("req-2", 2001L, 3001L, 1001L)));
+        verify(schoolClassRepository, never()).addUser(anyLong(), any(), any());
     }
 
     private SchoolClassManageImpl manage() {
         return new SchoolClassManageImpl(schoolClassRepository, gradeRepository, userRepository,
             new SchoolClassDomainService(), new TeachingApplicationValidator(), schoolClassCache, idempotency,
-            eventPublisher, new UuidV7Generator());
+            eventPublisher, (LongIdGenerator) () -> 4001L);
     }
 
-    private static User activeUser(String id) {
+    private static User activeUser(Long id) {
         return new User(new UserId(id), "Mario", "mario@example.com", UserStatus.ACTIVE);
     }
 
-    private static SchoolClass activeClass(String id) {
-        return new SchoolClass(new SchoolClassId(id), "Class A", "grade-1",
+    private static SchoolClass activeClass(Long id) {
+        return new SchoolClass(new SchoolClassId(id), "Class A", 2001L,
             GradeCode.create("GRADE_ONE"), "Grade One", SchoolClassStatus.ACTIVE, List.of());
     }
 

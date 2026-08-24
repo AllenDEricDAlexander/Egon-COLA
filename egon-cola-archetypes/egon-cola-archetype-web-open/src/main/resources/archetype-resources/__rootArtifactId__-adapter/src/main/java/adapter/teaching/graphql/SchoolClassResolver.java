@@ -9,6 +9,7 @@ import ${package}.application.teaching.query.GradeDetailQuery;
 import ${package}.application.teaching.query.SchoolClassDetailQuery;
 import ${package}.application.teaching.result.GradeDetailResult;
 import ${package}.application.teaching.result.SchoolClassDetailResult;
+import ${package}.adapter.facade.impl.OrganizationIdBoundary;
 import lombok.RequiredArgsConstructor;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.ContextValue;
@@ -16,7 +17,7 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 
-import java.util.UUID;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 @Controller
 @RequiredArgsConstructor
@@ -24,15 +25,18 @@ public class SchoolClassResolver {
 
     private final GradeManage gradeManage;
     private final SchoolClassManage schoolClassManage;
+    private final LongIdGenerator idGenerator;
 
     @QueryMapping
     public GradeDetailResult grade(@Argument String id) {
-        return gradeManage.getGrade(new GradeDetailQuery(id));
+        return gradeManage.getGrade(new GradeDetailQuery(OrganizationIdBoundary.parse(id, "gradeId")));
     }
 
     @QueryMapping
     public SchoolClassDetailResult schoolClass(@Argument String gradeId, @Argument String id) {
-        return schoolClassManage.getSchoolClass(new SchoolClassDetailQuery(gradeId, id));
+        return schoolClassManage.getSchoolClass(new SchoolClassDetailQuery(
+            OrganizationIdBoundary.parse(gradeId, "gradeId"),
+            OrganizationIdBoundary.parse(id, "schoolClassId")));
     }
 
     @MutationMapping
@@ -56,12 +60,14 @@ public class SchoolClassResolver {
             @ContextValue(name = "idempotencyKey", required = false) String key) {
         schoolClassManage.assignUser(
                 new AssignUserToClassCommand(
-                        requestId(key), input.gradeId(), input.schoolClassId(), input.userId()));
+                        requestId(key), OrganizationIdBoundary.parse(input.gradeId(), "gradeId"),
+                        OrganizationIdBoundary.parse(input.schoolClassId(), "schoolClassId"),
+                        OrganizationIdBoundary.parse(input.userId(), "userId")));
         return true;
     }
 
-    private static String requestId(String key) {
-        return key == null || key.isBlank() ? UUID.randomUUID().toString() : key;
+    private String requestId(String key) {
+        return key == null || key.isBlank() ? Long.toString(idGenerator.nextLongId()) : key;
     }
 
     public record CreateGradeInput(String code, String name) {}

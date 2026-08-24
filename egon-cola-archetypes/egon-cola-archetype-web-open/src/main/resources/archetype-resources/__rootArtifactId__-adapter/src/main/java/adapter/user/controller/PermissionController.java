@@ -5,6 +5,8 @@ import ${package}.adapter.user.dto.GrantPermissionRequest;
 import ${package}.adapter.user.vo.PermissionTreeVO;
 import ${package}.application.user.manage.PermissionManage;
 import ${package}.application.user.query.PermissionTreeQuery;
+import ${package}.adapter.facade.impl.OrganizationIdBoundary;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
 
 @RestController("permissionController")
 @RequiredArgsConstructor
@@ -23,19 +24,21 @@ public class PermissionController {
 
     private final PermissionManage permissionManage;
     private final PermissionAdapterConverter converter;
+    private final LongIdGenerator idGenerator;
 
     @PostMapping("/api/v1/roles/{roleCode}/permissions")
     public ResponseEntity<Void> grant(
             @PathVariable String roleCode,
             @Valid @RequestBody GrantPermissionRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
-        String requestId = key == null ? UUID.randomUUID().toString() : key;
+        String requestId = key == null || key.isBlank() ? Long.toString(idGenerator.nextLongId()) : key;
         permissionManage.grantPermission(converter.toCommand(requestId, roleCode, request));
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/api/v1/users/{userId}/permissions")
     public PermissionTreeVO getPermissionTree(@PathVariable String userId) {
-        return converter.toVO(permissionManage.getPermissionTree(new PermissionTreeQuery(userId)));
+        return converter.toVO(permissionManage.getPermissionTree(new PermissionTreeQuery(
+            OrganizationIdBoundary.parse(userId, "userId"))));
     }
 }

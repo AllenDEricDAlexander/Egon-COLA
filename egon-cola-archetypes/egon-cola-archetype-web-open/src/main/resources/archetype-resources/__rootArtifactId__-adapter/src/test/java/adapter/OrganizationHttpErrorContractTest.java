@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.util.stream.Stream;
 
@@ -36,12 +37,14 @@ class OrganizationHttpErrorContractTest {
     void mapsApplicationFailures(OrganizationFailureType type, HttpStatus httpStatus, String code) throws Exception {
         when(userManage.getUser(any())).thenThrow(new OrganizationApplicationException(type, code, "failure"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new UserController(userManage, Mappers.getMapper(UserAdapterConverter.class)))
+                new UserController(userManage, Mappers.getMapper(UserAdapterConverter.class),
+                    (LongIdGenerator) () -> 9001L))
             .setControllerAdvice(new OrganizationGlobalExceptionHandler())
-            .addFilters(new OrganizationTraceFilter(), new OrganizationAuthContextFilter())
+            .addFilters(new OrganizationTraceFilter((LongIdGenerator) () -> 9001L),
+                new OrganizationAuthContextFilter())
             .build();
 
-        mockMvc.perform(get("/api/v1/users/u-1").header("X-Trace-Id", "trace-1"))
+        mockMvc.perform(get("/api/v1/users/1001").header("X-Trace-Id", "trace-1"))
             .andExpect(status().is(httpStatus.value()))
             .andExpect(jsonPath("$.code").value(code))
             .andExpect(jsonPath("$.traceId").value("trace-1"))

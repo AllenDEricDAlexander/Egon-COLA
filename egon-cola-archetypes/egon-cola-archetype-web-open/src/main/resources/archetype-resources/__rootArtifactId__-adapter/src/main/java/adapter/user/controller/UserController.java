@@ -5,6 +5,8 @@ import ${package}.adapter.user.dto.CreateUserRequest;
 import ${package}.adapter.user.vo.UserDetailVO;
 import ${package}.application.user.manage.UserManage;
 import ${package}.application.user.query.UserDetailQuery;
+import ${package}.adapter.facade.impl.OrganizationIdBoundary;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +19,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
-import java.util.UUID;
 
 @RestController("userController")
 @RequestMapping("/api/v1/users")
@@ -26,18 +27,21 @@ public class UserController {
 
     private final UserManage userManage;
     private final UserAdapterConverter converter;
+    private final LongIdGenerator idGenerator;
 
     @PostMapping
     public ResponseEntity<UserDetailVO> create(
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @Valid @RequestBody CreateUserRequest request) {
-        String requestId = idempotencyKey == null ? UUID.randomUUID().toString() : idempotencyKey;
+        String requestId = idempotencyKey == null || idempotencyKey.isBlank()
+            ? Long.toString(idGenerator.nextLongId()) : idempotencyKey;
         UserDetailVO body = converter.toVO(userManage.createUser(converter.toCommand(requestId, request)));
         return ResponseEntity.created(URI.create("/api/v1/users/" + body.id())).body(body);
     }
 
     @GetMapping("/{userId}")
     public UserDetailVO get(@PathVariable String userId) {
-        return converter.toVO(userManage.getUser(new UserDetailQuery(userId)));
+        return converter.toVO(userManage.getUser(new UserDetailQuery(
+            OrganizationIdBoundary.parse(userId, "userId"))));
     }
 }

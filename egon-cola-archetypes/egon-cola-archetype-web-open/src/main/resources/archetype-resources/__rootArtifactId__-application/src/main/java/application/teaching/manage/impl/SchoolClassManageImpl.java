@@ -30,9 +30,8 @@ import ${package}.domain.user.vos.UserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.IdGenerator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
-import java.util.UUID;
 import java.time.Instant;
 
 @Service("schoolClassManage")
@@ -46,7 +45,7 @@ public class SchoolClassManageImpl implements SchoolClassManage {
     private final SchoolClassCachePort schoolClassCache;
     private final CommandIdempotencyPort idempotency;
     private final OrganizationEventPublisher eventPublisher;
-    private final IdGenerator idGenerator;
+    private final LongIdGenerator idGenerator;
     private final SchoolClassAssembler assembler = new SchoolClassAssembler();
 
     @Override
@@ -60,11 +59,11 @@ public class SchoolClassManageImpl implements SchoolClassManage {
                 throw conflict("school class name already exists in grade");
             }
             SchoolClass schoolClass = schoolClassRepository.save(schoolClassDomainService.create(
-                new SchoolClassId(idGenerator.nextId()), command.name(), grade));
+                new SchoolClassId(idGenerator.nextLongId()), command.name(), grade));
             OrganizationTransactionHooks.afterCommit(() -> {
                 schoolClassCache.evict(schoolClass.gradeId(), schoolClass.id());
-                eventPublisher.publish(new SchoolClassChangedEvent(UUID.randomUUID().toString(),
-                    schoolClass.id().value(), Instant.now(), schoolClass.gradeId(), "CREATED"));
+                eventPublisher.publish(new SchoolClassChangedEvent(Long.toString(idGenerator.nextLongId()),
+                    schoolClass.id().value().toString(), Instant.now(), schoolClass.gradeId().toString(), "CREATED"));
             });
             return assembler.toResult(schoolClass);
         });
@@ -106,8 +105,8 @@ public class SchoolClassManageImpl implements SchoolClassManage {
             schoolClassRepository.addUser(command.gradeId(), classId, memberId);
             OrganizationTransactionHooks.afterCommit(() -> {
                 schoolClassCache.evict(command.gradeId(), classId);
-                eventPublisher.publish(new SchoolClassMembershipChangedEvent(UUID.randomUUID().toString(),
-                    classId.value(), Instant.now(), memberId.value(), "ASSIGNED"));
+                eventPublisher.publish(new SchoolClassMembershipChangedEvent(Long.toString(idGenerator.nextLongId()),
+                    classId.value().toString(), Instant.now(), memberId.value().toString(), "ASSIGNED"));
             });
         });
     }

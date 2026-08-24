@@ -18,7 +18,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ContextConfiguration;
-import top.egon.cola.component.common.id.generator.UuidV7Generator;
 
 import java.time.LocalDateTime;
 
@@ -37,7 +36,7 @@ class GradeRepositoryImplTest {
 
     @Test
     void savesAndRestoresNormalizedGrades() {
-        String gradeId = new UuidV7Generator().nextId();
+        Long gradeId = 1001L;
         Grade saved = repository.save(new Grade(
             gradeId, GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE));
 
@@ -48,9 +47,9 @@ class GradeRepositoryImplTest {
     @Test
     void updatesTargetWhenMappingGrade() {
         GradePO target = new GradePO(
-            "old", "OLD", "Old", "INACTIVE", LocalDateTime.MIN);
+            1000L, "OLD", "Old", "INACTIVE", LocalDateTime.MIN);
 
-        String gradeId = new UuidV7Generator().nextId();
+        Long gradeId = 1001L;
         GradePO mapped = gradePOMapper.convert(new Grade(
             gradeId, GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE), target);
 

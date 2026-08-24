@@ -6,7 +6,7 @@ import ${package}.domain.teaching.vos.SchoolClassId;
 import java.util.Optional;
 
 public interface SchoolClassCachePort {
-    Optional<SchoolClass> findById(String gradeId, SchoolClassId id);
+    Optional<SchoolClass> findById(Long gradeId, SchoolClassId id);
     void put(SchoolClass schoolClass);
-    void evict(String gradeId, SchoolClassId id);
+    void evict(Long gradeId, SchoolClassId id);
 }

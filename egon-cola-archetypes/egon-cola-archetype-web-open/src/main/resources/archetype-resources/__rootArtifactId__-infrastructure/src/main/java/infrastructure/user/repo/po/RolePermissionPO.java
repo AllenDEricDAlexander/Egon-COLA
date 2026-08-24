@@ -14,18 +14,18 @@ import java.time.LocalDateTime;
 @Table(name = "role_permissions", uniqueConstraints = @UniqueConstraint(columnNames = {"role_id", "permission_id"}))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RolePermissionPO {
-    @Id @Column(length = 36) private String id;
-    @Column(name = "role_id", nullable = false, length = 36) private String roleId;
-    @Column(name = "permission_id", nullable = false, length = 36) private String permissionId;
+    @Id private Long id;
+    @Column(name = "role_id", nullable = false) private Long roleId;
+    @Column(name = "permission_id", nullable = false) private Long permissionId;
     @Column(name = "created_at", nullable = false) private LocalDateTime createdAt;
 
-    public RolePermissionPO(String id, String roleId, String permissionId, LocalDateTime createdAt) {
+    public RolePermissionPO(Long id, Long roleId, Long permissionId, LocalDateTime createdAt) {
         this.id = id;
         this.roleId = roleId;
         this.permissionId = permissionId;
         this.createdAt = createdAt;
     }
-    public String getId() { return id; }
-    public String getRoleId() { return roleId; }
-    public String getPermissionId() { return permissionId; }
+    public Long getId() { return id; }
+    public Long getRoleId() { return roleId; }
+    public Long getPermissionId() { return permissionId; }
 }

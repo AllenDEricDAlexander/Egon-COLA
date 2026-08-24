@@ -11,7 +11,7 @@ import java.util.List;
 public record SchoolClass(
         SchoolClassId id,
         String name,
-        String gradeId,
+        Long gradeId,
         GradeCode gradeCode,
         String gradeName,
         SchoolClassStatus status,
@@ -29,8 +29,8 @@ public record SchoolClass(
     public void assignUser(UserId userId) { userIds.add(userId); }
     public boolean hasUser(UserId userId) { return userIds.contains(userId); }
 
-    public String getId() { return id.value(); }
+    public String getId() { return Long.toString(id.value()); }
     public String getName() { return name; }
     public String getGradeName() { return gradeName; }
-    public List<String> getUserIds() { return userIds.stream().map(UserId::value).toList(); }
+    public List<String> getUserIds() { return userIds.stream().map(id -> Long.toString(id.value())).toList(); }
 }

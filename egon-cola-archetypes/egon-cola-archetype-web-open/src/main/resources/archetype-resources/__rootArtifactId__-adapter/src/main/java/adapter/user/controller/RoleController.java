@@ -2,6 +2,7 @@ package ${package}.adapter.user.controller;
 
 import ${package}.adapter.user.converter.RoleAdapterConverter;
 import ${package}.adapter.user.dto.AssignRoleRequest;
+import ${package}.adapter.facade.impl.OrganizationIdBoundary;
 import ${package}.application.user.manage.RoleManage;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.UUID;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 @RestController("roleController")
 @RequiredArgsConstructor
@@ -20,14 +21,16 @@ public class RoleController {
 
     private final RoleManage roleManage;
     private final RoleAdapterConverter converter;
+    private final LongIdGenerator idGenerator;
 
     @PostMapping("/api/v1/users/{userId}/roles")
     public ResponseEntity<Void> assign(
             @PathVariable String userId,
             @Valid @RequestBody AssignRoleRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
-        String requestId = key == null ? UUID.randomUUID().toString() : key;
-        roleManage.assignRole(converter.toCommand(requestId, userId, request));
+        String requestId = key == null || key.isBlank() ? Long.toString(idGenerator.nextLongId()) : key;
+        roleManage.assignRole(converter.toCommand(requestId,
+            OrganizationIdBoundary.parse(userId, "userId"), request));
         return ResponseEntity.noContent().build();
     }
 }

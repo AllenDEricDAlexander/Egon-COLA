@@ -230,22 +230,22 @@ class ShardingTopologyValidatorTest {
                         databaseStrategy:
                           standard:
                             shardingColumn: id
-                            shardingAlgorithmName: uuid_v7_database_bucket
+                            shardingAlgorithmName: snowflake_long_database_bucket
                         tableStrategy:
                           standard:
                             shardingColumn: id
-                            shardingAlgorithmName: uuid_v7_table_bucket
+                            shardingAlgorithmName: snowflake_long_table_bucket
                         auditStrategy:
                           auditorNames:
                             - sharding_key_required_auditor
                           allowHintDisable: false
                     shardingAlgorithms:
-                      uuid_v7_database_bucket:
+                      snowflake_long_database_bucket:
                         type: CLASS_BASED
                         props:
                           node-count: 4
                           node-map: 0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1
-                      uuid_v7_table_bucket:
+                      snowflake_long_table_bucket:
                         type: CLASS_BASED
                         props:
                           node-count: 4

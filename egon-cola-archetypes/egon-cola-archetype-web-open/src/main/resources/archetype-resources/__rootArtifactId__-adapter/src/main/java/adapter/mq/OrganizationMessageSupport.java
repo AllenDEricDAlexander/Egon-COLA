@@ -5,18 +5,20 @@ import ${package}.application.context.OrganizationRequestContextHolder;
 import ${package}.application.exceptions.OrganizationApplicationException;
 import ${package}.application.exceptions.OrganizationFailureType;
 import org.springframework.amqp.AmqpRejectAndDontRequeueException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.util.Set;
-import java.util.UUID;
 
+@Component
+@RequiredArgsConstructor
 public final class OrganizationMessageSupport {
+    private final LongIdGenerator idGenerator;
 
-    private OrganizationMessageSupport() {
-    }
-
-    public static void consume(Runnable action) {
+    public void consume(Runnable action) {
         OrganizationRequestContextHolder.set(new OrganizationRequestContext(
-                "rabbit-system", Set.of("SYSTEM"), UUID.randomUUID().toString()));
+                "rabbit-system", Set.of("SYSTEM"), Long.toString(idGenerator.nextLongId())));
         try {
             action.run();
         } catch (OrganizationApplicationException failure) {

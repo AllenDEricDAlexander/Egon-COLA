@@ -20,26 +20,25 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SchoolClassUserPO {
     @Id
-    @Column(length = 36)
-    private String id;
+    private Long id;
 
-    @Column(name = "user_id", nullable = false, length = 36)
-    private String userId;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
-    @Column(name = "grade_id", nullable = false, length = 36)
-    private String gradeId;
+    @Column(name = "grade_id", nullable = false)
+    private Long gradeId;
 
-    @Column(name = "school_class_id", nullable = false, length = 36)
-    private String schoolClassId;
+    @Column(name = "school_class_id", nullable = false)
+    private Long schoolClassId;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     public SchoolClassUserPO(
-            String id,
-            String gradeId,
-            String schoolClassId,
-            String userId,
+            Long id,
+            Long gradeId,
+            Long schoolClassId,
+            Long userId,
             LocalDateTime createdAt) {
         this.id = id;
         this.gradeId = gradeId;
@@ -48,19 +47,19 @@ public class SchoolClassUserPO {
         this.createdAt = createdAt;
     }
 
-    public String getId() {
+    public Long getId() {
         return id;
     }
 
-    public String getUserId() {
+    public Long getUserId() {
         return userId;
     }
 
-    public String getGradeId() {
+    public Long getGradeId() {
         return gradeId;
     }
 
-    public String getSchoolClassId() {
+    public Long getSchoolClassId() {
         return schoolClassId;
     }
 

@@ -21,8 +21,7 @@ import java.time.LocalDateTime;
 public class GradePO {
 
     @Id
-    @Column(length = 36)
-    private String id;
+    private Long id;
 
     @Column(nullable = false, unique = true, length = 160)
     private String code;

@@ -16,12 +16,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import top.egon.cola.component.common.id.generator.IdGenerator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Set;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,7 +36,7 @@ class OrganizationRollbackTest {
     @Autowired private LocalOrganizationEventPublisher localPublisher;
     @Autowired private InMemorySchoolClassCache schoolClassCache;
     @Autowired private InMemoryCommandIdempotencyAdapter idempotency;
-    @Autowired private IdGenerator idGenerator;
+    @Autowired private LongIdGenerator idGenerator;
 
     @AfterEach
     void clearContext() {
@@ -48,13 +47,13 @@ class OrganizationRollbackTest {
     void domainRejectionRollsBackEverySideEffect() {
         OrganizationRequestContextHolder.set(new OrganizationRequestContext(
                 "admin-1", Set.of("TEACHING_ADMIN"), "rollback-test"));
-        String suffix = UUID.randomUUID().toString().replace("-", "").toUpperCase();
+        String suffix = Long.toString(System.nanoTime());
         String gradeCode = "ROLLBACK_" + suffix;
         var grade = gradeManage.createGrade(
                 new CreateGradeCommand("grade-" + suffix, gradeCode, "Rollback Grade"));
         var schoolClass = schoolClassManage.createSchoolClass(
                 new CreateSchoolClassCommand("class-" + suffix, "Rollback Class", gradeCode));
-        String disabledUserId = idGenerator.nextId();
+        Long disabledUserId = idGenerator.nextLongId();
         jdbcTemplate.update(
                 "insert into users(id, name, email, status, created_at) values (?, ?, ?, ?, ?)",
                 disabledUserId, "Disabled User", disabledUserId + "@example.com", "DISABLED",

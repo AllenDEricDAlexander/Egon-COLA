@@ -18,10 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import top.egon.cola.component.common.id.generator.UuidV7Generator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.util.Set;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -53,14 +52,13 @@ class UserManageImplTest {
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         UserManageImpl manage = new UserManageImpl(
             userRepository, userDomainService, new UserApplicationValidator(), new UserAssembler(),
-            userCache, idempotency, eventPublisher, new UuidV7Generator());
+            userCache, idempotency, eventPublisher, (LongIdGenerator) () -> 1001L);
 
         UserDetailResult result = manage.createUser(
             new CreateUserCommand("req-1", "Mario", "MARIO@EXAMPLE.COM"));
 
         assertEquals("mario@example.com", result.email());
-        assertEquals(7, UUID.fromString(result.id()).version());
-        assertEquals(36, result.id().length());
+        assertEquals(1001L, result.id());
         verify(userRepository).save(any(User.class));
     }
 }

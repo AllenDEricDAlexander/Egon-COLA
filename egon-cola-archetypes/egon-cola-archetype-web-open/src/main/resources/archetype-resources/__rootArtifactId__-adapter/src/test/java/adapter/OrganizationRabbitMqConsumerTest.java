@@ -8,6 +8,8 @@ import ${package}.application.context.OrganizationRequestContextHolder;
 import ${package}.application.exceptions.OrganizationApplicationException;
 import ${package}.application.exceptions.OrganizationFailureType;
 import ${package}.application.user.manage.UserManage;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import ${package}.adapter.mq.OrganizationMessageSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -30,7 +32,8 @@ class OrganizationRabbitMqConsumerTest {
     @Test
     void createUserMessageDelegatesToTheSharedCommand() {
         UserManage userManage = mock(UserManage.class);
-        UserCreatedConsumer consumer = new UserCreatedConsumer(userManage);
+        UserCreatedConsumer consumer = new UserCreatedConsumer(userManage,
+            new OrganizationMessageSupport((LongIdGenerator) () -> 9001L));
 
         consumer.consume(new CreateUserMessage("req-1", "Mario", "mario@example.com"));
 
@@ -43,7 +46,8 @@ class OrganizationRabbitMqConsumerTest {
         UserManage userManage = mock(UserManage.class);
         when(userManage.createUser(any())).thenThrow(new OrganizationApplicationException(
                 OrganizationFailureType.CONFLICT, "ORG_CONFLICT", "duplicate"));
-        UserCreatedConsumer consumer = new UserCreatedConsumer(userManage);
+        UserCreatedConsumer consumer = new UserCreatedConsumer(userManage,
+            new OrganizationMessageSupport((LongIdGenerator) () -> 9001L));
 
         assertThatCode(() -> consumer.consume(
                 new CreateUserMessage("req-1", "Mario", "mario@example.com"))).doesNotThrowAnyException();
@@ -56,7 +60,8 @@ class OrganizationRabbitMqConsumerTest {
         when(userManage.createUser(any())).thenThrow(new OrganizationApplicationException(
                 OrganizationFailureType.DEPENDENCY_UNAVAILABLE,
                 "ORG_DEPENDENCY_UNAVAILABLE", "db"));
-        UserCreatedConsumer consumer = new UserCreatedConsumer(userManage);
+        UserCreatedConsumer consumer = new UserCreatedConsumer(userManage,
+            new OrganizationMessageSupport((LongIdGenerator) () -> 9001L));
 
         assertThatThrownBy(() -> consumer.consume(
                 new CreateUserMessage("req-1", "Mario", "mario@example.com")))

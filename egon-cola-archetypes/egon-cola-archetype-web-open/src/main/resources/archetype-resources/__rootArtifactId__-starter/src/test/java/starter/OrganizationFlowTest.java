@@ -2,6 +2,7 @@ package ${package}.starter;
 
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -10,7 +11,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -31,9 +31,21 @@ class OrganizationFlowTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @BeforeEach
+    void normalizeTemporaryLegacySeed() {
+        jdbcTemplate.update("delete from role_permissions");
+        jdbcTemplate.update("delete from user_roles");
+        jdbcTemplate.update("delete from permissions");
+        jdbcTemplate.update("delete from roles");
+        jdbcTemplate.update("insert into roles(id, code, name, status, created_at) values (?, ?, ?, ?, CURRENT_TIMESTAMP)",
+            "2001", "STUDENT", "Student", "ACTIVE");
+        jdbcTemplate.update("insert into permissions(id, code, name, type, status, created_at) values (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+            "3001", "CLASS_READ", "Read school class", "API", "ACTIVE");
+    }
+
     @Test
     void completesUserAndTeachingFlowThroughRealHttpBoundary() throws Exception {
-        String suffix = UUID.randomUUID().toString().replace("-", "");
+        String suffix = Long.toString(System.nanoTime());
         MvcResult createdUser = mockMvc.perform(post("/api/v1/users")
                         .headers(adminHeaders("create-user-" + suffix))
                         .contentType(APPLICATION_JSON)

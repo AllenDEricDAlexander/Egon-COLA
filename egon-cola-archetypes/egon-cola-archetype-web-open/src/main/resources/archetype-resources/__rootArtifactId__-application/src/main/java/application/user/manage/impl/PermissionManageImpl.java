@@ -23,9 +23,9 @@ import ${package}.domain.user.vos.UserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Service("permissionManage")
 @RequiredArgsConstructor
@@ -36,6 +36,7 @@ public class PermissionManageImpl implements PermissionManage {
     private final UserApplicationValidator validator;
     private final CommandIdempotencyPort idempotency;
     private final OrganizationEventPublisher eventPublisher;
+    private final LongIdGenerator idGenerator;
 
     @Override
     @Transactional
@@ -50,7 +51,7 @@ public class PermissionManageImpl implements PermissionManage {
             aggregate.grant(permission);
             roleRepository.save(aggregate.role());
             OrganizationTransactionHooks.afterCommit(() -> eventPublisher.publish(
-                new PermissionGrantedEvent(UUID.randomUUID().toString(), role.id(), Instant.now(),
+                new PermissionGrantedEvent(Long.toString(idGenerator.nextLongId()), role.id().toString(), Instant.now(),
                     role.code().value(), permission.code().value())));
         });
     }

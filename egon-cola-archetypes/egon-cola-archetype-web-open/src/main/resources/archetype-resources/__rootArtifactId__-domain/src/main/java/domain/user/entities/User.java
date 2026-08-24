@@ -44,7 +44,7 @@ public final class User {
     public String email() { return email; }
     public UserStatus status() { return status; }
     public List<RoleCode> roleCodes() { return List.copyOf(roleCodes); }
-    public String getId() { return id.value(); }
+    public String getId() { return Long.toString(id.value()); }
     public String getName() { return name; }
     public String getEmail() { return email; }
     public UserStatus getStatus() { return status; }

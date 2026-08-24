@@ -16,8 +16,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class SchoolClassPO {
     @Id
-    @Column(length = 36)
-    private String id;
+    private Long id;
 
     @Column(nullable = false, length = 120)
     private String name;
@@ -25,8 +24,8 @@ public class SchoolClassPO {
     @Column(name = "grade_name", nullable = false, length = 120)
     private String gradeName;
 
-    @Column(name = "grade_id", nullable = false, length = 36)
-    private String gradeId;
+    @Column(name = "grade_id", nullable = false)
+    private Long gradeId;
 
     @Column(nullable = false, length = 32)
     private String status;
@@ -34,7 +33,7 @@ public class SchoolClassPO {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    public String getId() {
+    public Long getId() {
         return id;
     }
 
@@ -46,7 +45,7 @@ public class SchoolClassPO {
         return gradeName;
     }
 
-    public String getGradeId() {
+    public Long getGradeId() {
         return gradeId;
     }
 

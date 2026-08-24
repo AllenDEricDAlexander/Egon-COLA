@@ -14,12 +14,13 @@ import org.springframework.stereotype.Component;
 public class UserCreatedConsumer {
 
     private final UserManage userManage;
+    private final OrganizationMessageSupport messageSupport;
 
     @RabbitListener(
             queues = "student.organization.user.create.v1",
             autoStartup = "${symbol_dollar}{organization.integrations.rabbit.enabled:false}")
     public void consume(CreateUserMessage message) {
-        OrganizationMessageSupport.consume(() -> userManage.createUser(
+        messageSupport.consume(() -> userManage.createUser(
                 new CreateUserCommand(message.requestId(), message.name(), message.email())));
     }
 }

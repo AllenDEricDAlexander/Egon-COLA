@@ -26,7 +26,7 @@ class RolePermissionAggregateTest {
 
     @Test
     void assignsNormalizedRoleOnlyOnce() {
-        UserAggregate aggregate = new UserAggregate(activeUser("u-1"));
+        UserAggregate aggregate = new UserAggregate(activeUser(1001L));
 
         aggregate.assignRole(activeRole("student"));
 
@@ -48,16 +48,16 @@ class RolePermissionAggregateTest {
         assertEquals(OrganizationDomainErrorCode.DUPLICATE_PERMISSION_GRANT, exception.code());
     }
 
-    private static User activeUser(String id) {
+    private static User activeUser(Long id) {
         return new User(new UserId(id), "Mario", "mario@example.com", UserStatus.ACTIVE, List.of());
     }
 
     private static Role activeRole(String code) {
-        return new Role("role-" + code.toLowerCase(Locale.ROOT), new RoleCode(code), code, RoleStatus.ACTIVE);
+        return new Role(2001L, new RoleCode(code), code, RoleStatus.ACTIVE);
     }
 
     private static Permission activePermission(String code) {
-        return new Permission("permission-" + code.toLowerCase(Locale.ROOT),
+        return new Permission(3001L,
             new PermissionCode(code), code, PermissionType.API, PermissionStatus.ACTIVE);
     }
 }

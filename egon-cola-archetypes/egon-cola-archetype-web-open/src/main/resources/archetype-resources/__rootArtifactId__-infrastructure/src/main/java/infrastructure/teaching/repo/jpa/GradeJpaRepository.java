@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository("gradeJpaRepository")
-public interface GradeJpaRepository extends JpaRepository<GradePO, String> {
+public interface GradeJpaRepository extends JpaRepository<GradePO, Long> {
     Optional<GradePO> findByCode(String code);
     long countByCode(String code);
 }

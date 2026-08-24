@@ -17,11 +17,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ContextConfiguration;
-import top.egon.cola.component.common.id.generator.UuidV7Generator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.util.List;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,7 +29,7 @@ import static org.assertj.core.api.Assertions.assertThat;
     "spring.flyway.enabled=false",
     "spring.jpa.hibernate.ddl-auto=create-drop"
 })
-@Import({UserRepositoryImpl.class, UserPOConverter.class, UuidV7Generator.class})
+@Import({UserRepositoryImpl.class, UserPOConverter.class})
 @ContextConfiguration(classes = UserRepositoryImplTest.TestConfiguration.class)
 class UserRepositoryImplTest {
 
@@ -44,14 +43,14 @@ class UserRepositoryImplTest {
     @Test
     void savesAndRestoresNormalizedUser() {
         roleJpaRepository.save(new RolePO(
-            new UuidV7Generator().nextId(),
+            2001L,
             "STUDENT",
             "Student",
             "ACTIVE",
             LocalDateTime.now()));
         User saved = repository.save(
             new User(
-                    new UserId(new UuidV7Generator().nextId()),
+                    new UserId(1001L),
                     "Mario",
                     "mario@example.com",
                     UserStatus.ACTIVE,
@@ -60,9 +59,8 @@ class UserRepositoryImplTest {
         assertThat(repository.findById(saved.id())).get()
             .extracting(User::email, User::status)
             .containsExactly("mario@example.com", UserStatus.ACTIVE);
-        String relationId = userRoleJpaRepository.findByUserId(saved.id().value()).getFirst().getId();
-        assertThat(relationId).hasSize(36);
-        assertThat(UUID.fromString(relationId).version()).isEqualTo(7);
+        Long relationId = userRoleJpaRepository.findByUserId(saved.id().value()).getFirst().getId();
+        assertThat(relationId).isPositive();
     }
 
     @Configuration(proxyBeanMethods = false)
@@ -75,5 +73,7 @@ class UserRepositoryImplTest {
             "${package}.infrastructure.teaching.repo.jpa"
     })
     static class TestConfiguration {
+        @org.springframework.context.annotation.Bean
+        LongIdGenerator idGenerator() { return () -> 9001L; }
     }
 }

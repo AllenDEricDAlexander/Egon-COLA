@@ -5,6 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface RoleJpaRepository extends JpaRepository<RolePO, String> {
+public interface RoleJpaRepository extends JpaRepository<RolePO, Long> {
     Optional<RolePO> findByCode(String code);
 }

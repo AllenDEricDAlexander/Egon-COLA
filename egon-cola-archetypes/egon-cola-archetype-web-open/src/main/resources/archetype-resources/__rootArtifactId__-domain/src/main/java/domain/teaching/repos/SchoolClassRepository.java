@@ -9,9 +9,9 @@ import java.util.Optional;
 public interface SchoolClassRepository {
     SchoolClass save(SchoolClass schoolClass);
     Optional<SchoolClass> findByGradeIdAndId(
-            String gradeId,
+            Long gradeId,
             SchoolClassId schoolClassId);
-    boolean existsByGradeIdAndNameIgnoreCase(String gradeId, String name);
-    void addUser(String gradeId, SchoolClassId schoolClassId, UserId userId);
-    boolean hasUser(String gradeId, SchoolClassId schoolClassId, UserId userId);
+    boolean existsByGradeIdAndNameIgnoreCase(Long gradeId, String name);
+    void addUser(Long gradeId, SchoolClassId schoolClassId, UserId userId);
+    boolean hasUser(Long gradeId, SchoolClassId schoolClassId, UserId userId);
 }

@@ -11,9 +11,5 @@ public interface UserRepository {
 
     Optional<User> findById(UserId userId);
 
-    default Optional<User> findById(String userId) {
-        return findById(new UserId(userId));
-    }
-
     boolean existsByEmail(String normalizedEmail);
 }

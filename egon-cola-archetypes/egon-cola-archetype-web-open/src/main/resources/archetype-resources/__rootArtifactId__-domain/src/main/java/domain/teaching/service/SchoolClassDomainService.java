@@ -23,8 +23,8 @@ public class SchoolClassDomainService {
             grade.id(), grade.code(), grade.name(), SchoolClassStatus.ACTIVE, List.of());
     }
 
-    public SchoolClass assignUser(SchoolClass schoolClass, String userId) {
-        UserId id = new UserId(userId);
+    public SchoolClass assignUser(SchoolClass schoolClass, UserId userId) {
+        UserId id = userId;
         if (schoolClass.hasUser(id)) {
             throw new OrganizationDomainException(
                 OrganizationDomainErrorCode.CONFLICT, "user already assigned to school class");

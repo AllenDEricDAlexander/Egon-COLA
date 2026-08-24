@@ -17,8 +17,7 @@ import java.time.LocalDateTime;
 public class UserPO {
 
     @Id
-    @Column(length = 36)
-    private String id;
+    private Long id;
 
     @Column(nullable = false, length = 120)
     private String name;
@@ -32,7 +31,7 @@ public class UserPO {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    public String getId() { return id; }
+    public Long getId() { return id; }
     public String getName() { return name; }
     public String getEmail() { return email; }
     public String getStatus() { return status; }

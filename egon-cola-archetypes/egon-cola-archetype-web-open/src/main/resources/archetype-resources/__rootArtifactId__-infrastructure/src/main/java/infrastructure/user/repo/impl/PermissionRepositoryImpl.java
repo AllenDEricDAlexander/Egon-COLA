@@ -34,7 +34,7 @@ public class PermissionRepositoryImpl implements PermissionRepository {
 
     @Override
     public List<Permission> findByUserId(UserId userId) {
-        List<String> roleIds = userRoleJpaRepository.findByUserId(userId.value()).stream()
+        List<Long> roleIds = userRoleJpaRepository.findByUserId(userId.value()).stream()
             .map(UserRolePO::getRoleId).distinct().toList();
         if (roleIds.isEmpty()) {
             return List.of();

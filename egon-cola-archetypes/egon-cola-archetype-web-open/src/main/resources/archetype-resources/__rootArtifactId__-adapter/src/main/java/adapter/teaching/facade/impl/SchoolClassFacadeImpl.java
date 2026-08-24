@@ -1,6 +1,7 @@
 package ${package}.adapter.teaching.facade.impl;
 
 import ${package}.adapter.facade.impl.OrganizationFacadeSupport;
+import ${package}.adapter.facade.impl.OrganizationIdBoundary;
 import ${package}.application.teaching.command.CreateSchoolClassCommand;
 import ${package}.application.teaching.command.AssignUserToClassCommand;
 import ${package}.application.teaching.manage.SchoolClassManage;
@@ -19,26 +20,28 @@ import org.springframework.validation.annotation.Validated;
 @RequiredArgsConstructor
 public class SchoolClassFacadeImpl implements SchoolClassFacade {
     private final SchoolClassManage schoolClassManage;
+    private final OrganizationFacadeSupport support;
 
     @Override public SchoolClassDetailDTO createSchoolClass(CreateSchoolClassDTO request) {
-        return OrganizationFacadeSupport.invoke(() -> toDTO(schoolClassManage.createSchoolClass(
+        return support.invoke(() -> toDTO(schoolClassManage.createSchoolClass(
                 new CreateSchoolClassCommand(
-                    OrganizationFacadeSupport.requestId(), request.name(), request.gradeCode()))));
+                    support.requestId(), request.name(), request.gradeCode()))));
     }
     @Override public SchoolClassDetailDTO getSchoolClass(String gradeId, String schoolClassId) {
-        return OrganizationFacadeSupport.invoke(
+        return support.invoke(
                 () -> toDTO(schoolClassManage.getSchoolClass(
-                        new SchoolClassDetailQuery(gradeId, schoolClassId))));
+                        new SchoolClassDetailQuery(OrganizationIdBoundary.parse(gradeId, "gradeId"),
+                            OrganizationIdBoundary.parse(schoolClassId, "schoolClassId")))));
     }
     @Override public void assignUser(AssignUserToClassDTO request) {
-        OrganizationFacadeSupport.invoke(() -> schoolClassManage.assignUser(new AssignUserToClassCommand(
-            OrganizationFacadeSupport.requestId(),
-            request.gradeId(),
-            request.schoolClassId(),
-            request.userId())));
+        support.invoke(() -> schoolClassManage.assignUser(new AssignUserToClassCommand(
+            support.requestId(),
+            OrganizationIdBoundary.parse(request.gradeId(), "gradeId"),
+            OrganizationIdBoundary.parse(request.schoolClassId(), "schoolClassId"),
+            OrganizationIdBoundary.parse(request.userId(), "userId"))));
     }
     private static SchoolClassDetailDTO toDTO(SchoolClassDetailResult result) {
-        return new SchoolClassDetailDTO(result.id(), result.name(), result.gradeCode(),
-            result.gradeName(), result.status(), result.userIds());
+        return new SchoolClassDetailDTO(Long.toString(result.id()), result.name(), result.gradeCode(),
+            result.gradeName(), result.status(), result.userIds().stream().map(String::valueOf).toList());
     }
 }

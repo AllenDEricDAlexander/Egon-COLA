@@ -23,10 +23,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.ContextConfiguration;
-import top.egon.cola.component.common.id.generator.UuidV7Generator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -37,8 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
         + "${package}.infrastructure.teaching.repo.SqlCaptureStatementInspector"
 })
 @Import({GradeRepositoryImpl.class, SchoolClassRepositoryImpl.class,
-    GradePOConverter.class, GradePOMapperImpl.class, SchoolClassPOConverter.class,
-    UuidV7Generator.class})
+    GradePOConverter.class, GradePOMapperImpl.class, SchoolClassPOConverter.class})
 @ContextConfiguration(classes = SchoolClassRepositoryImplTest.TestConfiguration.class)
 class SchoolClassRepositoryImplTest {
     @Autowired GradeRepository gradeRepository;
@@ -48,10 +46,9 @@ class SchoolClassRepositoryImplTest {
 
     @Test
     void savesClassAndChecksNameWithinGradeIgnoringCase() {
-        UuidV7Generator idGenerator = new UuidV7Generator();
-        String gradeId = idGenerator.nextId();
-        String schoolClassId = idGenerator.nextId();
-        String userId = idGenerator.nextId();
+        Long gradeId = 1001L;
+        Long schoolClassId = 2001L;
+        Long userId = 3001L;
         Grade grade = gradeRepository.save(new Grade(
             gradeId, GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE));
         userJpaRepository.save(new ${package}.infrastructure.user.repo.po.UserPO(
@@ -70,12 +67,11 @@ class SchoolClassRepositoryImplTest {
                 gradeId, new SchoolClassId(schoolClassId), new UserId(userId));
         assertThat(SqlCaptureStatementInspector.statements())
             .noneMatch(sql -> isIdOnlyLookup(sql, "school_class_users"));
-        String relationId = schoolClassUserJpaRepository
+        Long relationId = schoolClassUserJpaRepository
                 .findByGradeIdAndSchoolClassId(gradeId, schoolClassId)
                 .getFirst()
                 .getId();
-        assertThat(relationId).hasSize(36);
-        assertThat(UUID.fromString(relationId).version()).isEqualTo(7);
+        assertThat(relationId).isPositive();
     }
 
     private static boolean isIdOnlyLookup(String sql, String table) {
@@ -95,5 +91,8 @@ class SchoolClassRepositoryImplTest {
             "${package}.infrastructure.user.repo.jpa",
             "${package}.infrastructure.teaching.repo.jpa"
     })
-    static class TestConfiguration {}
+    static class TestConfiguration {
+        @org.springframework.context.annotation.Bean
+        LongIdGenerator idGenerator() { return () -> 9001L; }
+    }
 }

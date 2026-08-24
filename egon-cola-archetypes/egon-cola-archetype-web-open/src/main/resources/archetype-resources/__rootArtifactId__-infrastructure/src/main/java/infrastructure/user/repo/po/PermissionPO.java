@@ -15,14 +15,14 @@ import java.time.LocalDateTime;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class PermissionPO {
-    @Id @Column(length = 36) private String id;
+    @Id private Long id;
     @Column(nullable = false, unique = true, length = 64) private String code;
     @Column(nullable = false, length = 120) private String name;
     @Column(nullable = false, length = 32) private String type;
     @Column(nullable = false, length = 32) private String status;
     @Column(name = "created_at", nullable = false) private LocalDateTime createdAt;
 
-    public String getId() { return id; }
+    public Long getId() { return id; }
     public String getCode() { return code; }
     public String getName() { return name; }
     public String getType() { return type; }
