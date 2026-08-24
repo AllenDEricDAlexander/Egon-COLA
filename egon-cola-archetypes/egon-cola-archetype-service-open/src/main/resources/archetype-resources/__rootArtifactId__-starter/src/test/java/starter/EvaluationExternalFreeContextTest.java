@@ -11,6 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.test.context.ActiveProfiles;
+import top.egon.cola.component.dtp.context.DtpTaskDecorator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -23,6 +24,7 @@ class EvaluationExternalFreeContextTest {
     @Autowired private ApplicationContext context;
     @Autowired private Environment environment;
     @Autowired private OrganizationDirectoryPort organizationDirectory;
+    @Autowired private DtpTaskDecorator dtpTaskDecorator;
 
     @Test
     void shouldAssembleWithoutExternalInfrastructure() {
@@ -39,5 +41,10 @@ class EvaluationExternalFreeContextTest {
                 .isFalse();
         assertThat(organizationDirectory).isInstanceOf(LocalOrganizationDirectoryStub.class);
         assertThat(context.containsBean("dubboOrganizationDirectoryClient")).isFalse();
+        assertThat(dtpTaskDecorator).isNotNull();
+        assertThat(context.getBeansOfType(org.springframework.web.bind.annotation.RestController.class))
+                .isEmpty();
+        assertThat(context.getBeansOfType(Object.class).keySet())
+                .noneMatch(name -> name.toLowerCase().contains("openapi"));
     }
 }

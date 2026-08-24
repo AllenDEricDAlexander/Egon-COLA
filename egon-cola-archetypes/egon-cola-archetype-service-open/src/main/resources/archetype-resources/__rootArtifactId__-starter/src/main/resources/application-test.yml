@@ -4,6 +4,23 @@ spring:
     init:
       mode: never
 
+egon:
+  cola:
+    component:
+      id:
+        machine-id: 0
+      dtp:
+        enabled: false
+        report:
+          enabled: false
+
+management:
+  health:
+    rabbit:
+      enabled: false
+    redis:
+      enabled: false
+
 app:
   datasource:
     mode: ${symbol_dollar}{APP_DATASOURCE_MODE:SHARDING}

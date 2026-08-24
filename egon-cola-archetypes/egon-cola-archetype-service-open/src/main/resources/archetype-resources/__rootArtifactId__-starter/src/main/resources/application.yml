@@ -25,7 +25,8 @@ spring:
       pool:
         core-size: ${symbol_dollar}{ASYNC_CORE_SIZE:8}
         max-size: ${symbol_dollar}{ASYNC_MAX_SIZE:32}
-        queue-capacity: ${symbol_dollar}{ASYNC_QUEUE_CAPACITY:500}
+        queue-capacity: ${symbol_dollar}{ASYNC_QUEUE_CAPACITY:1000}
+        keep-alive: ${symbol_dollar}{ASYNC_KEEP_ALIVE:60s}
     scheduling:
       shutdown:
         await-termination: true
@@ -86,6 +87,25 @@ logging:
       max-history: ${symbol_dollar}{LOG_MAX_HISTORY:30}
       total-size-cap: ${symbol_dollar}{LOG_TOTAL_SIZE_CAP:10GB}
       clean-history-on-start: ${symbol_dollar}{LOG_CLEAN_HISTORY_ON_START:false}
+
+egon:
+  cola:
+    component:
+      id:
+        machine-id: ${symbol_dollar}{EGON_ID_MACHINE_ID}
+      dtp:
+        enabled: ${symbol_dollar}{DTP_ENABLED:true}
+        app-name: ${symbol_dollar}{DTP_APP_NAME:${symbol_dollar}{spring.application.name}}
+        instance-id: ${symbol_dollar}{DTP_INSTANCE_ID:${symbol_dollar}{INSTANCE_ID:${symbol_dollar}{HOSTNAME:local}}}
+        registry:
+          type: redis
+          redis:
+            host: ${symbol_dollar}{DTP_REDIS_HOST:${symbol_dollar}{SPRING_DATA_REDIS_HOST:127.0.0.1}}
+            port: ${symbol_dollar}{DTP_REDIS_PORT:${symbol_dollar}{SPRING_DATA_REDIS_PORT:6379}}
+            password: ${symbol_dollar}{DTP_REDIS_PASSWORD:${symbol_dollar}{SPRING_DATA_REDIS_PASSWORD:}}
+        report:
+          enabled: ${symbol_dollar}{DTP_REPORT_ENABLED:true}
+          interval: ${symbol_dollar}{DTP_REPORT_INTERVAL:20s}
 
 app:
   datasource:

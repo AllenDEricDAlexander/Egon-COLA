@@ -34,6 +34,7 @@
         <mybatis-plus.version>3.5.17</mybatis-plus.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
         <exec.maven.plugin.version>3.5.0</exec.maven.plugin.version>
+        <archunit.version>1.4.2</archunit.version>
     </properties>
 
     <modules>
@@ -152,6 +153,11 @@
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-api</artifactId>
                 <version>${grpc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.tngtech.archunit</groupId>
+                <artifactId>archunit-junit5</artifactId>
+                <version>${archunit.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

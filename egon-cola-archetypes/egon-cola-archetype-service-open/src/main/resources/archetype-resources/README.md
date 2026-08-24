@@ -1,193 +1,64 @@
-#set( $symbol_pound = '#' )
-${symbol_pound} ${rootArtifactId}
+# ${rootArtifactId}
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-`${rootArtifactId}` is a service-only COLA sample for Course, Schedule, Exam, Paper, and Score workflows. Business traffic enters through Dubbo Triple RPC or RabbitMQ; HTTP is reserved for Spring Boot Actuator management endpoints.
+`${rootArtifactId}` is a service-only Egon COLA Open sample for Course, Schedule, Exam, Paper, and Score workflows. Business traffic enters through Dubbo Triple or RabbitMQ; HTTP is limited to Spring Boot Actuator management endpoints.
 
-${symbol_pound}${symbol_pound} Module Ownership
+## Modules
 
-- `${rootArtifactId}-common`: stable errors, constants, enums, and identifier utilities.
-- `${rootArtifactId}-domain`: entities, aggregates, value objects, domain services, repository/event ports, and the consumer-owned Organization directory port. It contains no persistence, MQ, Facade, or Dubbo implementation.
-- `${rootArtifactId}-application`: commands, queries, use-case managers, application validation, and result models.
-- `${rootArtifactId}-infrastructure`: Spring Data JPA repositories, Flyway migrations, RabbitMQ/local publisher implementations, and the `top.egon:egon-cola-organization-facade` anti-corruption adapter.
-- `${rootArtifactId}-adapter`: Dubbo providers for `top.egon:egon-cola-evaluation-facade`, facade conversion, validation, exception translation, and the score-command MQ consumer.
-- `${rootArtifactId}-starter`: Spring Boot assembly, profiles, management configuration, and architecture/context tests.
-
-${symbol_pound}${symbol_pound} Domain-first package layout
-
-Business-owned code puts the domain before the technical responsibility:
+The generated Maven reactor contains one parent POM and seven modules:
 
 ```text
-domain/exam/entities
-application/course/manage
-infrastructure/exam/repo
-adapter/course/facade/impl
-adapter/exam/mq
+${rootArtifactId}-common       local errors/constants/enums
+${rootArtifactId}-facade       local Proto wire contract and Triple codegen
+${rootArtifactId}-domain       aggregates, value objects, ports
+${rootArtifactId}-application   use-case orchestration
+${rootArtifactId}-infrastructure MyBatis-Plus, sharding, MQ and RPC clients
+${rootArtifactId}-adapter       Proto RPC providers, converters and MQ consumers
+${rootArtifactId}-starter        Boot composition, profiles and runtime governance
 ```
 
-This remains service-only: business traffic enters through Dubbo Triple or RabbitMQ, with no business Controller, Web Filter, GraphQL, or VO package. The external Organization boundary remains at `domain/client/organization` and `infrastructure/client/organization`.
+Domain-first packages remain `domain/<business-area>`, `application/<business-area>`, `infrastructure/<business-area>`, and `adapter/<business-area>`. The dependency direction is `facade` (contract only), `domain -> common`, `application -> domain`, `adapter -> application/facade`, `infrastructure -> domain/facade`, and `starter` as the composition root.
 
-The allowed internal dependency graph is:
+## Local Proto and Triple
 
-```text
-Common <- Domain <- Application <- Adapter <- Canonical Evaluation Facade
-          Domain <- Infrastructure <- Canonical Organization Facade
-          Adapter <- Starter -> Infrastructure
-```
+`facade/src/main/proto` is the only RPC wire source. Five business files define eight services and 21 unary methods under `egon.evaluation.v1` and `egon.organization.v1`; Dubbo Maven plugin `3.3.6` generates `tri` stubs. IDs are positive `int64`, instants are `Timestamp`, void responses are `google.protobuf.Empty`, and page responses use `records/current_page/total_pages/page_size/total_count`. A local wire-compatible `google/protobuf/empty.proto` support source is included for Dubbo 3.3.6 code generation.
 
-More precisely: Domain depends only on Common; Application and Infrastructure depend only on Domain; Adapter depends only on Application. Adapter implements the external Evaluation Facade contract, Infrastructure consumes the external Organization Facade contract, and neither published Facade depends on this generated project. Starter is the composition root, so there is no Web/Service Maven dependency cycle.
+Evaluation exposes its 11 methods on one Triple port (`course`, `exam`, and `score` groups, version `1.0.0`). Organization directory calls use the same local Proto contract. Standard gRPC unary calls are tested through `ManagedChannel`; the template does not start a second grpc-java server.
 
-${symbol_pound}${symbol_pound} Example Flows
+## IDs, persistence, and schema operations
 
-- Course RPC creates a course with a unique normalized code, reads it, pages it, and schedules a class without overlapping time ranges.
-- Exam RPC creates an exam for a course, attaches one paper, and publishes the exam only after its paper is ready.
-- Score RPC records and queries validated scores. A RabbitMQ score command enters through `RecordScoreConsumer` and delegates to the same Application use case.
-- Domain publisher ports describe course scheduling, exam publication, and score recording. Infrastructure supplies local or RabbitMQ implementations.
+All technical IDs are generated by the Common `LongIdGenerator`, stored as PostgreSQL `BIGINT`, and kept as positive `Long` in Domain, Application, PO, Mapper, events, and sharding. Set a unique `EGON_ID_MACHINE_ID` for every runtime instance; there is no runtime default. UUID generators and UUID sharding are not part of this archetype.
 
-RabbitMQ support is intentionally basic transport. The sample does not promise retry, dead-letter queue, idempotent inbox, transactional outbox, or delivery guarantees beyond the configured broker behavior.
+Persistence uses official MyBatis-Plus `3.5.17` and ShardingSphere `5.5.3`. There is no Spring Data JPA, `JpaRepository`, `jakarta.persistence`, Flyway, or automatic schema updater. PostgreSQL DDL and indexes are versioned as ordered scripts under `infrastructure/src/main/resources/db/manual/postgresql`; apply them manually according to that directory's `README.md` and target physical primaries explicitly. The application never creates or updates tables at startup.
 
-${symbol_pound}${symbol_pound} Profiles And Integrations
+The initial evaluation topology uses `master_data`, `shard_0`, and `shard_1`. `course_schedule` routes by `course_id`, `exam` by `id`, and `exam_paper`/`score` by `exam_id`; the same exam aggregate remains on one database/table slot. Non-positive IDs, missing sharding keys, range routing, unknown nodes, and inconsistent node maps fail fast.
 
-`dev` is the default profile for workstation development and `feature/*` branch verification. It uses the environment-backed PostgreSQL, Nacos, RabbitMQ, and Dubbo integrations.
+## Runtime profiles
 
-`test` is selected automatically by Maven tests and is used by the `dev`, `release/*`, and `hotfix/*` validation pipelines. It uses H2 in PostgreSQL compatibility mode, disables RabbitMQ publishers and listeners, and selects a deterministic `OrganizationDirectoryPort` stub, so it requires no Nacos, RabbitMQ, PostgreSQL, or external Dubbo provider.
+`dev` is the default profile for a workstation and uses environment-provided PostgreSQL, Nacos, RabbitMQ, Redis, and Dubbo. `prod` uses the same contracts with operator-owned secrets. `test` uses H2 PostgreSQL compatibility mode, local Organization stubs, and no live Nacos, Redis, RabbitMQ, or external provider.
 
-The Organization Facade client is an unused infrastructure foundation; no current Application use case calls the Organization port.
+The sole asynchronous executor is the bounded Boot `applicationTaskExecutor` (`core=8`, `max=32`, `queue=1000`, `keep-alive=60s` by default). `DtpTaskDecorator` preserves and cleans execution context; Dynamic Thread Pool governs that same executor through Redis in `dev`/`prod`. `test` disables DTP reporting and Nacos.
 
-`prod` is reserved for runtime builds and deployments from `main`. Both `dev` and `prod` select the real Organization Dubbo client, pin `top.egon:egon-cola-organization-facade` through the generated POM, and fail explicitly when the provider is unavailable. Configure them through environment variables rather than committed secrets:
+Every compose variant passes an explicit machine ID and DTP Redis/report settings. Nacos is pinned to `nacos/nacos-server:v3.0.3`; provide credentials and passwords through `deploy/env/.env.example` or an operator-owned production env file.
 
-- Database: configure the `master_data`, `shard_0`, and `shard_1` physical data sources described below.
-- Nacos: `NACOS_SERVER_ADDR`, `NACOS_NAMESPACE`, `NACOS_USERNAME`, `NACOS_PASSWORD`. Config and discovery carry separate groups — `NACOS_CONFIG_GROUP` and `NACOS_DISCOVERY_GROUP` — and separate switches: `NACOS_CONFIG_ENABLED`, `NACOS_DISCOVERY_ENABLED`, `NACOS_CONFIG_REFRESH_ENABLED`, and `DISCOVERY_ENABLED`.
+Useful variables include:
+
+- Nacos: `NACOS_SERVER_ADDR`, `NACOS_NAMESPACE`, `NACOS_USERNAME`, `NACOS_PASSWORD`, `NACOS_CONFIG_ENABLED`, `NACOS_DISCOVERY_ENABLED`.
 - Dubbo: `DUBBO_REGISTRY_ADDRESS`, `DUBBO_PORT`, `DUBBO_CONSUMER_TIMEOUT`.
-- Organization Facade: `ORGANIZATION_FACADE_ENABLED`, `ORGANIZATION_FACADE_GROUP`, `ORGANIZATION_FACADE_SERVICE_VERSION`.
-- RabbitMQ: connection settings bind through Spring's own names — `SPRING_RABBITMQ_HOST`, `SPRING_RABBITMQ_PORT`, `SPRING_RABBITMQ_USERNAME`, `SPRING_RABBITMQ_PASSWORD` — while `RABBITMQ_ENABLED` and `RABBITMQ_LISTENER_AUTO_STARTUP` are this application's own switches.
-- Configuration decryption: `EGON_CONFIG_DECRYPT_KEY`, `EGON_CONFIG_DECRYPT_KEY_FILE`, or the documented config-tree secret source.
+- DTP/identity: `EGON_ID_MACHINE_ID`, `DTP_ENABLED`, `DTP_REPORT_ENABLED`, `DTP_REDIS_HOST`, `DTP_REDIS_PORT`, `DTP_REDIS_PASSWORD`.
+- Database: `EVALUATION_SHARDING_*` variables described in `deploy/env/.env.example`.
+- RabbitMQ: `SPRING_RABBITMQ_*`, `RABBITMQ_ENABLED`, and `RABBITMQ_LISTENER_AUTO_STARTUP`.
 
-${symbol_pound}${symbol_pound} Sharding, Read/Write Splitting, And Flyway
+## Verification
 
-The generated application always uses a ShardingSphere logical data source and
-supports two routing modes:
-
-```bash
-SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING bash ./mvnw -pl ${rootArtifactId}-starter spring-boot:run
-SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING_READWRITE bash ./mvnw -pl ${rootArtifactId}-starter spring-boot:run
-```
-
-Environment profiles are limited to `dev`, `test`, and `prod`.
-`APP_DATASOURCE_MODE` accepts `SHARDING` (the default) or
-`SHARDING_READWRITE`. Both modes migrate each configured physical primary
-before creating the logical `DataSource`; replicas and the logical data source
-are never Flyway targets. Read/write mode sends ordinary reads to replicas,
-writes to primaries, and transaction-bound reads to primaries. Bundled Compose
-does not emulate replicas and defaults to `SHARDING`.
-
-The table topology is:
-
-- Master table `course` stays on `master_data` through explicit
-  `databaseStrategy.none` and `tableStrategy.none` rules inside
-  `!SHARDING.tables`. Neither `!SINGLE` nor an application-wide single data
-  source mode is used.
-- `course_schedule` is sharded by `course_id`.
-- Binding tables `exam`, `exam_paper`, and `score` are sharded by `id`,
-  `exam_id`, and `exam_id`. One exam aggregate uses the same `examId`, so
-  all three tables are colocated in one physical database and table suffix.
-- All four sharded tables enable `DML_SHARDING_CONDITIONS`; DML without a
-  sharding condition is rejected and `allowHintDisable=false` prevents bypass.
-
-Primary-only sharding uses `EVALUATION_SHARDING_MASTER_DATA_URL`,
-`EVALUATION_SHARDING_SHARD_0_URL`, `EVALUATION_SHARDING_SHARD_1_URL`,
-`EVALUATION_SHARDING_USERNAME`, `EVALUATION_SHARDING_PASSWORD`, and optionally
-`EVALUATION_SHARDING_DRIVER_CLASS_NAME`. Read/write splitting uses URL,
-username, and password triples for `EVALUATION_MASTER_DATA_PRIMARY`,
-`EVALUATION_MASTER_DATA_REPLICA_0`, `EVALUATION_SHARD_0_PRIMARY`,
-`EVALUATION_SHARD_0_REPLICA_0`, `EVALUATION_SHARD_1_PRIMARY`, and
-`EVALUATION_SHARD_1_REPLICA_0`.
-
-Flyway uses only `db/migration/sharding/master-data` and
-`db/migration/sharding/shard`. It runs serially against physical primaries
-before the logical data source is created. Spring Boot Flyway auto-configuration
-is excluded, so replicas and the logical data source are never migrated.
-`FLYWAY_ENABLED=false` skips physical migrations.
-
-Application-generated surrogate keys use UUIDv7 serialized as 36-character RFC
-strings. Migration files follow `VyyyyMMdd_NNN__description.sql` and begin with
-`变更内容`, `影响范围`, and `兼容性说明` comments.
-
-Database count, table count per database, and total physical-node count must all
-be powers of two. The initial map is `2 databases × 2 tables = 4 nodes`, held in
-`EVALUATION_SHARDING_NODE_COUNT` (default `4`) and `EVALUATION_SHARDING_NODE_MAP`
-(default `0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1`);
-`EVALUATION_SHARDING_DATABASE_NAME` names the logical database.
-Capacity follows the 2N rule: change one dimension from `N` to `2N` at a time
-and publish the complete `node-count` and `node-map` together. This unused
-scaffold has no historical data and provides no online migration, dual-write,
-CDC, or automatic data movement mechanism.
-
-Transactions are local to one physical database only. An exam, its paper, and
-scores must use the same `examId`; schedules retain their `courseId`.
-Cross-shard workflows use business idempotency, explicit states, events,
-reconciliation, and compensation. No XA, BASE, Seata, or other distributed
-transaction coordinator is included.
-
-${symbol_pound}${symbol_pound} Verification And Packaging
+From the repository root:
 
 ```bash
-SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean verify
-SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp -DskipTests package
+./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
+  -pl :egon-cola-archetype-service-open -am clean integration-test
 ```
 
-The test suite includes Domain rules, Application orchestration, JPA adapters,
-date-sequence Flyway migration contracts, broker-free MQ adapters, an actual
-Dubbo Triple proxy call, external-free Spring context assembly, and architecture
-dependency checks. Building the image does not start the service.
+The generated tests cover Proto descriptors, Long identity, MyBatis-Plus repositories, ShardingSphere H2 routing, manual SQL conventions, 11 Triple providers, standard gRPC unary interoperability, Organization client/stub behavior, DTP executor context, and ArchUnit dependency direction. ArchUnit replaces the internal bytecode Maven plugin and enforces service-only/no-JPA/no-Flyway/no-Gateway/no-Springdoc boundaries.
 
-Use `verify`, not `test`. The architecture-governance plugin is bound to the `verify`
-phase and runs with `unknownLayerPolicy=FAIL`, so `clean test` would run every unit test
-while performing no layer check at all. The generated `.github/workflows/ci.yml` and the
-root `Jenkinsfile` both use `verify` for this reason.
-
-Encrypt a configuration value with a 32-byte key supplied through
-`EGON_CONFIG_DECRYPT_KEY` or `EGON_CONFIG_DECRYPT_KEY_FILE`:
-
-```bash
-printf '%s' 'plain-text' | EGON_CONFIG_DECRYPT_KEY='replace-with-32-byte-secret-key' \
-  bash ./mvnw -q -pl ${rootArtifactId}-starter -am -DskipTests compile exec:java \
-  -Dexec.mainClass=${package}.starter.config.encryption.ConfigCipherCli
-```
-
-`ConfigCipherCli` takes no arguments and reads the plaintext from standard input.
-Use the emitted `ENC(v1:...)` value in configuration.
-
-${symbol_pound}${symbol_pound} Container Delivery
-
-The generated project uses one source-building `deploy/container/Dockerfile`:
-
-```bash
-docker build --build-arg CONTAINER_ENGINE=docker -f deploy/container/Dockerfile -t ${rootArtifactId}:local .
-podman build --build-arg CONTAINER_ENGINE=podman -f deploy/container/Dockerfile -t ${rootArtifactId}:local .
-nerdctl build --build-arg CONTAINER_ENGINE=nerdctl -f deploy/container/Dockerfile -t ${rootArtifactId}:local .
-```
-
-Start the complete Docker development stack with:
-
-```bash
-docker compose --env-file deploy/env/.env.example -f deploy/compose/compose.docker.yaml up -d --build
-```
-
-Bundled Compose defaults to `APP_DATASOURCE_MODE=SHARDING` and provisions three
-PostgreSQL primaries: `postgres-master-data`, `postgres-shard-0`, and
-`postgres-shard-1`. It does not create replicas; `SHARDING_READWRITE` is code and
-configuration support for environments that supply matching primary/replica endpoints.
-
-Podman and nerdctl use `compose.podman.yaml` and `compose.nerdctl.yaml`. Production
-uses the matching `.prod.yaml` file and an operator-owned `.env.prod`. See
-`deploy/container/README.md` for rootless prerequisites, persistence, production
-boundaries, and data-deletion warnings.
-
-The root `Jenkinsfile` runs tests and can publish immutable images. Set
-`PUBLISH_IMAGE=true` plus registry parameters to publish; it never deploys.
-
-${symbol_pound}${symbol_pound} Scope Boundary
-
-This generated service has no business Controller, Web Filter, GraphQL endpoint, native grpc-java module, or enabled H2 console. Its Organization Facade client is intentionally not wired into current Application behavior.
+These checks are source/generated-project and local-test evidence. They do not prove a live PostgreSQL schema, Redis DTP registry, Nacos topology, RabbitMQ, cross-Project provider, deployment network, or production authorization. Archetype generation and the commands above do not start the application or apply database SQL.
