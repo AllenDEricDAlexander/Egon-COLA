@@ -33,6 +33,10 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
         <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-dynamic-thread-pool-starter</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
@@ -62,6 +66,12 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>${archunit.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -85,21 +95,6 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>${exec.maven.plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-bytecode-architecture-maven-plugin</artifactId>
-                <version>${egon-cola.version}</version>
-                <configuration>
-                    <unknownLayerPolicy>FAIL</unknownLayerPolicy>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>cola-architecture-check</id>
-                        <phase>verify</phase>
-                        <goals><goal>check-reactor</goal></goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

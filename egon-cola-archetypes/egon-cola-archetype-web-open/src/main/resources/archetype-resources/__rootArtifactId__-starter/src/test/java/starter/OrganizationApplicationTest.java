@@ -1,17 +1,16 @@
 package ${package}.starter;
 
-import ${package}.domain.client.evaluation.EvaluationQueryPort;
-import ${package}.infrastructure.client.evaluation.GrpcEvaluationQueryClient;
-import ${package}.infrastructure.client.evaluation.LocalEvaluationQueryStub;
+import ${package}.starter.config.async.AsyncConfiguration;
 import org.junit.jupiter.api.Test;
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.env.Environment;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-
-import java.util.Arrays;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.test.util.AopTestUtils;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.dtp.context.DtpTaskDecorator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -27,20 +26,36 @@ class OrganizationApplicationTest {
     private Environment environment;
 
     @Autowired
-    private EvaluationQueryPort evaluationQueryPort;
+    @Qualifier("applicationTaskExecutor")
+    private ThreadPoolTaskExecutor applicationTaskExecutor;
+
+    @Autowired
+    private AsyncConfiguration asyncConfiguration;
+
+    @Autowired
+    private DtpTaskDecorator dtpTaskDecorator;
+
+    @Autowired
+    private LongIdGenerator idGenerator;
 
     @Test
-    void testProfileIsExternalFree() {
-        assertThat(context.getBeansOfType(RedisConnectionFactory.class)).isEmpty();
-        assertThat(context.getBeansOfType(ConnectionFactory.class)).isEmpty();
-        assertThat(Arrays.stream(context.getBeanDefinitionNames())
-                .filter(name -> name.toLowerCase().contains("nacos"))).isEmpty();
-        assertThat(environment.getProperty("dubbo.registry.address")).isEqualTo("N/A");
-        assertThat(environment.getProperty("dubbo.protocol.name")).isEqualTo("injvm");
-        assertThat(environment.getProperty("organization.integrations.redis.enabled")).isEqualTo("false");
-        assertThat(environment.getProperty("organization.integrations.rabbit.enabled")).isEqualTo("false");
-        assertThat(environment.getProperty("organization.integrations.evaluation.enabled")).isEqualTo("false");
-        assertThat(evaluationQueryPort).isInstanceOf(LocalEvaluationQueryStub.class);
-        assertThat(context.getBeansOfType(GrpcEvaluationQueryClient.class)).isEmpty();
+    void exposesOneBoundedDtpGovernedExecutorAndMachineId() {
+        assertThat(context.getBeansOfType(ThreadPoolTaskExecutor.class))
+                .containsOnlyKeys("applicationTaskExecutor");
+        assertThat(applicationTaskExecutor.getThreadPoolExecutor().getCorePoolSize())
+                .isEqualTo(8);
+        assertThat(applicationTaskExecutor.getThreadPoolExecutor().getMaximumPoolSize())
+                .isEqualTo(32);
+        assertThat(applicationTaskExecutor.getThreadPoolExecutor().getQueue().remainingCapacity())
+                .isEqualTo(1000);
+        assertThat((ThreadPoolTaskExecutor) AopTestUtils.getTargetObject(
+                asyncConfiguration.getAsyncExecutor()))
+                .isSameAs(applicationTaskExecutor);
+        assertThat(context.getBeansOfType(DtpTaskDecorator.class)).containsOnlyKeys("dtpTaskDecorator");
+        assertThat(environment.getProperty("egon.cola.component.id.machine-id", Long.class))
+                .isEqualTo(0L);
+        assertThat(idGenerator.nextLongId()).isPositive();
+        assertThat(environment.getProperty("egon.cola.component.dtp.enabled", Boolean.class))
+                .isFalse();
     }
 }

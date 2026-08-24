@@ -1,5 +1,8 @@
 #set( $symbol_dollar = '$' )
 spring:
+  sql:
+    init:
+      mode: never
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
@@ -14,6 +17,16 @@ dubbo:
   protocol:
     name: injvm
     port: -1
+
+egon:
+  cola:
+    component:
+      id:
+        machine-id: 0
+      dtp:
+        enabled: false
+        report:
+          enabled: false
 
 organization:
   integrations:

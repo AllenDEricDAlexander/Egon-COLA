@@ -16,7 +16,7 @@ nerdctl build --build-arg CONTAINER_ENGINE=nerdctl \
   --file deploy/container/Dockerfile --tag "$IMAGE_NAME:local" .
 ```
 
-Dockerfile 使用 Maven Wrapper 打包源码。所有 Maven 依赖（包括组织专用的 Facade artifact）都必须能从构建环境解析。私有仓库凭据传输属于运维职责，不得编码为 Docker build argument，因为 build argument 不是密钥存储。
+Dockerfile 使用 Maven Wrapper 打包源码。所有 Maven 依赖（包括 Egon Components BOM 和本地生成的 Proto facade 模块）都必须能从构建环境解析。私有仓库凭据传输属于运维职责，不得编码为 Docker build argument，因为 build argument 不是密钥存储。
 
 ## Docker
 
@@ -47,7 +47,7 @@ nerdctl compose --env-file deploy/env/.env.example \
   --file deploy/compose/compose.nerdctl.yaml up -d --build
 ```
 
-示例凭据仅供开发使用。
+示例凭据仅供开发使用；每个应用实例都必须设置唯一的 `EGON_ID_MACHINE_ID`。
 
 ## 生产 Compose
 
@@ -61,7 +61,7 @@ nerdctl compose --env-file deploy/env/.env.example \
 
 ## 健康检查与失败行为
 
-三个 PostgreSQL primary、Redis、RabbitMQ、Nacos 和 Spring Boot readiness endpoint 都配置了 health check。缺少生产变量会导致 Compose 配置失败。已启用但不可用的远程 Facade 会保留生成应用的 fail-fast 行为。
+三个 PostgreSQL primary、Redis、RabbitMQ、Nacos 和 Spring Boot readiness endpoint 都配置了 health check。缺少生产变量会导致 Compose 配置失败。已启用但不可用的远程 Evaluation gRPC 依赖会遵守生成应用的 deadline 和失败映射；组织 Triple Provider 由当前生成应用实现。
 
 ## Jenkins
 

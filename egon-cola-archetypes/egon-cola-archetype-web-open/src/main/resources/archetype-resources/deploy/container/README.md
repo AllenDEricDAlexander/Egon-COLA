@@ -20,8 +20,8 @@ nerdctl build --build-arg CONTAINER_ENGINE=nerdctl \
 ```
 
 The Dockerfile packages source with the Maven Wrapper. All Maven dependencies,
-including organization-specific Facade artifacts, must be resolvable from the
-build environment. Private-repository credential transport is an operator concern
+including the Egon Components BOM and locally generated Proto facade module, must be
+resolvable from the build environment. Private-repository credential transport is an operator concern
 and must not be encoded as a Docker build argument because build arguments are not
 secret storage.
 
@@ -67,7 +67,8 @@ The bundled Compose files set `APP_DATASOURCE_MODE=SHARDING` and provision
 emulate replicas. `SHARDING_READWRITE` requires an operator-managed topology and
 all variables declared by `datasource/sharding-readwrite.yml`.
 
-The example credentials are development-only.
+The example credentials are development-only. Set a unique `EGON_ID_MACHINE_ID` for
+each application instance.
 
 ## Production Compose
 
@@ -90,9 +91,9 @@ log data. No generated helper performs that deletion automatically.
 ## Health And Failure Behavior
 
 All three PostgreSQL primaries, Redis, RabbitMQ, Nacos, and the Spring Boot
-readiness endpoint have health checks. Missing production variables fail Compose configuration. An enabled
-but unavailable remote Facade retains the generated application's fail-fast
-behavior.
+readiness endpoint have health checks. Missing production variables fail Compose configuration. An enabled but
+unavailable remote Evaluation gRPC dependency retains the generated application's configured deadline and failure
+mapping; the organization Triple Provider is implemented by this generated application.
 
 ## Jenkins
 

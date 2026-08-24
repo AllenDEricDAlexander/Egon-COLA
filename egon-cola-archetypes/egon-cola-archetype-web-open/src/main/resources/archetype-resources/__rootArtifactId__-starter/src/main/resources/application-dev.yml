@@ -13,7 +13,7 @@ spring:
 
 dubbo:
   protocol:
-    name: dubbo
+    name: tri
     port: ${symbol_dollar}{DUBBO_PROTOCOL_PORT:50051}
 
 organization:
