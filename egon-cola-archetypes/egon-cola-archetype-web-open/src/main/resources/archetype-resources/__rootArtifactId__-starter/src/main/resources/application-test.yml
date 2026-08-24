@@ -19,6 +19,8 @@ organization:
   integrations:
     evaluation:
       enabled: false
+      grpc-target: localhost:50051
+      grpc-deadline: PT1S
     redis:
       enabled: false
     rabbit:

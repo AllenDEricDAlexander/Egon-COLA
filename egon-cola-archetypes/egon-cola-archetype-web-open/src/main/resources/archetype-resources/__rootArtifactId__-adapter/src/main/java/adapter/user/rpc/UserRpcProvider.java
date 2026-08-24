@@ -1,29 +1,30 @@
 package ${package}.adapter.user.rpc;
 
-import top.egon.cola.organization.facade.user.PermissionFacade;
-import top.egon.cola.organization.facade.user.RoleFacade;
-import top.egon.cola.organization.facade.user.UserFacade;
+import ${package}.facade.organization.v1.PermissionService;
+import ${package}.facade.organization.v1.RoleService;
+import ${package}.facade.organization.v1.UserService;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.apache.dubbo.rpc.model.ApplicationModel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/** Exposes the generated organization contracts through the configured Triple protocol. */
 @Configuration(proxyBeanMethods = false)
 public class UserRpcProvider {
 
     @Bean
-    public ServiceBean<UserFacade> userFacadeService(UserFacade implementation) {
-        return service(UserFacade.class, implementation);
+    public ServiceBean<UserService> userService(UserService implementation) {
+        return service(UserService.class, implementation);
     }
 
     @Bean
-    public ServiceBean<RoleFacade> roleFacadeService(RoleFacade implementation) {
-        return service(RoleFacade.class, implementation);
+    public ServiceBean<RoleService> roleService(RoleService implementation) {
+        return service(RoleService.class, implementation);
     }
 
     @Bean
-    public ServiceBean<PermissionFacade> permissionFacadeService(PermissionFacade implementation) {
-        return service(PermissionFacade.class, implementation);
+    public ServiceBean<PermissionService> permissionService(PermissionService implementation) {
+        return service(PermissionService.class, implementation);
     }
 
     private static <T> ServiceBean<T> service(Class<T> type, T implementation) {

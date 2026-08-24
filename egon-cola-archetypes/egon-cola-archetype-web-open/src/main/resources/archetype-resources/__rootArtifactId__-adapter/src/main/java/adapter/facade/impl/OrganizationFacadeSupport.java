@@ -1,28 +1,47 @@
+#set( $symbol_pound = '#' )
+#set( $symbol_dollar = '$' )
+#set( $symbol_escape = '\\' )
 package ${package}.adapter.facade.impl;
 
 import ${package}.application.context.OrganizationRequestContext;
 import ${package}.application.context.OrganizationRequestContextHolder;
 import ${package}.application.exceptions.OrganizationApplicationException;
-import top.egon.cola.organization.facade.exceptions.OrganizationFacadeException;
-import org.apache.dubbo.rpc.RpcContext;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
-
+import ${package}.application.exceptions.OrganizationFailureType;
+import io.grpc.Metadata;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
+import org.apache.dubbo.rpc.RpcContext;
+import org.springframework.stereotype.Component;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
+/** Shared request-context and stable gRPC error mapping for organization Triple providers. */
 @Component
 @RequiredArgsConstructor
 public final class OrganizationFacadeSupport {
+
+    private static final Metadata.Key<String> ERROR_CODE = Metadata.Key.of(
+            "x-egon-error-code", Metadata.ASCII_STRING_MARSHALLER);
+    private static final Metadata.Key<String> TRACE_ID = Metadata.Key.of(
+            "x-egon-trace-id", Metadata.ASCII_STRING_MARSHALLER);
 
     private final LongIdGenerator idGenerator;
 
     public String requestId() {
         String value = attachment("idempotency-key");
         return value == null || value.isBlank() ? Long.toString(idGenerator.nextLongId()) : value;
+    }
+
+    public static long positiveId(long value, String field) {
+        if (value <= 0) {
+            throw new IllegalArgumentException(field + " must be a positive Long");
+        }
+        return value;
     }
 
     public void invoke(Runnable action) {
@@ -39,15 +58,34 @@ public final class OrganizationFacadeSupport {
         }
         try {
             return action.get();
+        } catch (StatusRuntimeException failure) {
+            throw failure;
         } catch (OrganizationApplicationException failure) {
-            String traceId = OrganizationRequestContextHolder.current()
-                    .map(OrganizationRequestContext::traceId).orElse("unknown");
-            throw new OrganizationFacadeException(failure.code(), failure.getMessage(), traceId);
+            throw toStatus(failure);
+        } catch (IllegalArgumentException failure) {
+            throw Status.INVALID_ARGUMENT.withDescription(
+                    Objects.requireNonNullElse(failure.getMessage(), "invalid organization request"))
+                    .asRuntimeException(metadata("VALIDATION_FAILED"));
+        } catch (RuntimeException failure) {
+            throw Status.INTERNAL.withDescription("organization request failed")
+                    .asRuntimeException(metadata("INTERNAL_ERROR"));
         } finally {
             if (created) {
                 OrganizationRequestContextHolder.clear();
             }
         }
+    }
+
+    public StatusRuntimeException toStatus(OrganizationApplicationException failure) {
+        Objects.requireNonNull(failure, "failure");
+        String traceId = OrganizationRequestContextHolder.current()
+                .map(OrganizationRequestContext::traceId)
+                .orElseGet(() -> Long.toString(idGenerator.nextLongId()));
+        Metadata metadata = metadata(failure.code());
+        metadata.put(TRACE_ID, traceId);
+        return status(failure.failureType()).withDescription(
+                        Objects.requireNonNullElse(failure.getMessage(), "organization request failed"))
+                .asRuntimeException(metadata);
     }
 
     private OrganizationRequestContext context() {
@@ -61,6 +99,24 @@ public final class OrganizationFacadeSupport {
                         .filter(role -> !role.isEmpty())
                         .collect(Collectors.toUnmodifiableSet());
         return new OrganizationRequestContext(actorId, roles, traceId);
+    }
+
+    private static Metadata metadata(String code) {
+        Metadata metadata = new Metadata();
+        metadata.put(ERROR_CODE, code == null || code.isBlank() ? "INTERNAL_ERROR" : code);
+        return metadata;
+    }
+
+    private static Status status(OrganizationFailureType type) {
+        return switch (type) {
+            case VALIDATION -> Status.INVALID_ARGUMENT;
+            case FORBIDDEN -> Status.PERMISSION_DENIED;
+            case NOT_FOUND -> Status.NOT_FOUND;
+            case CONFLICT -> Status.ALREADY_EXISTS;
+            case DOMAIN_REJECTED -> Status.FAILED_PRECONDITION;
+            case DEPENDENCY_UNAVAILABLE -> Status.UNAVAILABLE;
+            case INTERNAL -> Status.INTERNAL;
+        };
     }
 
     private static String attachment(String name) {

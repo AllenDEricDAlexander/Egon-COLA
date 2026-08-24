@@ -1,23 +1,24 @@
 package ${package}.adapter.teaching.rpc;
 
-import top.egon.cola.organization.facade.teaching.GradeFacade;
-import top.egon.cola.organization.facade.teaching.SchoolClassFacade;
+import ${package}.facade.organization.v1.GradeService;
+import ${package}.facade.organization.v1.SchoolClassService;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.apache.dubbo.rpc.model.ApplicationModel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/** Exposes the generated teaching contracts through the configured Triple protocol. */
 @Configuration(proxyBeanMethods = false)
 public class SchoolClassRpcProvider {
 
     @Bean
-    public ServiceBean<GradeFacade> gradeFacadeService(GradeFacade implementation) {
-        return service(GradeFacade.class, implementation);
+    public ServiceBean<GradeService> gradeService(GradeService implementation) {
+        return service(GradeService.class, implementation);
     }
 
     @Bean
-    public ServiceBean<SchoolClassFacade> schoolClassFacadeService(SchoolClassFacade implementation) {
-        return service(SchoolClassFacade.class, implementation);
+    public ServiceBean<SchoolClassService> schoolClassService(SchoolClassService implementation) {
+        return service(SchoolClassService.class, implementation);
     }
 
     private static <T> ServiceBean<T> service(Class<T> type, T implementation) {

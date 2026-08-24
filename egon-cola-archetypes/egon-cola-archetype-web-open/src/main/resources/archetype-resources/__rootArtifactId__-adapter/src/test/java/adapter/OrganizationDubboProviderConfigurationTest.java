@@ -2,11 +2,11 @@ package ${package}.adapter;
 
 import ${package}.adapter.teaching.rpc.SchoolClassRpcProvider;
 import ${package}.adapter.user.rpc.UserRpcProvider;
-import top.egon.cola.organization.facade.teaching.GradeFacade;
-import top.egon.cola.organization.facade.teaching.SchoolClassFacade;
-import top.egon.cola.organization.facade.user.PermissionFacade;
-import top.egon.cola.organization.facade.user.RoleFacade;
-import top.egon.cola.organization.facade.user.UserFacade;
+import ${package}.facade.organization.v1.GradeService;
+import ${package}.facade.organization.v1.PermissionService;
+import ${package}.facade.organization.v1.RoleService;
+import ${package}.facade.organization.v1.SchoolClassService;
+import ${package}.facade.organization.v1.UserService;
 import org.apache.dubbo.config.spring.ServiceBean;
 import org.junit.jupiter.api.Test;
 
@@ -18,16 +18,16 @@ import static org.mockito.Mockito.mock;
 class OrganizationDubboProviderConfigurationTest {
 
     @Test
-    void exportsFiveFacadeBeansWithStableContractCoordinates() {
+    void exportsFiveGeneratedTripleBeansWithStableContractCoordinates() {
         UserRpcProvider userProvider = new UserRpcProvider();
         SchoolClassRpcProvider teachingProvider = new SchoolClassRpcProvider();
 
         List<ServiceBean<?>> services = List.of(
-                userProvider.userFacadeService(mock(UserFacade.class)),
-                userProvider.roleFacadeService(mock(RoleFacade.class)),
-                userProvider.permissionFacadeService(mock(PermissionFacade.class)),
-                teachingProvider.gradeFacadeService(mock(GradeFacade.class)),
-                teachingProvider.schoolClassFacadeService(mock(SchoolClassFacade.class)));
+                userProvider.userService(mock(UserService.class)),
+                userProvider.roleService(mock(RoleService.class)),
+                userProvider.permissionService(mock(PermissionService.class)),
+                teachingProvider.gradeService(mock(GradeService.class)),
+                teachingProvider.schoolClassService(mock(SchoolClassService.class)));
 
         assertThat(services).hasSize(5).allSatisfy(service -> {
             assertThat(service.getGroup()).isEqualTo("student-management-organization");

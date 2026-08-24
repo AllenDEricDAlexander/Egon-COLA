@@ -10,9 +10,11 @@ import java.time.Duration;
 public class OrganizationIntegrationProperties {
     private final Cache cache = new Cache();
     private final Command command = new Command();
+    private final Integrations integrations = new Integrations();
 
     public Cache getCache() { return cache; }
     public Command getCommand() { return command; }
+    public Integrations getIntegrations() { return integrations; }
     public Duration getUserTtl() { return cache.userTtl; }
     public Duration getGradeTtl() { return cache.gradeTtl; }
     public Duration getSchoolClassTtl() { return cache.schoolClassTtl; }
@@ -36,5 +38,21 @@ public class OrganizationIntegrationProperties {
 
         public Duration getIdempotencyTtl() { return idempotencyTtl; }
         public void setIdempotencyTtl(Duration idempotencyTtl) { this.idempotencyTtl = idempotencyTtl; }
+    }
+
+    public static final class Integrations {
+        private final Evaluation evaluation = new Evaluation();
+
+        public Evaluation getEvaluation() { return evaluation; }
+    }
+
+    public static final class Evaluation {
+        private String grpcTarget = "localhost:50051";
+        private Duration grpcDeadline = Duration.ofSeconds(3);
+
+        public String getGrpcTarget() { return grpcTarget; }
+        public void setGrpcTarget(String grpcTarget) { this.grpcTarget = grpcTarget; }
+        public Duration getGrpcDeadline() { return grpcDeadline; }
+        public void setGrpcDeadline(Duration grpcDeadline) { this.grpcDeadline = grpcDeadline; }
     }
 }

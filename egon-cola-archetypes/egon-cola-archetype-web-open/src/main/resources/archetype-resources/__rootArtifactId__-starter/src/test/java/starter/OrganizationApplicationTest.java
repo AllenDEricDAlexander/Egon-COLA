@@ -1,7 +1,7 @@
 package ${package}.starter;
 
 import ${package}.domain.client.evaluation.EvaluationQueryPort;
-import ${package}.infrastructure.client.evaluation.DubboEvaluationQueryClient;
+import ${package}.infrastructure.client.evaluation.GrpcEvaluationQueryClient;
 import ${package}.infrastructure.client.evaluation.LocalEvaluationQueryStub;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -41,6 +41,6 @@ class OrganizationApplicationTest {
         assertThat(environment.getProperty("organization.integrations.rabbit.enabled")).isEqualTo("false");
         assertThat(environment.getProperty("organization.integrations.evaluation.enabled")).isEqualTo("false");
         assertThat(evaluationQueryPort).isInstanceOf(LocalEvaluationQueryStub.class);
-        assertThat(context.getBeansOfType(DubboEvaluationQueryClient.class)).isEmpty();
+        assertThat(context.getBeansOfType(GrpcEvaluationQueryClient.class)).isEmpty();
     }
 }

@@ -3,11 +3,11 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.client.evaluation;
 
-import top.egon.cola.evaluation.facade.dto.SingleResponse;
 import ${package}.domain.client.ExternalDependencyException;
 import ${package}.domain.client.ExternalDependencyFailure;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import java.util.Locale;
-import org.apache.dubbo.rpc.RpcException;
 
 final class EvaluationClientFailureMapper {
 
@@ -16,40 +16,30 @@ final class EvaluationClientFailureMapper {
     private EvaluationClientFailureMapper() {
     }
 
-    static <T> T requireData(SingleResponse<T> response, String operation) {
-        if (response == null) {
-            throw incompatible(operation);
-        }
-        if (!response.isSuccess()) {
-            throw providerFailure(response.getCode());
-        }
-        if (response.getData() == null) {
-            throw incompatible(operation);
-        }
-        return response.getData();
-    }
-
     static ExternalDependencyException map(RuntimeException failure) {
-        if (failure instanceof RpcException rpcFailure) {
-            ExternalDependencyFailure category = rpcFailure.isTimeout()
-                    ? ExternalDependencyFailure.TIMEOUT
-                    : ExternalDependencyFailure.UNAVAILABLE;
-            return failure(category, "DUBBO_" + rpcFailure.getCode(), rpcFailure);
+        if (failure instanceof StatusRuntimeException statusFailure) {
+            return failure(category(statusFailure.getStatus().getCode()),
+                    "GRPC_" + statusFailure.getStatus().getCode().name(), statusFailure);
         }
         return failure(ExternalDependencyFailure.SERVICE_FAILURE, "UNKNOWN", failure);
     }
 
-    private static ExternalDependencyException providerFailure(String code) {
-        return failure(category(code), code, null);
-    }
-
-    private static ExternalDependencyException incompatible(String operation) {
-        return new ExternalDependencyException(
-                DEPENDENCY,
+    static ExternalDependencyException incompatible(String operation) {
+        return failure(
                 ExternalDependencyFailure.CONTRACT_INCOMPATIBLE,
                 "INVALID_RESPONSE",
-                "evaluation dependency returned an invalid response for " + operation,
-                null);
+                new IllegalStateException("evaluation dependency returned an invalid response for " + operation));
+    }
+
+    private static ExternalDependencyFailure category(Status.Code code) {
+        return switch (code) {
+            case NOT_FOUND -> ExternalDependencyFailure.NOT_FOUND;
+            case INVALID_ARGUMENT, FAILED_PRECONDITION -> ExternalDependencyFailure.VALIDATION_FAILED;
+            case ALREADY_EXISTS, PERMISSION_DENIED -> ExternalDependencyFailure.BUSINESS_REJECTED;
+            case DEADLINE_EXCEEDED -> ExternalDependencyFailure.TIMEOUT;
+            case UNAVAILABLE -> ExternalDependencyFailure.UNAVAILABLE;
+            default -> ExternalDependencyFailure.SERVICE_FAILURE;
+        };
     }
 
     private static ExternalDependencyFailure category(String code) {
@@ -57,21 +47,14 @@ final class EvaluationClientFailureMapper {
         if (normalized.contains("NOT_FOUND")) {
             return ExternalDependencyFailure.NOT_FOUND;
         }
-        if (normalized.contains("VALIDATION") || normalized.contains("INVALID")) {
+        if (normalized.contains("INVALID") || normalized.contains("FAILED_PRECONDITION")) {
             return ExternalDependencyFailure.VALIDATION_FAILED;
-        }
-        if (normalized.contains("CONFLICT")
-                || normalized.contains("FORBIDDEN")
-                || normalized.contains("REJECTED")) {
-            return ExternalDependencyFailure.BUSINESS_REJECTED;
         }
         return ExternalDependencyFailure.SERVICE_FAILURE;
     }
 
     private static ExternalDependencyException failure(
-            ExternalDependencyFailure category,
-            String externalCode,
-            RuntimeException cause) {
+            ExternalDependencyFailure category, String externalCode, RuntimeException cause) {
         return new ExternalDependencyException(
                 DEPENDENCY,
                 category,

@@ -1,47 +1,76 @@
+#set( $symbol_pound = '#' )
+#set( $symbol_dollar = '$' )
+#set( $symbol_escape = '\\' )
 package ${package}.adapter.teaching.facade.impl;
 
 import ${package}.adapter.facade.impl.OrganizationFacadeSupport;
-import ${package}.adapter.facade.impl.OrganizationIdBoundary;
-import ${package}.application.teaching.command.CreateSchoolClassCommand;
 import ${package}.application.teaching.command.AssignUserToClassCommand;
+import ${package}.application.teaching.command.CreateSchoolClassCommand;
 import ${package}.application.teaching.manage.SchoolClassManage;
 import ${package}.application.teaching.query.SchoolClassDetailQuery;
 import ${package}.application.teaching.result.SchoolClassDetailResult;
+import ${package}.facade.organization.v1.AssignUserRequest;
+import ${package}.facade.organization.v1.CreateSchoolClassRequest;
+import ${package}.facade.organization.v1.DubboSchoolClassServiceTriple;
+import ${package}.facade.organization.v1.GetSchoolClassRequest;
+import ${package}.facade.organization.v1.SchoolClass;
+import ${package}.facade.shared.v1.Empty;
 import lombok.RequiredArgsConstructor;
-import top.egon.cola.organization.facade.teaching.dto.AssignUserToClassDTO;
-import top.egon.cola.organization.facade.teaching.dto.CreateSchoolClassDTO;
-import top.egon.cola.organization.facade.teaching.dto.SchoolClassDetailDTO;
-import top.egon.cola.organization.facade.teaching.SchoolClassFacade;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.annotation.Validated;
 
-@Service("schoolClassFacade")
-@Validated
 @RequiredArgsConstructor
-public class SchoolClassFacadeImpl implements SchoolClassFacade {
+@Service
+public class SchoolClassFacadeImpl extends DubboSchoolClassServiceTriple.SchoolClassServiceImplBase {
+
     private final SchoolClassManage schoolClassManage;
     private final OrganizationFacadeSupport support;
 
-    @Override public SchoolClassDetailDTO createSchoolClass(CreateSchoolClassDTO request) {
-        return support.invoke(() -> toDTO(schoolClassManage.createSchoolClass(
-                new CreateSchoolClassCommand(
-                    support.requestId(), request.name(), request.gradeCode()))));
+    @Override
+    public SchoolClass createSchoolClass(CreateSchoolClassRequest request) {
+        return support.invoke(() -> {
+            if (request == null) {
+                throw new IllegalArgumentException("createSchoolClass request must not be null");
+            }
+            return toProto(schoolClassManage.createSchoolClass(new CreateSchoolClassCommand(
+                    support.requestId(), request.getName(), request.getGradeCode())));
+        });
     }
-    @Override public SchoolClassDetailDTO getSchoolClass(String gradeId, String schoolClassId) {
-        return support.invoke(
-                () -> toDTO(schoolClassManage.getSchoolClass(
-                        new SchoolClassDetailQuery(OrganizationIdBoundary.parse(gradeId, "gradeId"),
-                            OrganizationIdBoundary.parse(schoolClassId, "schoolClassId")))));
+
+    @Override
+    public SchoolClass getSchoolClass(GetSchoolClassRequest request) {
+        return support.invoke(() -> {
+            if (request == null) {
+                throw new IllegalArgumentException("getSchoolClass request must not be null");
+            }
+            return toProto(schoolClassManage.getSchoolClass(new SchoolClassDetailQuery(
+                    OrganizationFacadeSupport.positiveId(request.getGradeId(), "gradeId"),
+                    OrganizationFacadeSupport.positiveId(request.getSchoolClassId(), "schoolClassId"))));
+        });
     }
-    @Override public void assignUser(AssignUserToClassDTO request) {
-        support.invoke(() -> schoolClassManage.assignUser(new AssignUserToClassCommand(
-            support.requestId(),
-            OrganizationIdBoundary.parse(request.gradeId(), "gradeId"),
-            OrganizationIdBoundary.parse(request.schoolClassId(), "schoolClassId"),
-            OrganizationIdBoundary.parse(request.userId(), "userId"))));
+
+    @Override
+    public Empty assignUser(AssignUserRequest request) {
+        return support.invoke(() -> {
+            if (request == null) {
+                throw new IllegalArgumentException("assignUser request must not be null");
+            }
+            schoolClassManage.assignUser(new AssignUserToClassCommand(
+                    support.requestId(),
+                    OrganizationFacadeSupport.positiveId(request.getGradeId(), "gradeId"),
+                    OrganizationFacadeSupport.positiveId(request.getSchoolClassId(), "schoolClassId"),
+                    OrganizationFacadeSupport.positiveId(request.getUserId(), "userId")));
+            return Empty.getDefaultInstance();
+        });
     }
-    private static SchoolClassDetailDTO toDTO(SchoolClassDetailResult result) {
-        return new SchoolClassDetailDTO(Long.toString(result.id()), result.name(), result.gradeCode(),
-            result.gradeName(), result.status(), result.userIds().stream().map(String::valueOf).toList());
+
+    private static SchoolClass toProto(SchoolClassDetailResult result) {
+        return SchoolClass.newBuilder()
+                .setId(result.id())
+                .setName(result.name())
+                .setGradeCode(result.gradeCode())
+                .setGradeName(result.gradeName())
+                .setStatus(result.status())
+                .addAllUserIds(result.userIds())
+                .build();
     }
 }
