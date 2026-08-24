@@ -17,6 +17,9 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.WebFilter;
+import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @AutoConfiguration
 @EnableConfigurationProperties(TraceProperties.class)
@@ -47,6 +50,33 @@ public class TraceAutoConfiguration {
             registration.setOrder(properties.getServlet().getOrder());
             registration.setName("egonTraceServletFilter");
             return registration;
+        }
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass({HandlerInterceptor.class, WebMvcConfigurer.class})
+    @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+    @ConditionalOnProperty(prefix = TraceProperties.PREFIX + ".servlet",
+            name = "enabled", havingValue = "true", matchIfMissing = true)
+    static class ServletMvcLogConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean
+        MyLogInterceptor myLogInterceptor() {
+            return new MyLogInterceptor();
+        }
+
+        @Bean(name = "egonTraceMvcLogConfigurer")
+        @ConditionalOnMissingBean(name = "egonTraceMvcLogConfigurer")
+        WebMvcConfigurer egonTraceMvcLogConfigurer(
+                MyLogInterceptor interceptor) {
+            return new WebMvcConfigurer() {
+                @Override
+                public void addInterceptors(InterceptorRegistry registry) {
+                    registry.addInterceptor(interceptor)
+                            .addPathPatterns("/**");
+                }
+            };
         }
     }
 

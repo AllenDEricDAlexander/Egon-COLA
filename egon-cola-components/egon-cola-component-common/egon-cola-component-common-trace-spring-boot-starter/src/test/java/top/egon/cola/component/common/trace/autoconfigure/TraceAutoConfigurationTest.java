@@ -43,4 +43,23 @@ class TraceAutoConfigurationTest {
                 .run(context -> assertThat(context)
                         .hasSingleBean(TraceServletFilter.class));
     }
+
+    @Test
+    void servletMvcLoggingInterceptorIsAutoConfigured() {
+        new WebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(TraceAutoConfiguration.class))
+                .run(context -> assertThat(context)
+                        .hasSingleBean(MyLogInterceptor.class)
+                        .hasBean("egonTraceMvcLogConfigurer"));
+    }
+
+    @Test
+    void servletMvcLoggingInterceptorBacksOffWhenServletTraceIsDisabled() {
+        new WebApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(TraceAutoConfiguration.class))
+                .withPropertyValues("egon.cola.component.trace.servlet.enabled=false")
+                .run(context -> assertThat(context)
+                        .doesNotHaveBean(MyLogInterceptor.class)
+                        .doesNotHaveBean("egonTraceMvcLogConfigurer"));
+    }
 }
