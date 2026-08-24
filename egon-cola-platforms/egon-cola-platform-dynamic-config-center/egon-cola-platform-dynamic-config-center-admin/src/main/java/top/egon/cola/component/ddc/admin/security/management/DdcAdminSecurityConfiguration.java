@@ -43,7 +43,11 @@ public class DdcAdminSecurityConfiguration {
                                 "/actuator/health/**",
                                 "/actuator/info"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/bootstrap")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/auth/bootstrap",
+                                "/api/v1/ddc/auth/bootstrap"
+                        )
                         .authenticated()
                         .requestMatchers("/api/v1/ddc/cache/**")
                         .hasAnyAuthority(

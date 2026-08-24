@@ -15,7 +15,7 @@ import java.util.Objects;
 
 /** Unified SSO bootstrap endpoint for the DDC administration web application. */
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping({"/api/v1/auth", "/api/v1/ddc/auth"})
 @ConditionalOnProperty(
         prefix = "egon.cola.platform.rbac3",
         name = "enabled",

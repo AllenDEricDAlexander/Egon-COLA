@@ -43,6 +43,8 @@ class Rbac3MigrationContractTest {
             "db/migration/V10__seed_builtin_roles_and_permissions.sql";
     private static final String BUILTIN_BUSINESS_ACCESS_MIGRATION =
             "db/migration/V11__seed_builtin_user_business_access.sql";
+    private static final String RBAC3_ABOUT_PERMISSION_MIGRATION =
+            "db/migration/V12__seed_rbac3_about_permission.sql";
     private static final Pattern TABLE_PATTERN = Pattern.compile(
             "create\\s+table\\s+(rbac3_[a-z0-9_]+)\\s*\\((.*?)\\);",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
@@ -122,7 +124,8 @@ class Rbac3MigrationContractTest {
                 EXTERNAL_TENANT_MIGRATION,
                 APPLICATION_CODE_COMPATIBILITY_MIGRATION,
                 BUILTIN_AUTHORIZATION_MIGRATION,
-                BUILTIN_BUSINESS_ACCESS_MIGRATION);
+                BUILTIN_BUSINESS_ACCESS_MIGRATION,
+                RBAC3_ABOUT_PERMISSION_MIGRATION);
         assertThat(resourceSql(STRONG_AUTH_MIGRATION))
                 .contains("add column strong_authenticated_at timestamptz")
                 .contains("ck_rbac3_session_strong_authentication_time");

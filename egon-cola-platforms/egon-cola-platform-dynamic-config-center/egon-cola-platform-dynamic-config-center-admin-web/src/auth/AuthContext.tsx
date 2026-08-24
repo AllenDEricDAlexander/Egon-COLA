@@ -37,7 +37,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(true)
         try {
             await gatewayAuth.login({tenantId, username, password})
-            setBootstrap(await gatewayAuth.bootstrap<AuthorizationBootstrap>())
+            setBootstrap(await gatewayAuth.bootstrap<AuthorizationBootstrap>(
+                '/api/v1/ddc/auth/bootstrap',
+            ))
         } catch (failure) {
             setError(failure instanceof Error ? failure.message : '统一身份登录失败')
             throw failure
@@ -57,7 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true
-      void gatewayAuth.bootstrap<AuthorizationBootstrap>()
+      void gatewayAuth.bootstrap<AuthorizationBootstrap>(
+          '/api/v1/ddc/auth/bootstrap',
+      )
           .then((value) => {
               if (active) setBootstrap(value)
           })

@@ -7,6 +7,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import top.egon.cola.platform.idp.contract.AuthenticationContext;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
+import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
 
 import java.time.Instant;
 import java.util.List;
@@ -41,6 +42,31 @@ class CurrentRbac3UserTest {
 
         assertThat(current.current()).contains(details);
         assertThat(current.require()).isSameAs(details);
+    }
+
+    @Test
+    void readsUserDetailsFromProjectedRuntimeContext() {
+        IdentityPrincipal identity = new IdentityPrincipal(
+                "subject", "tenant", "jti", Set.of("rbac3"),
+                Instant.EPOCH, Instant.EPOCH.plusSeconds(300),
+                AuthenticationContext.password());
+        SystemAuthorizationSnapshot snapshot = new SystemAuthorizationSnapshot(
+                "tenant", "subject", "user", "rbac3", 1L, 1L,
+                List.of("role"), Set.of("permission"), Map.of(), Map.of(),
+                "checksum", Instant.EPOCH, Instant.EPOCH.plusSeconds(300));
+        var context = new AuthorizationService.RuntimeAuthorizationContext(
+                identity, snapshot, false);
+        SecurityContextHolder.getContext().setAuthentication(
+                new Rbac3AuthenticationToken(context));
+
+        CurrentRbac3User current = new CurrentRbac3User();
+
+        assertThat(current.current())
+                .get()
+                .satisfies(details -> {
+                    assertThat(details.identity()).isEqualTo(identity);
+                    assertThat(details.snapshot()).isEqualTo(snapshot);
+                });
     }
 
     @Test

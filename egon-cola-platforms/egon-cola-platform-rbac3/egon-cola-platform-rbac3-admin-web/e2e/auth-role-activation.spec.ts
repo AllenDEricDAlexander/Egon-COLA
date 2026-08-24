@@ -1,7 +1,7 @@
 import {expect, test} from '@playwright/test'
 
 test('contract fixture: Gateway cookie login carries no RBAC role or token payload', async ({page}) => {
-    await page.route('**/api/v1/auth/bootstrap', (route) => route.fulfill({
+    await page.route('**/api/v1/auth/about', (route) => route.fulfill({
         status: 401,
         json: {
             error: {code: 'AUTHENTICATION_REQUIRED', message: 'login', retryable: false, details: []},

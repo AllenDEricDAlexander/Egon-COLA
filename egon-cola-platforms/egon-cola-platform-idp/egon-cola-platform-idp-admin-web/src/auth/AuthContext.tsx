@@ -37,7 +37,9 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     ) => {
         setLoading(true)
         await gatewayAuth.login({tenantId, username, password})
-        setBootstrap(await gatewayAuth.bootstrap<AuthorizationBootstrap>())
+        setBootstrap(await gatewayAuth.bootstrap<AuthorizationBootstrap>(
+            '/api/v1/identity/auth/bootstrap',
+        ))
         setLoading(false)
   }, [])
 
@@ -48,7 +50,9 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
   useEffect(() => {
     let active = true
-      void gatewayAuth.bootstrap<AuthorizationBootstrap>()
+      void gatewayAuth.bootstrap<AuthorizationBootstrap>(
+          '/api/v1/identity/auth/bootstrap',
+      )
           .then((value) => {
               if (active) setBootstrap(value)
           })

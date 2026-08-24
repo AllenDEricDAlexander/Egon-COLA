@@ -89,11 +89,9 @@ public final class SingleFlightSnapshotLoader {
             IdentityPrincipal principal,
             String userAccessToken) {
         try {
-            SystemAuthorizationSnapshot snapshot = client.fetch(
-                    systemCode,
-                    principal,
-                    userAccessToken
-            );
+            SystemAuthorizationSnapshot snapshot = userAccessToken == null
+                    ? client.fetch(systemCode, principal)
+                    : client.fetch(systemCode, principal, userAccessToken);
             if (!boundTo(snapshot, principal)) {
                 throw new Rbac3AuthorizationClient.AuthorizationDeniedException("RBAC3_AUTHORIZATION_BINDING_MISMATCH");
             }

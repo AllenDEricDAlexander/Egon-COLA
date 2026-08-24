@@ -438,7 +438,7 @@ fi
 
 unified_platform_stage "verifying authenticated Admin feature matrix"
 verify_authenticated_json idp-bootstrap \
-  "${IDP_ADMIN_WEB_URL}/api/v1/auth/bootstrap" \
+  "${IDP_ADMIN_WEB_URL}/api/v1/identity/auth/bootstrap" \
   "${idp_admin_token_file}" 'type == "object"'
 verify_authenticated_json idp-users \
   "${IDP_ADMIN_WEB_URL}/api/v1/identity/users" \
@@ -453,8 +453,8 @@ verify_authenticated_json idp-audits \
   "${IDP_ADMIN_WEB_URL}/api/v1/identity/audits?page=0&size=20" \
   "${idp_admin_token_file}" 'type == "object"'
 
-verify_authenticated_json rbac3-bootstrap \
-  "${RBAC3_ADMIN_WEB_URL}/api/v1/auth/bootstrap" \
+verify_authenticated_json rbac3-about \
+  "${RBAC3_ADMIN_WEB_URL}/api/v1/auth/about" \
   "${rbac3_admin_token_file}" 'type == "object"'
 verify_authenticated_json rbac3-runtime \
   "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/runtime/status" \
@@ -495,8 +495,8 @@ verify_authenticated_json rbac3-field-rules \
 verify_authenticated_json rbac3-operation-sod-rules \
   "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/iam/policies/operation-sod-rules" \
   "${rbac3_admin_token_file}" '.data != null'
-verify_authenticated_json rbac3-authorization-bootstrap \
-  "${RBAC3_ADMIN_WEB_URL}/api/v1/auth/bootstrap" \
+verify_authenticated_json rbac3-authorization-about \
+  "${RBAC3_ADMIN_WEB_URL}/api/v1/auth/about" \
   "${rbac3_admin_token_file}" 'type == "object"'
 verify_authenticated_json rbac3-role-candidates \
   "${RBAC3_ADMIN_WEB_URL}/api/rbac3/v1/auth/role-activation-candidates" \
@@ -579,7 +579,7 @@ verify_authenticated_json gateway-mcp-artifacts \
 
 ddc_admin_path="${DDC_BASE_URL}/api/v1/ddc"
 verify_authenticated_json ddc-bootstrap \
-  "${DDC_ADMIN_WEB_URL}/api/v1/auth/bootstrap" \
+  "${DDC_ADMIN_WEB_URL}/api/v1/ddc/auth/bootstrap" \
   "${ddc_admin_token_file}" 'type == "object"'
 verify_authenticated_json ddc-bizs \
   "${ddc_admin_path}/bizs" "${ddc_admin_token_file}" \

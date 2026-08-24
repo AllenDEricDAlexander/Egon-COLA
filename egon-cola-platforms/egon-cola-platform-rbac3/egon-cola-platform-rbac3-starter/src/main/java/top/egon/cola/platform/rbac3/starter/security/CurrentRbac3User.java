@@ -17,9 +17,15 @@ public final class CurrentRbac3User {
         if (authentication == null || !authentication.isAuthenticated()) {
             return Optional.empty();
         }
-        return authentication.getPrincipal() instanceof Rbac3UserDetails details
-                ? Optional.of(details)
-                : Optional.empty();
+        if (authentication.getPrincipal() instanceof Rbac3UserDetails details) {
+            return Optional.of(details);
+        }
+        if (authentication instanceof Rbac3ContextAuthentication contextAuthentication) {
+            var context = contextAuthentication.context();
+            return Optional.of(new Rbac3UserDetails(
+                    context.identity(), context.snapshot()));
+        }
+        return Optional.empty();
     }
 
     public Rbac3UserDetails require() {

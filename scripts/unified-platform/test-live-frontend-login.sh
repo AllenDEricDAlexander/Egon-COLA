@@ -162,7 +162,10 @@ expected_active_roles="$(jq -cer --argjson expected "${expected_role_pairs}" '
     end' "${fresh_dir}/role-candidates.json")"
 
 verify_fresh_admin_json idp-bootstrap \
-  "${IDP_ADMIN_WEB_URL}/api/v1/auth/bootstrap"
+  "${IDP_ADMIN_WEB_URL}/api/v1/identity/auth/bootstrap"
+jq -e '(.data // .).permissions | index("idp:bootstrap:read") != null' \
+  "${fresh_dir}/idp-bootstrap.json" >/dev/null \
+  || unified_platform_fail 'IdP Admin bootstrap did not return IdP permissions'
 verify_fresh_admin_array idp-users \
   "${IDP_ADMIN_WEB_URL}/api/v1/identity/users"
 verify_fresh_admin_array idp-clients \
@@ -186,12 +189,18 @@ jq -e \
   || unified_platform_fail \
     "fresh Gateway JWT login did not activate the configured local roles"
 
-verify_fresh_admin_json rbac3-bootstrap \
-  "${RBAC3_ADMIN_WEB_URL}/api/v1/auth/bootstrap"
+verify_fresh_admin_json rbac3-about \
+  "${RBAC3_ADMIN_WEB_URL}/api/v1/auth/about"
+jq -e '(.data // .).permissions | index("system:about:read") != null' \
+  "${fresh_dir}/rbac3-about.json" >/dev/null \
+  || unified_platform_fail 'RBAC3 About did not return RBAC3 permissions'
 verify_fresh_admin_json gateway-bootstrap \
   "${GATEWAY_ADMIN_WEB_URL}/api/v1/auth/bootstrap"
 verify_fresh_admin_json ddc-bootstrap \
-  "${DDC_ADMIN_WEB_URL}/api/v1/auth/bootstrap"
+  "${DDC_ADMIN_WEB_URL}/api/v1/ddc/auth/bootstrap"
+jq -e '(.data // .).permissions | index("DDC_READ") != null' \
+  "${fresh_dir}/ddc-bootstrap.json" >/dev/null \
+  || unified_platform_fail 'DDC bootstrap did not return DDC permissions'
 
 cp "${fresh_cookie}" "${fresh_dir}/pre-logout.cookies"
 logout_code="$(curl --max-time 10 -sS -o "${fresh_dir}/logout.json" \
@@ -210,7 +219,7 @@ refresh_code="$(curl --max-time 10 -sS -o "${fresh_dir}/refresh-after-logout.jso
 after_logout_code="$(curl --max-time 15 -sS \
   -o "${fresh_dir}/idp-bootstrap-after-logout.json" -w '%{http_code}' \
   -b "${fresh_dir}/pre-logout.cookies" \
-  "${IDP_ADMIN_WEB_URL}/api/v1/auth/bootstrap")"
+  "${IDP_ADMIN_WEB_URL}/api/v1/identity/auth/bootstrap")"
 [[ "${after_logout_code}" == '401' ]] \
   || unified_platform_fail \
     "logout did not invalidate the old Gateway cookie; bootstrap returned HTTP ${after_logout_code}"

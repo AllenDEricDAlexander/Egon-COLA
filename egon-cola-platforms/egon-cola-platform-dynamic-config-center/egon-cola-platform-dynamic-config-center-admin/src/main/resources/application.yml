@@ -90,7 +90,7 @@ egon:
           http:
             enabled: ${DDC_SELF_REGISTRATION_ENABLED:false}
             instance-id: ${DDC_INSTANCE_ID:ddc-admin-local-1}
-            service-name: ddc-admin
+            service-name: ${DDC_GATEWAY_SERVICE_NAME:ddc}
             group: default
             version: ${DDC_ARTIFACT_VERSION:local}
             protocol: http
