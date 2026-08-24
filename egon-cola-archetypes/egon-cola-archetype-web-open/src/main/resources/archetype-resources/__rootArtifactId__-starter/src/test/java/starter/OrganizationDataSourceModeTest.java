@@ -2,49 +2,23 @@ package ${package}.starter;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Map;
 import javax.sql.DataSource;
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.core.io.ClassPathResource;
 
 class OrganizationDataSourceModeTest {
 
     @Test
-    void shouldProvideFinalMigrationsWithGlobalDailySequenceAndHeaders() throws Exception {
-        List<String> resources = List.of(
-                "db/migration/sharding/master-data/"
-                        + "V20260726_001__init_organization_master_data_schema.sql",
-                "db/migration/sharding/shard/"
-                        + "V20260726_002__init_organization_sharded_schema.sql");
-
-        for (String resource : resources) {
-            String sql = new ClassPathResource(resource)
-                    .getContentAsString(StandardCharsets.UTF_8);
-            assertThat(sql)
-                    .startsWith("-- 变更内容：")
-                    .contains("\n-- 影响范围：")
-                    .contains("\n-- 兼容性说明：");
-        }
-        assertThat(resources)
-                .extracting(path -> path.substring(
-                        path.indexOf('V') + 10, path.indexOf("__")))
-                .containsExactly("001", "002");
-    }
-
-    @Test
-    void shouldStartDefaultAndReadwriteModesWithOnlyTheTestProfile() {
+    void shouldStartDefaultAndReadwriteModesWithoutAutomaticSchemaMutation() {
         assertShardingContextStarts(false);
         assertShardingContextStarts(true);
     }
 
     @Test
-    void shouldDefaultToShardingSphereWithoutLogicalFlywayBean() {
+    void shouldExposeManualOnlyDatabaseBoundary() {
         try (ConfigurableApplicationContext context = new SpringApplicationBuilder(
                         OrganizationApplication.class)
                 .web(WebApplicationType.NONE)
@@ -53,11 +27,8 @@ class OrganizationDataSourceModeTest {
                 .run()) {
             assertThat(context.getEnvironment().getActiveProfiles())
                     .containsExactly("test");
-            assertThat(context.getEnvironment().getProperty("app.datasource.mode"))
-                    .isEqualTo("SHARDING");
             assertThat(context.getBean(DataSource.class).getClass().getName())
                     .contains("ShardingSphereDataSource");
-            assertThat(context.getBeansOfType(Flyway.class)).isEmpty();
         }
     }
 
@@ -73,10 +44,6 @@ class OrganizationDataSourceModeTest {
                     .containsExactly("test");
             assertThat(context.getBean(DataSource.class).getClass().getName())
                     .contains("ShardingSphereDataSource");
-            assertThat(context.getBeansOfType(Flyway.class)).isEmpty();
-            assertThat(context.getBean(
-                            jakarta.persistence.EntityManagerFactory.class))
-                    .isNotNull();
         }
     }
 

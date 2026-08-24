@@ -115,6 +115,14 @@ app:
       never-block: ${symbol_dollar}{LOG_ASYNC_NEVER_BLOCK:false}
       max-flush-time: ${symbol_dollar}{LOG_ASYNC_MAX_FLUSH_TIME:5000}
 
+mybatis-plus:
+  mapper-locations: classpath*:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+  global-config:
+    banner: false
+
 dubbo:
   application:
     name: ${symbol_dollar}{spring.application.name}

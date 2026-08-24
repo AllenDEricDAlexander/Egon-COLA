@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
@@ -22,6 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(
         classes = OrganizationApplication.class,
         properties = "spring.profiles.active=test")
+@ContextConfiguration(initializers = OrganizationManualSchemaTestSupport.Initializer.class)
 @AutoConfigureMockMvc
 class OrganizationFlowTest {
 
@@ -32,15 +34,15 @@ class OrganizationFlowTest {
     private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
-    void normalizeTemporaryLegacySeed() {
+    void prepareManualTestSchema() {
         jdbcTemplate.update("delete from role_permissions");
         jdbcTemplate.update("delete from user_roles");
         jdbcTemplate.update("delete from permissions");
         jdbcTemplate.update("delete from roles");
         jdbcTemplate.update("insert into roles(id, code, name, status, created_at) values (?, ?, ?, ?, CURRENT_TIMESTAMP)",
-            "2001", "STUDENT", "Student", "ACTIVE");
+            2001L, "STUDENT", "Student", "ACTIVE");
         jdbcTemplate.update("insert into permissions(id, code, name, type, status, created_at) values (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
-            "3001", "CLASS_READ", "Read school class", "API", "ACTIVE");
+            3001L, "CLASS_READ", "Read school class", "API", "ACTIVE");
     }
 
     @Test
@@ -108,14 +110,16 @@ class OrganizationFlowTest {
                 .andExpect(jsonPath("$.roleCodes[0]").value("STUDENT"));
 
         assertThat(jdbcTemplate.queryForObject(
-                "select count(*) from user_roles where user_id = ?", Integer.class, userId)).isEqualTo(1);
+                "select count(*) from user_roles where user_id = ?", Integer.class,
+                Long.parseLong(userId))).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject(
                 "select count(*) from role_permissions rp join roles r on r.id = rp.role_id where r.code = ?",
                 Integer.class, "STUDENT")).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject(
                 "select count(*) from school_class_users"
                         + " where grade_id = ? and user_id = ? and school_class_id = ?",
-                Integer.class, gradeId, userId, schoolClassId)).isEqualTo(1);
+                Integer.class, Long.parseLong(gradeId), Long.parseLong(userId),
+                Long.parseLong(schoolClassId))).isEqualTo(1);
     }
 
     private static HttpHeaders adminHeaders(String idempotencyKey) {

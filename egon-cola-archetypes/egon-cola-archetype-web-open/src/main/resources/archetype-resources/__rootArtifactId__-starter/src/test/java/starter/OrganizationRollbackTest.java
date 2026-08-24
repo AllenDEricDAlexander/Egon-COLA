@@ -15,6 +15,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
@@ -28,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest(
         classes = OrganizationApplication.class,
         properties = "spring.profiles.active=test")
+@ContextConfiguration(initializers = OrganizationManualSchemaTestSupport.Initializer.class)
 class OrganizationRollbackTest {
 
     @Autowired private GradeManage gradeManage;

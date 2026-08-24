@@ -1,98 +1,65 @@
 package ${package}.infrastructure.teaching.repo;
 
-import ${package}.domain.teaching.entities.Grade;
 import ${package}.domain.teaching.entities.SchoolClass;
-import ${package}.domain.teaching.enums.GradeStatus;
 import ${package}.domain.teaching.enums.SchoolClassStatus;
-import ${package}.domain.teaching.repos.GradeRepository;
-import ${package}.domain.teaching.repos.SchoolClassRepository;
 import ${package}.domain.teaching.vos.GradeCode;
 import ${package}.domain.teaching.vos.SchoolClassId;
-import ${package}.infrastructure.teaching.repo.converter.GradePOConverter;
-import ${package}.infrastructure.teaching.repo.converter.GradePOMapperImpl;
-import ${package}.infrastructure.teaching.repo.converter.SchoolClassPOConverter;
-import ${package}.infrastructure.teaching.repo.impl.GradeRepositoryImpl;
-import ${package}.infrastructure.teaching.repo.impl.SchoolClassRepositoryImpl;
-import ${package}.infrastructure.teaching.repo.jpa.SchoolClassUserJpaRepository;
 import ${package}.domain.user.vos.UserId;
+import ${package}.infrastructure.teaching.repo.converter.SchoolClassPOConverter;
+import ${package}.infrastructure.teaching.repo.impl.SchoolClassRepositoryImpl;
+import ${package}.infrastructure.teaching.repo.mapper.GradeMapper;
+import ${package}.infrastructure.teaching.repo.mapper.SchoolClassMapper;
+import ${package}.infrastructure.teaching.repo.mapper.SchoolClassUserMapper;
+import ${package}.infrastructure.teaching.repo.po.GradePO;
+import ${package}.infrastructure.teaching.repo.po.SchoolClassPO;
+import ${package}.infrastructure.teaching.repo.po.SchoolClassUserPO;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.test.context.ContextConfiguration;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
-import java.util.List;
-
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-@DataJpaTest(properties = {
-    "spring.flyway.enabled=false",
-    "spring.jpa.hibernate.ddl-auto=create-drop",
-    "spring.jpa.properties.hibernate.session_factory.statement_inspector="
-        + "${package}.infrastructure.teaching.repo.SqlCaptureStatementInspector"
-})
-@Import({GradeRepositoryImpl.class, SchoolClassRepositoryImpl.class,
-    GradePOConverter.class, GradePOMapperImpl.class, SchoolClassPOConverter.class})
-@ContextConfiguration(classes = SchoolClassRepositoryImplTest.TestConfiguration.class)
 class SchoolClassRepositoryImplTest {
-    @Autowired GradeRepository gradeRepository;
-    @Autowired SchoolClassRepository schoolClassRepository;
-    @Autowired SchoolClassUserJpaRepository schoolClassUserJpaRepository;
-    @Autowired ${package}.infrastructure.user.repo.jpa.UserJpaRepository userJpaRepository;
 
     @Test
-    void savesClassAndChecksNameWithinGradeIgnoringCase() {
-        Long gradeId = 1001L;
-        Long schoolClassId = 2001L;
-        Long userId = 3001L;
-        Grade grade = gradeRepository.save(new Grade(
-            gradeId, GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE));
-        userJpaRepository.save(new ${package}.infrastructure.user.repo.po.UserPO(
-            userId, "Mario", "mario@example.com", "ACTIVE", java.time.LocalDateTime.now()));
-        SqlCaptureStatementInspector.clear();
-        schoolClassRepository.save(new SchoolClass(new SchoolClassId(schoolClassId), "Class A", grade.id(),
-            grade.code(), grade.name(), SchoolClassStatus.ACTIVE, List.of()));
+    void preservesGradeRouteForClassAndMembershipMapperCalls() {
+        SchoolClassMapper schoolClassMapper = mock(SchoolClassMapper.class);
+        GradeMapper gradeMapper = mock(GradeMapper.class);
+        SchoolClassUserMapper membershipMapper = mock(SchoolClassUserMapper.class);
+        GradePO grade = new GradePO(
+                1001L, "GRADE_ONE", "Grade One", "ACTIVE", LocalDateTime.now());
+        SchoolClassPO schoolClass = new SchoolClassPO(
+                2001L, "Class A", "Grade One", 1001L, "ACTIVE", LocalDateTime.now());
+        when(schoolClassMapper.selectByGradeIdAndId(1001L, 2001L))
+                .thenReturn(null, schoolClass);
+        when(schoolClassMapper.insert(any(SchoolClassPO.class))).thenReturn(1);
+        when(gradeMapper.selectById(1001L)).thenReturn(grade);
+        when(membershipMapper.selectByGradeIdAndSchoolClassId(1001L, 2001L)).thenReturn(
+                List.of(new SchoolClassUserPO(9001L, 1001L, 2001L, 3001L, LocalDateTime.now())));
+        when(membershipMapper.insert(any(SchoolClassUserPO.class))).thenReturn(1);
+        when(membershipMapper.countByGradeIdAndSchoolClassIdAndUserId(1001L, 2001L, 3001L))
+                .thenReturn(1L);
 
-        assertThat(SqlCaptureStatementInspector.statements())
-            .noneMatch(sql -> isIdOnlyLookup(sql, "school_classes"));
-        assertThat(schoolClassRepository.findByGradeIdAndId(
-                gradeId, new SchoolClassId(schoolClassId))).isPresent();
-        assertThat(schoolClassRepository.existsByGradeIdAndNameIgnoreCase(gradeId, "class a")).isTrue();
-        SqlCaptureStatementInspector.clear();
-        schoolClassRepository.addUser(
-                gradeId, new SchoolClassId(schoolClassId), new UserId(userId));
-        assertThat(SqlCaptureStatementInspector.statements())
-            .noneMatch(sql -> isIdOnlyLookup(sql, "school_class_users"));
-        Long relationId = schoolClassUserJpaRepository
-                .findByGradeIdAndSchoolClassId(gradeId, schoolClassId)
-                .getFirst()
-                .getId();
-        assertThat(relationId).isPositive();
-    }
+        SchoolClassRepositoryImpl repository = new SchoolClassRepositoryImpl(
+                schoolClassMapper,
+                gradeMapper,
+                membershipMapper,
+                new SchoolClassPOConverter(),
+                (LongIdGenerator) () -> 9001L);
 
-    private static boolean isIdOnlyLookup(String sql, String table) {
-        String normalized = sql.toLowerCase(java.util.Locale.ROOT);
-        return normalized.contains(" from " + table + " ")
-            && normalized.contains(" where ")
-            && normalized.matches(".*where [a-z0-9_]+\\.id=\\?.*")
-            && !normalized.contains("grade_id=?");
-    }
+        SchoolClass saved = repository.save(new SchoolClass(
+                new SchoolClassId(2001L), "Class A", 1001L, GradeCode.create("GRADE_ONE"),
+                "Grade One", SchoolClassStatus.ACTIVE, List.of()));
 
-    @Configuration(proxyBeanMethods = false)
-    @EntityScan(basePackages = {
-            "${package}.infrastructure.user.repo.po",
-            "${package}.infrastructure.teaching.repo.po"
-    })
-    @EnableJpaRepositories(basePackages = {
-            "${package}.infrastructure.user.repo.jpa",
-            "${package}.infrastructure.teaching.repo.jpa"
-    })
-    static class TestConfiguration {
-        @org.springframework.context.annotation.Bean
-        LongIdGenerator idGenerator() { return () -> 9001L; }
+        assertThat(saved.id().value()).isEqualTo(2001L);
+        assertThat(repository.findByGradeIdAndId(1001L, new SchoolClassId(2001L))).isPresent();
+        assertThat(repository.existsByGradeIdAndNameIgnoreCase(1001L, "class a")).isFalse();
+        repository.addUser(1001L, new SchoolClassId(2001L), new UserId(3001L));
+        assertThat(repository.hasUser(1001L, new SchoolClassId(2001L), new UserId(3001L)))
+                .isTrue();
     }
 }

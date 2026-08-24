@@ -82,7 +82,6 @@ class PhysicalDataSourceFactoryTest {
                 new ShardingDataSourceProperties.ShardingRoutingProperties(
                         4,
                         "0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1"),
-                dataSources,
-                new ShardingDataSourceProperties.ShardingFlywayProperties(List.of()));
+                dataSources);
     }
 }

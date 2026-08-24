@@ -2,78 +2,63 @@ package ${package}.infrastructure.user.repo;
 
 import ${package}.domain.user.entities.User;
 import ${package}.domain.user.enums.UserStatus;
-import ${package}.domain.user.vos.UserId;
 import ${package}.domain.user.vos.RoleCode;
+import ${package}.domain.user.vos.UserId;
 import ${package}.infrastructure.user.repo.converter.UserPOConverter;
 import ${package}.infrastructure.user.repo.impl.UserRepositoryImpl;
-import ${package}.infrastructure.user.repo.jpa.UserRoleJpaRepository;
-import ${package}.infrastructure.user.repo.jpa.RoleJpaRepository;
+import ${package}.infrastructure.user.repo.mapper.RoleMapper;
+import ${package}.infrastructure.user.repo.mapper.UserMapper;
+import ${package}.infrastructure.user.repo.mapper.UserRoleMapper;
 import ${package}.infrastructure.user.repo.po.RolePO;
+import ${package}.infrastructure.user.repo.po.UserPO;
+import ${package}.infrastructure.user.repo.po.UserRolePO;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.test.context.ContextConfiguration;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
-import java.util.List;
-import java.time.LocalDateTime;
-
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-@DataJpaTest(properties = {
-    "spring.datasource.url=jdbc:h2:mem:user-repository;MODE=PostgreSQL;DB_CLOSE_DELAY=-1",
-    "spring.flyway.enabled=false",
-    "spring.jpa.hibernate.ddl-auto=create-drop"
-})
-@Import({UserRepositoryImpl.class, UserPOConverter.class})
-@ContextConfiguration(classes = UserRepositoryImplTest.TestConfiguration.class)
 class UserRepositoryImplTest {
 
-    @Autowired
-    private UserRepositoryImpl repository;
-    @Autowired
-    private UserRoleJpaRepository userRoleJpaRepository;
-    @Autowired
-    private RoleJpaRepository roleJpaRepository;
-
     @Test
-    void savesAndRestoresNormalizedUser() {
-        roleJpaRepository.save(new RolePO(
-            2001L,
-            "STUDENT",
-            "Student",
-            "ACTIVE",
-            LocalDateTime.now()));
-        User saved = repository.save(
-            new User(
-                    new UserId(1001L),
-                    "Mario",
-                    "mario@example.com",
-                    UserStatus.ACTIVE,
-                    List.of(new RoleCode("STUDENT"))));
+    void savesAndRestoresUserThroughMappersAndRelationMapper() {
+        UserMapper userMapper = mock(UserMapper.class);
+        UserRoleMapper userRoleMapper = mock(UserRoleMapper.class);
+        RoleMapper roleMapper = mock(RoleMapper.class);
+        RolePO role = new RolePO(2001L, "STUDENT", "Student", "ACTIVE", LocalDateTime.now());
+        UserPO row = new UserPO(
+                1001L, "Mario", "mario@example.com", "ACTIVE", LocalDateTime.now());
+        when(userMapper.selectById(1001L)).thenReturn(null, row);
+        when(userMapper.insert(any(UserPO.class))).thenReturn(1);
+        when(roleMapper.selectByCode("STUDENT")).thenReturn(role);
+        when(roleMapper.selectById(2001L)).thenReturn(role);
+        when(userRoleMapper.countByUserIdAndRoleId(1001L, 2001L)).thenReturn(0L);
+        when(userRoleMapper.insert(any(UserRolePO.class))).thenReturn(1);
+        when(userRoleMapper.selectByUserId(1001L)).thenReturn(
+                List.of(new UserRolePO(9001L, 1001L, 2001L, LocalDateTime.now())));
 
+        UserRepositoryImpl repository = new UserRepositoryImpl(
+                userMapper,
+                userRoleMapper,
+                roleMapper,
+                new UserPOConverter(),
+                (LongIdGenerator) () -> 9001L);
+
+        User saved = repository.save(new User(
+                new UserId(1001L), "Mario", "mario@example.com", UserStatus.ACTIVE,
+                List.of(new RoleCode("STUDENT"))));
+
+        assertThat(saved.roleCodes()).containsExactly(new RoleCode("STUDENT"));
         assertThat(repository.findById(saved.id())).get()
-            .extracting(User::email, User::status)
-            .containsExactly("mario@example.com", UserStatus.ACTIVE);
-        Long relationId = userRoleJpaRepository.findByUserId(saved.id().value()).getFirst().getId();
-        assertThat(relationId).isPositive();
-    }
-
-    @Configuration(proxyBeanMethods = false)
-    @EntityScan(basePackages = {
-            "${package}.infrastructure.user.repo.po",
-            "${package}.infrastructure.teaching.repo.po"
-    })
-    @EnableJpaRepositories(basePackages = {
-            "${package}.infrastructure.user.repo.jpa",
-            "${package}.infrastructure.teaching.repo.jpa"
-    })
-    static class TestConfiguration {
-        @org.springframework.context.annotation.Bean
-        LongIdGenerator idGenerator() { return () -> 9001L; }
+                .extracting(User::email, User::status)
+                .containsExactly("mario@example.com", UserStatus.ACTIVE);
+        assertThat(repository.existsByEmail("mario@example.com")).isFalse();
+        verify(userMapper).insert(any(UserPO.class));
+        verify(userRoleMapper).insert(any(UserRolePO.class));
     }
 }

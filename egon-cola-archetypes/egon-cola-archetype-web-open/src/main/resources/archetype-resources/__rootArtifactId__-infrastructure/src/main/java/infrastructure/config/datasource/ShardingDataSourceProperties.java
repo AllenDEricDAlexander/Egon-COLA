@@ -3,19 +3,17 @@ package ${package}.infrastructure.config.datasource;
 import java.util.List;
 
 /**
- * Physical topology, stable routing and Flyway targets for sharding mode.
+ * Physical topology and stable routing for sharding mode.
  */
 public record ShardingDataSourceProperties(
         String config,
         ShardingRoutingProperties routing,
-        List<PhysicalDataSourceProperties> physicalDataSources,
-        ShardingFlywayProperties flyway) {
+        List<PhysicalDataSourceProperties> physicalDataSources) {
 
     public ShardingDataSourceProperties {
         physicalDataSources = physicalDataSources == null
                 ? List.of()
                 : List.copyOf(physicalDataSources);
-        flyway = flyway == null ? new ShardingFlywayProperties(List.of()) : flyway;
     }
 
     public enum DataSourceRole {
@@ -46,19 +44,4 @@ public record ShardingDataSourceProperties(
             String nodeMap) {
     }
 
-    public record FlywayTargetProperties(
-            String dataSourceName,
-            List<String> locations) {
-
-        public FlywayTargetProperties {
-            locations = locations == null ? List.of() : List.copyOf(locations);
-        }
-    }
-
-    public record ShardingFlywayProperties(List<FlywayTargetProperties> targets) {
-
-        public ShardingFlywayProperties {
-            targets = targets == null ? List.of() : List.copyOf(targets);
-        }
-    }
 }

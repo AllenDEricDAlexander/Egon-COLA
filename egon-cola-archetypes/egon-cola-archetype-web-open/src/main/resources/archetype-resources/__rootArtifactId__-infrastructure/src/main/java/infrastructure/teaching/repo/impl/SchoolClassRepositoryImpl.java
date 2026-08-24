@@ -8,13 +8,11 @@ import ${package}.domain.teaching.vos.GradeCode;
 import ${package}.domain.teaching.vos.SchoolClassId;
 import ${package}.domain.user.vos.UserId;
 import ${package}.infrastructure.teaching.repo.converter.SchoolClassPOConverter;
-import ${package}.infrastructure.teaching.repo.jpa.GradeJpaRepository;
-import ${package}.infrastructure.teaching.repo.jpa.SchoolClassJpaRepository;
-import ${package}.infrastructure.teaching.repo.jpa.SchoolClassUserJpaRepository;
+import ${package}.infrastructure.teaching.repo.mapper.GradeMapper;
+import ${package}.infrastructure.teaching.repo.mapper.SchoolClassMapper;
+import ${package}.infrastructure.teaching.repo.mapper.SchoolClassUserMapper;
 import ${package}.infrastructure.teaching.repo.po.SchoolClassPO;
 import ${package}.infrastructure.teaching.repo.po.SchoolClassUserPO;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
@@ -28,22 +26,25 @@ import java.util.Optional;
 @Repository("schoolClassRepositoryImpl")
 @RequiredArgsConstructor
 public class SchoolClassRepositoryImpl implements SchoolClassRepository {
-    private final SchoolClassJpaRepository schoolClassJpaRepository;
-    private final GradeJpaRepository gradeJpaRepository;
-    private final SchoolClassUserJpaRepository schoolClassUserJpaRepository;
+    private final SchoolClassMapper schoolClassMapper;
+    private final GradeMapper gradeMapper;
+    private final SchoolClassUserMapper schoolClassUserMapper;
     private final SchoolClassPOConverter converter;
     private final LongIdGenerator idGenerator;
-    private final EntityManager entityManager;
 
     @Override
     @Transactional
     public SchoolClass save(SchoolClass schoolClass) {
         try {
             SchoolClassPO schoolClassPO = converter.toPO(schoolClass);
-            entityManager.persist(schoolClassPO);
-            entityManager.flush();
+            SchoolClassPO existing = schoolClassMapper.selectByGradeIdAndId(
+                    schoolClassPO.getGradeId(), schoolClassPO.getId());
+            int affected = existing == null
+                    ? schoolClassMapper.insert(schoolClassPO)
+                    : schoolClassMapper.updateById(schoolClassPO);
+            requireAffected(affected, "save school class");
             return restore(schoolClassPO);
-        } catch (DataIntegrityViolationException | PersistenceException exception) {
+        } catch (DataIntegrityViolationException exception) {
             throw conflict("school class persistence conflict", exception);
         }
     }
@@ -51,13 +52,13 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
     @Override public Optional<SchoolClass> findByGradeIdAndId(
             Long gradeId,
             SchoolClassId schoolClassId) {
-        return schoolClassJpaRepository
-                .findByGradeIdAndId(gradeId, schoolClassId.value())
+        return Optional.ofNullable(schoolClassMapper
+                .selectByGradeIdAndId(gradeId, schoolClassId.value()))
                 .map(this::restore);
     }
 
     @Override public boolean existsByGradeIdAndNameIgnoreCase(Long gradeId, String name) {
-        return schoolClassJpaRepository.countByGradeIdAndNameIgnoreCase(gradeId, name) > 0;
+        return schoolClassMapper.countByGradeIdAndNameIgnoreCase(gradeId, name) > 0;
     }
 
     @Override
@@ -67,14 +68,11 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
             SchoolClassId schoolClassId,
             UserId userId) {
         try {
-            entityManager.persist(new SchoolClassUserPO(
-                    idGenerator.nextLongId(),
-                    gradeId,
-                    schoolClassId.value(),
-                    userId.value(),
+            int affected = schoolClassUserMapper.insert(new SchoolClassUserPO(
+                    idGenerator.nextLongId(), gradeId, schoolClassId.value(), userId.value(),
                     LocalDateTime.now()));
-            entityManager.flush();
-        } catch (DataIntegrityViolationException | PersistenceException exception) {
+            requireAffected(affected, "insert school class user");
+        } catch (DataIntegrityViolationException exception) {
             throw conflict("school class membership conflict", exception);
         }
     }
@@ -83,23 +81,29 @@ public class SchoolClassRepositoryImpl implements SchoolClassRepository {
             Long gradeId,
             SchoolClassId schoolClassId,
             UserId userId) {
-        return schoolClassUserJpaRepository.countByGradeIdAndSchoolClassIdAndUserId(
-            gradeId, schoolClassId.value(), userId.value()) > 0;
+        return schoolClassUserMapper.countByGradeIdAndSchoolClassIdAndUserId(
+                gradeId, schoolClassId.value(), userId.value()) > 0;
     }
 
     private SchoolClass restore(SchoolClassPO schoolClassPO) {
-        GradeCode gradeCode = gradeJpaRepository.findById(schoolClassPO.getGradeId())
+        GradeCode gradeCode = Optional.ofNullable(gradeMapper.selectById(schoolClassPO.getGradeId()))
             .map(grade -> GradeCode.create(grade.getCode()))
             .orElseThrow(() -> new OrganizationPortException(
                 OrganizationDomainErrorCode.DEPENDENCY_UNAVAILABLE, "grade row missing",
                 new IllegalStateException("grade row missing")));
-        List<UserId> userIds = schoolClassUserJpaRepository
-            .findByGradeIdAndSchoolClassId(schoolClassPO.getGradeId(), schoolClassPO.getId()).stream()
+        List<UserId> userIds = schoolClassUserMapper
+            .selectByGradeIdAndSchoolClassId(schoolClassPO.getGradeId(), schoolClassPO.getId()).stream()
             .map(SchoolClassUserPO::getUserId).map(UserId::new).toList();
         return converter.toEntity(schoolClassPO, gradeCode, userIds);
     }
 
     private static OrganizationPortException conflict(String message, Exception exception) {
         return new OrganizationPortException(OrganizationDomainErrorCode.CONFLICT, message, exception);
+    }
+
+    private static void requireAffected(int affected, String operation) {
+        if (affected != 1) {
+            throw new IllegalStateException(operation + " affected " + affected + " rows");
+        }
     }
 }

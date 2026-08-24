@@ -8,9 +8,9 @@ import ${package}.domain.user.repos.UserRepository;
 import ${package}.domain.user.vos.UserId;
 import ${package}.domain.user.vos.RoleCode;
 import ${package}.infrastructure.user.repo.converter.UserPOConverter;
-import ${package}.infrastructure.user.repo.jpa.RoleJpaRepository;
-import ${package}.infrastructure.user.repo.jpa.UserRoleJpaRepository;
-import ${package}.infrastructure.user.repo.jpa.UserJpaRepository;
+import ${package}.infrastructure.user.repo.mapper.RoleMapper;
+import ${package}.infrastructure.user.repo.mapper.UserMapper;
+import ${package}.infrastructure.user.repo.mapper.UserRoleMapper;
 import ${package}.infrastructure.user.repo.po.UserPO;
 import ${package}.infrastructure.user.repo.po.UserRolePO;
 import lombok.RequiredArgsConstructor;
@@ -26,17 +26,22 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserRepositoryImpl implements UserRepository {
 
-    private final UserJpaRepository userJpaRepository;
-    private final UserRoleJpaRepository userRoleJpaRepository;
-    private final RoleJpaRepository roleJpaRepository;
+    private final UserMapper userMapper;
+    private final UserRoleMapper userRoleMapper;
+    private final RoleMapper roleMapper;
     private final UserPOConverter converter;
     private final LongIdGenerator idGenerator;
 
     @Override
     public User save(User user) {
         try {
-            UserPO saved = userJpaRepository.save(converter.toPO(user));
-            user.roleCodes().forEach(roleCode -> roleJpaRepository.findByCode(roleCode.value())
+            UserPO saved = converter.toPO(user);
+            int affected = userMapper.selectById(user.id().value()) == null
+                    ? userMapper.insert(saved)
+                    : userMapper.updateById(saved);
+            requireAffected(affected, "save user");
+            user.roleCodes().forEach(roleCode -> Optional.ofNullable(
+                    roleMapper.selectByCode(roleCode.value()))
                 .ifPresent(role -> saveRoleIfMissing(user.id().value(), role.getId())));
             return restore(saved);
         } catch (DataIntegrityViolationException exception) {
@@ -47,29 +52,36 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public Optional<User> findById(UserId userId) {
-        return userJpaRepository.findById(userId.value()).map(this::restore);
+        return Optional.ofNullable(userMapper.selectById(userId.value())).map(this::restore);
     }
 
     @Override
     public boolean existsByEmail(String normalizedEmail) {
-        return userJpaRepository.countByEmail(normalizedEmail) > 0;
+        return userMapper.countByEmail(normalizedEmail) > 0;
     }
 
     private void saveRoleIfMissing(Long userId, Long roleId) {
-        if (userRoleJpaRepository.countByUserIdAndRoleId(userId, roleId) == 0) {
-            userRoleJpaRepository.save(
+        if (userRoleMapper.countByUserIdAndRoleId(userId, roleId) == 0) {
+            int affected = userRoleMapper.insert(
                     new UserRolePO(idGenerator.nextLongId(), userId, roleId, LocalDateTime.now()));
+            requireAffected(affected, "insert user role");
         }
     }
 
     private User restore(UserPO userPO) {
-        List<RoleCode> roleCodes = userRoleJpaRepository.findByUserId(userPO.getId()).stream()
+        List<RoleCode> roleCodes = userRoleMapper.selectByUserId(userPO.getId()).stream()
             .map(UserRolePO::getRoleId)
-            .map(roleJpaRepository::findById)
-            .flatMap(Optional::stream)
+            .map(roleMapper::selectById)
+            .filter(java.util.Objects::nonNull)
             .map(role -> new RoleCode(role.getCode()))
             .toList();
         return User.restore(new UserId(userPO.getId()), userPO.getName(), userPO.getEmail(),
             UserStatus.valueOf(userPO.getStatus()), roleCodes);
+    }
+
+    private static void requireAffected(int affected, String operation) {
+        if (affected != 1) {
+            throw new IllegalStateException(operation + " affected " + affected + " rows");
+        }
     }
 }

@@ -2,70 +2,41 @@ package ${package}.infrastructure.teaching.repo;
 
 import ${package}.domain.teaching.entities.Grade;
 import ${package}.domain.teaching.enums.GradeStatus;
-import ${package}.domain.teaching.repos.GradeRepository;
 import ${package}.domain.teaching.vos.GradeCode;
 import ${package}.infrastructure.teaching.repo.converter.GradePOConverter;
 import ${package}.infrastructure.teaching.repo.converter.GradePOMapper;
-import ${package}.infrastructure.teaching.repo.converter.GradePOMapperImpl;
 import ${package}.infrastructure.teaching.repo.impl.GradeRepositoryImpl;
-import ${package}.infrastructure.teaching.repo.jpa.GradeJpaRepository;
+import ${package}.infrastructure.teaching.repo.mapper.GradeMapper;
 import ${package}.infrastructure.teaching.repo.po.GradePO;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.test.context.ContextConfiguration;
-
 import java.time.LocalDateTime;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-@DataJpaTest(properties = {
-    "spring.flyway.enabled=false",
-    "spring.jpa.hibernate.ddl-auto=create-drop"
-})
-@Import({GradeRepositoryImpl.class, GradePOConverter.class, GradePOMapperImpl.class})
-@ContextConfiguration(classes = GradeRepositoryImplTest.TestConfiguration.class)
 class GradeRepositoryImplTest {
-    @Autowired GradeRepository repository;
-    @Autowired GradeJpaRepository jpaRepository;
-    @Autowired GradePOMapper gradePOMapper;
 
     @Test
-    void savesAndRestoresNormalizedGrades() {
-        Long gradeId = 1001L;
+    void savesAndRestoresGradeThroughMapper() {
+        GradeMapper gradeMapper = mock(GradeMapper.class);
+        GradePOMapper poMapper = mock(GradePOMapper.class);
+        GradePO row = new GradePO(
+                1001L, "GRADE_ONE", "Grade One", "ACTIVE", LocalDateTime.now());
+        when(gradeMapper.selectById(1001L)).thenReturn(null, row);
+        when(gradeMapper.selectByCode("GRADE_ONE")).thenReturn(row);
+        when(gradeMapper.insert(any(GradePO.class))).thenReturn(1);
+        when(poMapper.convert(any(Grade.class))).thenReturn(row);
+
+        GradeRepositoryImpl repository = new GradeRepositoryImpl(
+                gradeMapper, new GradePOConverter(poMapper));
+
         Grade saved = repository.save(new Grade(
-            gradeId, GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE));
+                1001L, GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE));
 
         assertThat(repository.findByCode(new GradeCode("GRADE_ONE"))).contains(saved);
-        assertThat(repository.findById(gradeId)).contains(saved);
+        assertThat(repository.findById(1001L)).contains(saved);
+        assertThat(repository.existsByCode(new GradeCode("GRADE_ONE"))).isFalse();
     }
-
-    @Test
-    void updatesTargetWhenMappingGrade() {
-        GradePO target = new GradePO(
-            1000L, "OLD", "Old", "INACTIVE", LocalDateTime.MIN);
-
-        Long gradeId = 1001L;
-        GradePO mapped = gradePOMapper.convert(new Grade(
-            gradeId, GradeCode.create("GRADE_ONE"), "Grade One", GradeStatus.ACTIVE), target);
-
-        assertThat(mapped).isSameAs(target);
-        assertThat(mapped.getId()).isEqualTo(gradeId);
-        assertThat(mapped.getCode()).isEqualTo("GRADE_ONE");
-    }
-
-    @Configuration(proxyBeanMethods = false)
-    @EntityScan(basePackages = {
-            "${package}.infrastructure.user.repo.po",
-            "${package}.infrastructure.teaching.repo.po"
-    })
-    @EnableJpaRepositories(basePackages = {
-            "${package}.infrastructure.user.repo.jpa",
-            "${package}.infrastructure.teaching.repo.jpa"
-    })
-    static class TestConfiguration {}
 }

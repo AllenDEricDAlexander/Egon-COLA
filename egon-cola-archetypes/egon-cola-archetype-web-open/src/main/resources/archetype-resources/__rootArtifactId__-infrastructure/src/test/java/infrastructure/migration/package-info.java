@@ -1,4 +1,4 @@
 /**
- * Tests for Flyway migration conventions and logical schema parity.
+ * Database contract test package.
  */
 package ${package}.infrastructure.migration;

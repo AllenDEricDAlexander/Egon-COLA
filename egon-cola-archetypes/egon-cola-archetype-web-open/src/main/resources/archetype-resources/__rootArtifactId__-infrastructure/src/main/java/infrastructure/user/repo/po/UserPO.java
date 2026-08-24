@@ -1,34 +1,27 @@
 package ${package}.infrastructure.user.repo.po;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "users")
+@TableName("users")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 public class UserPO {
 
-    @Id
+    @TableId(value = "id", type = IdType.INPUT)
     private Long id;
 
-    @Column(nullable = false, length = 120)
     private String name;
-
-    @Column(nullable = false, unique = true, length = 160)
     private String email;
-
-    @Column(nullable = false, length = 32)
     private String status;
-
-    @Column(name = "created_at", nullable = false)
+    @TableField("created_at")
     private LocalDateTime createdAt;
 
     public Long getId() { return id; }

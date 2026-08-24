@@ -1,23 +1,21 @@
 package ${package}.infrastructure.user.repo.po;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "user_roles", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "role_id"}))
+@TableName("user_roles")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserRolePO {
-    @Id private Long id;
-    @Column(name = "user_id", nullable = false) private Long userId;
-    @Column(name = "role_id", nullable = false) private Long roleId;
-    @Column(name = "created_at", nullable = false) private LocalDateTime createdAt;
+    @TableId(value = "id", type = IdType.INPUT) private Long id;
+    @TableField("user_id") private Long userId;
+    @TableField("role_id") private Long roleId;
+    @TableField("created_at") private LocalDateTime createdAt;
 
     public UserRolePO(Long id, Long userId, Long roleId, LocalDateTime createdAt) {
         this.id = id;

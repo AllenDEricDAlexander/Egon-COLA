@@ -1,10 +1,5 @@
 #set( $symbol_dollar = '$' )
 spring:
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
-    show-sql: false
   data:
     redis:
       host: ${symbol_dollar}{REDIS_HOST}

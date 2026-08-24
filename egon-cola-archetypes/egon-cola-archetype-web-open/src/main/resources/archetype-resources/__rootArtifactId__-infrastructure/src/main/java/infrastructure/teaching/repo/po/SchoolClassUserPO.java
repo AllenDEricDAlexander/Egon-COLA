@@ -1,37 +1,30 @@
 package ${package}.infrastructure.teaching.repo.po;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(
-        name = "school_class_users",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_school_class_user",
-                columnNames = {"grade_id", "school_class_id", "user_id"})
-)
+@TableName("school_class_users")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SchoolClassUserPO {
-    @Id
+    @TableId(value = "id", type = IdType.INPUT)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
+    @TableField("user_id")
     private Long userId;
 
-    @Column(name = "grade_id", nullable = false)
+    @TableField("grade_id")
     private Long gradeId;
 
-    @Column(name = "school_class_id", nullable = false)
+    @TableField("school_class_id")
     private Long schoolClassId;
 
-    @Column(name = "created_at", nullable = false)
+    @TableField("created_at")
     private LocalDateTime createdAt;
 
     public SchoolClassUserPO(

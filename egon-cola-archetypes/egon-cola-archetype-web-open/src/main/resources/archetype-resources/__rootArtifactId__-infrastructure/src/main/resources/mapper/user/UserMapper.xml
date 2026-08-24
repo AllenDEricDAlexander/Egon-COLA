@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="${package}.infrastructure.user.repo.mapper.UserMapper">
+    <resultMap id="UserResultMap" type="${package}.infrastructure.user.repo.po.UserPO">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="email" property="email"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <select id="countByEmail" resultType="long">
+        SELECT COUNT(*) FROM users WHERE email = #{email}
+    </select>
+</mapper>

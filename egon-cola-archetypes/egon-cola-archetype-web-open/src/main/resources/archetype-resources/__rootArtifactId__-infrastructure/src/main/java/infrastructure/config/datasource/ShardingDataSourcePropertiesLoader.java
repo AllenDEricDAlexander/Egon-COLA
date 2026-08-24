@@ -37,7 +37,6 @@ public final class ShardingDataSourcePropertiesLoader {
         return new ShardingDataSourceProperties(
                 topology.config(),
                 routing,
-                topology.physicalDataSources(),
-                topology.flyway());
+                topology.physicalDataSources());
     }
 }
