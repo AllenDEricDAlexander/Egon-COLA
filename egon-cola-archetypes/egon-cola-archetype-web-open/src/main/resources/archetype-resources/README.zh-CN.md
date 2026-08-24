@@ -40,8 +40,10 @@ MyBatis-Plus 3.5.17、ShardingSphere 5.5.3、Springdoc 2.8.17。直接使用的 
 `SHARDING_READWRITE`。`spring.sql.init.mode=never`，表结构由 DBA 手工执行：
 
 ```text
-deploy/sql/mysql-master.sql
-deploy/sql/mysql-shard.sql
+student-management-organization-infrastructure/src/main/resources/db/manual/postgresql/
+├── README.md
+├── master-data/001__create_organization_master_data_schema.sql
+└── shard/002__create_organization_sharded_schema.sql
 ```
 
 应用不会创建或迁移表。执行 SQL 前备份每个物理 primary，失败即停止；回退使用备份

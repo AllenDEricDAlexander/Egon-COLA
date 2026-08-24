@@ -116,12 +116,17 @@ def mapperFiles = filesUnder("student-management-organization-infrastructure/src
 }
 assert mapperFiles.size() == 8
 [
-        "deploy/sql/README.md",
-        "deploy/sql/mysql-master.sql",
-        "deploy/sql/mysql-shard.sql"
+        "student-management-organization-infrastructure/src/main/resources/db/manual/postgresql/README.md",
+        "student-management-organization-infrastructure/src/main/resources/db/manual/postgresql/master-data/001__create_organization_master_data_schema.sql",
+        "student-management-organization-infrastructure/src/main/resources/db/manual/postgresql/shard/002__create_organization_sharded_schema.sql"
 ].each { path -> file(path) }
-assert file("deploy/sql/mysql-master.sql").text.contains("BIGINT")
-assert file("deploy/sql/mysql-shard.sql").text.contains("BIGINT")
+def manualSchemaRoot = "student-management-organization-infrastructure/src/main/resources/db/manual/postgresql"
+assert file("${manualSchemaRoot}/README.md").text.contains("PostgreSQL")
+assert file("${manualSchemaRoot}/master-data/001__create_organization_master_data_schema.sql").text.contains("BIGINT")
+assert file("${manualSchemaRoot}/master-data/001__create_organization_master_data_schema.sql").text.contains("ON CONFLICT")
+assert file("${manualSchemaRoot}/shard/002__create_organization_sharded_schema.sql").text.contains("BIGINT")
+assert file("${manualSchemaRoot}/shard/002__create_organization_sharded_schema.sql").text.contains("CREATE INDEX IF NOT EXISTS")
+missing("deploy/sql")
 missing("student-management-organization-infrastructure/src/main/resources/db/migration")
 missing("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/user/repo/jpa")
 missing("student-management-organization-infrastructure/src/main/java/it/pkg/infrastructure/teaching/repo/jpa")
@@ -176,3 +181,4 @@ def reports = filesUnder(".") { candidate ->
 assert file("README.md").text.contains("Springdoc")
 assert file("README.md").text.contains("MyBatis-Plus")
 assert file("README.md").text.contains("Gateway")
+assert file("README.md").text.contains("db/manual/postgresql")

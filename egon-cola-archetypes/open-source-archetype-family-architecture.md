@@ -134,9 +134,11 @@ them so source and contract tests remain deterministic.
 - MyBatis-Plus is the persistence API. Mapper interfaces and XML are owned by
   Infrastructure; repositories in Domain/Application depend on ports, never on
   JPA or generated SQL table names.
-- Schema files live in the generated project's manual SQL directory and are
-  applied by a DBA in the documented master/shard order. Maven verify and
-  application startup never run those scripts and never create or alter tables.
+- Schema files live in the generated project's
+  `__rootArtifactId__-infrastructure/src/main/resources/db/manual/postgresql`
+  directory and are applied by a DBA in the documented master/shard order. Maven
+  verify and application startup never run those scripts and never create or alter
+  tables.
 
 ## Protocol ownership
 

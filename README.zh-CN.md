@@ -386,7 +386,7 @@ Java 源码基线是 21，CI 额外验证 JDK 25 不代表业务项目必须立�
 
 ### Open 族是否内置 Gateway 或自动更新数据库？
 
-不内置。Gateway 属于外部 Spring Cloud Gateway 部署；Open 模板在 `resources`/`deploy/sql` 提供经过测试的手工 SQL，不使用 Spring Data JPA、Flyway、Liquibase，也不会自动刷表。
+不内置。Gateway 属于外部 Spring Cloud Gateway 部署；Open 模板在生成项目 Infrastructure 的 `src/main/resources/db/manual/postgresql` 提供经过测试的 PostgreSQL 手工 SQL，不使用 Spring Data JPA、Flyway、Liquibase，也不会自动刷表。
 
 ### 组件应该使用哪个入口？
 

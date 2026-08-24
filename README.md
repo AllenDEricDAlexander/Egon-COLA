@@ -335,7 +335,7 @@ No. Unit, module, and Docker-backed tests prove the behavior covered by those te
 
 ### Does the Open family include Gateway or automatic database migration?
 
-No. Gateway is an external Spring Cloud Gateway deployment concern. Open templates provide reviewed manual SQL under `resources`/`deploy/sql`; they do not use Spring Data JPA, Flyway, Liquibase, or automatic schema updates.
+No. Gateway is an external Spring Cloud Gateway deployment concern. Open templates provide reviewed manual PostgreSQL SQL under generated Infrastructure `src/main/resources/db/manual/postgresql`; they do not use Spring Data JPA, Flyway, Liquibase, or automatic schema updates.
 
 ### Where should configuration questions be answered?
 

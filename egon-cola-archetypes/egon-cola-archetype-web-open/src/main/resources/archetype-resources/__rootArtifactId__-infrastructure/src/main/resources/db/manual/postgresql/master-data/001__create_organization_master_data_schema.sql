@@ -1,4 +1,4 @@
--- Web Open master schema. Execute manually on the master_data primary.
+-- Web Open master schema for PostgreSQL. Execute manually on the master_data primary.
 -- The application never reads or executes this file.
 
 CREATE TABLE IF NOT EXISTS users (
@@ -61,8 +61,17 @@ CREATE TABLE IF NOT EXISTS grades (
 -- Reserved example identifiers are intentionally stable and may be replaced by the operator.
 INSERT INTO roles (id, code, name, status, created_at)
 VALUES (1, 'STUDENT', 'Student', 'ACTIVE', CURRENT_TIMESTAMP)
-ON DUPLICATE KEY UPDATE code = VALUES(code);
+ON CONFLICT (id) DO UPDATE
+SET code = EXCLUDED.code,
+    name = EXCLUDED.name,
+    status = EXCLUDED.status,
+    created_at = EXCLUDED.created_at;
 
 INSERT INTO permissions (id, code, name, type, status, created_at)
 VALUES (2, 'CLASS_READ', 'Read school class', 'API', 'ACTIVE', CURRENT_TIMESTAMP)
-ON DUPLICATE KEY UPDATE code = VALUES(code);
+ON CONFLICT (id) DO UPDATE
+SET code = EXCLUDED.code,
+    name = EXCLUDED.name,
+    type = EXCLUDED.type,
+    status = EXCLUDED.status,
+    created_at = EXCLUDED.created_at;

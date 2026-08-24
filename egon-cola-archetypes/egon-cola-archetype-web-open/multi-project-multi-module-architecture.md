@@ -56,7 +56,9 @@ ShardingSphere 或任何 Web 框架。Infrastructure 不反向依赖 Adapter；S
   `master_data`；
 - 支持 `SHARDING` 与 `SHARDING_READWRITE` 两种拓扑；
 - `spring.sql.init.mode=never`，模板不使用 Spring Data JPA、Flyway 或 Liquibase；
-- DBA 按 `deploy/sql/mysql-master.sql` 与 `deploy/sql/mysql-shard.sql` 手工更新
+- DBA 按生成项目 Infrastructure 下的
+  `src/main/resources/db/manual/postgresql/master-data/001__create_organization_master_data_schema.sql`
+  与 `src/main/resources/db/manual/postgresql/shard/002__create_organization_sharded_schema.sql` 手工更新
   表结构，失败停止，回退依靠备份或新的前向 SQL。
 
 ## 4. Proto 与 RPC

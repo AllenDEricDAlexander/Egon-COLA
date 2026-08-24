@@ -41,8 +41,10 @@ MyBatis-Plus Mapper XML and ShardingSphere 5.5.3 provide persistence and shardin
 schema changes are manual DBA operations:
 
 ```text
-deploy/sql/mysql-master.sql
-deploy/sql/mysql-shard.sql
+student-management-organization-infrastructure/src/main/resources/db/manual/postgresql/
+├── README.md
+├── master-data/001__create_organization_master_data_schema.sql
+└── shard/002__create_organization_sharded_schema.sql
 ```
 
 The application never creates or migrates tables. Back up each physical primary before

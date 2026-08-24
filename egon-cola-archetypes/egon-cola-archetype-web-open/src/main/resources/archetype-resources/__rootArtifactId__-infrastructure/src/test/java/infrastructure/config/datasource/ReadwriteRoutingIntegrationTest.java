@@ -135,7 +135,7 @@ class ReadwriteRoutingIntegrationTest {
         dataSource.setPoolName(database);
         dataSource.setDriverClassName("org.h2.Driver");
         dataSource.setJdbcUrl("jdbc:h2:mem:" + database
-                + ";MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1");
+                + ";MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1");
         dataSource.setUsername("sa");
         dataSource.setPassword("");
         return dataSource;

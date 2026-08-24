@@ -72,14 +72,6 @@
                 <include>compose.nerdctl.prod.yaml</include>
             </includes>
         </fileSet>
-        <fileSet filtered="false" encoding="UTF-8">
-            <directory>deploy/sql</directory>
-            <includes>
-                <include>mysql-master.sql</include>
-                <include>mysql-shard.sql</include>
-                <include>README.md</include>
-            </includes>
-        </fileSet>
     </fileSets>
     <modules>
         <module id="${rootArtifactId}-common" dir="__rootArtifactId__-common" name="${rootArtifactId}-common">
@@ -255,6 +247,7 @@
                         <include>**/*.properties</include>
                         <include>**/*.xml</include>
                         <include>**/*.sql</include>
+                        <include>**/*.md</include>
                     </includes>
                 </fileSet>
                 <fileSet filtered="true" packaged="true" encoding="UTF-8">
