@@ -46,12 +46,9 @@ class Rbac3ModuleBoundaryTest {
         Path sourceRoot = Path.of(System.getProperty("basedir"))
                 .resolve("src/main/java/top/egon/cola/platform/rbac3/admin");
         List<String> targetRoots = List.of(
-                "iam/tenant", "iam/user", "iam/business", "iam/application",
-                "iam/resource", "iam/resource/field", "iam/resource/manifest",
-                "iam/permission", "iam/role", "iam/role/assignment",
-                "iam/role/activation", "iam/role/inheritance",
-                "iam/organization", "iam/organization/snapshot",
-                "iam/position", "iam/position/snapshot", "iam/policy"
+                "iam/user", "iam/role", "iam/business", "iam/application",
+                "iam/organization", "iam/position", "authorization",
+                "registration", "shared/tenant"
         );
         targetRoots.forEach(root -> assertTrue(
                 Files.isDirectory(sourceRoot.resolve(root)),
@@ -59,7 +56,8 @@ class Rbac3ModuleBoundaryTest {
 
         List<String> oldRoots = List.of(
                 "tenant", "identity", "resource", "role", "assignment",
-                "activation", "directory", "constraint");
+                "activation", "directory", "constraint", "management",
+                "participation", "simulation", "runtime");
         for (String root : oldRoots) {
             Path directory = sourceRoot.resolve(root);
             if (Files.exists(directory)) {
@@ -83,6 +81,22 @@ class Rbac3ModuleBoundaryTest {
                             .forEach(staleImports::add));
         }
         assertEquals(List.of(), staleImports);
+    }
+
+    @Test
+    void registrationAndRuntimeBoundariesAreSeparated() throws Exception {
+        Path sourceRoot = Path.of(System.getProperty("basedir"))
+                .resolve("src/main/java/top/egon/cola/platform/rbac3/admin");
+        List<String> violations = new ArrayList<>();
+        try (var files = Files.walk(sourceRoot)) {
+            files.filter(path -> path.toString().endsWith(".java"))
+                    .forEach(path -> lines(path).stream()
+                            .filter(line -> line.contains(".admin.registration.")
+                                    && line.contains(".admin.authorization."))
+                            .map(line -> path + ": " + line.trim())
+                            .forEach(violations::add));
+        }
+        assertEquals(List.of(), violations);
     }
 
     private static void assertNoSourceReference(

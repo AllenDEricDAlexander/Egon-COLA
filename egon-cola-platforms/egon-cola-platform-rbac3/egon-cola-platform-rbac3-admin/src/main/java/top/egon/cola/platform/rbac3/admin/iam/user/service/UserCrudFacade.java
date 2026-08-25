@@ -5,7 +5,7 @@ import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.iam.tenant.domain.TenantContext;
+import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.dto.CreateUserCommandDTO;
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.dto.UpdateUserCommandDTO;
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.enums.UserStatusEnum;

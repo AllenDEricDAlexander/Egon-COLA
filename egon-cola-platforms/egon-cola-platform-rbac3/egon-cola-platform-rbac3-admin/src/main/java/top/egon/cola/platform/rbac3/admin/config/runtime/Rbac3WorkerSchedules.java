@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.config.runtime;
 
-import top.egon.cola.platform.rbac3.admin.runtime.controller.scheduled.AssignmentLifecycleWorker;
-import top.egon.cola.platform.rbac3.admin.runtime.controller.scheduled.AuthorizationMutationRecoveryWorker;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.controller.scheduled.AssignmentLifecycleWorker;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.controller.scheduled.AuthorizationMutationRecoveryWorker;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;

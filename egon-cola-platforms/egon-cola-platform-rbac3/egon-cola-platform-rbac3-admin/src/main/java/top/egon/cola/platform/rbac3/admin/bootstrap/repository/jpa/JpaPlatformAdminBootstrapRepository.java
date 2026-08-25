@@ -5,13 +5,13 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
-import top.egon.cola.platform.rbac3.admin.iam.role.assignment.domain.po.UserRoleAssignmentPO;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.AuthorizationEventPublisher;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.userrole.domain.po.UserRoleAssignmentPO;
 import top.egon.cola.platform.rbac3.admin.bootstrap.repository.PlatformAdminBootstrapRepository;
-import top.egon.cola.platform.rbac3.admin.iam.authorizationstate.repository.TenantAuthorizationStateRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.state.repository.TenantAuthorizationStateRepository;
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.po.UserPO;
 import top.egon.cola.platform.rbac3.admin.iam.application.domain.po.ApplicationPO;
-import top.egon.cola.platform.rbac3.admin.iam.permission.domain.po.PermissionPO;
+import top.egon.cola.platform.rbac3.admin.authorization.permission.domain.po.PermissionPO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.po.RolePO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.po.RolePermissionPO;
 
@@ -20,12 +20,12 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import top.egon.cola.platform.rbac3.admin.iam.permission.domain.enums.PermissionRiskLevelEnum;
+import top.egon.cola.platform.rbac3.admin.authorization.permission.domain.enums.PermissionRiskLevelEnum;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RoleTypeEnum;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RoleRiskLevelEnum;
-import top.egon.cola.platform.rbac3.admin.iam.role.assignment.domain.enums.UserRoleAssignmentTypeEnum;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.userrole.domain.enums.UserRoleAssignmentTypeEnum;
 import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditEventVO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.AuthorizationEventVO;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.AuthorizationEventVO;
 
 /**
  * 类型 `JpaPlatformAdminBootstrapRepository` 位于当前包内，是类型，用于承载 `Postgresql Platform Admin Bootstrap Store` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

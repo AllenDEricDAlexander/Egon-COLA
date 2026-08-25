@@ -10,10 +10,10 @@ import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.ApplyObserver;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.DdcConfigClientStatusRepository;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.Rbac3DdcPolicyApplier;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.ApplyObserver;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.ddc.DdcConfigClientStatusRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.ddc.Rbac3DdcPolicyApplier;
 
 /**
  * 类型 `Rbac3DdcPolicyConfiguration` 位于当前包内，是类型，用于承载 `Rbac3 Ddc Policy Configuration` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

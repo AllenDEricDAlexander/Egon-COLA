@@ -12,7 +12,7 @@ import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefinitionContributor;
 import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.iam.policy.service.ConstraintFacade;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.service.ConstraintFacade;
 import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleFacade;
 
 import java.util.Map;
@@ -21,10 +21,10 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import top.egon.cola.platform.rbac3.admin.iam.resource.controller.ApplicationResourceController;
-import top.egon.cola.platform.rbac3.admin.iam.resource.service.GlobalResourceCatalogService;
+import top.egon.cola.platform.rbac3.admin.authorization.resource.controller.ApplicationResourceController;
+import top.egon.cola.platform.rbac3.admin.authorization.resource.service.GlobalResourceCatalogService;
 import top.egon.cola.platform.rbac3.admin.iam.role.controller.RolePermissionController;
-import top.egon.cola.platform.rbac3.admin.iam.policy.controller.ConstraintController;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.controller.ConstraintController;
 
 @WebMvcTest(
         controllers = {

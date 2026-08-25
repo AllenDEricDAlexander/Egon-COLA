@@ -1,8 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.config.runtime;
 
-import top.egon.cola.platform.rbac3.admin.runtime.controller.scheduled.AssignmentLifecycleWorker;
-import top.egon.cola.platform.rbac3.admin.runtime.controller.scheduled.AuthorizationMutationRecoveryWorker;
-import top.egon.cola.platform.rbac3.admin.runtime.controller.scheduled.RuntimeSnapshotRebuildWorker;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.controller.scheduled.AssignmentLifecycleWorker;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.controller.scheduled.AuthorizationMutationRecoveryWorker;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.controller.scheduled.RuntimeSnapshotRebuildWorker;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.ObjectProvider;
@@ -10,21 +10,21 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationEventPublisher;
-import top.egon.cola.platform.rbac3.admin.runtime.controller.message.Rbac3RuntimeProjectionDeliveryHandler;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.AuthorizationEventPublisher;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.controller.message.Rbac3RuntimeProjectionDeliveryHandler;
 
 import java.time.Clock;
 import java.util.Map;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.AuthorizationEventVO;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.AssignmentLifecycleRepository;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationMutationRecoveryRepository;
-import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeProjectionExecutor;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.ProjectionCheckpointRepository;
-import top.egon.cola.platform.rbac3.admin.runtime.service.AssignmentLifecycleService;
-import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationMutationRecoveryService;
-import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeProjectionService;
-import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeSnapshotRebuildService;
-import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeSnapshotProjectionService;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.AuthorizationEventVO;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.AssignmentLifecycleRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.AuthorizationMutationRecoveryRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.RuntimeProjectionExecutor;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.ProjectionCheckpointRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.AssignmentLifecycleService;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.AuthorizationMutationRecoveryService;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.RuntimeProjectionService;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.RuntimeSnapshotRebuildService;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.RuntimeSnapshotProjectionService;
 
 /**
  * 类型 `Rbac3WorkerConfiguration` 位于当前包内，是类型，用于承载 `Rbac3 Worker Configuration` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

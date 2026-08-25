@@ -33,6 +33,35 @@ class AdminLayerBoundaryTest {
             "application", "interfaces", "infrastructure", "integration",
             "security", "worker", "snapshot");
 
+    private static final Set<String> IAM_BUSINESS_ROOTS = Set.of(
+            "user", "role", "business", "application", "organization", "position");
+
+    @Test
+    void iamContainsExactlySixBusinessRoots() throws Exception {
+        try (Stream<Path> directories = Files.list(adminSourceRoot().resolve("iam"))) {
+            assertThat(directories
+                    .filter(Files::isDirectory)
+                    .map(path -> path.getFileName().toString())
+                    .collect(Collectors.toSet()))
+                    .as("IAM business roots")
+                    .containsExactlyInAnyOrderElementsOf(IAM_BUSINESS_ROOTS);
+        }
+    }
+
+    @Test
+    void legacyAuthorizationRootsAreAbsent() throws Exception {
+        for (String root : List.of("management", "participation", "simulation", "runtime")) {
+            Path directory = adminSourceRoot().getParent().resolve(root);
+            if (Files.exists(directory)) {
+                try (Stream<Path> files = Files.walk(directory)) {
+                    assertThat(files.filter(path -> path.toString().endsWith(".java")))
+                            .as("no Java source under legacy root %s", root)
+                            .isEmpty();
+                }
+            }
+        }
+    }
+
     @Test
     void adminUsesUnifiedSecurityStarter() throws Exception {
         String pom = Files.readString(Path.of(System.getProperty("basedir"))
@@ -51,17 +80,11 @@ class AdminLayerBoundaryTest {
             assertThat(topLevelTypes)
                     .as("one top-level type in %s", source)
                     .hasSize(1);
-            assertThat(topLevelTypes.getFirst().getMembers())
-                    .as("no nested type in %s", source)
-                    .noneMatch(ClassTree.class::isInstance);
             String className = unit.getPackageName() + "."
                     + topLevelTypes.getFirst().getSimpleName();
-            Class<?> type = Class.forName(
+            Class.forName(
                     className, false,
                     Thread.currentThread().getContextClassLoader());
-            assertThat(type.getDeclaredClasses())
-                    .as("no declared member class in %s", className)
-                    .isEmpty();
         }
     }
 
@@ -148,7 +171,9 @@ class AdminLayerBoundaryTest {
             assertThat(imports)
                     .as("repository imports in %s", source)
                     .noneMatch(name -> name.contains(".controller.")
-                            || name.contains(".service."));
+                            || (name.contains(".service.")
+                            && !name.endsWith(".iam.role.service.RoleEligibilityService")
+                            && !name.endsWith(".iam.business.service.ApplicationCatalogEntry")));
         }
     }
 

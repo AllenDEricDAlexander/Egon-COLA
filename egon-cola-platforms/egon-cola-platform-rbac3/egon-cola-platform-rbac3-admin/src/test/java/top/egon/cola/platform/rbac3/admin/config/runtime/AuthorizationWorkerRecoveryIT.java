@@ -5,15 +5,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import top.egon.cola.component.outbox.delivery.DeliveryContext;
 import top.egon.cola.component.outbox.delivery.DeliveryResult;
-import top.egon.cola.platform.rbac3.admin.runtime.controller.message.Rbac3RuntimeProjectionDeliveryHandler;
-import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeQueryService;
-import top.egon.cola.platform.rbac3.admin.runtime.controller.scheduled.AssignmentLifecycleWorker;
-import top.egon.cola.platform.rbac3.admin.runtime.controller.scheduled.AuthorizationMutationRecoveryWorker;
-import top.egon.cola.platform.rbac3.admin.runtime.controller.scheduled.RuntimeSnapshotRebuildWorker;
-import top.egon.cola.platform.rbac3.admin.runtime.service.AssignmentLifecycleService;
-import top.egon.cola.platform.rbac3.admin.runtime.service.AuthorizationMutationRecoveryService;
-import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeProjectionService;
-import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeSnapshotProjectionService;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.controller.message.Rbac3RuntimeProjectionDeliveryHandler;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.RuntimeQueryService;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.controller.scheduled.AssignmentLifecycleWorker;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.controller.scheduled.AuthorizationMutationRecoveryWorker;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.controller.scheduled.RuntimeSnapshotRebuildWorker;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.AssignmentLifecycleService;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.AuthorizationMutationRecoveryService;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.RuntimeProjectionService;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.RuntimeSnapshotProjectionService;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -27,14 +27,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.Rbac3RuntimeProjectionDeliveryHandlerProjectionOutcomeEnum;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.EventEnvelopeVO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.RetryResultVO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.vo.LifecycleChangeVO;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.AuthorizationMutationRecoveryRepository;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.dto.MutationWorkDTO;
-import top.egon.cola.platform.rbac3.admin.runtime.domain.enums.RuntimeSnapshotRebuildClaimEnum;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.ProjectionCheckpointRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.enums.Rbac3RuntimeProjectionDeliveryHandlerProjectionOutcomeEnum;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.EventEnvelopeVO;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.RetryResultVO;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.LifecycleChangeVO;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.AuthorizationMutationRecoveryRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.dto.MutationWorkDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.enums.RuntimeSnapshotRebuildClaimEnum;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.ProjectionCheckpointRepository;
 
 class AuthorizationWorkerRecoveryIT {
 

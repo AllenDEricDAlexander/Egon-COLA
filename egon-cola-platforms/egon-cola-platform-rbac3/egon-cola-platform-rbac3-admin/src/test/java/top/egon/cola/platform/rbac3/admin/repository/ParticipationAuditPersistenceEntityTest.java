@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import top.egon.cola.platform.rbac3.admin.audit.domain.po.AuditLogPO;
-import top.egon.cola.platform.rbac3.admin.participation.domain.po.BusinessParticipationPO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.participation.domain.po.BusinessParticipationPO;
 
 import java.time.Instant;
 import java.util.Map;

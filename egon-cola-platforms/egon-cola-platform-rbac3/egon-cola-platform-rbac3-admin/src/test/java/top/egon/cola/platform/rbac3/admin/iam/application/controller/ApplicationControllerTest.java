@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import top.egon.cola.platform.rbac3.admin.iam.application.service.TenantApplicationFacade;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.application.service.TenantApplicationFacade;
 
 import java.util.Arrays;
 import java.util.stream.Stream;

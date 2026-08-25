@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Objects;
 import java.time.Instant;
 import java.util.function.Function;
-import top.egon.cola.platform.rbac3.admin.iam.role.inheritance.repository.RoleHierarchyRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.roleinheritance.repository.RoleHierarchyRepository;
 import top.egon.cola.platform.rbac3.admin.iam.role.repository.RoleControlRepository;
 import top.egon.cola.platform.rbac3.admin.iam.role.repository.RoleImpactQuery;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.CreateRoleCommandDTO;
@@ -18,7 +18,7 @@ import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.AssignPermissionCo
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.AssignPermissionsCommandDTO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.RemovePermissionCommandDTO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.UpdateRoleCommandDTO;
-import top.egon.cola.platform.rbac3.admin.iam.role.inheritance.domain.dto.InheritanceCommandDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.roleinheritance.domain.dto.InheritanceCommandDTO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleVO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleImpactVO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleMutationResultVO;

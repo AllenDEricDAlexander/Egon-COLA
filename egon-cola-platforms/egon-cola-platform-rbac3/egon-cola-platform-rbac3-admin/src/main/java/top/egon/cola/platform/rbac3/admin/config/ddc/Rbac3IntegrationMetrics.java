@@ -8,8 +8,8 @@ import top.egon.cola.component.ddc.model.instance.DdcRuntimeState;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingState;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.ApplyObserver;
-import top.egon.cola.platform.rbac3.admin.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.ApplyObserver;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
 
 import java.util.Objects;
 import java.util.Set;

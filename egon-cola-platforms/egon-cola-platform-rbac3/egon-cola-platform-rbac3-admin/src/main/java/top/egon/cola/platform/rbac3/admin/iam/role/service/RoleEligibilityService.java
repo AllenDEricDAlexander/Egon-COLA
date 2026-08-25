@@ -4,7 +4,7 @@ import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import top.egon.cola.platform.rbac3.admin.iam.business.repository.UserBusinessAccessRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.business.repository.UserBusinessAccessRepository;
 import top.egon.cola.platform.rbac3.admin.iam.business.service.ApplicationCatalogEntry;
 import top.egon.cola.platform.rbac3.admin.iam.business.service.DdcCatalogGateway;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;

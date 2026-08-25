@@ -18,8 +18,8 @@ import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permissio
 import top.egon.cola.platform.rbac3.admin.iam.application.domain.command.AdmitApplicationAuthorizationScopeCommand;
 import top.egon.cola.platform.rbac3.admin.iam.application.domain.command.ChangeApplicationAuthorizationScopeStatusCommand;
 import top.egon.cola.platform.rbac3.admin.iam.application.domain.vo.ApplicationAuthorizationScopeVO;
-import top.egon.cola.platform.rbac3.admin.iam.application.service.TenantApplicationFacade;
-import top.egon.cola.platform.rbac3.admin.iam.tenant.domain.TenantContext;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.application.service.TenantApplicationFacade;
+import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
 
 import java.util.List;

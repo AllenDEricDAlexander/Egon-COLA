@@ -5,7 +5,7 @@ import jakarta.persistence.Query;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import top.egon.cola.platform.rbac3.admin.iam.business.repository.UserBusinessAccessRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.business.repository.UserBusinessAccessRepository;
 import top.egon.cola.platform.rbac3.admin.iam.business.service.ApplicationCatalogEntry;
 import top.egon.cola.platform.rbac3.admin.iam.business.service.DdcCatalogGateway;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;

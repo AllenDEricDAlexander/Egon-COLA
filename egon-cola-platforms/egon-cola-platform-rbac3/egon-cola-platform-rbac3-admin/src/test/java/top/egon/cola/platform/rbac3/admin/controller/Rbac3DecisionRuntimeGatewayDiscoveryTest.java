@@ -13,15 +13,15 @@ import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefiniti
 import top.egon.cola.platform.idp.starter.security.UserAccessTokenVerifier;
 import top.egon.cola.platform.rbac3.admin.audit.controller.AuditController;
 import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
-import top.egon.cola.platform.rbac3.admin.authorization.controller.InternalAuthorizationController;
-import top.egon.cola.platform.rbac3.admin.authorization.service.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.participation.controller.ParticipationController;
-import top.egon.cola.platform.rbac3.admin.participation.service.ParticipationFacade;
-import top.egon.cola.platform.rbac3.admin.runtime.controller.RuntimeController;
-import top.egon.cola.platform.rbac3.admin.runtime.service.RuntimeQueryService;
-import top.egon.cola.platform.rbac3.admin.runtime.service.SystemAuthorizationSnapshotService;
-import top.egon.cola.platform.rbac3.admin.simulation.controller.AuthorizationSimulationController;
-import top.egon.cola.platform.rbac3.admin.simulation.service.AuthorizationSimulationService;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.decision.controller.InternalAuthorizationController;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.decision.service.AuthorizationDecisionService;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.participation.controller.ParticipationController;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.participation.service.ParticipationFacade;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.controller.RuntimeController;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.RuntimeQueryService;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.SystemAuthorizationSnapshotService;
+import top.egon.cola.platform.rbac3.admin.authorization.simulation.controller.AuthorizationSimulationController;
+import top.egon.cola.platform.rbac3.admin.authorization.simulation.service.AuthorizationSimulationService;
 
 import java.util.Map;
 import java.util.Set;

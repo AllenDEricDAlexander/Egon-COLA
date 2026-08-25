@@ -1,7 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.architecture;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.platform.rbac3.admin.authorization.controller.Rbac3AboutController;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.decision.controller.Rbac3AboutController;
 
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
@@ -61,6 +61,29 @@ class Rbac3AuthorizationArchitectureTest {
                         .filter(symbol -> read(path).contains(symbol))
                         .map(symbol -> path + " contains " + symbol)
                         .toList())
+                .isEmpty();
+    }
+
+    @Test
+    void authorizationAndRegistrationUseTheApprovedLayerRoots() throws Exception {
+        assertThat(productionSources())
+                .filteredOn(path -> path.toString().endsWith(".java"))
+                .allSatisfy(path -> {
+                    String relative = adminSourceRoot().relativize(path).toString();
+                    assertThat(relative)
+                            .as("approved package root for %s", path)
+                            .doesNotStartWith("iam/resource/report/")
+                            .doesNotStartWith("iam/permission/")
+                            .doesNotStartWith("iam/policy/")
+                            .doesNotStartWith("iam/authorizationstate/");
+                });
+        assertThat(productionSources())
+                .flatMap(path -> Stream.of(".admin.management.", ".admin.participation.",
+                                ".admin.simulation.", ".admin.runtime.")
+                        .filter(read(path)::contains)
+                        .map(symbol -> path + " contains " + symbol)
+                        .toList())
+                .as("legacy authorization references")
                 .isEmpty();
     }
 

@@ -19,7 +19,7 @@ import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
 import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
 import top.egon.cola.platform.rbac3.admin.iam.organization.domain.vo.DirectoryPageVO;
 import top.egon.cola.platform.rbac3.admin.iam.organization.service.DirectoryQueryService;
-import top.egon.cola.platform.rbac3.admin.iam.tenant.domain.TenantContext;
+import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.dto.CreateUserCommandDTO;
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.dto.UpdateUserCommandDTO;
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.dto.UserStatusCommandDTO;
