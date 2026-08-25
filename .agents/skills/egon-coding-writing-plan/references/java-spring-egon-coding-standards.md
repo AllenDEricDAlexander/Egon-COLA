@@ -1,6 +1,6 @@
 # Java, Spring, and Egon-COLA Planning Standards
 
-Read this reference completely for every Java Plan. It converts the coding standards into exact file order, pseudocode, verification, and blocking Manual Checks. It does not authorize a Plan to redesign the effective Spec or refactor unrelated legacy code.
+Read `references/user-mandated-java-rules.md` first, then this reference completely for every Java Plan. The literal rules are absolute; this reference adds repository planning evidence and cannot weaken them. It does not authorize redesign or unrelated refactoring.
 
 ## Rule precedence and touched-code scope
 
@@ -34,7 +34,7 @@ Do not invent a third architecture, generic DDD interpretation, hybrid `biz.*`/C
 
 ## Per-file planning rules
 
-Every affected Java file block must name its applicable `MC-*` IDs in `Standards impact`, show repository evidence, and make these decisions explicit in pseudocode and validation:
+Every affected Java file block must name its applicable `MC-*` IDs in `Standards impact`, its original `Rule N` values in `Literal rule enforcement`, show repository evidence, and make these decisions explicit in pseudocode and validation:
 
 ### Semantic naming
 
@@ -48,7 +48,7 @@ Do not introduce ambiguous carrier suffixes `Data`, `Info`, `Param`, or `Bean`. 
 
 ### Cross-layer validation and normalization
 
-Every affected external or cross-layer input must use Jakarta Bean Validation from `spring-boot-starter-validation`. Plan `@Valid` cascades and `@Validated` activation. Reused input objects require explicit Validation Groups. Prefer native constraints and existing `ValidationUtils`; use a custom `ConstraintValidator` only after the Plan records why annotations, composition, groups, `ValidationUtils`, and approved mature libraries are insufficient.
+Every affected layer-to-layer input handoff must use Jakarta Bean Validation from `spring-boot-starter-validation`; Controller-only validation is insufficient. Plan each external -> Controller/Adapter, Controller/Adapter -> Service/Application, Service/Application -> Domain Service/Component, Service/Application -> DAO/Repository/Gateway, and event/job/internal re-entry handoff separately. Name `@Valid`, `@Validated`, the exact group, `ValidationUtils` invocation, normalization, errors, and tests. A custom `ConstraintValidator` is prohibited unless the effective Spec approves the proven annotations/groups/library gap.
 
 For telephone semantics, plan one named normalization boundary and a mature solution such as libphonenumber, including region, canonical form, validity, error mapping, and tests. If the dependency is absent, the Spec/dependency gate must approve it before the Plan can PASS.
 
@@ -56,10 +56,10 @@ For telephone semantics, plan one named normalization boundary and a mature solu
 
 - simple immutable carrier: prefer `record`; use a compact constructor for deterministic normalization/invariants; a method-local temporary structure may be a local `record`;
 - immutable non-record: prefer Lombok `@Value`;
-- complex mutable/ORM/framework/lifecycle object: normal class, selecting only necessary Lombok annotations from `@Data`, protected `@NoArgsConstructor`, `@AllArgsConstructor`, `@RequiredArgsConstructor`, `@Builder`, and `@Accessors(chain = true)`;
-- never stack conflicting construction or mutability annotations mechanically.
+- complex object: normal class with the complete mandated baseline `@Data`, protected `@NoArgsConstructor`, `@AllArgsConstructor`, `@RequiredArgsConstructor`, `@Builder`, and `@Accessors(chain = true)`;
+- calculate all generated constructor signatures; any duplicate/framework conflict blocks the Plan and cannot be silently solved by removing an annotation.
 
-Use MapStruct or MapStructPlus for cross-layer conversion. When semantically compatible and available, the converter must implement/extend Egon `BaseConverter<S,T>`. Plan exact mapping, null/default/enum/time/sensitive-field rules and generated Bean name. Prohibit scattered manual `set/get`, `BeanUtils.copyProperties`, reflection copying, and JSON round trips. A one-way converter exception must cite the established alternative and explain why `BaseConverter` is not truthful.
+Use MapStruct or MapStructPlus for cross-layer conversion. Every new affected Converter must implement/extend the Egon `BaseConverter<S,T>` system. Plan exact generic types, mapping, null/default/enum/time/sensitive-field rules, generated implementation, Bean name, and tests. Prohibit manual `set/get`, `BeanUtils.copyProperties`, reflection, JSON round trips, and one-way/local converter bypasses. If `BaseConverter` cannot express the mapping, block and return to the Spec/user.
 
 ### Spring Beans, injection, and logging
 
@@ -79,7 +79,7 @@ Use MapStruct or MapStructPlus for cross-layer conversion. When semantically com
 
 ### Business modeling and patterns
 
-For a real variation dimension, state transition, rule composition, algorithm choice, responsibility chain, object creation, or event collaboration, evaluate repository-supported Strategy, Template Method, Factory, Chain of Responsibility, State, Specification, or Domain Event. Use a pattern only when it removes present hard-coded branching/coupling and name participants plus tests. For direct logic, record why a pattern would add unnecessary indirection. Complexity alone is not permission to create classes.
+Classify affected business flows. For every Complex flow, plan an actual repository-consistent Strategy, Template Method, Factory, Chain of Responsibility, State, Specification, Domain Event, or other appropriate pattern. Name participants, files, dependency order, registration/selection, orchestration, failures, and tests. Complex logic cannot remain direct `if/else`, `switch`, type/string/reflection dispatch. Only Simple logic may stay direct; do not create ceremonial patterns for it.
 
 ## Step Manual Check contract
 
@@ -94,15 +94,15 @@ The final Plan repeats every ID exactly once in the blocking table:
 | `MC-DEP-001` | Added dependency/custom code has a proven gap and approved impact, or none is added |
 | `MC-NAME-001` | New/changed Java names use semantic roles and avoid ambiguous carrier suffixes |
 | `MC-VALID-001` | Cross-layer inputs use Jakarta/Spring Validation, groups, approved normalization, and tests |
-| `MC-MODEL-001` | Record/class/Lombok choice matches construction, mutability, framework, and invariants |
-| `MC-CONVERT-001` | MapStruct/MapStructPlus and applicable `BaseConverter` own mappings |
+| `MC-MODEL-001` | Record/`@Value`/complete complex-class Lombok baseline is planned exactly, or constructor/framework conflict blocks |
+| `MC-CONVERT-001` | MapStruct/MapStructPlus and mandatory Egon `BaseConverter` own every new affected Converter |
 | `MC-LOG-001` | Affected concrete business classes use `@Slf4j` and safe logging |
 | `MC-BEAN-001` | Affected Beans have stable names, Lombok constructor injection, Qualifiers, and propagation |
 | `MC-UTIL-001` | Only approved utilities are used and no duplicate helper is introduced |
 | `MC-JSON-001` | Jackson is the sole JSON stack and annotations match the protocol |
 | `MC-TIME-001` | New/touched time modeling uses `java.time` with explicit boundary semantics |
 | `MC-CONFIG-001` | All environment profiles retain equivalent configuration key structure |
-| `MC-PATTERN-001` | Complex variation has a justified pattern, or direct logic is justified without hard coding |
+| `MC-PATTERN-001` | Every Complex business flow has a concrete pattern; only Simple logic remains direct |
 | `MC-SCOPE-001` | Touched code complies without unrelated broad refactoring; exceptions are explicit |
 | `MC-TEST-001` | Planned focused tests/static gates prove every applicable standard |
 | `MC-BLOCKER-001` | All blockers/check failures are closed; no unknown or silent exception remains |

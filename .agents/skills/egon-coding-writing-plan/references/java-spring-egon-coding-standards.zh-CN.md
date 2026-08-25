@@ -1,6 +1,6 @@
 # Java、Spring 与 Egon-COLA Plan 规范
 
-> 本文件是 `references/java-spring-egon-coding-standards.md` 的全中文审核镜像。每个 Java Plan 都必须完整读取。它把编码规范落实为文件顺序、伪代码、验证和阻断型 Manual Check，不授权 Plan 改写有效 Spec 或清理无关存量代码。
+> 本文件是 `references/java-spring-egon-coding-standards.md` 的全中文审核镜像。每个 Java Plan 必须先读取 `references/user-mandated-java-rules.zh-CN.md`，再完整读取本文。逐字规则是绝对约束；本文增加仓库规划证据，不能弱化规则，也不授权重设计或无关重构。
 
 ## 规则优先级与触达范围
 
@@ -32,7 +32,7 @@
 
 ## 逐文件规划规范
 
-每个受影响 Java 文件块都必须在 `Standards impact` 列出适用 `MC-*`，给出仓库证据，并在伪代码和验证中落实以下决策。
+每个受影响 Java 文件块都必须在 `Standards impact` 列适用 `MC-*`，在 `Literal rule enforcement` 列原始 `Rule N`，并用仓库证据、伪代码和验证落实。
 
 ### 语义命名
 
@@ -42,7 +42,7 @@
 
 ### 跨层校验与规范化
 
-每个受影响外部/跨层输入都使用 `spring-boot-starter-validation` 的 Jakarta Bean Validation。规划 `@Valid` 级联和 `@Validated` 激活；复用输入用 Validation Group。优先原生注解和 `ValidationUtils`。只有注解、组合、Group、`ValidationUtils` 和获批成熟库都不能表达时才规划自定义 `ConstraintValidator`，并写明缺口。
+每个受影响层间输入交接都使用 `spring-boot-starter-validation` 的 Jakarta Bean Validation；只规划 Controller 校验不合格。分别规划外部 -> Controller/Adapter、Controller/Adapter -> Service/Application、Service/Application -> Domain Service/Component、Service/Application -> DAO/Repository/Gateway、Event/Job/内部重入，写 `@Valid`、`@Validated`、准确 Group、`ValidationUtils`、规范化、错误和测试。只有有效 Spec 批准已证明注解/Group/成熟库缺口时，才允许自定义 `ConstraintValidator`。
 
 电话号码在一个命名边界使用 libphonenumber 等成熟方案，明确地区、规范格式、有效性、错误映射和测试；依赖缺失时必须先通过 Spec/依赖门禁。
 
@@ -50,10 +50,10 @@
 
 - 简单不可变载体优先 `record`，规范化/不变量用紧凑构造器，方法内临时结构可用局部 `record`；
 - 其他不可变对象优先 Lombok `@Value`；
-- 复杂可变、ORM、框架实例化或生命周期对象使用普通类，只从 `@Data`、Protected `@NoArgsConstructor`、`@AllArgsConstructor`、`@RequiredArgsConstructor`、`@Builder`、`@Accessors(chain = true)` 中选真正需要的注解；
-- 禁止机械堆叠冲突的构造与可变性注解。
+- 复杂对象使用普通类，并完整使用 `@Data`、Protected `@NoArgsConstructor`、`@AllArgsConstructor`、`@RequiredArgsConstructor`、`@Builder`、`@Accessors(chain = true)` 强制基线；
+- 计算全部生成构造器；重复签名/框架冲突阻断 Plan，不能静默删除注解。
 
-跨层转换使用 MapStruct/MapStructPlus；语义适配且依赖可用时必须实现/继承 Egon `BaseConverter<S,T>`。规划准确字段、空值、默认、枚举、时间、敏感字段和生成 Bean 名。禁止业务层散布手工 `set/get`、`BeanUtils.copyProperties`、反射复制或 JSON 往返。一向转换例外必须说明为何 `BaseConverter` 不真实，并引用既有替代模式。
+跨层转换使用 MapStruct/MapStructPlus；每个新增受影响 Converter 必须实现/继承 Egon `BaseConverter<S,T>`。规划准确泛型、字段、空值、默认、枚举、时间、敏感字段、生成实现、Bean 名和测试。禁止手工 `set/get`、`BeanUtils.copyProperties`、反射、JSON 往返和单向/本地 Converter 绕过。`BaseConverter` 无法表达时阻断并返回 Spec/用户。
 
 ### Spring Bean、注入与日志
 
@@ -72,7 +72,7 @@
 
 ### 业务建模与模式
 
-真实变化维度、状态流转、规则组合、算法切换、责任传递、对象创建或事件协作可评估仓库已有 Strategy、Template Method、Factory、Chain of Responsibility、State、Specification、Domain Event。只有能消除当前硬编码分支/耦合时才用，并写清参与者和测试。直接逻辑应说明为何模式会增加无意义间接层。复杂不等于多建类。
+分类受影响业务 Flow。每个 Complex Flow 必须规划实际且符合仓库的 Strategy、Template Method、Factory、Chain of Responsibility、State、Specification、Domain Event 或其他合适模式，写参与者、文件、依赖顺序、注册/选择、编排、失败和测试。Complex 逻辑不能保留直接 `if/else`、`switch`、类型/字符串/反射分发。只有 Simple 逻辑可直接实现，且不能制造仪式性模式。
 
 ## Step Manual Check 契约
 
@@ -87,15 +87,15 @@
 | `MC-DEP-001` | 新依赖/自研有已证明缺口和批准，否则不新增 |
 | `MC-NAME-001` | 类型名语义明确且无含糊载体后缀 |
 | `MC-VALID-001` | 跨层输入使用 Validation、Group、获批规范化和测试 |
-| `MC-MODEL-001` | Record/Class/Lombok 符合构造、可变性、框架和不变量 |
-| `MC-CONVERT-001` | MapStruct/MapStructPlus 与适用 `BaseConverter` 负责映射 |
+| `MC-MODEL-001` | 准确规划 Record/`@Value`/复杂类完整 Lombok 基线，否则构造器/框架冲突阻断 |
+| `MC-CONVERT-001` | MapStruct/MapStructPlus 与强制 Egon `BaseConverter` 负责每个新增受影响 Converter |
 | `MC-LOG-001` | 业务类使用 `@Slf4j` 和安全日志 |
 | `MC-BEAN-001` | Bean 有稳定名称、Lombok 构造注入、Qualifier 和传播校验 |
 | `MC-UTIL-001` | 只用获准工具且不新增重复 Helper |
 | `MC-JSON-001` | Jackson 是唯一 JSON 体系且注解符合协议 |
 | `MC-TIME-001` | 时间使用 `java.time` 并明确边界语义 |
 | `MC-CONFIG-001` | 所有环境保持等价配置 Key 结构 |
-| `MC-PATTERN-001` | 复杂变化有合适模式，或直接逻辑有理由且无硬编码 |
+| `MC-PATTERN-001` | 每个 Complex 业务 Flow 有具体模式；只有 Simple 逻辑保持直接 |
 | `MC-SCOPE-001` | 触达代码合规且无无关大重构，例外明确 |
 | `MC-TEST-001` | 聚焦测试/静态门禁证明每项适用规范 |
 | `MC-BLOCKER-001` | 所有阻断/失败已关闭，无未知或静默例外 |

@@ -169,6 +169,7 @@ Illustrative structure only; replace every symbol/path/command with repository e
 - End state: Service and DAO implement the approved idempotency contract; Controller contract is unchanged; concurrency integration remains for the next declared file in this Step.
 - Test-first gate: `Required` — focused duplicate test currently creates two orders or cannot find stored result.
 - Manual Checks: `MC-ARCH-001`, `MC-REUSE-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`
+- Literal Rules: `Rule 1`, `Rule 2`, `Rule 3`, `Rule 4`, `Rule 9`, `Rule 11`
 - Ordered files:
 
 #### File 1 — `MODIFY src/test/java/.../OrderServiceImplTest.java`
@@ -182,6 +183,7 @@ Illustrative structure only; replace every symbol/path/command with repository e
 - Input/output and state mapping: tenant from test security context; canonical request -> hash; stored result -> returned result.
 - Error and edge behavior: same hash returns first result; different hash throws `IdempotencyConflictException`; both assert one order write.
 - Standards impact: `MC-VALID-001`, `MC-SCOPE-001`, `MC-TEST-001` — reuse the approved Command and Validation Group; prove behavior without new contract types.
+- Literal rule enforcement: `Rule 2`, `Rule 11` — exercise the exact Service boundary group and preserve the selected package structure.
 - Implementation pseudocode:
 
 ```java
@@ -214,7 +216,8 @@ Illustrative structure only; replace every symbol/path/command with repository e
 - Contract/signature changes: no Controller route change; use approved command/key fields.
 - Input/output and state mapping: derive tenant from trusted context; canonical business fields -> request hash; persisted first result -> response.
 - Error and edge behavior: same hash replay; different hash conflict; unique race reloads winner; transaction failure writes no partial order/result.
-- Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-PATTERN-001`, `MC-SCOPE-001` — preserve `biz.service.impl`, reuse qualified DAO/validator/converter Beans, use `@Slf4j` and direct orchestration unless the approved variation proves a pattern.
+- Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-PATTERN-001`, `MC-SCOPE-001` — preserve `biz.service.impl`, reuse qualified DAO/validator/converter Beans, use `@Slf4j`, and implement the Spec-selected pattern whenever the flow is Complex; only Simple flow remains direct.
+- Literal rule enforcement: `Rule 1`, `Rule 2`, `Rule 3`, `Rule 4`, `Rule 9`, `Rule 11` — use final semantic types, validate the layer handoff, apply the mandated model/converter/Bean annotations, implement the Spec-selected pattern for Complex logic, and remain under `biz.service.impl`.
 - Implementation pseudocode:
 
 ```java
@@ -249,6 +252,7 @@ OrderResult create(CreateOrderCommand command) {
 - Input/output and state mapping: two same-tenant/same-key Commands -> one stored order/result; forced downstream failure -> zero order/idempotency rows.
 - Error and edge behavior: loser reloads the committed winner; unexpected integrity or timeout error fails the test; rollback never leaves a replayable partial result.
 - Standards impact: `MC-VALID-001`, `MC-SCOPE-001`, `MC-TEST-001` — execute the real boundary validation and prove focused persistence behavior without changing unrelated fixtures.
+- Literal rule enforcement: `Rule 2`, `Rule 11` — prove the actual Service-to-persistence handoff and keep tests in the selected module structure.
 - Implementation pseudocode:
 
 ```java
@@ -361,7 +365,7 @@ If the same file must be modified in more than one Step, name the exact symbols/
 
 ## Standards and Manual Check gate
 
-For Java work, read `references/java-spring-egon-coding-standards.md` before dependency ordering. Each Step must list all applicable `MC-*` IDs; every file must explain its `Standards impact`, not just repeat IDs. The Plan must state which exact test, static search, build output, profile comparison, or code review observation will prove each Step check before commit.
+For Java work, read `references/user-mandated-java-rules.md` and `references/java-spring-egon-coding-standards.md` before dependency ordering. Each Step must list all applicable `MC-*` IDs and original `Rule N` values; every file must explain both `Standards impact` and `Literal rule enforcement`, not just repeat IDs. The Plan must state which exact test, static search, build output, profile comparison, or code review observation will prove each Step check before commit.
 
 Reject the Step when it invents an architecture, duplicates an existing capability, introduces an unapproved dependency, uses an ambiguous type name, omits cross-layer Validation/groups, plans manual object copying, leaves Bean names/Qualifiers implicit, mixes JSON/time stacks, changes only one environment profile, or hides hard-coded complexity. A known violation cannot be deferred to “later cleanup.”
 

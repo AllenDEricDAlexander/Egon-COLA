@@ -18,8 +18,8 @@ SOURCE_ID_RE = re.compile(
 )
 REQ_ID_RE = re.compile(r"\bREQ-\d{3}\b")
 VALID_STATUSES = {"Draft", "Review", "Ready", "In Progress", "Completed", "Blocked", "Superseded"}
-CURRENT_TEMPLATE_VERSION = 3
-SUPPORTED_TEMPLATE_VERSIONS = {2, 3}
+CURRENT_TEMPLATE_VERSION = 4
+SUPPORTED_TEMPLATE_VERSIONS = {2, 3, 4}
 MANUAL_CHECK_IDS = (
     "MC-ARCH-001",
     "MC-REUSE-001",
@@ -40,6 +40,9 @@ MANUAL_CHECK_IDS = (
     "MC-BLOCKER-001",
 )
 MANUAL_CHECK_RE = re.compile(r"\bMC-[A-Z]+-\d{3}\b")
+LITERAL_RULE_NUMBERS = (1, 2, 3, 4, 5, 6, 7, 9, 10, 11)
+LITERAL_RULE_RE = re.compile(r"\bRule\s+(1|2|3|4|5|6|7|9|10|11)\b")
+ANY_LITERAL_RULE_RE = re.compile(r"\bRule\s+(\d+)\b")
 REQUIRED_FIELDS = [
     "Document",
     "Status",
@@ -126,6 +129,16 @@ FILE_MARKERS_V3 = [
     *FILE_MARKERS_V2[:8],
     "- Standards impact:",
     *FILE_MARKERS_V2[8:],
+]
+STEP_MARKERS_V4 = [
+    *STEP_MARKERS_V3[:7],
+    "- Literal Rules:",
+    *STEP_MARKERS_V3[7:],
+]
+FILE_MARKERS_V4 = [
+    *FILE_MARKERS_V3[:9],
+    "- Literal rule enforcement:",
+    *FILE_MARKERS_V3[9:],
 ]
 PLACEHOLDER_PATTERNS = [
     re.compile(r"\b(?:TBD|TODO|FIXME|XXX)\b", re.IGNORECASE),
@@ -438,17 +451,44 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
             errors.append(
                 f"Template Version {template_version} requires the change-unit dependency matrix"
             )
-    if template_version == 3:
+    if template_version in {3, 4}:
         if "### 4.7 Java, Spring, and Egon-COLA Implementation Standards" not in text:
             errors.append(
-                "Template Version 3 is missing required subsection: "
+                f"Template Version {template_version} is missing required subsection: "
                 "### 4.7 Java, Spring, and Egon-COLA Implementation Standards"
             )
         strategy = section(text, "## 4. Implementation Strategy and Dependency Order")
         if "| Concern | Current repository evidence | Effective Spec decision |" not in strategy:
-            errors.append("Template Version 3 requires the implementation-standards decision table")
+            errors.append(
+                f"Template Version {template_version} requires the implementation-standards decision table"
+            )
         if "| Need | Candidates inspected | Exact evidence | Fit/gap | Decision |" not in strategy:
-            errors.append("Template Version 3 requires the capability reuse ledger")
+            errors.append(f"Template Version {template_version} requires the capability reuse ledger")
+    if template_version == 4:
+        literal_heading = "### 4.8 User-mandated Java Rule Implementation Matrix"
+        if literal_heading not in text:
+            errors.append(f"Template Version 4 is missing required subsection: {literal_heading}")
+        strategy = section(text, "## 4. Implementation Strategy and Dependency Order")
+        literal_body = heading_body(strategy, literal_heading)
+        expected_header = (
+            "| Literal rule | Spec source | Repository evidence | Exact files and order | "
+            "Pseudocode obligations | Validation gate | Steps | Status/blocker |"
+        )
+        if expected_header not in literal_body:
+            errors.append("Template Version 4 requires the canonical literal-rule implementation table")
+        rows = markdown_table_rows(literal_body, "Literal rule")
+        actual_rules = [clean(row[0]) for row in rows if row]
+        expected_rules = [f"Rule {number}" for number in LITERAL_RULE_NUMBERS]
+        if actual_rules != expected_rules:
+            errors.append(
+                "Literal-rule rows must preserve exact order 1,2,3,4,5,6,7,9,10,11: "
+                f"{actual_rules}"
+            )
+        for row_number, row in enumerate(rows, start=1):
+            if len(row) < 8:
+                errors.append(
+                    f"Literal-rule row {row_number} requires eight columns; found {len(row)}"
+                )
 
     implements_errors, primary_paths = validate_link_field(
         path, "Implements Spec", fields.get("Implements Spec", ""), require_link=True
@@ -498,7 +538,10 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
 
     step_requirements: set[str] = set()
     for step_number, step in steps:
-        if template_version == 3:
+        if template_version == 4:
+            step_markers = STEP_MARKERS_V4
+            file_markers = FILE_MARKERS_V4
+        elif template_version == 3:
             step_markers = STEP_MARKERS_V3
             file_markers = FILE_MARKERS_V3
         elif template_version == 2:
@@ -511,13 +554,13 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
             if marker not in step:
                 errors.append(f"Step {step_number} missing required marker: {marker}")
 
-        if template_version in {2, 3}:
+        if template_version in {2, 3, 4}:
             test_first = re.search(r"(?m)^- Test-first gate:\s*(.+)$", step)
             if test_first and not re.match(r"(?:`)?(?:Required|Not applicable)\b", test_first.group(1), re.IGNORECASE):
                 errors.append(
                     f"Step {step_number} Test-first gate must start with Required or Not applicable"
                 )
-        if template_version == 3:
+        if template_version in {3, 4}:
             manual_line = re.search(r"(?m)^- Manual Checks:\s*(.+)$", step)
             manual_ids = set(MANUAL_CHECK_RE.findall(manual_line.group(1))) if manual_line else set()
             if manual_line and not manual_ids:
@@ -535,6 +578,28 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
                     f"Step {step_number} Manual Checks must include: "
                     + ", ".join(missing_step_checks)
                 )
+        if template_version == 4:
+            literal_line = re.search(r"(?m)^- Literal Rules:\s*(.+)$", step)
+            literal_numbers = (
+                {int(number) for number in LITERAL_RULE_RE.findall(literal_line.group(1))}
+                if literal_line
+                else set()
+            )
+            if literal_line and not literal_numbers:
+                errors.append(f"Step {step_number} Literal Rules line contains no Rule N values")
+            unknown_literal_numbers = (
+                {int(number) for number in ANY_LITERAL_RULE_RE.findall(literal_line.group(1))}
+                - set(LITERAL_RULE_NUMBERS)
+                if literal_line
+                else set()
+            )
+            if unknown_literal_numbers:
+                errors.append(
+                    f"Step {step_number} contains unknown literal Rule numbers: "
+                    + ", ".join(str(number) for number in sorted(unknown_literal_numbers))
+                )
+            if 11 not in literal_numbers:
+                errors.append(f"Step {step_number} Literal Rules must include Rule 11")
 
         coverage = re.search(r"(?m)^- Requirements:\s*(.+)$", step)
         covered = set(SOURCE_ID_RE.findall(coverage.group(1))) if coverage else set()
@@ -567,14 +632,14 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
                     warnings.append(
                         f"Step {step_number} File {file_number} contains generic, non-implementable pseudocode"
                     )
-                if template_version in {2, 3}:
+                if template_version in {2, 3, 4}:
                     nonempty_lines = [line for line in pseudocode_body.splitlines() if line.strip()]
                     if len(re.sub(r"\s+", " ", pseudocode_body).strip()) < 120 or len(nonempty_lines) < 3:
                         errors.append(
                             f"Step {step_number} File {file_number} pseudocode is too shallow "
                             f"for Template Version {template_version}"
                         )
-            if template_version == 3:
+            if template_version in {3, 4}:
                 standards = re.search(r"(?m)^- Standards impact:\s*(.+)$", block)
                 standards_ids = set(MANUAL_CHECK_RE.findall(standards.group(1))) if standards else set()
                 if standards and not standards_ids:
@@ -587,8 +652,33 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
                         f"Step {step_number} File {file_number} contains unknown Manual Check IDs: "
                         + ", ".join(unknown_standards_ids)
                     )
+            if template_version == 4:
+                literal_enforcement = re.search(
+                    r"(?m)^- Literal rule enforcement:\s*(.+)$", block
+                )
+                file_rule_numbers = (
+                    set(LITERAL_RULE_RE.findall(literal_enforcement.group(1)))
+                    if literal_enforcement
+                    else set()
+                )
+                if literal_enforcement and not file_rule_numbers:
+                    errors.append(
+                        f"Step {step_number} File {file_number} Literal rule enforcement "
+                        "contains no Rule N values"
+                    )
+                unknown_file_rules = (
+                    set(ANY_LITERAL_RULE_RE.findall(literal_enforcement.group(1)))
+                    - {str(number) for number in LITERAL_RULE_NUMBERS}
+                    if literal_enforcement
+                    else set()
+                )
+                if unknown_file_rules:
+                    errors.append(
+                        f"Step {step_number} File {file_number} contains unknown literal Rule numbers: "
+                        + ", ".join(sorted(unknown_file_rules))
+                    )
 
-        if template_version in {2, 3} and files:
+        if template_version in {2, 3, 4} and files:
             commit_paths = re.search(r"(?m)^- Commit paths:\s*(.+)$", step)
             if commit_paths:
                 commit_scope = commit_paths.group(1)
@@ -628,7 +718,7 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
     elif status in {"Review", "Ready"} and "BLOCKED — Spec or user decision required" in present_verdicts:
         errors.append(f"Status {status} cannot use the BLOCKED verdict")
 
-    if template_version == 3:
+    if template_version in {3, 4}:
         errors.extend(
             validate_manual_checks(
                 text,

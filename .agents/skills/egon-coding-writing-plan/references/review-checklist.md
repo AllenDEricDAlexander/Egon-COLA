@@ -36,6 +36,12 @@
 
 ## Java, Spring, Egon-COLA, and Manual Check gate
 
+- [ ] The exact source block from `references/user-mandated-java-rules.md` remains in both entrypoints; Chapter 4 contains Rule 1, 2, 3, 4, 5, 6, 7, 9, 10, and 11 as separate rows in that order.
+- [ ] Every Step has `Literal Rules:` and includes Rule 11; every affected file has `Literal rule enforcement:` with exact Rule numbers and concrete implementation evidence.
+- [ ] Rule 2 plans every affected layer handoff separately, not just Controller validation, including groups, `ValidationUtils`, telephone normalization, errors, and tests.
+- [ ] Rule 3 plans Record/`@Value`/the complete complex-class Lombok baseline and mandatory MapStruct/MapStructPlus plus Egon `BaseConverter`; conflicts are returned to the Spec/user.
+- [ ] Rule 4 plans `@Slf4j`, explicit Bean names, `@RequiredArgsConstructor`, per-dependency `@Qualifier`, and `lombok.config` propagation in exact files.
+- [ ] Rule 9 assigns a concrete pattern and participant file order to every Complex flow; only evidenced Simple flows remain direct.
 - [ ] For Java work, `references/java-spring-egon-coding-standards.md` was read completely and the actual tree was classified as exactly one traditional-layer or exact selected Archetype profile; no hybrid/new layer was invented.
 - [ ] The capability reuse ledger names Spring/Spring Boot Starter, Egon-COLA Component/common infrastructure, and module-local candidates with exact evidence, fit/gap, decision, and owning Step.
 - [ ] Every added dependency/custom replacement has an effective-Spec decision, proven gap, managed version/owner, impact, and validation; otherwise the Plan reuses existing capability.
@@ -44,7 +50,7 @@
 - [ ] Each object has a justified record/class/Lombok construction model; converters use MapStruct/MapStructPlus and the applicable Egon `BaseConverter` without manual/BeanUtils/JSON copying.
 - [ ] Each affected Spring Bean plans a stable explicit name, `@RequiredArgsConstructor`, final qualified dependencies, verified `lombok.config` propagation, and `@Slf4j` for concrete business classes.
 - [ ] Utility, Jackson-only JSON, `java.time`, `@ConfigurationProperties`, and all-environment key-parity consequences appear in exact files/pseudocode/tests.
-- [ ] Pattern decisions name a present variation point and participants, or explicitly retain direct logic; neither hard-coded complexity nor ceremonial abstraction remains.
+- [ ] Pattern decisions assign an actual pattern to every Complex flow; only Simple flow evidence permits direct logic, and neither hard-coded complexity nor ceremonial abstraction remains.
 - [ ] Every Step lists applicable `MC-*` IDs, every file has an evidence-bearing `Standards impact`, and its validation proves the checks before commit.
 - [ ] Chapter 12 contains all stable Manual Check IDs exactly once; every applicable row is `PASS`, every `N/A` has evidence/reason, and `MC-BLOCKER-001` matches all unresolved rows.
 

@@ -21,7 +21,7 @@ The Plan defines **which file is handled first, what is written there, which fil
   - Replace `ABSTRACT` with a concise lowercase ASCII kebab-case summary, normally 3–8 words.
   - Example: `docs/egon/plan/2026-08-15-16-10-account-lockout-implementation.md`.
   - Never overwrite a same-minute/same-abstract document; choose a more specific abstract.
-- Start from Plan Template Version 3 in `assets/plan-template.md`. Keep all numbered chapters. Use evidence-backed `N/A` when a chapter does not apply. The validator continues to accept Version 2 and existing unversioned Plans under their original contracts.
+- Start from Plan Template Version 4 in `assets/plan-template.md`. Keep all numbered chapters. Use evidence-backed `N/A` when a chapter does not apply. The validator continues to accept Version 2, Version 3, and existing unversioned Plans under their original contracts.
 
 ## Resource-integrity preflight
 
@@ -32,6 +32,25 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 ```
 
 `<skill-root>` is notation, not literal shell text: substitute the resolved absolute directory before executing the command. All bundled paths in this skill are relative to that directory and therefore start with `references/`, `assets/`, or `scripts/`; never resolve a bare filename relative to the repository root or the currently opened reference file. If the preflight reports a missing, escaping, ambiguous, or broken resource, stop before planning, report the exact diagnostic to the user, and repair/reinstall the skill. Do not continue with a partial skill or silently substitute an invented resource.
+
+## User-mandated Java rules — verbatim normative source
+
+The following source rules are preserved exactly. They are mandatory and must be compiled into ordered files, pseudocode, checks, and Step commits. Read `references/user-mandated-java-rules.md` for the non-weakened planning contract.
+
+```text
+1 类名规范，必须以 java的pojo规范命名。以dao po bo vo dto query command event等结尾
+2 每层之间必须被 springboot-validation 校验，复用的对象 validation 要分组校验，ValidatorUtils使用 libphonenumber进行规范化校验或者validation原生注解，若非必要，不要自己写。
+3 实体类规范：复杂对象使用java类并使用Lombok进行@Data\@NoArgsConstructor(access = AccessLevel.PROTECTED) @AllArgsConstructor\@RequiredArgsConstructor\@Builder\@Accessors(chain = true)修饰。简单对象使用Java Record。使用MapStruct、MapStructPlus 进行转换，egon-cola-component-common-core有通用的convertor，必须继承实现这个。如果是不可变对象，使用@Value注释修饰。record场景Record 构造器很适合做数据规范化，推荐使用紧凑构造器，Record 可以作为局部类，在方法内部定义临时数据结构。
+4业务类必须使用@Slf4j注解注入log对象。如果业务类被spring管理，必须指定名称，如果是单例的情况下，参考@Service("userService")。如果需要依赖注入，必须@RequiredArgsConstructor进行修饰，不要代码中写。且属性必须被@qualify修饰。
+5 工具类只允许使用jdk原生、Apache Commons(commons-lang3、commons-collections4、commons-io、commons-text、commons-codec、commons-beanutils)、Guava。针对Tika按需引入。
+6 json 使用SpringBoot-JackSon 对外交互层的实体类必须按需被jackson注解修饰。
+7 springboot 多环境配置文件，必须保持配置一致，但值不一定一致。
+9 复杂业务必须引入设计模式，不允许硬编码
+10 日期相关的必须使用java.time下的实体类，不允许使用java.util下的
+11 plan中必须确认代码结构，分层结构或者egon-cola-archetype，只允许这两种代码结构规范。&#x20;
+```
+
+Do not translate, renumber, correct, shorten, or paraphrase this block. `references/user-mandated-java-rules.md` resolves literal spellings to exact Java/Spring symbols without relaxing them.
 
 ## Non-negotiable rules
 
@@ -52,9 +71,10 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 15. Do not mark a Plan `Ready` without an explicitly accepted primary Spec and explicit user/decision-owner approval of the Plan. A complete Plan awaiting review is `Review`; a Spec or decision blocker requires `Draft` or `Blocked`.
 16. Read `references/file-by-file-planning.md` completely. Every Step must state baseline/end state, test-first applicability, exact ordered files, validation working directory, commit paths, and one semantic outcome. Every file must include current repository evidence, dependencies/consumers, input/output/state mapping, error/edge behavior, implementation-bearing pseudocode, verification contribution, and after-file state.
 17. Before planning files, perform a Spec simplicity and implementation-necessity audit. Do not silently compile an unjustified API, parameter-preflight flow, class, layer, table, cache, job, dependency, or page into implementation. When the direct/reuse alternative satisfies the same requirements or the Spec lacks a necessity decision, return `REVISE`/`BLOCKED` with evidence and exact Spec sections; do not redesign inside the Plan.
-18. For every Java Plan, read `references/java-spring-egon-coding-standards.md` completely. Before assigning files, prove exactly one allowed architecture profile from the current tree and selected Archetype, then build a reuse ledger covering Spring, Spring Boot Starters, Egon-COLA Components/common infrastructure, and module-local candidates. Do not plan a new dependency or custom replacement without a proven capability gap and approved impact.
+18. For every Java Plan, read `references/user-mandated-java-rules.md` and `references/java-spring-egon-coding-standards.md` completely. Before assigning files, prove exactly one allowed architecture profile from the current tree and selected Archetype, then build a reuse ledger covering Spring, Spring Boot Starters, Egon-COLA Components/common infrastructure, and module-local candidates. Do not plan a new dependency or custom replacement without a proven capability gap and approved impact.
 19. Every Step must list the applicable blocking `MC-*` IDs, and every affected Java file must state its standards impact. The pseudocode and validation must make semantic naming, Validation/groups/normalization, record/Lombok modeling, MapStruct/MapStructPlus and `BaseConverter`, Bean names/injection/Qualifier propagation, `@Slf4j`, utilities, Jackson, `java.time`, configuration parity, and justified pattern choices executable rather than aspirational.
 20. Complete every Manual Check row one by one in Chapter 12. An applicable row requires `PASS` and concrete repository/Plan evidence; an inapplicable row requires evidence-backed `N/A`. Any missing ID/evidence, `FAIL`, `BLOCKED`, `UNKNOWN`, or unresolved exception prohibits a PASS verdict.
+21. Apply `references/user-mandated-java-rules.md` literally. Chapter 4 must preserve ten independent rows using original numbering `1, 2, 3, 4, 5, 6, 7, 9, 10, 11`; every Step must contain `Literal Rules:` and every affected file `Literal rule enforcement:`. Mandatory wording may not be converted into “prefer/consider/when compatible.” A conflict returns to the Spec/user and blocks PASS.
 
 ## Target Spec and effective-design resolution
 
@@ -95,7 +115,7 @@ Treat overdesign as a material Spec defect when it changes public interaction co
 3. **Inspect the current repository baseline**
    - Verify actual files/symbols and identify already-complete, missing, moved, generated, or conflicting work.
    - Preserve unrelated dirty-worktree changes and plan path-limited commits.
-   - For Java work, identify the exact traditional-layer or selected Archetype COLA profile and build the capability-reuse ledger required by `references/java-spring-egon-coding-standards.md` before proposing new files or dependencies.
+   - For Java work, apply `references/user-mandated-java-rules.md`, identify the exact traditional-layer or selected Archetype COLA profile, and build the capability-reuse ledger required by `references/java-spring-egon-coding-standards.md` before proposing new files or dependencies.
 4. **Resolve blockers and clarifications**
    - Ask about major defects/ambiguities; infer and record only small implementation gaps.
 5. **Derive the dependency path**
@@ -109,6 +129,7 @@ Treat overdesign as a material Spec defect when it changes public interaction co
    - End each Step with targeted verification, objective completion evidence, rollback, and one proposed commit.
    - Record baseline/end state, test-first gate, validation working directory, and exact commit paths. Use every per-file field required by `references/file-by-file-planning.md`.
    - List the applicable `MC-*` IDs for the Step and the standards impact for every Java file. The Step validation must prove those checks before its proposed commit.
+   - List exact original `Rule N` values for the Step and explain each file's literal-rule enforcement. A generic standards paragraph is not sufficient.
 8. **Write quality and release gates**
    - Use exact repository commands for focused tests, module tests, static checks, builds, integration/E2E/manual checks, migration validation, and final regression.
 9. **Review and repair**
@@ -125,6 +146,7 @@ Each Step must use this sequence contract:
 
 1. State requirements, dependencies, baseline state, one observable outcome, exact end state, and whether test-first is required or evidence-backed not applicable.
    State every applicable blocking Manual Check ID for the Step.
+   State every applicable original `Rule N`; Rule 11 applies to every Step containing repository files.
 2. List files in the exact order an implementer should handle them.
 3. For each file, provide:
    - `CREATE`, `MODIFY`, `DELETE`, `RENAME`, or `GENERATED` operation;
@@ -137,6 +159,7 @@ Each Step must use this sequence contract:
    - validation, permission, missing, duplicate, concurrent, dependency, rollback, and compatibility behavior as applicable;
    - language-appropriate pseudocode for control flow, mapping, persistence, errors, and tests;
    - applicable Java/Spring/Egon-COLA standards, exact annotations/contracts, and Manual Check IDs;
+   - exact original Rule numbers and the concrete non-weakened enforcement for this file;
    - the exact test/gate to which this file contributes;
    - the expected intermediate repository state after this file.
 4. State the validation working directory, exact focused verification command, exact success result, and failure return point.
@@ -191,9 +214,13 @@ Use exactly one:
 | Planning a hybrid/new package structure without inspecting the current tree | Select the existing traditional profile or exact Archetype profile; otherwise block for a user decision |
 | Adding a helper/dependency before Spring/Egon/module reuse discovery | Complete the reuse ledger and prove the capability gap, or remove the addition |
 | Java pseudocode omits validation groups, mapping, Bean names/Qualifiers, time/JSON/config semantics, or applicable annotations | Add the exact repository-consistent implementation and validation consequences |
+| Replacing the user's numbered rules with a summary or “best practices” paragraph | Restore the exact block and map every original rule to files, pseudocode, validation, and Steps |
+| Planning only Controller validation | Add each affected layer handoff, its group/invocation/error behavior, and tests |
+| Reducing the complex-class Lombok baseline or bypassing `BaseConverter` | Block and return to the Spec/user; do not plan a silent exception |
+| Leaving Complex business variation as direct branching | Add the effective-Spec-selected pattern participants, wiring, orchestration, and tests |
 | Marking PASS with a missing/failed/unknown Manual Check | Close every blocker with evidence or use `BLOCKED`/`REVISE` |
 | Writing code or starting runtime after the Plan | Stop and deliver for user review |
 
 ## Skill maintenance
 
-When changing this skill, first run the resource-integrity tests (`scripts/test_validate_skill_resources.py`), Manual Check tests (`scripts/test_validate_manual_checks.py`), and preflight (`scripts/validate_skill_resources.py`), then run `references/acceptance-scenarios.md` as review cases and the applicable output validator. Keep `SKILL.zh-CN.md` plus all `*.zh-CN.md` review mirrors synchronized with the English operational contract. A change is not complete if any bundled resource is missing, uses an ambiguous bare path, escapes the skill root, or contains a broken local Markdown link.
+When changing this skill, first run the literal-rule preservation test (`scripts/test_user_mandated_java_rules.py`), resource-integrity tests (`scripts/test_validate_skill_resources.py`), Manual Check tests (`scripts/test_validate_manual_checks.py`), and preflight (`scripts/validate_skill_resources.py`), then run `references/acceptance-scenarios.md` as review cases and the applicable output validator. Keep `SKILL.zh-CN.md` plus all `*.zh-CN.md` review mirrors synchronized with the English operational contract. A change is not complete if the verbatim source changes, any bundled resource is missing, a path is ambiguous/escaping, or a local Markdown link is broken.

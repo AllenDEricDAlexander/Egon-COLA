@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Document | `YYYY-MM-DD-HH-MM-abstract.md` |
-| Template Version | `3` |
+| Template Version | `4` |
 | Status | `Draft` |
 | Created | `YYYY-MM-DD HH:mm ZONE` |
 | Updated | `YYYY-MM-DD HH:mm ZONE` |
@@ -93,7 +93,7 @@ Use this matrix to derive Step and file order. Do not group independent outcomes
 
 ### 4.7 Java, Spring, and Egon-COLA Implementation Standards
 
-For Java work, read `references/java-spring-egon-coding-standards.md` and complete both tables. For a non-Java Plan, retain the subsection and write an evidence-backed `N/A`; the Manual Check table still applies to scope, tests, and blockers.
+For Java work, read `references/user-mandated-java-rules.md` and `references/java-spring-egon-coding-standards.md`, then complete both tables. For a non-Java Plan, retain the subsection and write an evidence-backed `N/A`; the Manual Check table still applies to scope, tests, and blockers.
 
 | Concern | Current repository evidence | Effective Spec decision | Planned implementation consequence | Owning Steps/checks |
 | --- | --- | --- | --- | --- |
@@ -101,7 +101,7 @@ For Java work, read `references/java-spring-egon-coding-standards.md` and comple
 | Reuse/capability | `<Spring/Starter/Egon/module candidate path or dependency>` | `<reuse/gap decision>` | `<exact reused type/configuration or approved addition>` | `Step N; MC-REUSE-001 / MC-DEP-001` |
 | Naming/model/validation/conversion | `<nearby types, ValidationUtils, BaseConverter, MapStruct evidence>` | `<Spec sections>` | `<exact suffixes, groups, record/Lombok, converter contract>` | `<Steps and MC IDs>` |
 | Bean/logging/util/JSON/time/config | `<stereotypes, lombok.config, profiles, dependencies>` | `<Spec sections>` | `<exact annotations, libraries, types, profile files>` | `<Steps and MC IDs>` |
-| Business variation/pattern | `<current branch/rule/state evidence>` | `<selected pattern or direct logic>` | `<participants or rejected overdesign>` | `Step N; MC-PATTERN-001` |
+| Business variation/pattern | `<current branch/rule/state evidence>` | `<mandatory pattern for Complex / direct only for Simple>` | `<participants, selection/wiring, or Simple evidence>` | `Step N; MC-PATTERN-001` |
 
 #### Capability reuse ledger
 
@@ -110,6 +110,23 @@ For Java work, read `references/java-spring-egon-coding-standards.md` and comple
 | `<capability>` | `<Spring / Starter / Egon / module candidates>` | `<paths, resolved dependency, symbols>` | `<why sufficient or exact missing behavior>` | `<reuse / approved addition / blocked>` | `None / exact coordinate and impact` | `Step N; MC-REUSE-001 / MC-DEP-001` |
 
 Any unresolved architecture selection, duplicate capability, dependency gap, or Spec conflict must appear in §11 and forces a non-PASS verdict.
+
+### 4.8 User-mandated Java Rule Implementation Matrix
+
+Read `references/user-mandated-java-rules.md`. Preserve each original rule independently and in exact numbering order. Do not merge rows into broad “code quality” work. A non-Java Plan retains every row with evidence-backed `N/A`.
+
+| Literal rule | Spec source | Repository evidence | Exact files and order | Pseudocode obligations | Validation gate | Steps | Status/blocker |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Rule 1 | `<Spec §6.2/§8/§10>` | `<all affected Java types>` | `<ordered type/consumer files>` | `<mandatory suffixes and reuse>` | `<inventory/compile/search>` | `<Step N>` | PASS / N/A / BLOCKED |
+| Rule 2 | `<Spec §6.2/§7/§9/§10>` | `<all affected layer handoffs>` | `<tests, groups, boundary files>` | `<@Valid/@Validated/group/ValidationUtils/libphonenumber>` | `<positive/negative/group tests>` | `<Step N>` | PASS / N/A / BLOCKED |
+| Rule 3 | `<Spec §6.2/§10>` | `<objects/converters/BaseConverter>` | `<tests, model, converter, consumers>` | `<record/@Value/complete Lombok baseline/MapStruct>` | `<constructor/mapping compile/tests>` | `<Step N>` | PASS / N/A / BLOCKED |
+| Rule 4 | `<Spec §6.2/§7/§13>` | `<business Beans/lombok.config>` | `<tests, business files, config>` | `<@Slf4j/name/@RequiredArgsConstructor/@Qualifier>` | `<compile/wiring/log review>` | `<Step N>` | PASS / N/A / BLOCKED |
+| Rule 5 | `<Spec §6.2/§15>` | `<imports/dependencies/helpers>` | `<affected files/manifests>` | `<closed allowlist only>` | `<dependency/import search>` | `<Step N>` | PASS / N/A / BLOCKED |
+| Rule 6 | `<Spec §6.2/§9/§10>` | `<external JSON contracts>` | `<contract/tests>` | `<Jackson annotation/default decisions>` | `<serialization/compatibility tests>` | `<Step N>` | PASS / N/A / BLOCKED |
+| Rule 7 | `<Spec §6.2/§15>` | `<all profile files>` | `<base + every environment + properties/tests>` | `<identical key structure>` | `<key-parity/config tests>` | `<Step N>` | PASS / N/A / BLOCKED |
+| Rule 9 | `<Spec §6.2/§13>` | `<flow complexity/variation>` | `<pattern participants/wiring/tests>` | `<mandatory pattern for Complex>` | `<branch/pattern behavior tests>` | `<Step N>` | PASS / N/A / BLOCKED |
+| Rule 10 | `<Spec §6.2/§10/§15>` | `<time fields/imports>` | `<model/converter/persistence/JSON/tests>` | `<java.time/zone/precision/Clock>` | `<time tests + forbidden import search>` | `<Step N>` | PASS / N/A / BLOCKED |
+| Rule 11 | `<Spec §6.1/§6.2/§8>` | `<current tree/archetype/verifier>` | `<every target file in selected profile>` | `<no hybrid/third structure>` | `<architecture verifier/static gate>` | `Every Step` | PASS / BLOCKED |
 
 ## 5. Change File Tree
 
@@ -163,6 +180,7 @@ Write `None` when no clarification is needed. Never place new business/design de
 - End state: `<exact contracts/files/tests now available and intentionally remaining work>`
 - Test-first gate: `Required — <expected RED reason> / Not applicable — <repository or technical evidence>`
 - Manual Checks: `MC-ARCH-001, MC-...` — list every standard affected by this Step; use `MC-SCOPE-001` and `MC-TEST-001` for every coding Step
+- Literal Rules: `Rule 11, Rule ...` — list every original rule implemented or verified by this Step; Rule 11 applies to every Step containing repository files
 - Ordered files:
 
 #### File 1 — `CREATE path/to/FocusedBehaviorTest.java`
@@ -176,6 +194,7 @@ Write `None` when no clarification is needed. Never place new business/design de
 - Input/output and state mapping: `<fixture fields/context -> call -> result/state/side effects>`
 - Error and edge behavior: `<invalid/missing/duplicate/concurrent/failure assertions and negative effects>`
 - Standards impact: `<applicable MC-* IDs; exact naming, validation/group, modeling, converter, Bean/logging, JSON/time/config/pattern consequences or evidence-backed N/A>`
+- Literal rule enforcement: `<exact Rule N values and the concrete mandatory behavior/evidence in this file>`
 - Implementation pseudocode:
 
 ```java
@@ -201,6 +220,7 @@ void <behavior_name>() {
 - Input/output and state mapping: `<trusted context/request/model/column -> result and state effects>`
 - Error and edge behavior: `<validation/permission/missing/duplicate/concurrency/dependency/rollback branches>`
 - Standards impact: `<applicable MC-* IDs and exact repository-consistent annotations/contracts; include reuse/dependency decision>`
+- Literal rule enforcement: `<exact Rule N values; do not replace required annotations, BaseConverter, Validation, or patterns with preferences>`
 - Implementation pseudocode:
 
 ```java
@@ -227,6 +247,7 @@ void <behavior_name>() {
 - Input/output and state mapping: `<source -> target mapping, defaults, nulls, frontend/server state>`
 - Error and edge behavior: `<missing registration, denied/error/loading/compatibility behavior>`
 - Standards impact: `<applicable MC-* IDs; stable Bean name/Qualifier/configuration/profile/contract consequences>`
+- Literal rule enforcement: `<exact Rule N values and the concrete wiring/mapping/configuration proof>`
 - Implementation pseudocode:
 
 ```text
@@ -317,15 +338,15 @@ Complete every row individually after reconciling the Plan with the effective Sp
 | `MC-DEP-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<dependency evidence or proof none added>` | `<gap/impact conclusion>` | `<None or action/owner>` |
 | `MC-NAME-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<planned type inventory>` | `<semantic suffix conclusion>` | `<None or action/owner>` |
 | `MC-VALID-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<boundary/group/normalization plan>` | `<coverage conclusion>` | `<None or action/owner>` |
-| `MC-MODEL-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<record/class/Lombok decisions>` | `<construction conclusion>` | `<None or action/owner>` |
-| `MC-CONVERT-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<MapStruct/BaseConverter plan>` | `<mapping conclusion>` | `<None or action/owner>` |
+| `MC-MODEL-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<record/@Value/complete Lombok baseline>` | `<construction or blocking conflict>` | `<None or action/owner>` |
+| `MC-CONVERT-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<MapStruct + mandatory BaseConverter plan>` | `<mapping/no-bypass conclusion>` | `<None or action/owner>` |
 | `MC-LOG-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<business-class files>` | `<logging conclusion>` | `<None or action/owner>` |
 | `MC-BEAN-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<Bean names/injection/Qualifier/lombok.config>` | `<DI conclusion>` | `<None or action/owner>` |
 | `MC-UTIL-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<utility dependency/file evidence>` | `<utility conclusion>` | `<None or action/owner>` |
 | `MC-JSON-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<contract/serializer evidence>` | `<Jackson conclusion>` | `<None or action/owner>` |
 | `MC-TIME-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<time fields/converters/contracts>` | `<java.time conclusion>` | `<None or action/owner>` |
 | `MC-CONFIG-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<all profile files/properties class>` | `<key-parity conclusion>` | `<None or action/owner>` |
-| `MC-PATTERN-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<variation/pattern or direct-logic evidence>` | `<overdesign/hard-coding conclusion>` | `<None or action/owner>` |
+| `MC-PATTERN-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<flow classification/pattern files>` | `<mandatory Complex pattern / Simple direct conclusion>` | `<None or action/owner>` |
 | `MC-SCOPE-001` | `Applicable` | `PASS / FAIL / BLOCKED` | `<change tree and untouched paths>` | `<scope conclusion>` | `<None or action/owner>` |
 | `MC-TEST-001` | `Applicable` | `PASS / FAIL / BLOCKED` | `<Step validation matrix>` | `<standards proof conclusion>` | `<None or action/owner>` |
 | `MC-BLOCKER-001` | `Applicable` | `PASS / FAIL / BLOCKED` | `<§11 plus all rows above>` | `<closure conclusion>` | `<None or exact unresolved owner/action>` |

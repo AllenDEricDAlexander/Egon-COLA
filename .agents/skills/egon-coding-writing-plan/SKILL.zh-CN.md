@@ -23,7 +23,7 @@ Plan 定义的是**先处理哪个文件、其中怎么写、接着处理哪个�
   - `ABSTRACT` 替换为简洁的小写 ASCII kebab-case 摘要，通常 3–8 个单词。
   - 示例：`docs/egon/plan/2026-08-15-16-10-account-lockout-implementation.md`。
   - 同一分钟且摘要相同时不能覆盖旧文档，应使用更具体的摘要。
-- 必须以 `assets/plan-template.md` 中的 Plan Template Version 3 为模板，保留全部编号章节。不适用的章节写有证据的 `N/A`。校验器继续按原契约接受 Version 2 和既有无版本 Plan。
+- 必须以 `assets/plan-template.md` 中的 Plan Template Version 4 为模板，保留全部编号章节。不适用的章节写有证据的 `N/A`。校验器继续按原契约接受 Version 2、Version 3 和既有无版本 Plan。
 
 ## 资源完整性预检
 
@@ -34,6 +34,25 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 ```
 
 `<skill-root>` 只是记号，不是可直接执行的 shell 文本；运行命令前必须替换成解析得到的绝对目录。本 skill 的所有内置路径都以该目录为基准，因此必须以 `references/`、`assets/` 或 `scripts/` 开头；不得把裸文件名相对于仓库根目录或当前打开的 reference 文件解析。预检报告资源缺失、越界、歧义或本地 Markdown 链接失效时，必须在规划前停止，向用户报告准确诊断，并修复或重新安装 skill。不得带着不完整 skill 继续，也不得静默虚构替代资源。
+
+## 用户强制 Java 规则——逐字规范源
+
+以下规则逐字保留，是强制约束，必须转换为有序文件、伪代码、检查和逐 Step 提交，不能缩成普通编码提示。不可弱化的 Plan 执行细则见 `references/user-mandated-java-rules.zh-CN.md`。
+
+```text
+1 类名规范，必须以 java的pojo规范命名。以dao po bo vo dto query command event等结尾
+2 每层之间必须被 springboot-validation 校验，复用的对象 validation 要分组校验，ValidatorUtils使用 libphonenumber进行规范化校验或者validation原生注解，若非必要，不要自己写。
+3 实体类规范：复杂对象使用java类并使用Lombok进行@Data\@NoArgsConstructor(access = AccessLevel.PROTECTED) @AllArgsConstructor\@RequiredArgsConstructor\@Builder\@Accessors(chain = true)修饰。简单对象使用Java Record。使用MapStruct、MapStructPlus 进行转换，egon-cola-component-common-core有通用的convertor，必须继承实现这个。如果是不可变对象，使用@Value注释修饰。record场景Record 构造器很适合做数据规范化，推荐使用紧凑构造器，Record 可以作为局部类，在方法内部定义临时数据结构。
+4业务类必须使用@Slf4j注解注入log对象。如果业务类被spring管理，必须指定名称，如果是单例的情况下，参考@Service("userService")。如果需要依赖注入，必须@RequiredArgsConstructor进行修饰，不要代码中写。且属性必须被@qualify修饰。
+5 工具类只允许使用jdk原生、Apache Commons(commons-lang3、commons-collections4、commons-io、commons-text、commons-codec、commons-beanutils)、Guava。针对Tika按需引入。
+6 json 使用SpringBoot-JackSon 对外交互层的实体类必须按需被jackson注解修饰。
+7 springboot 多环境配置文件，必须保持配置一致，但值不一定一致。
+9 复杂业务必须引入设计模式，不允许硬编码
+10 日期相关的必须使用java.time下的实体类，不允许使用java.util下的
+11 plan中必须确认代码结构，分层结构或者egon-cola-archetype，只允许这两种代码结构规范。&#x20;
+```
+
+禁止翻译、重新编号、纠错、缩写或概括该区块。`references/user-mandated-java-rules.zh-CN.md` 只把原始拼写解析为准确 Java/Spring 符号，不能放松规则。
 
 ## 不可违反的规则
 
@@ -54,9 +73,10 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 15. 主 Spec 未明确接受、Plan 未经用户/决策负责人批准时，不能把 Plan 标为 `Ready`。完整待审时为 `Review`；存在 Spec 或决策阻塞时为 `Draft` 或 `Blocked`。
 16. 必须完整读取 `references/file-by-file-planning.zh-CN.md`。每个 Step 都要写基线/结束状态、Test-first 适用性、准确文件顺序、验证工作目录、Commit Paths 和一个语义结果。每个文件都要写当前仓库证据、依赖/消费者、输入输出/状态映射、错误/边界行为、承载实现信息的伪代码、验证贡献和 After-file 状态。
 17. 规划文件前执行 Spec 简洁性与实施必要性审核。不能把无依据 API、参数 Preflight、类、分层、表、缓存、Job、依赖或页面静默编译成实施步骤。如果直接/复用方案满足同一需求，或 Spec 缺少必要性决策，必须带证据和准确 Spec 章节返回 `REVISE`/`BLOCKED`；不能在 Plan 内重新设计。
-18. 每个 Java Plan 必须完整读取 `references/java-spring-egon-coding-standards.zh-CN.md`。分配文件前，根据当前 Tree 和已选 Archetype 证明且只证明一种允许架构，并建立覆盖 Spring、Spring Boot Starter、Egon-COLA Component/公共基础设施和模块内候选的复用账本。没有已证明能力缺口与获批影响时不能规划新依赖或自研替代。
+18. 每个 Java Plan 必须完整读取 `references/user-mandated-java-rules.zh-CN.md` 和 `references/java-spring-egon-coding-standards.zh-CN.md`。分配文件前，根据当前 Tree 和已选 Archetype 证明且只证明一种允许架构，并建立覆盖 Spring、Spring Boot Starter、Egon-COLA Component/公共基础设施和模块内候选的复用账本。没有已证明能力缺口与获批影响时不能规划新依赖或自研替代。
 19. 每个 Step 都必须列出适用阻断型 `MC-*`，每个受影响 Java 文件写明规范影响。伪代码和验证必须把语义命名、Validation/Group/规范化、Record/Lombok、MapStruct/MapStructPlus 与 `BaseConverter`、Bean 名/注入/Qualifier 传播、`@Slf4j`、工具、Jackson、`java.time`、配置一致性和有依据模式选择落实为可执行内容。
 20. 第 12 章逐项完成全部 Manual Check。适用行必须有具体仓库/Plan 证据且为 `PASS`，不适用行必须有证据地 `N/A`。缺失 ID/证据、`FAIL`、`BLOCKED`、`UNKNOWN` 或未关闭例外都禁止 PASS。
+21. 必须逐字执行 `references/user-mandated-java-rules.zh-CN.md`。第 4 章按原编号 `1、2、3、4、5、6、7、9、10、11` 保留十个独立行；每个 Step 写 `Literal Rules:`，每个受影响文件写 `Literal rule enforcement:`。禁止把强制措辞改成“优先/考虑/兼容时”。冲突必须返回 Spec/用户并阻断 PASS。
 
 ## 目标 Spec 与有效设计解析
 
@@ -97,7 +117,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 3. **检查当前仓库基线**
    - 验证真实文件/符号，识别已完成、缺失、移动、生成或冲突的工作。
    - 保护无关脏工作树变更，并规划 path-limited commits。
-   - Java 工作在提出新文件或依赖前，必须确定准确的传统分层或已选 Archetype COLA 形态，并按 `references/java-spring-egon-coding-standards.zh-CN.md` 建立能力复用账本。
+   - Java 工作在提出新文件或依赖前，必须执行 `references/user-mandated-java-rules.zh-CN.md`，确定准确传统分层或已选 Archetype COLA 形态，并按 `references/java-spring-egon-coding-standards.zh-CN.md` 建立能力复用账本。
 4. **解决阻塞与澄清项**
    - 重大缺陷/歧义询问用户；只推断小型实现空白。
 5. **推导依赖路径**
@@ -111,6 +131,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
    - 每个 Step 以定向验证、客观完成证据、回滚方式和一个建议提交结束。
    - 记录基线/结束状态、Test-first 门禁、验证工作目录和准确 Commit Paths；使用 `references/file-by-file-planning.zh-CN.md` 要求的全部逐文件字段。
    - 为 Step 列出适用 `MC-*`，为每个 Java 文件写规范影响；Step 验证必须在建议提交前证明这些检查。
+   - 为 Step 列出准确原始 `Rule N`，为每个文件说明逐字规则如何落实；一段泛化规范说明不合格。
 8. **编写质量与发布门禁**
    - 使用仓库真实命令覆盖聚焦测试、模块测试、静态检查、构建、集成/E2E/人工验证、迁移校验和最终回归。
 9. **复核并修复**
@@ -127,6 +148,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 
 1. 说明需求、依赖、基线状态、一个可观察结果、准确结束状态，以及 Test-first 是 Required 还是有证据的 Not applicable。
    同时列出该 Step 全部适用阻断型 Manual Check ID。
+   同时列出全部适用原始 `Rule N`；包含仓库文件的每个 Step 都适用 Rule 11。
 2. 按实现者应处理的精确顺序列出文件。
 3. 每个文件提供：
    - `CREATE`、`MODIFY`、`DELETE`、`RENAME` 或 `GENERATED` 操作；
@@ -139,6 +161,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
    - 适用的校验、权限、不存在、重复、并发、依赖、回滚和兼容行为；
    - 针对控制流、映射、持久化、错误和测试的语言相关伪代码；
    - 适用 Java/Spring/Egon-COLA 规范、准确注解/契约和 Manual Check ID；
+   - 准确原始 Rule 编号及本文件不可弱化的具体落实；
    - 本文件贡献的准确测试/门禁；
    - 该文件完成后的预期中间仓库状态。
 4. 写明验证工作目录、准确聚焦命令、准确成功结果和失败回退点。
@@ -193,9 +216,13 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 | 未检查当前 Tree 就规划混合/新分层 | 选择既有传统形态或准确 Archetype 形态，否则阻断并找用户决策 |
 | 未发现 Spring/Egon/模块复用就新增 Helper/依赖 | 完成复用账本并证明能力缺口，否则移除新增项 |
 | Java 伪代码遗漏 Validation Group、转换、Bean 名/Qualifier、时间/JSON/配置语义或适用注解 | 补充准确且符合仓库惯例的实施与验证结果 |
+| 用摘要或“最佳实践”段落替代用户编号规则 | 恢复逐字区块，把每个原始规则映射到文件、伪代码、验证和 Step |
+| 只规划 Controller 校验 | 增加每个受影响层间交接、Group/调用/错误和测试 |
+| 缩减复杂类 Lombok 基线或绕过 `BaseConverter` | 阻断并返回 Spec/用户，不能规划静默例外 |
+| 把 Complex 业务变化保留为直接分支 | 增加有效 Spec 已选模式的参与者、接线、编排和测试 |
 | Manual Check 缺失、失败或未知仍标记 PASS | 用证据关闭全部阻断，否则使用 `BLOCKED`/`REVISE` |
 | 写完 Plan 就编码或启动运行时 | 停止并交付用户审核 |
 
 ## Skill 维护
 
-修改本 skill 时，先运行资源完整性测试（`scripts/test_validate_skill_resources.py`）、Manual Check 测试（`scripts/test_validate_manual_checks.py`）和预检（`scripts/validate_skill_resources.py`），再用 `references/acceptance-scenarios.md` 进行场景复核，并执行适用的输出校验器。必须保持 `SKILL.md` 和所有 `*.zh-CN.md` 审核镜像与英文运行契约同步。任何内置资源缺失、使用歧义裸路径、越出 skill 根目录或包含失效本地 Markdown 链接时，本次修改都不能算完成。
+修改本 skill 时，先运行逐字规则保留测试（`scripts/test_user_mandated_java_rules.py`）、资源完整性测试（`scripts/test_validate_skill_resources.py`）、Manual Check 测试（`scripts/test_validate_manual_checks.py`）和预检（`scripts/validate_skill_resources.py`），再用 `references/acceptance-scenarios.md` 进行场景复核，并执行适用的输出校验器。必须保持 `SKILL.md` 和所有 `*.zh-CN.md` 审核镜像与英文运行契约同步。逐字源发生变化、内置资源缺失、路径歧义/越界或本地 Markdown 链接失效时，本次修改都不能算完成。

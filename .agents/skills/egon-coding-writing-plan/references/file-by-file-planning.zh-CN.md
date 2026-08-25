@@ -169,6 +169,7 @@ Proto/IDL 契约测试 -> IDL -> 生成命令/产物 -> Provider -> Client Adapt
 - End state: Service 与 DAO 实现已批准幂等契约；Controller 契约不变；并发集成由本 Step 后续文件覆盖。
 - Test-first gate: `Required`——当前聚焦重复测试会创建两笔订单或找不到已保存结果。
 - Manual Checks: `MC-ARCH-001`、`MC-REUSE-001`、`MC-NAME-001`、`MC-VALID-001`、`MC-MODEL-001`、`MC-CONVERT-001`、`MC-LOG-001`、`MC-BEAN-001`、`MC-PATTERN-001`、`MC-SCOPE-001`、`MC-TEST-001`
+- Literal Rules: `Rule 1`、`Rule 2`、`Rule 3`、`Rule 4`、`Rule 9`、`Rule 11`
 - Ordered files:
 
 #### File 1 — `MODIFY src/test/java/.../OrderServiceImplTest.java`
@@ -182,6 +183,7 @@ Proto/IDL 契约测试 -> IDL -> 生成命令/产物 -> Provider -> Client Adapt
 - Input/output and state mapping: 租户来自测试安全上下文；Canonical Request -> Hash；已保存结果 -> 返回结果。
 - Error and edge behavior: 同 Hash 返回第一次结果；不同 Hash 抛 `IdempotencyConflictException`；都断言只写一笔订单。
 - Standards impact: `MC-VALID-001`、`MC-SCOPE-001`、`MC-TEST-001`——复用已批准 Command 和 Validation Group，不新增契约类型并证明行为。
+- Literal rule enforcement: `Rule 2`、`Rule 11`——执行准确 Service 边界 Group，并保持所选包结构。
 - Implementation pseudocode:
 
 ```java
@@ -214,7 +216,8 @@ Proto/IDL 契约测试 -> IDL -> 生成命令/产物 -> Provider -> Client Adapt
 - Contract/signature changes: Controller Route 不变；使用已批准 Command/Key 字段。
 - Input/output and state mapping: 从可信上下文派生 Tenant；Canonical 业务字段 -> Request Hash；持久化第一次结果 -> Response。
 - Error and edge behavior: 同 Hash 重放，不同 Hash 冲突；唯一竞争后重读 Winner；事务失败不写部分订单/结果。
-- Standards impact: `MC-ARCH-001`、`MC-REUSE-001`、`MC-NAME-001`、`MC-VALID-001`、`MC-MODEL-001`、`MC-CONVERT-001`、`MC-LOG-001`、`MC-BEAN-001`、`MC-PATTERN-001`、`MC-SCOPE-001`——保持 `biz.service.impl`，复用带 Qualifier 的 DAO/Validator/Converter Bean，使用 `@Slf4j`；只有获批变化点需要时才使用模式。
+- Standards impact: `MC-ARCH-001`、`MC-REUSE-001`、`MC-NAME-001`、`MC-VALID-001`、`MC-MODEL-001`、`MC-CONVERT-001`、`MC-LOG-001`、`MC-BEAN-001`、`MC-PATTERN-001`、`MC-SCOPE-001`——保持 `biz.service.impl`，复用带 Qualifier 的 DAO/Validator/Converter Bean，使用 `@Slf4j`；Flow 为 Complex 时必须实现 Spec 已选模式，只有 Simple Flow 保持直接。
+- Literal rule enforcement: `Rule 1`、`Rule 2`、`Rule 3`、`Rule 4`、`Rule 9`、`Rule 11`——使用最终语义类型，校验层间交接，应用强制模型/Converter/Bean 注解，为 Complex 逻辑实现 Spec 已选模式，并保持在 `biz.service.impl`。
 - Implementation pseudocode:
 
 ```java
@@ -249,6 +252,7 @@ OrderResult create(CreateOrderCommand command) {
 - Input/output and state mapping: 两个同租户/同 Key Command -> 一笔订单/结果；强制下游失败 -> 零订单/幂等行。
 - Error and edge behavior: Loser 重读已提交 Winner；意外完整性/超时错误使测试失败；回滚不留下可重放部分结果。
 - Standards impact: `MC-VALID-001`、`MC-SCOPE-001`、`MC-TEST-001`——执行真实边界校验并证明聚焦持久化行为，不修改无关 Fixture。
+- Literal rule enforcement: `Rule 2`、`Rule 11`——证明真实 Service 到持久化交接，并保持所选模块测试结构。
 - Implementation pseudocode:
 
 ```java
@@ -361,7 +365,7 @@ Plan 中的验证命令是未来指令，不是验证已通过的证据。
 
 ## 规范与 Manual Check 门禁
 
-Java 工作在依赖排序前读取 `references/java-spring-egon-coding-standards.zh-CN.md`。每个 Step 必须列出全部适用 `MC-*`；每个文件的 `Standards impact` 必须说明准确影响，不能只重复 ID。Plan 必须写明提交前用哪个准确 Test、Static Search、Build 输出、Profile 对比或代码复核观察证明每项检查。
+Java 工作在依赖排序前读取 `references/user-mandated-java-rules.zh-CN.md` 和 `references/java-spring-egon-coding-standards.zh-CN.md`。每个 Step 必须列全部适用 `MC-*` 和原始 `Rule N`；每个文件的 `Standards impact` 与 `Literal rule enforcement` 都必须说明准确影响，不能只重复 ID。Plan 必须写明提交前用哪个准确 Test、Static Search、Build 输出、Profile 对比或代码复核观察证明每项检查。
 
 Step 发明架构、重复已有能力、引入未批准依赖、使用含糊类型名、遗漏跨层 Validation/Group、规划手工对象复制、隐含 Bean 名/Qualifier、混用 JSON/时间体系、只改一个环境 Profile 或隐藏硬编码复杂度时，必须拒绝。已知违规不能推给“后续清理”。
 
