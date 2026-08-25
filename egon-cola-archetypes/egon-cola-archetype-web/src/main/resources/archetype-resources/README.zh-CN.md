@@ -43,6 +43,11 @@ starter        -> adapter, infrastructure
 
 Infrastructure 实现 Domain 所有的端口。Adapter 不能直接访问 Infrastructure，Starter 只包含组装配置。两个 canonical Facade 都是独立 artifact，不依赖当前生成项目，因此 Web/Service Maven 依赖图不会形成循环。
 
+持久化统一使用 Egon-COLA Common MyBatis-Plus starter。Domain 的 service 接口
+继承 `EgonColaIService`；实现、`EgonColaMapper` DAO 和 `EgonModel` PO 全部位于
+Infrastructure。PO 使用 Long 技术主键，租户、审计、逻辑删除和乐观锁由 Common
+starter 提供。
+
 ${symbol_pound}${symbol_pound} 领域
 
 完整的 `user` 垂直领域负责创建和查询用户、分配角色、授予权限、缓存用户读取结果，并发布已提交的变更。
@@ -52,7 +57,7 @@ ${symbol_pound}${symbol_pound} 领域
 ${symbol_pound}${symbol_pound} 集成职责
 
 - Adapter 负责 HTTP `/api/v1/**`、GraphQL `/graphql`、入站 RabbitMQ command、Dubbo Facade export、请求校验、过滤器和协议转换。
-- Infrastructure 负责 JPA、Flyway、Redis adapter、出站 RabbitMQ event、Evaluation Facade 防腐 adapter、本地 fallback adapter，以及 Application 方法日志 AOP。
+- Infrastructure 负责 Common MyBatis-Plus 持久化、Flyway、Redis adapter、出站 RabbitMQ event、Evaluation Facade 防腐 adapter、本地 fallback adapter，以及 Application 方法日志 AOP。
 - Starter 负责 OpenAPI 组装、运行时 profile、Actuator、Prometheus、Jackson、异步执行和配置解密。
 - `top.egon:egon-cola-organization-facade` 是 Provider 契约，`top.egon:egon-cola-evaluation-facade` 是消费契约；两者都不会作为本地模块重复生成。
 
@@ -91,9 +96,9 @@ Flyway target。读写分离模式下，普通查询走 replica，写操作走 p
   `role_permissions`、`grades` 固定在 `master_data`，并在
   `!SHARDING.tables` 中显式使用 `databaseStrategy.none` 和
   `tableStrategy.none`；不使用 `!SINGLE`，也不存在应用级单数据源模式。
-- binding tables `school_classes` 和 `school_class_users` 都按 `grade_id`
-  分片。成员关系中冗余的 `gradeId` 是必填路由键，使班级及其成员关系共置在同一
-  物理库和表后缀。
+- binding tables `school_classes` 和 `school_class_users` 都按正数
+  `tenant_id` 使用 Common Long 租户算法分库分表。成员关系中冗余的 `gradeId`
+  仍是聚合完整性的必填字段，租户上下文负责物理库和表后缀路由。
 - 两个分片表都启用 `DML_SHARDING_CONDITIONS`，拒绝未携带分片条件的 DML，
   且 `allowHintDisable=false` 禁止 hint 绕过。
 
@@ -111,7 +116,8 @@ Flyway 只使用 `db/migration/sharding/master-data` 和
 Spring Boot Flyway 自动配置被排除，replica 和逻辑数据源均不会刷表；
 `FLYWAY_ENABLED=false` 时跳过物理 migration。
 
-代理主键统一由应用生成 UUIDv7，并持久化为 36 位 RFC 字符串。迁移文件名必须符合
+业务和技术主键统一由应用通过 Common `LongIdGenerator` 生成正数 `Long`；HTTP 和
+GraphQL 边界仍使用十进制字符串表达。迁移文件名必须符合
 `VyyyyMMdd_NNN__description.sql`，每个文件开头依次包含 `变更内容`、`影响范围`
 和 `兼容性说明` 三项注释。
 

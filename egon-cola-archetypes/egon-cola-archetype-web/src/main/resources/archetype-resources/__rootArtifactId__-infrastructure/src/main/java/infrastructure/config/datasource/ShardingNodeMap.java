@@ -8,10 +8,9 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.UUID;
 
 /**
- * Immutable stable-slot mapping used by UUIDv7 sharding.
+ * Immutable stable-slot mapping used by positive Long tenant sharding.
  */
 public record ShardingNodeMap(
         int nodeCount,
@@ -77,31 +76,17 @@ public record ShardingNodeMap(
         return new ShardingNodeMap(parsedNodeCount, nodes);
     }
 
-    public PhysicalNode route(String shardingKey) {
+    public PhysicalNode route(long shardingKey) {
         return nodes.get(routeSlot(shardingKey));
     }
 
-    public int routeSlot(String shardingKey) {
-        UUID uuid = parseUuidV7(shardingKey);
-        String canonicalKey = uuid.toString();
-        int hash = canonicalKey.hashCode();
+    public int routeSlot(long shardingKey) {
+        if (shardingKey <= 0) {
+            throw new IllegalArgumentException("sharding key must be positive");
+        }
+        int hash = Long.hashCode(shardingKey);
         int spreadHash = hash ^ (hash >>> 16);
         return spreadHash & (nodeCount - 1);
-    }
-
-    private static UUID parseUuidV7(String shardingKey) {
-        if (shardingKey == null || shardingKey.isBlank()) {
-            throw new IllegalArgumentException("sharding key must be UUIDv7");
-        }
-        try {
-            UUID uuid = UUID.fromString(shardingKey);
-            if (uuid.version() != 7 || !uuid.toString().equals(shardingKey)) {
-                throw new IllegalArgumentException("sharding key must be UUIDv7");
-            }
-            return uuid;
-        } catch (IllegalArgumentException failure) {
-            throw new IllegalArgumentException("sharding key must be UUIDv7");
-        }
     }
 
     private static void validateTopology(Map<Integer, PhysicalNode> nodes) {

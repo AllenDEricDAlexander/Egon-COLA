@@ -1,40 +1,25 @@
 package ${package}.infrastructure.user.repo.po;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+import top.egon.cola.component.common.mybatis.model.EgonModel;
 
-import java.time.LocalDateTime;
-
-@Entity
-@Table(name = "users")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Data
+@NoArgsConstructor
 @AllArgsConstructor
-public class UserPO {
-
-    @Id
-    @Column(length = 36)
-    private String id;
-
-    @Column(nullable = false, length = 120)
+@Builder
+@Accessors(chain = true)
+@TableName("users")
+public class UserPO extends EgonModel<UserPO> {
+    @TableField("name")
     private String name;
-
-    @Column(nullable = false, unique = true, length = 160)
+    @TableField("email")
     private String email;
-
-    @Column(nullable = false, length = 32)
+    @TableField("status")
     private String status;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
-
-    public String getId() { return id; }
-    public String getName() { return name; }
-    public String getEmail() { return email; }
-    public String getStatus() { return status; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
 }

@@ -10,6 +10,7 @@ import ${package}.application.user.query.PermissionTreeQuery;
 import ${package}.application.user.query.UserDetailQuery;
 import ${package}.application.user.result.PermissionTreeResult;
 import ${package}.application.user.result.UserDetailResult;
+import ${package}.adapter.facade.impl.OrganizationFacadeSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.ContextValue;
@@ -29,12 +30,14 @@ public class UserResolver {
 
     @QueryMapping
     public UserDetailResult user(@Argument String id) {
-        return userManage.getUser(new UserDetailQuery(id));
+        return userManage.getUser(new UserDetailQuery(
+                OrganizationFacadeSupport.positiveId(id, "userId")));
     }
 
     @QueryMapping
     public PermissionTreeResult permissionTree(@Argument String userId) {
-        return permissionManage.getPermissionTree(new PermissionTreeQuery(userId));
+        return permissionManage.getPermissionTree(new PermissionTreeQuery(
+                OrganizationFacadeSupport.positiveId(userId, "userId")));
     }
 
     @MutationMapping
@@ -48,7 +51,8 @@ public class UserResolver {
     public boolean assignRole(
             @Argument AssignRoleInput input,
             @ContextValue(name = "idempotencyKey", required = false) String key) {
-        roleManage.assignRole(new AssignRoleCommand(requestId(key), input.userId(), input.roleCode()));
+        roleManage.assignRole(new AssignRoleCommand(requestId(key),
+                OrganizationFacadeSupport.positiveId(input.userId(), "userId"), input.roleCode()));
         return true;
     }
 

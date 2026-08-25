@@ -37,5 +37,5 @@ public class RedisUserCache implements UserCachePort {
 
     @Override public void evict(UserId id) { redisTemplate.delete(OrganizationCacheKey.user(id.value())); }
 
-    private record UserCacheValue(String id, String name, String email, String status, List<String> roleCodes) {}
+    private record UserCacheValue(Long id, String name, String email, String status, List<String> roleCodes) {}
 }

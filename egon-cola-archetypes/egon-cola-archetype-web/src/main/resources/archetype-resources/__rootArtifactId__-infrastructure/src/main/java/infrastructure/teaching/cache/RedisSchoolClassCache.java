@@ -22,7 +22,7 @@ import java.util.Optional;
 public class RedisSchoolClassCache implements SchoolClassCachePort {
     private final RedisTemplate<String, Object> redisTemplate;
     private final OrganizationIntegrationProperties properties;
-    @Override public Optional<SchoolClass> findById(String gradeId, SchoolClassId id) {
+    @Override public Optional<SchoolClass> findById(Long gradeId, SchoolClassId id) {
         Object value = redisTemplate.opsForValue().get(
                 OrganizationCacheKey.schoolClass(gradeId, id.value()));
         if (!(value instanceof SchoolClassCacheValue cached)) return Optional.empty();
@@ -37,9 +37,9 @@ public class RedisSchoolClassCache implements SchoolClassCachePort {
                 value.gradeName(), value.status().name(), value.userIds().stream().map(UserId::value).toList()),
             properties.getSchoolClassTtl());
     }
-    @Override public void evict(String gradeId, SchoolClassId id) {
+    @Override public void evict(Long gradeId, SchoolClassId id) {
         redisTemplate.delete(OrganizationCacheKey.schoolClass(gradeId, id.value()));
     }
-    private record SchoolClassCacheValue(String name, String gradeId, String gradeCode,
-        String gradeName, String status, List<String> userIds) {}
+    private record SchoolClassCacheValue(String name, Long gradeId, String gradeCode,
+        String gradeName, String status, List<Long> userIds) {}
 }

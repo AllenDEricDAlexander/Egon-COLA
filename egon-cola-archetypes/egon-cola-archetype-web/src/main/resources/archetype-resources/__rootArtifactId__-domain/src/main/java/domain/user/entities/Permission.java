@@ -5,7 +5,7 @@ import ${package}.domain.user.enums.PermissionType;
 import ${package}.domain.user.vos.PermissionCode;
 
 public record Permission(
-        String id,
+        Long id,
         PermissionCode code,
         String name,
         PermissionType type,

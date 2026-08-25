@@ -27,11 +27,16 @@ public class OrganizationAuthContextFilter extends OncePerRequestFilter {
         String actorId = defaultValue(request.getHeader("X-Actor-Id"), "anonymous");
         Set<String> roles = parseRoles(request.getHeader("X-Actor-Roles"));
         String traceId = defaultValue(MDC.get("traceId"), "unknown");
+        String tenantId = defaultValue(request.getHeader("X-Tenant-Id"), "1");
+        MDC.put("tenantId", tenantId);
+        MDC.put("userId", actorId);
         OrganizationRequestContextHolder.set(new OrganizationRequestContext(actorId, roles, traceId));
         try {
             filterChain.doFilter(request, response);
         } finally {
             OrganizationRequestContextHolder.clear();
+            MDC.remove("tenantId");
+            MDC.remove("userId");
         }
     }
 

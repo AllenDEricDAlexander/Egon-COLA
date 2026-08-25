@@ -12,20 +12,20 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class InMemorySchoolClassCache implements SchoolClassCachePort {
     private final ConcurrentHashMap<String, SchoolClass> values = new ConcurrentHashMap<>();
     private final CopyOnWriteArrayList<String> evictedKeys = new CopyOnWriteArrayList<>();
-    @Override public Optional<SchoolClass> findById(String gradeId, SchoolClassId id) {
+    @Override public Optional<SchoolClass> findById(Long gradeId, SchoolClassId id) {
         return Optional.ofNullable(values.get(key(gradeId, id)));
     }
     @Override public void put(SchoolClass value) {
         values.put(key(value.gradeId(), value.id()), value);
     }
-    @Override public void evict(String gradeId, SchoolClassId id) {
+    @Override public void evict(Long gradeId, SchoolClassId id) {
         String key = key(gradeId, id);
         values.remove(key);
         evictedKeys.add(key);
     }
     public List<String> evictedKeys() { return List.copyOf(evictedKeys); }
     public void clearObservations() { evictedKeys.clear(); }
-    private static String key(String gradeId, SchoolClassId id) {
+    private static String key(Long gradeId, SchoolClassId id) {
         return gradeId + ":" + id.value();
     }
 }

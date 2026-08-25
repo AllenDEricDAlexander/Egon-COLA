@@ -3,7 +3,7 @@ package ${package}.application.user.result;
 import java.util.List;
 
 public record UserDetailResult(
-        String id,
+        Long id,
         String name,
         String email,
         String status,

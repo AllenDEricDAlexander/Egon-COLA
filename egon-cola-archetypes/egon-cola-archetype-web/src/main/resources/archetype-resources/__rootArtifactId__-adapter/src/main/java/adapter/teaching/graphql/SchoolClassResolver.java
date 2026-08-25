@@ -9,6 +9,7 @@ import ${package}.application.teaching.query.GradeDetailQuery;
 import ${package}.application.teaching.query.SchoolClassDetailQuery;
 import ${package}.application.teaching.result.GradeDetailResult;
 import ${package}.application.teaching.result.SchoolClassDetailResult;
+import ${package}.adapter.facade.impl.OrganizationFacadeSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.ContextValue;
@@ -27,12 +28,15 @@ public class SchoolClassResolver {
 
     @QueryMapping
     public GradeDetailResult grade(@Argument String id) {
-        return gradeManage.getGrade(new GradeDetailQuery(id));
+        return gradeManage.getGrade(new GradeDetailQuery(
+                OrganizationFacadeSupport.positiveId(id, "gradeId")));
     }
 
     @QueryMapping
     public SchoolClassDetailResult schoolClass(@Argument String gradeId, @Argument String id) {
-        return schoolClassManage.getSchoolClass(new SchoolClassDetailQuery(gradeId, id));
+        return schoolClassManage.getSchoolClass(new SchoolClassDetailQuery(
+                OrganizationFacadeSupport.positiveId(gradeId, "gradeId"),
+                OrganizationFacadeSupport.positiveId(id, "schoolClassId")));
     }
 
     @MutationMapping
@@ -56,7 +60,10 @@ public class SchoolClassResolver {
             @ContextValue(name = "idempotencyKey", required = false) String key) {
         schoolClassManage.assignUser(
                 new AssignUserToClassCommand(
-                        requestId(key), input.gradeId(), input.schoolClassId(), input.userId()));
+                        requestId(key),
+                        OrganizationFacadeSupport.positiveId(input.gradeId(), "gradeId"),
+                        OrganizationFacadeSupport.positiveId(input.schoolClassId(), "schoolClassId"),
+                        OrganizationFacadeSupport.positiveId(input.userId(), "userId")));
         return true;
     }
 

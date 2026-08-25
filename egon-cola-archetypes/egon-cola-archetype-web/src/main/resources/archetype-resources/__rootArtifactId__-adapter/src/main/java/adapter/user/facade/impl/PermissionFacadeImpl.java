@@ -23,7 +23,7 @@ public class PermissionFacadeImpl implements PermissionFacade {
     }
 
     @Override
-    public PermissionTreeDTO getPermissionTree(String userId) {
+    public PermissionTreeDTO getPermissionTree(Long userId) {
         PermissionTreeResult result = OrganizationFacadeSupport.invoke(
                 () -> permissionManage.getPermissionTree(new PermissionTreeQuery(userId)));
         return new PermissionTreeDTO(result.userId(), result.permissionCodes());

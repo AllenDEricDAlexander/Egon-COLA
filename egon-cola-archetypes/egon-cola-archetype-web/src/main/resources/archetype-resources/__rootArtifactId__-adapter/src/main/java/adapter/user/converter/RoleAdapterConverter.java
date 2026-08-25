@@ -15,7 +15,7 @@ public interface RoleAdapterConverter {
     @Mapping(target = "requestId", source = "requestId")
     @Mapping(target = "userId", source = "userId")
     @Mapping(target = "roleCode", source = "request.roleCode")
-    AssignRoleCommand toCommand(String requestId, String userId, AssignRoleRequest request);
+    AssignRoleCommand toCommand(String requestId, Long userId, AssignRoleRequest request);
 
     @BeforeMapping
     default void requireRequest(AssignRoleRequest request) {

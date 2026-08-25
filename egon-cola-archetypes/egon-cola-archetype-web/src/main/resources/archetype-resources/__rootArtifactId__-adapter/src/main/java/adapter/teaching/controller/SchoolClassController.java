@@ -6,6 +6,7 @@ import ${package}.adapter.teaching.dto.CreateSchoolClassRequest;
 import ${package}.adapter.teaching.vo.SchoolClassDetailVO;
 import ${package}.application.teaching.manage.SchoolClassManage;
 import ${package}.application.teaching.query.SchoolClassDetailQuery;
+import ${package}.adapter.facade.impl.OrganizationFacadeSupport;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -42,7 +43,9 @@ public class SchoolClassController {
             @PathVariable String gradeId,
             @PathVariable String schoolClassId) {
         return converter.toVO(
-                schoolClassManage.getSchoolClass(new SchoolClassDetailQuery(gradeId, schoolClassId)));
+                schoolClassManage.getSchoolClass(new SchoolClassDetailQuery(
+                        OrganizationFacadeSupport.positiveId(gradeId, "gradeId"),
+                        OrganizationFacadeSupport.positiveId(schoolClassId, "schoolClassId"))));
     }
 
     @PostMapping("/grades/{gradeId}/school-classes/{schoolClassId}/users")
@@ -53,7 +56,10 @@ public class SchoolClassController {
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
         String requestId = key == null ? UUID.randomUUID().toString() : key;
         schoolClassManage.assignUser(
-                converter.toCommand(requestId, gradeId, schoolClassId, request.userId()));
+                converter.toCommand(requestId,
+                        OrganizationFacadeSupport.positiveId(gradeId, "gradeId"),
+                        OrganizationFacadeSupport.positiveId(schoolClassId, "schoolClassId"),
+                        OrganizationFacadeSupport.positiveId(request.userId(), "userId")));
         return ResponseEntity.noContent().build();
     }
 }

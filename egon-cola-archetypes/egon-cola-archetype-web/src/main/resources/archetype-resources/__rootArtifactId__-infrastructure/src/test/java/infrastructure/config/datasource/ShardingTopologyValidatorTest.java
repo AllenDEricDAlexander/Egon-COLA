@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -18,36 +17,6 @@ class ShardingTopologyValidatorTest {
     }
 
     @Test
-    void shouldRejectReplicaFlywayTarget() {
-        ShardingDataSourceProperties valid = validProperties();
-        List<ShardingDataSourceProperties.PhysicalDataSourceProperties> dataSources =
-                new ArrayList<>(valid.physicalDataSources());
-        dataSources.add(new ShardingDataSourceProperties.PhysicalDataSourceProperties(
-                "shard_0_replica_0",
-                "shard_0",
-                ShardingDataSourceProperties.DataSourceRole.REPLICA,
-                "org.h2.Driver",
-                "jdbc:h2:mem:replica",
-                "sa",
-                "secret"));
-        List<ShardingDataSourceProperties.FlywayTargetProperties> targets =
-                new ArrayList<>(valid.flyway().targets());
-        targets.add(new ShardingDataSourceProperties.FlywayTargetProperties(
-                "shard_0_replica_0",
-                List.of("classpath:db/shard")));
-        ShardingDataSourceProperties invalid = new ShardingDataSourceProperties(
-                valid.config(),
-                valid.routing(),
-                dataSources,
-                new ShardingDataSourceProperties.ShardingFlywayProperties(targets));
-
-        assertThatThrownBy(() -> new ShardingTopologyValidator()
-                        .validate(invalid, validYaml()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("replica");
-    }
-
-    @Test
     void shouldRejectMissingLogicalPrimary() {
         ShardingDataSourceProperties valid = validProperties();
         ShardingDataSourceProperties invalid = new ShardingDataSourceProperties(
@@ -56,10 +25,7 @@ class ShardingTopologyValidatorTest {
                 valid.physicalDataSources().stream()
                         .filter(source -> !source.logicalName().equals("shard_1"))
                         .toList(),
-                new ShardingDataSourceProperties.ShardingFlywayProperties(
-                        valid.flyway().targets().stream()
-                                .filter(target -> !target.dataSourceName().equals("shard_1"))
-                                .toList()));
+                valid.flyway());
 
         assertThatThrownBy(() -> new ShardingTopologyValidator()
                         .validate(invalid, validYaml()))
@@ -201,17 +167,13 @@ class ShardingTopologyValidatorTest {
                 physical("master_data", "master_data"),
                 physical("shard_0", "shard_0"),
                 physical("shard_1", "shard_1"));
-        List<ShardingDataSourceProperties.FlywayTargetProperties> targets = List.of(
-                target("master_data", "master-data"),
-                target("shard_0", "shard"),
-                target("shard_1", "shard"));
         return new ShardingDataSourceProperties(
                 "classpath:rules.yml",
                 new ShardingDataSourceProperties.ShardingRoutingProperties(
                         4,
                         "0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1"),
                 sources,
-                new ShardingDataSourceProperties.ShardingFlywayProperties(targets));
+                flywayTargets("master_data", "shard_0", "shard_1"));
     }
 
     static byte[] validYaml() {
@@ -230,22 +192,22 @@ class ShardingTopologyValidatorTest {
                         databaseStrategy:
                           standard:
                             shardingColumn: id
-                            shardingAlgorithmName: uuid_v7_database_bucket
+                            shardingAlgorithmName: tenant_long_database_bucket
                         tableStrategy:
                           standard:
                             shardingColumn: id
-                            shardingAlgorithmName: uuid_v7_table_bucket
+                            shardingAlgorithmName: tenant_long_table_bucket
                         auditStrategy:
                           auditorNames:
                             - sharding_key_required_auditor
                           allowHintDisable: false
                     shardingAlgorithms:
-                      uuid_v7_database_bucket:
+                      tenant_long_database_bucket:
                         type: CLASS_BASED
                         props:
                           node-count: 4
                           node-map: 0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1
-                      uuid_v7_table_bucket:
+                      tenant_long_table_bucket:
                         type: CLASS_BASED
                         props:
                           node-count: 4
@@ -264,15 +226,11 @@ class ShardingTopologyValidatorTest {
                 replica("shard_0_replica_0", "shard_0"),
                 physical("shard_1_primary", "shard_1"),
                 replica("shard_1_replica_0", "shard_1"));
-        List<ShardingDataSourceProperties.FlywayTargetProperties> targets = List.of(
-                target("master_data_primary", "master-data"),
-                target("shard_0_primary", "shard"),
-                target("shard_1_primary", "shard"));
         return new ShardingDataSourceProperties(
                 "classpath:rules.yml",
                 validProperties().routing(),
                 sources,
-                new ShardingDataSourceProperties.ShardingFlywayProperties(targets));
+                flywayTargets("master_data_primary", "shard_0_primary", "shard_1_primary"));
     }
 
     private static byte[] readwriteYaml(String masterDataWriter) {
@@ -339,11 +297,16 @@ class ShardingTopologyValidatorTest {
                 "secret");
     }
 
-    private static ShardingDataSourceProperties.FlywayTargetProperties target(
-            String name,
-            String location) {
-        return new ShardingDataSourceProperties.FlywayTargetProperties(
-                name,
-                List.of("classpath:db/migration/sharding/" + location));
+    private static ShardingDataSourceProperties.ShardingFlywayProperties flywayTargets(
+            String masterData,
+            String shardZero,
+            String shardOne) {
+        return new ShardingDataSourceProperties.ShardingFlywayProperties(List.of(
+                new ShardingDataSourceProperties.FlywayTargetProperties(
+                        masterData, List.of("classpath:db/migration/sharding/master-data")),
+                new ShardingDataSourceProperties.FlywayTargetProperties(
+                        shardZero, List.of("classpath:db/migration/sharding/shard")),
+                new ShardingDataSourceProperties.FlywayTargetProperties(
+                        shardOne, List.of("classpath:db/migration/sharding/shard"))));
     }
 }

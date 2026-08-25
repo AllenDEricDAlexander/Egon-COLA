@@ -5,6 +5,7 @@ import ${package}.adapter.teaching.dto.CreateGradeRequest;
 import ${package}.adapter.teaching.vo.GradeDetailVO;
 import ${package}.application.teaching.manage.GradeManage;
 import ${package}.application.teaching.query.GradeDetailQuery;
+import ${package}.adapter.facade.impl.OrganizationFacadeSupport;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +38,7 @@ public class GradeController {
 
     @GetMapping("/{gradeId}")
     public GradeDetailVO get(@PathVariable String gradeId) {
-        return converter.toVO(gradeManage.getGrade(new GradeDetailQuery(gradeId)));
+        return converter.toVO(gradeManage.getGrade(new GradeDetailQuery(
+                OrganizationFacadeSupport.positiveId(gradeId, "gradeId"))));
     }
 }

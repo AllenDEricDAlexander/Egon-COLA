@@ -5,6 +5,7 @@ import ${package}.adapter.user.dto.GrantPermissionRequest;
 import ${package}.adapter.user.vo.PermissionTreeVO;
 import ${package}.application.user.manage.PermissionManage;
 import ${package}.application.user.query.PermissionTreeQuery;
+import ${package}.adapter.facade.impl.OrganizationFacadeSupport;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +37,7 @@ public class PermissionController {
 
     @GetMapping("/api/v1/users/{userId}/permissions")
     public PermissionTreeVO getPermissionTree(@PathVariable String userId) {
-        return converter.toVO(permissionManage.getPermissionTree(new PermissionTreeQuery(userId)));
+        return converter.toVO(permissionManage.getPermissionTree(new PermissionTreeQuery(
+                OrganizationFacadeSupport.positiveId(userId, "userId"))));
     }
 }

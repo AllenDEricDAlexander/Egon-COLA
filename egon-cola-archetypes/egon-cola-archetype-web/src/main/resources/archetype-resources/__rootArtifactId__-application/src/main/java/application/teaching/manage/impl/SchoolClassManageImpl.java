@@ -20,33 +20,28 @@ import ${package}.application.support.OrganizationTransactionHooks;
 import ${package}.domain.teaching.entities.SchoolClass;
 import ${package}.domain.teaching.aggregates.SchoolClassAggregate;
 import ${package}.domain.exceptions.OrganizationDomainException;
-import ${package}.domain.teaching.repos.GradeRepository;
-import ${package}.domain.teaching.repos.SchoolClassRepository;
-import ${package}.domain.user.repos.UserRepository;
 import ${package}.domain.teaching.service.SchoolClassDomainService;
+import ${package}.domain.user.service.UserDomainService;
 import ${package}.domain.teaching.vos.GradeCode;
 import ${package}.domain.teaching.vos.SchoolClassId;
 import ${package}.domain.user.vos.UserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.IdGenerator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
-import java.util.UUID;
 import java.time.Instant;
 
 @Service("schoolClassManage")
 @RequiredArgsConstructor
 public class SchoolClassManageImpl implements SchoolClassManage {
-    private final SchoolClassRepository schoolClassRepository;
-    private final GradeRepository gradeRepository;
-    private final UserRepository userRepository;
-    private final SchoolClassDomainService schoolClassDomainService;
+    private final SchoolClassDomainService<?> schoolClassDomainService;
+    private final UserDomainService<?> userDomainService;
     private final TeachingApplicationValidator validator;
     private final SchoolClassCachePort schoolClassCache;
     private final CommandIdempotencyPort idempotency;
     private final OrganizationEventPublisher eventPublisher;
-    private final IdGenerator idGenerator;
+    private final LongIdGenerator idGenerator;
     private final SchoolClassAssembler assembler = new SchoolClassAssembler();
 
     @Override
@@ -54,17 +49,17 @@ public class SchoolClassManageImpl implements SchoolClassManage {
     public SchoolClassDetailResult createSchoolClass(CreateSchoolClassCommand command) {
         return IdempotentCommand.execute(idempotency, "create-school-class", command.requestId(), () -> {
             validator.requireTeachingAdmin();
-            Grade grade = gradeRepository.findByCode(GradeCode.create(command.gradeCode()))
+            Grade grade = schoolClassDomainService.findGradeByCode(GradeCode.create(command.gradeCode()))
                 .orElseThrow(() -> notFound("grade not found"));
-            if (schoolClassRepository.existsByGradeIdAndNameIgnoreCase(grade.id(), command.name().trim())) {
+            if (schoolClassDomainService.existsByGradeIdAndNameIgnoreCase(grade.id(), command.name().trim())) {
                 throw conflict("school class name already exists in grade");
             }
-            SchoolClass schoolClass = schoolClassRepository.save(schoolClassDomainService.create(
-                new SchoolClassId(idGenerator.nextId()), command.name(), grade));
+            SchoolClass schoolClass = schoolClassDomainService.save(schoolClassDomainService.create(
+                new SchoolClassId(idGenerator.nextLongId()), command.name(), grade));
             OrganizationTransactionHooks.afterCommit(() -> {
                 schoolClassCache.evict(schoolClass.gradeId(), schoolClass.id());
-                eventPublisher.publish(new SchoolClassChangedEvent(UUID.randomUUID().toString(),
-                    schoolClass.id().value(), Instant.now(), schoolClass.gradeId(), "CREATED"));
+                eventPublisher.publish(new SchoolClassChangedEvent(Long.toString(idGenerator.nextLongId()),
+                    schoolClass.id().value().toString(), Instant.now(), schoolClass.gradeId().toString(), "CREATED"));
             });
             return assembler.toResult(schoolClass);
         });
@@ -74,7 +69,7 @@ public class SchoolClassManageImpl implements SchoolClassManage {
     public SchoolClassDetailResult getSchoolClass(SchoolClassDetailQuery query) {
         SchoolClassId id = new SchoolClassId(query.schoolClassId());
         SchoolClass schoolClass = schoolClassCache.findById(query.gradeId(), id).orElseGet(() -> {
-            SchoolClass loaded = schoolClassRepository.findByGradeIdAndId(query.gradeId(), id)
+            SchoolClass loaded = schoolClassDomainService.findByGradeIdAndId(query.gradeId(), id)
                 .orElseThrow(() -> notFound("school class not found"));
             schoolClassCache.put(loaded);
             return loaded;
@@ -89,8 +84,8 @@ public class SchoolClassManageImpl implements SchoolClassManage {
             validator.requireTeachingAdmin();
             SchoolClassId classId = new SchoolClassId(command.schoolClassId());
             UserId memberId = new UserId(command.userId());
-            var user = userRepository.findById(memberId).orElseThrow(() -> notFound("user not found"));
-            SchoolClass schoolClass = schoolClassRepository.findByGradeIdAndId(command.gradeId(), classId)
+            var user = userDomainService.findById(memberId).orElseThrow(() -> notFound("user not found"));
+            SchoolClass schoolClass = schoolClassDomainService.findByGradeIdAndId(command.gradeId(), classId)
                 .orElseThrow(() -> notFound("school class not found"));
             try {
                 new SchoolClassAggregate(schoolClass).validateAssignment(user);
@@ -100,14 +95,14 @@ public class SchoolClassManageImpl implements SchoolClassManage {
                         "ORG_DOMAIN_REJECTED",
                         failure.getMessage());
             }
-            if (schoolClassRepository.hasUser(command.gradeId(), classId, memberId)) {
+            if (schoolClassDomainService.hasUser(command.gradeId(), classId, memberId)) {
                 throw conflict("user already assigned to school class");
             }
-            schoolClassRepository.addUser(command.gradeId(), classId, memberId);
+            schoolClassDomainService.addUser(command.gradeId(), classId, memberId);
             OrganizationTransactionHooks.afterCommit(() -> {
                 schoolClassCache.evict(command.gradeId(), classId);
-                eventPublisher.publish(new SchoolClassMembershipChangedEvent(UUID.randomUUID().toString(),
-                    classId.value(), Instant.now(), memberId.value(), "ASSIGNED"));
+                eventPublisher.publish(new SchoolClassMembershipChangedEvent(Long.toString(idGenerator.nextLongId()),
+                    classId.value().toString(), Instant.now(), memberId.value().toString(), "ASSIGNED"));
             });
         });
     }

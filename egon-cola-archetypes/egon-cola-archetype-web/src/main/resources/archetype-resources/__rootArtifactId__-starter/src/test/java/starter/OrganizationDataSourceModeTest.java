@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -74,8 +75,7 @@ class OrganizationDataSourceModeTest {
             assertThat(context.getBean(DataSource.class).getClass().getName())
                     .contains("ShardingSphereDataSource");
             assertThat(context.getBeansOfType(Flyway.class)).isEmpty();
-            assertThat(context.getBean(
-                            jakarta.persistence.EntityManagerFactory.class))
+            assertThat(context.getBean(SqlSessionFactory.class))
                     .isNotNull();
         }
     }

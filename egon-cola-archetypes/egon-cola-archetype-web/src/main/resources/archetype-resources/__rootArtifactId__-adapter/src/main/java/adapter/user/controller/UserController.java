@@ -5,6 +5,7 @@ import ${package}.adapter.user.dto.CreateUserRequest;
 import ${package}.adapter.user.vo.UserDetailVO;
 import ${package}.application.user.manage.UserManage;
 import ${package}.application.user.query.UserDetailQuery;
+import ${package}.adapter.facade.impl.OrganizationFacadeSupport;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -38,6 +39,7 @@ public class UserController {
 
     @GetMapping("/{userId}")
     public UserDetailVO get(@PathVariable String userId) {
-        return converter.toVO(userManage.getUser(new UserDetailQuery(userId)));
+        return converter.toVO(userManage.getUser(new UserDetailQuery(
+                OrganizationFacadeSupport.positiveId(userId, "userId"))));
     }
 }

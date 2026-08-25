@@ -1,29 +1,25 @@
 package ${package}.infrastructure.user.repo.po;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+import top.egon.cola.component.common.mybatis.model.EgonModel;
 
-import java.time.LocalDateTime;
-
-@Entity
-@Table(name = "roles")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Data
+@NoArgsConstructor
 @AllArgsConstructor
-public class RolePO {
-    @Id @Column(length = 36) private String id;
-    @Column(nullable = false, unique = true, length = 64) private String code;
-    @Column(nullable = false, length = 120) private String name;
-    @Column(nullable = false, length = 32) private String status;
-    @Column(name = "created_at", nullable = false) private LocalDateTime createdAt;
-
-    public String getId() { return id; }
-    public String getCode() { return code; }
-    public String getName() { return name; }
-    public String getStatus() { return status; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
+@Builder
+@Accessors(chain = true)
+@TableName("roles")
+public class RolePO extends EgonModel<RolePO> {
+    @TableField("code")
+    private String code;
+    @TableField("name")
+    private String name;
+    @TableField("status")
+    private String status;
 }

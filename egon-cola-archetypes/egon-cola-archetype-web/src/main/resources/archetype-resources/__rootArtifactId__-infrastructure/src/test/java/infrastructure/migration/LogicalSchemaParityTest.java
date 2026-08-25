@@ -48,24 +48,26 @@ class LogicalSchemaParityTest {
         try (Connection connection = DriverManager.getConnection(url, "sa", "")) {
             connection.createStatement().executeUpdate("""
                     INSERT INTO school_classes_0(
-                        id, name, grade_name, grade_id, status, created_at)
+                        id, name, grade_name, grade_id, status, create_time, tenant_id)
                     VALUES (
-                        '019ba346-0000-7000-8000-000000000101',
+                        1001,
                         'Class A',
                         'Grade A',
-                        '019ba346-0000-7000-8000-000000000102',
+                        2001,
                         'ACTIVE',
-                        CURRENT_TIMESTAMP)
+                        CURRENT_TIMESTAMP,
+                        1)
                     """);
 
             assertThatThrownBy(() -> connection.createStatement().executeUpdate("""
                     INSERT INTO school_class_users_0(
-                        id, grade_id, user_id, school_class_id, created_at)
+                        id, tenant_id, grade_id, user_id, school_class_id, create_time)
                     VALUES (
-                        '019ba346-0000-7000-8000-000000000103',
-                        '019ba346-0000-7000-8000-000000000104',
-                        '019ba346-0000-7000-8000-000000000105',
-                        '019ba346-0000-7000-8000-000000000101',
+                        3001,
+                        1,
+                        9999,
+                        4001,
+                        1001,
                         CURRENT_TIMESTAMP)
                     """))
                     .isInstanceOf(SQLException.class);

@@ -22,6 +22,18 @@ public final class OrganizationFacadeSupport {
         return value == null || value.isBlank() ? UUID.randomUUID().toString() : value;
     }
 
+    public static Long positiveId(String value, String field) {
+        try {
+            long parsed = Long.parseLong(value);
+            if (parsed <= 0) {
+                throw new IllegalArgumentException(field + " must be positive");
+            }
+            return parsed;
+        } catch (NumberFormatException failure) {
+            throw new IllegalArgumentException(field + " must be a positive long", failure);
+        }
+    }
+
     public static void invoke(Runnable action) {
         invoke(() -> {
             action.run();

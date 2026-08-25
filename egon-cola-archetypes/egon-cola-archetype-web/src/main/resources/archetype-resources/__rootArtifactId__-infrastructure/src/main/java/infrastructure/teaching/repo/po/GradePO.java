@@ -1,38 +1,25 @@
 package ${package}.infrastructure.teaching.repo.po;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.experimental.Accessors;
+import top.egon.cola.component.common.mybatis.model.EgonModel;
 
-import java.time.LocalDateTime;
-
-@Entity
-@Table(name = "grades")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Data
+@NoArgsConstructor
 @AllArgsConstructor
-@Getter
-@Setter
-public class GradePO {
-
-    @Id
-    @Column(length = 36)
-    private String id;
-
-    @Column(nullable = false, unique = true, length = 160)
+@Builder
+@Accessors(chain = true)
+@TableName("grades")
+public class GradePO extends EgonModel<GradePO> {
+    @TableField("code")
     private String code;
-
-    @Column(nullable = false, length = 120)
+    @TableField("name")
     private String name;
-
-    @Column(nullable = false, length = 32)
+    @TableField("status")
     private String status;
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
 }

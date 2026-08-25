@@ -102,8 +102,8 @@ class OrganizationFlowTest {
                 Integer.class, "STUDENT")).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject(
                 "select count(*) from school_class_users"
-                        + " where grade_id = ? and user_id = ? and school_class_id = ?",
-                Integer.class, gradeId, userId, schoolClassId)).isEqualTo(1);
+                        + " where tenant_id = ? and grade_id = ? and user_id = ? and school_class_id = ?",
+                Integer.class, 1L, gradeId, userId, schoolClassId)).isEqualTo(1);
     }
 
     private static HttpHeaders adminHeaders(String idempotencyKey) {

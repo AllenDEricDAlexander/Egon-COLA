@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.List;
-import java.util.UUID;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
@@ -27,8 +26,9 @@ class OrganizationFlywayMigrationTest {
                 .doesNotContain("school_classes", "school_class_users");
             assertThat(count(connection, "roles")).isEqualTo(1);
             assertThat(count(connection, "permissions")).isEqualTo(1);
-            assertUuidV7(singleValue(connection, "SELECT id FROM roles"));
-            assertUuidV7(singleValue(connection, "SELECT id FROM permissions"));
+            assertThat(singleValue(connection, "SELECT id FROM roles")).isEqualTo("1001");
+            assertThat(singleValue(connection, "SELECT id FROM permissions")).isEqualTo("2001");
+            assertThat(singleValue(connection, "SELECT tenant_id FROM roles")).isEqualTo("1");
         }
     }
 
@@ -84,10 +84,6 @@ class OrganizationFlywayMigrationTest {
         }
     }
 
-    private static void assertUuidV7(String value) {
-        assertThat(value).hasSize(36);
-        assertThat(UUID.fromString(value).version()).isEqualTo(7);
-    }
 }
 
 final class TestDataSources {

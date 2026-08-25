@@ -1,10 +1,10 @@
 package ${package}.domain.client.evaluation;
 
 public record EvaluationScore(
-        String id,
-        String examId,
-        String courseId,
-        String studentId,
+        Long id,
+        Long examId,
+        Long courseId,
+        Long studentId,
         int points,
         String status) {
 }

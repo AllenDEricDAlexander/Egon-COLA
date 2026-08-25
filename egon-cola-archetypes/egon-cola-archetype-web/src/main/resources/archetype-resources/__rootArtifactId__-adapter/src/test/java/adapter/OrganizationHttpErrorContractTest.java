@@ -41,7 +41,7 @@ class OrganizationHttpErrorContractTest {
             .addFilters(new OrganizationTraceFilter(), new OrganizationAuthContextFilter())
             .build();
 
-        mockMvc.perform(get("/api/v1/users/u-1").header("X-Trace-Id", "trace-1"))
+        mockMvc.perform(get("/api/v1/users/1001").header("X-Trace-Id", "trace-1"))
             .andExpect(status().is(httpStatus.value()))
             .andExpect(jsonPath("$.code").value(code))
             .andExpect(jsonPath("$.traceId").value("trace-1"))

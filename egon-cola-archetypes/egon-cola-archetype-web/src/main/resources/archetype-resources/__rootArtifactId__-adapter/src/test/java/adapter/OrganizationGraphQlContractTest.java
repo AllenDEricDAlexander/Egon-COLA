@@ -61,35 +61,35 @@ class OrganizationGraphQlContractTest {
     @Test
     void exposesBothDomainQueriesAndMutations() {
         when(gradeManage.createGrade(any()))
-                .thenReturn(new GradeDetailResult("g-1", "GRADE_ONE", "Grade One", "ACTIVE"));
-        when(userManage.getUser(new UserDetailQuery("u-1")))
-                .thenReturn(new UserDetailResult("u-1", "Mario", "mario@example.com", "ACTIVE", List.of()));
-        when(schoolClassManage.getSchoolClass(new SchoolClassDetailQuery("g-1", "c-1")))
+                .thenReturn(new GradeDetailResult(1001L, "GRADE_ONE", "Grade One", "ACTIVE"));
+        when(userManage.getUser(new UserDetailQuery(2001L)))
+                .thenReturn(new UserDetailResult(2001L, "Mario", "mario@example.com", "ACTIVE", List.of()));
+        when(schoolClassManage.getSchoolClass(new SchoolClassDetailQuery(1001L, 3001L)))
                 .thenReturn(new SchoolClassDetailResult(
-                        "c-1", "Class One", "GRADE_ONE", "Grade One", "ACTIVE", List.of()));
+                        3001L, "Class One", "GRADE_ONE", "Grade One", "ACTIVE", List.of()));
 
         graphQlTester.document("mutation { createGrade(input:{code:\"GRADE_ONE\",name:\"Grade One\"})"
                         + " { code name status } }")
                 .execute()
                 .path("createGrade.code").entity(String.class).isEqualTo("GRADE_ONE");
 
-        graphQlTester.document("query { user(id:\"u-1\") { id email status roleCodes } }")
+        graphQlTester.document("query { user(id:\"2001\") { id email status roleCodes } }")
                 .execute()
-                .path("user.id").entity(String.class).isEqualTo("u-1");
+                .path("user.id").entity(String.class).isEqualTo("2001");
 
         graphQlTester.document(
-                        "query { schoolClass(gradeId:\"g-1\",id:\"c-1\") { id gradeCode status } }")
+                        "query { schoolClass(gradeId:\"1001\",id:\"3001\") { id gradeCode status } }")
                 .execute()
-                .path("schoolClass.id").entity(String.class).isEqualTo("c-1");
+                .path("schoolClass.id").entity(String.class).isEqualTo("3001");
     }
 
     @Test
     void exposesStableErrorExtensions() {
-        when(userManage.getUser(eq(new UserDetailQuery("missing"))))
+        when(userManage.getUser(eq(new UserDetailQuery(0L))))
                 .thenThrow(new OrganizationApplicationException(
                         OrganizationFailureType.NOT_FOUND, "ORG_NOT_FOUND", "User not found"));
 
-        graphQlTester.document("query { user(id:\"missing\") { id } }")
+        graphQlTester.document("query { user(id:\"0\") { id } }")
                 .execute()
                 .errors().satisfy(errors -> org.assertj.core.api.Assertions.assertThat(
                                 errors.getFirst().getExtensions())

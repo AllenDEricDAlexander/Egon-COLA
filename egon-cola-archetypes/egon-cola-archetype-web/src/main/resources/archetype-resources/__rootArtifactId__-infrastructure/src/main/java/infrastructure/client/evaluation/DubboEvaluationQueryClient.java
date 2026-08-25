@@ -59,7 +59,7 @@ public class DubboEvaluationQueryClient implements EvaluationQueryPort {
     }
 
     @Override
-    public EvaluationCourse getCourse(String courseId) {
+    public EvaluationCourse getCourse(Long courseId) {
         try {
             CourseResponse response = EvaluationClientFailureMapper.requireData(
                     courseFacade.getCourse(new GetCourseRequest(courseId)), "getCourse");
@@ -73,7 +73,7 @@ public class DubboEvaluationQueryClient implements EvaluationQueryPort {
     }
 
     @Override
-    public EvaluationExam getExam(String examId) {
+    public EvaluationExam getExam(Long examId) {
         try {
             ExamResponse response = EvaluationClientFailureMapper.requireData(
                     examFacade.getExam(new GetExamRequest(examId)), "getExam");
@@ -92,7 +92,7 @@ public class DubboEvaluationQueryClient implements EvaluationQueryPort {
     }
 
     @Override
-    public EvaluationScore getScore(String examId, String scoreId) {
+    public EvaluationScore getScore(Long examId, Long scoreId) {
         try {
             ScoreResponse response = EvaluationClientFailureMapper.requireData(
                     scoreFacade.getScore(new GetScoreRequest(examId, scoreId)), "getScore");

@@ -37,13 +37,13 @@ class TeachingControllerTest {
     @Test
     void exposesGradeAndSchoolClassCreateGetContracts() throws Exception {
         when(gradeManage.createGrade(any())).thenReturn(
-            new GradeDetailResult("grade-1", "GRADE_ONE", "Grade One", "ACTIVE"));
+            new GradeDetailResult(1001L, "GRADE_ONE", "Grade One", "ACTIVE"));
         when(gradeManage.getGrade(any())).thenReturn(
-            new GradeDetailResult("grade-1", "GRADE_ONE", "Grade One", "ACTIVE"));
+            new GradeDetailResult(1001L, "GRADE_ONE", "Grade One", "ACTIVE"));
         when(schoolClassManage.createSchoolClass(any())).thenReturn(
-            new SchoolClassDetailResult("class-1", "Class A", "GRADE_ONE", "Grade One", "ACTIVE", List.of()));
+            new SchoolClassDetailResult(2001L, "Class A", "GRADE_ONE", "Grade One", "ACTIVE", List.of()));
         when(schoolClassManage.getSchoolClass(any())).thenReturn(
-            new SchoolClassDetailResult("class-1", "Class A", "GRADE_ONE", "Grade One", "ACTIVE", List.of()));
+            new SchoolClassDetailResult(2001L, "Class A", "GRADE_ONE", "Grade One", "ACTIVE", List.of()));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
             new GradeController(gradeManage, Mappers.getMapper(GradeAdapterConverter.class)),
             new SchoolClassController(
@@ -52,22 +52,22 @@ class TeachingControllerTest {
         mockMvc.perform(post("/api/v1/grades").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"GRADE_ONE\",\"name\":\"Grade One\"}"))
             .andExpect(status().isCreated()).andExpect(jsonPath("$.code").value("GRADE_ONE"));
-        mockMvc.perform(get("/api/v1/grades/grade-1")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/grades/1001")).andExpect(status().isOk());
         mockMvc.perform(post("/api/v1/school-classes").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"Class A\",\"gradeCode\":\"GRADE_ONE\"}"))
             .andExpect(status().isCreated()).andExpect(jsonPath("$.gradeCode").value("GRADE_ONE"));
-        mockMvc.perform(get("/api/v1/grades/grade-1/school-classes/class-1"))
+        mockMvc.perform(get("/api/v1/grades/1001/school-classes/2001"))
                 .andExpect(status().isOk());
-        mockMvc.perform(post("/api/v1/grades/grade-1/school-classes/class-1/users")
+        mockMvc.perform(post("/api/v1/grades/1001/school-classes/2001/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"userId\":\"user-1\"}"))
+                        .content("{\"userId\":\"3001\"}"))
                 .andExpect(status().isNoContent());
 
         verify(schoolClassManage)
-                .getSchoolClass(new SchoolClassDetailQuery("grade-1", "class-1"));
+                .getSchoolClass(new SchoolClassDetailQuery(1001L, 2001L));
         verify(schoolClassManage).assignUser(argThat(command ->
-                "grade-1".equals(command.gradeId())
-                        && "class-1".equals(command.schoolClassId())
-                        && "user-1".equals(command.userId())));
+                1001L == command.gradeId()
+                        && 2001L == command.schoolClassId()
+                        && 3001L == command.userId()));
     }
 }

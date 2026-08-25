@@ -25,7 +25,7 @@ public class SchoolClassFacadeImpl implements SchoolClassFacade {
                 new CreateSchoolClassCommand(
                     OrganizationFacadeSupport.requestId(), request.name(), request.gradeCode()))));
     }
-    @Override public SchoolClassDetailDTO getSchoolClass(String gradeId, String schoolClassId) {
+    @Override public SchoolClassDetailDTO getSchoolClass(Long gradeId, Long schoolClassId) {
         return OrganizationFacadeSupport.invoke(
                 () -> toDTO(schoolClassManage.getSchoolClass(
                         new SchoolClassDetailQuery(gradeId, schoolClassId))));

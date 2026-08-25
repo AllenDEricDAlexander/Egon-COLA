@@ -1,13 +1,14 @@
 package ${package}.starter;
 
 import org.apache.dubbo.config.spring.context.annotation.EnableDubbo;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import top.egon.cola.component.common.id.generator.UuidV7Generator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
 
 @SpringBootApplication(
         scanBasePackages = "${package}",
@@ -16,19 +17,16 @@ import top.egon.cola.component.common.id.generator.UuidV7Generator;
         "${package}.adapter.user.rpc",
         "${package}.adapter.teaching.rpc"
 })
-@EnableJpaRepositories(basePackages = {
-        "${package}.infrastructure.user.repo.jpa",
-        "${package}.infrastructure.teaching.repo.jpa"
-}, enableDefaultTransactions = false)
-@EntityScan(basePackages = {
-        "${package}.infrastructure.user.repo.po",
-        "${package}.infrastructure.teaching.repo.po"
+@EnableConfigurationProperties(EgonColaMybatisPlusProperties.class)
+@MapperScan(basePackages = {
+        "${package}.infrastructure.user.repo.dao",
+        "${package}.infrastructure.teaching.repo.dao"
 })
 public class OrganizationApplication {
 
     @Bean
-    UuidV7Generator uuidV7Generator() {
-        return new UuidV7Generator();
+    LongIdGenerator longIdGenerator() {
+        return () -> 2001L;
     }
 
     public static void main(String[] args) {

@@ -30,7 +30,9 @@ class FlywayMigrationConventionTest {
                 .extracting(path -> path.getFileName().toString())
                 .containsExactlyInAnyOrder(
                         "V20260726_001__init_organization_master_data_schema.sql",
-                        "V20260726_002__init_organization_sharded_schema.sql");
+                        "V20260726_002__init_organization_sharded_schema.sql",
+                        "V20260825_003__migrate_organization_master_data_to_egon_model.sql",
+                        "V20260825_004__migrate_organization_sharded_to_tenant_model.sql");
         for (Path migration : migrations) {
             String fileName = migration.getFileName().toString();
             Matcher matcher = VERSIONED_MIGRATION.matcher(fileName);

@@ -22,7 +22,7 @@ public class GradeFacadeImpl implements GradeFacade {
         return OrganizationFacadeSupport.invoke(() -> toDTO(gradeManage.createGrade(new CreateGradeCommand(
             OrganizationFacadeSupport.requestId(), request.code(), request.name()))));
     }
-    @Override public GradeDetailDTO getGrade(String gradeId) {
+    @Override public GradeDetailDTO getGrade(Long gradeId) {
         return OrganizationFacadeSupport.invoke(() -> toDTO(gradeManage.getGrade(new GradeDetailQuery(gradeId))));
     }
     private static GradeDetailDTO toDTO(GradeDetailResult result) {

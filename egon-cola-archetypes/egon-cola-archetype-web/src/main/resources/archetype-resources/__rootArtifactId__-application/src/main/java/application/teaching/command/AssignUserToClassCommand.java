@@ -2,7 +2,7 @@ package ${package}.application.teaching.command;
 
 public record AssignUserToClassCommand(
         String requestId,
-        String gradeId,
-        String schoolClassId,
-        String userId) {
+        Long gradeId,
+        Long schoolClassId,
+        Long userId) {
 }

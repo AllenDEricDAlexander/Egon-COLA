@@ -27,7 +27,7 @@ public class UserFacadeImpl implements UserFacade {
     }
 
     @Override
-    public UserDetailDTO getUser(String userId) {
+    public UserDetailDTO getUser(Long userId) {
         return OrganizationFacadeSupport.invoke(
                 () -> converter.toDTO(userManage.getUser(new UserDetailQuery(userId))));
     }

@@ -2,9 +2,9 @@ package ${package}.domain.client.evaluation;
 
 public interface EvaluationQueryPort {
 
-    EvaluationCourse getCourse(String courseId);
+    EvaluationCourse getCourse(Long courseId);
 
-    EvaluationExam getExam(String examId);
+    EvaluationExam getExam(Long examId);
 
-    EvaluationScore getScore(String examId, String scoreId);
+    EvaluationScore getScore(Long examId, Long scoreId);
 }

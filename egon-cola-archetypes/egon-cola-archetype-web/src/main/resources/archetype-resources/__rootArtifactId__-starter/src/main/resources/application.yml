@@ -36,6 +36,39 @@ spring:
       fail-on-empty-beans: false
     deserialization:
       fail-on-unknown-properties: false
+  sql:
+    init:
+      mode: never
+
+egon:
+  cola:
+    component:
+      mybatis-plus:
+        enabled: true
+        tenant-id:
+          mdc-key: tenantId
+          ignored-tables: []
+        audit:
+          user-id-mdc-key: userId
+        pagination:
+          enabled: true
+          max-page-size: 500
+          overflow: false
+        batch:
+          default-size: 1000
+          max-chunk-size: 1000
+          max-collection-size: 10000
+        block-attack:
+          enabled: true
+        optimistic-locker:
+          enabled: true
+        meta-fill:
+          enabled: true
+
+mybatis-plus:
+  mapper-locations: classpath*:mybatis/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
   rabbitmq:
     listener:
       simple:

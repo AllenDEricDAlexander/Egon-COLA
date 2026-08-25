@@ -3,6 +3,7 @@ package ${package}.adapter.user.controller;
 import ${package}.adapter.user.converter.RoleAdapterConverter;
 import ${package}.adapter.user.dto.AssignRoleRequest;
 import ${package}.application.user.manage.RoleManage;
+import ${package}.adapter.facade.impl.OrganizationFacadeSupport;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +28,8 @@ public class RoleController {
             @Valid @RequestBody AssignRoleRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
         String requestId = key == null ? UUID.randomUUID().toString() : key;
-        roleManage.assignRole(converter.toCommand(requestId, userId, request));
+        roleManage.assignRole(converter.toCommand(requestId,
+                OrganizationFacadeSupport.positiveId(userId, "userId"), request));
         return ResponseEntity.noContent().build();
     }
 }

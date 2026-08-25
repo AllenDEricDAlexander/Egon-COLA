@@ -31,8 +31,8 @@ class OrganizationCacheTest {
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         OrganizationIntegrationProperties properties = new OrganizationIntegrationProperties();
         RedisUserCache cache = new RedisUserCache(redisTemplate, properties);
-        cache.put(new User(new UserId("u-1"), "Mario", "mario@example.com", UserStatus.ACTIVE));
-        verify(valueOperations).set(eq("student-management-organization:user:u-1"),
+        cache.put(new User(new UserId(1001L), "Mario", "mario@example.com", UserStatus.ACTIVE));
+        verify(valueOperations).set(eq("student-management-organization:user:1001"),
             any(), eq(Duration.ofMinutes(10)));
 
         when(valueOperations.setIfAbsent(

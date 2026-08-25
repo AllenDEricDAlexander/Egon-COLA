@@ -1,4 +1,4 @@
 package ${package}.application.teaching.query;
 
-public record GradeDetailQuery(String gradeId) {
+public record GradeDetailQuery(Long gradeId) {
 }

@@ -5,7 +5,7 @@ import ${package}.domain.teaching.entities.Grade;
 import java.util.Optional;
 
 public interface GradeCachePort {
-    Optional<Grade> findById(String gradeId);
+    Optional<Grade> findById(Long gradeId);
     void put(Grade grade);
-    void evict(String gradeId);
+    void evict(Long gradeId);
 }
