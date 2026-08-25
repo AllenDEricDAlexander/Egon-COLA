@@ -74,6 +74,35 @@ class EgonColaServiceImplTest {
     }
 
     @Test
+    void lombokOnlySubclassIsTheConstructorBoundary() throws Exception {
+        assertTrue(java.lang.reflect.Modifier.isAbstract(EgonColaServiceImpl.class.getModifiers()));
+        assertTrue(java.util.Arrays.stream(EgonColaServiceImpl.class.getDeclaredConstructors())
+                .noneMatch(constructor -> constructor.getParameterCount() == 3));
+        assertTrue(java.util.Arrays.stream(TestBusinessService.class.getDeclaredConstructors())
+                .anyMatch(constructor -> constructor.getParameterCount() == 3));
+    }
+
+    @Test
+    void nullLombokCollaboratorsFailAtFirstUse() {
+        EgonColaModelValidationUtils validation = new EgonColaModelValidationUtils(
+                new ValidationUtils(VALIDATOR_FACTORY.getValidator()), tenantIdProvider);
+        EgonColaMybatisPlusProperties properties = new EgonColaMybatisPlusProperties();
+
+        TestBusinessService missingTenant =
+                new TestBusinessService(validation, null, properties);
+        assertThrows(NullPointerException.class, missingTenant::list);
+
+        TestBusinessService missingValidation =
+                new TestBusinessService(null, tenantIdProvider, properties);
+        assertThrows(NullPointerException.class,
+                () -> missingValidation.save(new TestBusinessModel().businessValues("valid", null)));
+
+        TestBusinessService missingProperties =
+                new TestBusinessService(validation, tenantIdProvider, null);
+        assertThrows(NullPointerException.class, () -> missingProperties.saveBatch(java.util.List.of()));
+    }
+
+    @Test
     void officialReadAndWriteResultsRetainTheirUpstreamShapes() {
         TestBusinessModel row = new TestBusinessModel().businessValues("saved", "payload");
         when(mapper.insert(any(TestBusinessModel.class))).thenReturn(1);

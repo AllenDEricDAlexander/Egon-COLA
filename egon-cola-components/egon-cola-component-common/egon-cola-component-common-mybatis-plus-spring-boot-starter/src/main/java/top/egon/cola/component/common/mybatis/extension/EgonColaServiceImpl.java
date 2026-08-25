@@ -12,6 +12,8 @@ import com.baomidou.mybatisplus.extension.kotlin.KtUpdateChainWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.baomidou.mybatisplus.extension.toolkit.ChainWrappers;
 import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
@@ -35,22 +37,15 @@ import java.util.stream.Collectors;
  * @param <M> concrete EgonColaMapper type
  * @param <T> concrete EgonModel type
  */
-public class EgonColaServiceImpl<M extends EgonColaMapper<T>, T extends EgonModel<T>>
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public abstract class EgonColaServiceImpl<M extends EgonColaMapper<T>, T extends EgonModel<T>>
         extends ServiceImpl<M, T> implements EgonColaIService<T> {
 
-    private final EgonColaModelValidationUtils modelValidationUtils;
-    private final EgonColaTenantIdProvider tenantIdProvider;
-    private final EgonColaMybatisPlusProperties properties;
+    protected abstract EgonColaModelValidationUtils getModelValidationUtils();
 
-    protected EgonColaServiceImpl(EgonColaModelValidationUtils modelValidationUtils,
-                                   EgonColaTenantIdProvider tenantIdProvider,
-                                   EgonColaMybatisPlusProperties properties) {
-        this.modelValidationUtils = Objects.requireNonNull(modelValidationUtils,
-                "modelValidationUtils must not be null");
-        this.tenantIdProvider = Objects.requireNonNull(tenantIdProvider,
-                "tenantIdProvider must not be null");
-        this.properties = Objects.requireNonNull(properties, "properties must not be null");
-    }
+    protected abstract EgonColaTenantIdProvider getTenantIdProvider();
+
+    protected abstract EgonColaMybatisPlusProperties getProperties();
 
     @Override
     public boolean save(T entity) {
@@ -407,13 +402,13 @@ public class EgonColaServiceImpl<M extends EgonColaMapper<T>, T extends EgonMode
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean saveBatch(Collection<T> entityList) {
-        return saveBatch(entityList, properties.getBatch().getDefaultSize());
+        return saveBatch(entityList, requireProperties().getBatch().getDefaultSize());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean saveOrUpdateBatch(Collection<T> entityList) {
-        return saveOrUpdateBatch(entityList, properties.getBatch().getDefaultSize());
+        return saveOrUpdateBatch(entityList, requireProperties().getBatch().getDefaultSize());
     }
 
     @Override
@@ -425,7 +420,7 @@ public class EgonColaServiceImpl<M extends EgonColaMapper<T>, T extends EgonMode
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateBatchById(Collection<T> entityList) {
-        return updateBatchById(entityList, properties.getBatch().getDefaultSize());
+        return updateBatchById(entityList, requireProperties().getBatch().getDefaultSize());
     }
 
     private Long prepareBatch(Collection<T> entityList, int batchSize, BatchOperation operation) {
@@ -448,7 +443,7 @@ public class EgonColaServiceImpl<M extends EgonColaMapper<T>, T extends EgonMode
             };
             validateBusiness(entity, validationOperation);
         }
-        if (entityList.size() > properties.getBatch().getMaxCollectionSize()) {
+        if (entityList.size() > requireProperties().getBatch().getMaxCollectionSize()) {
             throw new IllegalArgumentException("BATCH_COLLECTION_SIZE_INVALID");
         }
         return snapshot;
@@ -461,14 +456,14 @@ public class EgonColaServiceImpl<M extends EgonColaMapper<T>, T extends EgonMode
     }
 
     private int checkedBatchSize(int batchSize) {
-        if (batchSize <= 0 || batchSize > properties.getBatch().getMaxChunkSize()) {
+        if (batchSize <= 0 || batchSize > requireProperties().getBatch().getMaxChunkSize()) {
             throw new IllegalArgumentException("BATCH_SIZE_INVALID");
         }
         return batchSize;
     }
 
     private Long requireTenantId() {
-        Long tenantId = tenantIdProvider.currentTenantId();
+        Long tenantId = requireTenantIdProvider().currentTenantId();
         if (tenantId == null) {
             throw new IllegalStateException("TENANT_CONTEXT_MISSING");
         }
@@ -486,7 +481,7 @@ public class EgonColaServiceImpl<M extends EgonColaMapper<T>, T extends EgonMode
         if (entity == null) {
             throw new IllegalArgumentException("entity must not be null");
         }
-        modelValidationUtils.validateBusiness(entity, operation);
+        requireModelValidationUtils().validateBusiness(entity, operation);
     }
 
     private static Serializable requireSerializableId(Serializable id) {
@@ -518,7 +513,7 @@ public class EgonColaServiceImpl<M extends EgonColaMapper<T>, T extends EgonMode
 
     private <E extends IPage<T>> E requirePage(E page) {
         Objects.requireNonNull(page, "page must not be null");
-        if (page.getSize() <= 0 || page.getSize() > properties.getPagination().getMaxPageSize()) {
+        if (page.getSize() <= 0 || page.getSize() > requireProperties().getPagination().getMaxPageSize()) {
             throw new IllegalArgumentException("PAGE_SIZE_INVALID");
         }
         return page;
@@ -526,9 +521,23 @@ public class EgonColaServiceImpl<M extends EgonColaMapper<T>, T extends EgonMode
 
     private <E extends IPage<? extends Map<String, Object>>> E requireMapPage(E page) {
         Objects.requireNonNull(page, "page must not be null");
-        if (page.getSize() <= 0 || page.getSize() > properties.getPagination().getMaxPageSize()) {
+        if (page.getSize() <= 0 || page.getSize() > requireProperties().getPagination().getMaxPageSize()) {
             throw new IllegalArgumentException("PAGE_SIZE_INVALID");
         }
         return page;
+    }
+
+    private EgonColaModelValidationUtils requireModelValidationUtils() {
+        return Objects.requireNonNull(getModelValidationUtils(),
+                "modelValidationUtils must not be null");
+    }
+
+    private EgonColaTenantIdProvider requireTenantIdProvider() {
+        return Objects.requireNonNull(getTenantIdProvider(),
+                "tenantIdProvider must not be null");
+    }
+
+    private EgonColaMybatisPlusProperties requireProperties() {
+        return Objects.requireNonNull(getProperties(), "properties must not be null");
     }
 }

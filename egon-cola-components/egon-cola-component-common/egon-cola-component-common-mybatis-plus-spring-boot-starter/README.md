@@ -40,12 +40,26 @@ The application provides a DataSource, a Jakarta Validator, and Mapper scanning.
 
 Every persistence entity extends EgonModel:
 
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Accessors(chain = true)
     @TableName("order_record")
-    public class OrderModel extends EgonModel<OrderModel> {
+    public class OrderPO extends EgonModel<OrderPO> {
         @NotBlank
+        @TableField("title")
         private String title;
         // business fields only
     }
+
+`@Builder` is intentionally limited to fields declared by `OrderPO`. The inherited
+`id`, tenant, audit, and logical-delete fields are not builder inputs: MyBatis
+JavaBean mapping reads them, while ASSIGN_ID, the trusted tenant/user providers,
+and MetaFill own their persisted values. `EgonModel` and concrete POs must not use
+`@SuperBuilder`, because MyBatis-Plus `Model<M>` does not provide a Lombok
+`ModelBuilder` parent contract. POs are not Spring injection beans and must not use
+`@RequiredArgsConstructor`.
 
 EgonModel defines exactly these fields:
 
@@ -64,16 +78,27 @@ The six non-ID fields are persisted non-null through the Persisted validation gr
 Consumer code uses the official Mapper and technical Service shape:
 
     @Mapper
-    public interface OrderMapper extends EgonColaMapper<OrderModel> {
+    public interface OrderDAO extends EgonColaMapper<OrderPO> {
     }
 
-    public interface OrderRepository extends EgonColaIService<OrderModel> {
+    public interface OrderDomainService<P extends EgonModel<P>> extends EgonColaIService<P> {
     }
 
-    @Service
-    public class OrderRepositoryImpl
-            extends EgonColaServiceImpl<OrderMapper, OrderModel>
-            implements OrderRepository {
+    @Slf4j
+    @Service("orderDomainService")
+    @RequiredArgsConstructor
+    public class OrderDomainServiceImpl
+            extends EgonColaServiceImpl<OrderDAO, OrderPO>
+            implements OrderDomainService<OrderPO> {
+        @Qualifier("egonColaModelValidationUtils")
+        @Getter(AccessLevel.PROTECTED)
+        private final EgonColaModelValidationUtils modelValidationUtils;
+        @Qualifier("egonColaMdcTenantIdProvider")
+        @Getter(AccessLevel.PROTECTED)
+        private final EgonColaTenantIdProvider tenantIdProvider;
+        @Qualifier("egonColaMybatisPlusProperties")
+        @Getter(AccessLevel.PROTECTED)
+        private final EgonColaMybatisPlusProperties properties;
     }
 
 EgonColaMapper deliberately declares no tenant-named methods and no custom SQL Injector. Official BaseMapper statements remain the complete normal CRUD surface. EgonColaIService and EgonColaServiceImpl preserve all official 57 method shapes, including list/count/id/optional/map/object/page/chain/batch methods, while adding context, argument, Model, page, wrapper, and transaction guards.

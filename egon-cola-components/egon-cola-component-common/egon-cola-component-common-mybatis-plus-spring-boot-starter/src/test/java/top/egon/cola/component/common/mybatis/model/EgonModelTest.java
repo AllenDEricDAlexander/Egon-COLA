@@ -27,6 +27,40 @@ class EgonModelTest {
 
     private static final Instant NOW = Instant.parse("2026-08-21T06:00:00Z");
 
+    @Test
+    void builderBuildsBusinessFieldsAndKeepsTechnicalFieldsFrameworkOwned() {
+        TestBusinessModel model = TestBusinessModel.builder()
+                .title("title")
+                .payload("payload")
+                .version(3L)
+                .build();
+
+        assertEquals("title", model.getTitle());
+        assertEquals("payload", model.getPayload());
+        assertEquals(3L, model.getVersion());
+
+        model.setId(101L);
+        model.setTenantId(9L);
+        model.setCreateUserId("creator");
+        model.setCreateTime(NOW);
+        model.setUpdateUserId("updater");
+        model.setUpdateTime(NOW);
+        model.setIsDeleted(false);
+        assertEquals(101L, model.getId());
+        assertEquals(9L, model.getTenantId());
+        assertEquals("creator", model.getCreateUserId());
+        assertEquals(NOW, model.getCreateTime());
+        assertEquals("updater", model.getUpdateUserId());
+        assertEquals(NOW, model.getUpdateTime());
+        assertFalse(model.getIsDeleted());
+
+        Object builder = TestBusinessModel.builder();
+        assertThrows(NoSuchMethodException.class,
+                () -> builder.getClass().getMethod("id", Long.class));
+        assertThrows(NoSuchMethodException.class,
+                () -> builder.getClass().getMethod("tenantId", Long.class));
+    }
+
     @AfterEach
     void clearContext() {
         MDC.clear();

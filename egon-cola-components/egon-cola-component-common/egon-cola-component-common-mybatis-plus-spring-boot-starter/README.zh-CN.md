@@ -40,12 +40,20 @@ Starter 不拥有业务表、Flyway 迁移、分库分表拓扑、HTTP 接口和
 
 所有持久化实体继承 EgonModel：
 
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Accessors(chain = true)
     @TableName("order_record")
-    public class OrderModel extends EgonModel<OrderModel> {
+    public class OrderPO extends EgonModel<OrderPO> {
         @NotBlank
+        @TableField("title")
         private String title;
         // 这里只放业务字段
     }
+
+`@Builder` 只暴露 `OrderPO` 自身声明的业务字段。继承的 `id`、tenant、审计和逻辑删除字段不进入 builder：读取时由 MyBatis JavaBean 映射，写入时由 ASSIGN_ID、可信 tenant/user Provider 和 MetaFill 负责。`EgonModel` 与具体 PO 禁止使用 `@SuperBuilder`，因为 MyBatis-Plus 的 `Model<M>` 没有 Lombok `ModelBuilder` 父类合同。PO 不是 Spring 注入 Bean，也不能使用 `@RequiredArgsConstructor`。
 
 EgonModel 精确定义以下字段：
 
@@ -64,16 +72,27 @@ EgonModel 精确定义以下字段：
 消费者按官方方式声明 Mapper 和技术 Service：
 
     @Mapper
-    public interface OrderMapper extends EgonColaMapper<OrderModel> {
+    public interface OrderDAO extends EgonColaMapper<OrderPO> {
     }
 
-    public interface OrderRepository extends EgonColaIService<OrderModel> {
+    public interface OrderDomainService<P extends EgonModel<P>> extends EgonColaIService<P> {
     }
 
-    @Service
-    public class OrderRepositoryImpl
-            extends EgonColaServiceImpl<OrderMapper, OrderModel>
-            implements OrderRepository {
+    @Slf4j
+    @Service("orderDomainService")
+    @RequiredArgsConstructor
+    public class OrderDomainServiceImpl
+            extends EgonColaServiceImpl<OrderDAO, OrderPO>
+            implements OrderDomainService<OrderPO> {
+        @Qualifier("egonColaModelValidationUtils")
+        @Getter(AccessLevel.PROTECTED)
+        private final EgonColaModelValidationUtils modelValidationUtils;
+        @Qualifier("egonColaMdcTenantIdProvider")
+        @Getter(AccessLevel.PROTECTED)
+        private final EgonColaTenantIdProvider tenantIdProvider;
+        @Qualifier("egonColaMybatisPlusProperties")
+        @Getter(AccessLevel.PROTECTED)
+        private final EgonColaMybatisPlusProperties properties;
     }
 
 EgonColaMapper 不声明租户查询方法，也不提供自定义 SQL Injector；官方 BaseMapper 语句就是正常 CRUD 的完整表面。EgonColaIService / EgonColaServiceImpl 保留官方 57 个方法形状（list/count/id/Optional/map/obj/page/chain/batch 等），在内部增加上下文、参数、Model、分页、Wrapper 和事务保护。

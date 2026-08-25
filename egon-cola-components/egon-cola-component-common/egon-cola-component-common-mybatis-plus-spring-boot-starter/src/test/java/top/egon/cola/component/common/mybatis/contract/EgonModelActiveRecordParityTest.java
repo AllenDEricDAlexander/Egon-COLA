@@ -10,6 +10,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.common.mybatis.support.TestBusinessModel;
+import top.egon.cola.component.common.mybatis.support.TestBusinessService;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EgonModelActiveRecordParityTest {
@@ -35,11 +37,31 @@ class EgonModelActiveRecordParityTest {
     }
 
     @Test
+    void concreteBusinessModelPublishesPublicNoArgAllArgAndBusinessBuilderConstruction()
+            throws Exception {
+        assertTrue(Arrays.stream(TestBusinessModel.class.getDeclaredConstructors())
+                .anyMatch(constructor -> constructor.getParameterCount() == 0
+                        && Modifier.isPublic(constructor.getModifiers())));
+        assertTrue(Arrays.stream(TestBusinessModel.class.getDeclaredConstructors())
+                .anyMatch(constructor -> constructor.getParameterCount() == 3
+                        && Arrays.equals(constructor.getParameterTypes(),
+                        new Class<?>[]{String.class, String.class, Long.class})));
+
+        Object builder = TestBusinessModel.builder();
+        assertTrue(builder.getClass().getMethod("title", String.class) != null);
+        assertTrue(builder.getClass().getMethod("version", Long.class) != null);
+        assertThrows(NoSuchMethodException.class,
+                () -> builder.getClass().getMethod("id", Long.class));
+        assertThrows(NoSuchMethodException.class,
+                () -> builder.getClass().getMethod("tenantId", Long.class));
+    }
+
+    @Test
     void allAbstractModelMethodsRemainVisibleAndSixMutationRootsAreFinal() throws Exception {
         Class<?> egonModel = Class.forName(EGON_MODEL);
-        Class<?> abstractModel = Class.forName(
-                "com.baomidou.mybatisplus.extension.activerecord.AbstractModel");
-        assertEquals(abstractModel, egonModel.getSuperclass());
+        Class<?> model = Class.forName("com.baomidou.mybatisplus.extension.activerecord.Model");
+        Class<?> abstractModel = model.getSuperclass();
+        assertEquals(model, egonModel.getSuperclass());
         Set<MethodKey> upstream = Arrays.stream(abstractModel.getDeclaredMethods())
                 .filter(method -> Modifier.isPublic(method.getModifiers()))
                 .filter(method -> !"pkVal".equals(method.getName()))
@@ -56,6 +78,28 @@ class EgonModelActiveRecordParityTest {
                         .contains(method.getName()))
                 .filter(method -> !"pkVal".equals(method.getName()))
                 .allMatch(method -> Modifier.isFinal(method.getModifiers())));
+    }
+
+    @Test
+    void serviceSubclassUsesLombokConstructorAndBaseUsesProtectedCollaboratorSeams()
+            throws Exception {
+        Class<?> service = Class.forName(
+                "top.egon.cola.component.common.mybatis.extension.EgonColaServiceImpl");
+        assertTrue(Modifier.isAbstract(service.getModifiers()));
+        assertTrue(Arrays.stream(service.getDeclaredConstructors())
+                .noneMatch(constructor -> constructor.getParameterCount() == 3));
+        assertProtectedAbstractGetter(service, "getModelValidationUtils");
+        assertProtectedAbstractGetter(service, "getTenantIdProvider");
+        assertProtectedAbstractGetter(service, "getProperties");
+        assertTrue(Arrays.stream(TestBusinessService.class.getDeclaredConstructors())
+                .anyMatch(constructor -> constructor.getParameterCount() == 3));
+    }
+
+    private static void assertProtectedAbstractGetter(Class<?> type, String methodName)
+            throws NoSuchMethodException {
+        Method method = type.getDeclaredMethod(methodName);
+        assertTrue(Modifier.isProtected(method.getModifiers()));
+        assertTrue(Modifier.isAbstract(method.getModifiers()));
     }
 
     @Test
