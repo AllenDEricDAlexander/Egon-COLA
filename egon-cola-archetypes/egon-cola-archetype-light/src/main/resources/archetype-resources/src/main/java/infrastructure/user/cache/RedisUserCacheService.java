@@ -2,12 +2,14 @@ package ${package}.infrastructure.user.cache;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import ${package}.domain.user.service.UserCacheService;
+import ${package}.domain.user.client.UserCachePort;
 import ${package}.domain.user.vos.UserSnapshot;
 import ${package}.infrastructure.config.TransactionCompletionExecutor;
 import ${package}.infrastructure.user.validators.UserInfrastructureValidator;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -15,13 +17,18 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.util.Optional;
 
-@Component("userCacheService")
+@Component("userCachePort")
 @ConditionalOnProperty(name = "app.integrations.redis.enabled", havingValue = "true")
 @RequiredArgsConstructor
-public class RedisUserCacheService implements UserCacheService {
+@Slf4j
+public class RedisUserCacheService implements UserCachePort {
+    @Qualifier("stringRedisTemplate")
     private final StringRedisTemplate redisTemplate;
+    @Qualifier("jacksonObjectMapper")
     private final ObjectMapper objectMapper;
+    @Qualifier("userInfrastructureValidator")
     private final UserInfrastructureValidator validator;
+    @Qualifier("transactionCompletionExecutor")
     private final TransactionCompletionExecutor transactionCompletionExecutor;
     @Value("${symbol_dollar}{spring.application.name}")
     private final String applicationName;
@@ -29,7 +36,7 @@ public class RedisUserCacheService implements UserCacheService {
     private final Duration ttl;
 
     @Override
-    public Optional<UserSnapshot> getUser(String userId) {
+    public Optional<UserSnapshot> getUser(Long userId) {
         String payload = redisTemplate.opsForValue().get(userKey(userId));
         if (payload == null) {
             return Optional.empty();
@@ -52,7 +59,7 @@ public class RedisUserCacheService implements UserCacheService {
     }
 
     @Override
-    public void evictUser(String userId) {
+    public void evictUser(Long userId) {
         transactionCompletionExecutor.executeAfterCommit(() -> redisTemplate.delete(userKey(userId)));
     }
 
@@ -67,7 +74,7 @@ public class RedisUserCacheService implements UserCacheService {
         return claimed;
     }
 
-    private String userKey(String userId) {
+    private String userKey(Long userId) {
         return applicationName + ":user:" + userId;
     }
 

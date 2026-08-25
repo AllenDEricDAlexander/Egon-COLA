@@ -1,13 +1,19 @@
 package ${package}.application.user.command;
 
 public record AssignRoleCommand(
-        String userId,
+        Long userId,
         String roleCode,
         String operatorId,
         String idempotencyKey) {
     public AssignRoleCommand {
-        requireText(userId, "userId");
+        requirePositive(userId, "userId");
         requireText(roleCode, "roleCode");
+    }
+
+    private static void requirePositive(Long value, String field) {
+        if (value == null || value <= 0) {
+            throw new IllegalArgumentException(field + " must be positive");
+        }
     }
 
     private static void requireText(String value, String field) {

@@ -19,7 +19,7 @@ public class CourseRpcProvider implements CourseFacade {
     }
 
     @Override
-    public CourseDTO getCourse(String courseId) {
+    public CourseDTO getCourse(Long courseId) {
         return delegate.getCourse(courseId);
     }
 }

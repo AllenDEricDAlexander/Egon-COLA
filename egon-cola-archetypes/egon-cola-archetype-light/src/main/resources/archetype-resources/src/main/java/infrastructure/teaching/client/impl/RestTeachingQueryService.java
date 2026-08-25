@@ -1,10 +1,11 @@
 package ${package}.infrastructure.teaching.client.impl;
 
-import ${package}.domain.teaching.service.TeachingQueryService;
+import ${package}.domain.teaching.gateway.TeachingQueryGateway;
 import ${package}.domain.teaching.vos.CourseCode;
 import ${package}.domain.teaching.vos.ExternalCourse;
 import ${package}.infrastructure.teaching.validators.TeachingInfrastructureValidator;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -13,12 +14,14 @@ import org.springframework.web.client.RestClient;
 
 import java.util.Optional;
 
-@Component("teachingQueryService")
+@Component("teachingQueryGateway")
 @ConditionalOnProperty(name = "app.integrations.external-http.enabled", havingValue = "true")
 @RequiredArgsConstructor
-public class RestTeachingQueryService implements TeachingQueryService {
+@Slf4j
+public class RestTeachingQueryService implements TeachingQueryGateway {
     @Qualifier("teachingRestClient")
     private final RestClient restClient;
+    @Qualifier("teachingInfrastructureValidator")
     private final TeachingInfrastructureValidator validator;
 
     @Override

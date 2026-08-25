@@ -1,9 +1,10 @@
 package ${package}.infrastructure.user.client.impl;
 
-import ${package}.domain.user.service.UserQueryService;
+import ${package}.domain.user.gateway.UserQueryGateway;
 import ${package}.domain.user.vos.ExternalUser;
 import ${package}.infrastructure.user.validators.UserInfrastructureValidator;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -12,12 +13,14 @@ import org.springframework.web.client.RestClient;
 
 import java.util.Optional;
 
-@Component("userQueryService")
+@Component("userQueryGateway")
 @ConditionalOnProperty(name = "app.integrations.external-http.enabled", havingValue = "true")
 @RequiredArgsConstructor
-public class RestUserQueryService implements UserQueryService {
+@Slf4j
+public class RestUserQueryService implements UserQueryGateway {
     @Qualifier("userRestClient")
     private final RestClient restClient;
+    @Qualifier("userInfrastructureValidator")
     private final UserInfrastructureValidator validator;
 
     @Override

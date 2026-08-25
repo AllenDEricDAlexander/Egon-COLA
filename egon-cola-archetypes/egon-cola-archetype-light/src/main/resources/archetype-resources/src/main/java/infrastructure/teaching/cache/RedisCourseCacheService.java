@@ -2,12 +2,14 @@ package ${package}.infrastructure.teaching.cache;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import ${package}.domain.teaching.service.CourseCacheService;
+import ${package}.domain.teaching.client.CourseCachePort;
 import ${package}.domain.teaching.vos.CourseSnapshot;
 import ${package}.infrastructure.config.TransactionCompletionExecutor;
 import ${package}.infrastructure.teaching.validators.TeachingInfrastructureValidator;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -15,13 +17,18 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.util.Optional;
 
-@Component("courseCacheService")
+@Component("courseCachePort")
 @ConditionalOnProperty(name = "app.integrations.redis.enabled", havingValue = "true")
 @RequiredArgsConstructor
-public class RedisCourseCacheService implements CourseCacheService {
+@Slf4j
+public class RedisCourseCacheService implements CourseCachePort {
+    @Qualifier("stringRedisTemplate")
     private final StringRedisTemplate redisTemplate;
+    @Qualifier("jacksonObjectMapper")
     private final ObjectMapper objectMapper;
+    @Qualifier("teachingInfrastructureValidator")
     private final TeachingInfrastructureValidator validator;
+    @Qualifier("transactionCompletionExecutor")
     private final TransactionCompletionExecutor transactionCompletionExecutor;
     @Value("${symbol_dollar}{spring.application.name}")
     private final String applicationName;
@@ -29,7 +36,7 @@ public class RedisCourseCacheService implements CourseCacheService {
     private final Duration ttl;
 
     @Override
-    public Optional<CourseSnapshot> getCourse(String courseId) {
+    public Optional<CourseSnapshot> getCourse(Long courseId) {
         String payload = redisTemplate.opsForValue().get(courseKey(courseId));
         if (payload == null) {
             return Optional.empty();
@@ -52,7 +59,7 @@ public class RedisCourseCacheService implements CourseCacheService {
     }
 
     @Override
-    public void evictCourse(String courseId) {
+    public void evictCourse(Long courseId) {
         transactionCompletionExecutor.executeAfterCommit(() -> redisTemplate.delete(courseKey(courseId)));
     }
 
@@ -67,7 +74,7 @@ public class RedisCourseCacheService implements CourseCacheService {
         return claimed;
     }
 
-    private String courseKey(String courseId) {
+    private String courseKey(Long courseId) {
         return applicationName + ":course:" + courseId;
     }
 

@@ -24,8 +24,8 @@ src/main/java/${packageInPathFormat}
 │   ├── user/{manage,command,query,result,convertor,validators,assemblers}
 │   └── teaching/{manage,command,query,result,convertor,validators,assemblers}
 ├── domain
-│   ├── user/{entities,aggregates,vos,service,repos,validators,enums,exceptions}
-│   └── teaching/{entities,aggregates,vos,service,repos,validators,enums,exceptions}
+│   ├── user/{entities,aggregates,vos,service,client,gateway,event,validators,enums,exceptions}
+│   └── teaching/{entities,aggregates,vos,service,client,gateway,event,validators,enums,exceptions}
 ├── infrastructure
 │   ├── user/{repo,service,validators,client,mq,cache}
 │   ├── teaching/{repo,service,validators,client,mq,cache}
@@ -34,7 +34,7 @@ src/main/java/${packageInPathFormat}
 └── common/{constants,utils,enums,exceptions}
 ```
 
-`adapter` owns HTTP, GraphQL, Dubbo provider, and RabbitMQ consumer concerns. `facade` owns stable external RPC contracts. `application` coordinates use cases and transactions. `domain` owns business state, rules, repository ports, and service ports. `infrastructure` supplies JPA repositories and implementations for Domain-owned ports. `common` contains only business-neutral primitives. `start` performs assembly and runtime configuration.
+`adapter` owns HTTP, GraphQL, Dubbo provider, and RabbitMQ consumer concerns. `facade` owns stable external RPC contracts. `application` coordinates use cases and transactions. `domain` owns business state, rules, gateway/cache/event ports, and service contracts. `infrastructure` supplies MyBatis-Plus DAOs, `EgonModel` persistence objects, and implementations for Domain-owned ports. `common` contains only business-neutral primitives. `start` performs assembly and runtime configuration.
 
 ${symbol_pound}${symbol_pound} Dependency Graph
 
@@ -66,7 +66,7 @@ The same Application use cases serve HTTP, GraphQL, Dubbo, and RabbitMQ entry po
 
 ${symbol_pound}${symbol_pound} Persistence And Integrations
 
-JPA is the only persistence implementation. Flyway owns the H2/PostgreSQL schema. RabbitMQ, Redis, GraphQL, Dubbo Triple, Springdoc OpenAPI, AOP monitoring, request-context filters, and external HTTP clients are included with exercised implementations.
+MyBatis-Plus through `egon-cola-component-common-mybatis-plus-spring-boot-starter` is the persistence implementation. Domain service interfaces extend `EgonColaIService`; infrastructure service implementations extend `EgonColaServiceImpl`; DAOs extend `EgonColaMapper`; and every PO extends `EgonModel` with MyBatis-Plus table annotations. Flyway owns the H2/PostgreSQL schema. RabbitMQ, Redis, GraphQL, Dubbo Triple, Springdoc OpenAPI, AOP monitoring, request-context filters, and external HTTP clients are included with exercised implementations.
 
 `dev` is the default profile for workstation development and `feature/*` branch verification. It uses environment-backed PostgreSQL, Redis, RabbitMQ, Nacos, Dubbo, and external HTTP integrations.
 
@@ -98,11 +98,12 @@ The table topology is:
   explicit `databaseStrategy.none` and `tableStrategy.none` rules inside
   `!SHARDING`; `!SINGLE` and an application-wide single-data-source mode are not
   used.
-- SHARDING tables: `school_classes`, sharded by `id`, and
-  `class_course_schedules`, sharded by `school_class_id`. They are binding tables;
-  a class and its schedules use the same root key and are colocated in one
-  database and table suffix. `DML_SHARDING_CONDITIONS` rejects updates or deletes
-  that omit a sharding condition, and hint bypass is disabled.
+- SHARDING tables: `school_classes` and `class_course_schedules`, both sharded by
+  the positive `tenant_id` Long. They are binding tables; a tenant's class and
+  schedules are colocated in one database and table suffix while
+  `school_class_id` remains the schedule relation key. `DML_SHARDING_CONDITIONS`
+  rejects updates or deletes that omit a sharding condition, and hint bypass is
+  disabled.
 
 For primary-only sharding, configure `LIGHT_SHARDING_MASTER_DATA_URL`,
 `LIGHT_SHARDING_SHARD_0_URL`, `LIGHT_SHARDING_SHARD_1_URL`,
@@ -121,9 +122,10 @@ database-level copies of their primaries and are never Flyway targets. Spring
 Boot Flyway auto-configuration is excluded so no migration can accidentally run
 through the logical data source. `FLYWAY_ENABLED=false` skips physical migrations.
 
-Application-generated surrogate keys use UUIDv7 serialized as 36-character RFC
-strings. Migration names must follow `VyyyyMMdd_NNN__description.sql`, where the
-date is the creation date and `NNN` is a three-digit daily sequence. Every SQL
+Application-generated surrogate keys use positive `Long` values. Tenant routing
+also uses the positive `Long` `tenant_id` context, which is the database/table
+sharding key. Migration names must follow `VyyyyMMdd_NNN__description.sql`, where
+the date is the creation date and `NNN` is a three-digit daily sequence. Every SQL
 file starts with these three comments: `变更内容`, `影响范围`, and `兼容性说明`.
 
 Database count, table count per database, and total physical-node count must all

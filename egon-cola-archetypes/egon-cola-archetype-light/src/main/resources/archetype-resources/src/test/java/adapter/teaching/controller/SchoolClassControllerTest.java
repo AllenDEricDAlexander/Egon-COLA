@@ -40,7 +40,7 @@ class SchoolClassControllerTest {
 
     @Test
     void creates_school_class_with_typed_context() throws Exception {
-        when(schoolClassManage.create(any())).thenReturn(new SchoolClassResult("class-1", "Class One", "2026-FALL", "ACTIVE", 0));
+        when(schoolClassManage.create(any())).thenReturn(new SchoolClassResult(1003L, "Class One", "2026-FALL", "ACTIVE", 0));
         mockMvc.perform(post("/api/school-classes")
                         .header("X-Operator-Id", "operator-1")
                         .header("X-Request-Id", "request-1")
@@ -56,9 +56,9 @@ class SchoolClassControllerTest {
     @Test
     void gets_school_class() throws Exception {
         when(schoolClassManage.get(any())).thenReturn(
-                new SchoolClassResult("class-1", "Class One", "2026-FALL", "ACTIVE", 2));
+                new SchoolClassResult(1003L, "Class One", "2026-FALL", "ACTIVE", 2));
 
-        mockMvc.perform(get("/api/school-classes/class-1"))
+        mockMvc.perform(get("/api/school-classes/1003"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.scheduleCount").value(2));
     }

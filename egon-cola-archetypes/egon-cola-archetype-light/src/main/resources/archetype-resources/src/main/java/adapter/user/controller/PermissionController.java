@@ -42,6 +42,6 @@ public class PermissionController {
     @GetMapping("/users/{userId}/permissions")
     public List<PermissionTreeVO> getUserPermissions(@PathVariable String userId) {
         return convertor.toPermissionTree(
-                permissionManage.getByUser(new GetUserPermissionsQuery(userId)));
+                permissionManage.getByUser(new GetUserPermissionsQuery(Long.valueOf(userId))));
     }
 }

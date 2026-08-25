@@ -23,12 +23,12 @@ public class UserResolver {
 
     @QueryMapping
     public UserDetailVO user(@Argument String id) {
-        return convertor.toUserDetail(userManage.get(new GetUserQuery(id)));
+        return convertor.toUserDetail(userManage.get(new GetUserQuery(Long.valueOf(id))));
     }
 
     @QueryMapping
     public List<PermissionTreeVO> permissions(@Argument String userId) {
         return convertor.toPermissionTree(
-                permissionManage.getByUser(new GetUserPermissionsQuery(userId)));
+                permissionManage.getByUser(new GetUserPermissionsQuery(Long.valueOf(userId))));
     }
 }

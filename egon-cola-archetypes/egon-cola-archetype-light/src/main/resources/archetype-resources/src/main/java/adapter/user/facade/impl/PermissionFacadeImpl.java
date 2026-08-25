@@ -11,13 +11,17 @@ import ${package}.facade.user.dto.PermissionDetailDTO;
 import ${package}.facade.user.dto.PermissionDTO;
 import ${package}.facade.user.exceptions.UserFacadeException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Component
+@Component("permissionFacadeImpl")
 @RequiredArgsConstructor
+@Slf4j
 public class PermissionFacadeImpl implements PermissionFacade {
+    @Qualifier("permissionManageImpl")
     private final PermissionManage permissionManage;
 
     @Override
@@ -32,7 +36,7 @@ public class PermissionFacadeImpl implements PermissionFacade {
     }
 
     @Override
-    public List<PermissionDetailDTO> getUserPermissions(String userId) {
+    public List<PermissionDetailDTO> getUserPermissions(Long userId) {
         try {
             return permissionManage.getByUser(new GetUserPermissionsQuery(userId)).stream()
                     .map(permission -> new PermissionDetailDTO(
@@ -42,4 +46,5 @@ public class PermissionFacadeImpl implements PermissionFacade {
             throw new UserFacadeException(exception.getCode(), exception.getMessage());
         }
     }
+
 }

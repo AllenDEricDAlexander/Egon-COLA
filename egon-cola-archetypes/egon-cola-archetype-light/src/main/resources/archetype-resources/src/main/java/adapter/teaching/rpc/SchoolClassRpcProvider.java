@@ -25,7 +25,7 @@ public class SchoolClassRpcProvider implements SchoolClassFacade {
     }
 
     @Override
-    public SchoolClassDetailDTO getSchoolClass(String schoolClassId) {
+    public SchoolClassDetailDTO getSchoolClass(Long schoolClassId) {
         return delegate.getSchoolClass(schoolClassId);
     }
 }

@@ -22,7 +22,7 @@ public class PermissionRpcProvider implements PermissionFacade {
     }
 
     @Override
-    public List<PermissionDetailDTO> getUserPermissions(String userId) {
+    public List<PermissionDetailDTO> getUserPermissions(Long userId) {
         return delegate.getUserPermissions(userId);
     }
 }

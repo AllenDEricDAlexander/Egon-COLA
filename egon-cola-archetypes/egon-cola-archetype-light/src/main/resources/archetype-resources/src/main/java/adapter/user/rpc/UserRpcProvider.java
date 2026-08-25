@@ -25,7 +25,7 @@ public class UserRpcProvider implements UserFacade {
     }
 
     @Override
-    public UserDetailDTO getUser(String userId) {
+    public UserDetailDTO getUser(Long userId) {
         return delegate.getUser(userId);
     }
 }

@@ -37,6 +37,6 @@ public class UserController {
 
     @GetMapping("/{userId}")
     public UserDetailVO get(@PathVariable String userId) {
-        return convertor.toUserDetail(userManage.get(new GetUserQuery(userId)));
+        return convertor.toUserDetail(userManage.get(new GetUserQuery(Long.valueOf(userId))));
     }
 }

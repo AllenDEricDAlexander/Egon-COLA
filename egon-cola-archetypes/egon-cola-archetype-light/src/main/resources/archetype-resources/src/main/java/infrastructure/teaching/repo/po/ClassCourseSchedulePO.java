@@ -1,57 +1,34 @@
 package ${package}.infrastructure.teaching.repo.po;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
-import lombok.AccessLevel;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+import top.egon.cola.component.common.mybatis.model.EgonModel;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(
-        name = "class_course_schedules",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_class_course_start",
-                columnNames = {"school_class_id", "course_id", "starts_at"}))
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class ClassCourseSchedulePO {
-    @Id
-    @Column(length = 36)
-    private String id;
-    @Column(name = "school_class_id", nullable = false, length = 36)
-    private String schoolClassId;
-    @Column(name = "course_id", nullable = false, length = 36)
-    private String courseId;
-    @Column(name = "starts_at", nullable = false)
+/** Persistence model for a scheduled course. */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Accessors(chain = true)
+@TableName("class_course_schedules")
+public class ClassCourseSchedulePO extends EgonModel<ClassCourseSchedulePO> {
+
+    @TableField("school_class_id")
+    private Long schoolClassId;
+
+    @TableField("course_id")
+    private Long courseId;
+
+    @TableField("starts_at")
     private LocalDateTime startsAt;
-    @Column(name = "ends_at", nullable = false)
+
+    @TableField("ends_at")
     private LocalDateTime endsAt;
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
-
-    public ClassCourseSchedulePO(
-            String id,
-            String schoolClassId,
-            String courseId,
-            LocalDateTime startsAt,
-            LocalDateTime endsAt,
-            Instant createdAt) {
-        this.id = id;
-        this.schoolClassId = schoolClassId;
-        this.courseId = courseId;
-        this.startsAt = startsAt;
-        this.endsAt = endsAt;
-        this.createdAt = createdAt;
-    }
-
-    public String getId() { return id; }
-    public String getSchoolClassId() { return schoolClassId; }
-    public String getCourseId() { return courseId; }
-    public LocalDateTime getStartsAt() { return startsAt; }
-    public LocalDateTime getEndsAt() { return endsAt; }
-    public Instant getCreatedAt() { return createdAt; }
 }

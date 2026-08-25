@@ -1,7 +1,7 @@
 package ${package}.application.teaching.result;
 
 public record SchoolClassResult(
-        String id,
+        Long id,
         String name,
         String semester,
         String status,

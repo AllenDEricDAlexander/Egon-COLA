@@ -1,31 +1,29 @@
 package ${package}.infrastructure.user.repo.po;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+import top.egon.cola.component.common.mybatis.model.EgonModel;
 
-import java.time.Instant;
-
-@Entity
-@Table(name = "roles")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+/** Persistence model for an authorization role. */
+@Data
+@NoArgsConstructor
 @AllArgsConstructor
-public class RolePO {
-    @Id
-    private String code;
-    @Column(nullable = false)
-    private String name;
-    @Column(nullable = false)
-    private String status;
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
+@Builder
+@Accessors(chain = true)
+@TableName("roles")
+public class RolePO extends EgonModel<RolePO> {
 
-    public String getCode() { return code; }
-    public String getName() { return name; }
-    public String getStatus() { return status; }
-    public Instant getCreatedAt() { return createdAt; }
+    @TableField("code")
+    private String code;
+
+    @TableField("name")
+    private String name;
+
+    @TableField("status")
+    private String status;
 }

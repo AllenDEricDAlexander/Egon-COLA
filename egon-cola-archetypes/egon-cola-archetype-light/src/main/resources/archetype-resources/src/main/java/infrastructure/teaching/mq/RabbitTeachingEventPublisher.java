@@ -1,9 +1,10 @@
 package ${package}.infrastructure.teaching.mq;
 
-import ${package}.domain.teaching.service.TeachingEventPublisher;
+import ${package}.domain.teaching.event.TeachingEventPublisher;
 import ${package}.domain.teaching.vos.TeachingEvent;
 import ${package}.infrastructure.config.TransactionCompletionExecutor;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 @Component("teachingEventPublisher")
 @ConditionalOnProperty(name = "app.integrations.rabbitmq.enabled", havingValue = "true")
 @RequiredArgsConstructor
+@Slf4j
 public class RabbitTeachingEventPublisher implements TeachingEventPublisher {
     private final RabbitTemplate rabbitTemplate;
     private final TransactionCompletionExecutor transactionCompletionExecutor;

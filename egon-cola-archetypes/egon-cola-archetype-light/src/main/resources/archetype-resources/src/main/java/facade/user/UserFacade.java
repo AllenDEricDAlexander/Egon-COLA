@@ -9,5 +9,6 @@ public interface UserFacade {
 
     UserDetailDTO assignRole(AssignRoleDTO request);
 
-    UserDetailDTO getUser(String userId);
+    UserDetailDTO getUser(Long userId);
+
 }

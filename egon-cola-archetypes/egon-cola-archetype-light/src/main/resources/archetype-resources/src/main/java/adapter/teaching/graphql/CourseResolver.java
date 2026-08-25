@@ -21,12 +21,12 @@ public class CourseResolver {
 
     @QueryMapping
     public CourseDetailVO course(@Argument String id) {
-        return convertor.toCourse(courseManage.get(new GetCourseQuery(id)));
+        return convertor.toCourse(courseManage.get(new GetCourseQuery(Long.valueOf(id))));
     }
 
     @QueryMapping
     public SchoolClassDetailVO schoolClass(@Argument String id) {
         return convertor.toSchoolClass(
-                schoolClassManage.get(new GetSchoolClassQuery(id)));
+                schoolClassManage.get(new GetSchoolClassQuery(Long.valueOf(id))));
     }
 }

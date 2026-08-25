@@ -2,7 +2,18 @@ package ${package}.domain.teaching.service;
 
 import ${package}.domain.teaching.entities.Course;
 import ${package}.domain.teaching.vos.CourseCode;
+import top.egon.cola.component.common.mybatis.extension.EgonColaIService;
+import top.egon.cola.component.common.mybatis.model.EgonModel;
 
-public interface CourseDomainService {
+import java.util.Optional;
+
+/** Persistence-owning course domain service contract. */
+public interface CourseDomainService<P extends EgonModel<P>> extends EgonColaIService<P> {
     Course createCourse(CourseCode code, String name);
+
+    Course save(Course course);
+
+    Optional<Course> findById(Long courseId);
+
+    Optional<Course> findByCode(CourseCode courseCode);
 }

@@ -1,54 +1,26 @@
 package ${package}.infrastructure.user.repo.po;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.IdClass;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+import top.egon.cola.component.common.mybatis.model.EgonModel;
 
-import java.io.Serializable;
-import java.time.Instant;
-import java.util.Objects;
-
-@Entity
-@Table(name = "role_permissions")
-@IdClass(RolePermissionPO.Key.class)
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+/** Persistence model for the role-to-permission link. */
+@Data
+@NoArgsConstructor
 @AllArgsConstructor
-public class RolePermissionPO {
-    @Id
-    @Column(name = "role_code")
+@Builder
+@Accessors(chain = true)
+@TableName("role_permissions")
+public class RolePermissionPO extends EgonModel<RolePermissionPO> {
+
+    @TableField("role_code")
     private String roleCode;
-    @Id
-    @Column(name = "permission_code")
+
+    @TableField("permission_code")
     private String permissionCode;
-    @Column(name = "granted_at", nullable = false)
-    private Instant grantedAt;
-
-    public String getRoleCode() { return roleCode; }
-    public String getPermissionCode() { return permissionCode; }
-    public Instant getGrantedAt() { return grantedAt; }
-
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static final class Key implements Serializable {
-        private String roleCode;
-        private String permissionCode;
-
-        @Override
-        public boolean equals(Object other) {
-            if (this == other) return true;
-            if (!(other instanceof Key key)) return false;
-            return Objects.equals(roleCode, key.roleCode)
-                    && Objects.equals(permissionCode, key.permissionCode);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(roleCode, permissionCode);
-        }
-    }
 }

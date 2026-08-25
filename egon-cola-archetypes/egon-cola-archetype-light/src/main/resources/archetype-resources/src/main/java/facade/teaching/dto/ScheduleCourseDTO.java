@@ -4,8 +4,8 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 public record ScheduleCourseDTO(
-        String schoolClassId,
-        String courseId,
+        Long schoolClassId,
+        Long courseId,
         LocalDateTime startsAt,
         LocalDateTime endsAt,
         String operatorId,

@@ -12,8 +12,8 @@ class CourseRpcProviderTest {
     @Test
     void delegates_to_course_facade() {
         CourseFacade facade = mock(CourseFacade.class);
-        CourseDTO course = new CourseDTO("course-1", "MATH", "Math", "ACTIVE");
-        when(facade.getCourse("course-1")).thenReturn(course);
-        assertThat(new CourseRpcProvider(facade).getCourse("course-1")).isSameAs(course);
+        CourseDTO course = new CourseDTO(1002L, "MATH", "Math", "ACTIVE");
+        when(facade.getCourse(1002L)).thenReturn(course);
+        assertThat(new CourseRpcProvider(facade).getCourse(1002L)).isSameAs(course);
     }
 }

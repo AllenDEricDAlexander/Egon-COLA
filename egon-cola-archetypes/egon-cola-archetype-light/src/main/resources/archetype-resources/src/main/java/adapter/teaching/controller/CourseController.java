@@ -33,6 +33,6 @@ public class CourseController {
 
     @GetMapping("/{courseId}")
     public CourseDetailVO get(@PathVariable String courseId) {
-        return convertor.toCourse(courseManage.get(new GetCourseQuery(courseId)));
+        return convertor.toCourse(courseManage.get(new GetCourseQuery(Long.valueOf(courseId))));
     }
 }

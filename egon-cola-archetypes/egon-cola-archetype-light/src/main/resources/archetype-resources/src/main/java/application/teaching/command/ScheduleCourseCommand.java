@@ -3,10 +3,16 @@ package ${package}.application.teaching.command;
 import java.time.LocalDateTime;
 
 public record ScheduleCourseCommand(
-        String schoolClassId,
-        String courseId,
+        Long schoolClassId,
+        Long courseId,
         LocalDateTime startsAt,
         LocalDateTime endsAt,
         String operatorId,
         String idempotencyKey) {
+    public ScheduleCourseCommand {
+        if (schoolClassId == null || schoolClassId <= 0
+                || courseId == null || courseId <= 0) {
+            throw new IllegalArgumentException("course and school class ids must be positive");
+        }
+    }
 }

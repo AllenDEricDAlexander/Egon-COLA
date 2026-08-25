@@ -1,11 +1,13 @@
 package ${package}.infrastructure.user.client.impl;
 
-import ${package}.domain.user.service.UserQueryService;
+import ${package}.domain.user.gateway.UserQueryGateway;
 import ${package}.domain.user.vos.ExternalUser;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
 
-public class LocalUserQueryService implements UserQueryService {
+@Slf4j
+public class LocalUserQueryService implements UserQueryGateway {
     @Override
     public Optional<ExternalUser> findExternalUser(String externalId) {
         if (!"ext-1".equals(externalId)) {

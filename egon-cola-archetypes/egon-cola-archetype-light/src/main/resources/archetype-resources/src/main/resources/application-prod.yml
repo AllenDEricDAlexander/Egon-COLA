@@ -6,12 +6,6 @@ spring:
     validate-on-migrate: true
     validate-migration-naming: true
     clean-disabled: true
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
-    show-sql: false
-
 management:
   endpoint:
     health:

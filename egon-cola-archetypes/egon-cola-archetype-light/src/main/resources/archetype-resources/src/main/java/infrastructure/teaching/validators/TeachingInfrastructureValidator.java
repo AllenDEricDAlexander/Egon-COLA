@@ -3,9 +3,11 @@ package ${package}.infrastructure.teaching.validators;
 import ${package}.domain.teaching.exceptions.TeachingDomainException;
 import ${package}.domain.teaching.vos.CourseCode;
 import ${package}.domain.teaching.vos.ExternalCourse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("teachingInfrastructureValidator")
+@Slf4j
 public class TeachingInfrastructureValidator {
     public void validateExternalCourse(ExternalCourse course, CourseCode expectedCode) {
         if (course == null || !expectedCode.equals(course.code())) {
@@ -14,7 +16,7 @@ public class TeachingInfrastructureValidator {
         }
     }
 
-    public TeachingDomainException invalidCachePayload(String payload, Throwable cause) {
+    public TeachingDomainException invalidCachePayload(Object payload, Throwable cause) {
         return new TeachingDomainException(
                 "INVALID_COURSE_CACHE", "course cache payload is invalid", cause);
     }

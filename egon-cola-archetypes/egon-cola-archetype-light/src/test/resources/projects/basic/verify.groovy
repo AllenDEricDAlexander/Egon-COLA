@@ -498,8 +498,9 @@ assertEgonColaBom(pomXml)
 ].each { artifactId ->
     assert pom.contains("<artifactId>${artifactId}</artifactId>")
 }
-assert !pom.contains("mybatis-plus")
-assert !pom.contains("mybatis-spring")
+assert pom.contains("<artifactId>egon-cola-component-common-mybatis-plus-spring-boot-starter</artifactId>")
+assert !pom.contains("spring-boot-starter-data-jpa")
+assert !pom.contains("<artifactId>mybatis-plus-spring-boot-starter</artifactId>")
 assert pom.contains("<artifactId>egon-cola-component-common-core</artifactId>")
 assert !pom.contains("<artifactId>egon-cola-component-dynamic-thread-pool-starter</artifactId>")
 assert !pom.contains("<artifactId>egon-cola-component-dynamic-thread-pool-admin</artifactId>")
@@ -557,11 +558,8 @@ assertEncryptedPasswordDefault("src/main/resources/bootstrap-prod.yml", "NACOS_P
 assert assertFile("src/main/resources/application-test.yml").text.contains(
         'password: "${LIGHT_SHARDING_PASSWORD:}"')
 assertMissing("src/test/resources/application-jpa-test.yml")
-def jpaTestApplication = assertFile("src/test/java/it/pkg/infrastructure/JpaTestApplication.java").text
-assert jpaTestApplication.contains("@SpringBootConfiguration(proxyBeanMethods = false)")
-assert jpaTestApplication.contains(
-        '@ConditionalOnProperty(name = "app.test.jpa.enabled", havingValue = "true")')
-assert !jpaTestApplication.contains("@Profile")
+assertMissing("src/test/java/it/pkg/infrastructure/JpaTestApplication.java")
+assertFile("src/test/java/it/pkg/architecture/LightPersistenceArchitectureTest.java")
 assert !assertFile("src/main/resources/bootstrap-test.yml").text.contains('ENC(')
 
 def testConfig = assertFile("src/main/resources/application-test.yml").text
@@ -678,7 +676,6 @@ def requiredPackagePaths = [
     "domain/user/aggregates",
     "domain/user/vos",
     "domain/user/service",
-    "domain/user/repos",
     "domain/user/validators",
     "domain/user/enums",
     "domain/user/exceptions",
@@ -687,16 +684,13 @@ def requiredPackagePaths = [
     "domain/teaching/aggregates",
     "domain/teaching/vos",
     "domain/teaching/service",
-    "domain/teaching/repos",
     "domain/teaching/validators",
     "domain/teaching/enums",
     "domain/teaching/exceptions",
     "infrastructure",
     "infrastructure/user",
     "infrastructure/user/repo",
-    "infrastructure/user/repo/impl",
     "infrastructure/user/repo/po",
-    "infrastructure/user/repo/jpa",
     "infrastructure/user/repo/converter",
     "infrastructure/user/service",
     "infrastructure/user/service/impl",
@@ -707,9 +701,7 @@ def requiredPackagePaths = [
     "infrastructure/user/cache",
     "infrastructure/teaching",
     "infrastructure/teaching/repo",
-    "infrastructure/teaching/repo/impl",
     "infrastructure/teaching/repo/po",
-    "infrastructure/teaching/repo/jpa",
     "infrastructure/teaching/repo/converter",
     "infrastructure/teaching/service",
     "infrastructure/teaching/service/impl",
@@ -754,8 +746,8 @@ def starterText = assertFile("src/main/java/it/pkg/start/StudentManagementApplic
 assert starterText.contains("@EnableDubbo")
 assert starterText.contains('"it.pkg.adapter.user.rpc"')
 assert starterText.contains('"it.pkg.adapter.teaching.rpc"')
-assert starterText.contains('"it.pkg.infrastructure.user.repo.jpa"')
-assert starterText.contains('"it.pkg.infrastructure.teaching.repo.jpa"')
+assert starterText.contains('"it.pkg.infrastructure.user.repo.dao"')
+assert starterText.contains('"it.pkg.infrastructure.teaching.repo.dao"')
 assertFile("src/main/resources/application.yml")
 assertFile("src/main/resources/datasource/sharding.yml")
 assertFile("src/main/resources/datasource/sharding-readwrite.yml")
@@ -777,8 +769,8 @@ def lightShardingRule = assertFile(
         "src/main/resources/sharding/shardingsphere-sharding.yml").text
 assert lightShardingRule.contains(
         '${app.sharding.database-name:${LIGHT_SHARDING_DATABASE_NAME:student_management}}')
-assert lightShardingRule.contains("shardingColumn: id")
-assert lightShardingRule.contains("shardingColumn: school_class_id")
+assert lightShardingRule.contains("shardingColumn: tenant_id")
+assert lightShardingRule.contains("shardingColumn: tenant_id")
 assert lightShardingRule.contains("school_classes,class_course_schedules")
 assert lightShardingRule.contains("actualDataNodes: master_data.users")
 assert !lightShardingRule.contains(".public.")
@@ -805,14 +797,13 @@ assertFile("src/main/java/it/pkg/domain/user/aggregates/UserAggregate.java")
     "UserDomainService",
     "RoleDomainService",
     "PermissionDomainService",
-    "UserQueryService",
-    "UserCacheService",
+    "UserCachePort",
+    "UserQueryGateway",
     "UserEventPublisher"
 ].each { serviceName ->
-    assertFile("src/main/java/it/pkg/domain/user/service/${serviceName}.java")
-}
-["UserRepository", "RoleRepository", "PermissionRepository"].each { repositoryName ->
-    assertFile("src/main/java/it/pkg/domain/user/repos/${repositoryName}.java")
+    def path = serviceName in ["UserCachePort", "UserQueryGateway", "UserEventPublisher"] ?
+            (serviceName == "UserCachePort" ? "client" : serviceName == "UserQueryGateway" ? "gateway" : "event") : "service"
+    assertFile("src/main/java/it/pkg/domain/user/${path}/${serviceName}.java")
 }
 assertFile("src/test/java/it/pkg/domain/user/aggregates/UserAggregateTest.java")
 assertFile("src/test/java/it/pkg/domain/user/aggregates/RolePermissionAggregateTest.java")
@@ -835,11 +826,9 @@ assertFile("src/test/java/it/pkg/domain/user/aggregates/RolePermissionAggregateT
     "validators/TeachingDomainValidator",
     "service/SchoolClassDomainService",
     "service/CourseDomainService",
-    "service/TeachingQueryService",
-    "service/CourseCacheService",
-    "service/TeachingEventPublisher",
-    "repos/SchoolClassRepository",
-    "repos/CourseRepository"
+    "client/CourseCachePort",
+    "gateway/TeachingQueryGateway",
+    "event/TeachingEventPublisher"
 ].each { typePath ->
     assertFile("src/main/java/it/pkg/domain/teaching/${typePath}.java")
 }
@@ -905,7 +894,9 @@ assertFile("src/test/java/it/pkg/domain/teaching/aggregates/SchoolClassAggregate
 
 [
     "sharding/master-data/V20260726_001__init_light_master_data_schema.sql",
-    "sharding/shard/V20260726_002__init_light_sharded_schema.sql"
+    "sharding/shard/V20260726_002__init_light_sharded_schema.sql",
+    "sharding/master-data/V20260825_001__migrate_light_master_data_to_egon_model.sql",
+    "sharding/shard/V20260825_002__migrate_light_sharded_to_tenant_model.sql"
 ].each { migration ->
     assertFile("src/main/resources/db/migration/${migration}")
 }
@@ -918,7 +909,7 @@ new File(generatedProjectDir, "src/main/resources/db/migration")
                 migrationFiles << file
             }
         }
-assert migrationFiles.size() == 2: "Expected exactly two migration SQL files"
+assert migrationFiles.size() == 4: "Expected exactly four migration SQL files"
 migrationFiles.each { migration ->
     def text = migration.getText("UTF-8")
     assert text.startsWith("-- 变更内容：")
@@ -928,7 +919,7 @@ migrationFiles.each { migration ->
 [
     "DataSourceModeProperties",
     "ShardingNodeMap",
-    "UuidV7BucketShardingAlgorithm",
+    "LongTenantShardingAlgorithm",
     "PhysicalDataSourceFlywayMigrator",
     "ShardingDataSourceBootstrapper",
     "ShardingDataSourcePropertiesLoader",
@@ -940,12 +931,11 @@ migrationFiles.each { migration ->
 [
     "src/test/java/it/pkg/application/transaction/LocalTransactionBoundaryTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/DataSourceModePropertiesTest.java",
-    "src/test/java/it/pkg/infrastructure/config/datasource/LightDataSourceModeTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/PhysicalDataSourceFlywayMigratorTest.java",
-    "src/test/java/it/pkg/infrastructure/config/datasource/ReadwriteRoutingIntegrationTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/ShardingDataSourcePropertiesLoaderTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/ShardingTopologyValidatorTest.java",
-    "src/test/java/it/pkg/infrastructure/config/datasource/UuidV7BucketShardingAlgorithmTest.java",
+    "src/test/java/it/pkg/infrastructure/config/datasource/LongTenantShardingAlgorithmTest.java",
+    "src/test/java/it/pkg/architecture/LightPersistenceArchitectureTest.java",
     "src/test/java/it/pkg/infrastructure/migration/FlywayMigrationConventionTest.java"
 ].each { assertFile(it) }
 [
@@ -957,16 +947,29 @@ migrationFiles.each { migration ->
 }
 [
     "user/repo/po/UserPO",
-    "user/repo/jpa/UserJpaRepository",
-    "user/repo/impl/UserRepositoryImpl",
+    "user/repo/dao/UserDAO",
+    "user/repo/po/RolePO",
+    "user/repo/dao/RoleDAO",
+    "user/repo/po/PermissionPO",
+    "user/repo/dao/PermissionDAO",
     "teaching/repo/po/SchoolClassPO",
-    "teaching/repo/jpa/SchoolClassJpaRepository",
-    "teaching/repo/impl/SchoolClassRepositoryImpl"
+    "teaching/repo/dao/SchoolClassDAO",
+    "teaching/repo/po/CoursePO",
+    "teaching/repo/dao/CourseDAO"
 ].each { typePath ->
     assertFile("src/main/java/it/pkg/infrastructure/${typePath}.java")
 }
-assertFile("src/test/java/it/pkg/infrastructure/user/repo/UserRepositoryImplTest.java")
-assertFile("src/test/java/it/pkg/infrastructure/teaching/repo/SchoolClassRepositoryImplTest.java")
+[
+    "src/main/java/it/pkg/infrastructure/user/repo/dao/UserRoleDAO.java",
+    "src/main/java/it/pkg/infrastructure/user/repo/dao/RolePermissionDAO.java",
+    "src/main/java/it/pkg/infrastructure/teaching/repo/dao/ClassCourseScheduleDAO.java",
+    "src/main/resources/mybatis/mapper/user/UserDAO.xml",
+    "src/main/resources/mybatis/mapper/teaching/CourseDAO.xml"
+].each { assertFile(it) }
+assertMissing("src/main/java/it/pkg/infrastructure/user/repo/jpa")
+assertMissing("src/main/java/it/pkg/infrastructure/user/repo/impl")
+assertMissing("src/main/java/it/pkg/infrastructure/teaching/repo/jpa")
+assertMissing("src/main/java/it/pkg/infrastructure/teaching/repo/impl")
 assert pom.contains("<id>postgres-flyway-verify</id>")
 assert pom.contains("<artifactId>flyway-maven-plugin</artifactId>")
 assert pom.contains('${env.POSTGRES_VERIFY_URL}')
@@ -990,7 +993,6 @@ assert pom.contains('${env.POSTGRES_VERIFY_PASSWORD}')
 ].each { typePath ->
     assertFile("src/main/java/it/pkg/infrastructure/${typePath}.java")
 }
-assertFile("src/test/java/it/pkg/infrastructure/config/LocalAdapterConfigurationTest.java")
 assertFile("src/test/java/it/pkg/infrastructure/config/TransactionCompletionExecutorTest.java")
 
 [
@@ -1130,15 +1132,21 @@ def userAdapterMapper = assertFile(
 assert userAdapterMapper.contains("@Mapper(")
 assert userAdapterMapper.contains("ReportingPolicy.ERROR")
 assert userAdapterMapper.contains("@BeforeMapping")
-def coursePoMapper = assertFile(
-        "src/main/java/it/pkg/infrastructure/teaching/repo/converter/CoursePOMapper.java").text
-assert coursePoMapper.contains("extends BaseMapper<Course, CoursePO>")
-assert coursePoMapper.contains("@MappingTarget")
+def coursePoConverter = assertFile(
+        "src/main/java/it/pkg/infrastructure/teaching/repo/converter/CoursePOConverter.java").text
+assert coursePoConverter.contains("extends BaseConverter<Course, CoursePO>")
+assert coursePoConverter.contains("@Mapper(componentModel = \"spring\"")
 def coursePo = assertFile(
         "src/main/java/it/pkg/infrastructure/teaching/repo/po/CoursePO.java").text
-assert coursePo.contains("@NoArgsConstructor(access = AccessLevel.PROTECTED)")
+assert coursePo.contains("@Data")
+assert coursePo.contains("@NoArgsConstructor")
 assert coursePo.contains("@AllArgsConstructor")
-assert !coursePo.contains("protected CoursePO()")
+assert coursePo.contains("@Builder")
+assert coursePo.contains("@Accessors(chain = true)")
+assert coursePo.contains("@TableName")
+assert coursePo.contains("extends EgonModel<CoursePO>")
+assert !coursePo.contains("@RequiredArgsConstructor")
+assert !coursePo.contains("@SuperBuilder")
 def rabbitMqConfig = assertFile(
         "src/main/java/it/pkg/infrastructure/config/RabbitMqConfig.java").text
 assert rabbitMqConfig.contains("@RequiredArgsConstructor")
@@ -1216,7 +1224,7 @@ assert !new File(generatedProjectDir, "src/main/java/it/pkg/adapter/ChargeContro
 assert !new File(generatedProjectDir, "src/main/java/it/pkg/domain/charge").exists()
 assert !new File(generatedProjectDir, "src/test/charge.http").exists()
 
-assert migrationFiles.size() == 2
+assert migrationFiles.size() == 4
 
 assertMissing("src/test/java/it/pkg/ArchitectureDependencyTest.java")
 def architecturePlugin = pomXml.build.plugins.plugin.find {
@@ -1249,9 +1257,10 @@ assert readme.contains("ConfigCipherCli")
     "APP_DATASOURCE_MODE=SHARDING_READWRITE",
     "school_classes",
     "school_class_id",
+    "tenant_id",
     "Flyway",
     "primary targets",
-    "36-character RFC",
+    "positive `Long`",
     "VyyyyMMdd_NNN__description.sql",
     "2N rule",
     "databaseStrategy.none",
@@ -1264,7 +1273,8 @@ def lightReadmeZh = assertFile("README.zh-CN.md").text
 [
     "SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING",
     "school_class_id",
-    "36 位 RFC 字符串",
+    "正数 `Long`",
+    "tenant_id",
     "VyyyyMMdd_NNN__description.sql",
     "容量按 2N 法扩展",
     "databaseStrategy.none",

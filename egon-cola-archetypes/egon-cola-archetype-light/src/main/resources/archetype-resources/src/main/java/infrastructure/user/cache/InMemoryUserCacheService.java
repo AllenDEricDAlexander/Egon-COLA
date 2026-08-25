@@ -1,9 +1,10 @@
 package ${package}.infrastructure.user.cache;
 
-import ${package}.domain.user.service.UserCacheService;
+import ${package}.domain.user.client.UserCachePort;
 import ${package}.domain.user.vos.UserSnapshot;
 import ${package}.infrastructure.config.TransactionCompletionExecutor;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -13,13 +14,14 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @RequiredArgsConstructor
-public class InMemoryUserCacheService implements UserCacheService {
-    private final ConcurrentMap<String, UserSnapshot> users = new ConcurrentHashMap<>();
+@Slf4j
+public class InMemoryUserCacheService implements UserCachePort {
+    private final ConcurrentMap<Long, UserSnapshot> users = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Instant> claims = new ConcurrentHashMap<>();
     private final TransactionCompletionExecutor transactionCompletionExecutor;
 
     @Override
-    public Optional<UserSnapshot> getUser(String userId) {
+    public Optional<UserSnapshot> getUser(Long userId) {
         return Optional.ofNullable(users.get(userId));
     }
 
@@ -29,7 +31,7 @@ public class InMemoryUserCacheService implements UserCacheService {
     }
 
     @Override
-    public void evictUser(String userId) {
+    public void evictUser(Long userId) {
         transactionCompletionExecutor.executeAfterCommit(() -> users.remove(userId));
     }
 

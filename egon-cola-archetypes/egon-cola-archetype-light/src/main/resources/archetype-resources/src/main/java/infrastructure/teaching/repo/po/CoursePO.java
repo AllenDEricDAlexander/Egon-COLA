@@ -1,33 +1,29 @@
 package ${package}.infrastructure.teaching.repo.po;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.experimental.Accessors;
+import top.egon.cola.component.common.mybatis.model.EgonModel;
 
-import java.time.Instant;
-
-@Entity
-@Table(name = "courses")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+/** Persistence model for a course. */
+@Data
+@NoArgsConstructor
 @AllArgsConstructor
-@Getter
-@Setter
-public class CoursePO {
-    @Id
-    @Column(length = 36)
-    private String id;
-    @Column(name = "course_code", nullable = false, unique = true)
+@Builder
+@Accessors(chain = true)
+@TableName("courses")
+public class CoursePO extends EgonModel<CoursePO> {
+
+    @TableField("course_code")
     private String courseCode;
-    @Column(nullable = false)
+
+    @TableField("name")
     private String name;
-    @Column(nullable = false)
+
+    @TableField("status")
     private String status;
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
 }

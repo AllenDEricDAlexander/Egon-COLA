@@ -3,7 +3,7 @@ package ${package}.facade.teaching.dto;
 import java.io.Serializable;
 
 public record SchoolClassDetailDTO(
-        String id,
+        Long id,
         String name,
         String semester,
         String status,

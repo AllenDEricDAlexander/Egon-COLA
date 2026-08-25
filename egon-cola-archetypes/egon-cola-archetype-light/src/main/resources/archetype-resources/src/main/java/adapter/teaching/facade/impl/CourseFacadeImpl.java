@@ -10,11 +10,15 @@ import ${package}.facade.teaching.dto.CourseDTO;
 import ${package}.facade.teaching.dto.CreateCourseDTO;
 import ${package}.facade.teaching.exceptions.TeachingFacadeException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 @Component("courseFacadeImpl")
 @RequiredArgsConstructor
+@Slf4j
 public class CourseFacadeImpl implements CourseFacade {
+    @Qualifier("courseManageImpl")
     private final CourseManage courseManage;
 
     @Override
@@ -28,7 +32,7 @@ public class CourseFacadeImpl implements CourseFacade {
     }
 
     @Override
-    public CourseDTO getCourse(String courseId) {
+    public CourseDTO getCourse(Long courseId) {
         try {
             return toDto(courseManage.get(new GetCourseQuery(courseId)));
         } catch (TeachingUseCaseException exception) {

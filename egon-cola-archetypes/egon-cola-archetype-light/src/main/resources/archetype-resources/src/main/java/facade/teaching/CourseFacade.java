@@ -6,5 +6,6 @@ import ${package}.facade.teaching.dto.CreateCourseDTO;
 public interface CourseFacade {
     CourseDTO createCourse(CreateCourseDTO request);
 
-    CourseDTO getCourse(String courseId);
+    CourseDTO getCourse(Long courseId);
+
 }

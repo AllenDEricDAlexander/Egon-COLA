@@ -32,7 +32,7 @@ class CourseControllerTest {
 
     @Test
     void creates_course() throws Exception {
-        when(courseManage.create(any())).thenReturn(new CourseResult("course-1", "MATH", "Math", "ACTIVE"));
+        when(courseManage.create(any())).thenReturn(new CourseResult(1002L, "MATH", "Math", "ACTIVE"));
         mockMvc.perform(post("/api/courses")
                         .contentType("application/json")
                         .content("{\"code\":\"MATH\",\"name\":\"Math\"}"))

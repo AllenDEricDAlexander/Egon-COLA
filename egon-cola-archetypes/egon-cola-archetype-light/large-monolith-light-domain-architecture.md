@@ -91,7 +91,7 @@ application import domain
 
 domain import common
 
-infrastructure import application
+infrastructure import domain
 ```
 
 注意：
@@ -102,7 +102,7 @@ infrastructure import application
 3. application 不依赖 infrastructure。
 4. domain 不依赖 application。
 5. domain 不依赖 infrastructure。
-6. infrastructure 依赖 application。
+6. infrastructure 依赖 domain。
 7. start 只负责装配 adapter 和 infrastructure。
 ```
 
@@ -117,7 +117,7 @@ infrastructure import application
           |                       |
     -------------                 |
     |           |                 |
-application   facade         application
+application   facade             domain
     |
   domain
     |
@@ -141,7 +141,7 @@ adapter -> facade
 基础设施方向为：
 
 ```text
-infrastructure -> application
+infrastructure -> domain
 ```
 
 启动装配方向为：
@@ -165,7 +165,7 @@ domain.teaching import common
 adapter import application
 adapter import facade
 
-infrastructure import application
+infrastructure import domain
 
 start import adapter
 start import infrastructure
@@ -197,7 +197,7 @@ adapter.controller.teaching.CourseController
     -> application.manage.teaching.CourseManage
         -> domain.user.service.UserDomainService
         -> domain.teaching.service.CourseDomainService
-        -> domain.teaching.repos.CourseRepository
+        -> domain.teaching.service.CourseDomainService
 ```
 
 ### 2.5 依赖控制方式
@@ -207,9 +207,9 @@ adapter.controller.teaching.CourseController
 ```text
 1. 代码评审约束包依赖方向。
 2. 使用 ArchUnit 做包依赖检查。
-3. 禁止 Controller 直接调用 Mapper / RepositoryImpl。
+3. 禁止 Controller 直接调用 DAO / ServiceImpl。
 4. 禁止 Application 直接调用 Infrastructure 技术实现。
-5. 禁止 Domain 依赖 Spring MVC / MyBatis-Plus / JPA / Redis / MQ。
+5. 禁止 Domain 依赖 Spring MVC / MyBatis-Plus 实现 / JPA / Redis / MQ；只允许依赖 Common MP contract。
 ```
 
 ---
@@ -310,12 +310,12 @@ adapter
 
 ```text
 1. 不直接调用 mapper。
-2. 不直接调用 JPA Repository。
+2. 不直接调用 DAO。
 3. 不直接调用 MP Service。
 4. 不直接操作 RedisTemplate。
 5. 不直接发送 MQ。
 6. 不直接写核心业务规则。
-7. 不直接操作 domain repository。
+7. 不直接操作 domain service/port 实现。
 8. 不绕过 application 调用 domain service。
 9. 不在 application 里放 facade.impl。
 ```
@@ -426,8 +426,8 @@ application/manage/impl/user/UserManageImpl.java
 1. 编排业务流程。
 2. 控制事务边界。
 3. 调用 domain service。
-4. 调用 domain repos 接口。
-5. 调用 application client 接口。
+4. 调用 domain service 和出站 port。
+5. 不感知 infrastructure DAO/PO。
 6. 做应用级参数校验。
 7. 做权限、幂等、流程前置校验。
 8. 做 DTO、Command、Domain Model 的转换。
@@ -438,7 +438,7 @@ application/manage/impl/user/UserManageImpl.java
 
 ```text
 1. 不直接调用 mapper。
-2. 不直接调用 JPA Repository。
+2. 不直接调用 DAO。
 3. 不直接调用 MP Service。
 4. 不直接操作 RedisTemplate。
 5. 不直接使用 KafkaTemplate / RabbitTemplate。
@@ -466,8 +466,7 @@ MQ 出站
 外部 RPC
 外部 HTTP
 第三方 SDK
-MyBatis-Plus
-JPA
+Common MyBatis-Plus runtime
 AOP
 基础设施配置
 ```
@@ -476,19 +475,20 @@ AOP
 
 ```text
 infrastructure
-    - repo
-        - user
-            - impl
+    - user
+        - repo
+            - dao
             - po
-            - mp
-            - jpa
             - converter
-        - teaching
+        - service
             - impl
+    - teaching
+        - repo
+            - dao
             - po
-            - mp
-            - jpa
             - converter
+        - service
+            - impl
     - validators
     - client
         - user
@@ -511,25 +511,23 @@ repo.teaching.*
 不建议写成：
 
 ```text
-repo.impl.user.*
-repo.po.user.*
-repo.mp.user.*
+    repo.dao.user.*
+    repo.po.user.*
+    service.impl.user.*
 ```
 
 #### 3.5.3 能做什么
 
 ```text
-1. 实现 domain repos 接口。
-2. 调用 MyBatis-Plus Service。
-3. 调用 MyBatis Mapper。
-4. 调用 JPA Repository。
-5. 实现 application client 接口。
-6. 调用外部 Facade。
-7. 调用外部 HTTP / RPC / gRPC。
-8. 发送出站 MQ 消息。
-9. 封装 Redis、Caffeine 等缓存。
-10. 定义基础设施相关配置。
-11. 做数据库对象 PO 和领域对象之间的转换。
+1. 实现 domain service 接口，并继承 `EgonColaServiceImpl`。
+2. 使用 `EgonColaMapper` DAO 访问 MyBatis-Plus。
+3. 实现 Domain 定义的 client、gateway、event 端口。
+4. 调用外部 Facade。
+5. 调用外部 HTTP / RPC / gRPC。
+6. 发送出站 MQ 消息。
+7. 封装 Redis、Caffeine 等缓存。
+8. 定义基础设施相关配置。
+9. 做数据库对象 PO 和领域对象之间的转换。
 ```
 
 #### 3.5.4 不能做什么
@@ -540,7 +538,7 @@ repo.mp.user.*
 3. 不消费入站 MQ 消息。
 4. 不暴露 Controller。
 5. 不暴露 Facade 实现。
-6. 不让 application 直接感知 mapper / jpa / redis / mq。
+6. 不让 application 直接感知 DAO / MyBatis-Plus / redis / mq。
 7. 不让 domain 感知任何基础设施实现。
 ```
 
@@ -550,21 +548,22 @@ repo.mp.user.*
 
 ```text
 Application
-    -> Domain Repos Interface
-        -> Infrastructure Repo Impl
-            -> MP Service / JPA Repository
+    -> Domain Service Interface
+        -> Infrastructure ServiceImpl
+            -> DAO (EgonColaMapper)
                 -> Database
 ```
 
-如果使用 MyBatis-Plus：
+MyBatis-Plus 统一使用 Common starter：
 
 ```text
-repo.user.impl.UserRepositoryImpl
-    -> repo.user.mp.service.UserMpService
-        -> repo.user.mp.mapper.UserMapper
+domain.user.service.UserDomainService
+    -> infrastructure.user.service.impl.UserDomainServiceImpl
+        -> infrastructure.user.repo.dao.UserDAO
+            -> infrastructure.user.repo.po.UserPO (EgonModel)
 ```
 
-业务代码不允许直接调用 Mapper。
+Application 只能依赖 Domain service 接口，不能直接调用 DAO。
 
 ---
 
@@ -625,8 +624,9 @@ domain
         - aggregates
         - vos
         - service
-        - service.impl
-        - repos
+        - client
+        - gateway
+        - event
         - validators
         - enums
     - teaching
@@ -634,17 +634,18 @@ domain
         - aggregates
         - vos
         - service
-        - service.impl
-        - repos
+        - client
+        - gateway
+        - event
         - validators
         - enums
 ```
 
-注意：领域服务包必须是：
+注意：领域服务接口必须位于 `service`，实现必须位于 infrastructure 的 `service.impl`：
 
 ```text
 service
-service.impl
+infrastructure/.../service.impl
 ```
 
 不使用：
@@ -660,8 +661,8 @@ domainservicesimpl
 1. 定义领域实体。
 2. 定义聚合。
 3. 定义值对象。
-4. 定义领域服务。
-5. 定义领域仓储接口。
+4. 定义领域服务接口，继承 `EgonColaIService` 的 Common contract。
+5. 定义 client、gateway、event 出站端口。
 6. 定义领域校验器。
 7. 定义领域枚举。
 8. 表达核心业务规则。
@@ -672,7 +673,7 @@ domainservicesimpl
 
 ```text
 1. 不依赖 Spring MVC。
-2. 不依赖 MyBatis-Plus。
+2. 不依赖 MyBatis-Plus 实现、DAO 或 Mapper。
 3. 不依赖 JPA。
 4. 不依赖 Redis。
 5. 不依赖 MQ。
@@ -682,6 +683,7 @@ domainservicesimpl
 9. 不依赖 adapter。
 10. 不依赖 application。
 11. 不依赖 facade。
+12. 不把 PO、DAO 或 `EgonColaServiceImpl` 放入 domain。
 ```
 
 ---
@@ -902,80 +904,43 @@ student-management
 │   │   │               ├── infrastructure
 │   │   │               │   ├── package-info.java            // 基础设施层包说明
 │   │   │               │   ├── repo
-│   │   │               │   │   ├── package-info.java        // Repository 基础包说明，按领域分包
+│   │   │               │   │   ├── package-info.java        // 持久化基础包说明，按领域分包
 │   │   │               │   │   ├── user
-│   │   │               │   │   │   ├── package-info.java    // 用户权限 Repository 领域包说明
-│   │   │               │   │   │   ├── impl
-│   │   │               │   │   │   │   ├── package-info.java // 用户权限仓储实现包说明
-│   │   │               │   │   │   │   ├── UserRepositoryImpl.java // 用户仓储实现
-│   │   │               │   │   │   │   ├── RoleRepositoryImpl.java // 角色仓储实现
-│   │   │               │   │   │   │   └── PermissionRepositoryImpl.java // 权限仓储实现
+│   │   │               │   │   │   ├── dao
+│   │   │               │   │   │   │   ├── UserDAO.java      // Common MP DAO
+│   │   │               │   │   │   │   ├── RoleDAO.java
+│   │   │               │   │   │   │   ├── PermissionDAO.java
+│   │   │               │   │   │   │   ├── UserRoleDAO.java
+│   │   │               │   │   │   │   └── RolePermissionDAO.java
 │   │   │               │   │   │   ├── po
-│   │   │               │   │   │   │   ├── package-info.java // 用户权限 PO 包说明
-│   │   │               │   │   │   │   ├── UserPO.java      // 用户持久化对象
-│   │   │               │   │   │   │   ├── RolePO.java      // 角色持久化对象
-│   │   │               │   │   │   │   ├── PermissionPO.java // 权限持久化对象
-│   │   │               │   │   │   │   ├── UserRolePO.java  // 用户角色关联 PO
-│   │   │               │   │   │   │   └── RolePermissionPO.java // 角色权限关联 PO
-│   │   │               │   │   │   ├── mp
-│   │   │               │   │   │   │   ├── package-info.java // 用户权限 MyBatis-Plus 包说明
-│   │   │               │   │   │   │   ├── mapper
-│   │   │               │   │   │   │   │   ├── package-info.java // 用户权限 Mapper 包说明
-│   │   │               │   │   │   │   │   ├── UserMapper.java // 用户 Mapper
-│   │   │               │   │   │   │   │   ├── RoleMapper.java // 角色 Mapper
-│   │   │               │   │   │   │   │   └── PermissionMapper.java // 权限 Mapper
-│   │   │               │   │   │   │   └── service
-│   │   │               │   │   │   │       ├── package-info.java // 用户权限 MP Service 包说明
-│   │   │               │   │   │   │       ├── UserMpService.java // 用户 MP Service
-│   │   │               │   │   │   │       ├── RoleMpService.java // 角色 MP Service
-│   │   │               │   │   │   │       ├── PermissionMpService.java // 权限 MP Service
-│   │   │               │   │   │   │       └── impl
-│   │   │               │   │   │   │           ├── package-info.java // 用户权限 MP Service 实现包说明
-│   │   │               │   │   │   │           ├── UserMpServiceImpl.java // 用户 MP Service 实现
-│   │   │               │   │   │   │           ├── RoleMpServiceImpl.java // 角色 MP Service 实现
-│   │   │               │   │   │   │           └── PermissionMpServiceImpl.java // 权限 MP Service 实现
-│   │   │               │   │   │   ├── jpa
-│   │   │               │   │   │   │   ├── package-info.java // 用户权限 JPA 包说明
-│   │   │               │   │   │   │   ├── UserJpaRepository.java // 用户 JPA Repository
-│   │   │               │   │   │   │   ├── RoleJpaRepository.java // 角色 JPA Repository
-│   │   │               │   │   │   │   └── PermissionJpaRepository.java // 权限 JPA Repository
+│   │   │               │   │   │   │   ├── UserPO.java      // EgonModel + MP table mapping
+│   │   │               │   │   │   │   ├── RolePO.java
+│   │   │               │   │   │   │   ├── PermissionPO.java
+│   │   │               │   │   │   │   ├── UserRolePO.java
+│   │   │               │   │   │   │   └── RolePermissionPO.java
 │   │   │               │   │   │   └── converter
-│   │   │               │   │   │       ├── package-info.java // 用户权限 PO 转换器包说明
-│   │   │               │   │   │       ├── UserPOConverter.java // 用户 PO 转换器
-│   │   │               │   │   │       ├── RolePOConverter.java // 角色 PO 转换器
-│   │   │               │   │   │       └── PermissionPOConverter.java // 权限 PO 转换器
+│   │   │               │   │   │       ├── UserPOConverter.java
+│   │   │               │   │   │       ├── RolePOConverter.java
+│   │   │               │   │   │       └── PermissionPOConverter.java
 │   │   │               │   │   └── teaching
-│   │   │               │   │       ├── package-info.java    // 教学 Repository 领域包说明
-│   │   │               │   │       ├── impl
-│   │   │               │   │       │   ├── package-info.java // 教学仓储实现包说明
-│   │   │               │   │       │   ├── SchoolClassRepositoryImpl.java // 班级仓储实现
-│   │   │               │   │       │   └── CourseRepositoryImpl.java // 课程仓储实现
+│   │   │               │   │       ├── dao
+│   │   │               │   │       │   ├── SchoolClassDAO.java
+│   │   │               │   │       │   ├── CourseDAO.java
+│   │   │               │   │       │   └── ClassCourseScheduleDAO.java
 │   │   │               │   │       ├── po
-│   │   │               │   │       │   ├── package-info.java // 教学 PO 包说明
-│   │   │               │   │       │   ├── SchoolClassPO.java // 班级持久化对象
-│   │   │               │   │       │   └── CoursePO.java    // 课程持久化对象
-│   │   │               │   │       ├── mp
-│   │   │               │   │       │   ├── package-info.java // 教学 MyBatis-Plus 包说明
-│   │   │               │   │       │   ├── mapper
-│   │   │               │   │       │   │   ├── package-info.java // 教学 Mapper 包说明
-│   │   │               │   │       │   │   ├── SchoolClassMapper.java // 班级 Mapper
-│   │   │               │   │       │   │   └── CourseMapper.java // 课程 Mapper
-│   │   │               │   │       │   └── service
-│   │   │               │   │       │       ├── package-info.java // 教学 MP Service 包说明
-│   │   │               │   │       │       ├── SchoolClassMpService.java // 班级 MP Service
-│   │   │               │   │       │       ├── CourseMpService.java // 课程 MP Service
-│   │   │               │   │       │       └── impl
-│   │   │               │   │       │           ├── package-info.java // 教学 MP Service 实现包说明
-│   │   │               │   │       │           ├── SchoolClassMpServiceImpl.java // 班级 MP Service 实现
-│   │   │               │   │       │           └── CourseMpServiceImpl.java // 课程 MP Service 实现
-│   │   │               │   │       ├── jpa
-│   │   │               │   │       │   ├── package-info.java // 教学 JPA 包说明
-│   │   │               │   │       │   ├── SchoolClassJpaRepository.java // 班级 JPA Repository
-│   │   │               │   │       │   └── CourseJpaRepository.java // 课程 JPA Repository
+│   │   │               │   │       │   ├── SchoolClassPO.java
+│   │   │               │   │       │   ├── CoursePO.java
+│   │   │               │   │       │   └── ClassCourseSchedulePO.java
 │   │   │               │   │       └── converter
-│   │   │               │   │           ├── package-info.java // 教学 PO 转换器包说明
-│   │   │               │   │           ├── SchoolClassPOConverter.java // 班级 PO 转换器
-│   │   │               │   │           └── CoursePOConverter.java // 课程 PO 转换器
+│   │   │               │   │           ├── SchoolClassPOConverter.java
+│   │   │               │   │           └── CoursePOConverter.java
+│   │   │               │   ├── user/service/impl
+│   │   │               │   │   ├── UserDomainServiceImpl.java
+│   │   │               │   │   ├── RoleDomainServiceImpl.java
+│   │   │               │   │   └── PermissionDomainServiceImpl.java
+│   │   │               │   ├── teaching/service/impl
+│   │   │               │   │   ├── SchoolClassDomainServiceImpl.java
+│   │   │               │   │   └── CourseDomainServiceImpl.java
 │   │   │               │   ├── validators
 │   │   │               │   │   ├── package-info.java        // 基础设施校验器包说明
 │   │   │               │   │   ├── user
@@ -1018,8 +983,7 @@ student-management
 │   │   │               │   │       └── CourseCache.java     // 课程缓存封装
 │   │   │               │   └── config
 │   │   │               │       ├── package-info.java        // 基础设施配置包说明
-│   │   │               │       ├── MyBatisPlusConfig.java   // MyBatis-Plus 配置
-│   │   │               │       ├── JpaConfig.java           // JPA 配置
+│   │   │               │       ├── MyBatisPlusConfig.java   // Common MP 配置
 │   │   │               │       ├── RedisConfig.java         // Redis 配置
 │   │   │               │       └── MqConfig.java            // MQ 配置
 │   │   │               │
@@ -1063,16 +1027,12 @@ student-management
 │   │   │                   │   │   ├── UserDomainService.java // 用户领域服务
 │   │   │                   │   │   ├── RoleDomainService.java // 角色领域服务
 │   │   │                   │   │   ├── PermissionDomainService.java // 权限领域服务
-│   │   │                   │   │   └── impl
-│   │   │                   │   │       ├── package-info.java // 用户权限领域服务实现包说明
-│   │   │                   │   │       ├── UserDomainServiceImpl.java // 用户领域服务实现
-│   │   │                   │   │       ├── RoleDomainServiceImpl.java // 角色领域服务实现
-│   │   │                   │   │       └── PermissionDomainServiceImpl.java // 权限领域服务实现
-│   │   │                   │   ├── repos
-│   │   │                   │   │   ├── package-info.java    // 用户权限仓储接口包说明，只定义接口
-│   │   │                   │   │   ├── UserRepository.java  // 用户仓储接口
-│   │   │                   │   │   ├── RoleRepository.java  // 角色仓储接口
-│   │   │                   │   │   └── PermissionRepository.java // 权限仓储接口
+│   │   │                   │   ├── client
+│   │   │                   │   │   └── UserCachePort.java  // 用户缓存端口
+│   │   │                   │   ├── gateway
+│   │   │                   │   │   └── UserQueryGateway.java // 用户查询端口
+│   │   │                   │   └── event
+│   │   │                   │       └── UserEventPublisher.java // 用户事件端口
 │   │   │                   │   ├── validators
 │   │   │                   │   │   ├── package-info.java    // 用户权限领域校验包说明
 │   │   │                   │   │   ├── UserDomainValidator.java // 用户领域校验器
@@ -1102,14 +1062,12 @@ student-management
 │   │   │                       │   ├── package-info.java    // 教学领域服务接口包说明
 │   │   │                       │   ├── SchoolClassDomainService.java // 班级领域服务
 │   │   │                       │   ├── CourseDomainService.java // 课程领域服务
-│   │   │                       │   └── impl
-│   │   │                       │       ├── package-info.java // 教学领域服务实现包说明
-│   │   │                       │       ├── SchoolClassDomainServiceImpl.java // 班级领域服务实现
-│   │   │                       │       └── CourseDomainServiceImpl.java // 课程领域服务实现
-│   │   │                       ├── repos
-│   │   │                       │   ├── package-info.java    // 教学仓储接口包说明，只定义接口
-│   │   │                       │   ├── SchoolClassRepository.java // 班级仓储接口
-│   │   │                       │   └── CourseRepository.java // 课程仓储接口
+│   │   │                       ├── client
+│   │   │                       │   └── CourseCachePort.java // 课程缓存端口
+│   │   │                       ├── gateway
+│   │   │                       │   └── TeachingQueryGateway.java // 教学查询端口
+│   │   │                       └── event
+│   │   │                           └── TeachingEventPublisher.java // 教学事件端口
 │   │   │                       ├── validators
 │   │   │                       │   ├── package-info.java    // 教学领域校验包说明
 │   │   │                       │   ├── SchoolClassDomainValidator.java // 班级领域校验器
@@ -1126,18 +1084,19 @@ student-management
 │   │       ├── application-prod.yml                         // 生产环境配置
 │   │       ├── bootstrap.yml                                // 启动阶段配置，可选
 │   │       ├── logback-spring.xml                           // 日志配置
-│   │       ├── mapper
-│   │       │   ├── user
-│   │       │   │   ├── UserMapper.xml                       // 用户 MyBatis XML
-│   │       │   │   ├── RoleMapper.xml                       // 角色 MyBatis XML
-│   │       │   │   └── PermissionMapper.xml                 // 权限 MyBatis XML
-│   │       │   └── teaching
-│   │       │       ├── SchoolClassMapper.xml                // 班级 MyBatis XML
-│   │       │       └── CourseMapper.xml                     // 课程 MyBatis XML
+│   │       ├── mybatis
+│   │       │   └── mapper
+│   │       │       ├── user
+│   │       │       │   ├── UserDAO.xml                      // 用户 DAO XML
+│   │       │       │   ├── RoleDAO.xml                      // 角色 DAO XML
+│   │       │       │   └── PermissionDAO.xml                // 权限 DAO XML
+│   │       │       └── teaching
+│   │       │           ├── SchoolClassDAO.xml               // 班级 DAO XML
+│   │       │           └── CourseDAO.xml                    // 课程 DAO XML
 │   │       ├── db
 │   │       │   └── migration
-│   │       │       ├── V1__init_user.sql                    // 用户权限表初始化脚本
-│   │       │       └── V2__init_teaching.sql                // 教学管理表初始化脚本
+│   │       │       ├── sharding/master-data/V20260825_001__migrate_light_master_data_to_egon_model.sql
+│   │       │       └── sharding/shard/V20260825_002__migrate_light_sharded_to_tenant_model.sql
 │   │       ├── graphql
 │   │       │   ├── user.graphqls                            // 用户 GraphQL Schema
 │   │       │   └── teaching.graphqls                        // 教学 GraphQL Schema
@@ -1188,18 +1147,12 @@ student-management
 │       │               │           └── CourseDomainServiceTest.java // 课程领域服务测试
 │       │               ├── infrastructure
 │       │               │   ├── package-info.java            // Infrastructure 测试包说明
-│       │               │   └── repo
-│       │               │       ├── package-info.java        // 仓储测试包说明
+│       │               │   └── persistence
+│       │               │       ├── package-info.java        // 持久化测试包说明
 │       │               │       ├── user
-│       │               │       │   ├── package-info.java    // 用户仓储测试包说明
-│       │               │       │   └── impl
-│       │               │       │       ├── package-info.java // 用户仓储实现测试包说明
-│       │               │       │       └── UserRepositoryImplTest.java // 用户仓储实现测试
+│       │               │       │   └── UserDaoServiceTest.java // 用户 DAO/Service 测试
 │       │               │       └── teaching
-│       │               │           ├── package-info.java    // 教学仓储测试包说明
-│       │               │           └── impl
-│       │               │               ├── package-info.java // 教学仓储实现测试包说明
-│       │               │               └── CourseRepositoryImplTest.java // 课程仓储实现测试
+│       │               │           └── CourseDaoServiceTest.java // 课程 DAO/Service 测试
 │       │               └── common
 │       │                   ├── package-info.java            // Common 测试包说明
 │       │                   └── utils
@@ -1248,7 +1201,7 @@ student-management
 2. adapter 可以调用 application。
 3. adapter 可以依赖 facade。
 4. adapter 不允许直接调用 mapper。
-5. adapter 不允许直接调用 repository impl。
+5. adapter 不允许直接调用 ServiceImpl。
 6. adapter 不允许直接操作 Redis。
 7. adapter 不允许直接发送 MQ。
 8. adapter 不允许写核心业务规则。
@@ -1272,7 +1225,7 @@ FacadeImpl -> Application
 ```text
 Controller -> Mapper
 Controller -> RedisTemplate
-Controller -> RepositoryImpl
+Controller -> ServiceImpl/DAO
 Controller -> Domain Repository
 Controller -> Domain Service
 ```
@@ -1295,12 +1248,12 @@ Controller -> Domain Service
 ```text
 1. application 负责业务用例编排。
 2. application 可以调用 domain service。
-3. application 可以调用 domain repos 接口。
-4. application 可以调用 application client 接口。
+3. application 可以调用 domain 出站 port。
+4. application 不能调用 infrastructure DAO/PO。
 5. application 负责事务控制。
 6. application 不依赖 infrastructure。
 7. application 不直接调用 mapper。
-8. application 不直接调用 JPA Repository。
+8. application 不直接调用 DAO。
 9. application 不直接调用 RedisTemplate。
 10. application 不直接调用 MQ Template。
 11. application 不直接调用外部 RPC / HTTP 实现。
@@ -1313,8 +1266,7 @@ Controller -> Domain Service
 
 ```text
 Application -> Domain Service
-Application -> Domain Repository Interface
-Application -> Application Client Interface
+Application -> Domain Gateway/Cache/Event Port
 Application -> Application Validator
 Application -> Assembler
 ```
@@ -1323,7 +1275,7 @@ Application -> Assembler
 
 ```text
 Application -> Mapper
-Application -> JpaRepository
+Application -> EgonColaMapper/DAO
 Application -> RedisTemplate
 Application -> KafkaTemplate
 Application -> RabbitTemplate
@@ -1336,10 +1288,9 @@ Application -> FacadeImpl
 
 ```text
 1. infrastructure 负责技术实现。
-2. infrastructure 实现 domain repos 接口。
-3. infrastructure 实现 application client 接口。
-4. infrastructure 可以调用 mapper。
-5. infrastructure 可以调用 JPA Repository。
+2. infrastructure 实现 domain service 和出站 port。
+3. infrastructure ServiceImpl 依赖 DAO、PO、Converter。
+4. infrastructure 可以调用 EgonColaMapper DAO。
 6. infrastructure 可以调用 RedisTemplate。
 7. infrastructure 可以调用 MQ Template。
 8. infrastructure 可以调用外部 HTTP / RPC / SDK。
@@ -1351,8 +1302,7 @@ Application -> FacadeImpl
 允许：
 
 ```text
-RepositoryImpl -> MpService -> Mapper
-RepositoryImpl -> JpaRepository
+ServiceImpl -> DAO (EgonColaMapper) -> Database
 ClientImpl -> ExternalFacade
 ClientImpl -> HTTP Client
 MQ Producer -> KafkaTemplate / RabbitTemplate
@@ -1384,17 +1334,17 @@ Infrastructure 中堆核心业务流程
 
 ```text
 1. domain 只表达业务规则。
-2. domain 定义实体、聚合、值对象、领域服务、仓储接口。
+2. domain 定义实体、聚合、值对象、Common MP 泛型领域服务和出站 port。
 3. domain 不依赖 application。
 4. domain 不依赖 infrastructure。
 5. domain 不依赖 adapter。
 6. domain 不依赖 facade。
-7. domain 不依赖 MyBatis-Plus。
-8. domain 不依赖 JPA。
+7. domain 不依赖 MyBatis-Plus 实现、DAO 或 Mapper。
+8. domain 不依赖 JPA/ORM。
 9. domain 不依赖 Redis。
 10. domain 不依赖 MQ。
 11. domain 不依赖 HTTP / RPC 技术实现。
-12. domain service 包必须按 service / service.impl 组织。
+12. domain service 接口位于 service；实现位于 infrastructure/service.impl。
 ```
 
 ---

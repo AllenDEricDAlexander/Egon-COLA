@@ -12,33 +12,34 @@ import ${package}.domain.teaching.aggregates.SchoolClassAggregate;
 import ${package}.domain.teaching.entities.Course;
 import ${package}.domain.teaching.entities.SchoolClass;
 import ${package}.domain.teaching.exceptions.TeachingDomainException;
-import ${package}.domain.teaching.repos.CourseRepository;
-import ${package}.domain.teaching.repos.SchoolClassRepository;
+import ${package}.domain.teaching.service.CourseDomainService;
 import ${package}.domain.teaching.service.SchoolClassDomainService;
-import ${package}.domain.teaching.service.TeachingEventPublisher;
+import ${package}.domain.teaching.event.TeachingEventPublisher;
 import ${package}.domain.teaching.vos.CourseSchedule;
 import ${package}.domain.teaching.vos.SchoolClassId;
 import ${package}.domain.teaching.vos.Semester;
 import ${package}.domain.teaching.vos.TeachingEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Service
+@Service("schoolClassManageImpl")
 @Lazy
 @RequiredArgsConstructor
+@Slf4j
 public class SchoolClassManageImpl implements SchoolClassManage {
     @Qualifier("schoolClassDomainService")
-    private final SchoolClassDomainService schoolClassDomainService;
-    @Qualifier("schoolClassRepository")
-    private final SchoolClassRepository schoolClassRepository;
-    @Qualifier("courseRepository")
-    private final CourseRepository courseRepository;
+    private final SchoolClassDomainService<?> schoolClassDomainService;
+    @Qualifier("courseDomainService")
+    private final CourseDomainService<?> courseDomainService;
     @Qualifier("teachingEventPublisher")
     private final TeachingEventPublisher teachingEventPublisher;
+    @Qualifier("teachingApplicationValidator")
     private final TeachingApplicationValidator applicationValidator;
+    @Qualifier("teachingApplicationConvertor")
     private final TeachingApplicationConvertor convertor;
 
     @Override
@@ -46,7 +47,7 @@ public class SchoolClassManageImpl implements SchoolClassManage {
     public SchoolClassResult create(CreateSchoolClassCommand command) {
         applicationValidator.validate(command);
         try {
-            SchoolClass saved = schoolClassRepository.save(
+            SchoolClass saved = schoolClassDomainService.save(
                     schoolClassDomainService.createSchoolClass(command.name(), new Semester(command.semester())));
             teachingEventPublisher.publish(TeachingEvent.classCreated(saved.id().value()));
             return convertor.toResult(saved);
@@ -59,15 +60,15 @@ public class SchoolClassManageImpl implements SchoolClassManage {
     @Transactional
     public SchoolClassResult schedule(ScheduleCourseCommand command) {
         applicationValidator.validate(command);
-        SchoolClassAggregate aggregate = schoolClassRepository
+        SchoolClassAggregate aggregate = schoolClassDomainService
                 .findAggregateById(new SchoolClassId(command.schoolClassId()))
                 .orElseThrow(() -> new TeachingUseCaseException("CLASS_NOT_FOUND", "class not found"));
-        Course course = courseRepository.findById(command.courseId())
+        Course course = courseDomainService.findById(command.courseId())
                 .orElseThrow(() -> new TeachingUseCaseException("COURSE_NOT_FOUND", "course not found"));
         CourseSchedule schedule = convertor.toSchedule(command, course);
         try {
             SchoolClassAggregate scheduled = schoolClassDomainService.schedule(aggregate, course, schedule);
-            schoolClassRepository.saveAggregate(scheduled);
+            schoolClassDomainService.saveAggregate(scheduled);
             teachingEventPublisher.publish(TeachingEvent.courseScheduled(command.schoolClassId()));
             return convertor.toResult(scheduled);
         } catch (TeachingDomainException exception) {
@@ -77,7 +78,7 @@ public class SchoolClassManageImpl implements SchoolClassManage {
 
     @Override
     public SchoolClassResult get(GetSchoolClassQuery query) {
-        SchoolClassAggregate aggregate = schoolClassRepository
+        SchoolClassAggregate aggregate = schoolClassDomainService
                 .findAggregateById(new SchoolClassId(query.schoolClassId()))
                 .orElseThrow(() -> new TeachingUseCaseException("CLASS_NOT_FOUND", "class not found"));
         return convertor.toResult(aggregate);

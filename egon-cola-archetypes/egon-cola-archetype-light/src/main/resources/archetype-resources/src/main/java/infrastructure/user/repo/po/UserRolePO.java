@@ -1,53 +1,26 @@
 package ${package}.infrastructure.user.repo.po;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.IdClass;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+import top.egon.cola.component.common.mybatis.model.EgonModel;
 
-import java.io.Serializable;
-import java.time.Instant;
-import java.util.Objects;
-
-@Entity
-@Table(name = "user_roles")
-@IdClass(UserRolePO.Key.class)
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+/** Persistence model for the user-to-role link. */
+@Data
+@NoArgsConstructor
 @AllArgsConstructor
-public class UserRolePO {
-    @Id
-    @Column(name = "user_id", length = 36)
-    private String userId;
-    @Id
-    @Column(name = "role_code")
+@Builder
+@Accessors(chain = true)
+@TableName("user_roles")
+public class UserRolePO extends EgonModel<UserRolePO> {
+
+    @TableField("user_id")
+    private Long userId;
+
+    @TableField("role_code")
     private String roleCode;
-    @Column(name = "assigned_at", nullable = false)
-    private Instant assignedAt;
-
-    public String getUserId() { return userId; }
-    public String getRoleCode() { return roleCode; }
-    public Instant getAssignedAt() { return assignedAt; }
-
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static final class Key implements Serializable {
-        private String userId;
-        private String roleCode;
-
-        @Override
-        public boolean equals(Object other) {
-            if (this == other) return true;
-            if (!(other instanceof Key key)) return false;
-            return Objects.equals(userId, key.userId) && Objects.equals(roleCode, key.roleCode);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(userId, roleCode);
-        }
-    }
 }

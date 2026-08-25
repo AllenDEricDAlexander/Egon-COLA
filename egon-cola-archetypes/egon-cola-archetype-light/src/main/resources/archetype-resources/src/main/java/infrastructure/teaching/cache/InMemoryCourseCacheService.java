@@ -1,9 +1,10 @@
 package ${package}.infrastructure.teaching.cache;
 
-import ${package}.domain.teaching.service.CourseCacheService;
+import ${package}.domain.teaching.client.CourseCachePort;
 import ${package}.domain.teaching.vos.CourseSnapshot;
 import ${package}.infrastructure.config.TransactionCompletionExecutor;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -13,13 +14,14 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @RequiredArgsConstructor
-public class InMemoryCourseCacheService implements CourseCacheService {
-    private final ConcurrentMap<String, CourseSnapshot> courses = new ConcurrentHashMap<>();
+@Slf4j
+public class InMemoryCourseCacheService implements CourseCachePort {
+    private final ConcurrentMap<Long, CourseSnapshot> courses = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Instant> claims = new ConcurrentHashMap<>();
     private final TransactionCompletionExecutor transactionCompletionExecutor;
 
     @Override
-    public Optional<CourseSnapshot> getCourse(String courseId) {
+    public Optional<CourseSnapshot> getCourse(Long courseId) {
         return Optional.ofNullable(courses.get(courseId));
     }
 
@@ -29,7 +31,7 @@ public class InMemoryCourseCacheService implements CourseCacheService {
     }
 
     @Override
-    public void evictCourse(String courseId) {
+    public void evictCourse(Long courseId) {
         transactionCompletionExecutor.executeAfterCommit(() -> courses.remove(courseId));
     }
 

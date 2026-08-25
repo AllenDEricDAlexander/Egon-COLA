@@ -39,7 +39,7 @@ class UserControllerTest {
 
     @Test
     void creates_user_with_request_context() throws Exception {
-        when(userManage.create(any())).thenReturn(new UserResult("user-1", "Mario", "mario@example.com", "ACTIVE"));
+        when(userManage.create(any())).thenReturn(new UserResult(1001L, "Mario", "mario@example.com", "ACTIVE"));
 
         mockMvc.perform(post("/api/users")
                         .header("X-Operator-Id", "operator-1")
@@ -47,7 +47,7 @@ class UserControllerTest {
                         .contentType("application/json")
                         .content("{\"externalId\":\"external-1\",\"name\":\"Mario\",\"email\":\"mario@example.com\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("user-1"));
+                .andExpect(jsonPath("$.id").value("1001"));
 
         ArgumentCaptor<CreateUserCommand> captor = ArgumentCaptor.forClass(CreateUserCommand.class);
         verify(userManage).create(captor.capture());

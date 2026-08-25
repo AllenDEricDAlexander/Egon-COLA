@@ -15,7 +15,7 @@ class UserRpcProviderTest {
     void delegates_to_facade_contract() {
         UserFacade delegate = mock(UserFacade.class);
         CreateUserDTO request = new CreateUserDTO("ext-1", "Mario", "mario@example.com", "operator-1", "request-1");
-        UserDetailDTO response = new UserDetailDTO("user-1", "Mario", "mario@example.com", "ACTIVE");
+        UserDetailDTO response = new UserDetailDTO(1001L, "Mario", "mario@example.com", "ACTIVE");
         when(delegate.createUser(request)).thenReturn(response);
 
         UserRpcProvider provider = new UserRpcProvider(delegate);

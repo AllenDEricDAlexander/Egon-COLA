@@ -38,7 +38,7 @@ public class SchoolClassController {
     @GetMapping("/{schoolClassId}")
     public SchoolClassDetailVO get(@PathVariable String schoolClassId) {
         return convertor.toSchoolClass(
-                schoolClassManage.get(new GetSchoolClassQuery(schoolClassId)));
+                schoolClassManage.get(new GetSchoolClassQuery(Long.valueOf(schoolClassId))));
     }
 
     @PostMapping("/{schoolClassId}/courses/{courseId}/schedule")
@@ -49,8 +49,8 @@ public class SchoolClassController {
         validator.validateSchedule(request);
         RequestContext context = RequestContextHolder.currentOrAnonymous();
         return convertor.toSchoolClass(schoolClassManage.schedule(new ScheduleCourseCommand(
-                schoolClassId,
-                courseId,
+                Long.valueOf(schoolClassId),
+                Long.valueOf(courseId),
                 request.startsAt(),
                 request.endsAt(),
                 context.operatorId(),

@@ -1,38 +1,32 @@
 package ${package}.infrastructure.user.repo.po;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.AccessLevel;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+import top.egon.cola.component.common.mybatis.model.EgonModel;
 
-import java.time.Instant;
-
-@Entity
-@Table(name = "users")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+/** Persistence model for the user aggregate root. */
+@Data
+@NoArgsConstructor
 @AllArgsConstructor
-public class UserPO {
-    @Id
-    @Column(length = 36)
-    private String id;
-    @Column(name = "external_id", nullable = false, unique = true)
-    private String externalId;
-    @Column(nullable = false)
-    private String name;
-    @Column(nullable = false, unique = true)
-    private String email;
-    @Column(nullable = false)
-    private String status;
-    @Column(name = "created_at", nullable = false)
-    private Instant createdAt;
+@Builder
+@Accessors(chain = true)
+@TableName("users")
+public class UserPO extends EgonModel<UserPO> {
 
-    public String getId() { return id; }
-    public String getExternalId() { return externalId; }
-    public String getName() { return name; }
-    public String getEmail() { return email; }
-    public String getStatus() { return status; }
-    public Instant getCreatedAt() { return createdAt; }
+    @TableField("external_id")
+    private String externalId;
+
+    @TableField("name")
+    private String name;
+
+    @TableField("email")
+    private String email;
+
+    @TableField("status")
+    private String status;
 }

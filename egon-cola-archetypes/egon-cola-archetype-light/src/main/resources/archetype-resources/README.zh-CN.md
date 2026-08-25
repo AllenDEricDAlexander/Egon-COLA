@@ -24,8 +24,8 @@ src/main/java/${packageInPathFormat}
 │   ├── user/{manage,command,query,result,convertor,validators,assemblers}
 │   └── teaching/{manage,command,query,result,convertor,validators,assemblers}
 ├── domain
-│   ├── user/{entities,aggregates,vos,service,repos,validators,enums,exceptions}
-│   └── teaching/{entities,aggregates,vos,service,repos,validators,enums,exceptions}
+│   ├── user/{entities,aggregates,vos,service,client,gateway,event,validators,enums,exceptions}
+│   └── teaching/{entities,aggregates,vos,service,client,gateway,event,validators,enums,exceptions}
 ├── infrastructure
 │   ├── user/{repo,service,validators,client,mq,cache}
 │   ├── teaching/{repo,service,validators,client,mq,cache}
@@ -34,7 +34,7 @@ src/main/java/${packageInPathFormat}
 └── common/{constants,utils,enums,exceptions}
 ```
 
-`adapter` 负责 HTTP、GraphQL、Dubbo provider 和 RabbitMQ consumer 相关能力。`facade` 负责稳定的外部 RPC 契约。`application` 编排用例和事务。`domain` 负责业务状态、规则、仓储端口和服务端口。`infrastructure` 提供 JPA 仓储以及 Domain 所有端口的实现。`common` 只包含与业务无关的基础类型。`start` 负责组装和运行时配置。
+`adapter` 负责 HTTP、GraphQL、Dubbo provider 和 RabbitMQ consumer 相关能力。`facade` 负责稳定的外部 RPC 契约。`application` 编排用例和事务。`domain` 负责业务状态、规则、gateway/cache/event 端口和服务契约。`infrastructure` 提供 MyBatis-Plus DAO、`EgonModel` 持久化对象以及 Domain 所有端口的实现。`common` 只包含与业务无关的基础类型。`start` 负责组装和运行时配置。
 
 ${symbol_pound}${symbol_pound} 依赖图
 
@@ -66,7 +66,7 @@ ${symbol_pound}${symbol_pound} 主要业务流程
 
 ${symbol_pound}${symbol_pound} 持久化与集成
 
-JPA 是唯一的持久化实现。Flyway 负责 H2/PostgreSQL schema。RabbitMQ、Redis、GraphQL、Dubbo Triple、Springdoc OpenAPI、AOP 监控、请求上下文过滤器和外部 HTTP client 都包含可运行的实现。
+持久化统一使用 `egon-cola-component-common-mybatis-plus-spring-boot-starter` 提供的 MyBatis-Plus。Domain service 接口继承 `EgonColaIService`，infrastructure service 实现继承 `EgonColaServiceImpl`，DAO 继承 `EgonColaMapper`，所有 PO 继承 `EgonModel` 并添加 MyBatis-Plus 表注解。Flyway 负责 H2/PostgreSQL schema。RabbitMQ、Redis、GraphQL、Dubbo Triple、Springdoc OpenAPI、AOP 监控、请求上下文过滤器和外部 HTTP client 都包含可运行的实现。
 
 `dev` 是本地工作站开发和 `feature/*` 分支验证的默认 profile，使用由环境变量提供的 PostgreSQL、Redis、RabbitMQ、Nacos、Dubbo 和外部 HTTP 集成。
 
@@ -95,9 +95,9 @@ primary。
   `role_permissions`、`courses`。这些表在 `!SHARDING` 中显式配置
   `databaseStrategy.none` 与 `tableStrategy.none`，不使用 `!SINGLE`，也不存在
   应用级单数据源模式。
-- SHARDING 表：`school_classes` 按 `id` 分片，
-  `class_course_schedules` 按 `school_class_id` 分片。两者是 binding tables；
-  班级和其排课统一使用班级根键，因此共置在同一个物理库和表后缀。
+- SHARDING 表：`school_classes` 和 `class_course_schedules` 都按正数 Long
+  `tenant_id` 分库分表。两者是 binding tables；同一租户的班级和排课共置在
+  同一个物理库和表后缀，`school_class_id` 仍是排课关联键。
   `DML_SHARDING_CONDITIONS` 会拒绝未携带分片条件的更新或删除，且禁止 hint 绕过。
 
 仅分片模式配置 `LIGHT_SHARDING_MASTER_DATA_URL`、`LIGHT_SHARDING_SHARD_0_URL`、
@@ -115,10 +115,10 @@ Flyway 使用 `db/migration/sharding/master-data` 和
 为 Flyway target。Spring Boot Flyway 自动配置被排除，避免任何 migration 误刷逻辑
 数据源；设置 `FLYWAY_ENABLED=false` 时跳过物理 migration。
 
-应用生成的代理主键统一使用 UUIDv7，并序列化为 36 位 RFC 字符串。迁移文件名
-必须符合 `VyyyyMMdd_NNN__description.sql`：日期使用文件创建日期，`NNN` 是当日
-三位序列号。每个 SQL 文件开头必须依次包含 `变更内容`、`影响范围` 和
-`兼容性说明` 三项注释。
+应用生成的代理主键统一使用正数 `Long`，租户上下文中的 `tenant_id` 也使用正数
+`Long`，并作为数据库和表的分片键。迁移文件名必须符合
+`VyyyyMMdd_NNN__description.sql`：日期使用文件创建日期，`NNN` 是当日三位序列号。
+每个 SQL 文件开头必须依次包含 `变更内容`、`影响范围` 和 `兼容性说明` 三项注释。
 
 数据库数、每库物理表数和总物理节点数都必须是 2 的幂。初始映射为
 `2 库 × 每库 2 表 = 4 节点`，由 `LIGHT_SHARDING_NODE_COUNT`（默认 `4`）与

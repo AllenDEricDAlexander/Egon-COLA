@@ -1,4 +1,10 @@
 package ${package}.application.teaching.query;
 
-public record GetSchoolClassQuery(String schoolClassId) {
+public record GetSchoolClassQuery(Long schoolClassId) {
+    public GetSchoolClassQuery {
+        if (schoolClassId == null || schoolClassId <= 0) {
+            throw new IllegalArgumentException("schoolClassId must be positive");
+        }
+    }
+
 }

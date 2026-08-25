@@ -4,7 +4,7 @@ import ${package}.application.teaching.command.CreateCourseCommand;
 import ${package}.application.teaching.command.CreateSchoolClassCommand;
 import ${package}.application.teaching.command.ScheduleCourseCommand;
 import ${package}.application.teaching.manage.TeachingUseCaseException;
-import ${package}.domain.teaching.service.CourseCacheService;
+import ${package}.domain.teaching.client.CourseCachePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Lazy;
@@ -18,8 +18,8 @@ import java.time.Duration;
 public class TeachingApplicationValidator {
     private static final Duration IDEMPOTENCY_TTL = Duration.ofMinutes(5);
 
-    @Qualifier("courseCacheService")
-    private final CourseCacheService courseCacheService;
+    @Qualifier("courseCachePort")
+    private final CourseCachePort courseCachePort;
 
     public void validate(CreateSchoolClassCommand command) {
         requireText(command.name(), "INVALID_CLASS", "class name is required");
@@ -44,7 +44,7 @@ public class TeachingApplicationValidator {
     private void validateContext(String operatorId, String idempotencyKey) {
         requireText(operatorId, "MISSING_OPERATOR", "operator context is required");
         requireText(idempotencyKey, "MISSING_IDEMPOTENCY_KEY", "idempotency key is required");
-        if (!courseCacheService.claimIdempotency(idempotencyKey, IDEMPOTENCY_TTL)) {
+        if (!courseCachePort.claimIdempotency(idempotencyKey, IDEMPOTENCY_TTL)) {
             throw new TeachingUseCaseException("DUPLICATE_REQUEST", "request was already processed");
         }
     }

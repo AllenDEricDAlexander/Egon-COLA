@@ -71,7 +71,7 @@ class PermissionControllerTest {
         when(permissionManage.getByUser(any())).thenReturn(List.of(
                 new PermissionDetailResult("course:read", "Read courses")));
 
-        mockMvc.perform(get("/api/users/u-1/permissions"))
+        mockMvc.perform(get("/api/users/1001/permissions"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].code").value("course:read"));
     }

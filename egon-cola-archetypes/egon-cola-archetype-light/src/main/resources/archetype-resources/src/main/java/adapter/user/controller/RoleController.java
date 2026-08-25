@@ -26,7 +26,7 @@ public class RoleController {
     public UserDetailVO assignRole(@PathVariable String userId, @Valid @RequestBody AssignRoleRequest request) {
         RequestContext context = RequestContextHolder.currentOrAnonymous();
         return convertor.toUserDetail(roleManage.assignRole(new AssignRoleCommand(
-                userId,
+                Long.valueOf(userId),
                 request.roleCode(),
                 context.operatorId(),
                 context.requestId())));

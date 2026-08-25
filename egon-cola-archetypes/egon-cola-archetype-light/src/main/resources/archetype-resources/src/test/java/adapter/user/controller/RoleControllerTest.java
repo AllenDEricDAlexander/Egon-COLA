@@ -38,8 +38,8 @@ class RoleControllerTest {
 
     @Test
     void assigns_role() throws Exception {
-        when(roleManage.assignRole(any())).thenReturn(new UserResult("user-1", "Mario", "mario@example.com", "ACTIVE"));
-        mockMvc.perform(post("/api/users/user-1/roles")
+        when(roleManage.assignRole(any())).thenReturn(new UserResult(1001L, "Mario", "mario@example.com", "ACTIVE"));
+        mockMvc.perform(post("/api/users/1001/roles")
                         .header("X-Operator-Id", "operator-1")
                         .header("X-Request-Id", "request-1")
                         .contentType("application/json")
@@ -54,7 +54,7 @@ class RoleControllerTest {
 
     @Test
     void rejects_missing_role_code() throws Exception {
-        mockMvc.perform(post("/api/users/user-1/roles")
+        mockMvc.perform(post("/api/users/1001/roles")
                         .contentType("application/json")
                         .content("{}"))
                 .andExpect(status().isBadRequest());

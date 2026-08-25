@@ -4,22 +4,24 @@ import ${package}.domain.teaching.entities.Course;
 import ${package}.domain.teaching.enums.CourseStatus;
 import ${package}.domain.teaching.vos.CourseCode;
 import ${package}.infrastructure.teaching.repo.po.CoursePO;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
+import top.egon.cola.component.common.core.converter.BaseConverter;
 
-@Component
-@RequiredArgsConstructor
-public class CoursePOConverter {
+/** MapStruct conversion between the course domain entity and its PO. */
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+public interface CoursePOConverter extends BaseConverter<Course, CoursePO> {
 
-    private final CoursePOMapper mapper;
+    @Override
+    @Mapping(target = "courseCode", expression = "java(source.code().value())")
+    @Mapping(target = "name", expression = "java(source.name())")
+    @Mapping(target = "status", expression = "java(source.status().name())")
+    CoursePO toTarget(Course source);
 
-    public CoursePO toPO(Course course) {
-        return mapper.convert(course);
-    }
-
-    public Course toDomain(CoursePO course) {
-        return new Course(
-                course.getId(), new CourseCode(course.getCourseCode()), course.getName(),
-                CourseStatus.valueOf(course.getStatus()));
+    @Override
+    default Course toSource(CoursePO target) {
+        return new Course(target.getId(), new CourseCode(target.getCourseCode()), target.getName(),
+                CourseStatus.valueOf(target.getStatus()));
     }
 }

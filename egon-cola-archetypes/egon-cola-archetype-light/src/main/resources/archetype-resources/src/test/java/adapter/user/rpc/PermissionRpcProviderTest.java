@@ -16,9 +16,9 @@ class PermissionRpcProviderTest {
         PermissionFacade facade = mock(PermissionFacade.class);
         List<PermissionDetailDTO> expected = List.of(
                 new PermissionDetailDTO("course:read", "Read courses", List.of()));
-        when(facade.getUserPermissions("u-1")).thenReturn(expected);
+        when(facade.getUserPermissions(1001L)).thenReturn(expected);
 
-        assertThat(new PermissionRpcProvider(facade).getUserPermissions("u-1"))
+        assertThat(new PermissionRpcProvider(facade).getUserPermissions(1001L))
                 .isSameAs(expected);
     }
 }

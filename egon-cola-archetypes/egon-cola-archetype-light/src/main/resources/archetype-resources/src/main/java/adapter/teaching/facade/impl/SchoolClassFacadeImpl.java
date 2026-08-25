@@ -12,11 +12,15 @@ import ${package}.facade.teaching.dto.ScheduleCourseDTO;
 import ${package}.facade.teaching.dto.SchoolClassDetailDTO;
 import ${package}.facade.teaching.exceptions.TeachingFacadeException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("schoolClassFacadeImpl")
 @RequiredArgsConstructor
+@Slf4j
 public class SchoolClassFacadeImpl implements SchoolClassFacade {
+    @Qualifier("schoolClassManageImpl")
     private final SchoolClassManage schoolClassManage;
 
     @Override
@@ -41,7 +45,7 @@ public class SchoolClassFacadeImpl implements SchoolClassFacade {
     }
 
     @Override
-    public SchoolClassDetailDTO getSchoolClass(String schoolClassId) {
+    public SchoolClassDetailDTO getSchoolClass(Long schoolClassId) {
         try {
             return toDto(schoolClassManage.get(new GetSchoolClassQuery(schoolClassId)));
         } catch (TeachingUseCaseException exception) {
