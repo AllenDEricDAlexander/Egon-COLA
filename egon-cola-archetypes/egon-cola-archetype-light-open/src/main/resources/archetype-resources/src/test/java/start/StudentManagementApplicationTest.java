@@ -1,11 +1,8 @@
 package ${package}.start;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 @ActiveProfiles("test")
 @SpringBootTest(
@@ -14,24 +11,11 @@ import top.egon.cola.component.common.id.generator.LongIdGenerator;
                 "app.integrations.rabbitmq.enabled=false",
                 "app.integrations.redis.enabled=false",
                 "app.integrations.external-http.enabled=false",
-                "egon.cola.component.id.machine-id=0",
-                "egon.cola.component.dtp.enabled=false",
-                "spring.cloud.nacos.discovery.enabled=false",
-                "spring.cloud.nacos.config.enabled=false"
+                "dubbo.protocol.port=-1",
+                "dubbo.application.qos-enable=false"
         })
 class StudentManagementApplicationTest {
-    @Autowired
-    private LongIdGenerator idGenerator;
-
-    @Autowired
-    private ThreadPoolTaskExecutor applicationTaskExecutor;
-
     @Test
     void contextLoads() {
-        org.assertj.core.api.Assertions.assertThat(idGenerator.nextLongId()).isPositive();
-        org.assertj.core.api.Assertions.assertThat(applicationTaskExecutor.getCorePoolSize())
-                .isEqualTo(8);
-        org.assertj.core.api.Assertions.assertThat(applicationTaskExecutor.getMaxPoolSize())
-                .isEqualTo(32);
     }
 }

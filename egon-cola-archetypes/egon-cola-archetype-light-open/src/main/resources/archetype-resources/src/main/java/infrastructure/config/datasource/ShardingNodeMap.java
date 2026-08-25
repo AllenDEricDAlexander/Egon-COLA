@@ -10,7 +10,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
- * Immutable stable-slot mapping used by Snowflake Long sharding.
+ * Immutable stable-slot mapping used by tenant-id sharding.
  */
 public record ShardingNodeMap(
         int nodeCount,
@@ -76,13 +76,13 @@ public record ShardingNodeMap(
         return new ShardingNodeMap(parsedNodeCount, nodes);
     }
 
-    public PhysicalNode route(long shardingKey) {
+    public PhysicalNode route(Long shardingKey) {
         return nodes.get(routeSlot(shardingKey));
     }
 
-    public int routeSlot(long shardingKey) {
-        if (shardingKey <= 0) {
-            throw new IllegalArgumentException("sharding key must be a positive Long");
+    public int routeSlot(Long shardingKey) {
+        if (shardingKey == null || shardingKey <= 0) {
+            throw new IllegalArgumentException("tenant sharding key must be positive");
         }
         int hash = Long.hashCode(shardingKey);
         int spreadHash = hash ^ (hash >>> 16);

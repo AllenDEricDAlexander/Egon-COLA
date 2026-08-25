@@ -13,12 +13,17 @@ import ${package}.facade.user.dto.CreateUserDTO;
 import ${package}.facade.user.dto.UserDetailDTO;
 import ${package}.facade.user.exceptions.UserFacadeException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 @Component("userFacadeImpl")
 @RequiredArgsConstructor
+@Slf4j
 public class UserFacadeImpl implements UserFacade {
+    @Qualifier("userManageImpl")
     private final UserManage userManage;
+    @Qualifier("roleManageImpl")
     private final RoleManage roleManage;
 
     @Override
@@ -35,33 +40,23 @@ public class UserFacadeImpl implements UserFacade {
     public UserDetailDTO assignRole(AssignRoleDTO request) {
         try {
             return toDto(roleManage.assignRole(new AssignRoleCommand(
-                    parseId(request.userId(), "userId"), request.roleCode(), request.operatorId(), request.requestId())));
+                    request.userId(), request.roleCode(), request.operatorId(), request.requestId())));
         } catch (UserUseCaseException exception) {
             throw publicFailure(exception);
         }
     }
 
     @Override
-    public UserDetailDTO getUser(String userId) {
+    public UserDetailDTO getUser(Long userId) {
         try {
-            return toDto(userManage.get(new GetUserQuery(parseId(userId, "userId"))));
+            return toDto(userManage.get(new GetUserQuery(userId)));
         } catch (UserUseCaseException exception) {
             throw publicFailure(exception);
         }
     }
 
     private static UserDetailDTO toDto(UserResult result) {
-        return new UserDetailDTO(Long.toString(result.id()), result.name(), result.email(), result.status());
-    }
-
-    private static long parseId(String value, String field) {
-        try {
-            long id = Long.parseLong(value);
-            if (id <= 0) throw new NumberFormatException(field);
-            return id;
-        } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException(field + " must be a positive decimal Long", exception);
-        }
+        return new UserDetailDTO(result.id(), result.name(), result.email(), result.status());
     }
 
     private static UserFacadeException publicFailure(UserUseCaseException exception) {

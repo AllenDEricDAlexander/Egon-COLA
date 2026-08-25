@@ -27,11 +27,11 @@ class RabbitUserEventPublisherTest {
         });
         verify(rabbitTemplate).convertAndSend("sample.domain", "user.changed", created);
 
-        UserEvent authorization = UserEvent.permissionGranted("teacher");
+        UserEvent authorization = UserEvent.permissionGranted();
         transaction.executeWithoutResult(status -> publisher.publish(authorization));
         verify(rabbitTemplate).convertAndSend("sample.domain", "authorization.changed", authorization);
 
-        UserEvent rolledBack = UserEvent.created(1002L);
+        UserEvent rolledBack = UserEvent.created(1001L);
         transaction.executeWithoutResult(status -> {
             publisher.publish(rolledBack);
             status.setRollbackOnly();

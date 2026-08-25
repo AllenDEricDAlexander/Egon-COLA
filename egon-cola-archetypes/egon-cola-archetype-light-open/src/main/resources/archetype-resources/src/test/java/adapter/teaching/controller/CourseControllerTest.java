@@ -11,7 +11,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -30,12 +29,10 @@ class CourseControllerTest {
     private MockMvc mockMvc;
     @MockitoBean
     private CourseManage courseManage;
-    @MockitoBean
-    private LongIdGenerator idGenerator;
 
     @Test
     void creates_course() throws Exception {
-        when(courseManage.create(any())).thenReturn(new CourseResult(2001L, "MATH", "Math", "ACTIVE"));
+        when(courseManage.create(any())).thenReturn(new CourseResult(1002L, "MATH", "Math", "ACTIVE"));
         mockMvc.perform(post("/api/courses")
                         .contentType("application/json")
                         .content("{\"code\":\"MATH\",\"name\":\"Math\"}"))

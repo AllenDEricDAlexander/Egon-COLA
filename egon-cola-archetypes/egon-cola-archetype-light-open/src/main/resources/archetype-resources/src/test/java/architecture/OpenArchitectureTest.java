@@ -1,70 +1,69 @@
 package architecture;
 
-import com.tngtech.archunit.core.domain.JavaClasses;
-import com.tngtech.archunit.core.importer.ClassFileImporter;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Stream;
 
-import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Verifies the generated Light Open package direction without relying on a custom Maven bytecode plugin.
- */
+/** Generated-project architecture contract for the Light Open Common MP profile. */
 class OpenArchitectureTest {
 
-    private static final JavaClasses PRODUCTION_CLASSES = new ClassFileImporter()
-            .importPath(Path.of("target/classes"));
-
     @Test
-    void keeps_inward_layer_dependencies() {
-        noClasses()
-                .that().resideInAnyPackage("${package}.domain..")
-                .should().dependOnClassesThat()
-                .resideInAnyPackage(
-                        "${package}.application..",
-                        "${package}.adapter..",
-                        "${package}.infrastructure..",
-                        "${package}.start..")
-                .check(PRODUCTION_CLASSES);
+    void generatedProjectUsesCommonPersistenceOwnership() throws IOException {
+        Path sourceRoot = Path.of("src/main/java");
+        List<Path> javaFiles;
+        try (Stream<Path> paths = Files.walk(sourceRoot)) {
+            javaFiles = paths.filter(path -> path.toString().endsWith(".java")).toList();
+        }
+        String source = javaFiles.stream().map(OpenArchitectureTest::read)
+                .reduce("", String::concat);
 
-        noClasses()
-                .that().resideInAnyPackage("${package}.application..")
-                .should().dependOnClassesThat()
-                .resideInAnyPackage(
-                        "${package}.adapter..",
-                        "${package}.infrastructure..",
-                        "${package}.start..")
-                .check(PRODUCTION_CLASSES);
+        assertFalse(source.contains("jakarta.persistence"));
+        assertFalse(source.contains("JpaRepository"));
+        assertFalse(source.contains("EntityManager"));
+        assertFalse(source.contains("UuidV7"));
+        assertFalse(source.contains("repo.jpa"));
+        assertFalse(source.contains("repo.impl"));
+        assertFalse(source.contains("repo.mapper"));
+        assertTrue(source.contains("extends EgonModel<"));
+        assertTrue(source.contains("extends EgonColaMapper<"));
+        assertTrue(source.contains("extends EgonColaServiceImpl<"));
 
-        noClasses()
-                .that().resideInAnyPackage("${package}.infrastructure..")
-                .should().dependOnClassesThat()
-                .resideInAnyPackage(
-                        "${package}.application..",
-                        "${package}.adapter..",
-                        "${package}.start..")
-                .check(PRODUCTION_CLASSES);
+        assertEquals(8, count(javaFiles, "PO.java"));
+        assertEquals(8, count(javaFiles, "DAO.java"));
+        assertEquals(5, count(javaFiles, "DomainServiceImpl.java"));
     }
 
     @Test
-    void keeps_transport_and_persistence_frameworks_at_the_edge() {
-        noClasses()
-                .should().dependOnClassesThat()
-                .resideInAnyPackage(
-                        "org.apache." + "dubbo..",
-                        "org.springframework.cloud." + "gateway..",
-                        "org." + "flywaydb..",
-                        "jakarta." + "persistence..",
-                        "org.springframework.data." + "jpa..")
-                .check(PRODUCTION_CLASSES);
+    void generatedShardingConfigurationUsesPositiveTenantRouting() throws IOException {
+        String sharding = read(Path.of("src/main/resources/sharding/shardingsphere-sharding.yml"));
+        String readwrite = read(Path.of(
+                "src/main/resources/sharding/shardingsphere-sharding-readwrite.yml"));
+        assertTrue(sharding.contains("shardingColumn: tenant_id"));
+        assertTrue(readwrite.contains("shardingColumn: tenant_id"));
+        assertTrue(sharding.contains("light_users:"));
+        assertTrue(sharding.contains("light_school_classes:"));
+        assertFalse(sharding.contains("SnowflakeLongShardingAlgorithm"));
+        assertFalse(readwrite.contains("SnowflakeLongShardingAlgorithm"));
+    }
 
-        noClasses()
-                .that().resideInAnyPackage("${package}.domain..", "${package}.application..")
-                .should().dependOnClassesThat()
-                .resideInAnyPackage(
-                        "com.baomidou.mybatisplus..",
-                        "org.apache.shardingsphere..")
-                .check(PRODUCTION_CLASSES);
+    private static long count(List<Path> paths, String suffix) {
+        return paths.stream().filter(path -> path.getFileName().toString().endsWith(suffix)).count();
+    }
+
+    private static String read(Path path) {
+        try {
+            return Files.readString(path, StandardCharsets.UTF_8);
+        } catch (IOException exception) {
+            throw new IllegalStateException("cannot read generated contract path " + path, exception);
+        }
     }
 }

@@ -13,7 +13,7 @@ public final class User {
     private final UserStatus status;
 
     public User(UserId id, String name, String email, UserStatus status) {
-        this(id, Long.toString(id.value()), name, email, status);
+        this(id, String.valueOf(id.value()), name, email, status);
     }
 
     public User(UserId id, String externalId, String name, String email, UserStatus status) {

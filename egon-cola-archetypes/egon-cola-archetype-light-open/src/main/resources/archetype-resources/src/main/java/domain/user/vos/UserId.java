@@ -1,9 +1,10 @@
 package ${package}.domain.user.vos;
 
-public record UserId(long value) {
+public record UserId(Long value) {
     public UserId {
-        if (value <= 0) {
+        if (value == null || value <= 0) {
             throw new IllegalArgumentException("user id must be positive");
         }
     }
+
 }

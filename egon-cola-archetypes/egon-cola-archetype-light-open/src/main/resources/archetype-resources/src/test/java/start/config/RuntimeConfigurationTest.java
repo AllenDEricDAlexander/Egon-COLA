@@ -24,10 +24,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 "app.integrations.rabbitmq.enabled=false",
                 "app.integrations.redis.enabled=false",
                 "app.integrations.external-http.enabled=false",
-                "egon.cola.component.id.machine-id=0",
-                "egon.cola.component.dtp.enabled=false",
-                "spring.cloud.nacos.discovery.enabled=false",
-                "spring.cloud.nacos.config.enabled=false"
+                "dubbo.protocol.port=-1",
+                "dubbo.application.qos-enable=false"
         })
 class RuntimeConfigurationTest {
     @Autowired

@@ -9,35 +9,36 @@ import ${package}.application.teaching.result.CourseResult;
 import ${package}.application.teaching.validators.TeachingApplicationValidator;
 import ${package}.domain.teaching.entities.Course;
 import ${package}.domain.teaching.exceptions.TeachingDomainException;
-import ${package}.domain.teaching.repos.CourseRepository;
-import ${package}.domain.teaching.service.CourseCacheService;
+import ${package}.domain.teaching.client.CourseCachePort;
 import ${package}.domain.teaching.service.CourseDomainService;
-import ${package}.domain.teaching.service.TeachingEventPublisher;
-import ${package}.domain.teaching.service.TeachingQueryService;
+import ${package}.domain.teaching.event.TeachingEventPublisher;
+import ${package}.domain.teaching.gateway.TeachingQueryGateway;
 import ${package}.domain.teaching.vos.CourseCode;
 import ${package}.domain.teaching.vos.CourseSnapshot;
 import ${package}.domain.teaching.vos.TeachingEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Service
+@Service("courseManageImpl")
 @Lazy
 @RequiredArgsConstructor
+@Slf4j
 public class CourseManageImpl implements CourseManage {
     @Qualifier("courseDomainService")
-    private final CourseDomainService courseDomainService;
-    @Qualifier("courseRepository")
-    private final CourseRepository courseRepository;
-    @Qualifier("teachingQueryService")
-    private final TeachingQueryService teachingQueryService;
-    @Qualifier("courseCacheService")
-    private final CourseCacheService courseCacheService;
+    private final CourseDomainService<?> courseDomainService;
+    @Qualifier("teachingQueryGateway")
+    private final TeachingQueryGateway teachingQueryGateway;
+    @Qualifier("courseCachePort")
+    private final CourseCachePort courseCachePort;
     @Qualifier("teachingEventPublisher")
     private final TeachingEventPublisher teachingEventPublisher;
+    @Qualifier("teachingApplicationValidator")
     private final TeachingApplicationValidator applicationValidator;
+    @Qualifier("teachingApplicationConvertor")
     private final TeachingApplicationConvertor convertor;
 
     @Override
@@ -45,12 +46,12 @@ public class CourseManageImpl implements CourseManage {
     public CourseResult create(CreateCourseCommand command) {
         applicationValidator.validate(command);
         CourseCode code = new CourseCode(command.code());
-        teachingQueryService.findExternalCourse(code)
+        teachingQueryGateway.findExternalCourse(code)
                 .orElseThrow(() -> new TeachingUseCaseException(
                         "EXTERNAL_COURSE_NOT_FOUND", "external course not found"));
         try {
-            Course saved = courseRepository.save(courseDomainService.createCourse(code, command.name()));
-            courseCacheService.evictCourse(saved.id());
+            Course saved = courseDomainService.save(courseDomainService.createCourse(code, command.name()));
+            courseCachePort.evictCourse(saved.id());
             teachingEventPublisher.publish(TeachingEvent.courseCreated(saved.id()));
             return convertor.toResult(saved);
         } catch (TeachingDomainException exception) {
@@ -60,16 +61,16 @@ public class CourseManageImpl implements CourseManage {
 
     @Override
     public CourseResult get(GetCourseQuery query) {
-        return courseCacheService.getCourse(query.courseId())
+        return courseCachePort.getCourse(query.courseId())
                 .map(convertor::toResult)
                 .orElseGet(() -> loadAndCache(query.courseId()));
     }
 
-    private CourseResult loadAndCache(long courseId) {
-        Course course = courseRepository.findById(courseId)
+    private CourseResult loadAndCache(Long courseId) {
+        Course course = courseDomainService.findById(courseId)
                 .orElseThrow(() -> new TeachingUseCaseException("COURSE_NOT_FOUND", "course not found"));
         CourseSnapshot snapshot = convertor.toSnapshot(course);
-        courseCacheService.putCourse(snapshot);
+        courseCachePort.putCourse(snapshot);
         return convertor.toResult(course);
     }
 

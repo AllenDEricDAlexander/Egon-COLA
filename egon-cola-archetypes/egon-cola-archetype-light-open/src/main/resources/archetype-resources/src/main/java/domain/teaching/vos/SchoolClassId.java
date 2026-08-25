@@ -1,9 +1,10 @@
 package ${package}.domain.teaching.vos;
 
-public record SchoolClassId(long value) {
+public record SchoolClassId(Long value) {
     public SchoolClassId {
-        if (value <= 0) {
+        if (value == null || value <= 0) {
             throw new IllegalArgumentException("school class id must be positive");
         }
     }
+
 }

@@ -22,7 +22,7 @@ class RequestContextFilterTest {
             return null;
         }).when(chain).doFilter(any(), any());
 
-        new RequestContextFilter(() -> 42L).doFilter(request, new MockHttpServletResponse(), chain);
+        new RequestContextFilter().doFilter(request, new MockHttpServletResponse(), chain);
 
         assertThat(RequestContextHolder.get()).isEmpty();
     }

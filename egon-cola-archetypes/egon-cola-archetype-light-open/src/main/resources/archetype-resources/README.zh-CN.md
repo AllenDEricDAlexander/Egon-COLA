@@ -8,7 +8,7 @@ ${symbol_pound} ${artifactId}
 ${symbol_pound}${symbol_pound} 技术栈
 
 - Java 21、Spring Boot 3.5.16、Spring Cloud 2025.0.3、Spring Cloud Alibaba 2025.0.0.0、Nacos 3.0.3。
-- MyBatis-Plus 3.5.17，使用显式 Mapper/XML SQL；ShardingSphere-JDBC 5.5.3 负责分库分表。
+- 通过 Egon COLA Common MP starter 使用 MyBatis-Plus，持久化采用 DAO/XML SQL 与 EgonModel PO；ShardingSphere-JDBC 5.5.3 负责分库分表。
 - Egon COLA Common Core、Common ID、Dynamic Thread Pool 组件。
 - Springdoc OpenAPI 2.8.17 提供 HTTP API 文档；Gateway 属于外部平台，不在本工程内生成。
 - 保留现有 Light 用例需要的 RabbitMQ、Redis、GraphQL 和外部 HTTP 可选集成。
@@ -22,7 +22,7 @@ src/main/java/${packageInPathFormat}
 ├── facade             # 稳定的本地应用契约和 DTO
 ├── application        # 用例编排、校验和事务
 ├── domain             # 聚合、规则、服务和仓储端口
-├── infrastructure     # MyBatis-Plus Mapper、客户端、缓存和 MQ 适配器
+├── infrastructure     # MyBatis-Plus DAO/PO/ServiceImpl、客户端、缓存和 MQ 适配器
 └── common             # 与业务无关的项目基础类型
 ```
 
@@ -32,16 +32,18 @@ ${symbol_pound}${symbol_pound} ID 与持久化
 
 技术 ID 由 Common ID 的 `LongIdGenerator` 生成，在 PostgreSQL 中使用 `BIGINT`。Domain、Application、持久化和分片内部统一使用正数 `Long`；HTTP/GraphQL 边界仍使用十进制字符串。每个运行实例必须设置唯一的 `EGON_ID_MACHINE_ID`，运行时没有默认值。
 
-持久化统一使用官方 MyBatis-Plus。生成项目包含 Mapper 接口、XML SQL 和明确的影响行数检查，应用启动不会创建或更新表结构。请按顺序对每个物理 PostgreSQL 目标手工执行：
+持久化统一使用 Egon COLA Common MP starter。Domain service interface 继承 EgonColaIService，infrastructure 的 ServiceImpl 继承 EgonColaServiceImpl，DAO 继承 EgonColaMapper，PO 继承 EgonModel；应用启动不会创建或更新表结构。请按顺序对每个物理 PostgreSQL 目标手工执行：
 
 ```text
 src/main/resources/db/manual/postgresql/master-data/001__create_light_master_data_schema.sql
+  src/main/resources/db/manual/postgresql/master-data/003__migrate_light_master_data_to_egon_model.sql
 src/main/resources/db/manual/postgresql/shard/002__create_light_sharded_schema.sql
+  src/main/resources/db/manual/postgresql/shard/004__migrate_light_sharded_to_tenant_model.sql
 ```
 
 执行前阅读同目录的 `db/manual/postgresql/README.md`。脚本面向 PostgreSQL，技术 ID 使用 `BIGINT`，并提供执行顺序、校验与回滚说明。H2 测试只有在显式测试辅助类中才会执行这些 SQL。
 
-ShardingSphere 按 `id` 路由 `school_classes`，按 `school_class_id` 路由 `class_course_schedules`，使用稳定的正数 Long 分片算法。班级与排课必须携带同一个根键；跨分片流程由调用方通过业务幂等和补偿处理。
+ShardingSphere 按正数 `tenant_id` 路由 `light_school_classes` 与 `light_class_course_schedules`，使用稳定的正数 Long 分片算法。班级与排课必须携带同一个根键；跨分片流程由调用方通过业务幂等和补偿处理。
 
 ${symbol_pound}${symbol_pound} 运行治理
 

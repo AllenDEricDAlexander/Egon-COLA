@@ -37,16 +37,6 @@ public class UserController {
 
     @GetMapping("/{userId}")
     public UserDetailVO get(@PathVariable String userId) {
-        return convertor.toUserDetail(userManage.get(new GetUserQuery(parseId(userId))));
-    }
-
-    private static long parseId(String value) {
-        try {
-            long id = Long.parseLong(value);
-            if (id <= 0) throw new NumberFormatException();
-            return id;
-        } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("userId must be a positive decimal Long", exception);
-        }
+        return convertor.toUserDetail(userManage.get(new GetUserQuery(Long.valueOf(userId))));
     }
 }

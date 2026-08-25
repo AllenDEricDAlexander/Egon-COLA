@@ -2,9 +2,11 @@ package ${package}.infrastructure.user.validators;
 
 import ${package}.domain.user.exceptions.UserDomainException;
 import ${package}.domain.user.vos.ExternalUser;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("userInfrastructureValidator")
+@Slf4j
 public class UserInfrastructureValidator {
     public void validateExternalUser(ExternalUser user, String expectedExternalId) {
         if (user == null || !expectedExternalId.equals(user.externalId())) {
@@ -12,7 +14,7 @@ public class UserInfrastructureValidator {
         }
     }
 
-    public UserDomainException invalidCachePayload(String payload, Throwable cause) {
+    public UserDomainException invalidCachePayload(Object payload, Throwable cause) {
         return new UserDomainException("INVALID_USER_CACHE", "user cache payload is invalid", cause);
     }
 

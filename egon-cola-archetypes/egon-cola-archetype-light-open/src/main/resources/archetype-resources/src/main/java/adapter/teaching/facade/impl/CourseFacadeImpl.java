@@ -10,11 +10,15 @@ import ${package}.facade.teaching.dto.CourseDTO;
 import ${package}.facade.teaching.dto.CreateCourseDTO;
 import ${package}.facade.teaching.exceptions.TeachingFacadeException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 @Component("courseFacadeImpl")
 @RequiredArgsConstructor
+@Slf4j
 public class CourseFacadeImpl implements CourseFacade {
+    @Qualifier("courseManageImpl")
     private final CourseManage courseManage;
 
     @Override
@@ -28,26 +32,16 @@ public class CourseFacadeImpl implements CourseFacade {
     }
 
     @Override
-    public CourseDTO getCourse(String courseId) {
+    public CourseDTO getCourse(Long courseId) {
         try {
-            return toDto(courseManage.get(new GetCourseQuery(parseId(courseId, "courseId"))));
+            return toDto(courseManage.get(new GetCourseQuery(courseId)));
         } catch (TeachingUseCaseException exception) {
             throw publicFailure(exception);
         }
     }
 
     private static CourseDTO toDto(CourseResult result) {
-        return new CourseDTO(Long.toString(result.id()), result.code(), result.name(), result.status());
-    }
-
-    private static long parseId(String value, String field) {
-        try {
-            long id = Long.parseLong(value);
-            if (id <= 0) throw new NumberFormatException(field);
-            return id;
-        } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException(field + " must be a positive decimal Long", exception);
-        }
+        return new CourseDTO(result.id(), result.code(), result.name(), result.status());
     }
 
     private static TeachingFacadeException publicFailure(TeachingUseCaseException exception) {

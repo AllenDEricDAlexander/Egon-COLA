@@ -1,9 +1,10 @@
 package ${package}.application.user.query;
 
-public record GetUserQuery(long userId) {
+public record GetUserQuery(Long userId) {
     public GetUserQuery {
-        if (userId <= 0) {
+        if (userId == null || userId <= 0) {
             throw new IllegalArgumentException("userId must be positive");
         }
     }
+
 }

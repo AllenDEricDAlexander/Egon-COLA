@@ -4,7 +4,7 @@ import ${package}.application.user.command.AssignRoleCommand;
 import ${package}.application.user.command.CreateUserCommand;
 import ${package}.application.user.command.GrantPermissionCommand;
 import ${package}.application.user.manage.UserUseCaseException;
-import ${package}.domain.user.service.UserCacheService;
+import ${package}.domain.user.client.UserCachePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Lazy;
@@ -18,8 +18,8 @@ import java.time.Duration;
 public class UserApplicationValidator {
     private static final Duration IDEMPOTENCY_TTL = Duration.ofMinutes(5);
 
-    @Qualifier("userCacheService")
-    private final UserCacheService userCacheService;
+    @Qualifier("userCachePort")
+    private final UserCachePort userCachePort;
 
     public void validate(CreateUserCommand command) {
         validateContext(command.operatorId(), command.idempotencyKey());
@@ -40,7 +40,7 @@ public class UserApplicationValidator {
         if (idempotencyKey == null || idempotencyKey.isBlank()) {
             throw new UserUseCaseException("MISSING_IDEMPOTENCY_KEY", "idempotency key is required");
         }
-        if (!userCacheService.claimIdempotency(idempotencyKey, IDEMPOTENCY_TTL)) {
+        if (!userCachePort.claimIdempotency(idempotencyKey, IDEMPOTENCY_TTL)) {
             throw new UserUseCaseException("DUPLICATE_REQUEST", "request was already processed");
         }
     }

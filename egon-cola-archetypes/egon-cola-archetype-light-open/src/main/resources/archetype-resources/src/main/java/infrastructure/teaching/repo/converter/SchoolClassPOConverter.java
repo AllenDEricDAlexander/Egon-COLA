@@ -5,22 +5,24 @@ import ${package}.domain.teaching.enums.SchoolClassStatus;
 import ${package}.domain.teaching.vos.SchoolClassId;
 import ${package}.domain.teaching.vos.Semester;
 import ${package}.infrastructure.teaching.repo.po.SchoolClassPO;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
+import top.egon.cola.component.common.core.converter.BaseConverter;
 
-import java.time.Instant;
+/** MapStruct conversion between the school-class domain entity and its PO. */
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+public interface SchoolClassPOConverter extends BaseConverter<SchoolClass, SchoolClassPO> {
 
-@Component
-public class SchoolClassPOConverter {
-    public SchoolClassPO toPO(SchoolClass schoolClass) {
-        return new SchoolClassPO(
-                schoolClass.id().value(), schoolClass.name(), schoolClass.semester().value(),
-                schoolClass.status().name(), Instant.now());
-    }
+    @Override
+    @Mapping(target = "name", expression = "java(source.name())")
+    @Mapping(target = "semester", expression = "java(source.semester().value())")
+    @Mapping(target = "status", expression = "java(source.status().name())")
+    SchoolClassPO toTarget(SchoolClass source);
 
-    public SchoolClass toDomain(SchoolClassPO schoolClass) {
-        return new SchoolClass(
-                new SchoolClassId(schoolClass.getId()), schoolClass.getName(),
-                new Semester(schoolClass.getSemester()),
-                SchoolClassStatus.valueOf(schoolClass.getStatus()));
+    @Override
+    default SchoolClass toSource(SchoolClassPO target) {
+        return new SchoolClass(new SchoolClassId(target.getId()), target.getName(),
+                new Semester(target.getSemester()), SchoolClassStatus.valueOf(target.getStatus()));
     }
 }

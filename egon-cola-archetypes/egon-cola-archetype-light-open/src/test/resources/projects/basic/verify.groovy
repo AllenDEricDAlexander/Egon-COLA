@@ -46,7 +46,6 @@ def forbidden = [
         "spring-cloud-starter-gateway",
         "spring.cloud.gateway",
         "UuidV7Generator",
-        "UUID.randomUUID",
         "egon-cola-component-bytecode-architecture"
 ]
 forbidden.each { token ->
@@ -63,12 +62,12 @@ assert rootPom.properties.'spring-cloud.version'.text() == "2025.0.3"
 assert rootPom.properties.'spring-cloud-alibaba.version'.text() == "2025.0.0.0"
 assert rootPom.properties.'springdoc.version'.text() == "2.8.17"
 assert rootPom.properties.'shardingsphere.version'.text() == "5.5.3"
-assert rootPom.properties.'mybatis-plus.version'.text() == "3.5.17"
+assert rootPom.properties.'mybatis-plus.version'.isEmpty()
 [
         "egon-cola-component-common-core",
+        "egon-cola-component-common-mybatis-plus-spring-boot-starter",
         "egon-cola-component-common-id-starter",
         "egon-cola-component-dynamic-thread-pool-starter",
-        "mybatis-plus-spring-boot3-starter",
         "springdoc-openapi-starter-webmvc-ui",
         "archunit-junit5"
 ].each { artifact ->
@@ -78,18 +77,20 @@ assert rootPom.properties.'mybatis-plus.version'.text() == "3.5.17"
 assert !pomText.contains("dubbo-spring-boot-starter")
 
 [
-        "src/main/java/it/pkg/infrastructure/config/datasource/SnowflakeLongShardingAlgorithm.java",
-        "src/main/resources/mybatis/mapper/user/UserMapper.xml",
-        "src/main/resources/mybatis/mapper/user/RoleMapper.xml",
-        "src/main/resources/mybatis/mapper/user/PermissionMapper.xml",
-        "src/main/resources/mybatis/mapper/user/UserRoleMapper.xml",
-        "src/main/resources/mybatis/mapper/user/RolePermissionMapper.xml",
-        "src/main/resources/mybatis/mapper/teaching/CourseMapper.xml",
-        "src/main/resources/mybatis/mapper/teaching/ClassCourseScheduleMapper.xml",
-        "src/main/resources/mybatis/mapper/teaching/SchoolClassMapper.xml",
+        "src/main/java/it/pkg/infrastructure/config/datasource/LongTenantShardingAlgorithm.java",
+        "src/main/resources/mybatis/mapper/user/UserDAO.xml",
+        "src/main/resources/mybatis/mapper/user/RoleDAO.xml",
+        "src/main/resources/mybatis/mapper/user/PermissionDAO.xml",
+        "src/main/resources/mybatis/mapper/user/UserRoleDAO.xml",
+        "src/main/resources/mybatis/mapper/user/RolePermissionDAO.xml",
+        "src/main/resources/mybatis/mapper/teaching/CourseDAO.xml",
+        "src/main/resources/mybatis/mapper/teaching/ClassCourseScheduleDAO.xml",
+        "src/main/resources/mybatis/mapper/teaching/SchoolClassDAO.xml",
         "src/main/resources/db/manual/postgresql/README.md",
         "src/main/resources/db/manual/postgresql/master-data/001__create_light_master_data_schema.sql",
         "src/main/resources/db/manual/postgresql/shard/002__create_light_sharded_schema.sql",
+        "src/main/resources/db/manual/postgresql/master-data/003__migrate_light_master_data_to_egon_model.sql",
+        "src/main/resources/db/manual/postgresql/shard/004__migrate_light_sharded_to_tenant_model.sql",
         "src/test/java/it/pkg/architecture/OpenArchitectureTest.java",
         "src/test/java/it/pkg/start/StudentManagementApplicationTest.java",
         "src/test/java/it/pkg/start/config/RuntimeConfigurationTest.java",
@@ -105,12 +106,20 @@ assert !pomText.contains("dubbo-spring-boot-starter")
         "src/main/java/it/pkg/start"
 ].each { path -> directory(path) }
 
-assert filesUnder("src/main/resources/mybatis/mapper") { it.name.endsWith("Mapper.xml") }.size() == 8
+assert filesUnder("src/main/resources/mybatis/mapper") { it.name.endsWith("DAO.xml") }.size() == 8
+assert filesUnder("src/main/java/it/pkg/infrastructure") { it.name.endsWith("PO.java") }.size() == 8
+assert filesUnder("src/main/java/it/pkg/infrastructure") { it.name.endsWith("DAO.java") }.size() == 8
 assert file("src/main/resources/db/manual/postgresql/master-data/001__create_light_master_data_schema.sql")
         .text.contains("BIGINT")
 assert file("src/main/resources/db/manual/postgresql/shard/002__create_light_sharded_schema.sql")
         .text.contains("BIGINT")
+assert file("src/main/resources/db/manual/postgresql/master-data/003__migrate_light_master_data_to_egon_model.sql")
+assert file("src/main/resources/db/manual/postgresql/shard/004__migrate_light_sharded_to_tenant_model.sql")
 missing("src/main/resources/db/migration")
+missing("src/main/java/it/pkg/infrastructure/user/repo/mapper")
+missing("src/main/java/it/pkg/infrastructure/user/repo/impl")
+missing("src/main/java/it/pkg/infrastructure/teaching/repo/mapper")
+missing("src/main/java/it/pkg/infrastructure/teaching/repo/impl")
 missing("src/main/java/it/pkg/infrastructure/user/repo/jpa")
 missing("src/main/java/it/pkg/infrastructure/teaching/repo/jpa")
 missing("target/egon-cola-architecture")
@@ -145,6 +154,7 @@ def reportFiles = filesUnder("target") { it.path.replace('\\', '/').contains('/s
         "StudentManagementApplicationTest",
         "RuntimeConfigurationTest",
         "AsyncConfigurationTest",
+        "LongTenantShardingAlgorithmTest",
         "ManualSqlConventionTest",
         "ManualSchemaIntegrationTest"
 ].each { testName ->

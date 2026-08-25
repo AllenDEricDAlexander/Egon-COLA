@@ -4,7 +4,7 @@
 
 ## 1. 运行边界与技术栈
 
-Light Open 生成一个 Java 21、Spring Boot 3.5.16 单模块应用，使用 Spring Cloud 2025.0.3、Spring Cloud Alibaba 2025.0.0.0、Nacos 3.0.3、Springdoc OpenAPI 2.8.17、MyBatis-Plus 3.5.17 和 ShardingSphere-JDBC 5.5.3。
+Light Open 生成一个 Java 21、Spring Boot 3.5.16 单模块应用，使用 Spring Cloud 2025.0.3、Spring Cloud Alibaba 2025.0.0.0、Nacos 3.0.3、Springdoc OpenAPI 2.8.17、Egon COLA Common MP starter 和 ShardingSphere-JDBC 5.5.3。
 
 生成项目只负责业务单体 HTTP/GraphQL/MQ 入站及本地应用契约。Gateway、统一路由和外部 RPC 平台属于部署边界之外；Light Open 不引入 Gateway 或本地 Dubbo 运行时。
 
@@ -19,7 +19,7 @@ ${package}
 ├── facade             稳定 DTO/契约
 ├── application        用例编排、事务、应用校验
 ├── domain             聚合、领域规则、服务、仓储端口
-├── infrastructure     Mapper、SQL、缓存、客户端、消息适配器
+├── infrastructure     DAO、PO、ServiceImpl、XML、缓存、客户端、消息适配器
 └── common             与业务无关的基础类型
 ```
 
@@ -35,7 +35,7 @@ start ──> adapter ──> application ──> domain ──> common
 
 - `start` 只做装配，不承载业务规则。
 - `adapter` 将 HTTP/GraphQL 的十进制字符串解析为正数 `Long`，调用 Application，并把结果转回边界 DTO。
-- `application` 负责一个用例的校验、事务和跨领域编排；不直接访问 Mapper 或具体基础设施。
+- `application` 负责一个用例的校验、事务和跨领域编排；不直接访问 DAO 或具体基础设施。
 - `domain` 只依赖通用基础类型以及自己的仓储/服务端口。
 - `infrastructure` 实现 Domain 端口，负责 MyBatis-Plus、缓存、外部 HTTP、MQ 等技术细节。
 - `facade` 是单体内稳定的应用契约；它不是 Gateway，也不启动独立 RPC 服务器。
@@ -45,32 +45,34 @@ start ──> adapter ──> application ──> domain ──> common
 ```text
 CourseController
   -> CourseManage
-    -> CourseDomainService / CourseRepository
-      -> CourseRepositoryImpl
-        -> CourseMapper + CourseMapper.xml
+    -> CourseDomainService<?>
+      -> CourseDomainServiceImpl
+        ->  CourseDAO + CourseDAO.xml
           -> ShardingSphere logical DataSource
             -> PostgreSQL physical target
 ```
 
-`OpenArchitectureTest` 在生成工程中对上述向内依赖进行 ArchUnit 检查，并拒绝 Domain/Application 依赖 MyBatis-Plus、ShardingSphere 或其它边缘技术。
+`OpenArchitectureTest` 在生成工程中对上述向内依赖进行 ArchUnit 检查，并拒绝 Domain/Application 依赖 ShardingSphere 或其它边缘技术。
 
 ## 4. ID、分片与数据访问
 
 ### 4.1 ID 合同
 
-`EGON_ID_MACHINE_ID` 是运行时必填配置，范围为 Common ID 组件允许的 `0..1023`，多实例不得重复。应用在创建用例中调用一次 `LongIdGenerator.nextLongId()`；同一个技术 ID 从 Domain 经 PO/Mapper 传递到数据库。业务编码、外部标识和幂等键仍是业务字符串。
+`EGON_ID_MACHINE_ID` 是运行时必填配置，范围为 Common ID 组件允许的 `0..1023`，多实例不得重复。应用在创建用例中调用一次 `LongIdGenerator.nextLongId()`；同一个技术 ID 从 Domain 经 PO/DAO 传递到数据库。业务编码、外部标识和幂等键仍是业务字符串。
 
 ### 4.2 ShardingSphere
 
-`school_classes` 按 `id` 分库分表，`class_course_schedules` 按 `school_class_id` 分库分表，二者使用同一个正数 Long 根键。算法使用稳定的 Long hash/spread/mask 规则；空值、非正数、范围路由和缺失物理节点均失败，不广播到所有节点。读写分离只改变物理数据源选择，不改变领域端口。
+`light_school_classes` 与 `light_class_course_schedules` 均按 `tenant_id` 分库分表，二者使用同一个正数 Long 根键。算法使用稳定的 Long hash/spread/mask 规则；空值、非正数、范围路由和缺失物理节点均失败，不广播到所有节点。读写分离只改变物理数据源选择，不改变领域端口。
 
 ### 4.3 MyBatis-Plus 与手工 SQL
 
-生成项目使用官方 MyBatis-Plus Mapper/XML，不使用 Spring Data JPA。应用启动不会创建或更新表结构，`spring.sql.init.mode` 固定为 `never`。DBA 必须按顺序对每个物理 PostgreSQL 目标手工执行：
+生成项目通过 Egon COLA Common MP starter 使用 MyBatis-Plus；domain service interface 继承 EgonColaIService，infrastructure ServiceImpl 继承 EgonColaServiceImpl，DAO 继承 EgonColaMapper，PO 继承 EgonModel；不使用 Spring Data JPA。应用启动不会创建或更新表结构，`spring.sql.init.mode` 固定为 `never`。DBA 必须按顺序对每个物理 PostgreSQL 目标手工执行：
 
 ```text
 db/manual/postgresql/master-data/001__create_light_master_data_schema.sql
 db/manual/postgresql/shard/002__create_light_sharded_schema.sql
+db/manual/postgresql/master-data/003__migrate_light_master_data_to_egon_model.sql
+db/manual/postgresql/shard/004__migrate_light_sharded_to_tenant_model.sql
 ```
 
 脚本和 `db/manual/postgresql/README.md` 共同记录目标、顺序、BIGINT 字段、校验 SQL、checksum 和回滚操作。测试只通过显式 `ManualSchemaTestSupport` 在 H2 中执行脚本；普通 Spring context 不执行 schema SQL。
@@ -90,4 +92,4 @@ Springdoc 提供 `/v3/api-docs` 和 `/swagger-ui.html`。Gateway、鉴权入口�
 ./mvnw -B -ntp -DskipTests package
 ```
 
-`verify` 覆盖编译、测试、OpenAPI smoke、ArchUnit、Mapper/manual-SQL 合同和 archetype verifier。它证明生成树的静态及测试 profile 合同，不证明真实 Nacos 3、Redis、PostgreSQL、RabbitMQ、外部 HTTP 或生产路由拓扑；这些由运维在执行手工 SQL、配置环境并部署后单独验收。
+`verify` 覆盖编译、测试、OpenAPI smoke、ArchUnit、DAO/manual-SQL 合同和 archetype verifier。它证明生成树的静态及测试 profile 合同，不证明真实 Nacos 3、Redis、PostgreSQL、RabbitMQ、外部 HTTP 或生产路由拓扑；这些由运维在执行手工 SQL、配置环境并部署后单独验收。

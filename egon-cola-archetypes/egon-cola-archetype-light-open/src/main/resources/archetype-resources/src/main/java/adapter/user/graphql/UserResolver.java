@@ -23,22 +23,12 @@ public class UserResolver {
 
     @QueryMapping
     public UserDetailVO user(@Argument String id) {
-        return convertor.toUserDetail(userManage.get(new GetUserQuery(parseId(id))));
+        return convertor.toUserDetail(userManage.get(new GetUserQuery(Long.valueOf(id))));
     }
 
     @QueryMapping
     public List<PermissionTreeVO> permissions(@Argument String userId) {
         return convertor.toPermissionTree(
-                permissionManage.getByUser(new GetUserPermissionsQuery(parseId(userId))));
-    }
-
-    private static long parseId(String value) {
-        try {
-            long id = Long.parseLong(value);
-            if (id <= 0) throw new NumberFormatException();
-            return id;
-        } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("id must be a positive decimal Long", exception);
-        }
+                permissionManage.getByUser(new GetUserPermissionsQuery(Long.valueOf(userId))));
     }
 }

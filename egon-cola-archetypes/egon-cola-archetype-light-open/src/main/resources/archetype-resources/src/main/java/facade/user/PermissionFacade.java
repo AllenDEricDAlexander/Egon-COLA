@@ -9,5 +9,6 @@ import java.util.List;
 public interface PermissionFacade {
     PermissionDTO grantPermission(GrantPermissionDTO request);
 
-    List<PermissionDetailDTO> getUserPermissions(String userId);
+    List<PermissionDetailDTO> getUserPermissions(Long userId);
+
 }

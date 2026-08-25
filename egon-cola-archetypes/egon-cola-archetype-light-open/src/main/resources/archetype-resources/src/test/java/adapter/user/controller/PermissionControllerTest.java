@@ -14,7 +14,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.util.List;
 
@@ -41,9 +40,6 @@ class PermissionControllerTest {
 
     @MockitoBean
     private PermissionManage permissionManage;
-
-    @MockitoBean
-    private LongIdGenerator idGenerator;
 
     @Test
     void grants_permission() throws Exception {

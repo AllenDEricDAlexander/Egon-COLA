@@ -11,16 +11,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import lombok.RequiredArgsConstructor;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import java.util.UUID;
 
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@RequiredArgsConstructor
 public class TraceIdFilter extends OncePerRequestFilter {
     public static final String TRACE_ID_HEADER = "X-Trace-Id";
     public static final String TRACE_ID_ATTRIBUTE = TraceIdFilter.class.getName() + ".traceId";
-    private final LongIdGenerator idGenerator;
 
     @Override
     protected void doFilterInternal(
@@ -29,7 +26,7 @@ public class TraceIdFilter extends OncePerRequestFilter {
             FilterChain filterChain) throws ServletException, IOException {
         String traceId = request.getHeader(TRACE_ID_HEADER);
         if (traceId == null || traceId.isBlank()) {
-            traceId = Long.toString(idGenerator.nextLongId());
+            traceId = UUID.randomUUID().toString();
         }
         request.setAttribute(TRACE_ID_ATTRIBUTE, traceId);
         response.setHeader(TRACE_ID_HEADER, traceId);

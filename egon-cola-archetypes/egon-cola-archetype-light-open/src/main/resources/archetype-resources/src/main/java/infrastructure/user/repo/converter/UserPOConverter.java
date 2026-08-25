@@ -4,21 +4,25 @@ import ${package}.domain.user.entities.User;
 import ${package}.domain.user.enums.UserStatus;
 import ${package}.domain.user.vos.UserId;
 import ${package}.infrastructure.user.repo.po.UserPO;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
+import top.egon.cola.component.common.core.converter.BaseConverter;
 
-import java.time.Instant;
+/** MapStruct conversion between the user domain entity and its PO. */
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+public interface UserPOConverter extends BaseConverter<User, UserPO> {
 
-@Component
-public class UserPOConverter {
-    public UserPO toPO(User user) {
-        return new UserPO(
-                user.id().value(), user.externalId(), user.name(), user.email(),
-                user.status().name(), Instant.now());
-    }
+    @Override
+    @Mapping(target = "externalId", expression = "java(source.externalId())")
+    @Mapping(target = "name", expression = "java(source.name())")
+    @Mapping(target = "email", expression = "java(source.email())")
+    @Mapping(target = "status", expression = "java(source.status().name())")
+    UserPO toTarget(User source);
 
-    public User toDomain(UserPO user) {
-        return new User(
-                new UserId(user.getId()), user.getExternalId(), user.getName(), user.getEmail(),
-                UserStatus.valueOf(user.getStatus()));
+    @Override
+    default User toSource(UserPO target) {
+        return new User(new UserId(target.getId()), target.getExternalId(), target.getName(),
+                target.getEmail(), UserStatus.valueOf(target.getStatus()));
     }
 }

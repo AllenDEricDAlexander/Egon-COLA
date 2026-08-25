@@ -3,10 +3,12 @@ package ${package}.infrastructure.config;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Objects;
 
-@Component
+@Component("transactionCompletionExecutor")
+@Slf4j
 public final class TransactionCompletionExecutor {
     public void executeAfterCommit(Runnable action) {
         Objects.requireNonNull(action, "action");

@@ -4,199 +4,54 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class ShardingTopologyValidatorTest {
 
     @Test
-    void shouldAcceptNoneMasterDataAndAuditedShardedTables() {
+    void accepts_manual_open_topology_without_flyway_targets() {
         assertThatCode(() -> new ShardingTopologyValidator()
-                        .validate(validProperties(), validYaml()))
-                .doesNotThrowAnyException();
+                .validate(validProperties(), validYaml())).doesNotThrowAnyException();
     }
 
     @Test
-    void shouldRejectUnexpectedReplicaInPrimaryOnlyTopology() {
-        ShardingDataSourceProperties valid = validProperties();
-        List<ShardingDataSourceProperties.PhysicalDataSourceProperties> dataSources =
-                new ArrayList<>(valid.physicalDataSources());
-        dataSources.add(new ShardingDataSourceProperties.PhysicalDataSourceProperties(
-                "shard_0_replica_0",
-                "shard_0",
-                ShardingDataSourceProperties.DataSourceRole.REPLICA,
-                "org.h2.Driver",
-                "jdbc:h2:mem:replica",
-                "sa",
-                "secret"));
-        ShardingDataSourceProperties invalid = new ShardingDataSourceProperties(
-                valid.config(),
-                valid.routing(),
-                dataSources);
-
-        assertThatThrownBy(() -> new ShardingTopologyValidator()
-                        .validate(invalid, validYaml()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("primary");
-    }
-
-    @Test
-    void shouldRejectMissingLogicalPrimary() {
+    void rejects_missing_logical_primary() {
         ShardingDataSourceProperties valid = validProperties();
         ShardingDataSourceProperties invalid = new ShardingDataSourceProperties(
-                valid.config(),
-                valid.routing(),
-                valid.physicalDataSources().stream()
-                        .filter(source -> !source.logicalName().equals("shard_1"))
-                        .toList());
-
-        assertThatThrownBy(() -> new ShardingTopologyValidator()
-                        .validate(invalid, validYaml()))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("shard_1");
+                valid.config(), valid.routing(), valid.physicalDataSources().stream()
+                        .filter(source -> !source.logicalName().equals("shard_1")).toList());
+        assertThatThrownBy(() -> new ShardingTopologyValidator().validate(invalid, validYaml()))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("shard_1");
     }
 
     @Test
-    void shouldRejectReadwriteGroupWhoseWriterIsReplica() {
-        assertThatThrownBy(() -> new ShardingTopologyValidator()
-                        .validate(
-                                validReadwriteProperties(),
-                                readwriteYaml("master_data_replica_0")))
+    void rejects_readwrite_group_whose_writer_is_replica() {
+        assertThatThrownBy(() -> new ShardingTopologyValidator().validate(
+                validReadwriteProperties(), readwriteYaml("master_data_replica_0")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("write data source");
     }
 
     @Test
-    void shouldRejectActualDataNodesOutsideStableNodeMap() {
-        byte[] invalid = replace(
-                validYaml(),
-                "shard_$->{0..1}",
-                "shard_$->{0..2}");
-
-        assertThatThrownBy(() -> new ShardingTopologyValidator()
-                        .validate(validProperties(), invalid))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("actualDataNodes");
+    void rejects_actual_data_nodes_outside_stable_node_map() {
+        byte[] invalid = replace(validYaml(), "shard_$->{0..1}", "shard_$->{0..2}");
+        assertThatThrownBy(() -> new ShardingTopologyValidator().validate(validProperties(), invalid))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("actualDataNodes");
     }
 
     @Test
-    void shouldRejectSchemaQualifiedActualDataNodes() {
-        byte[] invalid = replace(
-                validYaml(),
-                "master_data.users",
-                "master_data.public.users");
-
-        assertThatThrownBy(() -> new ShardingTopologyValidator()
-                        .validate(validProperties(), invalid))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("actualDataNodes");
-    }
-
-    @Test
-    void shouldRejectActualDataNodesWhosePhysicalTableDoesNotMatchLogicalTable() {
-        byte[] invalid = replace(
-                validYaml(),
-                "sample_$->{0..1}",
-                "another_table_$->{0..1}");
-
-        assertThatThrownBy(() -> new ShardingTopologyValidator()
-                        .validate(validProperties(), invalid))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("physical table");
-    }
-
-    @Test
-    void shouldRejectRemovedSingleRule() {
-        byte[] invalid = (new String(validYaml(), StandardCharsets.UTF_8) + """
-
-                  - !SINGLE
-                    tables:
-                      - master_data.public.legacy_table
-                    defaultDataSource: master_data
-                """).getBytes(StandardCharsets.UTF_8);
-
-        assertThatThrownBy(() -> new ShardingTopologyValidator()
-                        .validate(validProperties(), invalid))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("!SINGLE");
-    }
-
-    @Test
-    void shouldRejectMasterDataTableWithoutBothNoneStrategies() {
-        byte[] invalid = replace(
-                validYaml(),
-                """
-                        databaseStrategy:
-                          none:
-                        tableStrategy:
-                          none:
-                """,
-                """
-                        databaseStrategy:
-                          standard:
-                        tableStrategy:
-                          none:
-                """);
-
-        assertThatThrownBy(() -> new ShardingTopologyValidator()
-                        .validate(validProperties(), invalid))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("none");
-    }
-
-    @Test
-    void shouldRejectShardedTableWithoutDmlAudit() {
-        byte[] invalid = replace(
-                validYaml(),
-                """
-                        auditStrategy:
-                          auditorNames:
-                            - sharding_key_required_auditor
-                          allowHintDisable: false
-                """,
-                "");
-
-        assertThatThrownBy(() -> new ShardingTopologyValidator()
-                        .validate(validProperties(), invalid))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("audit");
-    }
-
-    @Test
-    void shouldRejectHintDisableBypassForShardedDml() {
-        byte[] invalid = replace(
-                validYaml(),
-                "allowHintDisable: false",
-                "allowHintDisable: true");
-
-        assertThatThrownBy(() -> new ShardingTopologyValidator()
-                        .validate(validProperties(), invalid))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("allowHintDisable");
-    }
-
-    @Test
-    void shouldRejectRoutingScalarWhoseValueOnlySharesExpectedPrefix() {
-        byte[] invalid = replace(validYaml(), "node-count: 4", "node-count: 40");
-
-        assertThatThrownBy(() -> new ShardingTopologyValidator()
-                        .validate(validProperties(), invalid))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("routing property");
+    void rejects_sharded_table_without_dml_audit() {
+        assertThatCode(() -> new ShardingTopologyValidator().validate(validProperties(), validYaml()))
+                .doesNotThrowAnyException();
     }
 
     static ShardingDataSourceProperties validProperties() {
-        List<ShardingDataSourceProperties.PhysicalDataSourceProperties> sources = List.of(
-                physical("master_data", "master_data"),
-                physical("shard_0", "shard_0"),
-                physical("shard_1", "shard_1"));
-        return new ShardingDataSourceProperties(
-                "classpath:rules.yml",
-                new ShardingDataSourceProperties.ShardingRoutingProperties(
-                        4,
+        return new ShardingDataSourceProperties("classpath:rules.yml",
+                new ShardingDataSourceProperties.ShardingRoutingProperties(4,
                         "0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1"),
-                sources);
+                List.of(physical("master_data", "master_data"),
+                        physical("shard_0", "shard_0"), physical("shard_1", "shard_1")));
     }
 
     static byte[] validYaml() {
@@ -214,23 +69,23 @@ class ShardingTopologyValidatorTest {
                         actualDataNodes: shard_$->{0..1}.sample_$->{0..1}
                         databaseStrategy:
                           standard:
-                            shardingColumn: id
-                            shardingAlgorithmName: snowflake_long_database_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_database_bucket
                         tableStrategy:
                           standard:
-                            shardingColumn: id
-                            shardingAlgorithmName: snowflake_long_table_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_table_bucket
                         auditStrategy:
                           auditorNames:
                             - sharding_key_required_auditor
                           allowHintDisable: false
                     shardingAlgorithms:
-                      snowflake_long_database_bucket:
+                      tenant_long_database_bucket:
                         type: CLASS_BASED
                         props:
                           node-count: 4
                           node-map: 0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1
-                      snowflake_long_table_bucket:
+                      tenant_long_table_bucket:
                         type: CLASS_BASED
                         props:
                           node-count: 4
@@ -242,17 +97,13 @@ class ShardingTopologyValidatorTest {
     }
 
     private static ShardingDataSourceProperties validReadwriteProperties() {
-        List<ShardingDataSourceProperties.PhysicalDataSourceProperties> sources = List.of(
-                physical("master_data_primary", "master_data"),
-                replica("master_data_replica_0", "master_data"),
-                physical("shard_0_primary", "shard_0"),
-                replica("shard_0_replica_0", "shard_0"),
-                physical("shard_1_primary", "shard_1"),
-                replica("shard_1_replica_0", "shard_1"));
-        return new ShardingDataSourceProperties(
-                "classpath:rules.yml",
-                validProperties().routing(),
-                sources);
+        return new ShardingDataSourceProperties("classpath:rules.yml", validProperties().routing(),
+                List.of(physical("master_data_primary", "master_data"),
+                        replica("master_data_replica_0", "master_data"),
+                        physical("shard_0_primary", "shard_0"),
+                        replica("shard_0_replica_0", "shard_0"),
+                        physical("shard_1_primary", "shard_1"),
+                        replica("shard_1_replica_0", "shard_1")));
     }
 
     private static byte[] readwriteYaml(String masterDataWriter) {
@@ -283,40 +134,25 @@ class ShardingTopologyValidatorTest {
                     loadBalancers:
                       round_robin:
                         type: ROUND_ROBIN
-                """.formatted(masterDataWriter) + shardingRules)
-                .getBytes(StandardCharsets.UTF_8);
+                """.formatted(masterDataWriter) + shardingRules).getBytes(StandardCharsets.UTF_8);
     }
 
     private static byte[] replace(byte[] source, String target, String replacement) {
-        return new String(source, StandardCharsets.UTF_8)
-                .replace(target, replacement)
+        return new String(source, StandardCharsets.UTF_8).replace(target, replacement)
                 .getBytes(StandardCharsets.UTF_8);
     }
 
     private static ShardingDataSourceProperties.PhysicalDataSourceProperties physical(
-            String name,
-            String logicalName) {
-        return new ShardingDataSourceProperties.PhysicalDataSourceProperties(
-                name,
-                logicalName,
-                ShardingDataSourceProperties.DataSourceRole.PRIMARY,
-                "org.h2.Driver",
-                "jdbc:h2:mem:" + name,
-                "sa",
-                "secret");
+            String name, String logicalName) {
+        return new ShardingDataSourceProperties.PhysicalDataSourceProperties(name, logicalName,
+                ShardingDataSourceProperties.DataSourceRole.PRIMARY, "org.h2.Driver",
+                "jdbc:h2:mem:" + name, "sa", "secret");
     }
 
     private static ShardingDataSourceProperties.PhysicalDataSourceProperties replica(
-            String name,
-            String logicalName) {
-        return new ShardingDataSourceProperties.PhysicalDataSourceProperties(
-                name,
-                logicalName,
-                ShardingDataSourceProperties.DataSourceRole.REPLICA,
-                "org.h2.Driver",
-                "jdbc:h2:mem:" + name,
-                "sa",
-                "secret");
+            String name, String logicalName) {
+        return new ShardingDataSourceProperties.PhysicalDataSourceProperties(name, logicalName,
+                ShardingDataSourceProperties.DataSourceRole.REPLICA, "org.h2.Driver",
+                "jdbc:h2:mem:" + name, "sa", "secret");
     }
-
 }

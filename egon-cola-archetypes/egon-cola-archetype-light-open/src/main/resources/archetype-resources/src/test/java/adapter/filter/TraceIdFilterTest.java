@@ -15,7 +15,7 @@ class TraceIdFilterTest {
         request.addHeader(TraceIdFilter.TRACE_ID_HEADER, "trace-1");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        new TraceIdFilter(() -> 42L).doFilter(request, response, mock(FilterChain.class));
+        new TraceIdFilter().doFilter(request, response, mock(FilterChain.class));
 
         assertThat(response.getHeader(TraceIdFilter.TRACE_ID_HEADER)).isEqualTo("trace-1");
     }

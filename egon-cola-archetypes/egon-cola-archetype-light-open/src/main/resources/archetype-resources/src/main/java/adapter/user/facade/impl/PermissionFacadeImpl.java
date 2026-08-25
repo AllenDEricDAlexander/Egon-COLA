@@ -11,13 +11,17 @@ import ${package}.facade.user.dto.PermissionDetailDTO;
 import ${package}.facade.user.dto.PermissionDTO;
 import ${package}.facade.user.exceptions.UserFacadeException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Component
+@Component("permissionFacadeImpl")
 @RequiredArgsConstructor
+@Slf4j
 public class PermissionFacadeImpl implements PermissionFacade {
+    @Qualifier("permissionManageImpl")
     private final PermissionManage permissionManage;
 
     @Override
@@ -32,9 +36,9 @@ public class PermissionFacadeImpl implements PermissionFacade {
     }
 
     @Override
-    public List<PermissionDetailDTO> getUserPermissions(String userId) {
+    public List<PermissionDetailDTO> getUserPermissions(Long userId) {
         try {
-            return permissionManage.getByUser(new GetUserPermissionsQuery(parseId(userId, "userId"))).stream()
+            return permissionManage.getByUser(new GetUserPermissionsQuery(userId)).stream()
                     .map(permission -> new PermissionDetailDTO(
                             permission.code(), permission.name(), List.of()))
                     .toList();
@@ -43,13 +47,4 @@ public class PermissionFacadeImpl implements PermissionFacade {
         }
     }
 
-    private static long parseId(String value, String field) {
-        try {
-            long id = Long.parseLong(value);
-            if (id <= 0) throw new NumberFormatException(field);
-            return id;
-        } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException(field + " must be a positive decimal Long", exception);
-        }
-    }
 }

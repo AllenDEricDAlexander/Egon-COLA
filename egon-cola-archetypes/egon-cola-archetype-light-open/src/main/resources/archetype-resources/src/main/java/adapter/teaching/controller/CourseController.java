@@ -33,16 +33,6 @@ public class CourseController {
 
     @GetMapping("/{courseId}")
     public CourseDetailVO get(@PathVariable String courseId) {
-        return convertor.toCourse(courseManage.get(new GetCourseQuery(parseId(courseId))));
-    }
-
-    private static long parseId(String value) {
-        try {
-            long id = Long.parseLong(value);
-            if (id <= 0) throw new NumberFormatException();
-            return id;
-        } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("courseId must be a positive decimal Long", exception);
-        }
+        return convertor.toCourse(courseManage.get(new GetCourseQuery(Long.valueOf(courseId))));
     }
 }

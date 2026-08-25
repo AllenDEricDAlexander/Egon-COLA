@@ -9,5 +9,6 @@ public interface SchoolClassFacade {
 
     SchoolClassDetailDTO scheduleCourse(ScheduleCourseDTO request);
 
-    SchoolClassDetailDTO getSchoolClass(String schoolClassId);
+    SchoolClassDetailDTO getSchoolClass(Long schoolClassId);
+
 }

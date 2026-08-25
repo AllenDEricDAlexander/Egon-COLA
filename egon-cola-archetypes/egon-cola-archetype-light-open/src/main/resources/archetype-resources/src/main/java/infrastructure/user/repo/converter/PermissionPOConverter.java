@@ -4,20 +4,24 @@ import ${package}.domain.user.entities.Permission;
 import ${package}.domain.user.enums.PermissionStatus;
 import ${package}.domain.user.vos.PermissionCode;
 import ${package}.infrastructure.user.repo.po.PermissionPO;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
+import top.egon.cola.component.common.core.converter.BaseConverter;
 
-import java.time.Instant;
+/** MapStruct conversion between the permission domain entity and its PO. */
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+public interface PermissionPOConverter extends BaseConverter<Permission, PermissionPO> {
 
-@Component
-public class PermissionPOConverter {
-    public PermissionPO toPO(Permission permission) {
-        return new PermissionPO(
-                permission.code().value(), permission.name(), permission.status().name(), Instant.now());
-    }
+    @Override
+    @Mapping(target = "code", expression = "java(source.code().value())")
+    @Mapping(target = "name", expression = "java(source.name())")
+    @Mapping(target = "status", expression = "java(source.status().name())")
+    PermissionPO toTarget(Permission source);
 
-    public Permission toDomain(PermissionPO permission) {
-        return new Permission(
-                new PermissionCode(permission.getCode()), permission.getName(),
-                PermissionStatus.valueOf(permission.getStatus()));
+    @Override
+    default Permission toSource(PermissionPO target) {
+        return new Permission(new PermissionCode(target.getCode()), target.getName(),
+                PermissionStatus.valueOf(target.getStatus()));
     }
 }

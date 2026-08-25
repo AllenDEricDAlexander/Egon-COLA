@@ -24,7 +24,7 @@ class UserFacadeImplTest {
     void converts_application_result() {
         when(userManage.create(any())).thenReturn(new UserResult(1001L, "Mario", "mario@example.com", "ACTIVE"));
         assertThat(facade.createUser(new CreateUserDTO("ext-1", "Mario", "mario@example.com", "operator-1", "request-1")).id())
-                .isEqualTo("1001");
+                .isEqualTo(1001L);
     }
 
     @Test

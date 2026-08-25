@@ -16,13 +16,17 @@ class ManualSqlConventionTest {
             "db/manual/postgresql/master-data/001__create_light_master_data_schema.sql";
     private static final String SHARD =
             "db/manual/postgresql/shard/002__create_light_sharded_schema.sql";
+    private static final String MASTER_MIGRATION =
+            "db/manual/postgresql/master-data/003__migrate_light_master_data_to_egon_model.sql";
+    private static final String SHARD_MIGRATION =
+            "db/manual/postgresql/shard/004__migrate_light_sharded_to_tenant_model.sql";
     private static final Pattern FORBIDDEN = Pattern.compile(
             ("fly" + "way|liqui" + "base|u" + "uid|schema\\.sql|\\bV\\d+__"),
             Pattern.CASE_INSENSITIVE);
 
     @Test
     void exposes_only_the_ordered_light_manual_sql_contract() throws Exception {
-        List<String> resources = List.of(MASTER, SHARD);
+        List<String> resources = List.of(MASTER, SHARD, MASTER_MIGRATION, SHARD_MIGRATION);
         for (String resource : resources) {
             String sql = read(resource);
             assertThat(sql).startsWith("-- 变更内容：")
@@ -34,6 +38,8 @@ class ManualSqlConventionTest {
         assertThat(read("db/manual/postgresql/README.md"))
                 .contains("master-data/001__create_light_master_data_schema.sql")
                 .contains("shard/002__create_light_sharded_schema.sql")
+                .contains("master-data/003__migrate_light_master_data_to_egon_model.sql")
+                .contains("shard/004__migrate_light_sharded_to_tenant_model.sql")
                 .contains("psql")
                 .containsIgnoringCase("checksum")
                 .containsIgnoringCase("verification")

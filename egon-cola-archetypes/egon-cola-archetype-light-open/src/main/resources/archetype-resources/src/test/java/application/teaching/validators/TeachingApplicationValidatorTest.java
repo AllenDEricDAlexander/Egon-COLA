@@ -3,7 +3,7 @@ package ${package}.application.teaching.validators;
 import ${package}.application.teaching.command.CreateCourseCommand;
 import ${package}.application.teaching.command.ScheduleCourseCommand;
 import ${package}.application.teaching.manage.TeachingUseCaseException;
-import ${package}.domain.teaching.service.CourseCacheService;
+import ${package}.domain.teaching.client.CourseCachePort;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -17,7 +17,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class TeachingApplicationValidatorTest {
-    private final CourseCacheService courseCacheService = mock(CourseCacheService.class);
+    private final CourseCachePort courseCacheService = mock(CourseCachePort.class);
     private final TeachingApplicationValidator validator = new TeachingApplicationValidator(courseCacheService);
 
     @Test
@@ -45,7 +45,7 @@ class TeachingApplicationValidatorTest {
     void rejects_invalid_schedule_interval() {
         LocalDateTime startsAt = LocalDateTime.of(2026, 9, 1, 10, 0);
         ScheduleCourseCommand command = new ScheduleCourseCommand(
-                3001L, 2001L, startsAt, startsAt, "operator-1", "request-1");
+                1003L, 1002L, startsAt, startsAt, "operator-1", "request-1");
 
         TeachingUseCaseException error = assertThrows(
                 TeachingUseCaseException.class, () -> validator.validate(command));
@@ -65,7 +65,7 @@ class TeachingApplicationValidatorTest {
 
     private ScheduleCourseCommand validCommand() {
         return new ScheduleCourseCommand(
-                3001L, 2001L,
+                1003L, 1002L,
                 LocalDateTime.of(2026, 9, 1, 9, 0),
                 LocalDateTime.of(2026, 9, 1, 10, 0),
                 "operator-1", "request-1");

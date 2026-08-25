@@ -12,11 +12,15 @@ import ${package}.facade.teaching.dto.ScheduleCourseDTO;
 import ${package}.facade.teaching.dto.SchoolClassDetailDTO;
 import ${package}.facade.teaching.exceptions.TeachingFacadeException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("schoolClassFacadeImpl")
 @RequiredArgsConstructor
+@Slf4j
 public class SchoolClassFacadeImpl implements SchoolClassFacade {
+    @Qualifier("schoolClassManageImpl")
     private final SchoolClassManage schoolClassManage;
 
     @Override
@@ -33,8 +37,7 @@ public class SchoolClassFacadeImpl implements SchoolClassFacade {
     public SchoolClassDetailDTO scheduleCourse(ScheduleCourseDTO request) {
         try {
             return toDto(schoolClassManage.schedule(new ScheduleCourseCommand(
-                    parseId(request.schoolClassId(), "schoolClassId"), parseId(request.courseId(), "courseId"),
-                    request.startsAt(), request.endsAt(),
+                    request.schoolClassId(), request.courseId(), request.startsAt(), request.endsAt(),
                     request.operatorId(), request.requestId())));
         } catch (TeachingUseCaseException exception) {
             throw publicFailure(exception);
@@ -42,9 +45,9 @@ public class SchoolClassFacadeImpl implements SchoolClassFacade {
     }
 
     @Override
-    public SchoolClassDetailDTO getSchoolClass(String schoolClassId) {
+    public SchoolClassDetailDTO getSchoolClass(Long schoolClassId) {
         try {
-            return toDto(schoolClassManage.get(new GetSchoolClassQuery(parseId(schoolClassId, "schoolClassId"))));
+            return toDto(schoolClassManage.get(new GetSchoolClassQuery(schoolClassId)));
         } catch (TeachingUseCaseException exception) {
             throw publicFailure(exception);
         }
@@ -52,17 +55,7 @@ public class SchoolClassFacadeImpl implements SchoolClassFacade {
 
     private static SchoolClassDetailDTO toDto(SchoolClassResult result) {
         return new SchoolClassDetailDTO(
-                Long.toString(result.id()), result.name(), result.semester(), result.status(), result.scheduleCount());
-    }
-
-    private static long parseId(String value, String field) {
-        try {
-            long id = Long.parseLong(value);
-            if (id <= 0) throw new NumberFormatException(field);
-            return id;
-        } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException(field + " must be a positive decimal Long", exception);
-        }
+                result.id(), result.name(), result.semester(), result.status(), result.scheduleCount());
     }
 
     private static TeachingFacadeException publicFailure(TeachingUseCaseException exception) {

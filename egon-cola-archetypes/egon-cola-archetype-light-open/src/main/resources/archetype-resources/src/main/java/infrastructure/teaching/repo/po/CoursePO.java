@@ -1,30 +1,29 @@
 package ${package}.infrastructure.teaching.repo.po;
 
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.IdType;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.experimental.Accessors;
+import top.egon.cola.component.common.mybatis.model.EgonModel;
 
-import java.time.Instant;
-
-@TableName("courses")
+/** Persistence model for a course. */
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter
-@Setter
-public class CoursePO {
-    @TableId(value = "id", type = IdType.INPUT)
-    private Long id;
+@Builder
+@Accessors(chain = true)
+@TableName("light_courses")
+public class CoursePO extends EgonModel<CoursePO> {
+
     @TableField("course_code")
     private String courseCode;
+
     @TableField("name")
     private String name;
+
     @TableField("status")
     private String status;
-    @TableField("created_at")
-    private Instant createdAt;
 }

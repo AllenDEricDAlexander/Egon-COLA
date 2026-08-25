@@ -2,7 +2,7 @@ package ${package}.application.user.validators;
 
 import ${package}.application.user.command.CreateUserCommand;
 import ${package}.application.user.manage.UserUseCaseException;
-import ${package}.domain.user.service.UserCacheService;
+import ${package}.domain.user.client.UserCachePort;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -15,7 +15,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class UserApplicationValidatorTest {
-    private final UserCacheService userCacheService = mock(UserCacheService.class);
+    private final UserCachePort userCacheService = mock(UserCachePort.class);
     private final UserApplicationValidator validator = new UserApplicationValidator(userCacheService);
 
     @Test

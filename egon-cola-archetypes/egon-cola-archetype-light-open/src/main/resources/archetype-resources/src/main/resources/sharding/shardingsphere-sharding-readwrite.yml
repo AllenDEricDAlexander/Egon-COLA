@@ -28,86 +28,86 @@ rules:
 
   - !SHARDING
     tables:
-      users:
-        actualDataNodes: master_data.users
+      light_users:
+        actualDataNodes: master_data.light_users
         databaseStrategy:
           none:
         tableStrategy:
           none:
-      roles:
-        actualDataNodes: master_data.roles
+      light_roles:
+        actualDataNodes: master_data.light_roles
         databaseStrategy:
           none:
         tableStrategy:
           none:
-      permissions:
-        actualDataNodes: master_data.permissions
+      light_permissions:
+        actualDataNodes: master_data.light_permissions
         databaseStrategy:
           none:
         tableStrategy:
           none:
-      user_roles:
-        actualDataNodes: master_data.user_roles
+      light_user_roles:
+        actualDataNodes: master_data.light_user_roles
         databaseStrategy:
           none:
         tableStrategy:
           none:
-      role_permissions:
-        actualDataNodes: master_data.role_permissions
+      light_role_permissions:
+        actualDataNodes: master_data.light_role_permissions
         databaseStrategy:
           none:
         tableStrategy:
           none:
-      courses:
-        actualDataNodes: master_data.courses
+      light_courses:
+        actualDataNodes: master_data.light_courses
         databaseStrategy:
           none:
         tableStrategy:
           none:
-      school_classes:
-        actualDataNodes: shard_${symbol_dollar}->{0..1}.school_classes_${symbol_dollar}->{0..1}
+      light_school_classes:
+        actualDataNodes: shard_${symbol_dollar}->{0..1}.light_school_classes_${symbol_dollar}->{0..1}
         databaseStrategy:
           standard:
-            shardingColumn: id
-            shardingAlgorithmName: snowflake_long_database_bucket
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_database_bucket
         tableStrategy:
           standard:
-            shardingColumn: id
-            shardingAlgorithmName: snowflake_long_table_bucket
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_table_bucket
         auditStrategy:
           auditorNames:
             - sharding_key_required_auditor
           allowHintDisable: false
-      class_course_schedules:
-        actualDataNodes: shard_${symbol_dollar}->{0..1}.class_course_schedules_${symbol_dollar}->{0..1}
+      light_class_course_schedules:
+        actualDataNodes: shard_${symbol_dollar}->{0..1}.light_class_course_schedules_${symbol_dollar}->{0..1}
         databaseStrategy:
           standard:
-            shardingColumn: school_class_id
-            shardingAlgorithmName: snowflake_long_database_bucket
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_database_bucket
         tableStrategy:
           standard:
-            shardingColumn: school_class_id
-            shardingAlgorithmName: snowflake_long_table_bucket
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_table_bucket
         auditStrategy:
           auditorNames:
             - sharding_key_required_auditor
           allowHintDisable: false
     bindingTables:
-      - school_classes,class_course_schedules
+      - light_school_classes,light_class_course_schedules
     shardingAlgorithms:
-      snowflake_long_database_bucket:
+      tenant_long_database_bucket:
         type: CLASS_BASED
         props:
           strategy: STANDARD
-          algorithmClassName: ${package}.infrastructure.config.datasource.SnowflakeLongShardingAlgorithm
+          algorithmClassName: ${package}.infrastructure.config.datasource.LongTenantShardingAlgorithm
           target: database
           node-count: ${symbol_dollar}{app.sharding.routing.node-count}
           node-map: ${symbol_dollar}{app.sharding.routing.node-map}
-      snowflake_long_table_bucket:
+      tenant_long_table_bucket:
         type: CLASS_BASED
         props:
           strategy: STANDARD
-          algorithmClassName: ${package}.infrastructure.config.datasource.SnowflakeLongShardingAlgorithm
+          algorithmClassName: ${package}.infrastructure.config.datasource.LongTenantShardingAlgorithm
           target: table
           node-count: ${symbol_dollar}{app.sharding.routing.node-count}
           node-map: ${symbol_dollar}{app.sharding.routing.node-map}

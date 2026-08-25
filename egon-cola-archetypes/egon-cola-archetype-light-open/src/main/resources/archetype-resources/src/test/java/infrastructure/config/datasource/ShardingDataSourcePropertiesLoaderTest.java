@@ -30,6 +30,12 @@ class ShardingDataSourcePropertiesLoaderTest {
         values.put("app.sharding.physical-data-sources[0].username", "sa");
         values.put("app.sharding.physical-data-sources[0].password", "");
         values.put(
+                "app.sharding.flyway.targets[0].data-source-name",
+                "master_data");
+        values.put(
+                "app.sharding.flyway.targets[0].locations[0]",
+                "classpath:db/migration/sharding/master-data");
+        values.put(
                 "app.sharding-readwrite.physical-data-sources[0].jdbc-url",
                 "${MISSING_READWRITE_URL}");
         StandardEnvironment environment = new StandardEnvironment();
@@ -82,6 +88,12 @@ class ShardingDataSourcePropertiesLoaderTest {
         values.put(
                 "app.sharding-readwrite.physical-data-sources[0].password",
                 "");
+        values.put(
+                "app.sharding-readwrite.flyway.targets[0].data-source-name",
+                "master_data_primary");
+        values.put(
+                "app.sharding-readwrite.flyway.targets[0].locations[0]",
+                "classpath:db/migration/sharding/master-data");
         StandardEnvironment environment = new StandardEnvironment();
         environment.getPropertySources().addFirst(
                 new MapPropertySource("test", values));

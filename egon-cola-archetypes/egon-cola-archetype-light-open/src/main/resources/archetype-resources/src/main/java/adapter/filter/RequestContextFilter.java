@@ -10,16 +10,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import lombok.RequiredArgsConstructor;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import java.util.UUID;
 
 @Component("domainRequestContextFilter")
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
-@RequiredArgsConstructor
 public class RequestContextFilter extends OncePerRequestFilter {
     public static final String OPERATOR_ID_HEADER = "X-Operator-Id";
     public static final String REQUEST_ID_HEADER = "X-Request-Id";
-    private final LongIdGenerator idGenerator;
 
     @Override
     protected void doFilterInternal(
@@ -37,13 +34,12 @@ public class RequestContextFilter extends OncePerRequestFilter {
         }
     }
 
-    private String attributeOrHeader(HttpServletRequest request) {
+    private static String attributeOrHeader(HttpServletRequest request) {
         Object attribute = request.getAttribute(TraceIdFilter.TRACE_ID_ATTRIBUTE);
         if (attribute instanceof String traceId && !traceId.isBlank()) {
             return traceId;
         }
-        return headerOrDefault(request, TraceIdFilter.TRACE_ID_HEADER,
-                Long.toString(idGenerator.nextLongId()));
+        return headerOrDefault(request, TraceIdFilter.TRACE_ID_HEADER, UUID.randomUUID().toString());
     }
 
     private static String headerOrDefault(HttpServletRequest request, String name, String fallback) {

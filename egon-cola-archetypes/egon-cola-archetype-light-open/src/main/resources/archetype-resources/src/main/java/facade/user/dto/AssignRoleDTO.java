@@ -3,7 +3,7 @@ package ${package}.facade.user.dto;
 import java.io.Serializable;
 
 public record AssignRoleDTO(
-        String userId,
+        Long userId,
         String roleCode,
         String operatorId,
         String requestId) implements Serializable {

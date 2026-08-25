@@ -1,28 +1,29 @@
 package ${package}.infrastructure.user.repo.po;
 
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.IdType;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.experimental.Accessors;
+import top.egon.cola.component.common.mybatis.model.EgonModel;
 
-import java.time.Instant;
-
-@TableName("permissions")
+/** Persistence model for an authorization permission. */
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter
-@Setter
-public class PermissionPO {
-    @TableId(value = "code", type = IdType.INPUT)
+@Builder
+@Accessors(chain = true)
+@TableName("light_permissions")
+public class PermissionPO extends EgonModel<PermissionPO> {
+
+    @TableField("code")
     private String code;
+
     @TableField("name")
     private String name;
+
     @TableField("status")
     private String status;
-    @TableField("created_at")
-    private Instant createdAt;
 }

@@ -27,8 +27,8 @@ class CourseResolverTest {
 
     @Test
     void resolves_course() {
-        when(courseManage.get(any())).thenReturn(new CourseResult(2001L, "MATH", "Math", "ACTIVE"));
-        graphQlTester.document("{ course(id: \"2001\") { id code name status } }")
+        when(courseManage.get(any())).thenReturn(new CourseResult(1002L, "MATH", "Math", "ACTIVE"));
+        graphQlTester.document("{ course(id: \"1002\") { id code name status } }")
                 .execute()
                 .path("course.code").entity(String.class).isEqualTo("MATH");
     }
@@ -36,8 +36,8 @@ class CourseResolverTest {
     @Test
     void resolves_school_class() {
         when(schoolClassManage.get(any())).thenReturn(
-                new SchoolClassResult(3001L, "Class One", "2026-FALL", "ACTIVE", 2));
-        graphQlTester.document("{ schoolClass(id: \"3001\") { id name semester status scheduleCount } }")
+                new SchoolClassResult(1003L, "Class One", "2026-FALL", "ACTIVE", 2));
+        graphQlTester.document("{ schoolClass(id: \"1003\") { id name semester status scheduleCount } }")
                 .execute()
                 .path("schoolClass.scheduleCount").entity(Integer.class).isEqualTo(2);
     }

@@ -18,36 +18,39 @@ class ManualSchemaIntegrationTest {
 
     private static final String MASTER_SQL =
             "db/manual/postgresql/master-data/001__create_light_master_data_schema.sql";
+    private static final String MASTER_MIGRATION =
+            "db/manual/postgresql/master-data/003__migrate_light_master_data_to_egon_model.sql";
     private static final String SHARD_SQL =
             "db/manual/postgresql/shard/002__create_light_sharded_schema.sql";
+    private static final String SHARD_MIGRATION =
+            "db/manual/postgresql/shard/004__migrate_light_sharded_to_tenant_model.sql";
 
     @Test
-    void fresh_data_source_has_no_tables_until_manual_executor_is_called() throws Exception {
+    void applies_master_schema_and_manual_common_model_migration() throws Exception {
         DataSource dataSource = dataSource("manual-light-fresh");
-
         assertThat(tableNames(dataSource)).isEmpty();
-
-        ManualSchemaTestSupport.executeManually(dataSource, MASTER_SQL);
-
+        ManualSchemaTestSupport.executeManually(dataSource, MASTER_SQL, MASTER_MIGRATION);
         assertThat(tableNames(dataSource)).containsExactlyInAnyOrder(
-                "courses", "permissions", "role_permissions", "roles", "user_roles", "users");
+                "light_courses", "light_permissions", "light_role_permissions", "light_roles", "light_user_roles", "light_users");
+        assertThat(columnType(dataSource, "light_users", "tenant_id"))
+                .isEqualToIgnoringCase("BIGINT");
+        assertThat(columnType(dataSource, "light_users", "is_deleted"))
+                .isEqualToIgnoringCase("BOOLEAN");
     }
 
     @Test
-    void applies_shard_script_explicitly_and_keeps_suffix_schema_in_parity() throws Exception {
+    void applies_shard_schema_and_manual_tenant_migration_in_suffix_parity() throws Exception {
         DataSource shardZero = dataSource("manual-light-shard-0");
         DataSource shardOne = dataSource("manual-light-shard-1");
-
-        ManualSchemaTestSupport.executeManually(shardZero, SHARD_SQL);
-        ManualSchemaTestSupport.executeManually(shardOne, SHARD_SQL);
-
+        ManualSchemaTestSupport.executeManually(shardZero, SHARD_SQL, SHARD_MIGRATION);
+        ManualSchemaTestSupport.executeManually(shardOne, SHARD_SQL, SHARD_MIGRATION);
         assertThat(tableNames(shardZero)).containsExactlyInAnyOrder(
-                "class_course_schedules_0", "class_course_schedules_1",
-                "school_classes_0", "school_classes_1");
+                "light_class_course_schedules_0", "light_class_course_schedules_1",
+                "light_school_classes_0", "light_school_classes_1");
         assertThat(columnDefinitions(shardZero)).isEqualTo(columnDefinitions(shardOne));
-        assertThat(columnType(shardZero, "school_classes_0", "id"))
+        assertThat(columnType(shardZero, "light_school_classes_0", "tenant_id"))
                 .isEqualToIgnoringCase("BIGINT");
-        assertThat(columnType(shardZero, "class_course_schedules_0", "school_class_id"))
+        assertThat(columnType(shardZero, "light_class_course_schedules_0", "school_class_id"))
                 .isEqualToIgnoringCase("BIGINT");
     }
 

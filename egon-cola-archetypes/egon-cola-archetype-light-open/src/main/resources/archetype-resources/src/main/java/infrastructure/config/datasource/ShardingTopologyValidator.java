@@ -261,7 +261,7 @@ public final class ShardingTopologyValidator {
             String[] segments = splitActualDataNode(expression);
 
             if (segments[0].equals("master_data")) {
-                if (!segments[1].equals(logicalTable)) {
+                if (!physicalLogicalTableMatches(logicalTable, segments[1])) {
                     throw new IllegalArgumentException(
                             "master-data physical table must match logical table: "
                                     + logicalTable);
@@ -286,7 +286,7 @@ public final class ShardingTopologyValidator {
                 throw new IllegalArgumentException(
                         "actualDataNodes do not match stable node map: " + expression);
             }
-            if (!logicalTable.equals(physicalTableBaseName(segments[1]))) {
+            if (!physicalLogicalTableMatches(logicalTable, segments[1])) {
                 throw new IllegalArgumentException(
                         "actualDataNodes physical table must match logical table: "
                                 + logicalTable);
@@ -309,6 +309,14 @@ public final class ShardingTopologyValidator {
         if (shardedTablePresent) {
             validateDmlAuditor(shardingRule);
         }
+    }
+
+    private static boolean physicalLogicalTableMatches(String logicalTable, String physicalTable) {
+        String physicalBase = physicalTable.contains("$->{") || physicalTable.matches(".*_\\d+")
+                ? physicalTableBaseName(physicalTable) : physicalTable;
+        return logicalTable.equals(physicalBase)
+                || (logicalTable.startsWith("light_")
+                        && logicalTable.substring("light_".length()).equals(physicalBase));
     }
 
     private static Map<String, TableRule> parseShardingTableRules(String shardingRule) {
