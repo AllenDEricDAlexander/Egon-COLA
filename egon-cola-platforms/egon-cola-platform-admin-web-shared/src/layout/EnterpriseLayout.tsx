@@ -1,53 +1,86 @@
-import { Grid, Layout } from 'antd'
-import type { ReactNode } from 'react'
-import { EnterpriseFooter } from './EnterpriseFooter'
-import { EnterpriseHeader } from './EnterpriseHeader'
-import type { EnterpriseLayoutConfig } from './types'
+import {Grid, Layout} from 'antd'
+import type {ReactNode} from 'react'
+import {useEffect, useMemo, useState} from 'react'
+import {useLocation} from 'react-router-dom'
+import {EnterpriseFooter} from './EnterpriseFooter'
+import {EnterpriseHeader} from './EnterpriseHeader'
+import {EnterpriseSidebar, resolveNavigationSelection} from './EnterpriseSidebar'
+import type {EnterpriseLayoutConfig} from './types'
 
 export interface EnterpriseLayoutProps {
   readonly config: EnterpriseLayoutConfig
   readonly children: ReactNode
 }
 
-/**
- * 统一企业级页面骨架：Header（sticky 顶部导航）+ 可伸缩内容区 + 贴底 Footer。
- * 通过 flex 布局保证最小高度占满视口，内容较少时 Footer 不会悬浮在页面中间。
- */
-export const EnterpriseLayout = ({ config, children }: EnterpriseLayoutProps) => {
+/** Banner plus responsive left navigation shell; navigation state stays local to this layout. */
+export const EnterpriseLayout = ({config, children}: EnterpriseLayoutProps) => {
   const screens = Grid.useBreakpoint()
-  const {
-    platformName,
-    logo,
-    navigation,
-    user,
-    actions,
-    onNavigate,
-    footer,
-    contentStyle,
-  } = config
+  const location = useLocation()
+  const [collapsed, setCollapsed] = useState(false)
+  const [openKeys, setOpenKeys] = useState<readonly string[]>([])
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const navigation = config.navigation ?? []
+  const full = screens.lg === true
+  const selection = useMemo(
+    () => resolveNavigationSelection(navigation, location.pathname),
+    [location.pathname, navigation],
+  )
 
-  return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <EnterpriseHeader
-        platformName={platformName}
-        logo={logo}
-        navigation={navigation}
-        user={user}
-        actions={actions}
-        onNavigate={onNavigate}
-      />
+  useEffect(() => {
+    if (!full) setDrawerOpen(false)
+  }, [full])
+
+  useEffect(() => {
+    if (selection.ancestorKeys.length === 0) return
+    setOpenKeys((current) => {
+      const missing = selection.ancestorKeys.filter((key) => !current.includes(key))
+      return missing.length > 0 ? [...current, ...missing] : current
+    })
+  }, [selection.ancestorKeys])
+
+  const mainColumn = (
+    <Layout style={{minWidth: 0, flex: '1 1 auto'}}>
       <Layout.Content
         style={{
-          flex: '1 0 auto',
-          minWidth: 0,
-          overflowX: 'hidden',
-          padding: screens.md ? 24 : 12,
-          ...contentStyle,
+          flex: '1 0 auto', minWidth: 0, overflowX: 'hidden', padding: screens.md ? 24 : 12,
+          ...config.contentStyle,
         }}
       >
         {children}
       </Layout.Content>
-      <EnterpriseFooter platformName={platformName} {...footer} />
+      <EnterpriseFooter platformName={config.platformName} {...config.footer}/>
+    </Layout>
+  )
+
+  return (
+    <Layout style={{minHeight: '100vh'}}>
+      <EnterpriseHeader
+        platformName={config.platformName}
+        logo={config.logo}
+        user={config.user}
+        actions={config.actions}
+        mobileNavigationVisible={!full && navigation.length > 0}
+        onOpenNavigation={() => setDrawerOpen(true)}
+      />
+      <Layout hasSider={full && navigation.length > 0}>
+        {navigation.length > 0 && (
+          <EnterpriseSidebar
+            items={navigation}
+            collapsed={collapsed}
+            onCollapsedChange={setCollapsed}
+            openKeys={openKeys}
+            onOpenKeysChange={setOpenKeys}
+            selectedKey={selection.selectedKey}
+            mobile={!full}
+            drawerOpen={drawerOpen}
+            onDrawerClose={() => setDrawerOpen(false)}
+            platformName={config.platformName}
+            actions={config.actions}
+            onNavigate={config.onNavigate}
+          />
+        )}
+        {mainColumn}
+      </Layout>
     </Layout>
   )
 }

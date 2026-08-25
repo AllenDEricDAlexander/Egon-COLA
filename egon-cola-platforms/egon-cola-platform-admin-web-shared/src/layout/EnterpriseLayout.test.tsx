@@ -8,8 +8,12 @@ import type { EnterpriseLayoutConfig } from './types'
 const config: EnterpriseLayoutConfig = {
   platformName: 'DDC Admin',
   navigation: [
-    { key: 'registry', label: '服务注册', path: '/registry', group: '运行状态' },
-    { key: 'configs', label: '配置资源', path: '/configs', group: '配置管理' },
+    { key: 'runtime', label: '运行状态', children: [
+      { key: 'registry', label: '服务注册', path: '/registry' },
+    ] },
+    { key: 'configuration', label: '配置管理', children: [
+      { key: 'configs', label: '配置资源', path: '/configs' },
+    ] },
   ],
   user: { name: 'Mario', menu: [{ key: 'logout', label: '退出登录' }] },
   footer: { version: '5.3.2' },
@@ -76,8 +80,10 @@ describe('EnterpriseLayout', () => {
     renderLayout()
 
     expect(screen.getByText('DDC Admin')).toBeInTheDocument()
-    expect(screen.getByRole('menu', { name: '主导航' })).toBeInTheDocument()
+    expect(screen.getByRole('navigation', { name: '主菜单' })).toBeInTheDocument()
+    expect(screen.queryByRole('menu', { name: '主导航' })).not.toBeInTheDocument()
     expect(screen.getByText('服务注册')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('配置管理'))
     expect(screen.getByText('配置资源')).toBeInTheDocument()
     expect(screen.getByText('Mario')).toBeInTheDocument()
     expect(screen.getByText('版本 v5.3.2')).toBeInTheDocument()
@@ -100,15 +106,16 @@ describe('EnterpriseLayout', () => {
   it('navigates to the target route when a navigation item is clicked', async () => {
     renderLayout()
 
+    fireEvent.click(screen.getByText('配置管理'))
     fireEvent.click(screen.getByText('配置资源'))
     expect(await screen.findByText('配置页内容')).toBeInTheDocument()
   })
 
-  it('collapses navigation into a grouped drawer on narrow screens', async () => {
+  it('collapses navigation into a left drawer on narrow screens', async () => {
     setViewport(false)
     renderLayout()
 
-    expect(screen.queryByRole('menu', { name: '主导航' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: '主菜单' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '打开导航' }))
 
     const drawer = await screen.findByRole('dialog')
@@ -139,5 +146,22 @@ describe('EnterpriseLayout', () => {
     expect(await screen.findByText('角色')).toBeInTheDocument()
     fireEvent.click(screen.getByText('角色'))
     expect(await screen.findByText('角色页内容')).toBeInTheDocument()
+  })
+
+  it('uses the longest active path prefix for a deep link', () => {
+    const deepLinkConfig: EnterpriseLayoutConfig = {
+      platformName: 'Deep Link Admin',
+      navigation: [{
+        key: 'gateway', label: '网关治理', children: [
+          {key: 'catalog', label: '接口目录', path: '/interface-catalog', activePathPrefixes: ['/operations']},
+        ],
+      }],
+    }
+    render(
+      <MemoryRouter initialEntries={['/operations/op-1']}>
+        <EnterpriseLayout config={deepLinkConfig}><div>详情</div></EnterpriseLayout>
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('接口目录').closest('.ant-menu-item')).toHaveClass('ant-menu-item-selected')
   })
 })
