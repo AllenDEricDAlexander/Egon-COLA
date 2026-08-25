@@ -45,7 +45,7 @@ public class DubboOrganizationDirectoryClient implements OrganizationDirectoryPo
     }
 
     @Override
-    public OrganizationUser getUser(long userId) {
+    public OrganizationUser getUser(Long userId) {
         try {
             User response = userService.getUser(GetUserRequest.newBuilder().setUserId(userId).build());
             if (response == null) {
@@ -60,7 +60,7 @@ public class DubboOrganizationDirectoryClient implements OrganizationDirectoryPo
     }
 
     @Override
-    public OrganizationSchoolClass getSchoolClass(long gradeId, long schoolClassId) {
+    public OrganizationSchoolClass getSchoolClass(Long gradeId, Long schoolClassId) {
         try {
             SchoolClass response = schoolClassService.getSchoolClass(GetSchoolClassRequest.newBuilder()
                     .setGradeId(gradeId)

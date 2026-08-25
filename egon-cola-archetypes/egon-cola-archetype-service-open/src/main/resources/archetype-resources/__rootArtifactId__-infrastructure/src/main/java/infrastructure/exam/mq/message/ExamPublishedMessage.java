@@ -4,4 +4,4 @@
 package ${package}.infrastructure.exam.mq.message;
 import java.time.Instant;
 public record ExamPublishedMessage(
-        long examId, long courseId, long paperId, Instant publishedAt) { }
+        Long examId, Long courseId, Long paperId, Instant publishedAt) { }

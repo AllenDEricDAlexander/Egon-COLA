@@ -15,6 +15,10 @@ class ManualSchemaIntegrationTest {
                 "db/manual/postgresql/master-data/001__create_evaluation_master_data_schema.sql");
         String shard = ManualSchemaTestSupport.read(
                 "db/manual/postgresql/shard/002__create_evaluation_sharded_schema.sql");
+        String masterMigration = ManualSchemaTestSupport.read(
+                "db/manual/postgresql/master-data/003__migrate_evaluation_master_data_to_egon_model.sql");
+        String shardMigration = ManualSchemaTestSupport.read(
+                "db/manual/postgresql/shard/004__migrate_evaluation_sharded_to_tenant_model.sql");
 
         assertThat(master).contains("CREATE TABLE course", "id BIGINT");
         assertThat(shard).contains(
@@ -26,5 +30,9 @@ class ManualSchemaIntegrationTest {
                 "uk_exam_paper_0_exam", "uk_exam_paper_1_exam",
                 "uk_score_0_exam_student", "uk_score_1_exam_student");
         assertThat(shard).contains("BIGINT").contains("FOREIGN KEY (exam_id)");
+        assertThat(masterMigration).contains("evaluation_course", "tenant_id", "create_time");
+        assertThat(shardMigration).contains(
+                "evaluation_course_schedule_0", "evaluation_exam_0",
+                "evaluation_exam_paper_0", "evaluation_score_0", "tenant_id");
     }
 }

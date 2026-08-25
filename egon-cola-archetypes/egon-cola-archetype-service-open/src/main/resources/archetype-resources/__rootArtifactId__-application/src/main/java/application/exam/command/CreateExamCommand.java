@@ -6,5 +6,5 @@ package ${package}.application.exam.command;
 import java.time.Instant;
 
 public record CreateExamCommand(
-        long courseId, String title, Instant startsAt, Instant endsAt) {
+        Long courseId, String title, Instant startsAt, Instant endsAt) {
 }

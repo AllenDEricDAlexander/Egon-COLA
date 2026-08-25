@@ -22,6 +22,6 @@ public class RecordScoreConsumer {
             autoStartup = "${symbol_dollar}{app.integrations.rabbitmq.listener-auto-startup:false}")
     public void consume(RecordScoreMessage message) {
         scoreManage.record(new RecordScoreCommand(
-                Long.parseLong(message.examId()), Long.parseLong(message.studentId()), message.points()));
+                message.examId(), message.studentId(), message.points()));
     }
 }

@@ -3,5 +3,5 @@
 #set( $symbol_escape = '\\' )
 package ${package}.application.exam.command;
 
-public record PublishExamCommand(long examId) {
+public record PublishExamCommand(Long examId) {
 }

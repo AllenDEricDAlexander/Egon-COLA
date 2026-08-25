@@ -6,39 +6,28 @@ package ${package}.infrastructure.course.repo.converter;
 import ${package}.domain.course.entities.Course;
 import ${package}.domain.course.enums.CourseStatus;
 import ${package}.domain.course.vos.CourseCode;
-import ${package}.infrastructure.course.repo.po.CoursePo;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Component;
+import ${package}.infrastructure.course.repo.po.CoursePO;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
+import top.egon.cola.component.common.core.converter.BaseConverter;
 
-import java.time.LocalDateTime;
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+public interface CourseConverter extends BaseConverter<Course, CoursePO> {
 
-@Component("courseConverter")
-@RequiredArgsConstructor
-public class CourseConverter {
+    @Override
+    @Mapping(target = "code", expression = "java(source.getCode().value())")
+    @Mapping(target = "status", expression = "java(source.getStatus().name())")
+    CoursePO toTarget(Course source);
 
-    @Qualifier("coursePoMapperImpl")
-    private final CoursePoMapper coursePoMapper;
-
-    @Qualifier("courseDomainMapperImpl")
-    private final CourseDomainMapper courseDomainMapper;
-
-    public CoursePo toPo(Course course, LocalDateTime createdAt, LocalDateTime updatedAt) {
-        CoursePo coursePo = coursePoMapper.convert(course);
-        return new CoursePo(
-                coursePo.getId(),
-                course.getCode().value(),
-                coursePo.getName(),
-                coursePo.getCredit(),
-                course.getStatus().name(),
-                createdAt,
-                updatedAt);
-    }
-
-    public Course toDomain(CoursePo coursePo) {
-        Course course = courseDomainMapper.convert(coursePo);
-        course.setCode(new CourseCode(coursePo.getCode()));
-        course.setStatus(CourseStatus.valueOf(coursePo.getStatus()));
+    @Override
+    default Course toSource(CoursePO target) {
+        Course course = new Course();
+        course.setId(target.getId());
+        course.setCode(new CourseCode(target.getCode()));
+        course.setName(target.getName());
+        course.setCredit(target.getCredit());
+        course.setStatus(CourseStatus.valueOf(target.getStatus()));
         return course;
     }
 }

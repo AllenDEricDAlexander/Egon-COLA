@@ -3,5 +3,5 @@
 #set( $symbol_escape = '\\' )
 package ${package}.application.exam.query;
 
-public record GetExamQuery(long examId) {
+public record GetExamQuery(Long examId) {
 }

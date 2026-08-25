@@ -6,8 +6,10 @@ package ${package}.domain.course;
 import ${package}.domain.common.EvaluationDomainException;
 import ${package}.domain.course.entities.Course;
 import ${package}.domain.course.entities.CourseSchedule;
-import ${package}.domain.course.service.impl.CourseDomainServiceImpl;
+import ${package}.domain.course.enums.CourseScheduleStatus;
+import ${package}.domain.course.validators.CourseDomainValidator;
 import ${package}.domain.course.vos.CourseCode;
+import ${package}.domain.course.vos.CourseId;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -17,27 +19,23 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class CourseDomainServiceTest {
 
-    private final CourseDomainServiceImpl service = new CourseDomainServiceImpl();
-
     @Test
     void shouldNormalizeCourseCode() {
-        Course course = service.createCourse(
-                1L, new CourseCode(" math-101 "), "Math", 3);
+        Course course = Course.create(1001L, new CourseCode(" math-101 "), "Math", 3);
 
         assertEquals("MATH-101", course.getCode().value());
     }
 
     @Test
     void shouldRejectOverlappingSchedule() {
-        Course course = service.createCourse(
-                1L, new CourseCode("MATH-101"), "Math", 3);
-        CourseSchedule existing = service.scheduleCourse(
-                1L, course, 1L,
+        Course course = Course.create(1001L, new CourseCode("MATH-101"), "Math", 3);
+        CourseSchedule existing = new CourseSchedule(
+                3001L, new CourseId(course.getId()), 2001L,
                 Instant.parse("2026-09-01T01:00:00Z"),
-                Instant.parse("2026-09-01T02:00:00Z"), List.of());
+                Instant.parse("2026-09-01T02:00:00Z"), CourseScheduleStatus.SCHEDULED);
 
-        assertThrows(EvaluationDomainException.class, () -> service.scheduleCourse(
-                2L, course, 1L,
+        assertThrows(EvaluationDomainException.class, () -> new CourseDomainValidator().validateSchedule(
+                course, 2001L,
                 Instant.parse("2026-09-01T01:30:00Z"),
                 Instant.parse("2026-09-01T02:30:00Z"), List.of(existing)));
     }

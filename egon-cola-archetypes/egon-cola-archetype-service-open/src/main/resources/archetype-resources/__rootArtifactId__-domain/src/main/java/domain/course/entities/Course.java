@@ -10,7 +10,7 @@ import ${package}.domain.course.vos.CourseCode;
 
 public class Course {
 
-    private long id;
+    private Long id;
 
     private CourseCode code;
 
@@ -20,8 +20,8 @@ public class Course {
 
     private CourseStatus status;
 
-    public static Course create(long id, CourseCode code, String name, int credit) {
-        if (id <= 0 || code == null || isBlank(name) || credit < 1) {
+    public static Course create(Long id, CourseCode code, String name, int credit) {
+        if (id == null || id <= 0 || code == null || isBlank(name) || credit < 1) {
             throw new EvaluationDomainException(
                     EvaluationDomainErrorCode.VALIDATION_FAILED,
                     "course id, code, name and positive credit are required");
@@ -39,11 +39,11 @@ public class Course {
         return value == null || value.isBlank();
     }
 
-    public long getId() {
+    public Long getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

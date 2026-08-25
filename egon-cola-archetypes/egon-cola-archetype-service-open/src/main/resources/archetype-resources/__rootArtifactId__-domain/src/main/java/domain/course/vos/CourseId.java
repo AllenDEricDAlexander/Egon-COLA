@@ -6,10 +6,10 @@ package ${package}.domain.course.vos;
 import ${package}.domain.common.EvaluationDomainErrorCode;
 import ${package}.domain.common.EvaluationDomainException;
 
-public record CourseId(long value) {
+public record CourseId(Long value) {
 
     public CourseId {
-        if (value <= 0) {
+        if (value == null || value <= 0) {
             throw new EvaluationDomainException(
                     EvaluationDomainErrorCode.VALIDATION_FAILED, "course id must be positive");
         }

@@ -31,11 +31,6 @@ spring:
       shutdown:
         await-termination: true
         await-termination-period: ${symbol_dollar}{SCHEDULING_AWAIT_TERMINATION:30s}
-
-mybatis-plus:
-  mapper-locations: classpath*:mybatis/mapper/**/*.xml
-  configuration:
-    map-underscore-to-camel-case: true
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: ${symbol_dollar}{APP_TIME_ZONE:Asia/Shanghai}
@@ -45,6 +40,11 @@ mybatis-plus:
       fail-on-empty-beans: false
     deserialization:
       fail-on-unknown-properties: false
+
+mybatis-plus:
+  mapper-locations: classpath*:mybatis/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
 
 server:
   port: ${symbol_dollar}{MANAGEMENT_SERVER_PORT:8081}
@@ -106,6 +106,27 @@ egon:
         report:
           enabled: ${symbol_dollar}{DTP_REPORT_ENABLED:true}
           interval: ${symbol_dollar}{DTP_REPORT_INTERVAL:20s}
+      mybatis-plus:
+        enabled: true
+        tenant-id:
+          mdc-key: tenantId
+          ignored-tables: []
+        audit:
+          user-id-mdc-key: userId
+        pagination:
+          enabled: true
+          max-page-size: 500
+          overflow: false
+        batch:
+          default-size: 1000
+          max-chunk-size: 1000
+          max-collection-size: 10000
+        block-attack:
+          enabled: true
+        optimistic-locker:
+          enabled: true
+        meta-fill:
+          enabled: true
 
 app:
   datasource:

@@ -28,11 +28,11 @@ Evaluation 的 11 个方法在同一个 Triple 端口按 `course`、`exam`、`sc
 
 ## 标识、持久化与手工更新表结构
 
-所有技术 ID 都由 Common 的 `LongIdGenerator` 生成，PostgreSQL 中使用 `BIGINT`；Domain、Application、PO、Mapper、事件和分片键内部统一使用正 `Long`。每个运行实例必须设置唯一的 `EGON_ID_MACHINE_ID`，没有运行时默认值。本 archetype 不包含 UUID 生成器或 UUID 分片算法。
+所有技术 ID 都由 Common 的 `LongIdGenerator` 生成，PostgreSQL 中使用 `BIGINT`；Domain、Application、PO、DAO、事件和分片键内部统一使用正 `Long`。每个运行实例必须设置唯一的 `EGON_ID_MACHINE_ID`，没有运行时默认值。本 archetype 不包含 UUID 生成器或 UUID 分片算法。
 
-持久化使用官方 MyBatis-Plus `3.5.17` 和 ShardingSphere `5.5.3`，明确不使用 Spring Data JPA、`JpaRepository`、`jakarta.persistence`、Flyway 或自动刷表器。PostgreSQL 建表和索引脚本按顺序放在 `infrastructure/src/main/resources/db/manual/postgresql`，按照该目录 `README.md` 的 DBA 顺序手工针对物理 primary 执行；应用启动不会创建或更新表。
+持久化使用 `egon-cola-component-common-mybatis-plus-spring-boot-starter` 和 ShardingSphere `5.5.3`。Domain service contract 使用 Common 的 `EgonColaIService`；infra service impl 继承 `EgonColaServiceImpl`，DAO 继承 `EgonColaMapper`。明确不使用 Spring Data JPA、`JpaRepository`、`jakarta.persistence`、Flyway 或自动刷表器。PostgreSQL 建表和索引脚本按顺序放在 `infrastructure/src/main/resources/db/manual/postgresql`，按照该目录 `README.md` 的 DBA 顺序手工针对物理 primary 执行；应用启动不会创建或更新表。
 
-Evaluation 初始拓扑包含 `master_data`、`shard_0`、`shard_1`。`course_schedule` 按 `course_id`，`exam` 按 `id`，`exam_paper` 与 `score` 按 `exam_id` 路由；同一个 exam 聚合始终位于同一数据库/表 slot。非正 ID、缺少分片键、范围路由、未知节点和不一致 node map 均快速失败。
+Evaluation 初始拓扑包含 `master_data`、`shard_0`、`shard_1`。逻辑表为 `evaluation_course`、`evaluation_course_schedule`、`evaluation_exam`、`evaluation_exam_paper`、`evaluation_score`；所有路由表都以正 `tenant_id` 同时进行分库分表，同一租户始终位于同一 database/table slot。非正 tenant ID、缺少分片键、范围路由、未知节点和不一致 node map 均快速失败。
 
 ## 运行 profile
 
@@ -59,6 +59,6 @@ Evaluation 初始拓扑包含 `master_data`、`shard_0`、`shard_1`。`course_sc
   -pl :egon-cola-archetype-service-open -am clean integration-test
 ```
 
-生成测试覆盖 Proto descriptor、Long identity、MyBatis-Plus repository、ShardingSphere H2 路由、手工 SQL 约定、11 个 Triple provider、标准 gRPC unary interop、Organization client/stub、DTP executor 上下文和 ArchUnit 依赖方向。ArchUnit 取代内部 bytecode Maven plugin，并检查 service-only、无 JPA、无 Flyway、无 Gateway、无 Springdoc 边界。
+生成测试覆盖 Proto descriptor、Long identity、Common MyBatis-Plus DAO/service、ShardingSphere H2 路由、手工 SQL 约定、11 个 Triple provider、标准 gRPC unary interop、Organization client/stub、DTP executor 上下文和 ArchUnit 依赖方向。ArchUnit 取代内部 bytecode Maven plugin，并检查 service-only、无 JPA、无 Flyway、无 Gateway、无 Springdoc 边界。
 
 这些检查只证明源码、生成工程和本地测试；不证明真实 PostgreSQL schema、Redis DTP registry、Nacos 拓扑、RabbitMQ、跨 Project provider、部署网络或生产权限。archetype 生成和上述命令不会自动启动应用，也不会执行数据库 SQL。

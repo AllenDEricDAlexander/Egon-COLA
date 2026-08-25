@@ -2,24 +2,28 @@
 #set( $symbol_dollar = '$' )
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.exam.repo.converter;
+
 import ${package}.domain.exam.entities.ExamPaper;
 import ${package}.domain.exam.enums.ExamPaperStatus;
 import ${package}.domain.exam.vos.ExamId;
-import ${package}.infrastructure.exam.repo.po.ExamPaperPo;
-import java.time.Instant;
-import org.springframework.stereotype.Component;
-@Component
-public class ExamPaperConverter {
-    public ExamPaperPo toPo(ExamPaper paper, Instant createdAt) {
-        return new ExamPaperPo(paper.getId(), paper.getExamId().value(), paper.getTitle(),
-                paper.getTotalPoints(), paper.getStatus().name(), createdAt, Instant.now());
-    }
-    public ExamPaperPo updatePo(ExamPaper paper, ExamPaperPo po) {
-        po.update(paper.getTitle(), paper.getTotalPoints(), paper.getStatus().name(), Instant.now());
-        return po;
-    }
-    public ExamPaper toDomain(ExamPaperPo po) {
-        return new ExamPaper(po.getId(), new ExamId(po.getExamId()), po.getTitle(),
-                po.getTotalPoints(), ExamPaperStatus.valueOf(po.getStatus()));
+import ${package}.infrastructure.exam.repo.po.ExamPaperPO;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
+import top.egon.cola.component.common.core.converter.BaseConverter;
+
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+public interface ExamPaperConverter extends BaseConverter<ExamPaper, ExamPaperPO> {
+
+    @Override
+    @Mapping(target = "examId", expression = "java(source.getExamId().value())")
+    @Mapping(target = "status", expression = "java(source.getStatus().name())")
+    ExamPaperPO toTarget(ExamPaper source);
+
+    @Override
+    default ExamPaper toSource(ExamPaperPO target) {
+        return new ExamPaper(
+                target.getId(), new ExamId(target.getExamId()), target.getTitle(),
+                target.getTotalPoints(), ExamPaperStatus.valueOf(target.getStatus()));
     }
 }

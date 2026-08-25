@@ -6,5 +6,5 @@ package ${package}.application.course.command;
 import java.time.Instant;
 
 public record ScheduleCourseCommand(
-        long courseId, long classId, Instant startsAt, Instant endsAt) {
+        Long courseId, Long classId, Instant startsAt, Instant endsAt) {
 }

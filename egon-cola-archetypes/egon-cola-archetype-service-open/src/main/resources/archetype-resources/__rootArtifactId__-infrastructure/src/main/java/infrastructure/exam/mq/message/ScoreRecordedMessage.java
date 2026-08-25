@@ -3,4 +3,4 @@
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.exam.mq.message;
 public record ScoreRecordedMessage(
-        long scoreId, long examId, long courseId, long studentId, int points) { }
+        Long scoreId, Long examId, Long courseId, Long studentId, int points) { }

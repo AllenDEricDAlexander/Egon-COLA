@@ -3,5 +3,5 @@
 #set( $symbol_escape = '\\' )
 package ${package}.domain.client.organization;
 
-public record OrganizationUser(long id, String name, String status) {
+public record OrganizationUser(Long id, String name, String status) {
 }

@@ -5,8 +5,12 @@ package ${package}.domain.exam;
 
 import ${package}.domain.common.EvaluationDomainException;
 import ${package}.domain.course.entities.Course;
-import ${package}.domain.exam.service.impl.ExamDomainServiceImpl;
+import ${package}.domain.course.vos.CourseId;
 import ${package}.domain.course.vos.CourseCode;
+import ${package}.domain.exam.entities.Exam;
+import ${package}.domain.exam.enums.ExamStatus;
+import ${package}.domain.exam.validators.ExamDomainValidator;
+import ${package}.domain.exam.vos.ExamId;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
@@ -16,14 +20,11 @@ class ExamAggregateTest {
 
     @Test
     void shouldRejectInvalidExamWindowAndPaperPoints() {
-        var service = new ExamDomainServiceImpl();
-        Course course = Course.create(1L, new CourseCode("MATH-101"), "Math", 3);
+        var validator = new ExamDomainValidator();
+        Course course = Course.create(1001L, new CourseCode("MATH-101"), "Math", 3);
 
-        assertThrows(EvaluationDomainException.class, () -> service.createExam(
-                1L, course, "Midterm", Instant.EPOCH.plusSeconds(1), Instant.EPOCH));
-        var exam = service.createExam(
-                1L, course, "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60));
-        assertThrows(EvaluationDomainException.class,
-                () -> service.attachPaper(1L, exam, "Paper", 0));
+        assertThrows(EvaluationDomainException.class, () -> validator.validateExam(
+                course, "Midterm", Instant.EPOCH.plusSeconds(1), Instant.EPOCH));
+        assertThrows(EvaluationDomainException.class, () -> validator.validatePaper("Paper", 0));
     }
 }

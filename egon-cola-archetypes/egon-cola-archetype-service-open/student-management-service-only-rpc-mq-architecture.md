@@ -44,10 +44,10 @@ starter       infrastructure
 ```
 
 - `facade` 只包含过滤后的 `.proto`、Dubbo 3.3 `tri` 生成代码和 descriptor contract test，不反向依赖 Domain/Application。
-- `domain` 只声明聚合、值对象、仓储/事件端口和 `OrganizationDirectoryPort`，不导入 Spring、Dubbo、gRPC、MyBatis-Plus 或 ShardingSphere。
-- `application` 只编排 Domain 端口和用例，不接触 Mapper、Proto 或外部 RPC。
+- `domain` 只声明聚合、值对象、Common MyBatis-Plus service contract、事件端口和 `OrganizationDirectoryPort`，不导入 Spring、Dubbo、gRPC 或 ShardingSphere。
+- `application` 只编排 Domain service contract 和用例，不接触 DAO、PO、Proto 或外部 RPC。
 - `adapter` 实现 Evaluation 的 11 个 Proto RPC 方法，负责校验、转换和统一 gRPC status/trailer。
-- `infrastructure` 实现 MyBatis-Plus Mapper、ShardingSphere 数据源、MQ publisher 与 Organization Proto client。
+- `infrastructure` 实现 Common MyBatis-Plus DAO/PO、Egon service impl、ShardingSphere 数据源、MQ publisher 与 Organization Proto client。
 - `starter` 只负责 Boot、Nacos、Dubbo、DTP、配置和模块扫描。
 
 ## 3. 本地 Proto/Triple 契约
@@ -72,17 +72,17 @@ Organization client 使用本地生成的 `UserService` 和 `SchoolClassService`
 
 ## 4. Long ID 与 Common 组件
 
-所有内部技术 ID 均由 `top.egon.cola.component.common.id.generator.LongIdGenerator` 生成并持久化为 PostgreSQL `BIGINT`。Domain、Application、PO、Mapper、事件和分片键只接受非空正 `Long`；HTTP/GraphQL 边界（本 Service 不提供业务 HTTP）若由其他模板消费，使用十进制字符串桥接。Service Open 不再包含 UUID 生成器、`UUID.randomUUID()` 或 UUID 分片算法。
+所有内部技术 ID 均由 `top.egon.cola.component.common.id.generator.LongIdGenerator` 生成并持久化为 PostgreSQL `BIGINT`。Domain、Application、PO、DAO、事件和分片键只接受非空正 `Long`；HTTP/GraphQL 边界（本 Service 不提供业务 HTTP）若由其他模板消费，使用十进制字符串桥接。Service Open 不再包含 UUID 生成器、`UUID.randomUUID()` 或 UUID 分片算法。
 
 每个实例必须显式设置 `EGON_ID_MACHINE_ID`；没有运行时默认机器号。测试 profile 使用 `0`，并关闭 DTP/Nacos 外连。Long 分片算法使用 `Long.hashCode`、`hash ^ (hash >>> 16)` 和 power-of-two mask，由不可变 node map 同时决定 database/table slot。
 
 ## 5. 持久化、手工 SQL 与分片
 
-持久化使用官方 `mybatis-plus-spring-boot3-starter` `3.5.17`、Mapper interface/XML 和 ShardingSphere `5.5.3`。Domain 不依赖 MyBatis-Plus，基础设施 Mapper 只实现 Domain repository port。禁止 `spring-boot-starter-data-jpa`、`JpaRepository`、`jakarta.persistence` 和 Flyway。
+持久化使用 `egon-cola-component-common-mybatis-plus-spring-boot-starter`、Egon Common 的 `EgonColaIService`/`EgonColaServiceImpl`/`EgonColaMapper`、DAO XML 和 ShardingSphere `5.5.3`。Domain 只引用 Common service contract；PO 和 DAO 位于 infrastructure，service impl 也位于 infrastructure。禁止 `spring-boot-starter-data-jpa`、`JpaRepository`、`jakarta.persistence` 和 Flyway。
 
 每个 Project 的 `infrastructure/src/main/resources/db/manual/postgresql` 保存按顺序执行的 PostgreSQL 建表/索引脚本，其 `README.md` 说明 DBA 手工更新顺序、目标物理库和回滚边界。应用不会在启动或测试时自动刷表，仓库不创建 `db/migration` 或 `flyway_schema_history`。
 
-Evaluation 的初始拓扑是 `master_data` 主表库，以及 `shard_0`、`shard_1` 的两库两表分片。`course_schedule` 按 `course_id`，`exam` 按 `id`，`exam_paper`/`score` 按 `exam_id` 路由；同一 Exam 聚合保持同一物理 slot。未带分片键的 DML、范围路由、未知节点、非正 ID 和不一致 node map 均 fail-fast。跨物理库流程只通过业务幂等、状态、事件、对账和补偿解决，不引入 JPA、Flyway、XA、Seata 或自动搬数。
+Evaluation 的初始拓扑是 `master_data` 主表库，以及 `shard_0`、`shard_1` 的两库两表分片。逻辑表为 `evaluation_course`、`evaluation_course_schedule`、`evaluation_exam`、`evaluation_exam_paper`、`evaluation_score`；全部按正 `tenant_id` 同时进行分库分表，同一租户保持同一物理 slot。未带分片键的 DML、范围路由、未知节点、非正 tenant ID 和不一致 node map 均 fail-fast。跨物理库流程只通过业务幂等、状态、事件、对账和补偿解决，不引入 JPA、Flyway、XA、Seata 或自动搬数。
 
 ## 6. 运行配置合同
 
@@ -101,6 +101,6 @@ Evaluation 的初始拓扑是 `master_data` 主表库，以及 `shard_0`、`shar
   -pl :egon-cola-archetype-service-open -am clean integration-test
 ```
 
-生成工程测试覆盖 Proto descriptor（8 services/21 methods）、Domain/Application、MyBatis-Plus repository、ShardingSphere H2 路由、manual SQL convention、11 个 Triple provider 方法、标准 gRPC unary interop、Organization client/stub、DTP executor/context 和 ArchUnit。ArchUnit 规则取代内部 bytecode Maven plugin，并检查 facade/domain 方向、service-only 边界以及 JPA/Flyway/Gateway/Springdoc 禁止依赖。
+生成工程测试覆盖 Proto descriptor（8 services/21 methods）、Domain/Application、Common MyBatis-Plus DAO/service、ShardingSphere H2 路由、manual SQL convention、11 个 Triple provider 方法、标准 gRPC unary interop、Organization client/stub、DTP executor/context 和 ArchUnit。ArchUnit 规则取代内部 bytecode Maven plugin，并检查 facade/domain 方向、service-only 边界以及 JPA/Flyway/Gateway/Springdoc 禁止依赖。
 
 测试与 `verify` 只证明源码、生成工程和本地 H2/内存 Triple 测试；不证明真实 PostgreSQL schema、Redis DTP registry、Nacos topology、RabbitMQ、跨 Project provider、部署网络或生产权限。启动应用、执行手工 SQL、Compose、发布镜像和 live topology 验证由使用者按环境单独执行。

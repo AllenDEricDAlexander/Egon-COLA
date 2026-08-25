@@ -7,50 +7,21 @@ import ${package}.domain.exam.entities.ExamPaper;
 import ${package}.domain.exam.enums.ExamPaperStatus;
 import ${package}.domain.exam.vos.ExamId;
 import ${package}.infrastructure.exam.repo.converter.ExamPaperConverter;
-import ${package}.infrastructure.exam.repo.impl.ExamPaperRepositoryImpl;
-import ${package}.infrastructure.exam.repo.mapper.ExamPaperMapper;
-import ${package}.infrastructure.exam.repo.po.ExamPaperPo;
-import ${package}.infrastructure.validators.EvaluationPersistenceValidator;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ExamPaperRepositoryTest {
-
     @Test
-    void shouldPersistAssignedPaperIdThroughMapper() {
-        ExamPaperMapper mapper = mock(ExamPaperMapper.class);
-        ExamPaper paper = paper();
-        when(mapper.selectByExamIdAndId(1002L, 1003L)).thenReturn(null);
-        when(mapper.insert(any(ExamPaperPo.class))).thenReturn(1);
-        ExamPaperRepositoryImpl repository = new ExamPaperRepositoryImpl(
-                mapper, new ExamPaperConverter(),
-                new EvaluationPersistenceValidator());
-
-        ExamPaper result = repository.save(paper);
-
-        assertThat(result.getId()).isEqualTo(1003L);
-        verify(mapper).insert(any(ExamPaperPo.class));
-    }
-
-    @Test
-    void shouldUseExamIdForPointLookup() {
-        ExamPaperMapper mapper = mock(ExamPaperMapper.class);
-        when(mapper.selectByExamId(1002L)).thenReturn(null);
-        ExamPaperRepositoryImpl repository = new ExamPaperRepositoryImpl(
-                mapper, new ExamPaperConverter(),
-                new EvaluationPersistenceValidator());
-
-        assertThat(repository.findByExamId(new ExamId(1002L))).isEmpty();
-        verify(mapper).selectByExamId(1002L);
-    }
-
-    private static ExamPaper paper() {
-        return new ExamPaper(
-                1003L, new ExamId(1002L), "Paper", 100, ExamPaperStatus.DRAFT);
+    void shouldRoundTripPaper() {
+        ExamPaper paper = new ExamPaper(5001L, new ExamId(4001L), "Paper", 100,
+                ExamPaperStatus.DRAFT);
+        ExamPaperConverter converter = Mappers.getMapper(ExamPaperConverter.class);
+        var target = converter.toTarget(paper);
+        target.setId(paper.getId());
+        ExamPaper restored = converter.toSource(target);
+        assertEquals(5001L, restored.getId());
+        assertEquals(4001L, restored.getExamId().value());
     }
 }

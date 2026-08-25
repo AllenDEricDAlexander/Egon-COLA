@@ -4,84 +4,84 @@ databaseName: ${symbol_dollar}{app.sharding.database-name:${symbol_dollar}{EVALU
 rules:
   - !SHARDING
     tables:
-      course:
-        actualDataNodes: master_data.course
+      evaluation_course:
+        actualDataNodes: master_data.evaluation_course
         databaseStrategy:
           none:
         tableStrategy:
           none:
-      course_schedule:
-        actualDataNodes: shard_${symbol_dollar}->{0..1}.course_schedule_${symbol_dollar}->{0..1}
+      evaluation_course_schedule:
+        actualDataNodes: shard_${symbol_dollar}->{0..1}.evaluation_course_schedule_${symbol_dollar}->{0..1}
         databaseStrategy:
           standard:
-            shardingColumn: course_id
-            shardingAlgorithmName: snowflake_long_database_bucket
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_database_bucket
         tableStrategy:
           standard:
-            shardingColumn: course_id
-            shardingAlgorithmName: snowflake_long_table_bucket
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_table_bucket
         auditStrategy:
           auditorNames:
             - sharding_key_required_auditor
           allowHintDisable: false
-      exam:
-        actualDataNodes: shard_${symbol_dollar}->{0..1}.exam_${symbol_dollar}->{0..1}
+      evaluation_exam:
+        actualDataNodes: shard_${symbol_dollar}->{0..1}.evaluation_exam_${symbol_dollar}->{0..1}
         databaseStrategy:
           standard:
-            shardingColumn: id
-            shardingAlgorithmName: snowflake_long_database_bucket
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_database_bucket
         tableStrategy:
           standard:
-            shardingColumn: id
-            shardingAlgorithmName: snowflake_long_table_bucket
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_table_bucket
         auditStrategy:
           auditorNames:
             - sharding_key_required_auditor
           allowHintDisable: false
-      exam_paper:
-        actualDataNodes: shard_${symbol_dollar}->{0..1}.exam_paper_${symbol_dollar}->{0..1}
+      evaluation_exam_paper:
+        actualDataNodes: shard_${symbol_dollar}->{0..1}.evaluation_exam_paper_${symbol_dollar}->{0..1}
         databaseStrategy:
           standard:
-            shardingColumn: exam_id
-            shardingAlgorithmName: snowflake_long_database_bucket
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_database_bucket
         tableStrategy:
           standard:
-            shardingColumn: exam_id
-            shardingAlgorithmName: snowflake_long_table_bucket
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_table_bucket
         auditStrategy:
           auditorNames:
             - sharding_key_required_auditor
           allowHintDisable: false
-      score:
-        actualDataNodes: shard_${symbol_dollar}->{0..1}.score_${symbol_dollar}->{0..1}
+      evaluation_score:
+        actualDataNodes: shard_${symbol_dollar}->{0..1}.evaluation_score_${symbol_dollar}->{0..1}
         databaseStrategy:
           standard:
-            shardingColumn: exam_id
-            shardingAlgorithmName: snowflake_long_database_bucket
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_database_bucket
         tableStrategy:
           standard:
-            shardingColumn: exam_id
-            shardingAlgorithmName: snowflake_long_table_bucket
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_table_bucket
         auditStrategy:
           auditorNames:
             - sharding_key_required_auditor
           allowHintDisable: false
     bindingTables:
-      - exam,exam_paper,score
+      - evaluation_exam,evaluation_exam_paper,evaluation_score
     shardingAlgorithms:
-      snowflake_long_database_bucket:
+      tenant_long_database_bucket:
         type: CLASS_BASED
         props:
           strategy: STANDARD
-          algorithmClassName: ${package}.infrastructure.config.datasource.SnowflakeLongShardingAlgorithm
+          algorithmClassName: ${package}.infrastructure.config.datasource.LongTenantShardingAlgorithm
           target: database
           node-count: ${symbol_dollar}{app.sharding.routing.node-count}
           node-map: ${symbol_dollar}{app.sharding.routing.node-map}
-      snowflake_long_table_bucket:
+      tenant_long_table_bucket:
         type: CLASS_BASED
         props:
           strategy: STANDARD
-          algorithmClassName: ${package}.infrastructure.config.datasource.SnowflakeLongShardingAlgorithm
+          algorithmClassName: ${package}.infrastructure.config.datasource.LongTenantShardingAlgorithm
           target: table
           node-count: ${symbol_dollar}{app.sharding.routing.node-count}
           node-map: ${symbol_dollar}{app.sharding.routing.node-map}

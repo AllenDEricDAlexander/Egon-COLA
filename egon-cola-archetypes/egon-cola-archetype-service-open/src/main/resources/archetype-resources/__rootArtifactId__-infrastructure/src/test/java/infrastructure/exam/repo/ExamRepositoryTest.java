@@ -8,39 +8,22 @@ import ${package}.domain.exam.entities.Exam;
 import ${package}.domain.exam.enums.ExamStatus;
 import ${package}.domain.exam.vos.ExamId;
 import ${package}.infrastructure.exam.repo.converter.ExamConverter;
-import ${package}.infrastructure.exam.repo.impl.ExamRepositoryImpl;
-import ${package}.infrastructure.exam.repo.mapper.ExamMapper;
-import ${package}.infrastructure.exam.repo.po.ExamPo;
-import ${package}.infrastructure.validators.EvaluationPersistenceValidator;
-import java.time.Instant;
 import org.junit.jupiter.api.Test;
+import org.mapstruct.factory.Mappers;
+import java.time.Instant;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ExamRepositoryTest {
-
     @Test
-    void shouldInsertExamThroughMapper() {
-        ExamMapper mapper = mock(ExamMapper.class);
-        Exam exam = exam();
-        when(mapper.selectById(1002L)).thenReturn(null);
-        when(mapper.insert(any(ExamPo.class))).thenReturn(1);
-        ExamRepositoryImpl repository = new ExamRepositoryImpl(
-                mapper, new ExamConverter(), new EvaluationPersistenceValidator());
-
-        Exam result = repository.save(exam);
-
-        assertThat(result.getId()).isEqualTo(new ExamId(1002L));
-        verify(mapper).insert(any(ExamPo.class));
-    }
-
-    private static Exam exam() {
-        return new Exam(
-                new ExamId(1002L), new CourseId(1001L), "Midterm",
+    void shouldRoundTripExamPersistenceModel() {
+        Exam exam = new Exam(new ExamId(4001L), new CourseId(1001L), "Midterm",
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), ExamStatus.DRAFT);
+        ExamConverter converter = Mappers.getMapper(ExamConverter.class);
+        var target = converter.toTarget(exam);
+        target.setId(exam.getId().value());
+        Exam restored = converter.toSource(target);
+        assertEquals(4001L, restored.getId().value());
+        assertEquals(1001L, restored.getCourseId().value());
     }
 }

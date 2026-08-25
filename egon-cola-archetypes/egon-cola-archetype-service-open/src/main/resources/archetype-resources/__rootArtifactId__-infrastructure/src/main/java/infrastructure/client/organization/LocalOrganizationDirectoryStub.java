@@ -17,13 +17,13 @@ import org.springframework.stereotype.Component;
 public class LocalOrganizationDirectoryStub implements OrganizationDirectoryPort {
 
     @Override
-    public OrganizationUser getUser(long userId) {
+    public OrganizationUser getUser(Long userId) {
         rejectMissing(userId, "user");
         return new OrganizationUser(userId, "Local User " + userId, "ACTIVE");
     }
 
     @Override
-    public OrganizationSchoolClass getSchoolClass(long gradeId, long schoolClassId) {
+    public OrganizationSchoolClass getSchoolClass(Long gradeId, Long schoolClassId) {
         rejectMissing(gradeId, "grade");
         rejectMissing(schoolClassId, "school class");
         return new OrganizationSchoolClass(
@@ -34,8 +34,8 @@ public class LocalOrganizationDirectoryStub implements OrganizationDirectoryPort
                 List.of(2001L));
     }
 
-    private static void rejectMissing(long id, String resource) {
-        if (id <= 0 || id == 404L) {
+    private static void rejectMissing(Long id, String resource) {
+        if (id == null || id <= 0 || id == 404L) {
             throw new ExternalDependencyException(
                     "organization",
                     ExternalDependencyFailure.NOT_FOUND,

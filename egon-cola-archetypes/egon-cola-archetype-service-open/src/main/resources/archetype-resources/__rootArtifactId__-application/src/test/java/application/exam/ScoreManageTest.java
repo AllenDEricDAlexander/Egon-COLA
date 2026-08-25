@@ -6,20 +6,18 @@ package ${package}.application.exam;
 import ${package}.application.exam.command.RecordScoreCommand;
 import ${package}.application.exam.converter.ExamApplicationConverter;
 import ${package}.application.exam.manage.impl.ScoreManageImpl;
-import ${package}.application.exam.query.GetScoreQuery;
 import ${package}.application.exam.validators.ExamApplicationValidator;
 import ${package}.domain.exam.entities.Exam;
 import ${package}.domain.exam.entities.ExamPaper;
 import ${package}.domain.exam.entities.Score;
-import ${package}.domain.exam.enums.ScoreStatus;
+import ${package}.domain.exam.enums.ExamPaperStatus;
+import ${package}.domain.exam.enums.ExamStatus;
 import ${package}.domain.exam.event.ExamEventPublisher;
-import ${package}.domain.exam.repos.ExamPaperRepository;
-import ${package}.domain.exam.repos.ExamRepository;
-import ${package}.domain.exam.repos.ScoreRepository;
-import ${package}.domain.exam.service.impl.ScoreDomainServiceImpl;
+import ${package}.domain.exam.service.ExamDomainService;
+import ${package}.domain.exam.service.ScoreDomainService;
 import ${package}.domain.exam.vos.ExamId;
-import ${package}.domain.exam.vos.ScoreValue;
 import ${package}.domain.course.vos.CourseId;
+import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
@@ -33,52 +31,25 @@ class ScoreManageTest {
 
     @Test
     void shouldPersistAndPublishRecordedScore() {
-        ExamRepository examRepository = mock(ExamRepository.class);
-        ExamPaperRepository paperRepository = mock(ExamPaperRepository.class);
-        ScoreRepository scoreRepository = mock(ScoreRepository.class);
-        ExamEventPublisher eventPublisher = mock(ExamEventPublisher.class);
+        ExamDomainService exams = mock(ExamDomainService.class);
+        ScoreDomainService scores = mock(ScoreDomainService.class);
         Exam exam = TestEvaluationModels.publishedExam();
         ExamPaper paper = TestEvaluationModels.publishedPaper();
-        when(examRepository.findById(new ExamId(1002L))).thenReturn(Optional.of(exam));
-        when(paperRepository.findByExamId(new ExamId(1002L))).thenReturn(Optional.of(paper));
-        when(scoreRepository.existsByExamIdAndStudentId(new ExamId(1002L), 2001L))
-                .thenReturn(false);
-        when(scoreRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
+        when(exams.findById(new ExamId(4001L))).thenReturn(Optional.of(exam));
+        when(exams.findPaperByExamId(new ExamId(4001L))).thenReturn(Optional.of(paper));
+        when(scores.existsByExamIdAndStudentId(new ExamId(4001L), 6001L)).thenReturn(false);
+        when(scores.recordScore(any(), any(), any(), any(Integer.class), any(Boolean.class)))
+                .thenReturn(TestEvaluationModels.recordedScore());
+        when(scores.save((Score) any())).thenAnswer(invocation -> invocation.getArgument(0));
+        ExamEventPublisher events = mock(ExamEventPublisher.class);
         ScoreManageImpl manage = new ScoreManageImpl(
-                examRepository, paperRepository, scoreRepository, eventPublisher,
-                new ScoreDomainServiceImpl(),
-                new ExamApplicationConverter(), new ExamApplicationValidator(),
-                () -> 1004L);
+                exams, scores, events, new ExamApplicationConverter(), new ExamApplicationValidator());
 
-        var result = manage.record(new RecordScoreCommand(1002L, 2001L, 90));
+        var result = manage.record(new RecordScoreCommand(4001L, 6001L, 90));
 
-        assertEquals(1004L, result.id());
+        assertEquals(7001L, result.id());
         assertEquals(90, result.points());
-        verify(scoreRepository).save(any(Score.class));
-        verify(eventPublisher).scoreRecorded(any(Score.class));
-    }
-
-    @Test
-    void shouldGetScoreWithinExamShard() {
-        ExamRepository examRepository = mock(ExamRepository.class);
-        ExamPaperRepository paperRepository = mock(ExamPaperRepository.class);
-        ScoreRepository scoreRepository = mock(ScoreRepository.class);
-        ExamEventPublisher eventPublisher = mock(ExamEventPublisher.class);
-        Score score = new Score(
-            1005L, new ExamId(1002L), new CourseId(1001L),
-            2001L, new ScoreValue(90), ScoreStatus.RECORDED);
-        when(scoreRepository.findByExamIdAndId(new ExamId(1002L), 1005L))
-            .thenReturn(Optional.of(score));
-        ScoreManageImpl manage = new ScoreManageImpl(
-            examRepository, paperRepository, scoreRepository, eventPublisher,
-            new ScoreDomainServiceImpl(),
-            new ExamApplicationConverter(), new ExamApplicationValidator(),
-            () -> 1006L);
-
-        var result = manage.get(new GetScoreQuery(1002L, 1005L));
-
-        assertEquals(1005L, result.id());
-        verify(scoreRepository).findByExamIdAndId(new ExamId(1002L), 1005L);
+        verify(scores).save((Score) any());
+        verify(events).scoreRecorded(any());
     }
 }

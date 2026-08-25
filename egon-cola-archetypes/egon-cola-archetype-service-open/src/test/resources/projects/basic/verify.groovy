@@ -1,3 +1,4 @@
+import groovy.io.FileType
 import groovy.xml.XmlSlurper
 
 def projectDir = [
@@ -48,7 +49,7 @@ assert rootPom.properties.'grpc.version'.text() == "1.73.0"
 assert rootPom.properties.'spring-cloud.version'.text() == "2025.0.3"
 assert rootPom.properties.'spring-cloud-alibaba.version'.text() == "2025.0.0.0"
 assert rootPom.properties.'shardingsphere.version'.text() == "5.5.3"
-assert rootPom.properties.'mybatis-plus.version'.text() == "3.5.17"
+assert !rootPom.properties.'mybatis-plus.version'.text()
 assert rootPom.properties.'archunit.version'.text() == "1.4.2"
 moduleNames.each { name -> file("${name}/pom.xml") }
 
@@ -74,6 +75,9 @@ def runtimeText = runtimeFiles.collect { it.getText("UTF-8") }.join("\n")
         "top.egon.cola.organization.facade",
         "top.egon.cola.evaluation.facade",
         "egon-cola-component-bytecode-architecture"
+        ,"mybatis-plus-spring-boot3-starter"
+        ,"BaseMapper"
+        ,"repo.mapper"
 ].each { token ->
     assert !runtimeText.contains(token): "Forbidden Service Open runtime token ${token}"
 }
@@ -111,23 +115,35 @@ assert protoFiles.sort() == [
 ].each { path -> file(path) }
 
 def mapperFiles = filesUnder("student-management-evaluation-infrastructure/src/main/resources/mybatis/mapper") {
-    it.name.endsWith("Mapper.xml")
+    it.name.endsWith("DAO.xml")
 }
 assert mapperFiles.size() == 5
 [
         "student-management-evaluation-infrastructure/src/main/resources/db/manual/postgresql/README.md",
         "student-management-evaluation-infrastructure/src/main/resources/db/manual/postgresql/master-data/001__create_evaluation_master_data_schema.sql",
-        "student-management-evaluation-infrastructure/src/main/resources/db/manual/postgresql/shard/002__create_evaluation_sharded_schema.sql"
+        "student-management-evaluation-infrastructure/src/main/resources/db/manual/postgresql/shard/002__create_evaluation_sharded_schema.sql",
+        "student-management-evaluation-infrastructure/src/main/resources/db/manual/postgresql/master-data/003__migrate_evaluation_master_data_to_egon_model.sql",
+        "student-management-evaluation-infrastructure/src/main/resources/db/manual/postgresql/shard/004__migrate_evaluation_sharded_to_tenant_model.sql"
 ].each { path -> file(path) }
 assert file("student-management-evaluation-infrastructure/src/main/resources/db/manual/postgresql/master-data/001__create_evaluation_master_data_schema.sql").text.contains("BIGINT")
 assert file("student-management-evaluation-infrastructure/src/main/resources/db/manual/postgresql/shard/002__create_evaluation_sharded_schema.sql").text.contains("BIGINT")
+assert file("student-management-evaluation-infrastructure/src/main/resources/db/manual/postgresql/master-data/003__migrate_evaluation_master_data_to_egon_model.sql").text
+        .contains("evaluation_course")
+assert file("student-management-evaluation-infrastructure/src/main/resources/db/manual/postgresql/shard/004__migrate_evaluation_sharded_to_tenant_model.sql").text
+        .contains("tenant_id")
 missing("student-management-evaluation-infrastructure/src/main/resources/db/migration")
 missing("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/course/repo/jpa")
 missing("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/exam/repo/jpa")
+missing("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/course/repo/mapper")
+missing("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/exam/repo/mapper")
+missing("student-management-evaluation-domain/src/main/java/it/pkg/domain/course/service/impl")
+missing("student-management-evaluation-domain/src/main/java/it/pkg/domain/exam/service/impl")
 
 def starterPom = file("student-management-evaluation-starter/pom.xml").text
 assert starterPom.contains("egon-cola-component-dynamic-thread-pool-starter")
 assert starterPom.contains("archunit-junit5")
+assert file("student-management-evaluation-domain/pom.xml").text
+        .contains("egon-cola-component-common-mybatis-plus-spring-boot-starter")
 assert file("student-management-evaluation-starter/src/main/resources/application.yml").text
         .contains("queue-capacity: \${ASYNC_QUEUE_CAPACITY:1000}")
 assert file("student-management-evaluation-starter/src/main/resources/application.yml").text
@@ -160,6 +176,67 @@ def reports = filesUnder(".") { candidate ->
     def report = reports.find { it.name.contains(testName) }
     assert report && report.text.contains('failures="0"') && report.text.contains('errors="0"'):
             "Expected generated Service test report ${testName} to pass"
+}
+
+def javaFiles = []
+projectDir.traverse(type: FileType.FILES) { candidate ->
+    def relativePath = projectDir.toPath().relativize(candidate.toPath()).toString()
+            .replace(File.separator, "/")
+    if (relativePath.contains("/src/main/java/") && candidate.name.endsWith(".java")) {
+        javaFiles << candidate
+    }
+}
+def javaPath = { File candidate ->
+    projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, "/")
+}
+def persistencePoSources = javaFiles.findAll { candidate ->
+    def path = javaPath(candidate)
+    path.contains("/infrastructure/") && path.contains("/repo/po/")
+            && candidate.name.endsWith("PO.java")
+}
+assert persistencePoSources.size() == 5
+persistencePoSources.each { candidate ->
+    def source = candidate.text
+    ["@Data", "@NoArgsConstructor", "@AllArgsConstructor", "@Builder",
+     "@Accessors(chain = true)", "@TableName", "extends EgonModel<"].each { token ->
+        assert source.contains(token): "Expected ${candidate.name} to contain ${token}"
+    }
+    assert !source.contains("@RequiredArgsConstructor")
+    assert !source.contains("@SuperBuilder")
+}
+def daoSources = javaFiles.findAll { candidate ->
+    def path = javaPath(candidate)
+    path.contains("/infrastructure/") && path.contains("/repo/dao/")
+            && candidate.name.endsWith("DAO.java")
+}
+assert daoSources.size() == 5
+daoSources.each { candidate ->
+    assert candidate.text.contains("extends EgonColaMapper<"):
+            "DAO must extend EgonColaMapper: ${candidate.name}"
+}
+def domainServiceSources = javaFiles.findAll { candidate ->
+    def path = javaPath(candidate)
+    path.contains("/domain/") && path.contains("/service/")
+            && candidate.name.endsWith("DomainService.java")
+}
+assert domainServiceSources.size() == 3
+domainServiceSources.each { candidate ->
+    assert candidate.text.contains("extends EgonColaIService<"):
+            "Domain service must extend EgonColaIService: ${candidate.name}"
+}
+def infrastructureServiceSources = javaFiles.findAll { candidate ->
+    def path = javaPath(candidate)
+    path.contains("/infrastructure/") && path.contains("/service/impl/")
+            && candidate.name.endsWith("DomainServiceImpl.java")
+}
+assert infrastructureServiceSources.size() == 3
+infrastructureServiceSources.each { candidate ->
+    assert candidate.text.contains("extends EgonColaServiceImpl<"):
+            "Infrastructure service must extend EgonColaServiceImpl: ${candidate.name}"
+}
+javaFiles.each { candidate ->
+    assert !candidate.text.contains("extends BaseMapper<")
+    assert !candidate.text.contains("repo.mapper")
 }
 
 assert file("README.md").text.contains("MyBatis-Plus")

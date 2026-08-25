@@ -59,7 +59,7 @@ class ShardingNodeMapTest {
                 INITIAL_NODE_MAP
                         + ",4=shard_2:0,5=shard_2:1,6=shard_3:0,7=shard_3:1");
 
-        List<Long> keys = List.of(42L, 43L, 44L, 45L);
+        List<Long> keys = List.of(2001L, 2002L, 2003L, 2004L);
 
         keys.forEach(key -> assertThat(expanded.routeSlot(key))
                 .isIn(current.routeSlot(key), current.routeSlot(key) + current.nodeCount()));
@@ -69,10 +69,10 @@ class ShardingNodeMapTest {
     void acceptsOnlyPositiveLongShardingKeys() {
         ShardingNodeMap nodeMap = parse("4", INITIAL_NODE_MAP);
 
-        assertThatThrownBy(() -> nodeMap.route(0L))
+        assertThatThrownBy(() -> nodeMap.route(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("positive");
-        assertThatThrownBy(() -> nodeMap.route(-1L))
+        assertThatThrownBy(() -> nodeMap.route(0L))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("positive");
     }

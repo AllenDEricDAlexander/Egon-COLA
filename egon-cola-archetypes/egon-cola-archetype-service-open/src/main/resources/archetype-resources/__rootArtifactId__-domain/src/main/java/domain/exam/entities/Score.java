@@ -10,18 +10,18 @@ import ${package}.domain.exam.vos.ScoreValue;
 
 public final class Score {
 
-    private final long id;
+    private final Long id;
     private final ExamId examId;
     private final CourseId courseId;
-    private final long studentId;
+    private final Long studentId;
     private final ScoreValue points;
     private ScoreStatus status;
 
     public Score(
-            long id,
+            Long id,
             ExamId examId,
             CourseId courseId,
-            long studentId,
+            Long studentId,
             ScoreValue points,
             ScoreStatus status) {
         this.id = id;
@@ -33,10 +33,10 @@ public final class Score {
     }
 
     public void cancel() { status = ScoreStatus.CANCELLED; }
-    public long getId() { return id; }
+    public Long getId() { return id; }
     public ExamId getExamId() { return examId; }
     public CourseId getCourseId() { return courseId; }
-    public long getStudentId() { return studentId; }
+    public Long getStudentId() { return studentId; }
     public ScoreValue getPoints() { return points; }
     public ScoreStatus getStatus() { return status; }
 }

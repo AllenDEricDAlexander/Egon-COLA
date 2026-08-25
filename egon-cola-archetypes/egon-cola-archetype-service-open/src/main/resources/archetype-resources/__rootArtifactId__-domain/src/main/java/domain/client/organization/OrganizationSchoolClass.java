@@ -6,7 +6,7 @@ package ${package}.domain.client.organization;
 import java.util.List;
 
 public record OrganizationSchoolClass(
-        long id,
+        Long id,
         String name,
         String gradeCode,
         String status,
