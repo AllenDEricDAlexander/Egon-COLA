@@ -26,8 +26,9 @@ const componentByKey = new Map(componentDescriptors.map((descriptor) => [descrip
 
 export const applicationRouteDescriptors: readonly FeatureRouteDescriptor[] = localResourceRegistry.definitions
   .filter((definition) => definition.kind === 'ROUTE' && definition.componentKey)
-  .map((definition) => {
+  .map((definition): FeatureRouteDescriptor | null => {
     const component = componentByKey.get(definition.componentKey!)
+    if (!component && definition.hidden === true) return null
     if (!component) throw new Error(`missing local component binding for route ${definition.code}`)
     return {
       ...component,
@@ -39,6 +40,7 @@ export const applicationRouteDescriptors: readonly FeatureRouteDescriptor[] = lo
       hideFromNav: definition.hidden,
     }
   })
+  .filter((route): route is FeatureRouteDescriptor => route !== null)
 
 const definitionForRoute = (route: FeatureRouteDescriptor) => localResourceRegistry.definitions.find(
   (definition) => definition.kind === 'ROUTE' && definition.componentKey === route.componentKey,

@@ -51,4 +51,9 @@ describe('application router', () => {
     await waitFor(() => expect(screen.getByText('权限治理概览')).toBeInTheDocument())
     expect(screen.queryByRole('button', { name: /sync|report|上报|同步/i })).not.toBeInTheDocument()
   })
+
+  it('does not expose the removed role-permissions route', async () => {
+    render(<ApplicationRouter />, { wrapper: wrapper(['system:role:read'], '/iam/roles/2/permissions') })
+    await waitFor(() => expect(screen.queryByText('角色权限与影响分析')).not.toBeInTheDocument())
+  })
 })

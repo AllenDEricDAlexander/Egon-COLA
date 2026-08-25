@@ -19,7 +19,7 @@ export interface ResourceView {
   readonly resourceCode: string
   readonly resourceName: string
   readonly parentResourceId?: string | null
-  readonly requiredPermissionId?: string | null
+  readonly mappingStatus?: string
   readonly status: string
   readonly version: number
 }
@@ -53,6 +53,22 @@ export interface PermissionView {
   readonly version: number
 }
 
+export interface ResourcePermissionMappingView {
+  readonly resourceId: string
+  readonly applicationId: string
+  readonly resourceCode: string
+  readonly resourceType: string
+  readonly suggestedPermissionCode: string | null
+  readonly actualPermissionId: string | null
+  readonly actualPermissionCode: string | null
+  readonly mappingStatus: string
+  readonly resourceVersion: number
+  readonly activeRoleCount: number
+  readonly changed: boolean
+  readonly authVersion: number
+  readonly policyVersion: number
+}
+
 export const applicationApi = (client: FeatureApiClient) => ({
   tenantApplications: () => client.request<readonly TenantApplicationView[]>('/api/rbac3/v1/iam/tenant-applications'),
   admitTenantApplication: (ddcApplicationId: string, displayPriority: number) => client.request<TenantApplicationView>(
@@ -72,6 +88,13 @@ export const applicationApi = (client: FeatureApiClient) => ({
   ),
   resources: (applicationId: string) => client.request<readonly ResourceView[]>(
     `/api/rbac3/v1/iam/resource-catalog/applications/${encodeURIComponent(applicationId)}/resources`,
+  ),
+  permissionMapping: (resourceId: string) => client.request<ResourcePermissionMappingView>(
+    `/api/rbac3/v1/iam/resources/${encodeURIComponent(resourceId)}/permission-mapping`,
+  ),
+  updatePermissionMapping: (resourceId: string, command: { permissionId: string; expectedResourceVersion: number; reason?: string }) => client.request<ResourcePermissionMappingView>(
+    `/api/rbac3/v1/iam/resources/${encodeURIComponent(resourceId)}/permission-mapping`,
+    { method: 'PUT', body: command },
   ),
   fields: (applicationId: string, resourceId?: string) => client.request<readonly FieldDefinitionView[]>(
     resourceId

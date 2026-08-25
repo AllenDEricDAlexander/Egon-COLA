@@ -21,9 +21,47 @@ export interface RoleImpactView {
   readonly conflicts: readonly string[]
 }
 
-export interface BindRolePermissionsCommand {
+export interface RoleResourceGrantNode {
+  readonly resourceId: string
+  readonly resourceCode: string
+  readonly name: string
+  readonly category: string
+  readonly technicalType: string
+  readonly parentCode: string | null
+  readonly status: string
+  readonly mappingStatus: string
+  readonly grantState: string
+  readonly grantable: boolean
+  readonly disabledReason: string | null
+  readonly linkedApis: readonly RoleResourceLinkedApi[]
+  readonly children: readonly RoleResourceGrantNode[]
+}
+
+export interface RoleResourceLinkedApi {
+  readonly resourceId: string
+  readonly resourceCode: string
+  readonly name: string
+  readonly method: string | null
+  readonly path: string | null
+}
+
+export interface RoleResourceGrantTreeView {
+  readonly roleId: string
   readonly applicationId: string
-  readonly permissionIds: readonly string[]
+  readonly roleVersion: number
+  readonly directResourceIds: readonly string[]
+  readonly derivedApiResourceIds: readonly string[]
+  readonly summary: {
+    readonly menuPageCount: number
+    readonly actionCount: number
+    readonly apiCount: number
+    readonly inheritedCount: number
+  }
+  readonly nodes: readonly RoleResourceGrantNode[]
+}
+
+export interface ReplaceRoleResourcesCommand {
+  readonly resourceIds: readonly string[]
   readonly validFrom: string
   readonly validTo: string | null
   readonly expectedRoleVersion: number
@@ -37,8 +75,11 @@ export const roleApi = (client: FeatureApiClient) => ({
   impact: (roleId: string) => client.request<RoleImpactView>(
     `/api/rbac3/v1/roles/${encodeURIComponent(roleId)}/impact-analysis`,
   ),
-  bindPermissions: (roleId: string, command: BindRolePermissionsCommand) => client.request(
-    `/api/rbac3/v1/roles/${encodeURIComponent(roleId)}/permissions`,
-    { method: 'POST', body: command },
+  resources: (roleId: string) => client.request<RoleResourceGrantTreeView>(
+    `/api/rbac3/v1/iam/roles/${encodeURIComponent(roleId)}/resources`,
+  ),
+  replaceResources: (roleId: string, command: ReplaceRoleResourcesCommand) => client.request(
+    `/api/rbac3/v1/iam/roles/${encodeURIComponent(roleId)}/resources`,
+    { method: 'PUT', body: command },
   ),
 })
