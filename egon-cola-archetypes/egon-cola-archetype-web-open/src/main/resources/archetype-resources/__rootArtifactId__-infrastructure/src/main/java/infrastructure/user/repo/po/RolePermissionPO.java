@@ -1,29 +1,23 @@
 package ${package}.infrastructure.user.repo.po;
 
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+import top.egon.cola.component.common.mybatis.model.EgonModel;
 
-import java.time.LocalDateTime;
-
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Accessors(chain = true)
 @TableName("role_permissions")
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class RolePermissionPO {
-    @TableId(value = "id", type = IdType.INPUT) private Long id;
-    @TableField("role_id") private Long roleId;
-    @TableField("permission_id") private Long permissionId;
-    @TableField("created_at") private LocalDateTime createdAt;
-
-    public RolePermissionPO(Long id, Long roleId, Long permissionId, LocalDateTime createdAt) {
-        this.id = id;
-        this.roleId = roleId;
-        this.permissionId = permissionId;
-        this.createdAt = createdAt;
-    }
-    public Long getId() { return id; }
-    public Long getRoleId() { return roleId; }
-    public Long getPermissionId() { return permissionId; }
+public class RolePermissionPO extends EgonModel<RolePermissionPO> {
+    @TableField("role_id")
+    private Long roleId;
+    @TableField("permission_id")
+    private Long permissionId;
 }

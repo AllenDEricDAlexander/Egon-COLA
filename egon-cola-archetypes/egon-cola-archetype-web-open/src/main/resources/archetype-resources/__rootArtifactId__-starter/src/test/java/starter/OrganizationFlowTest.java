@@ -110,14 +110,15 @@ class OrganizationFlowTest {
                 .andExpect(jsonPath("$.roleCodes[0]").value("STUDENT"));
 
         assertThat(jdbcTemplate.queryForObject(
-                "select count(*) from user_roles where user_id = ?", Integer.class,
+                "select count(*) from user_roles where tenant_id = 1 and user_id = ?", Integer.class,
                 Long.parseLong(userId))).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject(
-                "select count(*) from role_permissions rp join roles r on r.id = rp.role_id where r.code = ?",
+                "select count(*) from role_permissions rp join roles r on r.tenant_id = 1 and r.id = rp.role_id"
+                        + " where rp.tenant_id = 1 and r.code = ?",
                 Integer.class, "STUDENT")).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject(
                 "select count(*) from school_class_users"
-                        + " where grade_id = ? and user_id = ? and school_class_id = ?",
+                        + " where tenant_id = 1 and grade_id = ? and user_id = ? and school_class_id = ?",
                 Integer.class, Long.parseLong(gradeId), Long.parseLong(userId),
                 Long.parseLong(schoolClassId))).isEqualTo(1);
     }

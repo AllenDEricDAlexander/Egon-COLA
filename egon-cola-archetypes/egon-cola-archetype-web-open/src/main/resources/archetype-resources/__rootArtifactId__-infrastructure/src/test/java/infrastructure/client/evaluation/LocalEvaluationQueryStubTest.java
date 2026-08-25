@@ -16,14 +16,14 @@ class LocalEvaluationQueryStubTest {
 
     @Test
     void returnsDeterministicLocalData() {
-        assertThat(stub.getCourse("course-1").name()).isEqualTo("Local Course course-1");
-        assertThat(stub.getExam("exam-1").courseId()).isEqualTo("local-course");
-        assertThat(stub.getScore("exam-1", "score-1").studentId()).isEqualTo("local-student");
+        assertThat(stub.getCourse(1001L).name()).isEqualTo("Local Course 1001");
+        assertThat(stub.getExam(2001L).courseId()).isEqualTo(9001L);
+        assertThat(stub.getScore(2001L, 3001L).studentId()).isEqualTo(7001L);
     }
 
     @Test
     void mapsMissingIdentifiersToNotFound() {
-        assertThatThrownBy(() -> stub.getCourse("missing-course"))
+        assertThatThrownBy(() -> stub.getCourse(0L))
                 .isInstanceOfSatisfying(ExternalDependencyException.class,
                         failure -> assertThat(failure.failure())
                                 .isEqualTo(ExternalDependencyFailure.NOT_FOUND));

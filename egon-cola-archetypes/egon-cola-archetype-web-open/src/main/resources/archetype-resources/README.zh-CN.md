@@ -27,7 +27,7 @@ ${rootArtifactId}-starter
 MyBatis-Plus 3.5.17、ShardingSphere 5.5.3、Springdoc 2.8.17。直接使用的 Egon
 组件只有 Common core/ID 与 Dynamic Thread Pool starter。
 
-项目明确不使用 Spring Data JPA、Flyway、Liquibase、Gateway starter、UUID 生成器，
+项目明确不使用 Spring Data JPA、Flyway、Liquibase、Gateway starter、UUID 业务主键，
 也不依赖外部 organization/evaluation facade artifact。`OpenArchitectureTest` 和
 生成物 verifier 会重复检查这些边界。
 

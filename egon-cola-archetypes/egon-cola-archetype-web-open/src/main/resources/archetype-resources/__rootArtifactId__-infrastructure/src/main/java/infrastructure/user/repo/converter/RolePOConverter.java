@@ -6,18 +6,31 @@ import ${package}.domain.user.vos.PermissionCode;
 import ${package}.domain.user.vos.RoleCode;
 import ${package}.infrastructure.user.repo.po.RolePO;
 import org.springframework.stereotype.Component;
+import top.egon.cola.component.common.core.converter.BaseConverter;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Component("rolePOConverter")
-public final class RolePOConverter {
-    public RolePO toPO(Role role) {
-        return new RolePO(role.id(), role.code().value(), role.name(), role.status().name(), LocalDateTime.now());
+public final class RolePOConverter implements BaseConverter<Role, RolePO> {
+    @Override
+    public RolePO toTarget(Role role) {
+        RolePO target = RolePO.builder().code(role.code().value()).name(role.name())
+                .status(role.status().name()).build();
+        target.setId(role.id());
+        return target;
     }
 
-    public Role toEntity(RolePO rolePO, List<PermissionCode> permissionCodes) {
-        return new Role(rolePO.getId(), new RoleCode(rolePO.getCode()), rolePO.getName(),
-            RoleStatus.valueOf(rolePO.getStatus()), permissionCodes);
+    @Override
+    public Role toSource(RolePO target) {
+        return toEntity(target, List.of());
+    }
+
+    public Role toEntity(RolePO target, List<PermissionCode> permissionCodes) {
+        return new Role(target.getId(), new RoleCode(target.getCode()), target.getName(),
+                RoleStatus.valueOf(target.getStatus()), permissionCodes);
+    }
+
+    public RolePO toPO(Role role) {
+        return toTarget(role);
     }
 }

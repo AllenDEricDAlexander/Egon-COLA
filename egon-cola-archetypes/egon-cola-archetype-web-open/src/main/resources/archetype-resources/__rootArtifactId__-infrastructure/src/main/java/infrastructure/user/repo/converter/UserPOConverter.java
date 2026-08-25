@@ -2,25 +2,38 @@ package ${package}.infrastructure.user.repo.converter;
 
 import ${package}.domain.user.entities.User;
 import ${package}.domain.user.enums.UserStatus;
-import ${package}.domain.user.vos.UserId;
 import ${package}.domain.user.vos.RoleCode;
+import ${package}.domain.user.vos.UserId;
 import ${package}.infrastructure.user.repo.po.UserPO;
 import org.springframework.stereotype.Component;
+import top.egon.cola.component.common.core.converter.BaseConverter;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Component("userPOConverter")
-public class UserPOConverter {
-
-    public UserPO toPO(User user) {
-        return new UserPO(
-            user.id().value(), user.name(), user.email(), user.status().name(), LocalDateTime.now());
+public final class UserPOConverter implements BaseConverter<User, UserPO> {
+    @Override
+    public UserPO toTarget(User user) {
+        UserPO target = UserPO.builder()
+                .name(user.name())
+                .email(user.email())
+                .status(user.status().name())
+                .build();
+        target.setId(user.id().value());
+        return target;
     }
 
-    public User toEntity(UserPO userPO, List<RoleCode> roleCodes) {
-        return User.restore(
-            new UserId(userPO.getId()), userPO.getName(), userPO.getEmail(),
-            UserStatus.valueOf(userPO.getStatus()), roleCodes);
+    @Override
+    public User toSource(UserPO target) {
+        return toEntity(target, List.of());
+    }
+
+    public User toEntity(UserPO target, List<RoleCode> roleCodes) {
+        return User.restore(new UserId(target.getId()), target.getName(), target.getEmail(),
+                UserStatus.valueOf(target.getStatus()), roleCodes);
+    }
+
+    public UserPO toPO(User user) {
+        return toTarget(user);
     }
 }

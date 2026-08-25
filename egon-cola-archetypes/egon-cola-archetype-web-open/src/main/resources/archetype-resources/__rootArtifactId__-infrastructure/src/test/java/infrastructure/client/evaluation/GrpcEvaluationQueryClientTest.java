@@ -54,31 +54,31 @@ class GrpcEvaluationQueryClientTest {
 
     @Test
     void callsCourseOverStandardGrpcUnaryMethod() {
-        assertThat(client.getCourse("1001"))
+        assertThat(client.getCourse(1001L))
                 .extracting("id", "code", "name", "credit", "status")
-                .containsExactly("1001", "COURSE-1", "Course One", 3, "ACTIVE");
+                .containsExactly(1001L, "COURSE-1", "Course One", 3, "ACTIVE");
     }
 
     @Test
     void callsExamOverStandardGrpcUnaryMethod() {
-        assertThat(client.getExam("2001"))
+        assertThat(client.getExam(2001L))
                 .extracting("id", "courseId", "title", "status")
-                .containsExactly("2001", "1001", "Exam One", "PUBLISHED");
+                .containsExactly(2001L, 1001L, "Exam One", "PUBLISHED");
     }
 
     @Test
     void callsScoreOverStandardGrpcUnaryMethod() {
-        assertThat(client.getScore("2001", "3001"))
+        assertThat(client.getScore(2001L, 3001L))
                 .extracting("id", "examId", "courseId", "studentId", "points", "status")
-                .containsExactly("3001", "2001", "1001", "4001", 95, "RECORDED");
+                .containsExactly(3001L, 2001L, 1001L, 4001L, 95, "RECORDED");
     }
 
     @Test
-    void rejectsNonPositiveDecimalIdsBeforeOpeningAnRpcCall() {
-        assertThatThrownBy(() -> client.getCourse("not-a-long"))
+    void rejectsNonPositiveIdsBeforeOpeningAnRpcCall() {
+        assertThatThrownBy(() -> client.getCourse(0L))
                 .isInstanceOf(ExternalDependencyException.class)
                 .hasMessageContaining("courseId");
-        assertThatThrownBy(() -> client.getScore("1001", "0"))
+        assertThatThrownBy(() -> client.getScore(1001L, 0L))
                 .isInstanceOf(ExternalDependencyException.class)
                 .hasMessageContaining("scoreId");
     }

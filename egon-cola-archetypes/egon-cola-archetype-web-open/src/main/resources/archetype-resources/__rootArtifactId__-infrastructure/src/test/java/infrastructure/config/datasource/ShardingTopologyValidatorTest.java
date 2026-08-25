@@ -189,23 +189,23 @@ class ShardingTopologyValidatorTest {
                         actualDataNodes: shard_$->{0..1}.sample_$->{0..1}
                         databaseStrategy:
                           standard:
-                            shardingColumn: id
-                            shardingAlgorithmName: snowflake_long_database_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_database_bucket
                         tableStrategy:
                           standard:
-                            shardingColumn: id
-                            shardingAlgorithmName: snowflake_long_table_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_table_bucket
                         auditStrategy:
                           auditorNames:
                             - sharding_key_required_auditor
                           allowHintDisable: false
                     shardingAlgorithms:
-                      snowflake_long_database_bucket:
+                      tenant_long_database_bucket:
                         type: CLASS_BASED
                         props:
                           node-count: 4
                           node-map: 0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1
-                      snowflake_long_table_bucket:
+                      tenant_long_table_bucket:
                         type: CLASS_BASED
                         props:
                           node-count: 4

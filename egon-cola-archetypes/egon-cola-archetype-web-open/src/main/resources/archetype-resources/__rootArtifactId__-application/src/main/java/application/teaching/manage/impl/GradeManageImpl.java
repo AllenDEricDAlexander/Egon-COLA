@@ -15,7 +15,6 @@ import ${package}.domain.teaching.events.GradeChangedEvent;
 import ${package}.domain.teaching.client.GradeCachePort;
 import ${package}.application.support.IdempotentCommand;
 import ${package}.application.support.OrganizationTransactionHooks;
-import ${package}.domain.teaching.repos.GradeRepository;
 import ${package}.domain.teaching.service.GradeDomainService;
 import ${package}.domain.teaching.vos.GradeCode;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +27,7 @@ import java.time.Instant;
 @Service("gradeManage")
 @RequiredArgsConstructor
 public class GradeManageImpl implements GradeManage {
-    private final GradeRepository gradeRepository;
-    private final GradeDomainService gradeDomainService;
+    private final GradeDomainService<?> gradeDomainService;
     private final TeachingApplicationValidator validator;
     private final GradeCachePort gradeCache;
     private final CommandIdempotencyPort idempotency;
@@ -43,10 +41,10 @@ public class GradeManageImpl implements GradeManage {
         return IdempotentCommand.execute(idempotency, "create-grade", command.requestId(), () -> {
             validator.requireTeachingAdmin();
             GradeCode code = GradeCode.create(command.code());
-            if (gradeRepository.existsByCode(code)) {
+            if (gradeDomainService.existsByCode(code)) {
                 throw conflict("grade code already exists");
             }
-            Grade grade = gradeRepository.save(gradeDomainService.create(
+            Grade grade = gradeDomainService.save(gradeDomainService.create(
                 idGenerator.nextLongId(), code.value(), command.name()));
             OrganizationTransactionHooks.afterCommit(() -> {
                 gradeCache.evict(grade.id());
@@ -60,7 +58,7 @@ public class GradeManageImpl implements GradeManage {
     @Override
     public GradeDetailResult getGrade(GradeDetailQuery query) {
         Grade grade = gradeCache.findById(query.gradeId()).orElseGet(() -> {
-            Grade loaded = gradeRepository.findById(query.gradeId())
+            Grade loaded = gradeDomainService.findById(query.gradeId())
                 .orElseThrow(() -> notFound("grade not found"));
             gradeCache.put(loaded);
             return loaded;

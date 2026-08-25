@@ -102,7 +102,8 @@ class ReadwriteRoutingIntegrationTest {
 
         DataSource logical = YamlShardingSphereDataSourceFactory.createDataSource(
                 physical, classShardingRule());
-        String gradeId = "1001";
+        String tenantId = "1001";
+        String gradeId = "2002";
         String schoolClassId = "2001";
         String membershipId = "3001";
         try {
@@ -113,10 +114,10 @@ class ReadwriteRoutingIntegrationTest {
                     schoolClassUserTable());
             try (Connection connection = logical.getConnection()) {
                 connection.setAutoCommit(false);
-                execute(connection, "INSERT INTO school_classes(id, grade_id) VALUES ("
-                        + schoolClassId + ", " + gradeId + ")");
-                execute(connection, "INSERT INTO school_class_users(id, grade_id)"
-                        + " VALUES (" + membershipId + ", " + gradeId + ")");
+                execute(connection, "INSERT INTO school_classes(id, tenant_id, grade_id) VALUES ("
+                        + schoolClassId + ", " + tenantId + ", " + gradeId + ")");
+                execute(connection, "INSERT INTO school_class_users(id, tenant_id, grade_id)"
+                        + " VALUES (" + membershipId + ", " + tenantId + ", " + gradeId + ")");
                 connection.commit();
             }
 
@@ -155,11 +156,11 @@ class ReadwriteRoutingIntegrationTest {
             executeUnchecked(
                     dataSource,
                     "CREATE TABLE school_classes_" + suffix
-                            + "(id BIGINT PRIMARY KEY, grade_id BIGINT NOT NULL)");
+                            + "(id BIGINT PRIMARY KEY, tenant_id BIGINT NOT NULL, grade_id BIGINT NOT NULL)");
             executeUnchecked(
                     dataSource,
                     "CREATE TABLE school_class_users_" + suffix
-                            + "(id BIGINT PRIMARY KEY, grade_id BIGINT NOT NULL)");
+                            + "(id BIGINT PRIMARY KEY, tenant_id BIGINT NOT NULL, grade_id BIGINT NOT NULL)");
         }
     }
 
@@ -195,6 +196,7 @@ class ReadwriteRoutingIntegrationTest {
         return table(
                 "school_classes",
                 column("id", Types.BIGINT, true, false),
+                column("tenant_id", Types.BIGINT, false, false),
                 column("grade_id", Types.BIGINT, false, false));
     }
 
@@ -202,6 +204,7 @@ class ReadwriteRoutingIntegrationTest {
         return table(
                 "school_class_users",
                 column("id", Types.BIGINT, true, false),
+                column("tenant_id", Types.BIGINT, false, false),
                 column("grade_id", Types.BIGINT, false, false));
     }
 
@@ -349,12 +352,12 @@ class ReadwriteRoutingIntegrationTest {
                         actualDataNodes: shard_$->{0..1}.school_classes_$->{0..1}
                         databaseStrategy:
                           standard:
-                            shardingColumn: grade_id
-                            shardingAlgorithmName: snowflake_long_database_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_database_bucket
                         tableStrategy:
                           standard:
-                            shardingColumn: grade_id
-                            shardingAlgorithmName: snowflake_long_table_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_table_bucket
                         auditStrategy:
                           auditorNames:
                             - sharding_key_required_auditor
@@ -363,12 +366,12 @@ class ReadwriteRoutingIntegrationTest {
                         actualDataNodes: shard_$->{0..1}.school_class_users_$->{0..1}
                         databaseStrategy:
                           standard:
-                            shardingColumn: grade_id
-                            shardingAlgorithmName: snowflake_long_database_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_database_bucket
                         tableStrategy:
                           standard:
-                            shardingColumn: grade_id
-                            shardingAlgorithmName: snowflake_long_table_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_table_bucket
                         auditStrategy:
                           auditorNames:
                             - sharding_key_required_auditor
@@ -376,19 +379,19 @@ class ReadwriteRoutingIntegrationTest {
                     bindingTables:
                       - school_classes,school_class_users
                     shardingAlgorithms:
-                      snowflake_long_database_bucket:
+                      tenant_long_database_bucket:
                         type: CLASS_BASED
                         props:
                           strategy: STANDARD
-                          algorithmClassName: ${package}.infrastructure.config.datasource.SnowflakeLongShardingAlgorithm
+                          algorithmClassName: ${package}.infrastructure.config.datasource.LongTenantShardingAlgorithm
                           target: database
                           node-count: 4
                           node-map: 0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1
-                      snowflake_long_table_bucket:
+                      tenant_long_table_bucket:
                         type: CLASS_BASED
                         props:
                           strategy: STANDARD
-                          algorithmClassName: ${package}.infrastructure.config.datasource.SnowflakeLongShardingAlgorithm
+                          algorithmClassName: ${package}.infrastructure.config.datasource.LongTenantShardingAlgorithm
                           target: table
                           node-count: 4
                           node-map: 0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1

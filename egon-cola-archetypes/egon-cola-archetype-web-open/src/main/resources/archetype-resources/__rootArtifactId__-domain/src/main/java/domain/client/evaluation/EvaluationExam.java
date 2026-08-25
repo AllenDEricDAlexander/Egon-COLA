@@ -3,8 +3,8 @@ package ${package}.domain.client.evaluation;
 import java.time.Instant;
 
 public record EvaluationExam(
-        String id,
-        String courseId,
+        Long id,
+        Long courseId,
         String title,
         Instant startsAt,
         Instant endsAt,

@@ -7,20 +7,31 @@ import ${package}.domain.teaching.vos.SchoolClassId;
 import ${package}.domain.user.vos.UserId;
 import ${package}.infrastructure.teaching.repo.po.SchoolClassPO;
 import org.springframework.stereotype.Component;
+import top.egon.cola.component.common.core.converter.BaseConverter;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Component("schoolClassPOConverter")
-public final class SchoolClassPOConverter {
-    public SchoolClassPO toPO(SchoolClass schoolClass) {
-        return new SchoolClassPO(schoolClass.id().value(), schoolClass.name(), schoolClass.gradeName(),
-            schoolClass.gradeId(), schoolClass.status().name(), LocalDateTime.now());
+public final class SchoolClassPOConverter implements BaseConverter<SchoolClass, SchoolClassPO> {
+    @Override
+    public SchoolClassPO toTarget(SchoolClass schoolClass) {
+        SchoolClassPO target = SchoolClassPO.builder().name(schoolClass.name()).gradeName(schoolClass.gradeName())
+                .gradeId(schoolClass.gradeId()).status(schoolClass.status().name()).build();
+        target.setId(schoolClass.id().value());
+        return target;
     }
 
-    public SchoolClass toEntity(SchoolClassPO schoolClassPO, GradeCode gradeCode, List<UserId> userIds) {
-        return new SchoolClass(new SchoolClassId(schoolClassPO.getId()), schoolClassPO.getName(),
-            schoolClassPO.getGradeId(), gradeCode, schoolClassPO.getGradeName(),
-            SchoolClassStatus.valueOf(schoolClassPO.getStatus()), userIds);
+    @Override
+    public SchoolClass toSource(SchoolClassPO target) {
+        return toEntity(target, GradeCode.create("UNKNOWN"), List.of());
+    }
+
+    public SchoolClass toEntity(SchoolClassPO target, GradeCode gradeCode, List<UserId> userIds) {
+        return new SchoolClass(new SchoolClassId(target.getId()), target.getName(), target.getGradeId(),
+                gradeCode, target.getGradeName(), SchoolClassStatus.valueOf(target.getStatus()), userIds);
+    }
+
+    public SchoolClassPO toPO(SchoolClass schoolClass) {
+        return toTarget(schoolClass);
     }
 }

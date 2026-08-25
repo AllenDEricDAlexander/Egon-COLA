@@ -15,7 +15,6 @@ import ${package}.domain.user.events.UserChangedEvent;
 import ${package}.domain.user.client.UserCachePort;
 import ${package}.application.support.IdempotentCommand;
 import ${package}.application.support.OrganizationTransactionHooks;
-import ${package}.domain.user.repos.UserRepository;
 import ${package}.domain.user.service.UserDomainService;
 import ${package}.domain.user.vos.UserId;
 import lombok.RequiredArgsConstructor;
@@ -29,8 +28,7 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class UserManageImpl implements UserManage {
 
-    private final UserRepository userRepository;
-    private final UserDomainService userDomainService;
+    private final UserDomainService<?> userDomainService;
     private final UserApplicationValidator validator;
     private final UserAssembler assembler;
     private final UserCachePort userCache;
@@ -44,11 +42,11 @@ public class UserManageImpl implements UserManage {
         return IdempotentCommand.execute(idempotency, "create-user", command.requestId(), () -> {
             validator.requireOrganizationAdmin();
             String normalizedEmail = validator.normalizedEmail(command.email());
-            if (userRepository.existsByEmail(normalizedEmail)) {
+            if (userDomainService.existsByEmail(normalizedEmail)) {
                 throw new OrganizationApplicationException(
                     OrganizationFailureType.CONFLICT, "ORG_CONFLICT", "user email already exists");
             }
-            User user = userRepository.save(userDomainService.create(
+            User user = userDomainService.save(userDomainService.create(
                 new UserId(idGenerator.nextLongId()), command.name(), normalizedEmail));
             OrganizationTransactionHooks.afterCommit(() -> {
                 userCache.evict(user.id());
@@ -63,7 +61,7 @@ public class UserManageImpl implements UserManage {
     public UserDetailResult getUser(UserDetailQuery query) {
         UserId userId = new UserId(query.userId());
         User user = userCache.findById(userId).orElseGet(() -> {
-            User loaded = userRepository.findById(userId)
+            User loaded = userDomainService.findById(userId)
             .orElseThrow(() -> new OrganizationApplicationException(
                 OrganizationFailureType.NOT_FOUND, "ORG_NOT_FOUND", "user not found"));
             userCache.put(loaded);

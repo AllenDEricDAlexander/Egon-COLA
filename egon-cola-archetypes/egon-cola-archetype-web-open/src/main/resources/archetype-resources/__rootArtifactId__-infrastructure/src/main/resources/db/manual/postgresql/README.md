@@ -10,8 +10,12 @@
    `master-data/001__create_organization_master_data_schema.sql`。
 3. 在每个 shard primary 上执行
    `shard/002__create_organization_sharded_schema.sql`，确保 `_0/_1` 物理表的列、约束和索引完全一致。
-4. 逐库检查所有 ID、外键和路由键为 PostgreSQL `BIGINT`，再执行行数、唯一约束和索引校验。
-5. 只有 schema 校验、备份记录和发布审批完成后，才允许启用应用实例。
+4. 完成历史租户/审计身份的离线映射后，在 `master_data` primary 上执行
+   `master-data/003__migrate_organization_master_data_to_egon_model.sql`。
+5. 在每个 shard primary 上执行
+   `shard/004__migrate_organization_sharded_to_tenant_model.sql`。
+6. 逐库检查所有 ID、外键和 `tenant_id` 路由键为 PostgreSQL `BIGINT`，再执行行数、唯一约束和索引校验。
+7. 只有 schema 校验、备份记录和发布审批完成后，才允许启用应用实例。
 
 示例（每个 primary 单独执行）：
 
@@ -22,6 +26,12 @@ psql "$SHARD_0_URL" --set ON_ERROR_STOP=1 \
   --file shard/002__create_organization_sharded_schema.sql
 psql "$SHARD_1_URL" --set ON_ERROR_STOP=1 \
   --file shard/002__create_organization_sharded_schema.sql
+psql "$MASTER_DATA_URL" --set ON_ERROR_STOP=1 \
+  --file master-data/003__migrate_organization_master_data_to_egon_model.sql
+psql "$SHARD_0_URL" --set ON_ERROR_STOP=1 \
+  --file shard/004__migrate_organization_sharded_to_tenant_model.sql
+psql "$SHARD_1_URL" --set ON_ERROR_STOP=1 \
+  --file shard/004__migrate_organization_sharded_to_tenant_model.sql
 ```
 
 ## 失败与回退边界

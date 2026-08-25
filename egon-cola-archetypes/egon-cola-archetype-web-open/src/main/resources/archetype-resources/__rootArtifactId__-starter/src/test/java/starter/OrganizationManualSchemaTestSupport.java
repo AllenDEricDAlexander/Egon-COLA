@@ -81,6 +81,23 @@ final class OrganizationManualSchemaTestSupport {
                     + "id BIGINT PRIMARY KEY, code VARCHAR(160) NOT NULL UNIQUE, "
                     + "name VARCHAR(120) NOT NULL, status VARCHAR(32) NOT NULL, "
                     + "created_at TIMESTAMP NOT NULL)");
+            for (String table : new String[] {
+                    "users", "roles", "permissions", "user_roles", "role_permissions", "grades"}) {
+                statement.execute("ALTER TABLE " + table
+                        + " ALTER COLUMN created_at SET DEFAULT CURRENT_TIMESTAMP");
+                statement.execute("ALTER TABLE " + table
+                        + " ADD COLUMN IF NOT EXISTS tenant_id BIGINT DEFAULT 1");
+                statement.execute("ALTER TABLE " + table
+                        + " ADD COLUMN IF NOT EXISTS create_user_id VARCHAR(128) DEFAULT 'test'");
+                statement.execute("ALTER TABLE " + table
+                        + " ADD COLUMN IF NOT EXISTS create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+                statement.execute("ALTER TABLE " + table
+                        + " ADD COLUMN IF NOT EXISTS update_user_id VARCHAR(128) DEFAULT 'test'");
+                statement.execute("ALTER TABLE " + table
+                        + " ADD COLUMN IF NOT EXISTS update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+                statement.execute("ALTER TABLE " + table
+                        + " ADD COLUMN IF NOT EXISTS is_deleted SMALLINT DEFAULT 0");
+            }
         }
     }
 
@@ -96,6 +113,22 @@ final class OrganizationManualSchemaTestSupport {
                         + "id BIGINT PRIMARY KEY, grade_id BIGINT NOT NULL, user_id BIGINT NOT NULL, "
                         + "school_class_id BIGINT NOT NULL, created_at TIMESTAMP NOT NULL, "
                         + "UNIQUE (grade_id, school_class_id, user_id))");
+                for (String table : new String[] {"school_classes_" + slot, "school_class_users_" + slot}) {
+                    statement.execute("ALTER TABLE " + table
+                            + " ALTER COLUMN created_at SET DEFAULT CURRENT_TIMESTAMP");
+                    statement.execute("ALTER TABLE " + table
+                            + " ADD COLUMN IF NOT EXISTS tenant_id BIGINT DEFAULT 1");
+                    statement.execute("ALTER TABLE " + table
+                            + " ADD COLUMN IF NOT EXISTS create_user_id VARCHAR(128) DEFAULT 'test'");
+                    statement.execute("ALTER TABLE " + table
+                            + " ADD COLUMN IF NOT EXISTS create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+                    statement.execute("ALTER TABLE " + table
+                            + " ADD COLUMN IF NOT EXISTS update_user_id VARCHAR(128) DEFAULT 'test'");
+                    statement.execute("ALTER TABLE " + table
+                            + " ADD COLUMN IF NOT EXISTS update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+                    statement.execute("ALTER TABLE " + table
+                            + " ADD COLUMN IF NOT EXISTS is_deleted SMALLINT DEFAULT 0");
+                }
             }
         }
     }

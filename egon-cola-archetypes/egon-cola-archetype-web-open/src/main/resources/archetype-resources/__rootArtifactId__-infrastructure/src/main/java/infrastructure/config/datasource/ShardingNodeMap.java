@@ -10,7 +10,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
- * Immutable stable-slot mapping used by Snowflake Long sharding.
+ * Immutable stable-slot mapping used by positive Long tenant sharding.
  */
 public record ShardingNodeMap(
         int nodeCount,

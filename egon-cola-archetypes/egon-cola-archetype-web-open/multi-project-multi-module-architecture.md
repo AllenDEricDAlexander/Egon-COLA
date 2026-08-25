@@ -49,17 +49,24 @@ ShardingSphere 或任何 Web 框架。Infrastructure 不反向依赖 Adapter；S
 `LongIdGenerator`/Snowflake 实现生成。运行实例必须设置唯一的
 `EGON_ID_MACHINE_ID`；测试 profile 固定为 `0`，不会使用 `UUID.randomUUID()`。
 
-持久化使用 MyBatis-Plus 3.5.17 与 ShardingSphere 5.5.3：
+持久化通过 `egon-cola-component-common-mybatis-plus-spring-boot-starter` 使用
+MyBatis-Plus 与 ShardingSphere 5.5.3：
 
-- PO 使用 `@TableName`/`BaseMapper`，SQL 位于 Mapper XML；
-- `school_classes`、`school_class_users` 按 `grade_id` 路由，主数据表固定到
+- Domain service interface 位于 Domain 并继承 `EgonColaIService`；实现位于
+  Infrastructure 并继承 `EgonColaServiceImpl`。PO 位于 Infrastructure，使用
+  `@Data`、`@NoArgsConstructor`、`@AllArgsConstructor`、`@Builder`、链式
+  `@Accessors` 与 `@TableName`，并继承 `EgonModel`；DAO 继承 `EgonColaMapper`，
+  SQL 位于 `mybatis/mapper` XML；
+- `school_classes`、`school_class_users` 按 `tenant_id` 路由，主数据表固定到
   `master_data`；
 - 支持 `SHARDING` 与 `SHARDING_READWRITE` 两种拓扑；
 - `spring.sql.init.mode=never`，模板不使用 Spring Data JPA、Flyway 或 Liquibase；
 - DBA 按生成项目 Infrastructure 下的
   `src/main/resources/db/manual/postgresql/master-data/001__create_organization_master_data_schema.sql`
-  与 `src/main/resources/db/manual/postgresql/shard/002__create_organization_sharded_schema.sql` 手工更新
-  表结构，失败停止，回退依靠备份或新的前向 SQL。
+  与 `src/main/resources/db/manual/postgresql/shard/002__create_organization_sharded_schema.sql` 建立
+  基线，再执行 `master-data/003__migrate_organization_master_data_to_egon_model.sql` 和
+  `shard/004__migrate_organization_sharded_to_tenant_model.sql`。脚本仅供人工执行，
+  失败停止，回退依靠备份或新的前向 SQL。
 
 ## 4. Proto 与 RPC
 

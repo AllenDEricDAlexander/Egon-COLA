@@ -1,4 +1,4 @@
 package ${package}.domain.client.evaluation;
 
-public record EvaluationCourse(String id, String code, String name, int credit, String status) {
+public record EvaluationCourse(Long id, String code, String name, int credit, String status) {
 }

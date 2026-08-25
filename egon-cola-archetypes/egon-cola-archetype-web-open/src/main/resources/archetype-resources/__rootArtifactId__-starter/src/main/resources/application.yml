@@ -94,6 +94,27 @@ springdoc:
 egon:
   cola:
     component:
+      mybatis-plus:
+        enabled: true
+        tenant-id:
+          mdc-key: tenantId
+          ignored-tables: []
+        audit:
+          user-id-mdc-key: userId
+        pagination:
+          enabled: true
+          max-page-size: 500
+          overflow: false
+        batch:
+          default-size: 1000
+          max-chunk-size: 1000
+          max-collection-size: 10000
+        block-attack:
+          enabled: true
+        optimistic-locker:
+          enabled: true
+        meta-fill:
+          enabled: true
       id:
         machine-id: ${symbol_dollar}{EGON_ID_MACHINE_ID}
       dtp:
@@ -145,7 +166,7 @@ app:
       max-flush-time: ${symbol_dollar}{LOG_ASYNC_MAX_FLUSH_TIME:5000}
 
 mybatis-plus:
-  mapper-locations: classpath*:mapper/**/*.xml
+  mapper-locations: classpath*:mybatis/mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true
     cache-enabled: false

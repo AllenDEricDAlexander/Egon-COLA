@@ -18,17 +18,17 @@ import org.springframework.stereotype.Component;
 public class LocalEvaluationQueryStub implements EvaluationQueryPort {
 
     @Override
-    public EvaluationCourse getCourse(String courseId) {
+    public EvaluationCourse getCourse(Long courseId) {
         rejectMissing(courseId, "course");
         return new EvaluationCourse(courseId, "LOCAL", "Local Course " + courseId, 0, "ACTIVE");
     }
 
     @Override
-    public EvaluationExam getExam(String examId) {
+    public EvaluationExam getExam(Long examId) {
         rejectMissing(examId, "exam");
         return new EvaluationExam(
                 examId,
-                "local-course",
+                9001L,
                 "Local Exam " + examId,
                 Instant.parse("2026-01-01T00:00:00Z"),
                 Instant.parse("2026-01-01T01:00:00Z"),
@@ -36,15 +36,15 @@ public class LocalEvaluationQueryStub implements EvaluationQueryPort {
     }
 
     @Override
-    public EvaluationScore getScore(String examId, String scoreId) {
+    public EvaluationScore getScore(Long examId, Long scoreId) {
         rejectMissing(examId, "exam");
         rejectMissing(scoreId, "score");
         return new EvaluationScore(
-                scoreId, examId, "local-course", "local-student", 100, "RECORDED");
+                scoreId, examId, 9001L, 7001L, 100, "RECORDED");
     }
 
-    private static void rejectMissing(String id, String resource) {
-        if (id == null || id.isBlank() || id.startsWith("missing-")) {
+    private static void rejectMissing(Long id, String resource) {
+        if (id == null || id <= 0) {
             throw new ExternalDependencyException(
                     "evaluation",
                     ExternalDependencyFailure.NOT_FOUND,

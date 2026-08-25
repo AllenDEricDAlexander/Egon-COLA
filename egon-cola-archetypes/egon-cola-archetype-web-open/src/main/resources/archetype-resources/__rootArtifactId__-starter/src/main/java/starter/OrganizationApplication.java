@@ -1,13 +1,15 @@
 package ${package}.starter;
 
-import org.mybatis.spring.annotation.MapperScan;
 import org.apache.dubbo.config.spring.context.annotation.EnableDubbo;
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Profile;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 @SpringBootApplication(
         scanBasePackages = "${package}")
@@ -15,16 +17,17 @@ import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
         "${package}.adapter.user.rpc",
         "${package}.adapter.teaching.rpc"
 })
+@EnableConfigurationProperties(EgonColaMybatisPlusProperties.class)
 @MapperScan(basePackages = {
-        "${package}.infrastructure.user.repo.mapper",
-        "${package}.infrastructure.teaching.repo.mapper"
+        "${package}.infrastructure.user.repo.dao",
+        "${package}.infrastructure.teaching.repo.dao"
 })
 public class OrganizationApplication {
 
     @Bean
-    @Profile("test")
-    LongIdGenerator testLongIdGenerator() {
-        return new SnowflakeIdGenerator(0L);
+    LongIdGenerator longIdGenerator() {
+        AtomicLong sequence = new AtomicLong(2000L);
+        return sequence::incrementAndGet;
     }
 
     public static void main(String[] args) {

@@ -44,12 +44,12 @@ rules:
         actualDataNodes: shard_${symbol_dollar}->{0..1}.school_classes_${symbol_dollar}->{0..1}
         databaseStrategy:
           standard:
-            shardingColumn: grade_id
-            shardingAlgorithmName: snowflake_long_database_bucket
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_database_bucket
         tableStrategy:
           standard:
-            shardingColumn: grade_id
-            shardingAlgorithmName: snowflake_long_table_bucket
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_table_bucket
         auditStrategy:
           auditorNames:
             - sharding_key_required_auditor
@@ -58,12 +58,12 @@ rules:
         actualDataNodes: shard_${symbol_dollar}->{0..1}.school_class_users_${symbol_dollar}->{0..1}
         databaseStrategy:
           standard:
-            shardingColumn: grade_id
-            shardingAlgorithmName: snowflake_long_database_bucket
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_database_bucket
         tableStrategy:
           standard:
-            shardingColumn: grade_id
-            shardingAlgorithmName: snowflake_long_table_bucket
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_table_bucket
         auditStrategy:
           auditorNames:
             - sharding_key_required_auditor
@@ -71,19 +71,19 @@ rules:
     bindingTables:
       - school_classes,school_class_users
     shardingAlgorithms:
-      snowflake_long_database_bucket:
+      tenant_long_database_bucket:
         type: CLASS_BASED
         props:
           strategy: STANDARD
-          algorithmClassName: ${package}.infrastructure.config.datasource.SnowflakeLongShardingAlgorithm
+          algorithmClassName: ${package}.infrastructure.config.datasource.LongTenantShardingAlgorithm
           target: database
           node-count: ${symbol_dollar}{app.sharding.routing.node-count}
           node-map: ${symbol_dollar}{app.sharding.routing.node-map}
-      snowflake_long_table_bucket:
+      tenant_long_table_bucket:
         type: CLASS_BASED
         props:
           strategy: STANDARD
-          algorithmClassName: ${package}.infrastructure.config.datasource.SnowflakeLongShardingAlgorithm
+          algorithmClassName: ${package}.infrastructure.config.datasource.LongTenantShardingAlgorithm
           target: table
           node-count: ${symbol_dollar}{app.sharding.routing.node-count}
           node-map: ${symbol_dollar}{app.sharding.routing.node-map}

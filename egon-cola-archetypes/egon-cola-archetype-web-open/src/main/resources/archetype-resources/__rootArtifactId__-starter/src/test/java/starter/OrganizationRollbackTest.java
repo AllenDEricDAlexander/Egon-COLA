@@ -18,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import org.slf4j.MDC;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -43,12 +44,16 @@ class OrganizationRollbackTest {
     @AfterEach
     void clearContext() {
         OrganizationRequestContextHolder.clear();
+        MDC.remove("tenantId");
+        MDC.remove("userId");
     }
 
     @Test
     void domainRejectionRollsBackEverySideEffect() {
         OrganizationRequestContextHolder.set(new OrganizationRequestContext(
                 "admin-1", Set.of("TEACHING_ADMIN"), "rollback-test"));
+        MDC.put("tenantId", "1");
+        MDC.put("userId", "admin-1");
         String suffix = Long.toString(System.nanoTime());
         String gradeCode = "ROLLBACK_" + suffix;
         var grade = gradeManage.createGrade(
@@ -74,7 +79,7 @@ class OrganizationRollbackTest {
         assertThat(idempotency.contains("assign-user-to-school-class", "rollback-1")).isFalse();
         assertThat(jdbcTemplate.queryForObject(
                 "select count(*) from school_class_users"
-                        + " where grade_id = ? and user_id = ? and school_class_id = ?",
+                        + " where tenant_id = 1 and grade_id = ? and user_id = ? and school_class_id = ?",
                 Integer.class, grade.id(), disabledUserId, schoolClass.id())).isZero();
     }
 }

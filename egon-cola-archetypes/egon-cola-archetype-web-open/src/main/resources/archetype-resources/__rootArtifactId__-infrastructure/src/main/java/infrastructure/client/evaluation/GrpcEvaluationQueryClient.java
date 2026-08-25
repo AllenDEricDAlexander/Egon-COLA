@@ -55,7 +55,7 @@ public class GrpcEvaluationQueryClient implements EvaluationQueryPort {
     }
 
     @Override
-    public EvaluationCourse getCourse(String courseId) {
+    public EvaluationCourse getCourse(Long courseId) {
         long id = positiveId(courseId, "courseId");
         try {
             Course response = ClientCalls.blockingUnaryCall(
@@ -65,7 +65,7 @@ public class GrpcEvaluationQueryClient implements EvaluationQueryPort {
             if (response == null || response.getId() <= 0) {
                 throw EvaluationClientFailureMapper.incompatible("getCourse");
             }
-            return new EvaluationCourse(Long.toString(response.getId()), response.getCode(), response.getName(),
+            return new EvaluationCourse(response.getId(), response.getCode(), response.getName(),
                     response.getCredit(), response.getStatus());
         } catch (ExternalDependencyException failure) {
             throw failure;
@@ -75,7 +75,7 @@ public class GrpcEvaluationQueryClient implements EvaluationQueryPort {
     }
 
     @Override
-    public EvaluationExam getExam(String examId) {
+    public EvaluationExam getExam(Long examId) {
         long id = positiveId(examId, "examId");
         try {
             Exam response = ClientCalls.blockingUnaryCall(
@@ -85,7 +85,7 @@ public class GrpcEvaluationQueryClient implements EvaluationQueryPort {
             if (response == null || response.getId() <= 0) {
                 throw EvaluationClientFailureMapper.incompatible("getExam");
             }
-            return new EvaluationExam(Long.toString(response.getId()), Long.toString(response.getCourseId()),
+            return new EvaluationExam(response.getId(), response.getCourseId(),
                     response.getTitle(), timestamp(response.getStartsAt().getSeconds(), response.getStartsAt().getNanos()),
                     timestamp(response.getEndsAt().getSeconds(), response.getEndsAt().getNanos()), response.getStatus());
         } catch (ExternalDependencyException failure) {
@@ -96,7 +96,7 @@ public class GrpcEvaluationQueryClient implements EvaluationQueryPort {
     }
 
     @Override
-    public EvaluationScore getScore(String examId, String scoreId) {
+    public EvaluationScore getScore(Long examId, Long scoreId) {
         long exam = positiveId(examId, "examId");
         long score = positiveId(scoreId, "scoreId");
         try {
@@ -108,8 +108,8 @@ public class GrpcEvaluationQueryClient implements EvaluationQueryPort {
             if (response == null || response.getId() <= 0) {
                 throw EvaluationClientFailureMapper.incompatible("getScore");
             }
-            return new EvaluationScore(Long.toString(response.getId()), Long.toString(response.getExamId()),
-                    Long.toString(response.getCourseId()), Long.toString(response.getStudentId()),
+            return new EvaluationScore(response.getId(), response.getExamId(),
+                    response.getCourseId(), response.getStudentId(),
                     response.getPoints(), response.getStatus());
         } catch (ExternalDependencyException failure) {
             throw failure;
@@ -149,18 +149,13 @@ public class GrpcEvaluationQueryClient implements EvaluationQueryPort {
                 .build();
     }
 
-    private static long positiveId(String raw, String field) {
-        try {
-            long value = Long.parseLong(raw == null ? "" : raw.trim());
-            if (value <= 0) {
-                throw new NumberFormatException(field + " must be positive");
-            }
-            return value;
-        } catch (NumberFormatException failure) {
+    private static long positiveId(Long raw, String field) {
+        if (raw == null || raw <= 0) {
             throw new ExternalDependencyException(
                     "evaluation", ExternalDependencyFailure.VALIDATION_FAILED, "INVALID_ID",
-                    field + " must be a positive decimal Long", failure);
+                    field + " must be a positive Long", null);
         }
+        return raw;
     }
 
     private static Instant timestamp(long seconds, int nanos) {
