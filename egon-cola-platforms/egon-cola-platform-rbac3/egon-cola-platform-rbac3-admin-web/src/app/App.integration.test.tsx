@@ -12,6 +12,11 @@ const about = (permissions: readonly string[]): Rbac3AboutView => ({
   currentApplicationCode: 'rbac3-admin',
   activeRoles: [],
   permissions,
+  resourceCodes: localResourceRegistry.definitions
+    .filter((definition) => definition.suggestedPermissionCode !== null
+      && definition.suggestedPermissionCode !== undefined
+      && permissions.includes(definition.suggestedPermissionCode))
+    .map((definition) => definition.code),
   fieldPolicies: {},
   landingRouteCode: null,
   authVersion: 1,

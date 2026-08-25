@@ -11,7 +11,7 @@ export const resolveDefaultRoute = (
   const accessible = registry.definitions
     .filter((route) => route.kind === 'ROUTE')
     .filter((route) => route.hidden !== true)
-    .filter((route) => about.permissions.includes(route.permission))
+    .filter((route) => about.resourceCodes.includes(route.code))
     .sort((left, right) => (left.order ?? Number.MAX_SAFE_INTEGER)
       - (right.order ?? Number.MAX_SAFE_INTEGER)
       || left.code.localeCompare(right.code))

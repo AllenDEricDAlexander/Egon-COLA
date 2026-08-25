@@ -34,7 +34,7 @@ export const applicationRouteDescriptors: readonly FeatureRouteDescriptor[] = lo
       key: definition.code,
       path: definition.path!,
       title: definition.name,
-      permission: definition.permission,
+      permission: component.permission,
       navigationOrder: definition.order ?? component.navigationOrder,
       hideFromNav: definition.hidden,
     }
@@ -46,7 +46,7 @@ const definitionForRoute = (route: FeatureRouteDescriptor) => localResourceRegis
 
 export const isRouteAllowed = (about: Rbac3AboutView, route: FeatureRouteDescriptor) => {
   const definition = definitionForRoute(route)
-  return about.permissions.includes(definition?.permission ?? route.permission)
+  return definition !== undefined && localResourceRegistry.canAccessRoute(definition.code, about)
 }
 
 export const visibleNavigation = (about: Rbac3AboutView) => localResourceRegistry

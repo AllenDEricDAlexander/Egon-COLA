@@ -12,7 +12,7 @@ import {Rbac3RequestError} from '../errors'
 import {useRbac3Authorization} from '../hooks/useRbac3Authorization'
 import {Rbac3Provider} from './Rbac3Provider'
 
-const about = {permissions: ['orders:read'], currentApplicationCode: 'orders'} as unknown as Rbac3AboutView
+const about = {permissions: ['orders:read'], resourceCodes: ['orders.read'], currentApplicationCode: 'orders'} as unknown as Rbac3AboutView
 const activeRoles = {
     activeRoles: [],
     activationRequired: false,
@@ -65,7 +65,7 @@ describe('Rbac3Provider', () => {
     })
 
     it('publishes the new about after role replacement', async () => {
-        const nextAbout = {permissions: ['orders:read', 'orders:write']} as unknown as Rbac3AboutView
+        const nextAbout = {permissions: ['orders:read', 'orders:write'], resourceCodes: ['orders.read', 'orders.write']} as unknown as Rbac3AboutView
         const sdk = client({
             getAbout: vi.fn()
                 .mockResolvedValueOnce(about)

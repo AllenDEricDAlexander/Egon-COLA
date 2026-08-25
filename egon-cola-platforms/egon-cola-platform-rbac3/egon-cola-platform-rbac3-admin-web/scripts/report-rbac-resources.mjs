@@ -16,19 +16,26 @@ export const loadDefinitions = async (definitionsPath = defaultDefinitionsPath) 
 export const projectReport = (definitions, buildId, expectedApplicationVersion) => {
   const resources = definitions
     .filter((definition) => definition.kind !== 'FIELD')
-    .map((definition) => ({
-      type: definition.kind,
-      code: definition.code,
-      name: definition.name,
-      parentCode: definition.parentCode ?? null,
-      suggestedPermissionCode: definition.suggestedPermissionCode ?? definition.permission ?? null,
-      apiResourceCodes: [...new Set(definition.apiResourceCodes ?? [])].sort(),
-      path: definition.path ?? null,
-      componentKey: definition.componentKey ?? null,
-      routeCode: definition.routeCode ?? null,
-      order: definition.order ?? null,
-      hidden: definition.hidden === true,
-    }))
+    .map((definition) => {
+      if (Object.hasOwn(definition, 'permission')) {
+        throw new Error(`legacy permission field is not allowed for ${definition.code}`)
+      }
+      return {
+        type: definition.kind,
+        code: definition.code,
+        name: definition.name,
+        parentCode: definition.parentCode ?? null,
+        suggestedPermissionCode: definition.suggestedPermissionCode ?? null,
+        apiResourceCodes: [...new Set((definition.apiResourceCodes ?? [])
+          .map((code) => code.trim())
+          .filter(Boolean))].sort(),
+        path: definition.path ?? null,
+        componentKey: definition.componentKey ?? null,
+        routeCode: definition.routeCode ?? null,
+        order: definition.order ?? null,
+        hidden: definition.hidden === true,
+      }
+    })
   const fields = definitions
     .filter((definition) => definition.kind === 'FIELD')
     .map((definition) => ({

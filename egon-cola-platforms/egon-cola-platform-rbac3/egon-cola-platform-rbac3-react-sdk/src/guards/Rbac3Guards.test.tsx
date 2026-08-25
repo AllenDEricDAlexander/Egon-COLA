@@ -12,6 +12,7 @@ const about = {
   currentApplicationCode: 'rbac3-admin',
   activeRoles: [],
   permissions: ['orders:read'],
+  resourceCodes: ['orders.read'],
   fieldPolicies: {
     'orders:detail': {
       decision: 'ALLOW',
@@ -69,7 +70,7 @@ describe('RBAC3 guards', () => {
   it('does not expose a write escape hatch', async () => {
     render(
         <Rbac3Provider client={client}>
-        <ActionGuard permission="orders:write">write</ActionGuard>
+        <ActionGuard resourceCode="orders.write">write</ActionGuard>
       </Rbac3Provider>,
     )
 

@@ -1,5 +1,5 @@
 import {describe, expect, expectTypeOf, it} from 'vitest'
-import type {ActivationRoot, ReplaceActiveRolesRequest, ResourceFieldDefinition,} from './types'
+import type {ActivationRoot, FrontendResourceDefinition, ReplaceActiveRolesRequest, ResourceFieldDefinition,} from './types'
 import {getRbac3ErrorDefinition, RBAC3_ERROR_DEFINITIONS, type Rbac3ApiError, type Rbac3ErrorResponse,} from './errors'
 
 describe('RBAC3 TypeScript contracts', () => {
@@ -24,6 +24,15 @@ describe('RBAC3 TypeScript contracts', () => {
         maskingStrategy: 'BANK_ACCOUNT', writable: false, exportable: false,
     }
     expect(field.jsonPath).toBe('$.bankAccountNo')
+  })
+
+  it('models frontend resource suggestions and page/button API declarations separately', () => {
+    const definition: FrontendResourceDefinition = {
+      kind: 'ACTION', code: 'orders.refund', name: 'Refund', routeCode: 'orders', resourceCode: 'orders',
+      suggestedPermissionCode: 'orders:refund', apiResourceCodes: ['orders.api.refund'],
+    }
+    expect(definition.suggestedPermissionCode).toBe('orders:refund')
+    expect(definition.apiResourceCodes).toEqual(['orders.api.refund'])
   })
 
   const representativeErrors: readonly Rbac3ApiError[] = [

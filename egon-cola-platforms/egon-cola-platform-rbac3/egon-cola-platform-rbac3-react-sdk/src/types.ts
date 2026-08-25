@@ -100,10 +100,39 @@ export interface Rbac3AboutView {
   readonly currentApplicationCode: string | null
   readonly activeRoles: readonly ActiveRoleDescriptor[]
   readonly permissions: readonly string[]
+  readonly resourceCodes: readonly string[]
   readonly fieldPolicies: Readonly<Record<string, FieldPolicyDecision>>
   readonly landingRouteCode: string | null
   readonly authVersion: number
   readonly policyVersion: number
+}
+
+export type FrontendResourceKind = 'MENU' | 'ROUTE' | 'ACTION' | 'FIELD'
+
+export interface FrontendResourceDefinition {
+  readonly kind: FrontendResourceKind
+  readonly code: string
+  readonly name: string
+  readonly suggestedPermissionCode?: string | null
+  readonly apiResourceCodes?: readonly string[]
+  readonly parentCode?: string
+  readonly routeCode?: string
+  readonly resourceCode?: string
+  readonly fieldCode?: string
+  readonly jsonPath?: string
+  readonly path?: string
+  readonly componentKey?: string
+  readonly hidden?: boolean
+  readonly order?: number
+}
+
+export interface FrontendNavigationNode extends FrontendResourceDefinition {
+  readonly children: readonly FrontendNavigationNode[]
+}
+
+export interface FieldAccessResult {
+  readonly level: FieldAccessLevel
+  readonly maskingStrategy: string | null
 }
 
 export interface ActiveRoleDescriptor {
@@ -238,7 +267,8 @@ export interface CiFrontendResourceDefinition {
   readonly order: number | null
   readonly path: string | null
   readonly componentKey: string | null
-  readonly requiredPermissionCode: string | null
+  readonly suggestedPermissionCode: string | null
+  readonly apiResourceCodes: readonly string[]
   readonly redirect: string | null
   readonly hidden: boolean | null
   readonly keepAlive: boolean | null

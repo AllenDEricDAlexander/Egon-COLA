@@ -3,8 +3,8 @@ import { test } from 'node:test'
 import { canonicalChecksum, projectReport, reportResources } from './report-rbac-resources.mjs'
 
 const definitions = [
-  { kind: 'ROUTE', code: 'iam.roles', name: '角色', permission: 'system:role:read', path: '/iam/roles', componentKey: 'rbac3-role-graph', order: 10 },
-  { kind: 'FIELD', code: 'iam.roles.name', name: '角色名称', permission: 'system:role:read', resourceCode: 'iam.roles', fieldCode: 'name', jsonPath: 'name', dataType: 'STRING' },
+  { kind: 'ROUTE', code: 'iam.roles', name: '角色', suggestedPermissionCode: 'system:role:read', apiResourceCodes: ['iam.api.roles.list'], path: '/iam/roles', componentKey: 'rbac3-role-graph', order: 10 },
+  { kind: 'FIELD', code: 'iam.roles.name', name: '角色名称', suggestedPermissionCode: 'system:role:read', resourceCode: 'iam.roles', fieldCode: 'name', jsonPath: 'name', dataType: 'STRING' },
 ]
 
 test('projects local definitions and computes the server-compatible checksum', () => {
@@ -13,8 +13,16 @@ test('projects local definitions and computes the server-compatible checksum', (
   assert.equal(report.fields.length, 1)
   assert.equal(report.checksum, canonicalChecksum(report))
   assert.equal(report.resources[0].suggestedPermissionCode, 'system:role:read')
-  assert.deepEqual(report.resources[0].apiResourceCodes, [])
+  assert.deepEqual(report.resources[0].apiResourceCodes, ['iam.api.roles.list'])
   assert.equal(Object.hasOwn(report.resources[0], 'permissionCode'), false)
+  assert.equal(Object.hasOwn(report.resources[0], 'permission'), false)
+})
+
+test('rejects the removed permission field instead of falling back to it', () => {
+  assert.throws(
+    () => projectReport([{ kind: 'ROUTE', code: 'legacy', name: 'Legacy', permission: 'legacy:read' }], 'build-1', 0),
+    /legacy permission field/,
+  )
 })
 
 test('reports through the CI endpoint without exposing a browser client', async () => {
