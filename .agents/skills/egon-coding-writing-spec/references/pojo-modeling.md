@@ -66,8 +66,8 @@ For every proposed object, record:
 - persistence or protocol mapping when applicable;
 - why a separate class is necessary, or which existing class is safely reused;
 - conversion owner when mapping is necessary;
-- record/class/Lombok construction decision and validation groups when applicable;
-- MapStruct/MapStructPlus and `BaseConverter<S,T>` reuse decision;
+- record/class construction decision: Record for simple objects, `@Value` for immutable non-records, or the complete user-mandated Lombok baseline for complex classes, plus applicable Validation Groups;
+- MapStruct/MapStructPlus mapping and mandatory `BaseConverter<S,T>` integration for every new affected Converter;
 - requirement IDs.
 
 The Spec must include an object-flow diagram or mapping table when data crosses three or more object roles.

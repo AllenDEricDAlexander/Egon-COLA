@@ -54,18 +54,24 @@
 
 ## Java, Spring, Egon-COLA, and Manual Check gate
 
+- [ ] The exact source block from `references/user-mandated-java-rules.md` remains present in both Skill entrypoints and was treated as mandatory rather than summarized guidance.
+- [ ] §6.2 contains separate Rule 1, 2, 3, 4, 5, 6, 7, 9, 10, and 11 rows in that order; no literal rule is merged, renumbered, weakened, or omitted.
+- [ ] Rule 2 inventories every affected layer-to-layer handoff, not only Controller input, and names Validation Group/`ValidationUtils`/libphonenumber behavior plus tests.
+- [ ] Rule 3 uses Record for simple objects, `@Value` for immutable non-records, the complete user-mandated Lombok baseline for complex classes, and mandatory MapStruct/MapStructPlus plus Egon `BaseConverter`; conflicts are blocked rather than silently relaxed.
+- [ ] Rule 4 inventories every business class and proves `@Slf4j`, explicit Bean name, Lombok `@RequiredArgsConstructor`, per-field `@Qualifier`, and `lombok.config` propagation.
+- [ ] Rule 9 classifies affected business logic and mandates a concrete pattern for Complex logic; direct logic is accepted only for Simple logic.
 - [ ] For Java work, `references/java-spring-egon-coding-standards.md` was applied and every `MC-*` ID appears exactly once in §20.5.
 - [ ] `MC-ARCH-001` proves exactly one allowed architecture profile from the actual tree, selected Archetype/base package, module dependencies, and verifier; no hybrid or invented layer exists.
 - [ ] `MC-REUSE-001` contains a repository-backed reuse ledger covering JDK/Spring, Spring Boot Starters, Egon-COLA Components/common infrastructure, and module-local candidates.
 - [ ] `MC-DEP-001` proves every added dependency/custom replacement fills a documented gap with version/maintenance/security/operational impact; no duplicate Spring/Egon capability is designed.
 - [ ] `MC-NAME-001` inventories affected Java types and enforces explicit PO/BO/DTO/VO/Query/Command/Event/Request/Response or behavior suffixes; no new ambiguous `Data`, `Info`, `Param`, or `Bean` carrier exists.
 - [ ] `MC-VALID-001` maps every affected input boundary to `spring-boot-starter-validation`, Jakarta annotations, `@Valid`/`@Validated`, groups for reused inputs, `ValidationUtils`, normalization, error mapping, and tests; custom validators have a proven gap.
-- [ ] `MC-MODEL-001` justifies record/class/`@Value`/mutable Lombok choices and constructor semantics without redundant/conflicting annotations.
-- [ ] `MC-CONVERT-001` assigns MapStruct/MapStructPlus conversion and applicable `BaseConverter<S,T>` reuse; business code does not use manual set/get, `BeanUtils.copyProperties`, reflection, or JSON mapping.
+- [ ] `MC-MODEL-001` requires Record for simple objects, `@Value` for immutable non-records, and the complete mandated Lombok annotation baseline for complex classes; a generated-constructor/framework conflict is blocked instead of silently relaxed.
+- [ ] `MC-CONVERT-001` assigns MapStruct/MapStructPlus conversion and mandatory Egon `BaseConverter<S,T>` integration for every new affected Converter; business code does not bypass it with manual set/get, `BeanUtils.copyProperties`, reflection, JSON mapping, or a local converter abstraction.
 - [ ] `MC-LOG-001` and `MC-BEAN-001` cover every affected business/Spring type with `@Slf4j`, stable Bean name, final-field constructor injection, `@RequiredArgsConstructor`, dependency `@Qualifier`, and verified Lombok annotation propagation.
 - [ ] `MC-UTIL-001`, `MC-JSON-001`, and `MC-TIME-001` enforce the approved utility set, Jackson-only external serialization, and `java.time` boundary semantics.
 - [ ] `MC-CONFIG-001` compares every environment profile's key structure and designs typed `@ConfigurationProperties` where applicable.
-- [ ] `MC-PATTERN-001` names a real complex variation and justified pattern, or explicitly proves direct logic is clearer; no hard-coded branch explosion or ceremonial pattern exists.
+- [ ] `MC-PATTERN-001` assigns a concrete design pattern to every affected Complex business flow; only Simple logic may remain direct, and neither hard-coded branch explosion nor ceremonial pattern exists.
 - [ ] `MC-SCOPE-001` limits remediation to touched code and reports any compliance conflict requiring a broader approved change.
 - [ ] `MC-TEST-001` names focused tests/static gates for the standards, and `MC-BLOCKER-001` accurately summarizes every unresolved Manual Check.
 - [ ] Every applicable row is `PASS` with concrete evidence; each `N/A` has concrete evidence and reason; any `FAIL`/`BLOCKED` prevents the final PASS verdict.

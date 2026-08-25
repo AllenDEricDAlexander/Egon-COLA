@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Document | `YYYY-MM-DD-HH-MM-abstract.md` |
-| Template Version | `5` |
+| Template Version | `6` |
 | Status | `Draft` |
 | Type | `Feature / Refactor / Bugfix / Architecture` |
 | Complexity | `Simple / Complex` |
@@ -172,6 +172,23 @@ Record the reuse/capability ledger before proposing a dependency or custom imple
 | Need | Spring/JDK candidate | Spring Boot Starter candidate | Egon-COLA/module candidate | Proven gap | Decision/dependency impact |
 | --- | --- | --- | --- | --- | --- |
 | `<capability>` | `<API or None>` | `<starter or None>` | `<path/component or None>` | `<evidence or None>` | `<reuse / approved addition / blocker>` |
+
+### 6.2 User-mandated Java rule compliance
+
+Read `references/user-mandated-java-rules.md`. Keep one independent row for every original rule number; do not merge, renumber, paraphrase away, or downgrade a mandatory rule. For non-Java work, retain all rows and use evidence-backed `N/A`.
+
+| Literal rule | Affected? | Repository evidence | Exact design decision | Files/types/interfaces | Validation/test evidence | Status/blocker |
+| --- | --- | --- | --- | --- | --- | --- |
+| Rule 1 | Yes / No | `<all new/changed Java types and nearby conventions>` | `<mandatory semantic suffix decisions>` | `<exact paths/types>` | `<naming inventory/static review>` | PASS / N/A / BLOCKED |
+| Rule 2 | Yes / No | `<every affected layer handoff>` | `<constraints/groups/ValidationUtils/libphonenumber>` | `<boundary types/methods>` | `<positive/negative/group tests>` | PASS / N/A / BLOCKED |
+| Rule 3 | Yes / No | `<affected data objects and BaseConverter>` | `<record/@Value/complete complex Lombok baseline/MapStruct>` | `<models/converters>` | `<constructor/mapping tests>` | PASS / N/A / BLOCKED |
+| Rule 4 | Yes / No | `<business classes/Beans/lombok.config>` | `<@Slf4j/named Bean/@RequiredArgsConstructor/@Qualifier>` | `<business classes/config>` | `<wiring/logging tests or static gate>` | PASS / N/A / BLOCKED |
+| Rule 5 | Yes / No | `<imports/dependencies/existing helpers>` | `<closed utility allowlist>` | `<affected utility call sites>` | `<dependency/import search>` | PASS / N/A / BLOCKED |
+| Rule 6 | Yes / No | `<external JSON contracts>` | `<Jackson annotations/default proof>` | `<DTO/VO/Request/Response/etc.>` | `<serialization/compatibility tests>` | PASS / N/A / BLOCKED |
+| Rule 7 | Yes / No | `<all environment profiles>` | `<identical key structure; values may differ>` | `<profile files/properties class>` | `<key-parity/config binding tests>` | PASS / N/A / BLOCKED |
+| Rule 9 | Yes / No | `<business-complexity classification>` | `<mandatory pattern for Complex logic>` | `<participants/files>` | `<variation/branch/pattern tests>` | PASS / N/A / BLOCKED |
+| Rule 10 | Yes / No | `<all affected time fields/APIs>` | `<java.time types and boundary semantics>` | `<exact paths/fields>` | `<time/serialization/persistence tests>` | PASS / N/A / BLOCKED |
+| Rule 11 | Yes / No | `<current tree/archetype/verifier>` | `<traditional or exact Archetype only>` | `<target package/file tree>` | `<architecture verifier/static gate>` | PASS / N/A / BLOCKED |
 
 ## 7. Architecture Design
 
@@ -491,13 +508,13 @@ Do not introduce Aggregate, Domain Service, Repository Port, or DDD Value Object
 
 | Type | Record / class / immutable class | Lombok annotations or compact constructor | Validation annotations/groups | Normalization | Framework/ORM reason | Tests |
 | --- | --- | --- | --- | --- | --- | --- |
-| `<Type>` | `<representation>` | `<minimal compatible set>` | `<Jakarta constraints and groups>` | `<named boundary/helper/library>` | `<reason>` | `TEST-001` |
+| `<Type>` | `<representation>` | `<record compact constructor / @Value / complete complex-class baseline>` | `<Jakarta constraints and groups>` | `<named boundary/helper/library>` | `<reason or blocking constructor conflict>` | `TEST-001` |
 
-Simple immutable carriers prefer records; immutable classes use `@Value` or a record; complex mutable/framework objects use a normal class with only the Lombok annotations required by construction semantics. Reject annotation/constructor conflicts.
+Simple objects use records; immutable non-record objects use `@Value`; complex objects use a normal class with the complete `@Data`, protected `@NoArgsConstructor`, `@AllArgsConstructor`, `@RequiredArgsConstructor`, `@Builder`, and `@Accessors(chain = true)` baseline. Calculate generated constructor signatures. Any duplicate signature or framework conflict is blocking and cannot be resolved by silently deleting an annotation.
 
 ### 10.4 Object flow and mapping relationships
 
-Define mappings only between semantically distinct types. Use MapStruct or MapStructPlus and implement the applicable Egon `BaseConverter<S,T>` contract when its two-way semantics fit. Name the converter Bean, generated implementation, sensitive/derived/defaulted fields, normalization, enum/time handling, and null rules. Avoid no-op mapper chains, manual service `set/get`, `BeanUtils.copyProperties`, reflection copying, and JSON round trips. When data crosses three or more roles, include an object-flow diagram or complete field-mapping table.
+Define mappings only between semantically distinct types. Use MapStruct or MapStructPlus, and require every new affected Converter to implement/inherit the Egon `BaseConverter<S,T>` system. Name its exact generic types, Bean, generated implementation, sensitive/derived/defaulted fields, normalization, enum/time handling, and null rules. If the contract cannot represent the conversion, block for user decision; do not bypass it. Avoid no-op mapper chains, manual Service `set/get`, `BeanUtils.copyProperties`, reflection copying, and JSON round trips. When data crosses three or more roles, include an object-flow diagram or complete field-mapping table.
 
 ### 10.5 Reuse, inheritance, and composition decisions
 
@@ -744,7 +761,7 @@ Confirm all predecessor links and exact sections, amendment/supersession scope, 
 
 ### 20.5 Blocking Manual Check
 
-Read `references/java-spring-egon-coding-standards.md` and execute every row individually. `PASS` means the design and repository evidence prove the rule. `N/A` requires concrete evidence that the rule is not applicable. Any other status or missing evidence blocks the final PASS verdict.
+Read `references/user-mandated-java-rules.md` and `references/java-spring-egon-coding-standards.md`, then execute every row individually. `PASS` means the design and repository evidence prove the literal rule without weakening it. `N/A` requires concrete evidence that the rule is not applicable. Any other status or missing evidence blocks the final PASS verdict.
 
 | Check ID | Applicability | Status | Evidence | Finding | Required action/exception |
 | --- | --- | --- | --- | --- | --- |
@@ -761,7 +778,7 @@ Read `references/java-spring-egon-coding-standards.md` and execute every row ind
 | `MC-JSON-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<contract/Jackson evidence>` | `<JSON result>` | `None / action` |
 | `MC-TIME-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<time fields/mapping evidence>` | `<java.time result>` | `None / action` |
 | `MC-CONFIG-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<all-profile key comparison>` | `<configuration parity result>` | `None / action` |
-| `MC-PATTERN-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<variation/direct-design evidence>` | `<pattern result>` | `None / action` |
+| `MC-PATTERN-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<complexity classification/pattern evidence>` | `<mandatory Complex pattern or Simple direct result>` | `None / action` |
 | `MC-SCOPE-001` | Applicable | PASS / FAIL / BLOCKED | `<change surface and touched-code evidence>` | `<scope compliance>` | `None / action` |
 | `MC-TEST-001` | Applicable | PASS / FAIL / BLOCKED | `<test design and gates>` | `<standards proof>` | `None / action` |
 | `MC-BLOCKER-001` | Applicable | PASS / FAIL / BLOCKED | `<all blocker/manual rows>` | `<no unresolved item>` | `None / action` |

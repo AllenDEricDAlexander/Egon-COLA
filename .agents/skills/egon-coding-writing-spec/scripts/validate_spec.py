@@ -16,8 +16,8 @@ DATE_TIME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2}) \S+$")
 VALID_STATUSES = {"Draft", "Review", "Accepted", "Implemented", "Superseded", "Rejected"}
 VALID_COMPLEXITIES = {"Simple", "Complex"}
 CHANGE_SURFACE_DISPOSITIONS = {"Affected", "Context-only", "Unchanged", "Not applicable"}
-CURRENT_TEMPLATE_VERSION = 5
-SUPPORTED_TEMPLATE_VERSIONS = {2, 3, 4, 5}
+CURRENT_TEMPLATE_VERSION = 6
+SUPPORTED_TEMPLATE_VERSIONS = {2, 3, 4, 5, 6}
 MANUAL_CHECK_IDS = (
     "MC-ARCH-001",
     "MC-REUSE-001",
@@ -283,7 +283,7 @@ def validate_manual_checks(text: str, pass_verdict: bool) -> list[str]:
     review = section(text, "## 20. Review and Acceptance")
     heading = "### 20.5 Blocking Manual Check"
     if heading not in review:
-        return [f"Template Version 5 is missing required subsection: {heading}"]
+        return [f"Template Version 5+ is missing required subsection: {heading}"]
 
     body = heading_body(review, heading)
     if "| Check ID | Applicability | Status | Evidence | Finding | Required action/exception |" not in body:
@@ -414,6 +414,33 @@ def validate_v2_content(
     if template_version >= 4:
         change_surface_errors, affected_chapters = validate_change_surface(text, fields)
         errors.extend(change_surface_errors)
+
+    if template_version >= 6:
+        technology = section(text, "## 6. Project Technology Context")
+        literal_heading = "### 6.2 User-mandated Java rule compliance"
+        if literal_heading not in technology:
+            errors.append(f"Template Version {template_version} is missing required subsection: {literal_heading}")
+        else:
+            literal_body = heading_body(technology, literal_heading)
+            expected_header = (
+                "| Literal rule | Affected? | Repository evidence | Exact design decision | "
+                "Files/types/interfaces | Validation/test evidence | Status/blocker |"
+            )
+            if expected_header not in literal_body:
+                errors.append("User-mandated Java rule compliance requires the canonical seven-column table")
+            rows = markdown_table_rows(literal_body, "Literal rule")
+            actual_rules = [clean(row[0]) for row in rows if row]
+            expected_rules = [f"Rule {number}" for number in (1, 2, 3, 4, 5, 6, 7, 9, 10, 11)]
+            if actual_rules != expected_rules:
+                errors.append(
+                    "User-mandated Java rule rows must preserve exact order 1,2,3,4,5,6,7,9,10,11: "
+                    f"{actual_rules}"
+                )
+            for row_number, row in enumerate(rows, start=1):
+                if len(row) < 7:
+                    errors.append(
+                        f"User-mandated Java rule row {row_number} requires seven columns; found {len(row)}"
+                    )
 
     required_v2_headings = [
         "### 4.2 Use-case analysis",

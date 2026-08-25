@@ -1,6 +1,6 @@
 # Java, Spring, and Egon-COLA Coding Standards
 
-Read this reference for every Java coding Spec. These are blocking design constraints for newly added or modified code, not permission to refactor unrelated legacy code.
+Read `references/user-mandated-java-rules.md` first, then this reference for every Java coding Spec. The literal rules are absolute; this document adds repository evidence and does not convert any “must/only/not allowed” into a preference. These are blocking design constraints for newly added or modified code, not permission to refactor unrelated legacy code.
 
 ## Contents
 
@@ -75,7 +75,7 @@ If the current code matches neither profile, or evidence conflicts about the sel
 
 ## Semantic Java naming
 
-Name every type by its actual role.
+Name every new or materially changed Java type by its actual role. A semantic role suffix is mandatory, not merely recommended for carriers.
 
 - Persistence carrier: `*PO`; use `*Entity` only for a real ORM/DDD entity with explicit identity and lifecycle semantics.
 - Business calculation carrier: `*BO`.
@@ -90,7 +90,7 @@ Do not use ambiguous carrier suffixes such as `Data`, `Info`, `Param`, or `Bean`
 
 ## Cross-layer validation
 
-Every affected external or cross-layer input boundary must use Jakarta Bean Validation supplied by `spring-boot-starter-validation`.
+Every affected layer-to-layer input boundary must use Jakarta Bean Validation supplied by `spring-boot-starter-validation`; validating only the external Controller/Adapter boundary is insufficient.
 
 - Put constraints on the consumed Request/DTO/Command/Query/Event or method parameters and use `@Valid` for cascaded objects.
 - Enable method/boundary validation with Spring `@Validated` where required.
@@ -99,27 +99,28 @@ Every affected external or cross-layer input boundary must use Jakarta Bean Vali
 - Normalize standardized data at one named boundary. Telephone numbers use a mature standard such as libphonenumber for parsing, region handling, normalization, and validity when telephone semantics are affected.
 - Create a custom `ConstraintValidator` only when native annotations, composition, groups, `ValidationUtils`, and an approved mature library cannot express the rule. Document the gap and tests.
 - Define validation order, normalization-before/after behavior, error mapping, null/blank semantics, group selection, and boundary tests.
+- Inventory and design every affected handoff separately: external input -> Controller/Adapter, Controller/Adapter -> Service/Application, Service/Application -> Domain Service/Component, Service/Application -> DAO/Repository/Gateway, and event/job/internal re-entry paths.
 
 Do not handwrite repeated null/range/format validators or validate only at the Controller while trusting a second cross-layer construction path.
 
 ## Data-object modeling
 
-Choose the representation from semantics, not a blanket annotation list.
+Choose the representation by the literal classification below. Do not weaken the complex-object annotation baseline into an optional palette.
 
 - Prefer a Java `record` for a simple immutable carrier. Use a compact constructor for deterministic normalization and invariant checks when appropriate. A one-method temporary structure may be a local `record`.
 - Prefer `record` or Lombok `@Value` for immutable objects; choose one coherent model.
-- Use a normal Java class for complex mutable, ORM/proxy, framework-instantiated, or lifecycle-rich objects.
-- For mutable classes, select only the Lombok annotations required by construction and framework semantics: `@Data`, `@NoArgsConstructor(access = AccessLevel.PROTECTED)`, `@AllArgsConstructor`, `@RequiredArgsConstructor`, `@Builder`, and `@Accessors(chain = true)` are an allowed palette, not a mandatory stack.
+- Use a normal Java class for a complex object. Its mandated baseline is `@Data`, `@NoArgsConstructor(access = AccessLevel.PROTECTED)`, `@AllArgsConstructor`, `@RequiredArgsConstructor`, `@Builder`, and `@Accessors(chain = true)`.
+- Calculate generated constructor signatures for the complete annotation baseline. A duplicate signature or framework/ORM conflict is a user-decision blocker; do not silently omit an annotation or relabel the object.
 - Explain constructor visibility, required fields, builder/default behavior, mutation, equality/hash, serialization, ORM/proxy requirements, and validation.
 - Reject conflicting or redundant constructor annotations and do not combine mutable `@Data` semantics with immutable `@Value` semantics.
 
 ## Object conversion
 
-Use MapStruct or MapStructPlus for cross-layer object conversion. When the affected module can depend on `egon-cola-component-common-core`, the converter must extend or implement the existing `BaseConverter<S,T>` contract where its two-way semantics fit. Cite the exact converter path and generated implementation/bean name.
+Use MapStruct or MapStructPlus for cross-layer object conversion. Every new affected Converter must extend or implement the existing `egon-cola-component-common-core` `BaseConverter<S,T>` system. Cite the exact converter path, generic types, generated implementation, and Bean name.
 
 Keep normalization, derived fields, enum/time conversion, sensitive-field exclusion, defaults, and null semantics in named converter methods, MapStruct mappings, or qualified helpers. Do not scatter manual `set/get` mapping through business services. Do not use `BeanUtils.copyProperties`, reflection copying, or JSON serialization as an object mapper. The presence of `commons-beanutils` in the allowed utility set does not permit it for business object conversion.
 
-If conversion is intentionally one-way or `BaseConverter` is semantically incompatible, document the reason and use the closest established Egon-COLA converter pattern; do not force a false reverse mapping.
+If the existing `BaseConverter` contract cannot truthfully express the conversion, mark a blocking contract conflict and ask the user; do not bypass it with a one-way local abstraction or manual mapping.
 
 ## Spring beans, injection, and logging
 
@@ -152,7 +153,7 @@ Prefer typed `@ConfigurationProperties` over scattered `@Value`. When adding or 
 
 Do not accumulate complex business behavior in long `if/else`, `switch`, type checks, or hard-coded orchestration. Identify real variation dimensions, state transitions, rule combinations, algorithm choices, responsibility chains, object creation, and event collaboration.
 
-Use Strategy, Template Method, Factory, Chain of Responsibility, State, Specification, Domain Event, or another repository-supported pattern only when it isolates a present variation or responsibility and improves testing/evolution. Name the variation point, selected pattern, participants, dependency direction, extension mechanism, and tests. For simple direct logic, explicitly reject unnecessary patterns. “Complex” is not evidence that more classes are needed, and “use a pattern” is not permission to overdesign.
+When affected business logic is classified complex, using an appropriate design pattern is mandatory. Select Strategy, Template Method, Factory, Chain of Responsibility, State, Specification, Domain Event, or another repository-supported pattern that isolates the evidenced variation/responsibility. Name the variation point, selected pattern, participants, dependency direction, registration/selection mechanism, extension procedure, failures, and tests. Long `if/else`, `switch`, type/string dispatch, reflection dispatch, or “direct logic is simpler” fails for complex business logic. Simple logic remains direct and must not be inflated into ceremonial patterns.
 
 ## Blocking Manual Check catalog
 
@@ -163,17 +164,17 @@ Every Spec, Plan, execution Step, and final execution audit must use these stabl
 | `MC-ARCH-001` | Exactly one allowed architecture profile is identified and preserved |
 | `MC-REUSE-001` | Spring, Spring Boot Starter, Egon-COLA Component/common infrastructure, and module-local reuse candidates were inspected before new design |
 | `MC-DEP-001` | Every added dependency or custom replacement has a proven capability gap and approved impact; otherwise none is added |
-| `MC-NAME-001` | New/changed Java type names use explicit semantic role suffixes and avoid `Data`/`Info`/`Param`/`Bean` ambiguity |
-| `MC-VALID-001` | Every affected cross-layer input boundary uses Jakarta/Spring Validation, groups where reused, approved normalization, and tests |
-| `MC-MODEL-001` | Record/class/Lombok choice matches mutability, construction, framework, and invariant semantics without annotation conflicts |
-| `MC-CONVERT-001` | MapStruct/MapStructPlus and the applicable Egon `BaseConverter` contract own object mapping; prohibited copying is absent |
+| `MC-NAME-001` | Every new/changed Java type has its mandatory semantic role suffix and avoids `Data`/`Info`/`Param`/`Bean` ambiguity |
+| `MC-VALID-001` | Every affected layer-to-layer input handoff uses Jakarta/Spring Validation, explicit groups where reused, approved normalization, and tests |
+| `MC-MODEL-001` | Simple objects are records, immutable non-records use `@Value`, and complex classes use the complete mandated Lombok baseline or are blocked |
+| `MC-CONVERT-001` | MapStruct/MapStructPlus and Egon `BaseConverter` own every affected cross-layer mapping; no bypass or prohibited copying exists |
 | `MC-LOG-001` | Every affected concrete business class uses `@Slf4j` and safe actionable logging |
 | `MC-BEAN-001` | Every affected Spring Bean has a stable explicit name, constructor injection, `@RequiredArgsConstructor`, and qualified dependencies with Lombok propagation verified |
 | `MC-UTIL-001` | Utilities use only the approved JDK/Commons/Guava/Tika policy and do not duplicate existing helpers |
 | `MC-JSON-001` | Jackson is the only JSON stack and external contracts carry only necessary Jackson annotations |
 | `MC-TIME-001` | New/changed time modeling uses `java.time` with explicit boundary semantics |
 | `MC-CONFIG-001` | All environment configuration files retain equivalent key structure and use typed properties where applicable |
-| `MC-PATTERN-001` | Complex variation is modeled with a justified pattern, or direct logic is explicitly justified without hard coding/overdesign |
+| `MC-PATTERN-001` | Every affected complex business flow uses a concrete justified design pattern; simple logic remains direct without ceremonial abstraction |
 | `MC-SCOPE-001` | Touched code complies without unrelated broad refactoring; any unavoidable exception is explicit and approved |
 | `MC-TEST-001` | Focused tests/static gates prove the applicable standards and preserved behavior |
 | `MC-BLOCKER-001` | Every blocker and manual-check failure is closed; no `UNKNOWN`, silent exception, or missing evidence remains |

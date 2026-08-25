@@ -22,7 +22,7 @@ The specification defines **what must be built and why the design is coherent**.
   - Replace `ABSTRACT` with a concise lowercase ASCII kebab-case summary, normally 3–8 words.
   - Example: `docs/egon/spec/2026-08-15-14-30-account-lockout-design.md`.
   - Never overwrite a document with the same minute and abstract; choose a more specific abstract.
-- Start from Template Version 5 in `assets/spec-template.md`. Keep every numbered chapter, but allocate depth using `references/change-surface-and-proportional-depth.md`: fully design `Affected` areas, keep `Context-only` and `Unchanged` areas concise, and use evidence-backed `N/A` only for `Not applicable`. The validator continues to accept existing Version 2, Version 3, and Version 4 Specs under their original contracts.
+- Start from Template Version 6 in `assets/spec-template.md`. Keep every numbered chapter, but allocate depth using `references/change-surface-and-proportional-depth.md`: fully design `Affected` areas, keep `Context-only` and `Unchanged` areas concise, and use evidence-backed `N/A` only for `Not applicable`. The validator continues to accept existing Version 2 through Version 5 Specs under their original contracts.
 
 ## Resource-integrity preflight
 
@@ -33,6 +33,25 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 ```
 
 `<skill-root>` is notation, not literal shell text: substitute the resolved absolute directory before executing the command. All bundled paths in this skill are relative to that directory and therefore start with `references/`, `assets/`, or `scripts/`; never resolve a bare filename relative to the repository root or the currently opened reference file. If the preflight reports a missing, escaping, ambiguous, or broken resource, stop before drafting, report the exact diagnostic to the user, and repair/reinstall the skill. Do not continue with a partial skill or silently substitute an invented resource.
+
+## User-mandated Java rules — verbatim normative source
+
+The following source rules are deliberately preserved exactly as provided. They are mandatory, not a summary and not optional guidance. Read `references/user-mandated-java-rules.md` for the phase-specific, non-weakened enforcement contract.
+
+```text
+1 类名规范，必须以 java的pojo规范命名。以dao po bo vo dto query command event等结尾
+2 每层之间必须被 springboot-validation 校验，复用的对象 validation 要分组校验，ValidatorUtils使用 libphonenumber进行规范化校验或者validation原生注解，若非必要，不要自己写。
+3 实体类规范：复杂对象使用java类并使用Lombok进行@Data\@NoArgsConstructor(access = AccessLevel.PROTECTED) @AllArgsConstructor\@RequiredArgsConstructor\@Builder\@Accessors(chain = true)修饰。简单对象使用Java Record。使用MapStruct、MapStructPlus 进行转换，egon-cola-component-common-core有通用的convertor，必须继承实现这个。如果是不可变对象，使用@Value注释修饰。record场景Record 构造器很适合做数据规范化，推荐使用紧凑构造器，Record 可以作为局部类，在方法内部定义临时数据结构。
+4业务类必须使用@Slf4j注解注入log对象。如果业务类被spring管理，必须指定名称，如果是单例的情况下，参考@Service("userService")。如果需要依赖注入，必须@RequiredArgsConstructor进行修饰，不要代码中写。且属性必须被@qualify修饰。
+5 工具类只允许使用jdk原生、Apache Commons(commons-lang3、commons-collections4、commons-io、commons-text、commons-codec、commons-beanutils)、Guava。针对Tika按需引入。
+6 json 使用SpringBoot-JackSon 对外交互层的实体类必须按需被jackson注解修饰。
+7 springboot 多环境配置文件，必须保持配置一致，但值不一定一致。
+9 复杂业务必须引入设计模式，不允许硬编码
+10 日期相关的必须使用java.time下的实体类，不允许使用java.util下的
+11 plan中必须确认代码结构，分层结构或者egon-cola-archetype，只允许这两种代码结构规范。&#x20;
+```
+
+Do not translate, renumber, correct, shorten, or replace this block with a paraphrase. Literal spellings such as `@qualify`, `convertor`, and `SpringBoot-JackSon` are operationally resolved by `references/user-mandated-java-rules.md` without changing the source text.
 
 ## Non-negotiable rules
 
@@ -61,6 +80,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 23. Read `references/change-surface-and-proportional-depth.md` before target design. Build an impact cone from the requested symbols, classify each relevant area as `Affected`, `Context-only`, `Unchanged`, or `Not applicable`, and record `Change Surface` plus `Affected Chapters` in the Header. The presence of a layer is not evidence that it must be redesigned. If repository evidence requires a major scope expansion beyond the user's stated boundary, stop and ask before widening it.
 24. Read `references/java-spring-egon-coding-standards.md` for every Java task. Before selecting new code, prove architecture and existing-capability discovery. Design semantic names, Bean Validation/groups/normalization, record/Lombok construction, MapStruct/MapStructPlus conversion and `BaseConverter` reuse, `@Slf4j`, explicit Bean names, qualified constructor injection, approved utilities, Jackson, `java.time`, configuration parity, and justified design patterns. Additional dependencies or custom infrastructure require a proven gap.
 25. Complete the blocking Manual Check catalog in Chapter 20. Every applicable `MC-*` row must be `PASS` with concrete repository/design evidence; an inapplicable row must be `N/A` with evidence and reason. Any `FAIL`, `BLOCKED`, `UNKNOWN`, missing ID, missing evidence, or unresolved exception prohibits a PASS verdict.
+26. For every Java Spec, apply `references/user-mandated-java-rules.md` literally. Include the ten-row rule matrix using the user's original numbering `1, 2, 3, 4, 5, 6, 7, 9, 10, 11`. Do not downgrade a literal “must/only/not allowed” into preference language. Any inability to satisfy a row is a user-decision blocker, not an implicit exception.
 
 ## Mandatory reference loading and drafting passes
 
@@ -71,7 +91,7 @@ Read every applicable reference **completely before drafting the corresponding c
 | Situation | References that must be read completely |
 | --- | --- |
 | Every Spec | `references/ambiguity-policy.md`, `references/rfc-governance.md`, `references/complex-scenario-analysis.md`, `references/requirements-use-case-analysis.md`, `references/change-surface-and-proportional-depth.md`, `references/minimal-design-and-interface-necessity.md`, `references/review-checklist.md`, and `assets/spec-template.md` |
-| Every Java design | `references/java-spring-egon-coding-standards.md`; also `references/three-layer-architecture.md` and `references/pojo-modeling.md` for the traditional profile, or the exact selected repository Archetype tree/verifier for the COLA profile |
+| Every Java design | `references/user-mandated-java-rules.md` and `references/java-spring-egon-coding-standards.md`; also `references/three-layer-architecture.md` and `references/pojo-modeling.md` for the traditional profile, or the exact selected repository Archetype tree/verifier for the COLA profile |
 | Any `Affected` HTTP/RPC/event/job/internal Service contract | `references/interface-contract-design.md` |
 | Any `Affected` schema/data/constraint/index/migration/transaction/locking/persistence-ownership surface | `references/database-design.md` |
 
@@ -110,7 +130,7 @@ Use this exact header field set in every Spec:
 | Field | Required meaning |
 | --- | --- |
 | Document | Current filename as a relative repository link or code value |
-| Template Version | `5` for the current template; existing Version 2, Version 3, and Version 4 documents remain valid under their original rules |
+| Template Version | `6` for the current template; existing Version 2 through Version 5 documents remain valid under their original rules |
 | Status | `Draft`, `Review`, `Accepted`, `Implemented`, `Superseded`, or `Rejected` |
 | Type | `Feature`, `Refactor`, `Bugfix`, `Architecture`, or another clearly defined coding type |
 | Complexity | `Simple` or `Complex` |
@@ -164,8 +184,8 @@ Read `references/rfc-governance.md` for lifecycle and backlink rules.
 6. **Design the solution**
    - Apply `references/minimal-design-and-interface-necessity.md`. Evaluate the direct repository-consistent reuse/no-new-element design first and select a more complex option only when a current approved requirement proves the direct option insufficient.
    - Explicitly consider appropriate patterns such as Strategy, Template Method, Factory, Adapter, Facade, State, Observer, Command, or Specification.
-   - Select a pattern only when it resolves a real variation point, coupling problem, lifecycle, orchestration concern, or testability problem. Otherwise record why direct design is clearer and avoids over-engineering.
-   - For Java work, apply `references/java-spring-egon-coding-standards.md`. Confirm exactly one allowed architecture profile and build a reuse ledger before designing dependencies or abstractions. For the traditional profile, also read `references/three-layer-architecture.md` and `references/pojo-modeling.md`; for COLA, inspect the exact selected Archetype tree, module dependencies, examples, and generated verifier.
+   - When affected business logic is classified Complex, select and fully design an actual pattern; direct branching is prohibited. Simple logic remains direct so the pattern rule does not create ceremonial classes.
+   - For Java work, apply `references/user-mandated-java-rules.md` and `references/java-spring-egon-coding-standards.md`. Confirm exactly one allowed architecture profile and build a reuse ledger before designing dependencies or abstractions. For the traditional profile, also read `references/three-layer-architecture.md` and `references/pojo-modeling.md`; for COLA, inspect the exact selected Archetype tree, module dependencies, examples, and generated verifier.
    - Read `references/interface-contract-design.md` and `references/database-design.md` only when their surfaces are `Affected`; otherwise cite the authoritative current contract or persistence evidence and preserved invariant concisely.
    - For an affected relational model, derive a Mermaid `erDiagram` from evidenced table ownership, keys, and cardinalities before finalizing per-table details; do not redraw unchanged relationships for query-only work.
 7. **Write the Spec**
@@ -247,7 +267,7 @@ Use exactly one:
 | Using `Data`, `Info`, `Param`, or `Bean` for a new carrier | Rename it to the exact PO/BO/DTO/VO/Query/Command/Event/Request/Response or behavior role |
 | Marking the Spec PASS with a missing/failed/unknown Manual Check | Close every blocker and add evidence, or use `BLOCKED`/`REVISE` |
 | Letting a Controller access DAO or `service.impl` directly | Depend on the Service interface and keep persistence behind the implementation |
-| Naming a design pattern without a variation point | Reject it or explain the concrete problem it solves |
+| Treating a Complex business rule as direct logic or leaving `if/else`/`switch` dispatch | Select and fully design the mandatory pattern, participants, registration/selection mechanism, failures, and tests |
 | Treating integration tests as unit-test design | Define isolated unit behavior and separate higher-level coverage |
 | Fully redesigning Controller, Service, models, database, or frontend because one DAO changes | Build the change-surface matrix; fully design the DAO and tests, keep only necessary caller/database context, and mark preserved layers `Unchanged` |
 | Using `N/A` for an existing but unchanged layer | Use `Unchanged` with exact evidence, preserved invariant, stopping reason, and focused verification |
@@ -256,4 +276,4 @@ Use exactly one:
 
 ## Skill maintenance
 
-When changing this skill, first run the resource-integrity tests (`scripts/test_validate_skill_resources.py`), change-surface tests (`scripts/test_validate_spec_scope.py`), Manual Check tests (`scripts/test_validate_manual_checks.py`), and preflight (`scripts/validate_skill_resources.py`), then run `references/acceptance-scenarios.md` as review cases and the applicable output validator. Keep `SKILL.zh-CN.md` plus all `*.zh-CN.md` review mirrors synchronized with the English operational contract. A change is not complete if any bundled resource is missing, uses an ambiguous bare path, escapes the skill root, or contains a broken local Markdown link.
+When changing this skill, first run the literal-rule preservation test (`scripts/test_user_mandated_java_rules.py`), resource-integrity tests (`scripts/test_validate_skill_resources.py`), change-surface tests (`scripts/test_validate_spec_scope.py`), Manual Check tests (`scripts/test_validate_manual_checks.py`), and preflight (`scripts/validate_skill_resources.py`), then run `references/acceptance-scenarios.md` as review cases and the applicable output validator. Keep `SKILL.zh-CN.md` plus all `*.zh-CN.md` review mirrors synchronized with the English operational contract. A change is not complete if the verbatim source block changes, any bundled resource is missing, a path is ambiguous/escaping, or a local Markdown link is broken.
