@@ -20,7 +20,7 @@
   },
   "scripts": {
     "prebuild": "node scripts/copy-favicon.mjs",
-    "build": "tsc -b --emitDeclarationOnly && vite build",
+    "build": "rm -rf dist && tsc -b --emitDeclarationOnly && vite build",
     "postbuild": "rm -rf node_modules",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
