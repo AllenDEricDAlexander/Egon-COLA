@@ -3,35 +3,35 @@ package top.egon.cola.platform.rbac3.admin.registration.ci.service;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.rbac3.admin.iam.business.service.ApplicationCatalogEntry;
 import top.egon.cola.platform.rbac3.admin.iam.business.service.DdcCatalogGateway;
-import top.egon.cola.platform.rbac3.admin.registration.ci.domain.dto.CiResourceReportRequestDTO;
-import top.egon.cola.platform.rbac3.admin.registration.ci.domain.vo.CiResourceReportResultVO;
+import top.egon.cola.platform.rbac3.admin.registration.ci.domain.dto.CiResourceRegistrationRequestDTO;
+import top.egon.cola.platform.rbac3.admin.registration.ci.domain.vo.CiResourceRegistrationResultVO;
 
 import java.util.Objects;
 
 /** Validates and atomically delegates a CI-only global resource replacement. */
-public final class CiResourceReportService {
+public final class CiResourceRegistrationService {
 
-    public static final String REPORT_SCOPE = "rbac3:resource-catalog:report";
+    public static final String REGISTRATION_SCOPE = "rbac3:resource-catalog:report";
 
     private final DdcCatalogGateway catalog;
-    private final CiResourceReportStore store;
+    private final CiResourceRegistrationStore store;
 
-    public CiResourceReportService(
+    public CiResourceRegistrationService(
             DdcCatalogGateway catalog,
-            CiResourceReportStore store) {
+            CiResourceRegistrationStore store) {
         this.catalog = Objects.requireNonNull(catalog, "catalog");
         this.store = Objects.requireNonNull(store, "store");
     }
 
-    public CiResourceReportResultVO report(
+    public CiResourceRegistrationResultVO register(
             String businessCode,
             String applicationCode,
             ServiceIdentityPrincipal caller,
-            CiResourceReportRequestDTO request) {
-        if (caller == null || !caller.scopes().contains(REPORT_SCOPE)
+            CiResourceRegistrationRequestDTO request) {
+        if (caller == null || !caller.scopes().contains(REGISTRATION_SCOPE)
                 || !caller.sourceBizCode().equals(businessCode)
                 || !caller.sourceAppCode().equals(applicationCode)) {
-            throw new SecurityException("resource report source is not bound");
+            throw new SecurityException("resource registration source is not bound");
         }
         ApplicationCatalogEntry application = catalog.listApplications(businessCode, null)
                 .stream()
@@ -41,11 +41,11 @@ public final class CiResourceReportService {
         if (!application.applicationEnabled() || !application.businessEnabled()) {
             throw new SecurityException("DDC application or business is disabled");
         }
-        String checksum = CiResourceReportCanonicalizer.checksum(request);
+        String checksum = CiResourceRegistrationCanonicalizer.checksum(request);
         if (!checksum.equals(request.checksum())) {
-            throw new IllegalArgumentException("resource report checksum mismatch");
+            throw new IllegalArgumentException("resource registration checksum mismatch");
         }
-        CiResourceReportStore.ReportHead current = store.findHead(applicationCode)
+        CiResourceRegistrationStore.RegistrationHead current = store.findHead(applicationCode)
                 .orElse(null);
         if (current != null) {
             if (current.buildId().equals(request.buildId())
@@ -53,19 +53,19 @@ public final class CiResourceReportService {
                 return current.result();
             }
             if (current.buildId().equals(request.buildId())) {
-                throw new CiResourceReportConflictException(
+                throw new CiResourceRegistrationConflictException(
                         "same build id has a different checksum");
             }
             if (request.expectedApplicationVersion() != current.applicationVersion()) {
-                throw new CiResourceReportConflictException("application report version conflict");
+                throw new CiResourceRegistrationConflictException("application registration version conflict");
             }
         }
         return store.replace(applicationCode, request, checksum);
     }
 
-    public static final class CiResourceReportConflictException
+    public static final class CiResourceRegistrationConflictException
             extends RuntimeException {
-        public CiResourceReportConflictException(String message) {
+        public CiResourceRegistrationConflictException(String message) {
             super(message);
         }
     }

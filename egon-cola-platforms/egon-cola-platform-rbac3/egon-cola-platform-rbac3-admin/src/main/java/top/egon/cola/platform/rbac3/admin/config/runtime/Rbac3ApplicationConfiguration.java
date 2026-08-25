@@ -40,8 +40,8 @@ import top.egon.cola.platform.rbac3.admin.authorization.grant.business.service.U
 import top.egon.cola.platform.rbac3.admin.authorization.grant.business.repository.UserBusinessAccessRepository;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.application.service.TenantApplicationFacade;
 import top.egon.cola.platform.rbac3.admin.iam.application.repository.jpa.JpaTenantApplicationRepository;
-import top.egon.cola.platform.rbac3.admin.registration.ci.service.CiResourceReportService;
-import top.egon.cola.platform.rbac3.admin.registration.ci.service.JpaCiResourceReportStore;
+import top.egon.cola.platform.rbac3.admin.registration.ci.service.CiResourceRegistrationService;
+import top.egon.cola.platform.rbac3.admin.registration.ci.service.JpaCiResourceRegistrationStore;
 import top.egon.cola.platform.rbac3.admin.iam.role.repository.jpa.JpaRoleRepository;
 import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleFacade;
 import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleEligibilityService;
@@ -402,10 +402,10 @@ public class Rbac3ApplicationConfiguration {
     }
 
     @Bean
-    CiResourceReportService ciResourceReportService(
+    CiResourceRegistrationService ciResourceRegistrationService(
             DdcCatalogGateway catalog,
-            JpaCiResourceReportStore store) {
-        return new CiResourceReportService(catalog, store);
+            JpaCiResourceRegistrationStore store) {
+        return new CiResourceRegistrationService(catalog, store);
     }
 
     @Bean

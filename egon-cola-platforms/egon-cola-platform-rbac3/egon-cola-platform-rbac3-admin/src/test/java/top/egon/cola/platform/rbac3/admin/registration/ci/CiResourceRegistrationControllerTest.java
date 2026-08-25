@@ -1,17 +1,18 @@
 package top.egon.cola.platform.rbac3.admin.registration.ci;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.web.bind.annotation.RequestMapping;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.idp.starter.security.RequiresServiceScope;
 import top.egon.cola.platform.rbac3.admin.iam.business.service.ApplicationCatalogEntry;
 import top.egon.cola.platform.rbac3.admin.iam.business.service.DdcCatalogGateway;
-import top.egon.cola.platform.rbac3.admin.registration.ci.controller.CiResourceReportController;
+import top.egon.cola.platform.rbac3.admin.registration.ci.controller.CiResourceRegistrationController;
 import top.egon.cola.platform.rbac3.admin.registration.ci.domain.FrontendResourceType;
-import top.egon.cola.platform.rbac3.admin.registration.ci.domain.dto.CiResourceReportRequestDTO;
-import top.egon.cola.platform.rbac3.admin.registration.ci.domain.vo.CiResourceReportResultVO;
-import top.egon.cola.platform.rbac3.admin.registration.ci.service.CiResourceReportCanonicalizer;
-import top.egon.cola.platform.rbac3.admin.registration.ci.service.CiResourceReportService;
-import top.egon.cola.platform.rbac3.admin.registration.ci.service.CiResourceReportStore;
+import top.egon.cola.platform.rbac3.admin.registration.ci.domain.dto.CiResourceRegistrationRequestDTO;
+import top.egon.cola.platform.rbac3.admin.registration.ci.domain.vo.CiResourceRegistrationResultVO;
+import top.egon.cola.platform.rbac3.admin.registration.ci.service.CiResourceRegistrationCanonicalizer;
+import top.egon.cola.platform.rbac3.admin.registration.ci.service.CiResourceRegistrationService;
+import top.egon.cola.platform.rbac3.admin.registration.ci.service.CiResourceRegistrationStore;
 
 import java.net.URI;
 import java.time.Instant;
@@ -26,21 +27,21 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class CiResourceReportControllerTest {
+class CiResourceRegistrationControllerTest {
 
     private static final Instant NOW = Instant.parse("2026-08-18T02:00:00Z");
 
     @Test
     void rejectsAUserOrAServiceBoundToAnotherSourceBeforeStoreWrite() {
         DdcCatalogGateway catalog = mock(DdcCatalogGateway.class);
-        CiResourceReportStore store = mock(CiResourceReportStore.class);
-        CiResourceReportService service = new CiResourceReportService(catalog, store);
-        CiResourceReportController controller = new CiResourceReportController(service);
+        CiResourceRegistrationStore store = mock(CiResourceRegistrationStore.class);
+        CiResourceRegistrationService service = new CiResourceRegistrationService(catalog, store);
+        CiResourceRegistrationController controller = new CiResourceRegistrationController(service);
 
-        assertThatThrownBy(() -> controller.report(
+        assertThatThrownBy(() -> controller.register(
                 "biz-a", "app-a", null, request("build-1")))
                 .isInstanceOf(SecurityException.class);
-        assertThatThrownBy(() -> controller.report(
+        assertThatThrownBy(() -> controller.register(
                 "biz-a", "app-a", principal("biz-b", "app-a"), request("build-1")))
                 .isInstanceOf(SecurityException.class);
         verify(store, never()).replace(
@@ -52,58 +53,63 @@ class CiResourceReportControllerTest {
     @Test
     void acceptsBoundServiceAndMakesSameBuildReplayIdempotent() {
         DdcCatalogGateway catalog = mock(DdcCatalogGateway.class);
-        CiResourceReportStore store = mock(CiResourceReportStore.class);
-        CiResourceReportService service = new CiResourceReportService(catalog, store);
-        CiResourceReportController controller = new CiResourceReportController(service);
+        CiResourceRegistrationStore store = mock(CiResourceRegistrationStore.class);
+        CiResourceRegistrationService service = new CiResourceRegistrationService(catalog, store);
+        CiResourceRegistrationController controller = new CiResourceRegistrationController(service);
         when(catalog.listApplications("biz-a", null)).thenReturn(List.of(
                 new ApplicationCatalogEntry(
                         "ddc-app-a", "ddc-biz-a", "biz-a", "app-a",
                         "Application A", true, true)));
-        CiResourceReportRequestDTO request = request("build-1");
-        CiResourceReportResultVO result = new CiResourceReportResultVO(
-                1, 0, 0, 0, 1, request.checksum());
+        CiResourceRegistrationRequestDTO request = request("build-1");
+        CiResourceRegistrationResultVO result = new CiResourceRegistrationResultVO(
+                1, 0, 0, 0, 1, 0, 0, request.checksum(), 1L);
         when(store.findHead("app-a")).thenReturn(Optional.empty());
         when(store.replace("app-a", request, request.checksum())).thenReturn(result);
 
-        assertThat(controller.report(
+        assertThat(controller.register(
                 "biz-a", "app-a", principal("biz-a", "app-a"), request))
-                .isEqualTo(result);
+                .extracting(response -> response.data()).isEqualTo(result);
         verify(store).replace("app-a", request, request.checksum());
 
         when(store.findHead("app-a")).thenReturn(Optional.of(
-                new CiResourceReportStore.ReportHead(
+                new CiResourceRegistrationStore.RegistrationHead(
                         request.buildId(), request.checksum(), result)));
-        assertThat(controller.report(
+        assertThat(controller.register(
                 "biz-a", "app-a", principal("biz-a", "app-a"), request))
-                .isEqualTo(result);
+                .extracting(response -> response.data()).isEqualTo(result);
     }
 
     @Test
-    void reportEndpointRequiresServiceScopeAndHasNoTenantRequestField() {
+    void registrationEndpointRequiresServiceScopeAndHasNoTenantRequestField() {
+        assertThat(CiResourceRegistrationController.class
+                .getAnnotation(RequestMapping.class).value()[0])
+                .isEqualTo("/api/rbac3/v1/registration");
         RequiresServiceScope required = java.util.Arrays.stream(
-                        CiResourceReportController.class.getDeclaredMethods())
-                .filter(method -> method.getName().equals("report"))
+                        CiResourceRegistrationController.class.getDeclaredMethods())
+                .filter(method -> method.getName().equals("register"))
                 .findFirst()
                 .orElseThrow()
                 .getAnnotation(RequiresServiceScope.class);
         assertThat(required).isNotNull();
         assertThat(required.value()).isEqualTo("rbac3:resource-catalog:report");
-        assertThat(CiResourceReportRequestDTO.class.getDeclaredFields())
+        assertThat(CiResourceRegistrationRequestDTO.class.getDeclaredFields())
                 .noneMatch(field -> field.getName().equals("tenantId"));
+        assertThat(CiResourceRegistrationRequestDTO.Resource.class.getDeclaredFields())
+                .noneMatch(field -> field.getName().equals("permissionCode"));
     }
 
-    private CiResourceReportRequestDTO request(String buildId) {
-        CiResourceReportRequestDTO unchecked = new CiResourceReportRequestDTO(
+    private CiResourceRegistrationRequestDTO request(String buildId) {
+        CiResourceRegistrationRequestDTO unchecked = new CiResourceRegistrationRequestDTO(
                 buildId,
                 "sha256:" + "0".repeat(64),
                 0L,
-                List.of(new CiResourceReportRequestDTO.Resource(
+                List.of(new CiResourceRegistrationRequestDTO.Resource(
                         FrontendResourceType.MENU, "menu.home", "Home", null,
-                        "home:read", null, null, null, 1, false)),
+                        "home:read", List.of(), null, null, null, 1, false)),
                 List.of());
-        return new CiResourceReportRequestDTO(
+        return new CiResourceRegistrationRequestDTO(
                 unchecked.buildId(),
-                CiResourceReportCanonicalizer.checksum(unchecked),
+                CiResourceRegistrationCanonicalizer.checksum(unchecked),
                 unchecked.expectedApplicationVersion(),
                 unchecked.resources(),
                 unchecked.fields());

@@ -6,36 +6,42 @@ import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.rbac3.admin.registration.ci.domain.dto.CiResourceReportRequestDTO;
-import top.egon.cola.platform.rbac3.admin.registration.ci.domain.dto.CiResourceReportRequestDTO.Field;
-import top.egon.cola.platform.rbac3.admin.registration.ci.domain.dto.CiResourceReportRequestDTO.Resource;
-import top.egon.cola.platform.rbac3.admin.registration.ci.domain.vo.CiResourceReportResultVO;
+import top.egon.cola.platform.rbac3.admin.authorization.resource.apibinding.repository.ResourceApiBindingRepository;
+import top.egon.cola.platform.rbac3.admin.registration.ci.domain.dto.CiResourceRegistrationRequestDTO;
+import top.egon.cola.platform.rbac3.admin.registration.ci.domain.dto.CiResourceRegistrationRequestDTO.Field;
+import top.egon.cola.platform.rbac3.admin.registration.ci.domain.dto.CiResourceRegistrationRequestDTO.Resource;
+import top.egon.cola.platform.rbac3.admin.registration.ci.domain.vo.CiResourceRegistrationResultVO;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.LinkedHashSet;
 
-/** PostgreSQL transaction boundary for global CI_REPORT facts. */
+/** PostgreSQL transaction boundary for global CI registration facts. */
 @Repository
-public class JpaCiResourceReportStore implements CiResourceReportStore {
+public class JpaCiResourceRegistrationStore implements CiResourceRegistrationStore {
 
     private final EntityManager entityManager;
     private final ObjectMapper objectMapper;
     private final LongIdGenerator idGenerator;
+    private final ResourceApiBindingRepository bindingRepository;
 
-    public JpaCiResourceReportStore(
+    public JpaCiResourceRegistrationStore(
             EntityManager entityManager,
             ObjectMapper objectMapper,
-            LongIdGenerator idGenerator) {
+            LongIdGenerator idGenerator,
+            ResourceApiBindingRepository bindingRepository) {
         this.entityManager = entityManager;
         this.objectMapper = objectMapper;
         this.idGenerator = idGenerator;
+        this.bindingRepository = bindingRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<ReportHead> findHead(String applicationCode) {
+    public Optional<RegistrationHead> findHead(String applicationCode) {
         List<?> rows = entityManager.createNativeQuery("""
                         select ci_report_build_id, ci_report_checksum,
                                version
@@ -51,36 +57,38 @@ public class JpaCiResourceReportStore implements CiResourceReportStore {
         if (row[0] == null || row[1] == null) {
             return Optional.empty();
         }
-        return Optional.of(new ReportHead(
+        return Optional.of(new RegistrationHead(
                 String.valueOf(row[0]),
                 String.valueOf(row[1]),
-                new CiResourceReportResultVO(0, 0, 0, 0, 0, String.valueOf(row[1])),
+                new CiResourceRegistrationResultVO(0, 0, 0, 0, 0, 0, 0,
+                        String.valueOf(row[1]), ((Number) row[2]).longValue()),
                 ((Number) row[2]).longValue()));
     }
 
     @Override
     @Transactional
-    public CiResourceReportResultVO replace(
+    public CiResourceRegistrationResultVO replace(
             String applicationCode,
-            CiResourceReportRequestDTO request,
+            CiResourceRegistrationRequestDTO request,
             String checksum) {
         Long applicationId = applicationId(applicationCode);
         Instant now = Instant.now();
         int added = 0;
         int updated = 0;
-        int pending = 0;
+        int pendingMapping = 0;
+        Set<ResourceApiBindingRepository.BindingPair> bindings = new LinkedHashSet<>();
         for (Resource resource : request.resources()) {
-            Long permissionId = permissionId(applicationId, resource.permissionCode(), request, now);
             boolean exists = resourceExists(applicationId, resource);
-            upsertResource(applicationId, resource, permissionId, request.buildId(), checksum, now);
+            upsertResource(applicationId, resource, request.buildId(), checksum, now);
             if (exists) {
                 updated++;
             } else {
                 added++;
             }
-            if (permissionId != null) {
-                pending++;
+            if (resource.suggestedPermissionCode() != null) {
+                pendingMapping++;
             }
+            bindings.addAll(resolveBindings(applicationId, resource));
         }
         for (Field field : request.fields()) {
             boolean exists = fieldExists(applicationId, field);
@@ -90,26 +98,34 @@ public class JpaCiResourceReportStore implements CiResourceReportStore {
             } else {
                 added++;
             }
-            pending++;
+            pendingMapping++;
         }
+        bindingRepository.replaceForApplication(
+                applicationId, request.buildId(), checksum, bindings, "ci-registration", now);
         int stale = markStale(applicationId, request, now);
-        CiResourceReportResultVO result = new CiResourceReportResultVO(
-                added, updated, stale, 0, pending, checksum);
-        entityManager.createNativeQuery("""
+        int applicationUpdated = entityManager.createNativeQuery("""
                         update rbac3_application
                            set ci_report_build_id = :buildId,
                                ci_report_checksum = :checksum,
                                ci_reported_at = :reportedAt,
                                version = version + 1,
                                updated_at = :reportedAt,
-                               updated_by = 'ci-report'
-                         where id = :applicationId
+                               updated_by = 'ci-registration'
+                         where id = :applicationId and version = :expectedVersion
                         """)
                 .setParameter("buildId", request.buildId())
                 .setParameter("checksum", checksum)
                 .setParameter("reportedAt", now)
                 .setParameter("applicationId", applicationId)
+                .setParameter("expectedVersion", request.expectedApplicationVersion())
                 .executeUpdate();
+        if (applicationUpdated != 1) {
+            throw new top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation(
+                    "RESOURCE_VERSION_CONFLICT");
+        }
+        CiResourceRegistrationResultVO result = new CiResourceRegistrationResultVO(
+                added, updated, stale, 0, pendingMapping, bindings.size(), 0, checksum,
+                request.expectedApplicationVersion() + 1L);
         return result;
     }
 
@@ -126,44 +142,51 @@ public class JpaCiResourceReportStore implements CiResourceReportStore {
         return ((Number) rows.getFirst()).longValue();
     }
 
-    private Long permissionId(
+    private Set<ResourceApiBindingRepository.BindingPair> resolveBindings(
             Long applicationId,
-            String permissionCode,
-            CiResourceReportRequestDTO request,
-            Instant now) {
-        if (permissionCode == null) {
+            Resource resource) {
+        if (resource.apiResourceCodes().isEmpty()) {
+            return Set.of();
+        }
+        ResourceRef source = resourceRef(applicationId, resource.code());
+        if (source == null || (source.type() != top.egon.cola.platform.rbac3.admin.authorization.resource.domain.enums.ResourceTypeEnum.ROUTE
+                && source.type() != top.egon.cola.platform.rbac3.admin.authorization.resource.domain.enums.ResourceTypeEnum.ACTION)) {
+            throw new IllegalArgumentException("binding source must be an active ROUTE or ACTION");
+        }
+        Set<ResourceApiBindingRepository.BindingPair> pairs = new LinkedHashSet<>();
+        for (String apiCode : resource.apiResourceCodes()) {
+            ResourceRef api = resourceRef(applicationId, apiCode);
+            if (api == null || api.type() != top.egon.cola.platform.rbac3.admin.authorization.resource.domain.enums.ResourceTypeEnum.API) {
+                throw new IllegalArgumentException("binding target must be an API in the same application");
+            }
+            pairs.add(new ResourceApiBindingRepository.BindingPair(source.id(), api.id()));
+        }
+        return pairs;
+    }
+
+    private ResourceRef resourceRef(Long applicationId, String code) {
+        List<?> rows = entityManager.createNativeQuery("""
+                        select id, resource_type, status
+                          from rbac3_resource
+                         where application_id = :applicationId
+                           and resource_code = :code
+                        """)
+                .setParameter("applicationId", applicationId)
+                .setParameter("code", code)
+                .getResultList();
+        if (rows.size() != 1) {
             return null;
         }
-        List<?> rows = entityManager.createNativeQuery("""
-                        select id from rbac3_permission
-                         where permission_code = :permissionCode
-                        """)
-                .setParameter("permissionCode", permissionCode)
-                .getResultList();
-        if (!rows.isEmpty()) {
-            return ((Number) rows.getFirst()).longValue();
-        }
-        long id = idGenerator.nextLongId();
-        entityManager.createNativeQuery("""
-                        insert into rbac3_permission (
-                            id, application_id, permission_code, permission_name,
-                            risk_level, status, description, source_type,
-                            source_build_id, source_checksum, ci_reported_at,
-                            version, created_at, created_by, updated_at, updated_by)
-                        values (:id, :applicationId, :code, :name, 'LOW',
-                                'PENDING_VALIDATION', null, 'CI_REPORT',
-                                :buildId, :checksum, :reportedAt, 0,
-                                :reportedAt, 'ci-report', :reportedAt, 'ci-report')
-                        """)
-                .setParameter("id", id)
-                .setParameter("applicationId", applicationId)
-                .setParameter("code", permissionCode)
-                .setParameter("name", permissionCode)
-                .setParameter("buildId", request.buildId())
-                .setParameter("checksum", CiResourceReportCanonicalizer.checksum(request))
-                .setParameter("reportedAt", now)
-                .executeUpdate();
-        return id;
+        Object[] row = (Object[]) rows.getFirst();
+        return new ResourceRef(((Number) row[0]).longValue(),
+                top.egon.cola.platform.rbac3.admin.authorization.resource.domain.enums.ResourceTypeEnum.valueOf(String.valueOf(row[1])),
+                String.valueOf(row[2]));
+    }
+
+    private record ResourceRef(
+            Long id,
+            top.egon.cola.platform.rbac3.admin.authorization.resource.domain.enums.ResourceTypeEnum type,
+            String status) {
     }
 
     private boolean resourceExists(Long applicationId, Resource resource) {
@@ -182,7 +205,6 @@ public class JpaCiResourceReportStore implements CiResourceReportStore {
     private void upsertResource(
             Long applicationId,
             Resource resource,
-            Long permissionId,
             String buildId,
             String checksum,
             Instant now) {
@@ -196,20 +218,20 @@ public class JpaCiResourceReportStore implements CiResourceReportStore {
         entityManager.createNativeQuery("""
                         insert into rbac3_resource (
                             id, application_id, resource_type, resource_code,
-                            resource_name, parent_resource_id, required_permission_id,
+                            resource_name, parent_resource_id, suggested_permission_code,
                             status, source_type, source_build_id, source_checksum,
                             mechanical_facts, display_metadata, version,
                             created_at, created_by, updated_at, updated_by)
                         values (:id, :applicationId, :type, :code, :name,
                                 (select id from rbac3_resource where application_id = :applicationId
                                   and resource_code = :parentCode limit 1),
-                                :permissionId, 'PENDING_VALIDATION', 'CI_REPORT',
+                                :suggestedPermissionCode, 'PENDING_VALIDATION', 'CI_REGISTRATION',
                                 :buildId, :checksum, cast(:facts as jsonb),
-                                cast(:metadata as jsonb), 0, :now, 'ci-report', :now, 'ci-report')
+                                cast(:metadata as jsonb), 0, :now, 'ci-registration', :now, 'ci-registration')
                         on conflict (application_id, resource_type, resource_code)
                         do update set resource_name = excluded.resource_name,
-                            required_permission_id = excluded.required_permission_id,
-                            source_type = 'CI_REPORT', source_build_id = excluded.source_build_id,
+                            suggested_permission_code = excluded.suggested_permission_code,
+                            source_type = 'CI_REGISTRATION', source_build_id = excluded.source_build_id,
                             source_checksum = excluded.source_checksum,
                             mechanical_facts = excluded.mechanical_facts,
                             display_metadata = excluded.display_metadata,
@@ -221,7 +243,7 @@ public class JpaCiResourceReportStore implements CiResourceReportStore {
                 .setParameter("code", resource.code())
                 .setParameter("name", resource.name())
                 .setParameter("parentCode", resource.parentCode())
-                .setParameter("permissionId", permissionId)
+                .setParameter("suggestedPermissionCode", resource.suggestedPermissionCode())
                 .setParameter("buildId", buildId)
                 .setParameter("checksum", checksum)
                 .setParameter("facts", facts)
@@ -261,12 +283,12 @@ public class JpaCiResourceReportStore implements CiResourceReportStore {
                                 (select id from rbac3_resource where application_id = :applicationId
                                   and resource_code = :resourceCode limit 1),
                                 :fieldCode, :jsonPath, :dataType, 'NORMAL', 'NONE',
-                                null, false, false, 'PENDING_VALIDATION', 'CI_REPORT',
-                                :buildId, :checksum, :now, 0, :now, 'ci-report', :now, 'ci-report')
+                                null, false, false, 'PENDING_VALIDATION', 'CI_REGISTRATION',
+                                :buildId, :checksum, :now, 0, :now, 'ci-registration', :now, 'ci-registration')
                         on conflict (application_id, resource_id, field_code)
                         do update set json_path = excluded.json_path,
                             data_type = excluded.data_type,
-                            source_type = 'CI_REPORT', source_build_id = excluded.source_build_id,
+                            source_type = 'CI_REGISTRATION', source_build_id = excluded.source_build_id,
                             source_checksum = excluded.source_checksum,
                             ci_reported_at = excluded.ci_reported_at,
                             updated_at = excluded.updated_at, updated_by = excluded.updated_by
@@ -285,7 +307,7 @@ public class JpaCiResourceReportStore implements CiResourceReportStore {
 
     private int markStale(
             Long applicationId,
-            CiResourceReportRequestDTO request,
+            CiResourceRegistrationRequestDTO request,
             Instant now) {
         List<String> codes = request.resources().stream()
                 .map(Resource::code)
@@ -294,9 +316,9 @@ public class JpaCiResourceReportStore implements CiResourceReportStore {
             return entityManager.createNativeQuery("""
                             update rbac3_resource
                                set status = 'STALE', stale_since = :now,
-                                   updated_at = :now, updated_by = 'ci-report'
+                                   updated_at = :now, updated_by = 'ci-registration'
                              where application_id = :applicationId
-                               and source_type = 'CI_REPORT'
+                               and source_type = 'CI_REGISTRATION'
                                and status = 'ACTIVE'
                             """)
                     .setParameter("applicationId", applicationId)
@@ -306,9 +328,9 @@ public class JpaCiResourceReportStore implements CiResourceReportStore {
         return entityManager.createNativeQuery("""
                         update rbac3_resource
                            set status = 'STALE', stale_since = :now,
-                               updated_at = :now, updated_by = 'ci-report'
+                               updated_at = :now, updated_by = 'ci-registration'
                          where application_id = :applicationId
-                           and source_type = 'CI_REPORT'
+                           and source_type = 'CI_REGISTRATION'
                            and resource_code not in (:codes)
                            and status = 'ACTIVE'
                         """)
@@ -322,7 +344,7 @@ public class JpaCiResourceReportStore implements CiResourceReportStore {
         try {
             return objectMapper.writeValueAsString(value);
         } catch (JsonProcessingException error) {
-            throw new IllegalArgumentException("resource report facts are not serializable", error);
+            throw new IllegalArgumentException("resource registration facts are not serializable", error);
         }
     }
 

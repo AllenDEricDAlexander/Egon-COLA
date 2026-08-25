@@ -12,7 +12,9 @@ test('projects local definitions and computes the server-compatible checksum', (
   assert.equal(report.resources.length, 1)
   assert.equal(report.fields.length, 1)
   assert.equal(report.checksum, canonicalChecksum(report))
-  assert.equal(report.resources[0].permissionCode, 'system:role:read')
+  assert.equal(report.resources[0].suggestedPermissionCode, 'system:role:read')
+  assert.deepEqual(report.resources[0].apiResourceCodes, [])
+  assert.equal(Object.hasOwn(report.resources[0], 'permissionCode'), false)
 })
 
 test('reports through the CI endpoint without exposing a browser client', async () => {
@@ -31,7 +33,7 @@ test('reports through the CI endpoint without exposing a browser client', async 
     },
   })
   assert.equal(result.added, 1)
-  assert.match(call.url, /\/businesses\/platform\/applications\/rbac3-admin\/frontend-resources$/)
+  assert.match(call.url, /\/registration\/businesses\/platform\/applications\/rbac3-admin\/frontend-resources$/)
   assert.equal(call.init.method, 'PUT')
   assert.equal(call.init.headers.Authorization, 'Bearer short-lived')
 })

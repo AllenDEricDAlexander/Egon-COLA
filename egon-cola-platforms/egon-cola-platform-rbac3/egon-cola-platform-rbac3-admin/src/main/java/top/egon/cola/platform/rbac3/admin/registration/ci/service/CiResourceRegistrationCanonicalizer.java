@@ -1,25 +1,27 @@
 package top.egon.cola.platform.rbac3.admin.registration.ci.service;
 
-import top.egon.cola.platform.rbac3.admin.registration.ci.domain.dto.CiResourceReportRequestDTO;
+import top.egon.cola.platform.rbac3.admin.registration.ci.domain.dto.CiResourceRegistrationRequestDTO;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 
-/** Produces the stable checksum shared by CI and the RBAC report endpoint. */
-public final class CiResourceReportCanonicalizer {
+/** Produces the stable checksum shared by CI and the RBAC registration endpoint. */
+public final class CiResourceRegistrationCanonicalizer {
 
-    private CiResourceReportCanonicalizer() {
+    private CiResourceRegistrationCanonicalizer() {
     }
 
-    public static String checksum(CiResourceReportRequestDTO request) {
+    public static String checksum(CiResourceRegistrationRequestDTO request) {
         String canonical = request.buildId() + "|resources="
                 + request.resources().stream()
                 .sorted(Comparator.comparing(value -> value.type().name() + ':' + value.code()))
                 .map(value -> String.join("|",
                         value.type().name(), value.code(), value.name(),
-                        nullToEmpty(value.parentCode()), nullToEmpty(value.permissionCode()),
+                        nullToEmpty(value.parentCode()),
+                        nullToEmpty(value.suggestedPermissionCode()),
+                        String.join(",", value.apiResourceCodes()),
                         nullToEmpty(value.path()), nullToEmpty(value.componentKey()),
                         nullToEmpty(value.routeCode()), String.valueOf(value.order()),
                         String.valueOf(value.hidden())))

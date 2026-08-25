@@ -80,6 +80,14 @@ public class ResourceApiBindingPO extends GlobalAuditedPO {
         markUpdated(actorId, Objects.requireNonNull(now, "now"));
     }
 
+    /** Refreshes the CI source facts for an existing binding without changing its pair. */
+    public void refreshSource(String buildId, String checksum, String actorId, Instant now) {
+        sourceBuildId = required(buildId, "sourceBuildId");
+        sourceChecksum = required(checksum, "sourceChecksum");
+        status = ResourceApiBindingStatusEnum.ACTIVE;
+        markUpdated(actorId, Objects.requireNonNull(now, "now"));
+    }
+
     public Long getId() {
         return id;
     }

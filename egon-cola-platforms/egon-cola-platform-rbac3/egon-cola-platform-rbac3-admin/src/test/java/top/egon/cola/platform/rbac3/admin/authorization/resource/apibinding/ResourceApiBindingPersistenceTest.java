@@ -18,7 +18,7 @@ class ResourceApiBindingPersistenceTest {
     private static final Instant NOW = Instant.parse("2026-08-25T00:00:00Z");
 
     @Test
-    void mapsGlobalApplicationSourceTargetAndReportColumns() throws Exception {
+    void mapsGlobalApplicationSourceTargetAndRegistrationColumns() throws Exception {
         Table table = ResourceApiBindingPO.class.getAnnotation(Table.class);
         assertEquals("rbac3_resource_api_binding", table.name());
         assertColumn("applicationId", "application_id");
@@ -41,7 +41,7 @@ class ResourceApiBindingPersistenceTest {
     }
 
     @Test
-    void rejectsSelfBindingAndBlankReportIdentity() {
+    void rejectsSelfBindingAndBlankRegistrationIdentity() {
         assertThrows(IllegalArgumentException.class, () -> new ResourceApiBindingPO(
                 110L, 71L, 501L, 501L,
                 "build-1", "sha256:one", "ci", NOW));

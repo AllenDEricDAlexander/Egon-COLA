@@ -21,7 +21,8 @@ export const projectReport = (definitions, buildId, expectedApplicationVersion) 
       code: definition.code,
       name: definition.name,
       parentCode: definition.parentCode ?? null,
-      permissionCode: definition.permission ?? null,
+      suggestedPermissionCode: definition.suggestedPermissionCode ?? definition.permission ?? null,
+      apiResourceCodes: [...new Set(definition.apiResourceCodes ?? [])].sort(),
       path: definition.path ?? null,
       componentKey: definition.componentKey ?? null,
       routeCode: definition.routeCode ?? null,
@@ -49,7 +50,8 @@ export const canonicalChecksum = (request) => {
       value.code,
       value.name,
       value.parentCode ?? '',
-      value.permissionCode ?? '',
+      value.suggestedPermissionCode ?? '',
+      (value.apiResourceCodes ?? []).slice().sort().join(','),
       value.path ?? '',
       value.componentKey ?? '',
       value.routeCode ?? '',
@@ -81,7 +83,7 @@ export const reportResources = async ({
     throw new Error('expectedApplicationVersion must be a non-negative integer')
   }
   const request = projectReport(await loadDefinitions(definitionsPath), buildId.trim(), expectedApplicationVersion)
-  const endpoint = `${baseUrl.replace(/\/$/, '')}/api/rbac3/v1/iam/resource-catalog/businesses/${encodeURIComponent(businessCode.trim())}/applications/${encodeURIComponent(applicationCode.trim())}/frontend-resources`
+  const endpoint = `${baseUrl.replace(/\/$/, '')}/api/rbac3/v1/registration/businesses/${encodeURIComponent(businessCode.trim())}/applications/${encodeURIComponent(applicationCode.trim())}/frontend-resources`
   const response = await fetcher(endpoint, {
     method: 'PUT',
     headers: {
@@ -92,8 +94,8 @@ export const reportResources = async ({
     body: JSON.stringify(request),
   })
   const payload = await response.json().catch(() => null)
-  if (!response.ok) throw new Error(`resource report failed with HTTP ${response.status}`)
-  if (payload?.success === false) throw new Error(payload.message ?? 'resource report rejected')
+  if (!response.ok) throw new Error(`resource registration failed with HTTP ${response.status}`)
+  if (payload?.success === false) throw new Error(payload.message ?? 'resource registration rejected')
   return payload?.data ?? payload
 }
 
@@ -111,7 +113,7 @@ const run = async () => {
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
   run().catch((error) => {
-    process.stderr.write(`${error instanceof Error ? error.message : 'resource report failed'}\n`)
+    process.stderr.write(`${error instanceof Error ? error.message : 'resource registration failed'}\n`)
     process.exitCode = 1
   })
 }

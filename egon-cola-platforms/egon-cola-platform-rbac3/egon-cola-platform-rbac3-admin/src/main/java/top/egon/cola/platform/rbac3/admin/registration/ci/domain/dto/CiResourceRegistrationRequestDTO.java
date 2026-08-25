@@ -6,14 +6,14 @@ import java.util.List;
 import java.util.Objects;
 
 /** Complete local frontend registry projection sent by a release pipeline. */
-public record CiResourceReportRequestDTO(
+public record CiResourceRegistrationRequestDTO(
         String buildId,
         String checksum,
         long expectedApplicationVersion,
         List<Resource> resources,
         List<Field> fields) {
 
-    public CiResourceReportRequestDTO {
+    public CiResourceRegistrationRequestDTO {
         buildId = required(buildId, "buildId");
         checksum = required(checksum, "checksum");
         if (expectedApplicationVersion < 0L) {
@@ -34,7 +34,8 @@ public record CiResourceReportRequestDTO(
             String code,
             String name,
             String parentCode,
-            String permissionCode,
+            String suggestedPermissionCode,
+            List<String> apiResourceCodes,
             String path,
             String componentKey,
             String routeCode,
@@ -45,7 +46,16 @@ public record CiResourceReportRequestDTO(
             type = Objects.requireNonNull(type, "type");
             code = required(code, "code");
             name = required(name, "name");
-            permissionCode = optional(permissionCode, "permissionCode");
+            suggestedPermissionCode = optional(suggestedPermissionCode, "suggestedPermissionCode");
+            apiResourceCodes = Objects.requireNonNull(apiResourceCodes, "apiResourceCodes")
+                    .stream().map(String::trim).sorted().toList();
+            if (apiResourceCodes.stream().anyMatch(value -> value == null || value.isBlank()
+                    || !value.equals(value.trim()))) {
+                throw new IllegalArgumentException("apiResourceCodes must contain non-blank values");
+            }
+            if (apiResourceCodes.stream().distinct().count() != apiResourceCodes.size()) {
+                throw new IllegalArgumentException("apiResourceCodes must be unique");
+            }
             path = optional(path, "path");
             componentKey = optional(componentKey, "componentKey");
             routeCode = optional(routeCode, "routeCode");
@@ -53,14 +63,16 @@ public record CiResourceReportRequestDTO(
                 throw new IllegalArgumentException("order must not be negative");
             }
             if (type == FrontendResourceType.ROUTE
-                    && (path == null || componentKey == null || permissionCode == null)) {
+                    && (path == null || componentKey == null)) {
                 throw new IllegalArgumentException(
-                        "ROUTE requires path, componentKey and permissionCode");
+                        "ROUTE requires path and componentKey");
             }
-            if (type == FrontendResourceType.ACTION
-                    && (routeCode == null || permissionCode == null)) {
+            if (type == FrontendResourceType.ACTION && routeCode == null) {
                 throw new IllegalArgumentException(
-                        "ACTION requires routeCode and permissionCode");
+                        "ACTION requires routeCode");
+            }
+            if (type == FrontendResourceType.MENU && !apiResourceCodes.isEmpty()) {
+                throw new IllegalArgumentException("MENU cannot declare API bindings");
             }
         }
     }
