@@ -22,52 +22,51 @@ import {version} from '../../package.json'
 import {useAuth} from '../auth/AuthContext'
 import {type Capability, useCapability} from '../app/capabilities'
 
-// 平台自己的导航数据，由 capability 过滤后交给统一 Header。
-const navigation: Array<{
+// 平台自己的导航树，由 capability 递归剪枝后交给 shared 左侧树。
+interface GatewayNavItem {
   key: string
   icon: React.ReactNode
   label: string
   capability: Capability
-}> = [
-  { key: '/dashboard', icon: <DashboardOutlined />, label: '总览', capability: 'gateway:read' },
+  path?: string
+  activePathPrefixes?: readonly string[]
+  children?: readonly GatewayNavItem[]
+}
+
+const navigation: readonly GatewayNavItem[] = [
+  { key: '/dashboard', path: '/dashboard', icon: <DashboardOutlined />, label: '总览', capability: 'gateway:read' },
   {
-    key: '/gateway-groups',
+    key: 'gateway-governance',
     icon: <DeploymentUnitOutlined />,
-    label: 'Gateway Group',
+    label: '网关治理',
     capability: 'gateway:read',
+    children: [
+      {key: '/gateway-groups', path: '/gateway-groups', icon: <DeploymentUnitOutlined />, label: 'Gateway Group', capability: 'gateway:read'},
+      {key: '/applications', path: '/applications', icon: <KeyOutlined />, label: 'Application / Credential', capability: 'gateway:read'},
+      {key: '/interface-catalog', path: '/interface-catalog', activePathPrefixes: ['/operations'], icon: <AppstoreOutlined />, label: '接口目录', capability: 'gateway:read'},
+      {key: '/providers', path: '/providers', icon: <ApiOutlined />, label: 'Provider', capability: 'gateway:read'},
+    ],
   },
   {
-    key: '/applications',
-    icon: <KeyOutlined />,
-    label: 'Application / Credential',
-    capability: 'gateway:read',
-  },
-  {
-    key: '/interface-catalog',
-    icon: <AppstoreOutlined />,
-    label: '接口目录',
-    capability: 'gateway:read',
-  },
-  { key: '/providers', icon: <ApiOutlined />, label: 'Provider', capability: 'gateway:read' },
-  {
-    key: '/mcp/servers',
+    key: 'mcp',
     icon: <RobotOutlined />,
-    label: 'MCP Control Plane',
+    label: 'MCP',
     capability: 'gateway:mcp:read',
+    children: [
+      {key: '/mcp/servers', path: '/mcp/servers', icon: <RobotOutlined />, label: 'MCP Control Plane', capability: 'gateway:mcp:read'},
+      {key: '/mcp/remote-providers', path: '/mcp/remote-providers', icon: <ShareAltOutlined />, label: 'Remote MCP', capability: 'gateway:mcp:read'},
+    ],
   },
   {
-    key: '/mcp/remote-providers',
-    icon: <ShareAltOutlined />,
-    label: 'Remote MCP',
-    capability: 'gateway:mcp:read',
-  },
-  {
-    key: '/observability/traces',
+    key: 'observability',
     icon: <EyeOutlined />,
-    label: '调用观测',
+    label: '观测与审计',
     capability: 'gateway:read',
+    children: [
+      {key: '/observability/traces', path: '/observability/traces', icon: <EyeOutlined />, label: '调用观测', capability: 'gateway:read'},
+      {key: '/audit', path: '/audit', icon: <AuditOutlined />, label: '审计日志', capability: 'gateway:read'},
+    ],
   },
-  { key: '/audit', icon: <AuditOutlined />, label: '审计日志', capability: 'gateway:read' },
 ]
 
 export const AdminLayout = () => {
@@ -77,14 +76,7 @@ export const AdminLayout = () => {
   const canRead = useCapability('gateway:read')
   const canReadMcp = useCapability('gateway:mcp:read')
 
-  const items: EnterpriseNavigationItem[] = navigation
-    .filter((item) => item.capability === 'gateway:mcp:read' ? canReadMcp : canRead)
-    .map((item) => ({
-      key: item.key,
-      path: item.key,
-      icon: item.icon,
-      label: item.label,
-    }))
+  const items: EnterpriseNavigationItem[] = filterNavigation(navigation, canRead, canReadMcp)
 
   const config: EnterpriseLayoutConfig = {
     platformName: 'Gateway Admin',
@@ -120,3 +112,22 @@ export const AdminLayout = () => {
     </EnterpriseLayout>
   )
 }
+
+const filterNavigation = (
+  entries: readonly GatewayNavItem[],
+  canRead: boolean,
+  canReadMcp: boolean,
+): EnterpriseNavigationItem[] => entries.flatMap((item): EnterpriseNavigationItem[] => {
+  const permitted = item.capability === 'gateway:mcp:read' ? canReadMcp : canRead
+  if (!permitted) return []
+  const children = item.children ? filterNavigation(item.children, canRead, canReadMcp) : []
+  if (item.children && children.length === 0) return []
+  return [{
+    key: item.key,
+    label: item.label,
+    path: item.path,
+    icon: item.icon,
+    activePathPrefixes: item.activePathPrefixes,
+    children: children.length > 0 ? children : undefined,
+  }]
+})
