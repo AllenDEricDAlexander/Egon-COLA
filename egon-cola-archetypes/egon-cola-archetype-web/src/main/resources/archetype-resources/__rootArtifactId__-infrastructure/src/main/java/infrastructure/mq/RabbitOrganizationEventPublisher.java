@@ -48,10 +48,10 @@ public class RabbitOrganizationEventPublisher implements OrganizationEventPublis
             "GRADE_CHANGED", "organization.event.teaching.grade.changed.v1", Map.of("changeType", value.changeType()));
         if (event instanceof SchoolClassChangedEvent value) return new MappedEvent(
             "SCHOOL_CLASS_CHANGED", "organization.event.teaching.school-class.changed.v1",
-            Map.of("gradeId", value.gradeId(), "changeType", value.changeType()));
+            Map.of("gradeId", Long.toString(value.gradeId()), "changeType", value.changeType()));
         if (event instanceof SchoolClassMembershipChangedEvent value) return new MappedEvent(
             "SCHOOL_CLASS_MEMBERSHIP_CHANGED", "organization.event.teaching.membership.changed.v1",
-            Map.of("userId", value.userId(), "changeType", value.changeType()));
+            Map.of("userId", Long.toString(value.userId()), "changeType", value.changeType()));
         throw new IllegalArgumentException("unsupported organization event " + event.getClass().getName());
     }
 

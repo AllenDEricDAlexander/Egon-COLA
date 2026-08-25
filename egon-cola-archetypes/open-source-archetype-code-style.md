@@ -14,7 +14,7 @@ example.
 |---|---|---|
 | `common` | shared value objects, ID-facing helpers, error/result contracts | Adapter, Infrastructure, Spring web types |
 | `facade` | local Proto source and generated contract types | Domain, Application, Infrastructure, Adapter |
-| `domain` | aggregates, domain services, repository ports, business invariants | Spring Boot, MyBatis-Plus, Dubbo, gRPC, HTTP |
+| `domain` | aggregates, generic `EgonColaIService` contracts, non-persistence ports, business invariants | JPA, direct SQL, Dubbo, gRPC, HTTP |
 | `application` | use cases, transaction boundaries, input validation, orchestration | Mapper XML, generated transport stubs, controllers |
 | `infrastructure` | MyBatis-Plus adapters, ShardingSphere topology, MQ, Redis, RPC/gRPC clients | HTTP controller concerns and domain rule duplication |
 | `adapter` | HTTP/GraphQL endpoints, MQ consumers, Dubbo providers, DTO/VO mapping | direct SQL and persistence implementation |
@@ -33,6 +33,11 @@ infrastructure -> domain and facade
 starter -> adapter and infrastructure
 facade -> (nothing in the business project)
 ```
+
+The generated Domain module may depend on the Common MyBatis-Plus starter because
+the generic domain service contract is part of the shared persistence contract.
+Concrete PO, DAO, XML, and service implementations remain in Infrastructure;
+Domain never imports an Infrastructure type.
 
 Do not introduce a new layer, reverse a dependency, or make `facade` a service
 locator to solve a local convenience problem. If a boundary genuinely needs to
@@ -62,21 +67,27 @@ different representation.
 
 ## Persistence and mapper safety
 
-Use the official MyBatis-Plus Spring Boot 3 starter. Repository ports remain in
-Domain; Infrastructure implements them with Mapper interfaces and XML under the
-generated `resources/mapper` directory. Keep SQL explicit and readable:
+Use `egon-cola-component-common-mybatis-plus-spring-boot-starter`. Domain service
+interfaces extend `EgonColaIService`; Infrastructure service implementations extend
+`EgonColaServiceImpl`, inject `repo.dao` DAOs, and use `repo/po` entities that extend
+`EgonModel`. DAOs extend `EgonColaMapper`, and explicit SQL lives under the generated
+`resources/mybatis/mapper` directory. Keep SQL explicit and readable:
 
 - bind values with MyBatis parameters; never concatenate user input or table
   names;
 - keep mapper IDs, result mappings, and PO/record field types aligned;
 - make tenant, relation, and route-key predicates visible in the SQL;
-- use ShardingSphere route keys in the method contract so the router can choose a
+- use `tenant_id` route keys in the method contract so the router can choose a
   physical node;
 - test mapper behavior against the disposable schema helper and add a focused
   manual-SQL convention test when a new table is introduced.
 
-Do not add Spring Data JPA, `JpaRepository`, `jakarta.persistence`, Hibernate
-repositories, dynamic table-name substitution, or a second persistence API.
+POs use only `@Data`, `@NoArgsConstructor`, `@AllArgsConstructor`, `@Builder`,
+`@Accessors(chain = true)`, and the required MyBatis-Plus annotations; they must
+not use `@RequiredArgsConstructor` or `@SuperBuilder`. Service implementations
+use Lombok constructor injection. Do not add Spring Data JPA, `JpaRepository`,
+`jakarta.persistence`, Hibernate repositories, dynamic table-name substitution,
+or a second persistence API.
 
 ## Manual SQL and schema review
 

@@ -4,5 +4,5 @@ import ${package}.domain.events.OrganizationDomainEvent;
 import java.time.Instant;
 
 public record SchoolClassChangedEvent(
-        String eventId, String aggregateId, Instant occurredAt, String gradeId, String changeType)
+        Long eventId, Long aggregateId, Instant occurredAt, Long gradeId, String changeType)
         implements OrganizationDomainEvent {}

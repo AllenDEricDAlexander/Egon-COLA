@@ -4,5 +4,5 @@ import ${package}.domain.events.OrganizationDomainEvent;
 import java.time.Instant;
 
 public record PermissionGrantedEvent(
-        String eventId, String aggregateId, Instant occurredAt, String roleCode, String permissionCode)
+        Long eventId, Long aggregateId, Instant occurredAt, String roleCode, String permissionCode)
         implements OrganizationDomainEvent {}

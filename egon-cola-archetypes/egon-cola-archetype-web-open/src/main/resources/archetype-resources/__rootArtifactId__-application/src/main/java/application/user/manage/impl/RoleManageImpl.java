@@ -49,8 +49,8 @@ public class RoleManageImpl implements RoleManage {
             userDomainService.save(aggregate.user());
             OrganizationTransactionHooks.afterCommit(() -> {
                 userCache.evict(user.id());
-                eventPublisher.publish(new RoleAssignedEvent(Long.toString(idGenerator.nextLongId()),
-                    user.id().value().toString(), Instant.now(), role.code().value()));
+                eventPublisher.publish(new RoleAssignedEvent(idGenerator.nextLongId(),
+                    user.id().value(), Instant.now(), role.code().value()));
             });
         });
     }

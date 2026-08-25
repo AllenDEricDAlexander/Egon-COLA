@@ -51,7 +51,7 @@ public class UserManageImpl implements UserManage {
             OrganizationTransactionHooks.afterCommit(() -> {
                 userCache.evict(user.id());
                 eventPublisher.publish(new UserChangedEvent(
-                    Long.toString(idGenerator.nextLongId()), user.id().value().toString(), Instant.now(), "CREATED"));
+                    idGenerator.nextLongId(), user.id().value(), Instant.now(), "CREATED"));
             });
             return assembler.toResult(user);
         });
