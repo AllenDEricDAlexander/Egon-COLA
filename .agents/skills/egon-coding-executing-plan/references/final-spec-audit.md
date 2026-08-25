@@ -67,10 +67,42 @@ Do not downgrade a concrete implementation defect to `Runtime unverified`. That 
 - No unrelated work was committed.
 - No immutable migration was edited.
 
-## 7. Determine the verdict
+## 7. Re-run the blocking Manual Check
 
-- `PASS — Implementation conforms to the effective Specs`: every requirement is `Satisfied`; no required runtime evidence is missing.
-- `PARTIAL — Spec requirements are unmet or unverified`: one or more rows are `Partial`, `Not satisfied`, or `Runtime unverified`.
+Read `references/java-spring-egon-coding-standards.md` and inspect the final tree plus all delivery commits. Do not copy the Plan's predicted statuses or merely aggregate Step assertions. Execute every row independently with current evidence.
+
+| Check ID | Applicability | Status | Evidence | Finding | Required action/exception |
+| --- | --- | --- | --- | --- | --- |
+| `MC-ARCH-001` | `Applicable` | `PASS / FAIL / BLOCKED` | `<final tree/archetype/dependency evidence>` | `<architecture result>` | `<None or action/owner>` |
+| `MC-REUSE-001` | `Applicable` | `PASS / FAIL / BLOCKED` | `<reuse ledger plus final paths>` | `<reuse result>` | `<None or action/owner>` |
+| `MC-DEP-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<final manifests/gap approval>` | `<dependency result>` | `<None or action/owner>` |
+| `MC-NAME-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<changed Java types/search>` | `<naming result>` | `<None or action/owner>` |
+| `MC-VALID-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<boundaries/groups/tests>` | `<validation result>` | `<None or action/owner>` |
+| `MC-MODEL-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<record/class/Lombok inspection>` | `<model result>` | `<None or action/owner>` |
+| `MC-CONVERT-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<converter generation/search/tests>` | `<conversion result>` | `<None or action/owner>` |
+| `MC-LOG-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<business-class/log inspection>` | `<logging result>` | `<None or action/owner>` |
+| `MC-BEAN-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<Bean names/injection/Qualifier evidence>` | `<Bean result>` | `<None or action/owner>` |
+| `MC-UTIL-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<imports/dependencies/helper inventory>` | `<utility result>` | `<None or action/owner>` |
+| `MC-JSON-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<JSON imports/contracts/tests>` | `<JSON result>` | `<None or action/owner>` |
+| `MC-TIME-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<time types/boundaries/tests>` | `<time result>` | `<None or action/owner>` |
+| `MC-CONFIG-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<all profile key comparisons>` | `<configuration result>` | `<None or action/owner>` |
+| `MC-PATTERN-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<variation/branch/participant inspection>` | `<pattern result>` | `<None or action/owner>` |
+| `MC-SCOPE-001` | `Applicable` | `PASS / FAIL / BLOCKED` | `<commit scopes/final diff/non-goals>` | `<scope result>` | `<None or action/owner>` |
+| `MC-TEST-001` | `Applicable` | `PASS / FAIL / BLOCKED` | `<commands/output/static checks>` | `<proof result>` | `<None or action/owner>` |
+| `MC-BLOCKER-001` | `Applicable` | `PASS / FAIL / BLOCKED` | `<all rows/requirements/open risks>` | `<closure result>` | `<None or exact unresolved action/owner>` |
+
+Gate rules:
+
+- every stable ID appears exactly once;
+- every applicable row is `PASS` with concrete final evidence;
+- `N/A` requires positive scope evidence and reason;
+- `MC-BLOCKER-001` is `PASS` only when every other row is `PASS` or valid `N/A`;
+- any failed/blocked/unknown/missing/unsupported row prohibits final PASS and must be reported, not silently fixed during the audit.
+
+## 8. Determine the verdict
+
+- `PASS — Implementation conforms to the effective Specs`: every requirement is `Satisfied`, no required runtime evidence is missing, and every applicable Manual Check is `PASS` with all other rows evidence-backed `N/A`.
+- `PARTIAL — Spec requirements are unmet or unverified`: one or more requirement rows are `Partial`, `Not satisfied`, or `Runtime unverified`, or one or more Manual Checks are failed, blocked, unknown, missing, or unsupported.
 - `BLOCKED — Final verification could not be completed`: the effective baseline, repository evidence, or required safe validation cannot be determined.
 
 List every non-passing row with its evidence, impact, and recommended corrective Plan/Step. Do not silently implement a newly discovered gap during this audit.

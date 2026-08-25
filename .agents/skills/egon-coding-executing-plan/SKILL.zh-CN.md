@@ -8,6 +8,16 @@
 
 Plan 决定实现顺序，最终生效的 Spec 决定实现是否正确。Plan 全部执行完，不等于实现一定满足 Spec。
 
+## 资源完整性预检
+
+把本 `SKILL.md` 所在目录解析为 `<skill-root>`。读取内置 Reference 或修改代码前运行：
+
+```bash
+python3 <skill-root>/scripts/validate_skill_resources.py
+```
+
+必须用解析后的绝对目录替换 `<skill-root>`。内置资源使用相对 Skill 根的 `references/` 或 `scripts/` 路径。预检报告缺失、越界、歧义或本地链接失效时，停止执行并报告准确诊断，修复/重装 Skill；不能用虚构或不完整 Checklist 继续。
+
 ## 进入条件与执行授权
 
 修改代码前必须：
@@ -19,8 +29,9 @@ Plan 决定实现顺序，最终生效的 Spec 决定实现是否正确。Plan �
 5. 确认执行授权满足以下任一条件：
    - 通常情况下，Plan 状态为 `Ready`，主 Spec 状态为 `Accepted` 或 `Implemented`；或
    - 用户在当前对话中明确授权执行这些准确版本的 Plan 与 Spec。
-6. 如果 Plan skill 提供结构校验器，先运行严格校验，例如 `egon-coding-writing-plan/scripts/validate_plan.py <plan-path> --strict`。
+6. 使用已安装 `egon-coding-writing-plan` skill 提供的结构校验器，对准确 Plan 启用 Strict Mode 校验。
 7. 检查 `git status`、当前分支与 HEAD、暂存改动和未跟踪文件，保留所有无关工作。
+8. Java 工作完整读取 `references/java-spring-egon-coding-standards.zh-CN.md`。确认实际项目 Tree 是既有传统分层或准确已选 Egon-COLA Archetype；增加代码/依赖前重新验证 Plan 的 Spring/Starter/Egon/模块能力复用账本。
 
 出现以下任一情况时，停止实现并找用户确认：Plan 目标不明确、缺少授权、有效 Spec 互相冲突、重大决策未关闭、Plan 结构无效，或者仓库漂移改变了架构、行为、契约、数据、安全、迁移、兼容性或 Step 的文件归属。
 
@@ -62,6 +73,9 @@ Plan 决定实现顺序，最终生效的 Spec 决定实现是否正确。Plan �
 14. 不得自动 amend、squash、reset 或改写已经形成的提交历史。如果后续 Step 暴露了早期提交的缺陷，应暂停推进，以最小的独立纠正提交归属到原 Step，重新执行受影响验证并报告偏差。
 15. 禁止修改任何既有且不可变的 Flyway 迁移，只能创建获批 Plan/Spec 指定的新迁移文件。
 16. 不得静默跳过、重排、合并、拆分或扩大 Step。任何实质性的执行顺序变化都必须获得用户批准。
+17. 每个 Coding Step 都有阻断型 Manual Check。锁定 Step 时，从 `references/java-spring-egon-coding-standards.zh-CN.md` 枚举全部适用稳定 `MC-*`；提交前逐项用具体 Diff/路径/符号/命令证据人工校验。`MC-SCOPE-001` 与 `MC-TEST-001` 始终适用。
+18. 只要任一适用 Manual Check 为 `FAIL`、`BLOCKED`、`UNKNOWN`、缺失、无证据或例外未关闭，Step 就不能到 `Verified`，也不能按完成提交。只有关注点真实不在 Step 范围时才允许有证据的 `N/A`。
+19. 触达 Java 代码必须执行语义后缀、Jakarta/Spring Validation 与 Group、获批规范化、Record/Lombok 构造、MapStruct/MapStructPlus 与适用 `BaseConverter`、`@Slf4j`、显式 Bean 名、带 Qualifier 的 Lombok 构造注入、获准工具、Jackson、`java.time`、多环境配置一致性和有依据模式；不能借机大范围清理。
 
 ## 单个 Step 的执行流程
 
@@ -73,12 +87,14 @@ Plan 决定实现顺序，最终生效的 Spec 决定实现是否正确。Plan �
 - 用 `git rev-parse HEAD` 记录本 Step 的基线。
 - 确认所有依赖都已经由更早的提交哈希提供。
 - 确认 Step 路径不会覆盖无关工作。
+- 把 Plan 的适用 `MC-*` 写入 Step Manual Check 表；当前证据新暴露关注点时补充 ID，并在编辑前记录架构/复用基线。
 
 ### 2. 重新验证当前仓库
 
 - 编辑前重新打开真实文件和符号，不能只依赖 Plan 中的伪代码。
 - 确认 Plan 的实现方向仍符合当前 API、消费者、语言/框架风格和迁移序列。
 - 语义漂移必须作为阻塞处理；只有 `Plan Clarification` 已允许或仓库惯例唯一明确的机械性局部细节，才能自行补齐。
+- Java Step 重新检查准确架构、Spring/Egon/模块候选、依赖、`lombok.config`、Converter/Validator、全部环境 Profile 和相关命名/模型/Bean 惯例。
 
 ### 3. 按文件顺序执行
 
@@ -93,6 +109,7 @@ Plan 决定实现顺序，最终生效的 Spec 决定实现是否正确。Plan �
 - 运行当前 Step 和仓库要求的编译、lint/格式、Mapper/XML/Schema、模块或跨模块检查。
 - 对 Step 路径运行 `git diff --check`。
 - 重读当前 Step 的需求和相关 Spec 章节，逐项确认本 Step 承担的行为、错误路径、字段、状态、权限、迁移、UI 状态和测试义务已经落实。
+- 使用 `references/step-gate-checklist.md` 逐项执行全部适用 Manual Check，分别记录证据与结论；关闭失败，否则把 Step 标为阻断。
 
 任何失败门禁都会使 Step 保持 `In Progress` 或变为 `Blocked`，不得作为已完成进行提交。
 
@@ -133,6 +150,7 @@ Plan 决定实现顺序，最终生效的 Spec 决定实现是否正确。Plan �
 | Commit | 结果提交的完整或短哈希 |
 | Paths | 准确的已提交文件列表 |
 | Validation | 实际执行的命令和观察结果 |
+| Manual Check | 全部稳定 ID 为 `PASS` 或有证据的 `N/A`，没有未关闭行 |
 | Deviations | `None`、已批准的澄清或纠正提交说明 |
 
 必须使用路径受限的暂存与提交，不能因为无关工作已经暂存就把它带入提交。除非用户另行授权，不得 push、创建 PR、merge 或 release。
@@ -152,7 +170,8 @@ Plan 决定实现顺序，最终生效的 Spec 决定实现是否正确。Plan �
    - `Runtime unverified`：源码/模块证据存在，但 Spec 还要求用户控制的真实运行环境验证，而该验证未执行。
 6. 审核非目标和范围边界，确认没有意外增加行为、依赖、迁移或无关重构。
 7. 确认每个 Plan Step 都有已核验提交，且没有静默遗漏计划文件或验证门禁。
-8. 报告全部 `Partial`、`Not satisfied` 和 `Runtime unverified` 项及其证据、影响和建议下一步。
+8. 针对最终 Tree 和 Delivery Commit 重新执行全部 17 项 Manual Check。适用行必须 `PASS`，每个 `N/A` 要有证据与原因，`MC-BLOCKER-001` 必须与全部发现一致。
+9. 报告全部 `Partial`、`Not satisfied`、`Runtime unverified`、失败/阻断 Manual Check 和静默例外尝试及其证据、影响和建议下一步。
 
 最终审核发现缺口时，不得静默追加未计划修复；应先报告并等待用户批准纠正 Plan/Step。
 
@@ -164,6 +183,7 @@ Plan 决定实现顺序，最终生效的 Spec 决定实现是否正确。Plan �
 - Step 表格：状态、提交哈希、提交路径和验证证据；
 - 最终验证命令及真实结果；
 - 覆盖每项需求的 Spec 一致性矩阵；
+- 包含全部稳定 `MC-*` 的最终 Manual Check 矩阵，逐项写 Applicability、Status、Evidence、Finding 与 Required action/exception；
 - 明确列出的未满足、部分满足和运行时未验证要求；
 - 已批准偏差和纠正提交；
 - 剩余工作区状态，以及无关工作得到保留的确认；
@@ -173,7 +193,7 @@ Plan 决定实现顺序，最终生效的 Spec 决定实现是否正确。Plan �
   - `PARTIAL — Spec requirements are unmet or unverified`
   - `BLOCKED — Final verification could not be completed`
 
-只要任一有效要求为 `Partial`、`Not satisfied`，或缺少强制运行时证据，就绝不能声称完全完成。
+只要任一有效要求为 `Partial`、`Not satisfied`、缺少强制运行时证据，或任一 Manual Check 缺失/未通过/无证据，就绝不能声称完全完成。最终 PASS 要求全部 Spec 要求满足且全部适用 Manual Check 通过。
 
 ## 常见错误
 
@@ -187,8 +207,12 @@ Plan 决定实现顺序，最终生效的 Spec 决定实现是否正确。Plan �
 | 最终审核中直接修复未计划的 Spec 缺口 | 报告缺口并申请纠正 Plan/Step |
 | 用单测/模块测试宣称真实运行验收通过 | 将对应要求标记为 `Runtime unverified` |
 | 后续工作暴露缺陷后改写早期提交 | 保留历史，创建归属明确的纠正提交并报告 |
+| Manual Check 失败、缺失或未知仍提交 Step | 保持 `In Progress`/`Blocked`，逐项补证据并关闭后再提交 |
+| 没有当前 Spring/Egon/模块复用证明就新增依赖/Helper | 停止，重建复用账本；复用现有能力，或返回 Spec/Plan 批准缺口 |
+| 执行中创建混合分包 Tree | 停止；保持已有传统或准确 Archetype 形态，并申请结构性 Plan/Spec 修订 |
+| 最终审核用一句话概括 Manual Check | 针对最终 Commit/Tree 逐项重新执行并记录全部稳定 ID |
 | 自动启动项目 | 除非用户明确要求，否则把运行测试留给用户 |
 
 ## Skill 维护
 
-修改本 skill 时，必须使用 `references/acceptance-scenarios.md` 复核，并确认英文运行入口、中文审核镜像、检查清单和元数据仍然表达同一套执行契约。
+修改本 skill 时，必须运行 `scripts/test_validate_skill_resources.py` 与 `scripts/validate_skill_resources.py`，使用 `references/acceptance-scenarios.md` 复核，并确认英文运行入口、中文审核镜像、规范、检查清单和元数据仍然表达同一套执行契约。

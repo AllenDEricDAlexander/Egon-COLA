@@ -1,6 +1,6 @@
 ---
 name: egon-coding-executing-plan
-description: Use when an approved coding Plan must be implemented in a repository one Step at a time, with validation and a separate commit after every completed Step, followed by a final conformance audit against the effective Specs.
+description: Use when an approved coding Plan must be implemented one Step at a time with Java/Spring/Egon-COLA standards, blocking Manual Checks, validation and a separate commit after every completed Step, followed by a final conformance audit against the effective Specs.
 ---
 
 # EGON Coding Plan Execution
@@ -10,6 +10,16 @@ description: Use when an approved coding Plan must be implemented in a repositor
 Execute one approved coding Plan sequentially. Complete, verify, and commit exactly one Plan Step before starting the next. After all Steps, audit the delivered repository against the effective Specs and report every unmet, partial, or runtime-unverified requirement.
 
 The Plan controls implementation order. The effective Specs control correctness. A completed Plan is not sufficient when the implementation still violates a Spec.
+
+## Resource-integrity preflight
+
+Resolve the directory containing this `SKILL.md` as `<skill-root>`. Before reading a bundled reference or editing code, run:
+
+```bash
+python3 <skill-root>/scripts/validate_skill_resources.py
+```
+
+Replace `<skill-root>` with the resolved absolute directory. Bundled resources must use skill-root-relative `references/` or `scripts/` paths. If the preflight reports a missing, escaping, ambiguous, or broken resource, stop execution, report the exact diagnostic, and repair/reinstall the skill. Never continue with an invented or partial checklist.
 
 ## Entry conditions and execution authorization
 
@@ -22,8 +32,9 @@ Before modifying code:
 5. Confirm execution authorization:
    - normally the Plan is `Ready` and the primary Spec is `Accepted` or `Implemented`; or
    - the user explicitly authorizes execution of the exact Plan and Spec revisions in the current conversation.
-6. Run the Plan structural validator when the Plan skill provides one, for example `egon-coding-writing-plan/scripts/validate_plan.py <plan-path> --strict`.
+6. Run the structural validator supplied by the installed `egon-coding-writing-plan` skill against the exact Plan with strict mode enabled.
 7. Inspect `git status`, the current branch/HEAD, staged changes, and untracked files. Preserve all unrelated work.
+8. For Java work, read `references/java-spring-egon-coding-standards.md` completely. Confirm the actual project tree is either the established traditional layered profile or the exact selected Egon-COLA Archetype profile. Revalidate the Plan's Spring/Starter/Egon/module capability reuse ledger before adding code or dependencies.
 
 Stop before implementation when the Plan target is ambiguous, authorization is absent, an effective Spec conflicts, a major decision is open, the Plan is structurally invalid, or repository drift changes architecture, behavior, contracts, data, security, migration, compatibility, or Step ownership.
 
@@ -65,6 +76,9 @@ Pending -> In Progress -> Verified -> Committed
 14. Do not amend, squash, reset, or rewrite committed history automatically. If a later Step exposes a defect in an earlier commit, stop advancing, make the smallest dedicated corrective commit attributed to the originating Step, rerun affected gates, and report the deviation.
 15. Never modify an existing immutable Flyway migration. Execute only the new migration file named by the approved Plan and Spec.
 16. Do not silently skip, reorder, merge, split, or expand Steps. Obtain user approval for a material execution-sequence change.
+17. Every coding Step has a blocking Manual Check. At Step lock, enumerate all applicable stable `MC-*` IDs from `references/java-spring-egon-coding-standards.md`; before commit, evaluate each row manually with concrete diff/path/symbol/command evidence. `MC-SCOPE-001` and `MC-TEST-001` always apply.
+18. A Step cannot become `Verified` or be committed as complete while any applicable Manual Check is `FAIL`, `BLOCKED`, `UNKNOWN`, missing, lacks evidence, or has an unresolved exception. Evidence-backed `N/A` is allowed only when the concern is truly outside the Step.
+19. For touched Java code, enforce semantic type suffixes, Jakarta/Spring Validation and groups, approved normalization, record/Lombok construction, MapStruct/MapStructPlus and applicable `BaseConverter`, `@Slf4j`, explicit Bean names, qualified Lombok constructor injection, approved utilities, Jackson, `java.time`, configuration-profile parity, and justified pattern choices. Do not perform unrelated broad cleanup.
 
 ## Per-Step execution workflow
 
@@ -76,12 +90,14 @@ Read `references/step-gate-checklist.md` at the start and end of every Step.
 - Record `git rev-parse HEAD` as the Step baseline.
 - Verify all dependencies are represented by earlier committed hashes.
 - Confirm the Step's paths do not overlap unrelated work.
+- Copy the Plan's applicable `MC-*` IDs into the Step Manual Check table, add any concern newly revealed by current repository evidence, and record architecture/reuse baselines before editing.
 
 ### 2. Revalidate the current repository
 
 - Reopen the actual files and symbols before editing; do not rely only on Plan pseudocode.
 - Confirm the Plan's implementation direction still matches current APIs, consumers, language/framework style, and migration sequence.
 - Treat semantic drift as a blocker. Resolve only mechanical, local details already permitted by a `Plan Clarification` or an unambiguous repository convention.
+- For Java, recheck the exact architecture profile, existing Spring/Egon/module candidates, dependencies, `lombok.config`, converters/validators, environment profiles, and nearby naming/model/Bean conventions relevant to this Step.
 
 ### 3. Execute the Step in file order
 
@@ -96,6 +112,7 @@ Read `references/step-gate-checklist.md` at the start and end of every Step.
 - Run applicable compile, lint/format, mapper/XML/schema, module, or cross-module checks required by the Step and repository.
 - Run `git diff --check` on the Step paths.
 - Re-read the Step requirements and relevant Spec sections. Confirm every stated behavior, error path, field, state, permission, migration, UI state, and test obligation represented by this Step is implemented.
+- Execute each applicable Manual Check row in `references/step-gate-checklist.md`. Record independent evidence and findings; close failures or mark the Step blocked.
 
 Any failed gate keeps the Step `In Progress` or `Blocked`; it cannot be committed as complete.
 
@@ -138,6 +155,7 @@ For each Step record:
 | Commit | Resulting full or short hash |
 | Paths | Exact committed file list |
 | Validation | Commands and observed results |
+| Manual Check | All stable IDs with `PASS` or evidence-backed `N/A`; no unresolved row |
 | Deviations | `None`, approved clarification, or corrective-commit explanation |
 
 Use path-limited staging/commits. Never include unrelated work merely because it was already staged. Do not push, open a PR, merge, or release unless the user separately authorizes it.
@@ -157,7 +175,8 @@ After every Plan Step is committed, read `references/final-spec-audit.md` and pe
    - `Runtime unverified`: source/module evidence exists, but the Spec requires user-controlled live-system proof that was not run.
 6. Check non-goals and scope boundaries for accidental behavior, dependency, migration, or refactor expansion.
 7. Check every Plan Step has a verified commit and no planned file/validation gate was silently omitted.
-8. Report every `Partial`, `Not satisfied`, and `Runtime unverified` item with evidence, impact, and recommended next action.
+8. Re-execute all 17 Manual Checks against the final tree and delivery commits. Every applicable row must be `PASS`; every `N/A` needs evidence and reason; `MC-BLOCKER-001` must reconcile all remaining findings.
+9. Report every `Partial`, `Not satisfied`, `Runtime unverified`, failed/blocked Manual Check, and silent-exception attempt with evidence, impact, and recommended next action.
 
 Do not silently add unplanned fixes during the final audit. If the audit finds a gap, report it and wait for the user to approve a corrective Plan/Step.
 
@@ -169,6 +188,7 @@ The completion report must contain:
 - a Step table with status, commit hash, committed paths, and validation evidence;
 - final validation commands and actual results;
 - a Spec conformance matrix with every requirement status;
+- a final Manual Check matrix containing every stable `MC-*` ID, applicability, status, evidence, finding, and required action/exception;
 - explicit unmet, partial, and runtime-unverified requirements;
 - approved deviations and corrective commits;
 - remaining worktree state and confirmation that unrelated work was preserved;
@@ -178,7 +198,7 @@ The completion report must contain:
   - `PARTIAL — Spec requirements are unmet or unverified`
   - `BLOCKED — Final verification could not be completed`
 
-Never claim full completion when any effective requirement is `Partial`, `Not satisfied`, or required runtime evidence is missing.
+Never claim full completion when any effective requirement is `Partial`, `Not satisfied`, required runtime evidence is missing, or any Manual Check is missing/non-passing/unsupported. Final PASS requires every Spec requirement satisfied and every applicable Manual Check passed.
 
 ## Common failures
 
@@ -192,8 +212,12 @@ Never claim full completion when any effective requirement is `Partial`, `Not sa
 | Fixing an unplanned Spec gap during final audit | Report it and request a corrective Plan/Step |
 | Claiming runtime acceptance from unit/module tests | Mark the requirement `Runtime unverified` |
 | Rewriting earlier Step commits after later work | Preserve history; use an attributed corrective commit and report it |
+| Committing a Step with a failed/missing/unknown Manual Check | Keep it `In Progress`/`Blocked`; close each row with evidence before commit |
+| Adding a dependency/helper without current Spring/Egon/module reuse proof | Stop, rebuild the reuse ledger, and use existing capability or return to the Spec/Plan for gap approval |
+| Creating a hybrid package tree during execution | Stop; preserve the existing traditional or exact Archetype profile and request a structural Plan/Spec correction |
+| Passing final audit by summarizing Manual Checks in one sentence | Re-run and record all stable IDs individually against the final commits/tree |
 | Starting the project automatically | Leave runtime testing to the user unless explicitly requested |
 
 ## Skill maintenance
 
-When changing this skill, review `references/acceptance-scenarios.md` and confirm the English operational file, Chinese review mirror, checklists, and metadata still express the same execution contract.
+When changing this skill, run `scripts/test_validate_skill_resources.py` and `scripts/validate_skill_resources.py`, review `references/acceptance-scenarios.md`, and confirm the English operational file, Chinese review mirror, standards, checklists, and metadata still express the same execution contract.
