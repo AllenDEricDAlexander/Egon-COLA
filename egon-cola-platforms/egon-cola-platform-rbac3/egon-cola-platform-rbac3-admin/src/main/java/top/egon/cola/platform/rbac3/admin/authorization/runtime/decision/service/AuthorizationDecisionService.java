@@ -12,7 +12,8 @@ import top.egon.cola.platform.rbac3.admin.authorization.runtime.decision.domain.
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.decision.domain.vo.TokenVersionsVO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.decision.repository.AuthorizationSnapshotRepository;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.decision.repository.FenceVerifier;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
 import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleEligibilityService;
 import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.AuthorizationDecision;
@@ -350,15 +351,13 @@ public final class AuthorizationDecisionService {
      * 为当前用户读取租户一致的授权快照。
      * Loads a tenant-consistent authorization snapshot for the current user.
      *
-     * @param caller 当前用户主体 / current user principal
      * @param request 判定请求 / decision request
      * @return 一致授权快照记录 / consistent authorization snapshot record
      * 用法：调用 `consistentSnapshot` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
      * Usage: provide contract-compliant arguments before calling `consistentSnapshot`, then continue the business flow using its result, exception, or side effect.
      */
-    public SnapshotRecordVO consistentSnapshot(
-            CurrentRbac3Principal caller,
-            DecisionRequestDTO request) {
+    public SnapshotRecordVO consistentSnapshot(DecisionRequestDTO request) {
+        Rbac3UserDetails caller = new CurrentRbac3User().require();
         Objects.requireNonNull(caller, "caller");
         if (!caller.tenantId().equals(request.subject().tenantId())) {
             throw new Rbac3RuleViolation("PERMISSION_DENIED");

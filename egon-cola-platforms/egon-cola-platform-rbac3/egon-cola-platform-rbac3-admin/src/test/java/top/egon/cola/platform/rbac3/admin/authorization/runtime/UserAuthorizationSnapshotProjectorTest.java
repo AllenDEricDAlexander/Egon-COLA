@@ -162,11 +162,11 @@ class UserAuthorizationSnapshotProjectorTest {
                 List.of(),
                 new AuthorizationRuleFacts(
                         List.of(
-                                new AuthorizationRuleFacts.PermissionBinding(
+                                new AuthorizationRuleFacts.ResourceGrantBinding(
                                         "10", "sales:read"),
-                                new AuthorizationRuleFacts.PermissionBinding(
+                                new AuthorizationRuleFacts.ResourceGrantBinding(
                                         "20", "finance:read"),
-                                new AuthorizationRuleFacts.PermissionBinding(
+                                new AuthorizationRuleFacts.ResourceGrantBinding(
                                         "30", "finance:report")),
                         List.of(), List.of(), List.of(), List.of()),
                 3, 8, "directory:12",

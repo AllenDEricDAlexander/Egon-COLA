@@ -106,8 +106,8 @@ class DefaultRoleActivationResolverTest {
     ) {
         AuthorizationRuleFacts facts = new AuthorizationRuleFacts(
                 List.of(
-                        new AuthorizationRuleFacts.PermissionBinding("cashier", "payment:read"),
-                        new AuthorizationRuleFacts.PermissionBinding("report", "payment:report")
+                        new AuthorizationRuleFacts.ResourceGrantBinding("cashier", "payment:read"),
+                        new AuthorizationRuleFacts.ResourceGrantBinding("report", "payment:report")
                 ), List.of(), List.of(), List.of(), List.of()
         );
         return new RoleActivationInput("tenant", "user", requested,

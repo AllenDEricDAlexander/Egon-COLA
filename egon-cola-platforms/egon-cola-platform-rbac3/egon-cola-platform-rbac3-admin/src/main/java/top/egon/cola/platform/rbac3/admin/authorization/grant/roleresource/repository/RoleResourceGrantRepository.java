@@ -19,7 +19,8 @@ public interface RoleResourceGrantRepository {
     record GrantTreeFacts(
             Long applicationId,
             long roleVersion,
-            List<RoleResourceGrantPO> directGrants) {
+            List<RoleResourceGrantPO> directGrants,
+            List<ResourceFact> resources) {
         public GrantTreeFacts {
             applicationId = positive(applicationId, "applicationId");
             if (roleVersion < 0L) {
@@ -27,6 +28,42 @@ public interface RoleResourceGrantRepository {
             }
             directGrants = List.copyOf(Objects.requireNonNull(
                     directGrants, "directGrants"));
+            resources = List.copyOf(Objects.requireNonNull(resources, "resources"));
+        }
+    }
+
+    record ResourceFact(
+            Long resourceId,
+            String resourceCode,
+            String resourceName,
+            String category,
+            String technicalType,
+            String parentCode,
+            String status,
+            String mappingStatus,
+            List<LinkedApi> linkedApis) {
+        public ResourceFact {
+            resourceId = positive(resourceId, "resourceId");
+            resourceCode = required(resourceCode, "resourceCode");
+            resourceName = required(resourceName, "resourceName");
+            category = required(category, "category");
+            technicalType = required(technicalType, "technicalType");
+            status = required(status, "status");
+            mappingStatus = required(mappingStatus, "mappingStatus");
+            linkedApis = List.copyOf(Objects.requireNonNull(linkedApis, "linkedApis"));
+        }
+    }
+
+    record LinkedApi(
+            Long resourceId,
+            String resourceCode,
+            String resourceName,
+            String method,
+            String path) {
+        public LinkedApi {
+            resourceId = positive(resourceId, "resourceId");
+            resourceCode = required(resourceCode, "resourceCode");
+            resourceName = required(resourceName, "resourceName");
         }
     }
 
@@ -57,12 +94,19 @@ public interface RoleResourceGrantRepository {
         }
     }
 
-    record ReplaceResult(Set<Long> directResourceIds, long roleVersion) {
+    record ReplaceResult(
+            Set<Long> directResourceIds,
+            long roleVersion,
+            long addedCount,
+            long removedCount) {
         public ReplaceResult {
             directResourceIds = Set.copyOf(Objects.requireNonNull(
                     directResourceIds, "directResourceIds"));
             if (roleVersion < 0L) {
                 throw new IllegalArgumentException("roleVersion must not be negative");
+            }
+            if (addedCount < 0L || removedCount < 0L) {
+                throw new IllegalArgumentException("mutation counts must not be negative");
             }
         }
     }

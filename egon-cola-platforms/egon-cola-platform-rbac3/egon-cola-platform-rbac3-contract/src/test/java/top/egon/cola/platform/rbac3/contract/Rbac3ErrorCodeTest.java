@@ -2,7 +2,6 @@ package top.egon.cola.platform.rbac3.contract;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.contract.error.Rbac3ErrorCode;
-import top.egon.cola.platform.rbac3.contract.error.Rbac3ErrorResponse;
 
 import java.util.Arrays;
 import java.util.List;
@@ -65,6 +64,7 @@ class Rbac3ErrorCodeTest {
                 "APPLICATION_BINDING_DENIED",
                 "RESOURCE_NOT_FOUND",
                 "RESOURCE_VERSION_CONFLICT",
+                "RESOURCE_PERMISSION_MAPPING_IN_USE",
                 "DIRECTORY_SNAPSHOT_CONFLICT",
                 "DIRECTORY_SNAPSHOT_STALE",
                 "ROLE_DISABLED",
@@ -107,25 +107,4 @@ class Rbac3ErrorCodeTest {
         assertEquals(false, Rbac3ErrorCode.ACTIVE_ROLE_ROOT_LIMIT_EXCEEDED.retryable());
     }
 
-    @Test
-    void errorEnvelopeCannotOverrideStableRetrySemantics() {
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new Rbac3ErrorResponse.Error(
-                        Rbac3ErrorCode.PERMISSION_DENIED,
-                        "Permission denied",
-                        true,
-                        List.of()
-                )
-        );
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new Rbac3ErrorResponse.Error(
-                        Rbac3ErrorCode.AUTH_RUNTIME_UNAVAILABLE,
-                        "Authorization runtime unavailable",
-                        false,
-                        List.of()
-                )
-        );
-    }
 }

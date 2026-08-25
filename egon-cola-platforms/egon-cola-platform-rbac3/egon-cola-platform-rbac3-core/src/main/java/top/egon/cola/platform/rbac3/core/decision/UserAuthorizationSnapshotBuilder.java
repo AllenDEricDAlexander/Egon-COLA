@@ -40,7 +40,7 @@ public final class UserAuthorizationSnapshotBuilder {
         }
 
         Set<String> permissions = new PermissionSetMerger().merge(
-                facts.permissionBindings(), effectiveRoleIds);
+                facts.resourceGrantBindings(), effectiveRoleIds);
         if (permissions.size() > MAX_USER_PERMISSIONS) {
             throw new Rbac3RuleViolation("ROLE_FAMILY_SIZE_LIMIT_EXCEEDED");
         }
@@ -49,9 +49,26 @@ public final class UserAuthorizationSnapshotBuilder {
         Map<String, FieldAccessLevel> fieldPolicies = new FieldPolicyMerger().merge(
                 facts.fieldRuleFacts(), facts.fieldDefinitions(), effectiveRoleIds);
         var resources = new TreeSet<String>();
+        var mappedResourceCodes = new TreeSet<String>();
+        for (AuthorizationRuleFacts.ResourceGrantBinding binding
+                : facts.resourceGrantBindings()) {
+            if (effectiveRoleIds.contains(binding.roleId())
+                    && binding.permissionCode() != null) {
+                mappedResourceCodes.add(binding.resourceCode());
+            }
+        }
+        resources.addAll(mappedResourceCodes);
+        var resourceFacts = new TreeMap<String, AuthorizationRuleFacts.ResourceFact>();
         for (AuthorizationRuleFacts.ResourceFact resource : facts.resources()) {
-            if (permissions.contains(resource.requiredPermissionCode())) {
-                resources.add(resource.code());
+            resourceFacts.put(resource.code(), resource);
+        }
+        var pendingAncestors = new TreeSet<>(mappedResourceCodes);
+        while (!pendingAncestors.isEmpty()) {
+            String code = pendingAncestors.pollFirst();
+            AuthorizationRuleFacts.ResourceFact resource = resourceFacts.get(code);
+            if (resource != null && resource.parentCode() != null
+                    && resources.add(resource.parentCode())) {
+                pendingAncestors.add(resource.parentCode());
             }
         }
         if (resources.size() > MAX_USER_RESOURCES) {

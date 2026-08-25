@@ -10,13 +10,15 @@ import java.util.TreeSet;
 public final class PermissionSetMerger {
 
     public Set<String> merge(
-            List<AuthorizationRuleFacts.PermissionBinding> bindings,
+            List<AuthorizationRuleFacts.ResourceGrantBinding> bindings,
             Set<String> effectiveRoleIds
     ) {
         var result = new TreeSet<String>();
-        for (AuthorizationRuleFacts.PermissionBinding binding : bindings) {
+        for (AuthorizationRuleFacts.ResourceGrantBinding binding : bindings) {
             if (effectiveRoleIds.contains(binding.roleId())) {
-                result.add(binding.permissionCode());
+                if (binding.permissionCode() != null) {
+                    result.add(binding.permissionCode());
+                }
             }
         }
         return Collections.unmodifiableSet(result);

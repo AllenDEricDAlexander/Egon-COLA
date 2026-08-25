@@ -17,14 +17,15 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleFacade;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;
 import java.util.List;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.CreateRoleRequestDTO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.UpdateRoleRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleinheritance.domain.dto.InheritanceRequestDTO;
@@ -101,15 +102,15 @@ public class RoleController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping
-    @RequiresRbac3Permission(permission = "system:role:read")
+    @RequiresPermission(value = "system:role:read")
     @GatewayOperation(
             name = "rbac3-role-list-v1",
             summary = "查询租户角色",
             externalAccessible = true,
             tags = {"rbac3", "role"})
-    public ApiEnvelopeVO<List<RoleVO>> roles(
+    public ResultRecord<List<RoleVO>> roles(
             @RequestParam(required = false) String applicationId) {
-        return ApiEnvelopeVO.success(facade.roles(tenantId(), applicationId));
+        return ResultRecord.success(facade.roles(tenantId(), applicationId));
     }
 
     /**
@@ -124,19 +125,19 @@ public class RoleController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PostMapping
-    @RequiresRbac3Permission(permission = "system:role:create")
+    @RequiresPermission(value = "system:role:create")
     @GatewayOperation(
             name = "rbac3-role-create-v1",
             summary = "创建应用角色",
             externalAccessible = true,
             tags = {"rbac3", "role"})
-    public ApiEnvelopeVO<RoleMutationResultVO> create(
-            @Valid @RequestBody CreateRoleRequestDTO request,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        if (request.privileged() && !principal.platformAdministrator()) {
+    public ResultRecord<RoleMutationResultVO> create(
+            @Valid @RequestBody CreateRoleRequestDTO request
+) {
+        if (request.privileged() && !new CurrentRbac3User().require().hasPermission("system:platform:admin")) {
             throw new Rbac3RuleViolation("PRIVILEGED_ROLE_MANAGEMENT_DENIED");
         }
-        return ApiEnvelopeVO.success(facade.createRole(new CreateRoleCommandDTO(
+        return ResultRecord.success(facade.createRole(new CreateRoleCommandDTO(
                 tenantId(),
                 request.applicationId(),
                 request.roleCode(),
@@ -147,7 +148,7 @@ public class RoleController {
                 request.landingRouteId(),
                 request.landingPriority(),
                 request.maximumAssignmentDays(),
-                principal.userId()),
+                new CurrentRbac3User().require().rbac3UserId()),
                 databaseClock.transactionNow()));
     }
 
@@ -164,17 +165,17 @@ public class RoleController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PutMapping("/{roleId}")
-    @RequiresRbac3Permission(permission = "system:role:update")
+    @RequiresPermission(value = "system:role:update")
     @GatewayOperation(
             name = "rbac3-role-update-v1",
             summary = "更新角色可变属性",
             externalAccessible = true,
             tags = {"rbac3", "role"})
-    public ApiEnvelopeVO<RoleMutationResultVO> update(
+    public ResultRecord<RoleMutationResultVO> update(
             @PathVariable String roleId,
-            @Valid @RequestBody UpdateRoleRequestDTO request,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(facade.updateRole(new UpdateRoleCommandDTO(
+            @Valid @RequestBody UpdateRoleRequestDTO request
+) {
+        return ResultRecord.success(facade.updateRole(new UpdateRoleCommandDTO(
                 tenantId(),
                 roleId,
                 request.roleName(),
@@ -183,7 +184,7 @@ public class RoleController {
                 request.landingPriority(),
                 request.maximumAssignmentDays(),
                 request.expectedRoleVersion(),
-                principal.userId()),
+                new CurrentRbac3User().require().rbac3UserId()),
                 databaseClock.transactionNow()));
     }
 
@@ -200,20 +201,20 @@ public class RoleController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PostMapping("/{roleId}/inheritances")
-    @RequiresRbac3Permission(permission = "system:role-inheritance:manage")
+    @RequiresPermission(value = "system:role-inheritance:manage")
     @GatewayOperation(
             name = "rbac3-role-inheritance-add-v1",
             summary = "新增角色继承边并重建闭包",
             externalAccessible = true,
             tags = {"rbac3", "role", "inheritance"})
-    public ApiEnvelopeVO<RoleImpactVO> addInheritance(
+    public ResultRecord<RoleImpactVO> addInheritance(
             @PathVariable String roleId,
-            @Valid @RequestBody InheritanceRequestDTO request,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
+            @Valid @RequestBody InheritanceRequestDTO request
+) {
         facade.addInheritance(new InheritanceCommandDTO(
                 tenantId(), request.applicationId(), roleId, request.juniorRoleId(),
-                request.expectedRoleVersion(), principal.userId()));
-        return ApiEnvelopeVO.success(facade.impact(tenantId(), roleId));
+                request.expectedRoleVersion(), new CurrentRbac3User().require().rbac3UserId()));
+        return ResultRecord.success(facade.impact(tenantId(), roleId));
     }
 
     /**
@@ -231,22 +232,22 @@ public class RoleController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @DeleteMapping("/{roleId}/inheritances/{juniorRoleId}")
-    @RequiresRbac3Permission(permission = "system:role-inheritance:manage")
+    @RequiresPermission(value = "system:role-inheritance:manage")
     @GatewayOperation(
             name = "rbac3-role-inheritance-remove-v1",
             summary = "删除角色继承边并重建闭包",
             externalAccessible = true,
             tags = {"rbac3", "role", "inheritance"})
-    public ApiEnvelopeVO<RoleImpactVO> removeInheritance(
+    public ResultRecord<RoleImpactVO> removeInheritance(
             @PathVariable String roleId,
             @PathVariable String juniorRoleId,
             @RequestParam String applicationId,
-            @RequestParam @PositiveOrZero long expectedRoleVersion,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
+            @RequestParam @PositiveOrZero long expectedRoleVersion
+) {
         facade.removeInheritance(new InheritanceCommandDTO(
                 tenantId(), applicationId, roleId, juniorRoleId,
-                expectedRoleVersion, principal.userId()));
-        return ApiEnvelopeVO.success(facade.impact(tenantId(), roleId));
+                expectedRoleVersion, new CurrentRbac3User().require().rbac3UserId()));
+        return ResultRecord.success(facade.impact(tenantId(), roleId));
     }
 
     /**
@@ -260,14 +261,14 @@ public class RoleController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/{roleId}/impact-analysis")
-    @RequiresRbac3Permission(permission = "system:role:read")
+    @RequiresPermission(value = "system:role:read")
     @GatewayOperation(
             name = "rbac3-role-impact-v1",
             summary = "分析角色族与权限扩张影响",
             externalAccessible = true,
             tags = {"rbac3", "role", "impact"})
-    public ApiEnvelopeVO<RoleImpactVO> impact(@PathVariable String roleId) {
-        return ApiEnvelopeVO.success(facade.impact(tenantId(), roleId));
+    public ResultRecord<RoleImpactVO> impact(@PathVariable String roleId) {
+        return ResultRecord.success(facade.impact(tenantId(), roleId));
     }
 
     /**

@@ -4,7 +4,8 @@ import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditEventVO;
 import top.egon.cola.platform.rbac3.admin.audit.repository.AuditPort;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.decision.domain.vo.SnapshotRecordVO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.decision.service.AuthorizationDecisionService;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
 import top.egon.cola.platform.rbac3.admin.authorization.simulation.domain.dto.RoleChangeImpactRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.simulation.domain.dto.SimulationRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.simulation.domain.vo.RoleChangeImpactResultVO;
@@ -101,13 +102,12 @@ public final class AuthorizationSimulationService {
      * @param request 输入参数 `request`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    public SimulationResultVO simulate(
-            CurrentRbac3Principal caller,
-            SimulationRequestDTO request) {
+    public SimulationResultVO simulate(SimulationRequestDTO request) {
+        Rbac3UserDetails caller = new CurrentRbac3User().require();
         Objects.requireNonNull(caller, "caller");
         Objects.requireNonNull(request, "request");
         SnapshotRecordVO snapshot =
-                decisionService.consistentSnapshot(caller, request.decisionRequest());
+                decisionService.consistentSnapshot(request.decisionRequest());
         var current = decisionService.evaluateConsistentSnapshot(
                 snapshot, request.decisionRequest(), Set.of(), Set.of());
         var hypothetical = decisionService.evaluateConsistentSnapshot(
@@ -116,7 +116,7 @@ public final class AuthorizationSimulationService {
                 request.hypothesis().removedPermissions());
         Instant expiresAt = clock.instant().plusSeconds(RESULT_TTL_SECONDS);
         auditPort.append(new AuditEventVO(
-                caller.tenantId(), "AUTHORIZATION_SIMULATED", caller.userId(),
+                caller.tenantId(), "AUTHORIZATION_SIMULATED", caller.rbac3UserId(),
                 "USER", request.decisionRequest().subject().identitySub(),
                 request.requestId(), request.traceId(),
                 Map.of(
@@ -143,15 +143,15 @@ public final class AuthorizationSimulationService {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     public RoleChangeImpactResultVO simulateRoleChangeImpact(
-            CurrentRbac3Principal caller,
             RoleChangeImpactRequestDTO request) {
+        Rbac3UserDetails caller = new CurrentRbac3User().require();
         Objects.requireNonNull(caller, "caller");
         Objects.requireNonNull(request, "request");
         RoleImpactSnapshotVO snapshot = roleImpactSource.load(
                 caller.tenantId(), request.roleId());
         Instant now = clock.instant();
         auditPort.append(new AuditEventVO(
-                caller.tenantId(), "ROLE_CHANGE_IMPACT_SIMULATED", caller.userId(),
+                caller.tenantId(), "ROLE_CHANGE_IMPACT_SIMULATED", caller.rbac3UserId(),
                 "ROLE", request.roleId(), request.requestId(), request.traceId(),
                 Map.of(
                         "policyVersion", Long.toString(snapshot.policyVersion()),

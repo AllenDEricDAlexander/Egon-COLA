@@ -23,9 +23,10 @@ class Rbac3ApiExceptionHandlerTest {
 
         assertEquals(409, response.getStatusCode().value());
         assertNotNull(response.getBody());
-        assertEquals(Rbac3ErrorCode.APP_ROLE_ACTIVATION_MUTEX_VIOLATION,
-                response.getBody().error().code());
-        assertEquals("request-1", response.getBody().meta().requestId());
-        assertEquals("trace-1", response.getBody().meta().traceId());
+        assertEquals(409, response.getBody().code());
+        assertEquals("APP_ROLE_ACTIVATION_MUTEX_VIOLATION",
+                response.getBody().status());
+        assertEquals("Request rejected by authorization policy",
+                response.getBody().message());
     }
 }

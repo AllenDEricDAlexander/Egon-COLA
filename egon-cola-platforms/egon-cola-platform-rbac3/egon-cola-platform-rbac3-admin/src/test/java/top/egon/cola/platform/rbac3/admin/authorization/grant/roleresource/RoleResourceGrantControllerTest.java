@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.controller.RoleResourceGrantController;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -33,8 +33,8 @@ class RoleResourceGrantControllerTest {
         assertTrue(tree.getReturnType().getName().endsWith("ResultRecord"));
         assertTrue(replace.getReturnType().getName().endsWith("ResultRecord"));
         assertEquals("system:role-resource:read",
-                tree.getAnnotation(RequiresRbac3Permission.class).permission());
+                tree.getAnnotation(RequiresPermission.class).value());
         assertEquals("system:role-resource:manage",
-                replace.getAnnotation(RequiresRbac3Permission.class).permission());
+                replace.getAnnotation(RequiresPermission.class).value());
     }
 }

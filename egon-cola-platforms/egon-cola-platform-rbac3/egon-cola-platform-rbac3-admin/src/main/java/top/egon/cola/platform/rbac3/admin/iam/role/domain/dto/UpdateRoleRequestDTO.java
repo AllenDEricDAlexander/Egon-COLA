@@ -23,11 +23,11 @@ import java.time.Instant;
 import java.util.List;
 
 /**
-     * 类型 `UpdateRoleRequestDTO` 位于 `RolePermissionController` 内，是记录类型，用于承载 `Update Role Request` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
-     * Type `UpdateRoleRequestDTO` is a record inside `RolePermissionController` and carries the responsibility, state, or contract for `Update Role Request`; callers normally use it through its public API, Spring assembly, or implementation relationship.
+     * 类型 `UpdateRoleRequestDTO` 位于 `RoleController` 内，是记录类型，用于承载 `Update Role Request` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
+     * Type `UpdateRoleRequestDTO` is a record inside `RoleController` and carries the responsibility, state, or contract for `Update Role Request`; callers normally use it through its public API, Spring assembly, or implementation relationship.
      *
-     * 语义与用法：将 `UpdateRoleRequestDTO` 作为 `RolePermissionController` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
-     * Semantics and usage: use `UpdateRoleRequestDTO` as the responsibility boundary of `RolePermissionController`, following its existing construction, interface, or Spring-assembly mechanism.
+     * 语义与用法：将 `UpdateRoleRequestDTO` 作为 `RoleController` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
+     * Semantics and usage: use `UpdateRoleRequestDTO` as the responsibility boundary of `RoleController`, following its existing construction, interface, or Spring-assembly mechanism.
      *
      * @param roleName 记录组件 `roleName` 表示构造该记录时传入的业务数据，其取值含义由所属记录的契约定义；record component `roleName` carries constructor data whose meaning is defined by the record contract.
      * @param status 记录组件 `status` 表示构造该记录时传入的业务数据，其取值含义由所属记录的契约定义；record component `status` carries constructor data whose meaning is defined by the record contract.

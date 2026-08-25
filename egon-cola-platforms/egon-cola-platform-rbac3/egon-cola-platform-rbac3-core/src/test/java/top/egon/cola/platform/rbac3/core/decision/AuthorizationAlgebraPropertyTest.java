@@ -20,15 +20,15 @@ class AuthorizationAlgebraPropertyTest {
         PermissionSetMerger merger = new PermissionSetMerger();
         Set<String> roles = Set.of("r1", "r2", "r3");
         for (int seed = 0; seed < 64; seed++) {
-            List<AuthorizationRuleFacts.PermissionBinding> values = bindings(seed);
-            List<AuthorizationRuleFacts.PermissionBinding> reversed =
+            List<AuthorizationRuleFacts.ResourceGrantBinding> values = bindings(seed);
+            List<AuthorizationRuleFacts.ResourceGrantBinding> reversed =
                     new ArrayList<>(values);
             Collections.reverse(reversed);
 
             Set<String> expected = merger.merge(values, roles);
             assertEquals(expected, merger.merge(reversed, roles));
 
-            List<AuthorizationRuleFacts.PermissionBinding> duplicated =
+            List<AuthorizationRuleFacts.ResourceGrantBinding> duplicated =
                     new ArrayList<>(values);
             duplicated.addAll(values);
             assertEquals(expected, merger.merge(duplicated, roles));
@@ -65,11 +65,11 @@ class AuthorizationAlgebraPropertyTest {
         assertEquals(FieldAccessLevel.NONE, forward.get("customer#secret"));
     }
 
-    private static List<AuthorizationRuleFacts.PermissionBinding> bindings(int seed) {
+    private static List<AuthorizationRuleFacts.ResourceGrantBinding> bindings(int seed) {
         Random random = new Random(seed);
-        List<AuthorizationRuleFacts.PermissionBinding> values = new ArrayList<>();
+        List<AuthorizationRuleFacts.ResourceGrantBinding> values = new ArrayList<>();
         for (int index = 0; index < 96; index++) {
-            values.add(new AuthorizationRuleFacts.PermissionBinding(
+            values.add(new AuthorizationRuleFacts.ResourceGrantBinding(
                     "r" + (1 + random.nextInt(4)),
                     "permission:" + random.nextInt(24)));
         }

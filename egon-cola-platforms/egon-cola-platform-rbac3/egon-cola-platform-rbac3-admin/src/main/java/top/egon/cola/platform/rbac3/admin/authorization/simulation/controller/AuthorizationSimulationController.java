@@ -1,7 +1,6 @@
 package top.egon.cola.platform.rbac3.admin.authorization.simulation.controller;
 
 import jakarta.validation.Valid;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -10,9 +9,8 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.platform.rbac3.admin.authorization.simulation.domain.dto.AuthorizationRoleChangeImpactRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.simulation.domain.dto.AuthorizationSimulationRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.simulation.domain.dto.RoleChangeImpactRequestDTO;
@@ -62,17 +60,16 @@ public class AuthorizationSimulationController {
      * @return 授权模拟结果 / authorization simulation result
      */
     @PostMapping("/simulations/authorization")
-    @RequiresRbac3Permission(permission = "system:authorization-simulation:execute")
+    @RequiresPermission(value = "system:authorization-simulation:execute")
     @GatewayOperation(name = "rbac3-authorization-simulation-v1",
             summary = "基于一致快照执行无业务副作用的授权模拟",
             externalAccessible = true, tags = {"rbac3", "simulation"})
-    public ApiEnvelopeVO<SimulationResultVO> simulate(
+    public ResultRecord<SimulationResultVO> simulate(
             @Valid @RequestBody AuthorizationSimulationRequestDTO request,
             @RequestHeader("X-Request-Id") String requestId,
-            @RequestHeader("X-Trace-Id") String traceId,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(simulationService.simulate(
-                principal,
+            @RequestHeader("X-Trace-Id") String traceId
+) {
+        return ResultRecord.success(simulationService.simulate(
                 new SimulationRequestDTO(
                         request.decisionRequest(), request.hypothesis(), request.at(),
                         requestId, traceId)));
@@ -85,17 +82,16 @@ public class AuthorizationSimulationController {
      * @return 角色变更影响结果 / role-change impact result
      */
     @PostMapping("/simulations/role-change-impact")
-    @RequiresRbac3Permission(permission = "system:authorization-simulation:execute")
+    @RequiresPermission(value = "system:authorization-simulation:execute")
     @GatewayOperation(name = "rbac3-role-change-impact-simulation-v1",
             summary = "查询带策略版本和证据校验和的角色变更影响",
             externalAccessible = true, tags = {"rbac3", "simulation"})
-    public ApiEnvelopeVO<RoleChangeImpactResultVO> simulateRoleChangeImpact(
+    public ResultRecord<RoleChangeImpactResultVO> simulateRoleChangeImpact(
             @Valid @RequestBody AuthorizationRoleChangeImpactRequestDTO request,
             @RequestHeader("X-Request-Id") String requestId,
-            @RequestHeader("X-Trace-Id") String traceId,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(simulationService.simulateRoleChangeImpact(
-                principal,
+            @RequestHeader("X-Trace-Id") String traceId
+) {
+        return ResultRecord.success(simulationService.simulateRoleChangeImpact(
                 new RoleChangeImpactRequestDTO(
                         request.roleId(), request.at(), requestId, traceId)));
     }

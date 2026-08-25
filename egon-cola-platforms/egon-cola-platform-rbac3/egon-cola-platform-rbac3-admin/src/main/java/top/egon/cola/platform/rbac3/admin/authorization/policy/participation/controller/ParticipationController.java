@@ -17,7 +17,7 @@ import top.egon.cola.platform.idp.starter.security.RequiresServiceScope;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.participation.service.ParticipationFacade;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.contract.participation.BusinessParticipationCommand;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.participation.domain.vo.RecordResultVO;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.participation.domain.dto.ConflictQueryDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.participation.domain.vo.ConflictDecisionVO;
@@ -83,10 +83,10 @@ public class ParticipationController {
     @GatewayOperation(name = "rbac3-business-participation-record-v1",
             summary = "幂等追加业务对象参与事实",
             externalAccessible = false, tags = {"rbac3", "internal", "participation"})
-    public ApiEnvelopeVO<RecordResultVO> record(
+    public ResultRecord<RecordResultVO> record(
             @Valid @RequestBody BusinessParticipationCommand command,
             @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
-        return ApiEnvelopeVO.success(facade.record(principal, tenantId(), command));
+        return ResultRecord.success(facade.record(principal, tenantId(), command));
     }
 
     /**
@@ -109,14 +109,14 @@ public class ParticipationController {
     @GatewayOperation(name = "rbac3-business-participation-conflicts-v1",
             summary = "查询同一业务对象的职责冲突证据",
             externalAccessible = false, tags = {"rbac3", "internal", "participation"})
-    public ApiEnvelopeVO<ConflictDecisionVO> conflicts(
+    public ResultRecord<ConflictDecisionVO> conflicts(
             @RequestParam @NotBlank String applicationCode,
             @RequestParam @NotBlank String businessResource,
             @RequestParam @NotBlank String businessId,
             @RequestParam @NotBlank String actorUserId,
             @RequestParam @NotBlank String actionCode,
             @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
-        return ApiEnvelopeVO.success(facade.conflicts(
+        return ResultRecord.success(facade.conflicts(
                 principal, tenantId(), new ConflictQueryDTO(
                         applicationCode, businessResource, businessId,
                         actorUserId, actionCode)));

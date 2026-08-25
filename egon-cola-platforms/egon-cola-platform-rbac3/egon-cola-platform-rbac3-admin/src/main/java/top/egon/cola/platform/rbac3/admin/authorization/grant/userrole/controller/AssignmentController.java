@@ -20,14 +20,15 @@ import top.egon.cola.platform.rbac3.admin.authorization.grant.userrole.domain.en
 import top.egon.cola.platform.rbac3.admin.authorization.grant.userrole.domain.vo.AssignmentResultVO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.userrole.domain.vo.AssignmentVO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.userrole.service.AssignmentFacade;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.dto.IdempotencyCommandDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.enums.IdempotencyOutcomeEnum;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.IdempotencyClaimVO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.IdempotencyService;
 import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
@@ -130,15 +131,14 @@ public class AssignmentController {
             summary = "查询用户角色任职及历史状态",
             externalAccessible = true,
             tags = {"rbac3", "assignment"})
-    public ApiEnvelopeVO<List<AssignmentVO>> assignments(
-            @PathVariable String userId,
-            @AuthenticationPrincipal CurrentRbac3Principal principal
-    ) {
-        if (!principal.userId().equals(userId)
-                && !principal.hasPermission("system:role-assignment:read")) {
+    public ResultRecord<List<AssignmentVO>> assignments(
+            @PathVariable String userId
+) {
+        if (!new CurrentRbac3User().require().rbac3UserId().equals(userId)
+                && !new CurrentRbac3User().require().hasPermission("system:role-assignment:read")) {
             throw new Rbac3RuleViolation("PERMISSION_DENIED");
         }
-        return ApiEnvelopeVO.success(facade.assignments(
+        return ResultRecord.success(facade.assignments(
                 tenantId(), userId, databaseClock.transactionNow()));
     }
 
@@ -156,34 +156,33 @@ public class AssignmentController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PostMapping
-    @RequiresRbac3Permission(permission = "system:role-assignment:manage")
+    @RequiresPermission(value = "system:role-assignment:manage")
     @GatewayOperation(
             name = "rbac3-assignment-create-v1",
             summary = "按完整委托策略创建角色任职",
             externalAccessible = true,
             tags = {"rbac3", "assignment"})
-    public ApiEnvelopeVO<AssignmentResultVO> assign(
+    public ResultRecord<AssignmentResultVO> assign(
             @PathVariable String userId,
             @Valid @RequestBody AssignRequestDTO request,
-            @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @AuthenticationPrincipal CurrentRbac3Principal principal
-    ) {
+            @RequestHeader("Idempotency-Key") String idempotencyKey
+) {
         Instant now = databaseClock.transactionNow();
         String operation = "POST:/users/{userId}/role-assignments";
         IdempotencyClaimVO claim = claim(
-                principal, operation, idempotencyKey,
+                new CurrentRbac3User().require(), operation, idempotencyKey,
                 userId + '|' + request, now);
         if (claim.outcome() == IdempotencyOutcomeEnum.REPLAY) {
-            return ApiEnvelopeVO.success(new AssignmentResultVO(
+            return ResultRecord.success(new AssignmentResultVO(
                     claim.resourceId(), null, true, "IDEMPOTENT_REPLAY", null));
         }
         AssignmentResultVO result = facade.assign(
                 new RoleAssignmentDTO(
-                        tenantId(), principal.userId(), userId, request.roleId(),
+                        tenantId(), new CurrentRbac3User().require().rbac3UserId(), userId, request.roleId(),
                         request.assignmentType(), request.validFrom(), request.validTo(),
                         request.reason(), request.ticketNo(),
                         "ACCESS_TOKEN",
-                        principal.platformAdministrator(),
+                        new CurrentRbac3User().require().hasPermission("system:platform:admin"),
                         request.expectedUserAuthVersion(), claim.recordId(), now));
         return complete(claim, result, now);
     }
@@ -203,21 +202,20 @@ public class AssignmentController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PostMapping("/{assignmentId}/revoke")
-    @RequiresRbac3Permission(permission = "system:role-assignment:manage")
+    @RequiresPermission(value = "system:role-assignment:manage")
     @GatewayOperation(
             name = "rbac3-assignment-revoke-v1",
             summary = "撤销角色任职并保留历史",
             externalAccessible = true,
             tags = {"rbac3", "assignment"})
-    public ApiEnvelopeVO<AssignmentResultVO> revoke(
+    public ResultRecord<AssignmentResultVO> revoke(
             @PathVariable String userId,
             @PathVariable String assignmentId,
             @Valid @RequestBody RoleAssignmentChangeRequestDTO request,
-            @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @AuthenticationPrincipal CurrentRbac3Principal principal
-    ) {
+            @RequestHeader("Idempotency-Key") String idempotencyKey
+) {
         return change(userId, assignmentId, AssignmentChangeOperationEnum.REVOKE,
-                request, idempotencyKey, principal);
+                request, idempotencyKey , new CurrentRbac3User().require());
     }
 
     /**
@@ -235,21 +233,20 @@ public class AssignmentController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PostMapping("/{assignmentId}/suspend")
-    @RequiresRbac3Permission(permission = "system:role-assignment:manage")
+    @RequiresPermission(value = "system:role-assignment:manage")
     @GatewayOperation(
             name = "rbac3-assignment-suspend-v1",
             summary = "暂停角色任职",
             externalAccessible = true,
             tags = {"rbac3", "assignment"})
-    public ApiEnvelopeVO<AssignmentResultVO> suspend(
+    public ResultRecord<AssignmentResultVO> suspend(
             @PathVariable String userId,
             @PathVariable String assignmentId,
             @Valid @RequestBody RoleAssignmentChangeRequestDTO request,
-            @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @AuthenticationPrincipal CurrentRbac3Principal principal
-    ) {
+            @RequestHeader("Idempotency-Key") String idempotencyKey
+) {
         return change(userId, assignmentId, AssignmentChangeOperationEnum.SUSPEND,
-                request, idempotencyKey, principal);
+                request, idempotencyKey , new CurrentRbac3User().require());
     }
 
     /**
@@ -267,21 +264,20 @@ public class AssignmentController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PostMapping("/{assignmentId}/resume")
-    @RequiresRbac3Permission(permission = "system:role-assignment:manage")
+    @RequiresPermission(value = "system:role-assignment:manage")
     @GatewayOperation(
             name = "rbac3-assignment-resume-v1",
             summary = "恢复角色任职",
             externalAccessible = true,
             tags = {"rbac3", "assignment"})
-    public ApiEnvelopeVO<AssignmentResultVO> resume(
+    public ResultRecord<AssignmentResultVO> resume(
             @PathVariable String userId,
             @PathVariable String assignmentId,
             @Valid @RequestBody RoleAssignmentChangeRequestDTO request,
-            @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @AuthenticationPrincipal CurrentRbac3Principal principal
-    ) {
+            @RequestHeader("Idempotency-Key") String idempotencyKey
+) {
         return change(userId, assignmentId, AssignmentChangeOperationEnum.RESUME,
-                request, idempotencyKey, principal);
+                request, idempotencyKey , new CurrentRbac3User().require());
     }
 
     /**
@@ -299,13 +295,13 @@ public class AssignmentController {
      * @param principal 输入参数 `principal`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private ApiEnvelopeVO<AssignmentResultVO> change(
+    private ResultRecord<AssignmentResultVO> change(
             String userId,
             String assignmentId,
             AssignmentChangeOperationEnum operation,
             RoleAssignmentChangeRequestDTO request,
             String idempotencyKey,
-            CurrentRbac3Principal principal
+            Rbac3UserDetails principal
     ) {
         Instant now = databaseClock.transactionNow();
         String operationCode = "POST:/users/{userId}/role-assignments/{assignmentId}/"
@@ -314,15 +310,15 @@ public class AssignmentController {
                 principal, operationCode, idempotencyKey,
                 userId + '|' + assignmentId + '|' + operation + '|' + request, now);
         if (claim.outcome() == IdempotencyOutcomeEnum.REPLAY) {
-            return ApiEnvelopeVO.success(new AssignmentResultVO(
+            return ResultRecord.success(new AssignmentResultVO(
                     claim.resourceId(), null, true, "IDEMPOTENT_REPLAY", null));
         }
         AssignmentResultVO result = facade.change(
                 new RoleAssignmentChangeDTO(
-                        tenantId(), principal.userId(), userId, assignmentId, operation,
+                        tenantId(), new CurrentRbac3User().require().rbac3UserId(), userId, assignmentId, operation,
                         request.reason(), request.ticketNo(),
                         "ACCESS_TOKEN",
-                        principal.platformAdministrator(),
+                        new CurrentRbac3User().require().hasPermission("system:platform:admin"),
                         request.expectedAssignmentVersion(),
                         request.expectedUserAuthVersion(), claim.recordId(), now));
         return complete(claim, result, now);
@@ -343,7 +339,7 @@ public class AssignmentController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     private IdempotencyClaimVO claim(
-            CurrentRbac3Principal principal,
+            Rbac3UserDetails principal,
             String operation,
             String idempotencyKey,
             String canonicalRequest,
@@ -351,7 +347,7 @@ public class AssignmentController {
     ) {
         requireIdempotencyKey(idempotencyKey);
         return idempotencyService.claim(new IdempotencyCommandDTO(
-                tenantId(), "USER", principal.userId(), operation,
+                tenantId(), "USER", new CurrentRbac3User().require().rbac3UserId(), operation,
                 idempotencyKey, canonicalRequest, now.plus(IDEMPOTENCY_TTL), now));
     }
 
@@ -367,7 +363,7 @@ public class AssignmentController {
      * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private ApiEnvelopeVO<AssignmentResultVO> complete(
+    private ResultRecord<AssignmentResultVO> complete(
             IdempotencyClaimVO claim,
             AssignmentResultVO result,
             Instant now
@@ -380,7 +376,7 @@ public class AssignmentController {
             throw new Rbac3RuleViolation(
                     "AUTH_PROPAGATION_PENDING", List.of(result.mutationId()));
         }
-        return ApiEnvelopeVO.success(result);
+        return ResultRecord.success(result);
     }
 
     /**

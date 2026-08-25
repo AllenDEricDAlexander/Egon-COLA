@@ -8,11 +8,11 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.iam.business.service.ApplicationCatalogEntry;
 import top.egon.cola.platform.rbac3.admin.iam.business.service.BusinessCatalogEntry;
 import top.egon.cola.platform.rbac3.admin.iam.business.service.BusinessCatalogService;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 
 import java.util.List;
 
@@ -40,27 +40,27 @@ public class BusinessCatalogController {
     }
 
     @GetMapping("/businesses")
-    @RequiresRbac3Permission(permission = "system:business:read")
+    @RequiresPermission(value = "system:business:read")
     @GatewayOperation(
             name = "rbac3-business-catalog-list-v1",
             summary = "查询 DDC 业务域目录",
             externalAccessible = true,
             tags = {"rbac3", "business"})
-    public ApiEnvelopeVO<List<BusinessCatalogEntry>> businesses(
+    public ResultRecord<List<BusinessCatalogEntry>> businesses(
             @RequestParam(name = "keyword", required = false) String keyword) {
-        return ApiEnvelopeVO.success(service.businesses(keyword));
+        return ResultRecord.success(service.businesses(keyword));
     }
 
     @GetMapping("/businesses/{ddcBusinessId}/applications")
-    @RequiresRbac3Permission(permission = "system:application:read")
+    @RequiresPermission(value = "system:application:read")
     @GatewayOperation(
             name = "rbac3-business-catalog-applications-v1",
             summary = "查询 DDC 业务域下的应用目录",
             externalAccessible = true,
             tags = {"rbac3", "business", "application"})
-    public ApiEnvelopeVO<List<ApplicationCatalogEntry>> applications(
+    public ResultRecord<List<ApplicationCatalogEntry>> applications(
             @PathVariable String ddcBusinessId,
             @RequestParam(name = "keyword", required = false) String keyword) {
-        return ApiEnvelopeVO.success(service.applications(ddcBusinessId, keyword));
+        return ResultRecord.success(service.applications(ddcBusinessId, keyword));
     }
 }

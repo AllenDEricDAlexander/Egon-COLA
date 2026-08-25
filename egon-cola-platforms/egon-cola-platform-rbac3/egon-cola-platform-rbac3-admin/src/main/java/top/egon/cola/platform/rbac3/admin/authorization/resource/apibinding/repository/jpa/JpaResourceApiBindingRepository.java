@@ -95,12 +95,16 @@ public class JpaResourceApiBindingRepository implements ResourceApiBindingReposi
         }
         return new HashSet<>(entityManager.createQuery(
                         "select distinct binding.apiResourceId from ResourceApiBindingEntity binding "
+                                + "join ResourceEntity api on api.id = binding.apiResourceId "
+                                + "and api.applicationId = binding.applicationId "
                                 + "where binding.applicationId = :applicationId "
                                 + "and binding.sourceResourceId in :sourceIds "
-                                + "and binding.status = :status", Long.class)
+                                + "and binding.status = :status "
+                                + "and api.status = :apiStatus", Long.class)
                 .setParameter("applicationId", applicationId)
                 .setParameter("sourceIds", sourceResourceIds)
                 .setParameter("status", ResourceApiBindingStatusEnum.ACTIVE)
+                .setParameter("apiStatus", ResourceStatusEnum.ACTIVE)
                 .getResultList());
     }
 

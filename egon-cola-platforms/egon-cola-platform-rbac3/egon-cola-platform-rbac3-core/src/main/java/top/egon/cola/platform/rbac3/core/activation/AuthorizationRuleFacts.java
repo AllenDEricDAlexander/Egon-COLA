@@ -5,7 +5,7 @@ import top.egon.cola.platform.rbac3.contract.authorization.FieldAccessLevel;
 import java.util.List;
 
 public record AuthorizationRuleFacts(
-        List<PermissionBinding> permissionBindings,
+        List<ResourceGrantBinding> resourceGrantBindings,
         List<DataScopeFact> dataScopeFacts,
         List<FieldRuleFact> fieldRuleFacts,
         List<FieldDefinitionFact> fieldDefinitions,
@@ -14,18 +14,18 @@ public record AuthorizationRuleFacts(
 ) {
 
     public AuthorizationRuleFacts(
-            List<PermissionBinding> permissionBindings,
+            List<ResourceGrantBinding> resourceGrantBindings,
             List<DataScopeFact> dataScopeFacts,
             List<FieldRuleFact> fieldRuleFacts,
             List<FieldDefinitionFact> fieldDefinitions,
             List<ResourceFact> resources
     ) {
-        this(permissionBindings, dataScopeFacts, fieldRuleFacts,
+        this(resourceGrantBindings, dataScopeFacts, fieldRuleFacts,
                 fieldDefinitions, resources, List.of());
     }
 
     public AuthorizationRuleFacts {
-        permissionBindings = List.copyOf(permissionBindings);
+        resourceGrantBindings = List.copyOf(resourceGrantBindings);
         dataScopeFacts = List.copyOf(dataScopeFacts);
         fieldRuleFacts = List.copyOf(fieldRuleFacts);
         fieldDefinitions = List.copyOf(fieldDefinitions);
@@ -33,10 +33,24 @@ public record AuthorizationRuleFacts(
         landingRoutes = List.copyOf(landingRoutes);
     }
 
-    public record PermissionBinding(String roleId, String permissionCode) {
-        public PermissionBinding {
+    public record ResourceGrantBinding(
+            String roleId,
+            String resourceId,
+            String resourceCode,
+            String resourceType,
+            String permissionCode) {
+        public ResourceGrantBinding {
             roleId = required(roleId, "roleId");
-            permissionCode = required(permissionCode, "permissionCode");
+            resourceId = required(resourceId, "resourceId");
+            resourceCode = required(resourceCode, "resourceCode");
+            resourceType = required(resourceType, "resourceType");
+            permissionCode = optional(permissionCode);
+        }
+
+        /** Compatibility constructor for pure algebra fixtures that only model a permission. */
+        public ResourceGrantBinding(String roleId, String permissionCode) {
+            this(roleId, roleId + ":" + permissionCode, permissionCode,
+                    "API", permissionCode);
         }
     }
 
@@ -87,11 +101,22 @@ public record AuthorizationRuleFacts(
         }
     }
 
-    public record ResourceFact(String code, String requiredPermissionCode) {
+    public record ResourceFact(
+            String resourceId,
+            String code,
+            String resourceType,
+            String parentCode,
+            String requiredPermissionCode) {
         public ResourceFact {
+            resourceId = required(resourceId, "resourceId");
             code = required(code, "code");
-            requiredPermissionCode = required(requiredPermissionCode,
-                    "requiredPermissionCode");
+            resourceType = required(resourceType, "resourceType");
+            parentCode = optional(parentCode);
+            requiredPermissionCode = optional(requiredPermissionCode);
+        }
+
+        public ResourceFact(String code, String requiredPermissionCode) {
+            this(code, code, "API", null, requiredPermissionCode);
         }
     }
 
@@ -117,5 +142,9 @@ public record AuthorizationRuleFacts(
             throw new IllegalArgumentException(field + " is required");
         }
         return value.trim();
+    }
+
+    private static String optional(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

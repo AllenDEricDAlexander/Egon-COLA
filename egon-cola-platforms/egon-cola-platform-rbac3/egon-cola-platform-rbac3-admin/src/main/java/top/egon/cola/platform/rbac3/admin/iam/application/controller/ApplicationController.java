@@ -13,14 +13,15 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.iam.application.domain.command.AdmitApplicationAuthorizationScopeCommand;
 import top.egon.cola.platform.rbac3.admin.iam.application.domain.command.ChangeApplicationAuthorizationScopeStatusCommand;
 import top.egon.cola.platform.rbac3.admin.iam.application.domain.vo.ApplicationAuthorizationScopeVO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.application.service.TenantApplicationFacade;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 
 import java.util.List;
 
@@ -48,71 +49,71 @@ public class ApplicationController {
     }
 
     @PostMapping("/tenant-applications")
-    @RequiresRbac3Permission(permission = "system:application:manage")
+    @RequiresPermission(value = "system:application:manage")
     @GatewayOperation(
             name = "rbac3-application-scope-admit-v1",
             summary = "将 DDC 应用纳入租户授权范围",
             externalAccessible = true,
             tags = {"rbac3", "application"})
-    public ApiEnvelopeVO<ApplicationAuthorizationScopeVO> admit(
+    public ResultRecord<ApplicationAuthorizationScopeVO> admit(
             @Valid @RequestBody AdmitApplicationAuthorizationScopeCommand command
             ) {
-        return ApiEnvelopeVO.success(facade.admit(
-                tenantId(), CurrentRbac3Principal.requireCurrent().userId(), command));
+        return ResultRecord.success(facade.admit(
+                tenantId(), new CurrentRbac3User().require().rbac3UserId(), command));
     }
 
     @GetMapping("/tenant-applications")
-    @RequiresRbac3Permission(permission = "system:application:read")
+    @RequiresPermission(value = "system:application:read")
     @GatewayOperation(
             name = "rbac3-application-scope-list-v1",
             summary = "查询租户应用授权范围",
             externalAccessible = true,
             tags = {"rbac3", "application"})
-    public ApiEnvelopeVO<List<ApplicationAuthorizationScopeVO>> applications() {
-        return ApiEnvelopeVO.success(facade.applications(tenantId()));
+    public ResultRecord<List<ApplicationAuthorizationScopeVO>> applications() {
+        return ResultRecord.success(facade.applications(tenantId()));
     }
 
     @GetMapping("/tenant-applications/{applicationId}")
-    @RequiresRbac3Permission(permission = "system:application:read")
+    @RequiresPermission(value = "system:application:read")
     @GatewayOperation(
             name = "rbac3-application-scope-get-v1",
             summary = "查询租户应用授权范围详情",
             externalAccessible = true,
             tags = {"rbac3", "application"})
-    public ApiEnvelopeVO<ApplicationAuthorizationScopeVO> application(
+    public ResultRecord<ApplicationAuthorizationScopeVO> application(
             @PathVariable Long applicationId) {
-        return ApiEnvelopeVO.success(facade.application(tenantId(), applicationId));
+        return ResultRecord.success(facade.application(tenantId(), applicationId));
     }
 
     @PutMapping("/tenant-applications/{applicationId}/status")
-    @RequiresRbac3Permission(permission = "system:application:manage")
+    @RequiresPermission(value = "system:application:manage")
     @GatewayOperation(
             name = "rbac3-application-scope-status-v1",
             summary = "变更租户应用授权范围状态",
             externalAccessible = true,
             tags = {"rbac3", "application"})
-    public ApiEnvelopeVO<ApplicationAuthorizationScopeVO> changeStatus(
+    public ResultRecord<ApplicationAuthorizationScopeVO> changeStatus(
             @PathVariable Long applicationId,
             @Valid @RequestBody ChangeApplicationAuthorizationScopeStatusCommand command
             ) {
-        return ApiEnvelopeVO.success(facade.changeStatus(
+        return ResultRecord.success(facade.changeStatus(
                 tenantId(), applicationId,
-                CurrentRbac3Principal.requireCurrent().userId(), command));
+                new CurrentRbac3User().require().rbac3UserId(), command));
     }
 
     @DeleteMapping("/tenant-applications/{applicationId}")
-    @RequiresRbac3Permission(permission = "system:application:manage")
+    @RequiresPermission(value = "system:application:manage")
     @GatewayOperation(
             name = "rbac3-application-scope-remove-v1",
             summary = "移除无依赖的租户应用授权范围",
             externalAccessible = true,
             tags = {"rbac3", "application"})
-    public ApiEnvelopeVO<Void> remove(
+    public ResultRecord<Void> remove(
             @PathVariable Long applicationId,
             @RequestParam(name = "expectedVersion") long expectedVersion) {
         facade.remove(tenantId(), applicationId, expectedVersion,
-                CurrentRbac3Principal.requireCurrent().userId());
-        return ApiEnvelopeVO.success(null);
+                new CurrentRbac3User().require().rbac3UserId());
+        return ResultRecord.success(null);
     }
 
     private static Long tenantId() {

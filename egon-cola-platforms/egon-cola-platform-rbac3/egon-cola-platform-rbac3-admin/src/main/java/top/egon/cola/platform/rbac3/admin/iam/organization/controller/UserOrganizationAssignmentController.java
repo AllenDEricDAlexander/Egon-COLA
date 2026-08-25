@@ -13,11 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.iam.organization.service.UserOrganizationAssignmentService;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 
 import java.util.List;
 
@@ -45,46 +46,46 @@ public class UserOrganizationAssignmentController {
     }
 
     @GetMapping
-    @RequiresRbac3Permission(permission = "system:user-organization:read")
+    @RequiresPermission(value = "system:user-organization:read")
     @GatewayOperation(
             name = "rbac3-iam-user-organization-list-v1",
             summary = "查询用户组织任职",
             externalAccessible = true,
             tags = {"rbac3", "iam", "user", "organization"})
-    public ApiEnvelopeVO<List<UserOrganizationAssignmentService.AssignmentView>> list(
+    public ResultRecord<List<UserOrganizationAssignmentService.AssignmentView>> list(
             @PathVariable Long userId) {
-        return ApiEnvelopeVO.success(service.list(tenantId(), userId));
+        return ResultRecord.success(service.list(tenantId(), userId));
     }
 
     @PostMapping
-    @RequiresRbac3Permission(permission = "system:user-organization:manage")
+    @RequiresPermission(value = "system:user-organization:manage")
     @GatewayOperation(
             name = "rbac3-iam-user-organization-create-v1",
             summary = "新增用户组织任职",
             externalAccessible = true,
             tags = {"rbac3", "iam", "user", "organization"})
-    public ApiEnvelopeVO<UserOrganizationAssignmentService.AssignmentView> assign(
+    public ResultRecord<UserOrganizationAssignmentService.AssignmentView> assign(
             @PathVariable Long userId,
-            @Valid @RequestBody UserOrganizationAssignmentService.AssignCommand command,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(service.assign(
-                tenantId(), userId, command, principal.userId()));
+            @Valid @RequestBody UserOrganizationAssignmentService.AssignCommand command
+) {
+        return ResultRecord.success(service.assign(
+                tenantId(), userId, command, new CurrentRbac3User().require().rbac3UserId()));
     }
 
     @DeleteMapping("/{assignmentId}")
-    @RequiresRbac3Permission(permission = "system:user-organization:manage")
+    @RequiresPermission(value = "system:user-organization:manage")
     @GatewayOperation(
             name = "rbac3-iam-user-organization-revoke-v1",
             summary = "撤销用户组织任职",
             externalAccessible = true,
             tags = {"rbac3", "iam", "user", "organization"})
-    public ApiEnvelopeVO<Void> revoke(
+    public ResultRecord<Void> revoke(
             @PathVariable Long userId,
             @PathVariable Long assignmentId,
-            @RequestParam long expectedVersion,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        service.revoke(tenantId(), userId, assignmentId, expectedVersion, principal.userId());
-        return ApiEnvelopeVO.success(null);
+            @RequestParam long expectedVersion
+) {
+        service.revoke(tenantId(), userId, assignmentId, expectedVersion, new CurrentRbac3User().require().rbac3UserId());
+        return ResultRecord.success(null);
     }
 
     private static Long tenantId() {

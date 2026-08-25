@@ -14,12 +14,13 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.iam.position.domain.vo.PositionVO;
 import top.egon.cola.platform.rbac3.admin.iam.position.service.PositionFacade;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 
 import java.util.List;
 
@@ -47,59 +48,59 @@ public class PositionController {
     }
 
     @GetMapping
-    @RequiresRbac3Permission(permission = "system:position:read")
+    @RequiresPermission(value = "system:position:read")
     @GatewayOperation(
             name = "rbac3-iam-position-list-v1",
             summary = "查询手工岗位",
             externalAccessible = true,
             tags = {"rbac3", "iam", "position"})
-    public ApiEnvelopeVO<List<PositionVO>> list(
+    public ResultRecord<List<PositionVO>> list(
             @RequestParam(required = false) Long orgUnitId) {
-        return ApiEnvelopeVO.success(facade.list(tenantId(), orgUnitId));
+        return ResultRecord.success(facade.list(tenantId(), orgUnitId));
     }
 
     @PostMapping
-    @RequiresRbac3Permission(permission = "system:position:manage")
+    @RequiresPermission(value = "system:position:manage")
     @GatewayOperation(
             name = "rbac3-iam-position-create-v1",
             summary = "创建手工岗位",
             externalAccessible = true,
             tags = {"rbac3", "iam", "position"})
-    public ApiEnvelopeVO<PositionVO> create(
-            @Valid @RequestBody PositionFacade.CreateCommand command,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(facade.create(
-                tenantId(), command, principal.userId()));
+    public ResultRecord<PositionVO> create(
+            @Valid @RequestBody PositionFacade.CreateCommand command
+) {
+        return ResultRecord.success(facade.create(
+                tenantId(), command, new CurrentRbac3User().require().rbac3UserId()));
     }
 
     @PutMapping("/{positionId}")
-    @RequiresRbac3Permission(permission = "system:position:manage")
+    @RequiresPermission(value = "system:position:manage")
     @GatewayOperation(
             name = "rbac3-iam-position-update-v1",
             summary = "更新手工岗位",
             externalAccessible = true,
             tags = {"rbac3", "iam", "position"})
-    public ApiEnvelopeVO<PositionVO> update(
+    public ResultRecord<PositionVO> update(
             @PathVariable Long positionId,
-            @Valid @RequestBody PositionFacade.UpdateCommand command,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(facade.update(
-                tenantId(), positionId, command, principal.userId()));
+            @Valid @RequestBody PositionFacade.UpdateCommand command
+) {
+        return ResultRecord.success(facade.update(
+                tenantId(), positionId, command, new CurrentRbac3User().require().rbac3UserId()));
     }
 
     @DeleteMapping("/{positionId}")
-    @RequiresRbac3Permission(permission = "system:position:manage")
+    @RequiresPermission(value = "system:position:manage")
     @GatewayOperation(
             name = "rbac3-iam-position-delete-v1",
             summary = "停用手工岗位",
             externalAccessible = true,
             tags = {"rbac3", "iam", "position"})
-    public ApiEnvelopeVO<Void> remove(
+    public ResultRecord<Void> remove(
             @PathVariable Long positionId,
-            @RequestParam long expectedVersion,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        facade.remove(tenantId(), positionId, expectedVersion, principal.userId());
-        return ApiEnvelopeVO.success(null);
+            @RequestParam long expectedVersion
+) {
+        facade.remove(tenantId(), positionId, expectedVersion, new CurrentRbac3User().require().rbac3UserId());
+        return ResultRecord.success(null);
     }
 
     private static Long tenantId() {

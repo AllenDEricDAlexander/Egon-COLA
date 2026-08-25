@@ -31,7 +31,7 @@ import top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleMutationResultV
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RoleTypeEnum;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RoleRiskLevelEnum;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RoleStatusEnum;
-import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RolePermissionStatusEnum;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.enums.RoleResourceGrantStatusEnum;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.AuthorizationEventVO;
 
 /**
@@ -455,14 +455,17 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
                 .orElse(role.getRiskLevel())
                 .name();
         long permissions = entityManager.createQuery("""
-                        select count(distinct rp.permissionId) from RolePermissionEntity rp
-                         where rp.tenantId = :tenantId
-                           and rp.roleId in :roleIds
-                           and rp.status = :status
+                        select count(distinct grant.resourceId) from RoleResourceGrantEntity grant
+                         where grant.tenantId = :tenantId
+                           and grant.roleId in :roleIds
+                           and grant.status = :status
+                           and grant.validFrom <= :now
+                           and (grant.validTo is null or grant.validTo > :now)
                         """, Long.class)
                 .setParameter("tenantId", role.getTenantId())
                 .setParameter("roleIds", family.stream().map(RolePO::getId).toList())
-                .setParameter("status", RolePermissionStatusEnum.ACTIVE)
+                .setParameter("status", RoleResourceGrantStatusEnum.ACTIVE)
+                .setParameter("now", databaseClock.transactionNow())
                 .getSingleResult();
         return new RoleImpactVO(
                 roleId,

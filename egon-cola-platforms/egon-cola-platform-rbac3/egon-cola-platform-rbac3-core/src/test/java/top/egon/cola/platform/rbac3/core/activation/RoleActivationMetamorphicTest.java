@@ -72,7 +72,7 @@ class RoleActivationMetamorphicTest {
     ) {
         List<RoleNode> nodes = new ArrayList<>(fixture.nodes());
         List<RoleEdge> edges = new ArrayList<>(fixture.edges());
-        List<AuthorizationRuleFacts.PermissionBinding> permissions =
+        List<AuthorizationRuleFacts.ResourceGrantBinding> permissions =
                 new ArrayList<>(fixture.permissions());
         if (shuffle) {
             Collections.shuffle(nodes, new Random(seed * 31L));
@@ -105,9 +105,9 @@ class RoleActivationMetamorphicTest {
                 edges.add(new RoleEdge("role-0", "role-" + index));
             }
         }
-        List<AuthorizationRuleFacts.PermissionBinding> permissions =
+        List<AuthorizationRuleFacts.ResourceGrantBinding> permissions =
                 IntStream.range(0, size)
-                        .mapToObj(index -> new AuthorizationRuleFacts.PermissionBinding(
+                        .mapToObj(index -> new AuthorizationRuleFacts.ResourceGrantBinding(
                                 "role-" + index, "permission:" + index))
                         .toList();
         return new Fixture(nodes, List.copyOf(edges), permissions);
@@ -121,6 +121,6 @@ class RoleActivationMetamorphicTest {
     private record Fixture(
             List<RoleNode> nodes,
             List<RoleEdge> edges,
-            List<AuthorizationRuleFacts.PermissionBinding> permissions) {
+            List<AuthorizationRuleFacts.ResourceGrantBinding> permissions) {
     }
 }

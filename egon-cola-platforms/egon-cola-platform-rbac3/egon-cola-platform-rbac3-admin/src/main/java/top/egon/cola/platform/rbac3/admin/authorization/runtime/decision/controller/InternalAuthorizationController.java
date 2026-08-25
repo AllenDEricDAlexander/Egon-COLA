@@ -27,7 +27,7 @@ import top.egon.cola.platform.rbac3.admin.authorization.runtime.decision.service
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 
 import java.util.Objects;
 
@@ -73,12 +73,12 @@ public class InternalAuthorizationController {
     @GatewayOperation(name = "rbac3-internal-system-snapshot-v2",
             summary = "按已验证用户身份读取系统授权快照",
             externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
-    public ApiEnvelopeVO<SystemAuthorizationSnapshot> currentSnapshot(
+    public ResultRecord<SystemAuthorizationSnapshot> currentSnapshot(
             @RequestParam String systemCode,
             @RequestHeader(SUBJECT_TOKEN_HEADER) String userAccessToken,
             @AuthenticationPrincipal ServiceIdentityPrincipal servicePrincipal) {
         IdentityPrincipal user = verifyUser(userAccessToken, servicePrincipal.tenantId());
-        return ApiEnvelopeVO.success(systemSnapshots.snapshot(
+        return ResultRecord.success(systemSnapshots.snapshot(
                 servicePrincipal.tenantId(), user.subject(), systemCode));
     }
 
@@ -88,13 +88,13 @@ public class InternalAuthorizationController {
     @GatewayOperation(name = "rbac3-internal-authorization-decision-v2",
             summary = "使用已验证用户身份执行类型化授权决策",
             externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
-    public ApiEnvelopeVO<DecisionBundleVO> decide(
+    public ResultRecord<DecisionBundleVO> decide(
             @Valid @RequestBody DecisionRequestDTO request,
             @RequestHeader(SUBJECT_TOKEN_HEADER) String userAccessToken,
             @AuthenticationPrincipal ServiceIdentityPrincipal servicePrincipal) {
         IdentityPrincipal user = verifyUser(userAccessToken, servicePrincipal.tenantId());
         requireSubject(user, request.subject().tenantId(), request.subject().identitySub());
-        return ApiEnvelopeVO.success(service.decide(servicePrincipal, request));
+        return ResultRecord.success(service.decide(servicePrincipal, request));
     }
 
     /** Decides whether the verified USER may enter an application. */
@@ -103,7 +103,7 @@ public class InternalAuthorizationController {
     @GatewayOperation(name = "rbac3-internal-resource-access-decision-v2",
             summary = "判定已验证用户是否具备应用入口权限",
             externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
-    public ApiEnvelopeVO<ResourceAccessDecisionResponseVO> decideResourceAccess(
+    public ResultRecord<ResourceAccessDecisionResponseVO> decideResourceAccess(
             @Valid @RequestBody ResourceAccessDecisionRequestDTO request,
             @RequestHeader(SUBJECT_TOKEN_HEADER) String userAccessToken,
             @AuthenticationPrincipal ServiceIdentityPrincipal servicePrincipal) {
@@ -112,7 +112,7 @@ public class InternalAuthorizationController {
         ResourceAccessRequestDTO command = new ResourceAccessRequestDTO(
                 user.subject(), servicePrincipal.tenantId(),
                 request.rbacApplicationCode(), request.entryPermissionCode());
-        return ApiEnvelopeVO.success(ResourceAccessDecisionResponseVO.from(
+        return ResultRecord.success(ResourceAccessDecisionResponseVO.from(
                 service.decideResourceAccess(servicePrincipal, command)));
     }
 
@@ -122,7 +122,7 @@ public class InternalAuthorizationController {
     @GatewayOperation(name = "rbac3-internal-authorization-fence-verify-v2",
             summary = "校验用户授权传播 Fence",
             externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
-    public ApiEnvelopeVO<FenceVerificationVO> verifyFence(
+    public ResultRecord<FenceVerificationVO> verifyFence(
             @Valid @RequestBody AuthorizationFenceRequestDTO request,
             @RequestHeader(SUBJECT_TOKEN_HEADER) String userAccessToken,
             @AuthenticationPrincipal ServiceIdentityPrincipal servicePrincipal) {
@@ -130,7 +130,7 @@ public class InternalAuthorizationController {
         if (!user.subject().equals(request.identitySub())) {
             throw new Rbac3RuleViolation("IDENTITY_SUBJECT_MISMATCH");
         }
-        return ApiEnvelopeVO.success(service.verifyFence(
+        return ResultRecord.success(service.verifyFence(
                 servicePrincipal, servicePrincipal.tenantId(), user.subject()));
     }
 

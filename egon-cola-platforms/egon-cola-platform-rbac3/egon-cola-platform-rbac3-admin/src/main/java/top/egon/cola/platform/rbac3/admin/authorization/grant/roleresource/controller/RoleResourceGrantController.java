@@ -14,8 +14,9 @@ import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domai
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.vo.RoleResourceGrantMutationVO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.vo.RoleResourceGrantTreeVO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.service.RoleResourceGrantService;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 
 /** Resource-first role authorization endpoints; permission characters stay server-side. */
@@ -46,20 +47,20 @@ public class RoleResourceGrantController {
     }
 
     @GetMapping
-    @RequiresRbac3Permission(permission = "system:role-resource:read")
+    @RequiresPermission(value = "system:role-resource:read")
     @GatewayOperation(
             name = "rbac3-role-resource-tree-v1",
             summary = "查询角色资源树",
             externalAccessible = true,
             tags = {"rbac3", "role", "resource"})
     public ResultRecord<RoleResourceGrantTreeVO> tree(@PathVariable String roleId) {
-        CurrentRbac3Principal principal = CurrentRbac3Principal.requireCurrent();
+        Rbac3UserDetails principal = new CurrentRbac3User().require();
         return ResultRecord.success(service.tree(
                 principal.tenantId(), roleId, clock.transactionNow()));
     }
 
     @PutMapping
-    @RequiresRbac3Permission(permission = "system:role-resource:manage")
+    @RequiresPermission(value = "system:role-resource:manage")
     @GatewayOperation(
             name = "rbac3-role-resource-replace-v1",
             summary = "原子替换角色资源授权",
@@ -68,9 +69,9 @@ public class RoleResourceGrantController {
     public ResultRecord<RoleResourceGrantMutationVO> replace(
             @PathVariable String roleId,
             @RequestBody ReplaceRoleResourcesRequestDTO request) {
-        CurrentRbac3Principal principal = CurrentRbac3Principal.requireCurrent();
+        Rbac3UserDetails principal = new CurrentRbac3User().require();
         return ResultRecord.success(service.replace(
-                principal.tenantId(), roleId, request, principal.userId(),
+                principal.tenantId(), roleId, request, principal.rbac3UserId(),
                 clock.transactionNow()));
     }
 }

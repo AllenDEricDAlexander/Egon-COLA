@@ -15,11 +15,12 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.authorization.resource.service.GlobalResourceCatalogService;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 
 import java.util.List;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.platform.rbac3.admin.authorization.resource.domain.dto.ArchiveResourceRequestDTO;
 import top.egon.cola.platform.rbac3.admin.iam.application.domain.vo.ApplicationVO;
 import top.egon.cola.platform.rbac3.admin.authorization.resource.domain.vo.ResourceVO;
@@ -95,14 +96,14 @@ public class ApplicationResourceController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/applications")
-    @RequiresRbac3Permission(permission = "system:application:read")
+    @RequiresPermission(value = "system:application:read")
     @GatewayOperation(
             name = "rbac3-application-list-v1",
             summary = "查询租户应用",
             externalAccessible = true,
             tags = {"rbac3", "application"})
-    public ApiEnvelopeVO<List<ApplicationVO>> applications() {
-        return ApiEnvelopeVO.success(facade.applications());
+    public ResultRecord<List<ApplicationVO>> applications() {
+        return ResultRecord.success(facade.applications());
     }
 
     /**
@@ -116,49 +117,49 @@ public class ApplicationResourceController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/applications/{applicationId}/resources")
-    @RequiresRbac3Permission(permission = "system:resource:read")
+    @RequiresPermission(value = "system:resource:read")
     @GatewayOperation(
             name = "rbac3-application-resource-list-v1",
             summary = "查询应用资源",
             externalAccessible = true,
             tags = {"rbac3", "resource"})
-    public ApiEnvelopeVO<List<ResourceVO>> resources(
+    public ResultRecord<List<ResourceVO>> resources(
             @PathVariable String applicationId) {
-        return ApiEnvelopeVO.success(facade.resources(applicationId));
+        return ResultRecord.success(facade.resources(applicationId));
     }
 
     @GetMapping("/applications/{applicationId}/fields")
-    @RequiresRbac3Permission(permission = "system:field-definition:read")
-    public ApiEnvelopeVO<List<FieldDefinitionVO>> fields(
+    @RequiresPermission(value = "system:field-definition:read")
+    public ResultRecord<List<FieldDefinitionVO>> fields(
             @PathVariable String applicationId) {
-        return ApiEnvelopeVO.success(facade.fields(applicationId, null));
+        return ResultRecord.success(facade.fields(applicationId, null));
     }
 
     @GetMapping("/resources/{resourceId}/fields")
-    @RequiresRbac3Permission(permission = "system:field-definition:read")
-    public ApiEnvelopeVO<List<FieldDefinitionVO>> resourceFields(
+    @RequiresPermission(value = "system:field-definition:read")
+    public ResultRecord<List<FieldDefinitionVO>> resourceFields(
             @PathVariable String resourceId,
             @RequestParam String applicationId) {
-        return ApiEnvelopeVO.success(facade.fields(applicationId, resourceId));
+        return ResultRecord.success(facade.fields(applicationId, resourceId));
     }
 
     @PostMapping("/fields")
-    @RequiresRbac3Permission(permission = "system:field-definition:manage")
-    public ApiEnvelopeVO<FieldDefinitionVO> createField(
+    @RequiresPermission(value = "system:field-definition:manage")
+    public ResultRecord<FieldDefinitionVO> createField(
             @Valid @RequestBody CreateFieldDefinitionRequestDTO command
             ) {
-        return ApiEnvelopeVO.success(facade.createField(
-                command, CurrentRbac3Principal.requireCurrent().userId()));
+        return ResultRecord.success(facade.createField(
+                command, new CurrentRbac3User().require().rbac3UserId()));
     }
 
     @PutMapping("/fields/{fieldId}/status")
-    @RequiresRbac3Permission(permission = "system:field-definition:manage")
-    public ApiEnvelopeVO<FieldDefinitionVO> changeFieldStatus(
+    @RequiresPermission(value = "system:field-definition:manage")
+    public ResultRecord<FieldDefinitionVO> changeFieldStatus(
             @PathVariable String fieldId,
             @Valid @RequestBody ChangeFieldDefinitionStatusRequestDTO command
             ) {
-        return ApiEnvelopeVO.success(facade.changeFieldStatus(
-                fieldId, command, CurrentRbac3Principal.requireCurrent().userId()));
+        return ResultRecord.success(facade.changeFieldStatus(
+                fieldId, command, new CurrentRbac3User().require().rbac3UserId()));
     }
 
     /**
@@ -174,20 +175,20 @@ public class ApplicationResourceController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PostMapping("/resources/{resourceId}/archive")
-    @RequiresRbac3Permission(permission = "system:resource:archive")
+    @RequiresPermission(value = "system:resource:archive")
     @GatewayOperation(
             name = "rbac3-resource-archive-v1",
             summary = "归档已失效资源",
             externalAccessible = true,
             tags = {"rbac3", "resource"})
-    public ApiEnvelopeVO<ArchiveResultVO> archive(
+    public ResultRecord<ArchiveResultVO> archive(
             @PathVariable String resourceId,
             @Valid @RequestBody ArchiveResourceRequestDTO request
             ) {
-        return ApiEnvelopeVO.success(facade.archive(
+        return ResultRecord.success(facade.archive(
                 resourceId,
                 request.expectedVersion(),
-                CurrentRbac3Principal.requireCurrent().userId()));
+                new CurrentRbac3User().require().rbac3UserId()));
     }
 
     }

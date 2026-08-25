@@ -15,8 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.iam.organization.domain.vo.DirectoryPageVO;
 import top.egon.cola.platform.rbac3.admin.iam.organization.service.DirectoryQueryService;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
@@ -26,7 +27,7 @@ import top.egon.cola.platform.rbac3.admin.iam.user.domain.dto.UserStatusCommandD
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.vo.UserDirectoryVO;
 import top.egon.cola.platform.rbac3.admin.iam.user.service.UserCrudFacade;
 import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.service.DirectoryCommandService;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 
 /** RBAC-only user membership administration. IdP owns credentials and profile data. */
 @RestController
@@ -59,73 +60,73 @@ public class UserController {
     }
 
     @GetMapping("/users")
-    @RequiresRbac3Permission(permission = "system:user:read")
+    @RequiresPermission(value = "system:user:read")
     @GatewayOperation(name = "rbac3-iam-user-list-v1", summary = "分页查询租户用户",
             externalAccessible = true, tags = {"rbac3", "iam", "user"})
-    public ApiEnvelopeVO<DirectoryPageVO<UserDirectoryVO>> users(
+    public ResultRecord<DirectoryPageVO<UserDirectoryVO>> users(
             @RequestParam(required = false) String query,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String orgUnitId,
             @RequestParam(required = false) String positionId,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(200) int size) {
-        return ApiEnvelopeVO.success(queryPort.findUsers(tenantId(), query, status,
+        return ResultRecord.success(queryPort.findUsers(tenantId(), query, status,
                 orgUnitId, positionId, page, size));
     }
 
     @PostMapping("/users")
-    @RequiresRbac3Permission(permission = "system:user:manage")
+    @RequiresPermission(value = "system:user:manage")
     @GatewayOperation(name = "rbac3-iam-user-create-v1", summary = "创建RBAC用户成员",
             externalAccessible = true, tags = {"rbac3", "iam", "user"})
-    public ApiEnvelopeVO<UserDirectoryVO> create(
+    public ResultRecord<UserDirectoryVO> create(
             @Valid @RequestBody CreateUserCommandDTO command
             ) {
-        return ApiEnvelopeVO.success(users.create(Long.valueOf(tenantId()), command,
-                CurrentRbac3Principal.requireCurrent().userId()));
+        return ResultRecord.success(users.create(Long.valueOf(tenantId()), command,
+                new CurrentRbac3User().require().rbac3UserId()));
     }
 
     @GetMapping("/users/{userId}")
-    @RequiresRbac3Permission(permission = "system:user:read")
+    @RequiresPermission(value = "system:user:read")
     @GatewayOperation(name = "rbac3-iam-user-get-v1", summary = "查询RBAC用户成员",
             externalAccessible = true, tags = {"rbac3", "iam", "user"})
-    public ApiEnvelopeVO<UserDirectoryVO> user(@PathVariable String userId) {
-        return ApiEnvelopeVO.success(queryPort.findUser(tenantId(), userId));
+    public ResultRecord<UserDirectoryVO> user(@PathVariable String userId) {
+        return ResultRecord.success(queryPort.findUser(tenantId(), userId));
     }
 
     @PutMapping("/users/{userId}")
-    @RequiresRbac3Permission(permission = "system:user:manage")
+    @RequiresPermission(value = "system:user:manage")
     @GatewayOperation(name = "rbac3-iam-user-update-v1", summary = "更新RBAC用户成员绑定",
             externalAccessible = true, tags = {"rbac3", "iam", "user"})
-    public ApiEnvelopeVO<UserDirectoryVO> update(
+    public ResultRecord<UserDirectoryVO> update(
             @PathVariable Long userId,
             @Valid @RequestBody UpdateUserCommandDTO command
             ) {
-        return ApiEnvelopeVO.success(users.update(Long.valueOf(tenantId()), userId, command,
-                CurrentRbac3Principal.requireCurrent().userId()));
+        return ResultRecord.success(users.update(Long.valueOf(tenantId()), userId, command,
+                new CurrentRbac3User().require().rbac3UserId()));
     }
 
     @DeleteMapping("/users/{userId}")
-    @RequiresRbac3Permission(permission = "system:user:manage")
+    @RequiresPermission(value = "system:user:manage")
     @GatewayOperation(name = "rbac3-iam-user-delete-v1", summary = "归档RBAC用户成员",
             externalAccessible = true, tags = {"rbac3", "iam", "user"})
-    public ApiEnvelopeVO<Void> delete(
+    public ResultRecord<Void> delete(
             @PathVariable Long userId,
             @RequestParam long expectedAuthVersion) {
         users.delete(Long.valueOf(tenantId()), userId, expectedAuthVersion,
-                CurrentRbac3Principal.requireCurrent().userId());
-        return ApiEnvelopeVO.success(null);
+                new CurrentRbac3User().require().rbac3UserId());
+        return ResultRecord.success(null);
     }
 
     @PutMapping("/users/{userId}/status")
-    @RequiresRbac3Permission(permission = "system:user-status:manage")
+    @RequiresPermission(value = "system:user-status:manage")
     @GatewayOperation(name = "rbac3-iam-user-status-v1", summary = "变更RBAC用户成员状态",
             externalAccessible = true, tags = {"rbac3", "iam", "user"})
-    public ApiEnvelopeVO<UserDirectoryVO> changeStatus(
+    public ResultRecord<UserDirectoryVO> changeStatus(
             @PathVariable String userId,
             @Valid @RequestBody UserStatusCommandDTO command
             ) {
-        return ApiEnvelopeVO.success(commandPort.changeUserStatus(
-                tenantId(), userId, command, CurrentRbac3Principal.requireCurrent().userId()));
+        return ResultRecord.success(commandPort.changeUserStatus(
+                tenantId(), userId, command, new CurrentRbac3User().require().rbac3UserId()));
     }
 
     private static String tenantId() {

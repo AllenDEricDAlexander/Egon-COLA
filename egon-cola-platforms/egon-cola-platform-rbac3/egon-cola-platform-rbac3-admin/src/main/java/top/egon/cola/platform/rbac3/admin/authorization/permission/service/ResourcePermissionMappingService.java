@@ -45,18 +45,12 @@ public class ResourcePermissionMappingService {
         if (!resource.applicationId().equals(permission.applicationId())) {
             throw new Rbac3RuleViolation("ROLE_APPLICATION_MISMATCH");
         }
-        if ("API".equals(resource.resourceType())
-                && resource.suggestedPermissionCode() != null
-                && !resource.suggestedPermissionCode().equals(permission.permissionCode())) {
-            throw new Rbac3RuleViolation("REQUEST_INVALID");
-        }
-
         long activeRoleCount = repository.countActiveRoleUsage(resource, now);
         if (Objects.equals(resource.requiredPermissionId(), permission.permissionId())) {
             return view(resource, permission, activeRoleCount, false);
         }
         if (activeRoleCount > 0L) {
-            throw new Rbac3RuleViolation("AUTH_MUTATION_CONFLICT");
+            throw new Rbac3RuleViolation("RESOURCE_PERMISSION_MAPPING_IN_USE");
         }
         ResourcePermissionMappingRepository.MappingFacts updated =
                 repository.updateActualMapping(resource, permission.permissionId(), actorId,

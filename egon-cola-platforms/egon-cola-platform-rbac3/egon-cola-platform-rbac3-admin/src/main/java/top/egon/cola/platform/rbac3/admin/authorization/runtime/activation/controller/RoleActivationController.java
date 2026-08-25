@@ -13,10 +13,11 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.activation.domain.dto.ReplaceCommandDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.activation.service.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.activation.service.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.contract.activation.ActiveRoleSetView;
 import top.egon.cola.platform.rbac3.contract.activation.ReplaceActiveRolesRequest;
@@ -108,17 +109,15 @@ public class RoleActivationController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/role-activation-candidates")
-    @RequiresRbac3Permission(permission = "system:role-activation:read")
+    @RequiresPermission(value = "system:role-activation:read")
     @GatewayOperation(
             name = "rbac3-role-activation-candidates-v1",
             summary = "查询当前会话可激活的规范根角色",
             externalAccessible = true,
             tags = {"rbac3", "role-activation"})
-    public ApiEnvelopeVO<RoleActivationCandidateView> candidates(
-            @AuthenticationPrincipal CurrentRbac3Principal principal
-    ) {
-        return ApiEnvelopeVO.success(candidateService.candidates(
-                tenantId(), principal.userId(), databaseClock.transactionNow()));
+    public ResultRecord<RoleActivationCandidateView> candidates() {
+        return ResultRecord.success(candidateService.candidates(
+                tenantId(), new CurrentRbac3User().require().rbac3UserId(), databaseClock.transactionNow()));
     }
 
     /**
@@ -132,17 +131,15 @@ public class RoleActivationController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/role-activations")
-    @RequiresRbac3Permission(permission = "system:role-activation:read")
+    @RequiresPermission(value = "system:role-activation:read")
     @GatewayOperation(
             name = "rbac3-role-activation-current-v1",
             summary = "查询当前会话已激活的规范根角色",
             externalAccessible = true,
             tags = {"rbac3", "role-activation"})
-    public ApiEnvelopeVO<ActiveRoleSetView> current(
-            @AuthenticationPrincipal CurrentRbac3Principal principal
-    ) {
-        return ApiEnvelopeVO.success(facade.current(
-                tenantId(), principal.identitySub(), principal.userId()));
+    public ResultRecord<ActiveRoleSetView> current() {
+        return ResultRecord.success(facade.current(
+                tenantId(), new CurrentRbac3User().require().identitySub(), new CurrentRbac3User().require().rbac3UserId()));
     }
 
     /**
@@ -157,21 +154,20 @@ public class RoleActivationController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PutMapping("/role-activations")
-    @RequiresRbac3Permission(permission = "system:role-activation:use")
+    @RequiresPermission(value = "system:role-activation:use")
     @GatewayOperation(
             name = "rbac3-role-activation-replace-v1",
             summary = "原子替换当前会话激活角色集合",
             externalAccessible = true,
             tags = {"rbac3", "role-activation"})
-    public ApiEnvelopeVO<ReplaceActiveRolesResult> replace(
-            @Valid @RequestBody ReplaceActiveRolesRequest request,
-            @AuthenticationPrincipal CurrentRbac3Principal principal
-    ) {
-        String commandId = activationCommandId(principal.identitySub(), request);
-        return ApiEnvelopeVO.success(facade.replace(new ReplaceCommandDTO(
-                tenantId(), principal.identitySub(), principal.userId(),
+    public ResultRecord<ReplaceActiveRolesResult> replace(
+            @Valid @RequestBody ReplaceActiveRolesRequest request
+) {
+        String commandId = activationCommandId(new CurrentRbac3User().require().identitySub(), request);
+        return ResultRecord.success(facade.replace(new ReplaceCommandDTO(
+                tenantId(), new CurrentRbac3User().require().identitySub(), new CurrentRbac3User().require().rbac3UserId(),
                 request.roleIds(), request.expectedAuthVersion(),
-                principal.userId(), commandId)));
+                new CurrentRbac3User().require().rbac3UserId(), commandId)));
     }
 
     /**

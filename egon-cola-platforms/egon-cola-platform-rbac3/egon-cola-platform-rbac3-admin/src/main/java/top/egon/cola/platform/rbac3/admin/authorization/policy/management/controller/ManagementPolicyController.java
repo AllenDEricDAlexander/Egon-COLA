@@ -20,8 +20,9 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.management.service.ManagementPolicyFacade;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.IdempotencyService;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 
 import java.time.Duration;
@@ -30,7 +31,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.dto.PolicyRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.dto.ManagementPolicyRestrictionsDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.dto.SaveCommandDTO;
@@ -133,14 +134,14 @@ public class ManagementPolicyController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/management-policies")
-    @RequiresRbac3Permission(permission = "system:management-policy:read")
+    @RequiresPermission(value = "system:management-policy:read")
     @GatewayOperation(
             name = "rbac3-management-policy-list-v1",
             summary = "查询完整委托管理策略",
             externalAccessible = true,
             tags = {"rbac3", "management-policy"})
-    public ApiEnvelopeVO<List<PolicyVO>> policies() {
-        return ApiEnvelopeVO.success(facade.policies(tenantId()));
+    public ResultRecord<List<PolicyVO>> policies() {
+        return ResultRecord.success(facade.policies(tenantId()));
     }
 
     /**
@@ -154,16 +155,16 @@ public class ManagementPolicyController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/management-policies/{policyId}")
-    @RequiresRbac3Permission(permission = "system:management-policy:read")
+    @RequiresPermission(value = "system:management-policy:read")
     @GatewayOperation(
             name = "rbac3-management-policy-get-v1",
             summary = "读取委托管理策略完整聚合",
             externalAccessible = true,
             tags = {"rbac3", "management-policy"})
-    public ApiEnvelopeVO<PolicyVO> policy(
+    public ResultRecord<PolicyVO> policy(
             @PathVariable String policyId
     ) {
-        return ApiEnvelopeVO.success(facade.policy(tenantId(), policyId));
+        return ResultRecord.success(facade.policy(tenantId(), policyId));
     }
 
     /**
@@ -179,18 +180,17 @@ public class ManagementPolicyController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PostMapping("/management-policies")
-    @RequiresRbac3Permission(permission = "system:management-policy:manage")
+    @RequiresPermission(value = "system:management-policy:manage")
     @GatewayOperation(
             name = "rbac3-management-policy-create-v1",
             summary = "创建完整委托管理策略",
             externalAccessible = true,
             tags = {"rbac3", "management-policy"})
-    public ApiEnvelopeVO<PolicyVO> create(
+    public ResultRecord<PolicyVO> create(
             @Valid @RequestBody PolicyRequestDTO request,
-            @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @AuthenticationPrincipal CurrentRbac3Principal principal
-    ) {
-        return save(null, 0L, request, idempotencyKey, principal,
+            @RequestHeader("Idempotency-Key") String idempotencyKey
+) {
+        return save(null, 0L, request, idempotencyKey , new CurrentRbac3User().require(),
                 "POST:/management-policies");
     }
 
@@ -209,21 +209,20 @@ public class ManagementPolicyController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PutMapping("/management-policies/{policyId}")
-    @RequiresRbac3Permission(permission = "system:management-policy:manage")
+    @RequiresPermission(value = "system:management-policy:manage")
     @GatewayOperation(
             name = "rbac3-management-policy-update-v1",
             summary = "按版本完整替换委托管理策略",
             externalAccessible = true,
             tags = {"rbac3", "management-policy"})
-    public ApiEnvelopeVO<PolicyVO> update(
+    public ResultRecord<PolicyVO> update(
             @PathVariable String policyId,
             @RequestHeader("If-Match") String ifMatch,
             @Valid @RequestBody PolicyRequestDTO request,
-            @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @AuthenticationPrincipal CurrentRbac3Principal principal
-    ) {
+            @RequestHeader("Idempotency-Key") String idempotencyKey
+) {
         return save(policyId, expectedVersion(ifMatch), request, idempotencyKey,
-                principal, "PUT:/management-policies/{policyId}");
+                new CurrentRbac3User().require(), "PUT:/management-policies/{policyId}");
     }
 
     /**
@@ -240,29 +239,28 @@ public class ManagementPolicyController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PostMapping("/management-policies/{policyId}/disable")
-    @RequiresRbac3Permission(permission = "system:management-policy:manage")
+    @RequiresPermission(value = "system:management-policy:manage")
     @GatewayOperation(
             name = "rbac3-management-policy-disable-v1",
             summary = "禁用委托管理策略并保留历史明细",
             externalAccessible = true,
             tags = {"rbac3", "management-policy"})
-    public ApiEnvelopeVO<PolicyVO> disable(
+    public ResultRecord<PolicyVO> disable(
             @PathVariable String policyId,
             @RequestHeader("If-Match") String ifMatch,
-            @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @AuthenticationPrincipal CurrentRbac3Principal principal
-    ) {
+            @RequestHeader("Idempotency-Key") String idempotencyKey
+) {
         Instant now = databaseClock.transactionNow();
         IdempotencyClaimVO claim = claim(
-                principal, "POST:/management-policies/{policyId}/disable",
+                new CurrentRbac3User().require(), "POST:/management-policies/{policyId}/disable",
                 idempotencyKey, policyId + '|' + expectedVersion(ifMatch), now);
         if (claim.outcome() == IdempotencyOutcomeEnum.REPLAY) {
-            return ApiEnvelopeVO.success(facade.policy(tenantId(), claim.resourceId()));
+            return ResultRecord.success(facade.policy(tenantId(), claim.resourceId()));
         }
         PolicyVO view = facade.disable(
-                tenantId(), policyId, expectedVersion(ifMatch), principal.userId());
+                tenantId(), policyId, expectedVersion(ifMatch), new CurrentRbac3User().require().rbac3UserId());
         complete(claim, view, now);
-        return ApiEnvelopeVO.success(view);
+        return ResultRecord.success(view);
     }
 
     /**
@@ -281,11 +279,9 @@ public class ManagementPolicyController {
             summary = "查询当前操作者委托管理能力",
             externalAccessible = true,
             tags = {"rbac3", "management-policy", "capability"})
-    public ApiEnvelopeVO<CapabilityVO> capabilities(
-            @AuthenticationPrincipal CurrentRbac3Principal principal
-    ) {
-        return ApiEnvelopeVO.success(facade.capabilities(
-                tenantId(), principal.userId(), databaseClock.transactionNow()));
+    public ResultRecord<CapabilityVO> capabilities() {
+        return ResultRecord.success(facade.capabilities(
+                tenantId(), new CurrentRbac3User().require().rbac3UserId(), databaseClock.transactionNow()));
     }
 
     /**
@@ -305,12 +301,11 @@ public class ManagementPolicyController {
             summary = "按委托范围搜索可管理用户",
             externalAccessible = true,
             tags = {"rbac3", "management-policy", "user"})
-    public ApiEnvelopeVO<List<ManagedUserVO>> manageableUsers(
-            @RequestParam(required = false) String query,
-            @AuthenticationPrincipal CurrentRbac3Principal principal
-    ) {
-        return ApiEnvelopeVO.success(facade.manageableUsers(
-                tenantId(), principal.userId(), query,
+    public ResultRecord<List<ManagedUserVO>> manageableUsers(
+            @RequestParam(required = false) String query
+) {
+        return ResultRecord.success(facade.manageableUsers(
+                tenantId(), new CurrentRbac3User().require().rbac3UserId(), query,
                 databaseClock.transactionNow()));
     }
 
@@ -331,12 +326,11 @@ public class ManagementPolicyController {
             summary = "按委托白名单搜索可管理角色根",
             externalAccessible = true,
             tags = {"rbac3", "management-policy", "role"})
-    public ApiEnvelopeVO<List<ManagedRoleVO>> manageableRoles(
-            @RequestParam(required = false) String query,
-            @AuthenticationPrincipal CurrentRbac3Principal principal
-    ) {
-        return ApiEnvelopeVO.success(facade.manageableRoles(
-                tenantId(), principal.userId(), query,
+    public ResultRecord<List<ManagedRoleVO>> manageableRoles(
+            @RequestParam(required = false) String query
+) {
+        return ResultRecord.success(facade.manageableRoles(
+                tenantId(), new CurrentRbac3User().require().rbac3UserId(), query,
                 databaseClock.transactionNow()));
     }
 
@@ -355,12 +349,12 @@ public class ManagementPolicyController {
      * @param operation 输入参数 `operation`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private ApiEnvelopeVO<PolicyVO> save(
+    private ResultRecord<PolicyVO> save(
             String policyId,
             long expectedVersion,
             PolicyRequestDTO request,
             String idempotencyKey,
-            CurrentRbac3Principal principal,
+            Rbac3UserDetails principal,
             String operation
     ) {
         Instant now = databaseClock.transactionNow();
@@ -368,7 +362,7 @@ public class ManagementPolicyController {
                 principal, operation, idempotencyKey,
                 canonical(policyId, expectedVersion, request), now);
         if (claim.outcome() == IdempotencyOutcomeEnum.REPLAY) {
-            return ApiEnvelopeVO.success(facade.policy(tenantId(), claim.resourceId()));
+            return ResultRecord.success(facade.policy(tenantId(), claim.resourceId()));
         }
         ManagementPolicyRestrictionsDTO requestRestrictions = request.restrictions();
         PolicyVO view = facade.save(
@@ -392,9 +386,9 @@ public class ManagementPolicyController {
                                         scope.type(), scope.referenceId()))
                                 .toList(),
                         request.activationRootRoleIds(), request.operations(),
-                        expectedVersion, principal.userId()));
+                        expectedVersion, new CurrentRbac3User().require().rbac3UserId()));
         complete(claim, view, now);
-        return ApiEnvelopeVO.success(view);
+        return ResultRecord.success(view);
     }
 
     /**
@@ -412,7 +406,7 @@ public class ManagementPolicyController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     private IdempotencyClaimVO claim(
-            CurrentRbac3Principal principal,
+            Rbac3UserDetails principal,
             String operation,
             String idempotencyKey,
             String canonicalRequest,
@@ -420,7 +414,7 @@ public class ManagementPolicyController {
     ) {
         requireIdempotencyKey(idempotencyKey);
         return idempotencyService.claim(new IdempotencyCommandDTO(
-                tenantId(), "USER", principal.userId(), operation,
+                tenantId(), "USER", new CurrentRbac3User().require().rbac3UserId(), operation,
                 idempotencyKey, canonicalRequest, now.plus(IDEMPOTENCY_TTL), now));
     }
 

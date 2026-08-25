@@ -12,15 +12,22 @@ import top.egon.cola.platform.rbac3.admin.authorization.runtime.state.repository
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.po.UserPO;
 import top.egon.cola.platform.rbac3.admin.iam.application.domain.po.ApplicationPO;
 import top.egon.cola.platform.rbac3.admin.authorization.permission.domain.po.PermissionPO;
+import top.egon.cola.platform.rbac3.admin.authorization.permission.domain.enums.PermissionRiskLevelEnum;
+import top.egon.cola.platform.rbac3.admin.authorization.permission.domain.enums.PermissionStatusEnum;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.po.RolePO;
-import top.egon.cola.platform.rbac3.admin.iam.role.domain.po.RolePermissionPO;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.enums.RoleResourceGrantStatusEnum;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.po.RoleResourceGrantPO;
+import top.egon.cola.platform.rbac3.admin.authorization.resource.domain.enums.ResourceStatusEnum;
+import top.egon.cola.platform.rbac3.admin.authorization.resource.domain.enums.ResourceTypeEnum;
+import top.egon.cola.platform.rbac3.admin.authorization.resource.domain.po.ResourcePO;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import top.egon.cola.platform.rbac3.admin.authorization.permission.domain.enums.PermissionRiskLevelEnum;
+import java.util.Set;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.application.domain.enums.TenantApplicationStatusEnum;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RoleTypeEnum;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RoleRiskLevelEnum;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.userrole.domain.enums.UserRoleAssignmentTypeEnum;
@@ -59,7 +66,7 @@ public class JpaPlatformAdminBootstrapRepository
      * 含义与用法：读取、传递或更新 `APPLICATION_CODE` 时应保持 `JpaPlatformAdminBootstrapRepository` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `APPLICATION_CODE`, preserve `JpaPlatformAdminBootstrapRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private static final String APPLICATION_CODE = "rbac3-system";
+    private static final String APPLICATION_CODE = "rbac3-admin";
     /**
      * 字段 `ROLE_CODE` 表示 `JpaPlatformAdminBootstrapRepository` 中与 `ROLE CODE` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `ROLE_CODE` stores the `ROLE CODE`-related state, dependency, configuration, or result of `JpaPlatformAdminBootstrapRepository` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -75,47 +82,25 @@ public class JpaPlatformAdminBootstrapRepository
      * 含义与用法：读取、传递或更新 `PLATFORM_PERMISSIONS` 时应保持 `JpaPlatformAdminBootstrapRepository` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `PLATFORM_PERMISSIONS`, preserve `JpaPlatformAdminBootstrapRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private static final List<String> PLATFORM_PERMISSIONS = List.of(
-            "system:application:read",
-            "system:audit:read",
-            "system:authorization-constraint:manage",
-            "system:authorization-constraint:read",
-            "system:authorization-runtime:operate",
-            "system:authorization-runtime:read",
-            "system:authorization-simulation:execute",
-            "system:data-rule:manage",
-            "system:data-rule:read",
-            "system:directory-snapshot:read",
-            "system:directory:read",
-            "system:directory:sync",
-            "system:field-rule:manage",
-            "system:field-rule:read",
-            "system:management-policy:manage",
-            "system:management-policy:read",
-            "system:operation-sod:manage",
-            "system:operation-sod:read",
-            "system:resource-manifest:activate",
-            "system:resource-manifest:read",
-            "system:resource-manifest:submit",
-            "system:resource:archive",
-            "system:resource:read",
-            "system:role-activation:read",
-            "system:role-activation:use",
-            "system:role-assignment:manage",
-            "system:role-assignment:read",
-            "system:role-inheritance:manage",
-            "system:role-permission:manage",
-            "system:role:create",
-            "system:role:read",
-            "system:role:update",
-            "system:tenant:target",
-            "idp:oauth-client:create",
-            "idp:oauth-client:read",
-            "idp:oauth-client:update",
-            "idp:tenant:manage",
-            "idp:tenant:read",
-            "system:user-status:manage",
-            "system:user:read");
+    private static final List<String> REQUIRED_PLATFORM_ADMIN_RESOURCE_CODES = List.of(
+            "iam.overview",
+            "iam.users",
+            "iam.organizations",
+            "iam.positions",
+            "iam.roles",
+            "iam.permissions",
+            "iam.role-activation",
+            "iam.tenant-applications",
+            "iam.resources",
+            "iam.fields",
+            "iam.policies",
+            "iam.management-policies",
+            "iam.diagnostics.runtime",
+            "iam.diagnostics.audit",
+            "iam.diagnostics.simulation",
+            "iam.permissions.create",
+            "iam.resources.archive",
+            "iam.fields.manage");
 
     /**
      * 字段 `entityManager` 表示 `JpaPlatformAdminBootstrapRepository` 中与 `entity Manager` 相关的状态、依赖、配置或结果（声明类型 `EntityManager`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -211,28 +196,63 @@ public class JpaPlatformAdminBootstrapRepository
                 ACTOR);
 
         Instant now = clock.instant();
-        Long applicationId = idGenerator.nextLongId();
+        ApplicationPO application = findApplication(APPLICATION_CODE);
+        if (application == null) {
+            throw new IllegalStateException(
+                    "required platform application is missing: " + APPLICATION_CODE);
+        }
+        requireTenantApplication(normalizedTenantId, application.getId(), now);
+        Long applicationId = application.getId();
         Long roleId = idGenerator.nextLongId();
         Long userId = idGenerator.nextLongId();
 
-        entityManager.persist(new ApplicationPO(
-                applicationId, normalizedTenantId, APPLICATION_CODE,
-                "RBAC3 System Administration", 0, ACTOR, now));
         RolePO administratorRole = new RolePO(
                 roleId, normalizedTenantId, applicationId, ROLE_CODE,
                 "Platform Security Administrator", RoleTypeEnum.MANAGEMENT,
                 RoleRiskLevelEnum.CRITICAL, true, null, 0, null, ACTOR, now);
         entityManager.persist(administratorRole);
 
-        for (String permissionCode : PLATFORM_PERMISSIONS) {
-            Long permissionId = idGenerator.nextLongId();
-            entityManager.persist(new PermissionPO(
-                    permissionId, normalizedTenantId, applicationId, permissionCode,
-                    permissionName(permissionCode), risk(permissionCode),
-                    "Built-in RBAC3 platform administration capability", ACTOR, now));
-            entityManager.persist(new RolePermissionPO(
-                    idGenerator.nextLongId(), normalizedTenantId, applicationId, roleId,
-                    permissionId, now, null, ACTOR, now));
+        boolean grantsChanged = false;
+        List<ResourcePO> resources = entityManager.createQuery(
+                        "select resource from ResourceEntity resource "
+                                + "where resource.applicationId = :applicationId "
+                                + "and resource.resourceCode in :resourceCodes "
+                                + "and resource.status = :status", ResourcePO.class)
+                .setParameter("applicationId", applicationId)
+                .setParameter("resourceCodes", REQUIRED_PLATFORM_ADMIN_RESOURCE_CODES)
+                .setParameter("status", ResourceStatusEnum.ACTIVE)
+                .getResultList();
+        if (resources.size() != REQUIRED_PLATFORM_ADMIN_RESOURCE_CODES.size()) {
+            Set<String> found = resources.stream()
+                    .map(ResourcePO::getResourceCode)
+                    .collect(java.util.stream.Collectors.toSet());
+            List<String> missing = REQUIRED_PLATFORM_ADMIN_RESOURCE_CODES.stream()
+                    .filter(code -> !found.contains(code))
+                    .toList();
+            throw new IllegalStateException("required platform resources are missing: " + missing);
+        }
+        for (ResourcePO resource : resources) {
+            if (resource.getResourceType() != ResourceTypeEnum.ROUTE
+                    && resource.getResourceType() != ResourceTypeEnum.ACTION
+                    && resource.getResourceType() != ResourceTypeEnum.API) {
+                throw new IllegalStateException(
+                        "platform resource is not grantable: " + resource.getResourceCode());
+            }
+            Long permissionId = resource.getRequiredPermissionId();
+            PermissionPO permission = permissionId == null
+                    ? null : entityManager.find(PermissionPO.class, permissionId);
+            if (permission == null
+                    || !applicationId.equals(permission.getApplicationId())
+                    || permission.getStatus() != PermissionStatusEnum.ACTIVE) {
+                throw new IllegalStateException(
+                        "platform resource is not actively mapped: " + resource.getResourceCode());
+            }
+            if (!activeGrantExists(normalizedTenantId, roleId, resource.getId(), now)) {
+                entityManager.persist(new RoleResourceGrantPO(
+                        idGenerator.nextLongId(), normalizedTenantId, applicationId,
+                        roleId, resource.getId(), now, null, ACTOR, now));
+                grantsChanged = true;
+            }
         }
 
         UserPO administrator = new UserPO(
@@ -248,7 +268,9 @@ public class JpaPlatformAdminBootstrapRepository
                 null, ACTOR, now);
         entityManager.persist(assignment);
         entityManager.flush();
-        authorizationState.increment(normalizedTenantId, ACTOR);
+        if (grantsChanged) {
+            authorizationState.increment(normalizedTenantId, ACTOR);
+        }
         insertSelfClosure(normalizedTenantId, applicationId, roleId);
 
         String requestId = "bootstrap:" + normalizedTenantId;
@@ -266,6 +288,57 @@ public class JpaPlatformAdminBootstrapRepository
                         "changeType", "BOOTSTRAPPED",
                         "authVersion", Long.toString(administrator.getAuthVersion())),
                 requestId));
+    }
+
+    private ApplicationPO findApplication(String applicationCode) {
+        List<ApplicationPO> applications = entityManager.createQuery(
+                        "select application from ApplicationEntity application "
+                                + "where application.applicationCode = :applicationCode",
+                        ApplicationPO.class)
+                .setParameter("applicationCode", applicationCode)
+                .getResultList();
+        if (applications.size() > 1) {
+            throw new IllegalStateException("duplicate platform application: " + applicationCode);
+        }
+        return applications.isEmpty() ? null : applications.getFirst();
+    }
+
+    private void requireTenantApplication(Long tenantId, Long applicationId, Instant now) {
+        Number count = (Number) entityManager.createQuery(
+                        "select count(entitlement) from TenantApplicationEntity entitlement "
+                                + "where entitlement.tenantId = :tenantId "
+                                + "and entitlement.applicationId = :applicationId "
+                                + "and entitlement.status = :status "
+                                + "and entitlement.validFrom <= :now "
+                                + "and (entitlement.validTo is null or entitlement.validTo > :now)")
+                .setParameter("tenantId", tenantId)
+                .setParameter("applicationId", applicationId)
+                .setParameter("status", TenantApplicationStatusEnum.ACTIVE)
+                .setParameter("now", now)
+                .getSingleResult();
+        if (count.longValue() == 0L) {
+            throw new IllegalStateException("platform application is not entitled for tenant");
+        }
+    }
+
+    private boolean activeGrantExists(
+            Long tenantId,
+            Long roleId,
+            Long resourceId,
+            Instant now) {
+        Number count = (Number) entityManager.createQuery(
+                        "select count(grant) from RoleResourceGrantEntity grant "
+                                + "where grant.tenantId = :tenantId "
+                                + "and grant.roleId = :roleId and grant.resourceId = :resourceId "
+                                + "and grant.status = :status and grant.validFrom <= :now "
+                                + "and (grant.validTo is null or grant.validTo > :now)")
+                .setParameter("tenantId", tenantId)
+                .setParameter("roleId", roleId)
+                .setParameter("resourceId", resourceId)
+                .setParameter("status", RoleResourceGrantStatusEnum.ACTIVE)
+                .setParameter("now", now)
+                .getSingleResult();
+        return count.longValue() > 0L;
     }
 
     /**

@@ -261,6 +261,11 @@ public class RolePO extends TenantScopedPO {
         markUpdated(actorId, now);
     }
 
+    /** Advances the optimistic role version after a dependent grant mutation. */
+    public void touch(String actorId, Instant now) {
+        markUpdated(actorId, Objects.requireNonNull(now, "now"));
+    }
+
     /**
      * 方法 `getId` 按照 `RolePO` 的职责处理输入，完成 `get Id` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
      * Method `getId` processes its inputs according to `RolePO`'s responsibility, performs the `get Id` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.

@@ -18,13 +18,14 @@ import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.service.ConstraintFacade;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 
 import java.time.Instant;
 import java.util.List;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.SodSetRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.PrerequisiteGroupRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.CardinalityRequestDTO;
@@ -99,11 +100,11 @@ public class ConstraintController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/sod-sets")
-    @RequiresRbac3Permission(permission = "system:authorization-constraint:read")
+    @RequiresPermission(value = "system:authorization-constraint:read")
     @GatewayOperation(name = "rbac3-sod-set-list-v1", summary = "查询SSD和DSD集合",
             externalAccessible = true, tags = {"rbac3", "constraint"})
-    public ApiEnvelopeVO<List<SodVO>> sodSets() {
-        return ApiEnvelopeVO.success(facade.sodSets(tenantId()));
+    public ResultRecord<List<SodVO>> sodSets() {
+        return ResultRecord.success(facade.sodSets(tenantId()));
     }
 
     /**
@@ -118,13 +119,13 @@ public class ConstraintController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PostMapping("/sod-sets")
-    @RequiresRbac3Permission(permission = "system:authorization-constraint:manage")
+    @RequiresPermission(value = "system:authorization-constraint:manage")
     @GatewayOperation(name = "rbac3-sod-set-create-v1", summary = "创建SSD或DSD集合",
             externalAccessible = true, tags = {"rbac3", "constraint"})
-    public ApiEnvelopeVO<MutationResultVO> createSodSet(
-            @Valid @RequestBody SodSetRequestDTO request,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(facade.saveSod(sodCommand(null, request, principal)));
+    public ResultRecord<MutationResultVO> createSodSet(
+            @Valid @RequestBody SodSetRequestDTO request
+) {
+        return ResultRecord.success(facade.saveSod(sodCommand(null, request , new CurrentRbac3User().require())));
     }
 
     /**
@@ -140,14 +141,14 @@ public class ConstraintController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PutMapping("/sod-sets/{setId}")
-    @RequiresRbac3Permission(permission = "system:authorization-constraint:manage")
+    @RequiresPermission(value = "system:authorization-constraint:manage")
     @GatewayOperation(name = "rbac3-sod-set-update-v1", summary = "更新SSD或DSD集合",
             externalAccessible = true, tags = {"rbac3", "constraint"})
-    public ApiEnvelopeVO<MutationResultVO> updateSodSet(
+    public ResultRecord<MutationResultVO> updateSodSet(
             @PathVariable String setId,
-            @Valid @RequestBody SodSetRequestDTO request,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(facade.saveSod(sodCommand(setId, request, principal)));
+            @Valid @RequestBody SodSetRequestDTO request
+) {
+        return ResultRecord.success(facade.saveSod(sodCommand(setId, request , new CurrentRbac3User().require())));
     }
 
     /**
@@ -163,15 +164,15 @@ public class ConstraintController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PostMapping("/roles/{roleId}/prerequisite-groups")
-    @RequiresRbac3Permission(permission = "system:authorization-constraint:manage")
+    @RequiresPermission(value = "system:authorization-constraint:manage")
     @GatewayOperation(name = "rbac3-role-prerequisite-save-v1",
             summary = "替换角色前置条件组", externalAccessible = true,
             tags = {"rbac3", "constraint"})
-    public ApiEnvelopeVO<MutationResultVO> prerequisites(
+    public ResultRecord<MutationResultVO> prerequisites(
             @PathVariable String roleId,
-            @Valid @RequestBody PrerequisiteGroupRequestDTO request,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(facade.savePrerequisites(
+            @Valid @RequestBody PrerequisiteGroupRequestDTO request
+) {
+        return ResultRecord.success(facade.savePrerequisites(
                 new PrerequisiteGroupCommandDTO(
                         tenantId(),
                         roleId,
@@ -179,7 +180,7 @@ public class ConstraintController {
                         request.matchMode(),
                         request.prerequisiteRoleIds(),
                         request.expectedRoleVersion(),
-                        principal.userId())));
+                        new CurrentRbac3User().require().rbac3UserId())));
     }
 
     /**
@@ -195,15 +196,15 @@ public class ConstraintController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PutMapping("/roles/{roleId}/cardinality")
-    @RequiresRbac3Permission(permission = "system:authorization-constraint:manage")
+    @RequiresPermission(value = "system:authorization-constraint:manage")
     @GatewayOperation(name = "rbac3-role-cardinality-save-v1",
             summary = "配置角色容量", externalAccessible = true,
             tags = {"rbac3", "constraint"})
-    public ApiEnvelopeVO<MutationResultVO> cardinality(
+    public ResultRecord<MutationResultVO> cardinality(
             @PathVariable String roleId,
-            @Valid @RequestBody CardinalityRequestDTO request,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(facade.saveCardinality(
+            @Valid @RequestBody CardinalityRequestDTO request
+) {
+        return ResultRecord.success(facade.saveCardinality(
                 new CardinalityCommandDTO(
                         tenantId(),
                         roleId,
@@ -212,7 +213,7 @@ public class ConstraintController {
                         request.validFrom(),
                         request.validTo(),
                         request.expectedVersion(),
-                        principal.userId())));
+                        new CurrentRbac3User().require().rbac3UserId())));
     }
 
     /**
@@ -225,11 +226,11 @@ public class ConstraintController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/data-rules")
-    @RequiresRbac3Permission(permission = "system:data-rule:read")
+    @RequiresPermission(value = "system:data-rule:read")
     @GatewayOperation(name = "rbac3-data-rule-list-v1", summary = "查询数据规则",
             externalAccessible = true, tags = {"rbac3", "data-rule"})
-    public ApiEnvelopeVO<List<DataRuleVO>> dataRules() {
-        return ApiEnvelopeVO.success(facade.dataRules(tenantId()));
+    public ResultRecord<List<DataRuleVO>> dataRules() {
+        return ResultRecord.success(facade.dataRules(tenantId()));
     }
 
     /**
@@ -244,14 +245,14 @@ public class ConstraintController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PostMapping("/data-rules")
-    @RequiresRbac3Permission(permission = "system:data-rule:manage")
+    @RequiresPermission(value = "system:data-rule:manage")
     @GatewayOperation(name = "rbac3-data-rule-create-v1", summary = "创建类型化数据规则",
             externalAccessible = true, tags = {"rbac3", "data-rule"})
-    public ApiEnvelopeVO<MutationResultVO> createDataRule(
-            @Valid @RequestBody DataRuleRequestDTO request,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(facade.saveDataRule(
-                dataRuleCommand(null, request, principal)));
+    public ResultRecord<MutationResultVO> createDataRule(
+            @Valid @RequestBody DataRuleRequestDTO request
+) {
+        return ResultRecord.success(facade.saveDataRule(
+                dataRuleCommand(null, request , new CurrentRbac3User().require())));
     }
 
     /**
@@ -267,15 +268,15 @@ public class ConstraintController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PutMapping("/data-rules/{ruleId}")
-    @RequiresRbac3Permission(permission = "system:data-rule:manage")
+    @RequiresPermission(value = "system:data-rule:manage")
     @GatewayOperation(name = "rbac3-data-rule-update-v1", summary = "更新类型化数据规则",
             externalAccessible = true, tags = {"rbac3", "data-rule"})
-    public ApiEnvelopeVO<MutationResultVO> updateDataRule(
+    public ResultRecord<MutationResultVO> updateDataRule(
             @PathVariable String ruleId,
-            @Valid @RequestBody DataRuleRequestDTO request,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(facade.saveDataRule(
-                dataRuleCommand(ruleId, request, principal)));
+            @Valid @RequestBody DataRuleRequestDTO request
+) {
+        return ResultRecord.success(facade.saveDataRule(
+                dataRuleCommand(ruleId, request , new CurrentRbac3User().require())));
     }
 
     /**
@@ -288,11 +289,11 @@ public class ConstraintController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/field-rules")
-    @RequiresRbac3Permission(permission = "system:field-rule:read")
+    @RequiresPermission(value = "system:field-rule:read")
     @GatewayOperation(name = "rbac3-field-rule-list-v1", summary = "查询字段规则",
             externalAccessible = true, tags = {"rbac3", "field-rule"})
-    public ApiEnvelopeVO<List<FieldRuleVO>> fieldRules() {
-        return ApiEnvelopeVO.success(facade.fieldRules(tenantId()));
+    public ResultRecord<List<FieldRuleVO>> fieldRules() {
+        return ResultRecord.success(facade.fieldRules(tenantId()));
     }
 
     /**
@@ -307,14 +308,14 @@ public class ConstraintController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PostMapping("/field-rules")
-    @RequiresRbac3Permission(permission = "system:field-rule:manage")
+    @RequiresPermission(value = "system:field-rule:manage")
     @GatewayOperation(name = "rbac3-field-rule-create-v1", summary = "创建字段访问规则",
             externalAccessible = true, tags = {"rbac3", "field-rule"})
-    public ApiEnvelopeVO<MutationResultVO> createFieldRule(
-            @Valid @RequestBody FieldRuleRequestDTO request,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(facade.saveFieldRule(
-                fieldRuleCommand(null, request, principal)));
+    public ResultRecord<MutationResultVO> createFieldRule(
+            @Valid @RequestBody FieldRuleRequestDTO request
+) {
+        return ResultRecord.success(facade.saveFieldRule(
+                fieldRuleCommand(null, request , new CurrentRbac3User().require())));
     }
 
     /**
@@ -330,15 +331,15 @@ public class ConstraintController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PutMapping("/field-rules/{ruleId}")
-    @RequiresRbac3Permission(permission = "system:field-rule:manage")
+    @RequiresPermission(value = "system:field-rule:manage")
     @GatewayOperation(name = "rbac3-field-rule-update-v1", summary = "更新字段访问规则",
             externalAccessible = true, tags = {"rbac3", "field-rule"})
-    public ApiEnvelopeVO<MutationResultVO> updateFieldRule(
+    public ResultRecord<MutationResultVO> updateFieldRule(
             @PathVariable String ruleId,
-            @Valid @RequestBody FieldRuleRequestDTO request,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(facade.saveFieldRule(
-                fieldRuleCommand(ruleId, request, principal)));
+            @Valid @RequestBody FieldRuleRequestDTO request
+) {
+        return ResultRecord.success(facade.saveFieldRule(
+                fieldRuleCommand(ruleId, request , new CurrentRbac3User().require())));
     }
 
     /**
@@ -351,11 +352,11 @@ public class ConstraintController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/operation-sod-rules")
-    @RequiresRbac3Permission(permission = "system:operation-sod:read")
+    @RequiresPermission(value = "system:operation-sod:read")
     @GatewayOperation(name = "rbac3-operation-sod-list-v1", summary = "查询同对象职责分离规则",
             externalAccessible = true, tags = {"rbac3", "operation-sod"})
-    public ApiEnvelopeVO<List<OperationSodRuleVO>> operationSodRules() {
-        return ApiEnvelopeVO.success(facade.operationSodRules(tenantId()));
+    public ResultRecord<List<OperationSodRuleVO>> operationSodRules() {
+        return ResultRecord.success(facade.operationSodRules(tenantId()));
     }
 
     /**
@@ -370,15 +371,15 @@ public class ConstraintController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PostMapping("/operation-sod-rules")
-    @RequiresRbac3Permission(permission = "system:operation-sod:manage")
+    @RequiresPermission(value = "system:operation-sod:manage")
     @GatewayOperation(name = "rbac3-operation-sod-create-v1",
             summary = "创建同对象职责分离规则", externalAccessible = true,
             tags = {"rbac3", "operation-sod"})
-    public ApiEnvelopeVO<MutationResultVO> createOperationSodRule(
-            @Valid @RequestBody OperationSodRuleRequestDTO request,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(facade.saveOperationSodRule(
-                operationSodCommand(null, request, principal)));
+    public ResultRecord<MutationResultVO> createOperationSodRule(
+            @Valid @RequestBody OperationSodRuleRequestDTO request
+) {
+        return ResultRecord.success(facade.saveOperationSodRule(
+                operationSodCommand(null, request , new CurrentRbac3User().require())));
     }
 
     /**
@@ -394,16 +395,16 @@ public class ConstraintController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PutMapping("/operation-sod-rules/{ruleId}")
-    @RequiresRbac3Permission(permission = "system:operation-sod:manage")
+    @RequiresPermission(value = "system:operation-sod:manage")
     @GatewayOperation(name = "rbac3-operation-sod-update-v1",
             summary = "更新同对象职责分离规则", externalAccessible = true,
             tags = {"rbac3", "operation-sod"})
-    public ApiEnvelopeVO<MutationResultVO> updateOperationSodRule(
+    public ResultRecord<MutationResultVO> updateOperationSodRule(
             @PathVariable String ruleId,
-            @Valid @RequestBody OperationSodRuleRequestDTO request,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(facade.saveOperationSodRule(
-                operationSodCommand(ruleId, request, principal)));
+            @Valid @RequestBody OperationSodRuleRequestDTO request
+) {
+        return ResultRecord.success(facade.saveOperationSodRule(
+                operationSodCommand(ruleId, request , new CurrentRbac3User().require())));
     }
 
     /**
@@ -421,12 +422,12 @@ public class ConstraintController {
     private static SaveSodCommandDTO sodCommand(
             String setId,
             SodSetRequestDTO request,
-            CurrentRbac3Principal principal) {
+            Rbac3UserDetails principal) {
         return new SaveSodCommandDTO(
                 tenantId(), setId, request.setCode(),
                 ConstraintTypeEnum.valueOf(request.constraintType()),
                 request.applicationId(), request.maximumActiveRoles(), request.memberRoleIds(),
-                request.validFrom(), request.validTo(), request.expectedVersion(), principal.userId());
+                request.validFrom(), request.validTo(), request.expectedVersion(), new CurrentRbac3User().require().rbac3UserId());
     }
 
     /**
@@ -444,12 +445,12 @@ public class ConstraintController {
     private static DataRuleCommandDTO dataRuleCommand(
             String ruleId,
             DataRuleRequestDTO request,
-            CurrentRbac3Principal principal) {
+            Rbac3UserDetails principal) {
         return new DataRuleCommandDTO(
                 tenantId(), ruleId, request.applicationId(), request.roleId(),
                 request.permissionId(), request.scopeType(), request.directorySnapshotVersion(),
                 request.references(), request.validFrom(), request.validTo(),
-                request.expectedVersion(), principal.userId());
+                request.expectedVersion(), new CurrentRbac3User().require().rbac3UserId());
     }
 
     /**
@@ -467,11 +468,11 @@ public class ConstraintController {
     private static FieldRuleCommandDTO fieldRuleCommand(
             String ruleId,
             FieldRuleRequestDTO request,
-            CurrentRbac3Principal principal) {
+            Rbac3UserDetails principal) {
         return new FieldRuleCommandDTO(
                 tenantId(), ruleId, request.applicationId(), request.roleId(),
                 request.permissionId(), request.fieldDefinitionId(), request.accessLevel(),
-                request.validFrom(), request.validTo(), request.expectedVersion(), principal.userId());
+                request.validFrom(), request.validTo(), request.expectedVersion(), new CurrentRbac3User().require().rbac3UserId());
     }
 
     /**
@@ -489,11 +490,11 @@ public class ConstraintController {
     private static OperationSodRuleCommandDTO operationSodCommand(
             String ruleId,
             OperationSodRuleRequestDTO request,
-            CurrentRbac3Principal principal) {
+            Rbac3UserDetails principal) {
         return new OperationSodRuleCommandDTO(
                 tenantId(), ruleId, request.applicationCode(), request.businessResource(),
                 request.priorActionCode(), request.forbiddenLaterActionCode(), request.lookbackFrom(),
-                request.validFrom(), request.validTo(), request.expectedVersion(), principal.userId());
+                request.validFrom(), request.validTo(), request.expectedVersion(), new CurrentRbac3User().require().rbac3UserId());
     }
 
     /**

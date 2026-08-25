@@ -88,20 +88,6 @@ public class Rbac3AdminSecurityConfiguration {
     }
 
     /**
-     * 方法 `rbac3AdminPrincipalFilter` 按照 `Rbac3AdminSecurityConfiguration` 的职责处理输入，完成 `rbac3 Admin Principal Filter` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `rbac3AdminPrincipalFilter` processes its inputs according to `Rbac3AdminSecurityConfiguration`'s responsibility, performs the `rbac3 Admin Principal Filter` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `rbac3AdminPrincipalFilter` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `rbac3AdminPrincipalFilter`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Bean
-    Rbac3AdminPrincipalFilter rbac3AdminPrincipalFilter() {
-        return new Rbac3AdminPrincipalFilter();
-    }
-
-    /**
      * 方法 `rbac3InternalSecurityFilterChain` 按照 `Rbac3AdminSecurityConfiguration` 的职责处理输入，完成 `rbac3 Internal Security Filter Chain` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
      * Method `rbac3InternalSecurityFilterChain` processes its inputs according to `Rbac3AdminSecurityConfiguration`'s responsibility, performs the `rbac3 Internal Security Filter Chain` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
      *
@@ -144,7 +130,6 @@ public class Rbac3AdminSecurityConfiguration {
      * @param http 输入参数 `http`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param tenantFilter 输入参数 `tenantFilter`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param authenticationConverter 输入参数 `authenticationConverter`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param principalFilter 输入参数 `principalFilter`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param idpFilters 输入参数 `idpFilters`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param rbac3Filters 输入参数 `rbac3Filters`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
@@ -156,7 +141,6 @@ public class Rbac3AdminSecurityConfiguration {
     SecurityFilterChain rbac3SecurityFilterChain(
             HttpSecurity http,
             TenantContextFilter tenantFilter,
-            Rbac3AdminPrincipalFilter principalFilter,
             IdpBearerAuthenticationFilter idpFilter,
             Rbac3BearerAuthenticationFilter rbac3Filter
     ) throws Exception {
@@ -171,8 +155,7 @@ public class Rbac3AdminSecurityConfiguration {
                         .anyRequest().authenticated());
         http.addFilterBefore(idpFilter, AnonymousAuthenticationFilter.class);
         http.addFilterAfter(rbac3Filter, IdpBearerAuthenticationFilter.class);
-        http.addFilterAfter(principalFilter, Rbac3BearerAuthenticationFilter.class);
-        http.addFilterAfter(tenantFilter, Rbac3AdminPrincipalFilter.class);
+        http.addFilterAfter(tenantFilter, Rbac3BearerAuthenticationFilter.class);
         return http.build();
     }
 

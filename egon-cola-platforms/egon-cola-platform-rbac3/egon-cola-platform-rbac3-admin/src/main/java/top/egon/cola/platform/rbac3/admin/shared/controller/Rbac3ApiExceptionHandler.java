@@ -6,12 +6,10 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.platform.rbac3.contract.error.Rbac3ErrorCode;
-import top.egon.cola.platform.rbac3.contract.error.Rbac3ErrorResponse;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
-import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -47,7 +45,7 @@ public class Rbac3ApiExceptionHandler {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @ExceptionHandler(Rbac3RuleViolation.class)
-    public ResponseEntity<Rbac3ErrorResponse> handleRuleViolation(
+    public ResponseEntity<ResultRecord<Void>> handleRuleViolation(
             Rbac3RuleViolation error,
             HttpServletRequest request
     ) {
@@ -68,7 +66,7 @@ public class Rbac3ApiExceptionHandler {
      */
     @ExceptionHandler({MethodArgumentNotValidException.class,
             HttpMessageNotReadableException.class, IllegalArgumentException.class})
-    public ResponseEntity<Rbac3ErrorResponse> handleInvalidRequest(
+    public ResponseEntity<ResultRecord<Void>> handleInvalidRequest(
             Exception error,
             HttpServletRequest request
     ) {
@@ -88,19 +86,13 @@ public class Rbac3ApiExceptionHandler {
      * @param request 输入参数 `request`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private ResponseEntity<Rbac3ErrorResponse> response(
+    private ResponseEntity<ResultRecord<Void>> response(
             Rbac3ErrorCode code,
             String message,
             HttpServletRequest request
     ) {
-        String requestId = headerOrGenerated(request, "X-Request-Id");
-        String traceId = headerOrGenerated(request, "X-Trace-Id");
-        Rbac3ErrorResponse body = new Rbac3ErrorResponse(
-                new Rbac3ErrorResponse.Error(
-                        code, message, code.retryable(), List.of()),
-                new Rbac3ErrorResponse.Meta(requestId, traceId, Instant.now())
-        );
-        return ResponseEntity.status(code.httpStatus()).body(body);
+        return ResponseEntity.status(code.httpStatus()).body(ResultRecord.result(
+                code.httpStatus(), code.name(), message, false, null));
     }
 
     /**

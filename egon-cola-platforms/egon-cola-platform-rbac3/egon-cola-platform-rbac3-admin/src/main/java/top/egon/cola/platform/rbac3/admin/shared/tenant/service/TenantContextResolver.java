@@ -3,7 +3,7 @@ package top.egon.cola.platform.rbac3.admin.shared.tenant.service;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.core.Authentication;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.exception.TenantContextResolutionException;
 
@@ -59,7 +59,7 @@ public final class TenantContextResolver {
         if (authentication.getPrincipal() instanceof ServiceIdentityPrincipal principal) {
             return serviceContext(request, principal);
         }
-        if (!(authentication.getPrincipal() instanceof CurrentRbac3Principal principal)) {
+        if (!(authentication.getPrincipal() instanceof Rbac3UserDetails principal)) {
             throw new TenantContextResolutionException(401, "AUTHENTICATION_REQUIRED");
         }
         String assertedTenant = trimToNull(request.getHeader(TENANT_HEADER));
@@ -73,7 +73,7 @@ public final class TenantContextResolver {
         }
         boolean platformRoute = request.getRequestURI().startsWith("/api/rbac3/v1/platform/")
                 || request.getRequestURI().startsWith("/api/v1/platform/");
-        if (!platformRoute || !principal.platformAdministrator()
+        if (!platformRoute || !principal.hasPermission("system:platform:admin")
                 || !principal.hasPermission(TARGET_PERMISSION)) {
             throw new TenantContextResolutionException(403, "PERMISSION_DENIED");
         }

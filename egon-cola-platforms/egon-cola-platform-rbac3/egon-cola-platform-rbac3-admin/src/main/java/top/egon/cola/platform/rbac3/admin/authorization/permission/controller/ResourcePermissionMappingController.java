@@ -13,8 +13,9 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.authorization.permission.domain.dto.UpdateResourcePermissionMappingRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.permission.domain.vo.ResourcePermissionMappingVO;
 import top.egon.cola.platform.rbac3.admin.authorization.permission.service.ResourcePermissionMappingService;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 
 /** Dedicated administrator endpoint for the sole actual resource-permission mapping write path. */
@@ -38,7 +39,7 @@ public class ResourcePermissionMappingController {
     }
 
     @GetMapping
-    @RequiresRbac3Permission(permission = "system:resource-permission:read")
+    @RequiresPermission(value = "system:resource-permission:read")
     @GatewayOperation(name = "rbac3-resource-permission-mapping-get-v1",
             summary = "查询资源实际权限映射", externalAccessible = true,
             tags = {"rbac3", "resource", "permission"})
@@ -47,15 +48,15 @@ public class ResourcePermissionMappingController {
     }
 
     @PutMapping
-    @RequiresRbac3Permission(permission = "system:resource-permission:manage")
+    @RequiresPermission(value = "system:resource-permission:manage")
     @GatewayOperation(name = "rbac3-resource-permission-mapping-update-v1",
             summary = "确认资源实际权限映射", externalAccessible = true,
             tags = {"rbac3", "resource", "permission"})
     public ResultRecord<ResourcePermissionMappingVO> update(
             @PathVariable String resourceId,
             @Valid @RequestBody UpdateResourcePermissionMappingRequestDTO request) {
-        CurrentRbac3Principal principal = CurrentRbac3Principal.requireCurrent();
+        Rbac3UserDetails principal = new CurrentRbac3User().require();
         return ResultRecord.success(service.update(
-                resourceId, request, principal.userId(), clock.transactionNow()));
+                resourceId, request, principal.rbac3UserId(), clock.transactionNow()));
     }
 }

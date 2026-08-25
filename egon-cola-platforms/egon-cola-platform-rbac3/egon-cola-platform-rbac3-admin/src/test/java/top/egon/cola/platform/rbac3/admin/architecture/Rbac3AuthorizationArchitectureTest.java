@@ -51,7 +51,7 @@ class Rbac3AuthorizationArchitectureTest {
         Path userController = adminSourceRoot().resolve("iam/user/controller/UserController.java");
         assertThat(read(userController))
                 .doesNotContain("@AuthenticationPrincipal")
-                .contains("CurrentRbac3Principal.requireCurrent()");
+                .contains("new CurrentRbac3User().require()");
     }
 
     @Test
@@ -95,7 +95,6 @@ class Rbac3AuthorizationArchitectureTest {
             String content = read(source);
             if (source.getFileName().toString().endsWith("Controller.java")
                     && (content.contains("@RequiresPermission")
-                    || content.contains("@RequiresRbac3Permission")
                     || content.contains("@RequiresServiceScope"))) {
                 assertThat(content)
                         .as("permission-annotated controller %s", source)

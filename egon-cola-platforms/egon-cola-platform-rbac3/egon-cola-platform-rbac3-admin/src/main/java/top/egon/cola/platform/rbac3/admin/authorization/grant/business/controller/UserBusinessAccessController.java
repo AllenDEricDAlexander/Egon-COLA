@@ -11,14 +11,15 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.business.domain.command.ReplaceUserBusinessAccessesCommand;
 import top.egon.cola.platform.rbac3.admin.iam.business.domain.vo.UserApplicationAccessVO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.business.domain.vo.UserBusinessAccessVO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.business.service.UserBusinessAccessFacade;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 
 import java.util.List;
 
@@ -46,42 +47,42 @@ public class UserBusinessAccessController {
     }
 
     @GetMapping("/users/{userId}/business-accesses")
-    @RequiresRbac3Permission(permission = "system:user-business-access:read")
+    @RequiresPermission(value = "system:user-business-access:read")
     @GatewayOperation(
             name = "rbac3-user-business-access-list-v1",
             summary = "查询用户业务域授权",
             externalAccessible = true,
             tags = {"rbac3", "user", "business"})
-    public ApiEnvelopeVO<List<UserBusinessAccessVO>> accesses(
+    public ResultRecord<List<UserBusinessAccessVO>> accesses(
             @PathVariable Long userId) {
-        return ApiEnvelopeVO.success(facade.accesses(tenantId(), userId));
+        return ResultRecord.success(facade.accesses(tenantId(), userId));
     }
 
     @PutMapping("/users/{userId}/business-accesses")
-    @RequiresRbac3Permission(permission = "system:user-business-access:manage")
+    @RequiresPermission(value = "system:user-business-access:manage")
     @GatewayOperation(
             name = "rbac3-user-business-access-replace-v1",
             summary = "替换用户人工业务域授权",
             externalAccessible = true,
             tags = {"rbac3", "user", "business"})
-    public ApiEnvelopeVO<List<UserBusinessAccessVO>> replace(
+    public ResultRecord<List<UserBusinessAccessVO>> replace(
             @PathVariable Long userId,
-            @Valid @RequestBody ReplaceUserBusinessAccessesCommand command,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(facade.replace(
-                tenantId(), userId, principal.userId(), command));
+            @Valid @RequestBody ReplaceUserBusinessAccessesCommand command
+) {
+        return ResultRecord.success(facade.replace(
+                tenantId(), userId, new CurrentRbac3User().require().rbac3UserId(), command));
     }
 
     @GetMapping("/users/{userId}/application-accesses")
-    @RequiresRbac3Permission(permission = "system:user-application-access:read")
+    @RequiresPermission(value = "system:user-application-access:read")
     @GatewayOperation(
             name = "rbac3-user-application-access-list-v1",
             summary = "查询用户派生应用访问范围",
             externalAccessible = true,
             tags = {"rbac3", "user", "application"})
-    public ApiEnvelopeVO<List<UserApplicationAccessVO>> applicationAccesses(
+    public ResultRecord<List<UserApplicationAccessVO>> applicationAccesses(
             @PathVariable Long userId) {
-        return ApiEnvelopeVO.success(facade.applicationAccesses(tenantId(), userId));
+        return ResultRecord.success(facade.applicationAccesses(tenantId(), userId));
     }
 
     private static Long tenantId() {

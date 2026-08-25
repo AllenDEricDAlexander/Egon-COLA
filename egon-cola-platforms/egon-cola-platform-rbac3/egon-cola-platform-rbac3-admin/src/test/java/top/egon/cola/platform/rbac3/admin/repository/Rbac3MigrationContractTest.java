@@ -45,6 +45,8 @@ class Rbac3MigrationContractTest {
             "db/migration/V11__seed_builtin_user_business_access.sql";
     private static final String RBAC3_ABOUT_PERMISSION_MIGRATION =
             "db/migration/V12__seed_rbac3_about_permission.sql";
+    private static final String RESOURCE_GRANTS_MIGRATION =
+            "db/migration/V13__replace_role_permissions_and_add_resource_api_bindings.sql";
     private static final Pattern TABLE_PATTERN = Pattern.compile(
             "create\\s+table\\s+(rbac3_[a-z0-9_]+)\\s*\\((.*?)\\);",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
@@ -125,7 +127,8 @@ class Rbac3MigrationContractTest {
                 APPLICATION_CODE_COMPATIBILITY_MIGRATION,
                 BUILTIN_AUTHORIZATION_MIGRATION,
                 BUILTIN_BUSINESS_ACCESS_MIGRATION,
-                RBAC3_ABOUT_PERMISSION_MIGRATION);
+                RBAC3_ABOUT_PERMISSION_MIGRATION,
+                RESOURCE_GRANTS_MIGRATION);
         assertThat(resourceSql(STRONG_AUTH_MIGRATION))
                 .contains("add column strong_authenticated_at timestamptz")
                 .contains("ck_rbac3_session_strong_authentication_time");
@@ -148,6 +151,25 @@ class Rbac3MigrationContractTest {
                 .contains("create table rbac3_user_business_access")
                 .contains("create table rbac3_user_org_assignment")
                 .contains("create table rbac3_user_position_assignment");
+    }
+
+    @Test
+    void V13ReplacesPermissionRelationsWithResourceGrantsAndApiBindings()
+            throws IOException {
+        String sql = resourceSql(RESOURCE_GRANTS_MIGRATION);
+        assertThat(sql)
+                .contains("create table rbac3_role_resource_grant")
+                .contains("create table rbac3_resource_api_binding")
+                .contains("suggested_permission_code varchar(256)")
+                .contains("drop table if exists rbac3_role_permission cascade")
+                .contains("drop table if exists rbac3_permission_resource cascade")
+                .contains("unique (tenant_id, role_id, resource_id, valid_from)")
+                .contains("unique (source_resource_id, api_resource_id)")
+                .contains("source_type in ('manual', 'ci_registration')")
+                .contains("resource_type in ('route', 'action', 'api')");
+        assertThat(sql)
+                .doesNotContain("insert into rbac3_role_permission")
+                .doesNotContain("insert into rbac3_permission_resource");
     }
 
     @Test

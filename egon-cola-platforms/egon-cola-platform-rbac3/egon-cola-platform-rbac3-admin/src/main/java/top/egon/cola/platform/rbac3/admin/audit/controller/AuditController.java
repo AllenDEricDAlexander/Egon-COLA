@@ -14,9 +14,10 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.audit.domain.dto.QueryDTO;
 import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditQueryPageVO;
 import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 
 import java.time.Instant;
@@ -61,11 +62,11 @@ public class AuditController {
      * @return 审计查询分页结果 / paged audit-query result
      */
     @GetMapping("/audit-logs")
-    @RequiresRbac3Permission(permission = "system:audit:read")
+    @RequiresPermission(value = "system:audit:read")
     @GatewayOperation(name = "rbac3-audit-log-list-v1",
             summary = "按租户和精确过滤条件游标查询审计",
             externalAccessible = true, tags = {"rbac3", "audit"})
-    public ApiEnvelopeVO<AuditQueryPageVO> auditLogs(
+    public ResultRecord<AuditQueryPageVO> auditLogs(
             @RequestParam Instant from,
             @RequestParam Instant to,
             @RequestParam(required = false) String actorId,
@@ -79,14 +80,14 @@ public class AuditController {
             @RequestParam(defaultValue = "50") @Min(1) @Max(200) int limit,
             @RequestParam(required = false) String cursor,
             @RequestHeader("X-Request-Id") String auditRequestId,
-            @RequestHeader("X-Trace-Id") String auditTraceId,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(auditService.query(
+            @RequestHeader("X-Trace-Id") String auditTraceId
+) {
+        return ResultRecord.success(auditService.query(
                 new QueryDTO(
                         tenantId(), from, to, actorId, targetId, eventType,
                         outcome, reasonCode, requestId, traceId, targetType,
                         limit, cursor),
-                principal.userId(), auditRequestId, auditTraceId));
+                new CurrentRbac3User().require().rbac3UserId(), auditRequestId, auditTraceId));
     }
 
     /** 返回当前生效租户标识。 / Returns the effective tenant ID. */

@@ -14,12 +14,13 @@ import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.iam.organization.domain.vo.OrgUnitVO;
 import top.egon.cola.platform.rbac3.admin.iam.organization.service.OrganizationFacade;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 
 import java.util.List;
 
@@ -47,59 +48,59 @@ public class OrganizationController {
     }
 
     @GetMapping
-    @RequiresRbac3Permission(permission = "system:organization:read")
+    @RequiresPermission(value = "system:organization:read")
     @GatewayOperation(
             name = "rbac3-iam-organization-list-v1",
             summary = "查询手工组织",
             externalAccessible = true,
             tags = {"rbac3", "iam", "organization"})
-    public ApiEnvelopeVO<List<OrgUnitVO>> list(
+    public ResultRecord<List<OrgUnitVO>> list(
             @RequestParam(required = false) Long parentId) {
-        return ApiEnvelopeVO.success(facade.list(tenantId(), parentId));
+        return ResultRecord.success(facade.list(tenantId(), parentId));
     }
 
     @PostMapping
-    @RequiresRbac3Permission(permission = "system:organization:manage")
+    @RequiresPermission(value = "system:organization:manage")
     @GatewayOperation(
             name = "rbac3-iam-organization-create-v1",
             summary = "创建手工组织",
             externalAccessible = true,
             tags = {"rbac3", "iam", "organization"})
-    public ApiEnvelopeVO<OrgUnitVO> create(
-            @Valid @RequestBody OrganizationFacade.CreateCommand command,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(facade.create(
-                tenantId(), command, principal.userId()));
+    public ResultRecord<OrgUnitVO> create(
+            @Valid @RequestBody OrganizationFacade.CreateCommand command
+) {
+        return ResultRecord.success(facade.create(
+                tenantId(), command, new CurrentRbac3User().require().rbac3UserId()));
     }
 
     @PutMapping("/{orgUnitId}")
-    @RequiresRbac3Permission(permission = "system:organization:manage")
+    @RequiresPermission(value = "system:organization:manage")
     @GatewayOperation(
             name = "rbac3-iam-organization-update-v1",
             summary = "更新或移动手工组织",
             externalAccessible = true,
             tags = {"rbac3", "iam", "organization"})
-    public ApiEnvelopeVO<OrgUnitVO> update(
+    public ResultRecord<OrgUnitVO> update(
             @PathVariable Long orgUnitId,
-            @Valid @RequestBody OrganizationFacade.UpdateCommand command,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(facade.update(
-                tenantId(), orgUnitId, command, principal.userId()));
+            @Valid @RequestBody OrganizationFacade.UpdateCommand command
+) {
+        return ResultRecord.success(facade.update(
+                tenantId(), orgUnitId, command, new CurrentRbac3User().require().rbac3UserId()));
     }
 
     @DeleteMapping("/{orgUnitId}")
-    @RequiresRbac3Permission(permission = "system:organization:manage")
+    @RequiresPermission(value = "system:organization:manage")
     @GatewayOperation(
             name = "rbac3-iam-organization-delete-v1",
             summary = "停用手工组织",
             externalAccessible = true,
             tags = {"rbac3", "iam", "organization"})
-    public ApiEnvelopeVO<Void> remove(
+    public ResultRecord<Void> remove(
             @PathVariable Long orgUnitId,
-            @RequestParam long expectedVersion,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        facade.remove(tenantId(), orgUnitId, expectedVersion, principal.userId());
-        return ApiEnvelopeVO.success(null);
+            @RequestParam long expectedVersion
+) {
+        facade.remove(tenantId(), orgUnitId, expectedVersion, new CurrentRbac3User().require().rbac3UserId());
+        return ResultRecord.success(null);
     }
 
     private static Long tenantId() {

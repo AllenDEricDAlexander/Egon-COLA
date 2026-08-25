@@ -19,15 +19,16 @@ import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.service.DirectoryCommandService;
 import top.egon.cola.platform.rbac3.admin.iam.organization.service.DirectoryQueryService;
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.dto.UserStatusCommandDTO;
@@ -79,20 +80,20 @@ public class UserDirectoryController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/users")
-    @RequiresRbac3Permission(permission = "system:user:read")
+    @RequiresPermission(value = "system:user:read")
     @GatewayOperation(
             name = "rbac3-directory-user-list-v1",
             summary = "分页查询租户用户",
             externalAccessible = true,
             tags = {"rbac3", "directory"})
-    public ApiEnvelopeVO<DirectoryPageVO<UserDirectoryVO>> users(
+    public ResultRecord<DirectoryPageVO<UserDirectoryVO>> users(
             @RequestParam(required = false) String query,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String orgUnitId,
             @RequestParam(required = false) String positionId,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Min(1) @Max(200) int size) {
-        return ApiEnvelopeVO.success(queryPort.findUsers(tenantId(), query, status,
+        return ResultRecord.success(queryPort.findUsers(tenantId(), query, status,
                 orgUnitId, positionId, page, size));
     }
 
@@ -107,14 +108,14 @@ public class UserDirectoryController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/users/{userId}")
-    @RequiresRbac3Permission(permission = "system:user:read")
+    @RequiresPermission(value = "system:user:read")
     @GatewayOperation(
             name = "rbac3-directory-user-get-v1",
             summary = "读取租户用户详情",
             externalAccessible = true,
             tags = {"rbac3", "directory"})
-    public ApiEnvelopeVO<UserDirectoryVO> user(@PathVariable String userId) {
-        return ApiEnvelopeVO.success(queryPort.findUser(tenantId(), userId));
+    public ResultRecord<UserDirectoryVO> user(@PathVariable String userId) {
+        return ResultRecord.success(queryPort.findUser(tenantId(), userId));
     }
 
 /**
@@ -130,18 +131,18 @@ public class UserDirectoryController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PutMapping("/users/{userId}/status")
-    @RequiresRbac3Permission(permission = "system:user-status:manage")
+    @RequiresPermission(value = "system:user-status:manage")
     @GatewayOperation(
             name = "rbac3-directory-user-status-v1",
             summary = "按授权版本变更租户用户状态",
             externalAccessible = true,
             tags = {"rbac3", "directory"})
-    public ApiEnvelopeVO<UserDirectoryVO> changeUserStatus(
+    public ResultRecord<UserDirectoryVO> changeUserStatus(
             @PathVariable String userId,
-            @Valid @RequestBody UserStatusCommandDTO command,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(commandPort.changeUserStatus(
-                tenantId(), userId, command, principal.userId()));
+            @Valid @RequestBody UserStatusCommandDTO command
+) {
+        return ResultRecord.success(commandPort.changeUserStatus(
+                tenantId(), userId, command, new CurrentRbac3User().require().rbac3UserId()));
     }
 
 /**

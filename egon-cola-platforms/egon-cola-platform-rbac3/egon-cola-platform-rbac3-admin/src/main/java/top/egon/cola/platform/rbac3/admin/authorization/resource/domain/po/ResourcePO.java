@@ -93,7 +93,7 @@ public class ResourcePO extends GlobalAuditedPO {
     @Column(name = "required_permission_id")
     private Long requiredPermissionId;
 
-    @Column(name = "suggested_permission_code", length = 128)
+    @Column(name = "suggested_permission_code", length = 256)
     private String suggestedPermissionCode;
     /**
      * 字段 `status` 表示 `ResourcePO` 中与 `status` 相关的状态、依赖、配置或结果（声明类型 `ResourceStatusEnum`）；其生命周期和取值含义由声明类型及所属对象共同确定。

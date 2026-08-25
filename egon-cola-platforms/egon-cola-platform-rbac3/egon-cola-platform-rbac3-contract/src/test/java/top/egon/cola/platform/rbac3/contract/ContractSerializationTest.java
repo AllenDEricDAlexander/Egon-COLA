@@ -13,7 +13,6 @@ import top.egon.cola.platform.rbac3.contract.authorization.GatewayBizAppScopeSna
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.contract.authorization.UserAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.contract.error.Rbac3ErrorCode;
-import top.egon.cola.platform.rbac3.contract.error.Rbac3ErrorResponse;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -118,28 +117,6 @@ class ContractSerializationTest {
         assertEquals(Set.of("finance:payment:approve"), context.permissions());
         assertThrows(UnsupportedOperationException.class,
                 () -> context.dataScopes().put("other", null));
-    }
-
-    @Test
-    void errorJsonUsesOnlyTypedSafeEvidenceAndFixedMetadata() throws Exception {
-        Rbac3ErrorResponse response = new Rbac3ErrorResponse(
-                new Rbac3ErrorResponse.Error(
-                        Rbac3ErrorCode.SSD_CONSTRAINT_VIOLATION,
-                        "Target assignment violates separation of duties", false,
-                        List.of(new Rbac3ErrorResponse.Detail(
-                                "roleId", "SSD_SET_LIMIT_EXCEEDED", "sod-set-9001"))),
-                new Rbac3ErrorResponse.Meta("req-01", "trace-01",
-                        Instant.parse("2026-07-30T08:00:00Z")));
-
-        JsonNode json = objectMapper.readTree(
-                objectMapper.writeValueAsString(response));
-        assertEquals("SSD_CONSTRAINT_VIOLATION",
-                json.path("error").path("code").textValue());
-        assertEquals("sod-set-9001",
-                json.path("error").path("details").get(0)
-                        .path("evidenceId").textValue());
-        assertFalse(json.toString().contains("stackTrace"));
-        assertFalse(json.toString().contains("redisKey"));
     }
 
     @Test

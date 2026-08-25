@@ -148,9 +148,10 @@ public final class UserAuthorizationSnapshotProjector {
             }
         }
         var permissions = new TreeSet<String>();
-        for (AuthorizationRuleFacts.PermissionBinding binding
-                : facts.authorizationFacts().permissionBindings()) {
-            if (effectiveRoles.contains(binding.roleId())) {
+        for (AuthorizationRuleFacts.ResourceGrantBinding binding
+                : facts.authorizationFacts().resourceGrantBindings()) {
+            if (effectiveRoles.contains(binding.roleId())
+                    && binding.permissionCode() != null) {
                 permissions.add(binding.permissionCode());
             }
         }
@@ -168,10 +169,26 @@ public final class UserAuthorizationSnapshotProjector {
         });
         Map<String, FieldPolicyDecision> fieldPolicies = fieldPolicies(
                 applicationId, permissions, command);
-        List<String> resourceCodes = facts.authorizationFacts().resources().stream()
-                .filter(resource -> permissions.contains(resource.requiredPermissionCode()))
-                .filter(resource -> snapshot.resourceCodes().contains(resource.code()))
-                .map(AuthorizationRuleFacts.ResourceFact::code)
+        var resourceCodesSet = new TreeSet<String>();
+        facts.authorizationFacts().resourceGrantBindings().stream()
+                .filter(binding -> effectiveRoles.contains(binding.roleId()))
+                .filter(binding -> binding.permissionCode() != null)
+                .map(AuthorizationRuleFacts.ResourceGrantBinding::resourceCode)
+                .forEach(resourceCodesSet::add);
+        var resourcesByCode = new TreeMap<String, AuthorizationRuleFacts.ResourceFact>();
+        facts.authorizationFacts().resources().forEach(resource ->
+                resourcesByCode.put(resource.code(), resource));
+        var pendingAncestors = new TreeSet<>(resourceCodesSet);
+        while (!pendingAncestors.isEmpty()) {
+            String code = pendingAncestors.pollFirst();
+            AuthorizationRuleFacts.ResourceFact resource = resourcesByCode.get(code);
+            if (resource != null && resource.parentCode() != null
+                    && resourceCodesSet.add(resource.parentCode())) {
+                pendingAncestors.add(resource.parentCode());
+            }
+        }
+        List<String> resourceCodes = resourceCodesSet.stream()
+                .filter(snapshot.resourceCodes()::contains)
                 .toList();
         ApplicationFactVO application =
                 facts.applications().get(applicationId);

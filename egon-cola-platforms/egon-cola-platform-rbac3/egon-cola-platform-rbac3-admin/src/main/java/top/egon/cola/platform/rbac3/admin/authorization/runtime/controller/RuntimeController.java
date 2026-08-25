@@ -13,10 +13,11 @@ import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.RuntimeQueryService;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.RuntimeStatusVO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.AuthorizationMutationPageVO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.RetryResultVO;
@@ -76,11 +77,11 @@ public class RuntimeController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/status")
-    @RequiresRbac3Permission(permission = "system:authorization-runtime:read")
+    @RequiresPermission(value = "system:authorization-runtime:read")
     @GatewayOperation(name = "rbac3-runtime-status-v1", summary = "查询授权运行状态",
             externalAccessible = true, tags = {"rbac3", "runtime"})
-    public ApiEnvelopeVO<RuntimeStatusVO> status() {
-        return ApiEnvelopeVO.success(service.status());
+    public ResultRecord<RuntimeStatusVO> status() {
+        return ResultRecord.success(service.status());
     }
 
     /**
@@ -96,15 +97,15 @@ public class RuntimeController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/mutations")
-    @RequiresRbac3Permission(permission = "system:authorization-runtime:read")
+    @RequiresPermission(value = "system:authorization-runtime:read")
     @GatewayOperation(name = "rbac3-runtime-mutations-v1",
             summary = "游标查询授权 Mutation Journal",
             externalAccessible = true, tags = {"rbac3", "runtime"})
-    public ApiEnvelopeVO<AuthorizationMutationPageVO> mutations(
+    public ResultRecord<AuthorizationMutationPageVO> mutations(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "50") @Min(1) @Max(200) int limit) {
-        return ApiEnvelopeVO.success(service.mutations(
+        return ResultRecord.success(service.mutations(
                 tenantId(), status, cursor, limit));
     }
 
@@ -120,15 +121,15 @@ public class RuntimeController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PostMapping("/mutations/{mutationId}/retry")
-    @RequiresRbac3Permission(permission = "system:authorization-runtime:operate")
+    @RequiresPermission(value = "system:authorization-runtime:operate")
     @GatewayOperation(name = "rbac3-runtime-mutation-retry-v1",
             summary = "按 Mutation ID 触发幂等受控恢复",
             externalAccessible = true, tags = {"rbac3", "runtime"})
-    public ApiEnvelopeVO<RetryResultVO> retry(
-            @PathVariable String mutationId,
-            @AuthenticationPrincipal CurrentRbac3Principal principal) {
-        return ApiEnvelopeVO.success(service.retry(
-                tenantId(), mutationId, principal.userId()));
+    public ResultRecord<RetryResultVO> retry(
+            @PathVariable String mutationId
+) {
+        return ResultRecord.success(service.retry(
+                tenantId(), mutationId, new CurrentRbac3User().require().rbac3UserId()));
     }
 
     /**
@@ -141,12 +142,12 @@ public class RuntimeController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/gateway-ddc-status")
-    @RequiresRbac3Permission(permission = "system:authorization-runtime:read")
+    @RequiresPermission(value = "system:authorization-runtime:read")
     @GatewayOperation(name = "rbac3-runtime-gateway-ddc-status-v1",
             summary = "分别查询 Definition、DDC Lease 和 Gateway Release",
             externalAccessible = true, tags = {"rbac3", "runtime", "gateway", "ddc"})
-    public ApiEnvelopeVO<RuntimeStatusVO> gatewayDdcStatus() {
-        return ApiEnvelopeVO.success(service.gatewayDdcStatus());
+    public ResultRecord<RuntimeStatusVO> gatewayDdcStatus() {
+        return ResultRecord.success(service.gatewayDdcStatus());
     }
 
     /**

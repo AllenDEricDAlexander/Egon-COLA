@@ -8,13 +8,19 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
-import top.egon.cola.platform.rbac3.admin.config.security.CurrentRbac3Principal;
+import top.egon.cola.platform.idp.contract.AuthenticationContext;
+import top.egon.cola.platform.idp.contract.IdentityPrincipal;
+import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.controller.filter.TenantContextFilter;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.service.TenantContextResolver;
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -57,9 +63,7 @@ class TenantContextFilterTest {
 
     @Test
     void allowsExplicitPlatformTargetOnlyWithPermission() throws Exception {
-        authenticate(new CurrentRbac3Principal(
-                "platform", "user-1", "user-1", 1, 1,
-                Set.of("system:tenant:target"), true));
+        authenticate(principal("platform", Set.of("system:tenant:target")));
         MockHttpServletRequest request = request("/api/v1/platform/tenants/users");
         request.addHeader("X-RBAC3-Target-Tenant", "tenant-2");
         MockFilterChain chain = new MockFilterChain();
@@ -107,15 +111,21 @@ class TenantContextFilterTest {
         return new MockHttpServletRequest("GET", path);
     }
 
-    private void authenticate(CurrentRbac3Principal principal) {
+    private void authenticate(Rbac3UserDetails principal) {
         SecurityContextHolder.getContext().setAuthentication(
                 UsernamePasswordAuthenticationToken.authenticated(
-                        principal, "n/a", principal.authorities()));
+                        principal, "n/a", principal.getAuthorities()));
     }
 
-    private CurrentRbac3Principal principal(String tenantId, Set<String> permissions) {
-        return new CurrentRbac3Principal(
-                tenantId, "user-1", "user-1", 1, 1,
-                permissions, false);
+    private Rbac3UserDetails principal(String tenantId, Set<String> permissions) {
+        Instant now = Instant.parse("2026-08-10T00:00:00Z");
+        IdentityPrincipal identity = new IdentityPrincipal(
+                "user-1", tenantId, "access-token", Set.of("rbac3-admin-web"),
+                now, now.plusSeconds(300), AuthenticationContext.of("TEST", now));
+        SystemAuthorizationSnapshot snapshot = new SystemAuthorizationSnapshot(
+                tenantId, "user-1", "user-1", "rbac3-admin", 1L, 1L,
+                List.of(), permissions, Map.of(), Map.of(),
+                "sha256:test", now, now.plusSeconds(300));
+        return new Rbac3UserDetails(identity, snapshot);
     }
 }

@@ -9,7 +9,7 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.contract.auth.Rbac3AboutView;
 import top.egon.cola.platform.rbac3.starter.authorization.Rbac3AboutService;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 
 /** Returns only the current user's RBAC authorization facts for local frontend filtering. */
 @RestController
@@ -35,7 +35,7 @@ public class Rbac3AboutController {
     }
 
     @GetMapping("/about")
-    @RequiresRbac3Permission(permission = "system:about:read")
+    @RequiresPermission(value = "system:about:read")
     @GatewayOperation(
             name = "rbac3-auth-about-v1",
             summary = "查询当前授权上下文",

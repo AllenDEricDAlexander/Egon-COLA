@@ -19,14 +19,14 @@ import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
-import top.egon.cola.platform.rbac3.admin.config.security.RequiresRbac3Permission;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import top.egon.cola.platform.rbac3.admin.shared.domain.vo.ApiEnvelopeVO;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.service.DirectoryCommandService;
 import top.egon.cola.platform.rbac3.admin.iam.organization.service.DirectoryQueryService;
 import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.domain.dto.DirectorySnapshotCommandDTO;
@@ -77,17 +77,17 @@ public class DirectoryController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/org-units")
-    @RequiresRbac3Permission(permission = "system:directory:read")
+    @RequiresPermission(value = "system:directory:read")
     @GatewayOperation(
             name = "rbac3-directory-org-unit-list-v1",
             summary = "查询组织单元",
             externalAccessible = true,
             tags = {"rbac3", "directory"})
-    public ApiEnvelopeVO<List<OrgUnitVO>> orgUnits(
+    public ResultRecord<List<OrgUnitVO>> orgUnits(
             @RequestParam(required = false) String parentId,
             @RequestParam(required = false) String type,
             @RequestParam(required = false) String status) {
-        return ApiEnvelopeVO.success(queryPort.findOrgUnits(
+        return ResultRecord.success(queryPort.findOrgUnits(
                 tenantId(), parentId, type, status));
     }
 
@@ -103,16 +103,16 @@ public class DirectoryController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/positions")
-    @RequiresRbac3Permission(permission = "system:directory:read")
+    @RequiresPermission(value = "system:directory:read")
     @GatewayOperation(
             name = "rbac3-directory-position-list-v1",
             summary = "查询岗位",
             externalAccessible = true,
             tags = {"rbac3", "directory"})
-    public ApiEnvelopeVO<List<PositionVO>> positions(
+    public ResultRecord<List<PositionVO>> positions(
             @RequestParam(required = false) String orgUnitId,
             @RequestParam(required = false) String status) {
-        return ApiEnvelopeVO.success(queryPort.findPositions(
+        return ResultRecord.success(queryPort.findPositions(
                 tenantId(), orgUnitId, status));
     }
 
@@ -127,15 +127,15 @@ public class DirectoryController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @PostMapping("/internal/directory-snapshots")
-    @RequiresRbac3Permission(permission = "system:directory:sync")
+    @RequiresPermission(value = "system:directory:sync")
     @GatewayOperation(
             name = "rbac3-directory-snapshot-submit-v1",
             summary = "提交单调递增的目录快照",
             externalAccessible = true,
             tags = {"rbac3", "directory"})
-    public ApiEnvelopeVO<DirectorySyncVO> submit(
+    public ResultRecord<DirectorySyncVO> submit(
             @Valid @RequestBody DirectorySnapshotCommandDTO command) {
-        return ApiEnvelopeVO.success(commandPort.submit(
+        return ResultRecord.success(commandPort.submit(
                 TenantContext.requireCurrent().effectiveTenantId(), command));
     }
 
@@ -150,15 +150,15 @@ public class DirectoryController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/directory-snapshots/{snapshotId}")
-    @RequiresRbac3Permission(permission = "system:directory-snapshot:read")
+    @RequiresPermission(value = "system:directory-snapshot:read")
     @GatewayOperation(
             name = "rbac3-directory-snapshot-get-v1",
             summary = "读取不可变目录快照回执",
             externalAccessible = true,
             tags = {"rbac3", "directory"})
-    public ApiEnvelopeVO<DirectorySnapshotVO> snapshot(
+    public ResultRecord<DirectorySnapshotVO> snapshot(
             @PathVariable String snapshotId) {
-        return ApiEnvelopeVO.success(queryPort.findSnapshot(tenantId(), snapshotId));
+        return ResultRecord.success(queryPort.findSnapshot(tenantId(), snapshotId));
     }
 
 /**

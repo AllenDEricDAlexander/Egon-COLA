@@ -256,19 +256,52 @@ public class JpaRoleActivationFactRepository
             long userId,
             Instant now
     ) {
-        List<AuthorizationRuleFacts.PermissionBinding> permissions = rows("""
-                select rp.role_id, p.permission_code
-                  from rbac3_role_permission rp
-                  join rbac3_permission p
-                    on p.application_id = rp.application_id
-                   and p.id = rp.permission_id
-                 where rp.tenant_id = :tenantId
-                   and rp.status = 'ACTIVE' and p.status = 'ACTIVE'
-                   and rp.valid_from <= :now
-                   and (rp.valid_to is null or rp.valid_to > :now)
+        List<AuthorizationRuleFacts.ResourceGrantBinding> grants = rows("""
+                select g.role_id, resource.id, resource.resource_code,
+                       resource.resource_type, permission.permission_code
+                  from rbac3_role_resource_grant g
+                  join rbac3_role role on role.id = g.role_id
+                  join rbac3_resource resource
+                    on resource.application_id = g.application_id
+                   and resource.id = g.resource_id
+             left join rbac3_permission permission
+                    on permission.application_id = resource.application_id
+                   and permission.id = resource.required_permission_id
+                   and permission.status = 'ACTIVE'
+                 where g.tenant_id = :tenantId and role.status = 'ACTIVE'
+                   and g.status = 'ACTIVE' and resource.status = 'ACTIVE'
+                   and g.valid_from <= :now
+                   and (g.valid_to is null or g.valid_to > :now)
+                union
+                select g.role_id, api.id, api.resource_code,
+                       api.resource_type, permission.permission_code
+                  from rbac3_role_resource_grant g
+                  join rbac3_role role on role.id = g.role_id
+                  join rbac3_resource source
+                    on source.application_id = g.application_id
+                   and source.id = g.resource_id
+                  join rbac3_resource_api_binding binding
+                    on binding.application_id = g.application_id
+                   and binding.source_resource_id = source.id
+                   and binding.status = 'ACTIVE'
+                  join rbac3_resource api
+                    on api.application_id = binding.application_id
+                   and api.id = binding.api_resource_id
+                   and api.resource_type = 'API'
+                   and api.status = 'ACTIVE'
+             left join rbac3_permission permission
+                    on permission.application_id = api.application_id
+                   and permission.id = api.required_permission_id
+                   and permission.status = 'ACTIVE'
+                 where g.tenant_id = :tenantId and role.status = 'ACTIVE'
+                   and source.resource_type in ('ROUTE', 'ACTION')
+                   and g.status = 'ACTIVE'
+                   and g.valid_from <= :now
+                   and (g.valid_to is null or g.valid_to > :now)
                 """, Map.of("tenantId", tenantId, "now", now)).stream()
-                .map(row -> new AuthorizationRuleFacts.PermissionBinding(
-                        text(row[0]), text(row[1])))
+                .map(row -> new AuthorizationRuleFacts.ResourceGrantBinding(
+                        text(row[0]), text(row[1]), text(row[2]), text(row[3]),
+                        nullableText(row[4])))
                 .toList();
 
         var scopes = new ArrayList<AuthorizationRuleFacts.DataScopeFact>();
@@ -359,23 +392,28 @@ public class JpaRoleActivationFactRepository
                 .toList();
 
         List<AuthorizationRuleFacts.ResourceFact> resources = rows("""
-                select resource.resource_code, permission.permission_code
+                select resource.id, resource.resource_code, resource.resource_type,
+                       parent.resource_code, permission.permission_code
                   from rbac3_resource resource
-                  join rbac3_permission permission
+             left join rbac3_resource parent
+                    on parent.application_id = resource.application_id
+                   and parent.id = resource.parent_resource_id
+             left join rbac3_permission permission
                     on permission.application_id = resource.application_id
                    and permission.id = resource.required_permission_id
+                   and permission.status = 'ACTIVE'
                   join rbac3_tenant_application tenant_application
                     on tenant_application.application_id = resource.application_id
                    and tenant_application.tenant_id = :tenantId
                  where resource.status = 'ACTIVE'
-                   and permission.status = 'ACTIVE'
                    and tenant_application.status = 'ACTIVE'
                    and tenant_application.valid_from <= :now
                    and (tenant_application.valid_to is null
                         or tenant_application.valid_to > :now)
                 """, Map.of("tenantId", tenantId, "now", now)).stream()
                 .map(row -> new AuthorizationRuleFacts.ResourceFact(
-                        text(row[0]), text(row[1])))
+                        text(row[0]), text(row[1]), text(row[2]), nullableText(row[3]),
+                        nullableText(row[4])))
                 .toList();
 
         List<AuthorizationRuleFacts.LandingRouteFact> landingRoutes = rows("""
@@ -397,7 +435,7 @@ public class JpaRoleActivationFactRepository
                 .toList();
 
         return new AuthorizationRuleFacts(
-                permissions, scopes, fieldRules, definitions, resources, landingRoutes);
+                grants, scopes, fieldRules, definitions, resources, landingRoutes);
     }
 
     /**

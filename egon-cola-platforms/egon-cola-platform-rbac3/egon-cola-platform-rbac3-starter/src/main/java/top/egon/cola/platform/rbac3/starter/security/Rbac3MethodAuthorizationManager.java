@@ -8,7 +8,6 @@ import top.egon.cola.platform.rbac3.contract.authorization.Decision;
 import top.egon.cola.platform.rbac3.contract.authorization.PermissionRequest;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.util.LinkedHashSet;
@@ -93,23 +92,6 @@ public final class Rbac3MethodAuthorizationManager
     private void addGeneric(
             LinkedHashSet<PermissionRequest> required,
             AnnotatedElement element) {
-        for (Annotation annotation : element.getAnnotations()) {
-            if (!"RequiresRbac3Permission".equals(
-                    annotation.annotationType().getSimpleName())) {
-                continue;
-            }
-            try {
-                Method permission = annotation.annotationType()
-                        .getDeclaredMethod("permission");
-                Object value = permission.invoke(annotation);
-                required.add(PermissionRequest.of(required(
-                        value == null ? null : value.toString(),
-                        "RequiresRbac3Permission.permission")));
-            } catch (ReflectiveOperationException exception) {
-                throw new IllegalArgumentException(
-                        "invalid RequiresRbac3Permission annotation", exception);
-            }
-        }
         RequiresPermission generic = element.getAnnotation(RequiresPermission.class);
         if (generic != null) {
             required.add(PermissionRequest.of(

@@ -11,7 +11,10 @@ import top.egon.cola.platform.rbac3.admin.iam.user.domain.po.UserPO;
 import top.egon.cola.platform.rbac3.admin.iam.application.domain.po.ApplicationPO;
 import top.egon.cola.platform.rbac3.admin.authorization.permission.domain.po.PermissionPO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.po.RolePO;
-import top.egon.cola.platform.rbac3.admin.iam.role.domain.po.RolePermissionPO;
+import top.egon.cola.platform.rbac3.admin.authorization.resource.domain.enums.ResourceStatusEnum;
+import top.egon.cola.platform.rbac3.admin.authorization.resource.domain.po.ResourcePO;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.enums.RoleResourceGrantStatusEnum;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.po.RoleResourceGrantPO;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -22,7 +25,6 @@ import top.egon.cola.platform.rbac3.admin.bootstrap.domain.vo.ApplicationDefinit
 import top.egon.cola.platform.rbac3.admin.authorization.permission.domain.enums.PermissionRiskLevelEnum;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RoleTypeEnum;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RoleRiskLevelEnum;
-import top.egon.cola.platform.rbac3.admin.iam.role.domain.enums.RolePermissionStatusEnum;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.userrole.domain.enums.UserRoleAssignmentTypeEnum;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.userrole.domain.enums.UserRoleAssignmentStatusEnum;
 
@@ -226,7 +228,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
             changed = true;
         }
         for (String permissionCode : definition.permissions()) {
-            changed |= ensurePermission(
+            changed |= ensureResourceGrants(
                     tenantId, application.getId(), role.getId(), permissionCode, now);
         }
         if (!hasAssignment(tenantId, userId, role.getId())) {
@@ -288,11 +290,11 @@ public class JpaDevelopmentTopologyBootstrapRepository
     }
 
     /**
-     * 方法 `ensurePermission` 按照 `JpaDevelopmentTopologyBootstrapRepository` 的职责处理输入，完成 `ensure Permission` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `ensurePermission` processes its inputs according to `JpaDevelopmentTopologyBootstrapRepository`'s responsibility, performs the `ensure Permission` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     * 方法 `ensureResourceGrants` 按照 `JpaDevelopmentTopologyBootstrapRepository` 的职责处理输入，完成 `ensure Resource Grants` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `ensureResourceGrants` processes its inputs according to `JpaDevelopmentTopologyBootstrapRepository`'s responsibility, performs the `ensure Resource Grants` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
      *
-     * 用法：调用 `ensurePermission` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `ensurePermission`, then continue the business flow using its result, exception, or side effect.
+     * 用法：调用 `ensureResourceGrants` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `ensureResourceGrants`, then continue the business flow using its result, exception, or side effect.
      *
      * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param applicationId 输入参数 `applicationId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
@@ -301,7 +303,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
      * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private boolean ensurePermission(
+    private boolean ensureResourceGrants(
             Long tenantId,
             Long applicationId,
             Long roleId,
@@ -328,39 +330,63 @@ public class JpaDevelopmentTopologyBootstrapRepository
                     "permission code is already owned by another application: "
                             + permissionCode);
         }
-        if (!hasRolePermission(tenantId, roleId, permission.getId())) {
-            entityManager.persist(new RolePermissionPO(
-                    idGenerator.nextLongId(), tenantId, applicationId,
-                    roleId, permission.getId(), now, null, ACTOR, now));
-            changed = true;
+        List<ResourcePO> resources = entityManager.createQuery("""
+                        select resource from ResourceEntity resource
+                         where resource.applicationId = :applicationId
+                           and resource.requiredPermissionId = :permissionId
+                           and resource.status = :status
+                        """, ResourcePO.class)
+                .setParameter("applicationId", applicationId)
+                .setParameter("permissionId", permission.getId())
+                .setParameter("status", ResourceStatusEnum.ACTIVE)
+                .getResultList();
+        if (resources.isEmpty()) {
+            throw new IllegalStateException(
+                    "required mapped development resource is missing: " + permissionCode);
+        }
+        for (ResourcePO resource : resources) {
+            if (!hasRoleResourceGrant(tenantId, roleId, resource.getId(), now)) {
+                entityManager.persist(new RoleResourceGrantPO(
+                        idGenerator.nextLongId(), tenantId, applicationId,
+                        roleId, resource.getId(), now, null, ACTOR, now));
+                changed = true;
+            }
         }
         return changed;
     }
 
     /**
-     * 方法 `hasRolePermission` 按照 `JpaDevelopmentTopologyBootstrapRepository` 的职责处理输入，完成 `has Role Permission` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `hasRolePermission` processes its inputs according to `JpaDevelopmentTopologyBootstrapRepository`'s responsibility, performs the `has Role Permission` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     * 方法 `hasRoleResourceGrant` 按照 `JpaDevelopmentTopologyBootstrapRepository` 的职责处理输入，完成 `has Role Resource Grant` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `hasRoleResourceGrant` processes its inputs according to `JpaDevelopmentTopologyBootstrapRepository`'s responsibility, performs the `has Role Resource Grant` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
      *
-     * 用法：调用 `hasRolePermission` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `hasRolePermission`, then continue the business flow using its result, exception, or side effect.
+     * 用法：调用 `hasRoleResourceGrant` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `hasRoleResourceGrant`, then continue the business flow using its result, exception, or side effect.
      *
      * @param tenantId 输入参数 `tenantId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param roleId 输入参数 `roleId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param permissionId 输入参数 `permissionId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param resourceId 输入参数 `resourceId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param now 输入参数 `now`，用于确定有效窗口；input value used to determine the effective window.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    private boolean hasRolePermission(Long tenantId, Long roleId, Long permissionId) {
+    private boolean hasRoleResourceGrant(
+            Long tenantId,
+            Long roleId,
+            Long resourceId,
+            Instant now) {
         Number count = (Number) entityManager.createQuery("""
-                        select count(mapping) from RolePermissionEntity mapping
-                         where mapping.tenantId = :tenantId
-                           and mapping.roleId = :roleId
-                           and mapping.permissionId = :permissionId
-                           and mapping.status = :status
+                        select count(grant) from RoleResourceGrantEntity grant
+                         where grant.tenantId = :tenantId
+                           and grant.roleId = :roleId
+                           and grant.resourceId = :resourceId
+                           and grant.status = :status
+                           and grant.validFrom <= :now
+                           and (grant.validTo is null or grant.validTo > :now)
                         """)
                 .setParameter("tenantId", tenantId)
                 .setParameter("roleId", roleId)
-                .setParameter("permissionId", permissionId)
-                .setParameter("status", RolePermissionStatusEnum.ACTIVE)
+                .setParameter("resourceId", resourceId)
+                .setParameter("status", RoleResourceGrantStatusEnum.ACTIVE)
+                .setParameter("now", now)
                 .getSingleResult();
         return count.longValue() > 0;
     }
