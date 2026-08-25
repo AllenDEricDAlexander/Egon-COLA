@@ -1,4 +1,7 @@
 package top.egon.cola.organization.facade.teaching.dto;
 
-public record GradeDetailDTO(String id, String code, String name, String status) {
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+
+public record GradeDetailDTO(@NotNull @Positive Long id, String code, String name, String status) {
 }
