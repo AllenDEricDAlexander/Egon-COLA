@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Document | `YYYY-MM-DD-HH-MM-abstract.md` |
-| Template Version | `4` |
+| Template Version | `5` |
 | Status | `Draft` |
 | Type | `Feature / Refactor / Bugfix / Architecture` |
 | Complexity | `Simple / Complex` |
@@ -159,13 +159,19 @@ Document only the repository technologies and instructions that constrain the af
 | --- | --- | --- | --- |
 | Language/runtime | `<...>` | `<manifest/path>` | `<...>` |
 
-### 6.1 Java three-layer applicability
+### 6.1 Java architecture profile and capability baseline
 
-For Java package design, record whether the affected module already uses or the user explicitly selected the supported traditional three-layer profile. Cite the base package and existing evidence. Do not silently migrate an existing DDD, COLA, hexagonal, or custom structure; record the mismatch as an open major decision when structural change is required.
+Read `references/java-spring-egon-coding-standards.md`. Select exactly one allowed profile from current repository evidence: Traditional Three-Layer, or the exact selected `egon-cola-archetype` Light/Service/Web family and variant. If neither matches, record a blocking decision; do not create a hybrid structure.
 
-| Architecture profile | Base package | Evidence or explicit decision | Existing deviations | Design action |
+| Architecture profile | Archetype/template or base package | Exact evidence and verifier | Existing deviations | Design action |
 | --- | --- | --- | --- | --- |
-| Traditional Three-Layer / Other | `<base package>` | `<paths or DEC-*>` | `<None or exact deviations>` | `<apply profile / preserve current structure / ask user>` |
+| Traditional Three-Layer / Egon-COLA Light / Service / Web / Open variant | `<template path or base package>` | `<POM/tree/ArchUnit/generated verifier/DEC-*>` | `<None or exact deviations>` | `<preserve profile / block and ask user>` |
+
+Record the reuse/capability ledger before proposing a dependency or custom implementation:
+
+| Need | Spring/JDK candidate | Spring Boot Starter candidate | Egon-COLA/module candidate | Proven gap | Decision/dependency impact |
+| --- | --- | --- | --- | --- | --- |
+| `<capability>` | `<API or None>` | `<starter or None>` | `<path/component or None>` | `<evidence or None>` | `<reuse / approved addition / blocker>` |
 
 ## 7. Architecture Design
 
@@ -192,7 +198,7 @@ The selected design must have the fewest moving parts among options satisfying t
 
 Define only the affected system context and the adjacent current boundaries needed to prove coherence: relevant actors, modules/services, data stores, external systems, trust/deployment boundaries, ownership, and dependency direction. Do not convert an unchanged surrounding system into target architecture work.
 
-For affected Java three-layer areas, preserve the dependency rules among `biz.controller`, `biz.service`, `biz.service.impl`, `biz.dao`, `biz.config`, `biz.utils`, and `biz.domain`. Include only affected and boundary-proving components. A DAO-only change cites the unchanged Service/Controller boundary; it does not require a full-layer target design. Controllers still never depend directly on DAO or `service.impl`, and DAO still owns persistence access rather than business policy.
+For the traditional profile, preserve dependency rules among `biz.controller`, `biz.service`, `biz.service.impl`, `biz.dao`, `biz.config`, `biz.utils`, and `biz.domain`. For an Egon-COLA profile, preserve the exact selected Archetype modules/packages and generated dependency verifier. Include only affected and boundary-proving components. Never mix `biz.*` with an Archetype COLA module tree or invent a new layer.
 
 #### 7.1.1 Architecture Mermaid view
 
@@ -463,9 +469,9 @@ Classify every proposed Java object by its repository-defined semantic role. Sta
 
 | Object/path | Selected role | Owner/boundary and consumers | Why a distinct class is necessary or reuse is safe | Mapping owner | Requirements |
 | --- | --- | --- | --- | --- | --- |
-| `<Type>` | PO / DO / DTO / View Object / BO / ORM Entity / Query / Command / Request / Response / Form / Param / PageQuery / PageResult | `<owner and crossings>` | `<concrete semantic difference or safe reuse evidence>` | `<mapper/factory/constructor or None>` | `REQ-001` |
+| `<Type>` | PO / DTO / View Object / BO / ORM Entity / Query / Command / Event / Request / Response / PageQuery / PageResult | `<owner and crossings>` | `<concrete semantic difference or safe reuse evidence>` | `<MapStruct/MapStructPlus converter or None>` | `REQ-001` |
 
-Do not create parallel PO/DO/Entity/BO/DTO/VO/Request/Response types merely because architectural layers exist. Add a class only for a real ownership, contract, validation/exposure, lifecycle/invariant, persistence, projection, pagination, or independent-versioning boundary. Do not expose a persistence object as a public contract merely to reduce the class count.
+Do not introduce new ambiguous `DO`, `Data`, `Info`, `Param`, or `Bean` carriers. Do not create parallel PO/Entity/BO/DTO/VO/Request/Response types merely because architectural layers exist. Add a class only for a real ownership, contract, validation/exposure, lifecycle/invariant, persistence, projection, pagination, or independent-versioning boundary. Do not expose a persistence object as a public contract merely to reduce the class count.
 
 ### 10.2 Persistence objects, ORM entities, and business data objects
 
@@ -481,9 +487,17 @@ Do not introduce Aggregate, Domain Service, Repository Port, or DDD Value Object
 | --- | --- | --- | --- | --- | --- |
 | `<Type.field>` | `<language type>` | `<rules>` | `<meaning>` | `<DTO/PO/column>` | `REQ-001` |
 
+### 10.3.1 Representation, construction, and validation
+
+| Type | Record / class / immutable class | Lombok annotations or compact constructor | Validation annotations/groups | Normalization | Framework/ORM reason | Tests |
+| --- | --- | --- | --- | --- | --- | --- |
+| `<Type>` | `<representation>` | `<minimal compatible set>` | `<Jakarta constraints and groups>` | `<named boundary/helper/library>` | `<reason>` | `TEST-001` |
+
+Simple immutable carriers prefer records; immutable classes use `@Value` or a record; complex mutable/framework objects use a normal class with only the Lombok annotations required by construction semantics. Reject annotation/constructor conflicts.
+
 ### 10.4 Object flow and mapping relationships
 
-Define mappings only between semantically distinct types. Name the conversion owner and sensitive/derived/defaulted fields. Avoid no-op mapper chains. When data crosses three or more roles, include an object-flow diagram or complete field-mapping table.
+Define mappings only between semantically distinct types. Use MapStruct or MapStructPlus and implement the applicable Egon `BaseConverter<S,T>` contract when its two-way semantics fit. Name the converter Bean, generated implementation, sensitive/derived/defaulted fields, normalization, enum/time handling, and null rules. Avoid no-op mapper chains, manual service `set/get`, `BeanUtils.copyProperties`, reflection copying, and JSON round trips. When data crosses three or more roles, include an object-flow diagram or complete field-mapping table.
 
 ### 10.5 Reuse, inheritance, and composition decisions
 
@@ -645,7 +659,7 @@ Record why Strategy, Template Method, Factory, Adapter, Facade, State, Observer,
 
 ### 13.3 Architecture principles
 
-Explain applicable choices around cohesion, coupling, information hiding, SOLID, YAGNI, testability, and maintainability. Show the three-layer dependency direction explicitly: Controller to Service interface, `service.impl` to DAO/domain objects, and DAO to persistence objects. Explicitly show how the model avoids class explosion and how concrete Service implementations use composition over inheritance. Do not claim a principle without showing how paths and dependencies enforce it.
+Explain applicable choices around cohesion, coupling, information hiding, SOLID, YAGNI, testability, and maintainability. Show the selected traditional or exact Archetype COLA dependency direction explicitly. Show how the model avoids class explosion, reuses Spring/Egon capability, and uses composition over inheritance. For complex variation, name and justify Strategy/Template Method/Factory/Chain/State/Specification/Domain Event or the repository pattern; for simple logic, reject unnecessary abstraction. Do not claim a principle without paths, dependencies, and tests.
 
 ## 14. Test Design
 
@@ -728,7 +742,31 @@ Confirm the Header and §3.3 name the same affected chapters; every detailed tar
 
 Confirm all predecessor links and exact sections, amendment/supersession scope, status, and unchanged effective content.
 
-### 20.5 Final verdict
+### 20.5 Blocking Manual Check
+
+Read `references/java-spring-egon-coding-standards.md` and execute every row individually. `PASS` means the design and repository evidence prove the rule. `N/A` requires concrete evidence that the rule is not applicable. Any other status or missing evidence blocks the final PASS verdict.
+
+| Check ID | Applicability | Status | Evidence | Finding | Required action/exception |
+| --- | --- | --- | --- | --- | --- |
+| `MC-ARCH-001` | Applicable | PASS / FAIL / BLOCKED | `<tree/archetype/verifier evidence>` | `<selected allowed profile>` | `None / action` |
+| `MC-REUSE-001` | Applicable | PASS / FAIL / BLOCKED | `<reuse ledger and paths>` | `<Spring/Egon/module capabilities inspected>` | `None / action` |
+| `MC-DEP-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<dependency/gap evidence>` | `<reuse or justified addition>` | `None / action` |
+| `MC-NAME-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<affected type inventory>` | `<semantic suffix result>` | `None / action` |
+| `MC-VALID-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<boundary/group/normalization design>` | `<validation result>` | `None / action` |
+| `MC-MODEL-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<record/class/Lombok table>` | `<construction result>` | `None / action` |
+| `MC-CONVERT-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<converter/BaseConverter evidence>` | `<mapping result>` | `None / action` |
+| `MC-LOG-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<business class design>` | `<Slf4j/logging result>` | `None / action` |
+| `MC-BEAN-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<Bean names/Qualifier/lombok.config>` | `<injection result>` | `None / action` |
+| `MC-UTIL-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<utility/dependency evidence>` | `<approved utility result>` | `None / action` |
+| `MC-JSON-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<contract/Jackson evidence>` | `<JSON result>` | `None / action` |
+| `MC-TIME-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<time fields/mapping evidence>` | `<java.time result>` | `None / action` |
+| `MC-CONFIG-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<all-profile key comparison>` | `<configuration parity result>` | `None / action` |
+| `MC-PATTERN-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<variation/direct-design evidence>` | `<pattern result>` | `None / action` |
+| `MC-SCOPE-001` | Applicable | PASS / FAIL / BLOCKED | `<change surface and touched-code evidence>` | `<scope compliance>` | `None / action` |
+| `MC-TEST-001` | Applicable | PASS / FAIL / BLOCKED | `<test design and gates>` | `<standards proof>` | `None / action` |
+| `MC-BLOCKER-001` | Applicable | PASS / FAIL / BLOCKED | `<all blocker/manual rows>` | `<no unresolved item>` | `None / action` |
+
+### 20.6 Final verdict
 
 Use exactly one:
 

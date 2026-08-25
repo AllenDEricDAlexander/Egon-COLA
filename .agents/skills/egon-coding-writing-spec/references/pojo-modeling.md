@@ -8,7 +8,7 @@ Read this reference before writing Spec Chapter 10 and the service-structure par
 | --- | --- | --- | --- |
 | POJO | Plain Old Java Object | Umbrella term for ordinary Java objects; not a layer or required suffix | General object category |
 | PO | Persistent Object | Persistence representation aligned with a table, row, or stored record | DAO/mapper persistence boundary |
-| DO | Data Object / Domain Object | Ambiguous team-specific term | Use only when the repository defines which meaning applies |
+| DO | Data Object / Domain Object | Ambiguous team-specific term | Do not introduce for new code unless the current project explicitly defines one unambiguous meaning |
 | DTO | Data Transfer Object | Data transferred between layers, modules, processes, or services | Boundary transport without persistence ownership |
 | VO | View Object | Data shaped for frontend or presentation | API/page display output |
 | BO | Business Object | Object used for internal service calculation or orchestration | Intermediate business computation when it has distinct semantics |
@@ -16,10 +16,10 @@ Read this reference before writing Spec Chapter 10 and the service-structure par
 | DAO | Data Access Object | Database-access component, not a data carrier | Persistence access operations |
 | Query / QO | Query Object | Read-condition carrier | Search and filtering inputs |
 | Command / CO | Command Object | Mutation-intent carrier | Create/update/delete or other state-changing use cases |
+| Event | Event Object | Published fact that has already occurred | Domain/integration event payload with an explicit owner and version |
 | Request | Request Object | Controller or API input | Transport validation and request compatibility boundary |
 | Response | Response Object | Controller or API output | Stable transport response boundary |
 | Form | Form Object | Form-submission input | UI form binding when distinct from the API request |
-| Param | Parameter Object | Grouped method or API parameters | Avoid long parameter lists when the group has one coherent meaning |
 | PageQuery | Page Query Object | Pagination plus query conditions | Paged read input |
 | PageResult | Page Result Object | Paged items plus pagination metadata | Paged read output |
 
@@ -29,7 +29,7 @@ This profile does not define Aggregate, Domain Service, Repository Port, or DDD 
 
 1. Inspect existing suffixes, `biz.domain` packages, framework annotations, serializers, mappers, persistence types, and public contracts before proposing a name.
 2. Preserve a consistent repository definition unless it violates an explicit user decision or creates a documented correctness problem.
-3. When `DO`, `VO`, or `Entity` is ambiguous, state the selected meaning in the Spec. A materially incompatible naming change is a major design decision.
+3. Do not introduce ambiguous `DO`, `Data`, `Info`, `Param`, or `Bean` carriers. State the exact meaning of existing `VO` or `Entity` terms; a materially incompatible naming change is a major design decision.
 4. Classify by ownership and boundary semantics, not by the fact that two classes happen to contain the same fields.
 5. Place necessary data carriers directly in `biz.domain` or in a repository-consistent child package; do not create every possible child package.
 6. Keep DAO/Mapper types out of the POJO inventory. They are behavior-bearing access components under `biz.dao`.
@@ -66,6 +66,8 @@ For every proposed object, record:
 - persistence or protocol mapping when applicable;
 - why a separate class is necessary, or which existing class is safely reused;
 - conversion owner when mapping is necessary;
+- record/class/Lombok construction decision and validation groups when applicable;
+- MapStruct/MapStructPlus and `BaseConverter<S,T>` reuse decision;
 - requirement IDs.
 
 The Spec must include an object-flow diagram or mapping table when data crosses three or more object roles.

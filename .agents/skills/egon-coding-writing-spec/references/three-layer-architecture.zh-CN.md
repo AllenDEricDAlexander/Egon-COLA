@@ -1,6 +1,6 @@
 # 传统三层 Java 分包设计
 
-> 本文件是 `references/three-layer-architecture.md` 的全中文审核镜像。当前 skill 只规范这一种 Java 分包形式，DDD 和 COLA 分包暂缓。
+> 本文件是 `references/three-layer-architecture.md` 的全中文审核镜像，只规范传统分层形态。本 skill 也允许仓库准确选中的 `egon-cola-archetypes` COLA 结构，使用 `references/java-spring-egon-coding-standards.zh-CN.md` 选择形态。绝不能把本 `biz.*` Tree 混入 Archetype COLA 项目。
 
 ## 适用门禁
 
@@ -57,7 +57,7 @@ utils -> 不反向依赖 controller/service/dao 流程
 在 `biz.domain` 下增加对象前，必须执行 `references/pojo-modeling.zh-CN.md`。
 
 - 持久化对象使用 `po`、`entity` 或仓库已有术语；没有真实边界时不能创建同义持久化模型。
-- 只有独立语义确实需要时，才使用 DTO、VO、BO、Query、Command、Request、Response、Form、Param、PageQuery 或 PageResult。
+- 只有独立语义确实需要时，才使用 DTO、VO、BO、Query、Command、Event、Request、Response、PageQuery 或 PageResult。禁止新增含糊的 `Data`、`Info`、`Param` 或 `Bean` 载体。
 - 当前结构允许 Request/Response 放在 `biz.domain`；如果仓库一贯放在 `controller` 下，则沿用仓库惯例。
 - DAO 是访问组件，绝不能列入 POJO 对象清单。
 - 当前结构不得引入 Aggregate、Domain Service、Repository Port 或 DDD Value Object。

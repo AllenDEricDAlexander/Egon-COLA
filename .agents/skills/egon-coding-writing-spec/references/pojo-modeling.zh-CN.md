@@ -8,7 +8,7 @@
 | --- | --- | --- | --- |
 | POJO | Plain Old Java Object | 普通 Java 对象的总称，不代表分层，也不是必须使用的后缀 | 普通对象类别 |
 | PO | Persistent Object | 与表、行或持久化记录对应的持久化表达 | DAO/Mapper 持久化边界 |
-| DO | Data Object / Domain Object | 含义依团队而异，存在歧义 | 只有仓库已经明确其含义时才使用 |
+| DO | Data Object / Domain Object | 含义依团队而异，存在歧义 | 新代码禁止引入，除非当前项目已明确定义唯一无歧义含义 |
 | DTO | Data Transfer Object | 在层、模块、进程或服务之间传输的数据 | 不拥有持久化职责的边界传输 |
 | VO | View Object | 为前端或展示层组织的数据 | API/页面展示输出 |
 | BO | Business Object | Service 内部计算或编排使用的业务对象 | 只有中间业务计算具有独立语义时使用 |
@@ -16,10 +16,10 @@
 | DAO | Data Access Object | 数据库访问组件，不是数据载体 | 持久化访问行为 |
 | Query / QO | Query Object | 查询条件对象 | 搜索和过滤输入 |
 | Command / CO | Command Object | 修改意图对象 | 新增、更新、删除等改变状态的用例 |
+| Event | Event Object | 已经发生并被发布的事实 | 具有明确所有者和版本的领域/集成事件载荷 |
 | Request | Request Object | Controller 或 API 输入对象 | 传输校验和请求兼容边界 |
 | Response | Response Object | Controller 或 API 输出对象 | 稳定的传输响应边界 |
 | Form | Form Object | 表单提交对象 | 与 API Request 不同的 UI 表单绑定 |
-| Param | Parameter Object | 方法或 API 参数组合 | 以一个内聚概念避免过长参数列表 |
 | PageQuery | Page Query Object | 分页信息和查询条件 | 分页查询输入 |
 | PageResult | Page Result Object | 分页数据和分页元信息 | 分页查询输出 |
 
@@ -29,7 +29,7 @@
 
 1. 提议名称前，检查现有后缀、`biz.domain` 子包、框架注解、序列化器、Mapper、持久化类型和公开契约。
 2. 除非违反用户明确决定或造成已记录的正确性问题，否则沿用仓库已经一致使用的定义。
-3. 仓库中的 `DO`、`VO` 或 `Entity` 有歧义时，必须在 Spec 中写明选定含义。实质性不兼容的命名变化属于重大设计决策。
+3. 禁止新增含糊的 `DO`、`Data`、`Info`、`Param` 或 `Bean` 载体。已有 `VO` 或 `Entity` 必须写明准确含义；实质性不兼容命名变化属于重大设计决策。
 4. 根据所有权和边界语义分类，不能因为两个类碰巧字段相同就认为职责相同。
 5. 确有必要的数据载体直接放在 `biz.domain`，或放在其下符合仓库惯例的子包中；不得创建所有可能的子包。
 6. DAO、Mapper 是带行为的访问组件，应放在 `biz.dao`，不能混入 POJO 清单。
@@ -66,6 +66,8 @@
 - 适用的持久化或协议映射；
 - 为什么必须独立建类，或为什么可安全复用已有类型；
 - 需要映射时的转换负责人；
+- 适用的 Record/Class/Lombok 构造选择和 Validation Group；
+- MapStruct/MapStructPlus 与 `BaseConverter<S,T>` 复用决策；
 - 对应需求编号。
 
 数据跨越三个及以上对象职责时，Spec 必须提供对象流图或映射表。

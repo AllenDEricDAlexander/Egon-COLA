@@ -1,6 +1,6 @@
 ---
 name: egon-coding-writing-spec
-description: Use when a coding task needs a repository-grounded RFC-style specification before implementation planning, including focused layer-local changes with proportional design depth, requirements/use-case analysis, minimum-coherent architecture, system/high-level/detailed design, complex cross-module analysis, necessary interface contracts, or Mermaid ER/database design. For Java package design, the current supported profile is the traditional three-layer structure with biz.controller, biz.service, nested biz.service.impl, biz.dao, biz.config, biz.utils, and biz.domain.
+description: Use when a coding task needs a repository-grounded RFC-style specification before implementation planning, including focused layer-local changes, Java/Spring/Egon-COLA coding standards, blocking Manual Checks, architecture selection between the traditional layered profile and an exact egon-cola-archetype COLA profile, requirements/use-case analysis, detailed contracts, or database design.
 ---
 
 # EGON Coding Spec Writing
@@ -22,7 +22,7 @@ The specification defines **what must be built and why the design is coherent**.
   - Replace `ABSTRACT` with a concise lowercase ASCII kebab-case summary, normally 3–8 words.
   - Example: `docs/egon/spec/2026-08-15-14-30-account-lockout-design.md`.
   - Never overwrite a document with the same minute and abstract; choose a more specific abstract.
-- Start from Template Version 4 in `assets/spec-template.md`. Keep every numbered chapter, but allocate depth using `references/change-surface-and-proportional-depth.md`: fully design `Affected` areas, keep `Context-only` and `Unchanged` areas concise, and use evidence-backed `N/A` only for `Not applicable`. The validator continues to accept existing Version 2 and Version 3 Specs under their original contracts.
+- Start from Template Version 5 in `assets/spec-template.md`. Keep every numbered chapter, but allocate depth using `references/change-surface-and-proportional-depth.md`: fully design `Affected` areas, keep `Context-only` and `Unchanged` areas concise, and use evidence-backed `N/A` only for `Not applicable`. The validator continues to accept existing Version 2, Version 3, and Version 4 Specs under their original contracts.
 
 ## Resource-integrity preflight
 
@@ -48,9 +48,9 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 10. Do not mark a Spec `Accepted` without explicit user/decision-owner approval. An internally complete draft awaiting approval is `Review`; unresolved major decisions require `Draft` and a blocked conclusion.
 11. Design every `Affected` area at detailed-design depth: exact paths/packages, symbols, contracts, fields, state rules, schema, page states, test cases, compatibility, and failure semantics as applicable. For `Context-only` and `Unchanged` areas, record only the evidence, preserved invariant, reason no change is required, and focused verification. Do not invent full production implementations or redesign adjacent layers.
 12. Review the finished Spec against the original user request and the current repository before delivery. Fix internal defects yourself; surface only unresolved major decisions.
-13. Classify Java objects by their actual boundary and lifecycle roles. Follow `references/pojo-modeling.md`; never treat POJO/PO/DO/DTO/VO/BO/Entity/Query/Command/Request/Response/Form/Param/PageQuery/PageResult as mandatory parallel classes.
+13. Classify Java objects by their actual boundary and lifecycle roles. Follow `references/pojo-modeling.md` and `references/java-spring-egon-coding-standards.md`. New or materially changed carriers use explicit semantic suffixes such as PO, BO, DTO, VO, Query, Command, Event, Request, Response, PageQuery, or PageResult; DAO names an access component. Do not create parallel classes by default, and do not introduce ambiguous `Data`, `Info`, `Param`, or `Bean` carrier names.
 14. Prevent class explosion. Require a concrete semantic reason for every distinct object and mapper. PO/ORM Entity inheritance is allowed only with repository and lifecycle justification; concrete business services default to composition and delegation rather than inheritance.
-15. For Java package design, read `references/three-layer-architecture.md` and use only the traditional three-layer profile currently standardized by this skill: `biz.controller`, `biz.service`, `biz.service.impl`, `biz.dao`, `biz.config`, `biz.utils`, and `biz.domain`. Do not design DDD or COLA packages until this skill is explicitly extended. If the existing repository uses another architecture, preserve it and ask before proposing a structural migration.
+15. Before Java package design, classify the current project as exactly one allowed profile: the traditional structure defined by `references/three-layer-architecture.md`, or the exact selected `egon-cola-archetypes/egon-cola-archetype-{light,service,web}` family contract, including an explicitly selected open variant. Preserve the selected profile and its verifier/dependency direction. Do not invent, hybridize, or rename layers/modules. If the project matches neither profile or the evidence conflicts, treat architecture as a major blocker and ask the user.
 16. Classify every Spec as `Simple` or `Complex` using `references/complex-scenario-analysis.md`. For a Complex Spec, complete the evidence map, scenario matrix, ownership/consistency analysis, quality constraints, and evidence-to-decision conclusion chain before selecting the architecture. Do not burden a Simple Spec with ceremonial analysis.
 17. Split Chapter 7 into System Architecture Design, High-Level Design, and Detailed Design. Describe only the affected collaboration plus the context needed to prove its boundary. A Complex Spec must contain an architecture Mermaid flowchart, a separate critical business/control flowchart, and a Mermaid swimlane/sequence view covering the main participants and important failure behavior; a focused Simple Spec must not add decorative full-system diagrams.
 18. Read `references/interface-contract-design.md` when an HTTP/RPC/event/job/internal Service contract is `Affected`. Assign one interface ID per atomic Method + URL or protocol operation; never group a CRUD family. Inventory and fully expand every changed contract. When an existing interface is only `Context-only` or `Unchanged`, cite its exact current symbol/route and preserved invariant without reproducing its full request/response contract.
@@ -59,6 +59,8 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 21. Whenever the relational data model, tables, keys, constraints, or relationships are `Affected`, add a Mermaid `erDiagram` covering every affected inventory table, directly relevant neighboring tables, actual cardinalities, relationship labels, and material PK/FK/UK fields. Map renderer-safe entity names to exact physical tables. Do not redraw an unchanged ER model for a DAO-only query or mapping change.
 22. Read `references/minimal-design-and-interface-necessity.md` before selecting architecture elements or assigning interface IDs. Start from the direct reuse/no-new-element baseline. Every new or materially expanded API, RPC/event, class, layer, table, cache, job, dependency, or frontend store/provider must prove a current requirement that the simpler alternative cannot satisfy and must record its added calls, state, coupling, failure, migration, and operational cost. Reject fetch-then-forward interfaces whose result is only copied into another request when the target can derive or validate the value itself.
 23. Read `references/change-surface-and-proportional-depth.md` before target design. Build an impact cone from the requested symbols, classify each relevant area as `Affected`, `Context-only`, `Unchanged`, or `Not applicable`, and record `Change Surface` plus `Affected Chapters` in the Header. The presence of a layer is not evidence that it must be redesigned. If repository evidence requires a major scope expansion beyond the user's stated boundary, stop and ask before widening it.
+24. Read `references/java-spring-egon-coding-standards.md` for every Java task. Before selecting new code, prove architecture and existing-capability discovery. Design semantic names, Bean Validation/groups/normalization, record/Lombok construction, MapStruct/MapStructPlus conversion and `BaseConverter` reuse, `@Slf4j`, explicit Bean names, qualified constructor injection, approved utilities, Jackson, `java.time`, configuration parity, and justified design patterns. Additional dependencies or custom infrastructure require a proven gap.
+25. Complete the blocking Manual Check catalog in Chapter 20. Every applicable `MC-*` row must be `PASS` with concrete repository/design evidence; an inapplicable row must be `N/A` with evidence and reason. Any `FAIL`, `BLOCKED`, `UNKNOWN`, missing ID, missing evidence, or unresolved exception prohibits a PASS verdict.
 
 ## Mandatory reference loading and drafting passes
 
@@ -69,7 +71,7 @@ Read every applicable reference **completely before drafting the corresponding c
 | Situation | References that must be read completely |
 | --- | --- |
 | Every Spec | `references/ambiguity-policy.md`, `references/rfc-governance.md`, `references/complex-scenario-analysis.md`, `references/requirements-use-case-analysis.md`, `references/change-surface-and-proportional-depth.md`, `references/minimal-design-and-interface-necessity.md`, `references/review-checklist.md`, and `assets/spec-template.md` |
-| Java design | `references/three-layer-architecture.md` and `references/pojo-modeling.md` |
+| Every Java design | `references/java-spring-egon-coding-standards.md`; also `references/three-layer-architecture.md` and `references/pojo-modeling.md` for the traditional profile, or the exact selected repository Archetype tree/verifier for the COLA profile |
 | Any `Affected` HTTP/RPC/event/job/internal Service contract | `references/interface-contract-design.md` |
 | Any `Affected` schema/data/constraint/index/migration/transaction/locking/persistence-ownership surface | `references/database-design.md` |
 
@@ -108,7 +110,7 @@ Use this exact header field set in every Spec:
 | Field | Required meaning |
 | --- | --- |
 | Document | Current filename as a relative repository link or code value |
-| Template Version | `4` for the current template; existing Version 2 and Version 3 documents remain valid under their original rules |
+| Template Version | `5` for the current template; existing Version 2, Version 3, and Version 4 documents remain valid under their original rules |
 | Status | `Draft`, `Review`, `Accepted`, `Implemented`, `Superseded`, or `Rejected` |
 | Type | `Feature`, `Refactor`, `Bugfix`, `Architecture`, or another clearly defined coding type |
 | Complexity | `Simple` or `Complex` |
@@ -163,7 +165,7 @@ Read `references/rfc-governance.md` for lifecycle and backlink rules.
    - Apply `references/minimal-design-and-interface-necessity.md`. Evaluate the direct repository-consistent reuse/no-new-element design first and select a more complex option only when a current approved requirement proves the direct option insufficient.
    - Explicitly consider appropriate patterns such as Strategy, Template Method, Factory, Adapter, Facade, State, Observer, Command, or Specification.
    - Select a pattern only when it resolves a real variation point, coupling problem, lifecycle, orchestration concern, or testability problem. Otherwise record why direct design is clearer and avoids over-engineering.
-   - For Java work, read `references/three-layer-architecture.md` and `references/pojo-modeling.md`. Confirm the traditional three-layer applicability gate, keep `impl` under `service`, classify each proposed object by semantic role, apply the class-necessity test, and evaluate persistence inheritance separately from service composition.
+   - For Java work, apply `references/java-spring-egon-coding-standards.md`. Confirm exactly one allowed architecture profile and build a reuse ledger before designing dependencies or abstractions. For the traditional profile, also read `references/three-layer-architecture.md` and `references/pojo-modeling.md`; for COLA, inspect the exact selected Archetype tree, module dependencies, examples, and generated verifier.
    - Read `references/interface-contract-design.md` and `references/database-design.md` only when their surfaces are `Affected`; otherwise cite the authoritative current contract or persistence evidence and preserved invariant concisely.
    - For an affected relational model, derive a Mermaid `erDiagram` from evidenced table ownership, keys, and cardinalities before finalizing per-table details; do not redraw unchanged relationships for query-only work.
 7. **Write the Spec**
@@ -174,6 +176,7 @@ Read `references/rfc-governance.md` for lifecycle and backlink rules.
 8. **Review and repair**
    - Apply `references/review-checklist.md`.
    - Repair omissions, contradictions, stale paths, vague placeholders, broken traceability, and unjustified scope expansion.
+   - Execute every blocking `MC-*` row manually. Close failures and blockers or change the final verdict; do not summarize several checks into one assertion.
 9. **Validate and deliver**
    - Run `scripts/validate_spec.py <spec-path> --strict`.
    - Report the path, status, predecessor relationships, assumptions, and unresolved user decisions.
@@ -202,7 +205,7 @@ The template is normative. At minimum, the Spec must contain:
 17. **Alternatives and decisions** — compare the direct/no-new-element baseline with viable alternatives for the affected decision only; do not create alternatives for unchanged layers.
 18. **Risks and open questions** — include risks from the affected surface and any evidence-backed scope-expansion conflict; do not inventory generic project risks.
 19. **Traceability matrix** — every `REQ-*` maps to affected areas/chapters, context-only or unchanged boundaries, tests, and acceptance evidence; every proposed element maps back to a requirement or necessary infrastructure rationale.
-20. **Review and acceptance** — original-request fidelity, repository fidelity, cross-section consistency, relationship correctness, and final verdict.
+20. **Review and acceptance** — original-request fidelity, repository fidelity, cross-section consistency, relationship correctness, the complete blocking Manual Check table, and final verdict.
 
 ## Completion verdicts
 
@@ -212,7 +215,7 @@ Use exactly one:
 - `BLOCKED — User decision required`
 - `REVISE — Internal inconsistency found`
 
-`PASS` means the document is internally complete, not that the user has accepted it. `BLOCKED` must name the decisions required. Never claim implementation or runtime verification from a Spec-only task.
+`PASS` means the document is internally complete and every blocking Manual Check is `PASS` or evidence-backed `N/A`; it does not mean the user has accepted it. `BLOCKED` must name the decisions required. Never claim implementation or runtime verification from a Spec-only task.
 
 ## Common failures
 
@@ -238,7 +241,11 @@ Use exactly one:
 | Reusing a persistence object as a public contract to reduce classes | Keep persistence concerns behind the boundary and create only the necessary transport/view type |
 | Designing business services through a base-class hierarchy for code reuse | Compose explicit collaborators; allow inheritance only for a justified existing framework extension contract |
 | Placing `impl` beside `service` | Move implementations under `biz.service.impl` |
-| Introducing aggregates, domain services, repository ports, or COLA layers into the current profile | Remove the deferred DDD/COLA structure and use the approved traditional three-layer packages |
+| Mixing traditional-layer and Archetype COLA responsibilities, or adding COLA concepts while the traditional profile is selected | Select exactly one profile from repository evidence; keep traditional work in its approved packages, or follow the selected `egon-cola-archetype` tree exactly |
+| Inventing a hybrid architecture instead of selecting the current traditional or exact Archetype profile | Stop, cite the real tree and Archetype evidence, and obtain a user decision before structural change |
+| Adding a dependency or helper without checking Spring/Egon/module reuse | Build the reuse ledger; use existing capability or document the proven gap and approved impact |
+| Using `Data`, `Info`, `Param`, or `Bean` for a new carrier | Rename it to the exact PO/BO/DTO/VO/Query/Command/Event/Request/Response or behavior role |
+| Marking the Spec PASS with a missing/failed/unknown Manual Check | Close every blocker and add evidence, or use `BLOCKED`/`REVISE` |
 | Letting a Controller access DAO or `service.impl` directly | Depend on the Service interface and keep persistence behind the implementation |
 | Naming a design pattern without a variation point | Reject it or explain the concrete problem it solves |
 | Treating integration tests as unit-test design | Define isolated unit behavior and separate higher-level coverage |
@@ -249,4 +256,4 @@ Use exactly one:
 
 ## Skill maintenance
 
-When changing this skill, first run the resource-integrity unit tests (`scripts/test_validate_skill_resources.py`), change-surface validator tests (`scripts/test_validate_spec_scope.py`), and preflight (`scripts/validate_skill_resources.py`), then run `references/acceptance-scenarios.md` as review cases and the applicable output validator. Keep `SKILL.zh-CN.md` plus all `*.zh-CN.md` review mirrors synchronized with the English operational contract. A change is not complete if any bundled resource is missing, uses an ambiguous bare path, escapes the skill root, or contains a broken local Markdown link.
+When changing this skill, first run the resource-integrity tests (`scripts/test_validate_skill_resources.py`), change-surface tests (`scripts/test_validate_spec_scope.py`), Manual Check tests (`scripts/test_validate_manual_checks.py`), and preflight (`scripts/validate_skill_resources.py`), then run `references/acceptance-scenarios.md` as review cases and the applicable output validator. Keep `SKILL.zh-CN.md` plus all `*.zh-CN.md` review mirrors synchronized with the English operational contract. A change is not complete if any bundled resource is missing, uses an ambiguous bare path, escapes the skill root, or contains a broken local Markdown link.

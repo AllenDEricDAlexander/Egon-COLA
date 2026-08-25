@@ -52,6 +52,24 @@
 - [ ] Static/source evidence is not presented as live-runtime proof.
 - [ ] No unrelated refactor, new dependency, or architecture layer was smuggled into scope.
 
+## Java, Spring, Egon-COLA, and Manual Check gate
+
+- [ ] For Java work, `references/java-spring-egon-coding-standards.md` was applied and every `MC-*` ID appears exactly once in §20.5.
+- [ ] `MC-ARCH-001` proves exactly one allowed architecture profile from the actual tree, selected Archetype/base package, module dependencies, and verifier; no hybrid or invented layer exists.
+- [ ] `MC-REUSE-001` contains a repository-backed reuse ledger covering JDK/Spring, Spring Boot Starters, Egon-COLA Components/common infrastructure, and module-local candidates.
+- [ ] `MC-DEP-001` proves every added dependency/custom replacement fills a documented gap with version/maintenance/security/operational impact; no duplicate Spring/Egon capability is designed.
+- [ ] `MC-NAME-001` inventories affected Java types and enforces explicit PO/BO/DTO/VO/Query/Command/Event/Request/Response or behavior suffixes; no new ambiguous `Data`, `Info`, `Param`, or `Bean` carrier exists.
+- [ ] `MC-VALID-001` maps every affected input boundary to `spring-boot-starter-validation`, Jakarta annotations, `@Valid`/`@Validated`, groups for reused inputs, `ValidationUtils`, normalization, error mapping, and tests; custom validators have a proven gap.
+- [ ] `MC-MODEL-001` justifies record/class/`@Value`/mutable Lombok choices and constructor semantics without redundant/conflicting annotations.
+- [ ] `MC-CONVERT-001` assigns MapStruct/MapStructPlus conversion and applicable `BaseConverter<S,T>` reuse; business code does not use manual set/get, `BeanUtils.copyProperties`, reflection, or JSON mapping.
+- [ ] `MC-LOG-001` and `MC-BEAN-001` cover every affected business/Spring type with `@Slf4j`, stable Bean name, final-field constructor injection, `@RequiredArgsConstructor`, dependency `@Qualifier`, and verified Lombok annotation propagation.
+- [ ] `MC-UTIL-001`, `MC-JSON-001`, and `MC-TIME-001` enforce the approved utility set, Jackson-only external serialization, and `java.time` boundary semantics.
+- [ ] `MC-CONFIG-001` compares every environment profile's key structure and designs typed `@ConfigurationProperties` where applicable.
+- [ ] `MC-PATTERN-001` names a real complex variation and justified pattern, or explicitly proves direct logic is clearer; no hard-coded branch explosion or ceremonial pattern exists.
+- [ ] `MC-SCOPE-001` limits remediation to touched code and reports any compliance conflict requiring a broader approved change.
+- [ ] `MC-TEST-001` names focused tests/static gates for the standards, and `MC-BLOCKER-001` accurately summarizes every unresolved Manual Check.
+- [ ] Every applicable row is `PASS` with concrete evidence; each `N/A` has concrete evidence and reason; any `FAIL`/`BLOCKED` prevents the final PASS verdict.
+
 ## Design completeness and consistency
 
 - [ ] Architecture, target file tree, interfaces, fields, models, schema, pages, tests, rollout, and failure behavior describe the same affected system slice and preserve the declared unchanged boundaries.
@@ -66,7 +84,7 @@
 - [ ] Controllers depend on Service interfaces and never call DAO or `service.impl` directly.
 - [ ] `service.impl` owns business orchestration and normal transaction boundaries; DAO owns persistence access and no business policy.
 - [ ] Config contains technical wiring rather than workflows; Utils is stateless, cohesive, and not a business-rule dumping ground.
-- [ ] The current profile does not introduce DDD/COLA packages, aggregates, domain services, repository ports, or DDD value objects.
+- [ ] A traditional profile does not introduce COLA/DDD layers; an Egon-COLA profile follows the exact selected Archetype and does not introduce `biz.*` or custom modules.
 - [ ] Interface fields trace through only the applicable, justified transport/domain/persistence/frontend roles; an inapplicable layer does not force a wrapper class.
 - [ ] Every proposed Java object has one repository-defined role, owner, boundary, consumers, and a concrete reason to exist or evidence that reuse is safe.
 - [ ] POJO is treated as an umbrella term; DAO/Repository/Mapper/Gateway types are treated as access components, not data carriers.

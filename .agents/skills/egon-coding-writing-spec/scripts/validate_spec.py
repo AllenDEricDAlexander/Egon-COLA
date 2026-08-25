@@ -16,8 +16,27 @@ DATE_TIME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2}) \S+$")
 VALID_STATUSES = {"Draft", "Review", "Accepted", "Implemented", "Superseded", "Rejected"}
 VALID_COMPLEXITIES = {"Simple", "Complex"}
 CHANGE_SURFACE_DISPOSITIONS = {"Affected", "Context-only", "Unchanged", "Not applicable"}
-CURRENT_TEMPLATE_VERSION = 4
-SUPPORTED_TEMPLATE_VERSIONS = {2, 3, 4}
+CURRENT_TEMPLATE_VERSION = 5
+SUPPORTED_TEMPLATE_VERSIONS = {2, 3, 4, 5}
+MANUAL_CHECK_IDS = (
+    "MC-ARCH-001",
+    "MC-REUSE-001",
+    "MC-DEP-001",
+    "MC-NAME-001",
+    "MC-VALID-001",
+    "MC-MODEL-001",
+    "MC-CONVERT-001",
+    "MC-LOG-001",
+    "MC-BEAN-001",
+    "MC-UTIL-001",
+    "MC-JSON-001",
+    "MC-TIME-001",
+    "MC-CONFIG-001",
+    "MC-PATTERN-001",
+    "MC-SCOPE-001",
+    "MC-TEST-001",
+    "MC-BLOCKER-001",
+)
 REQUIRED_FIELDS = [
     "Document",
     "Status",
@@ -256,6 +275,80 @@ def validate_change_surface(text: str, fields: dict[str, str]) -> tuple[list[str
             f"header={sorted(header_chapters)}, matrix={sorted(affected_chapters)}"
         )
     return errors, affected_chapters
+
+
+def validate_manual_checks(text: str, pass_verdict: bool) -> list[str]:
+    """Validate the blocking Manual Check table and its final-verdict consistency."""
+    errors: list[str] = []
+    review = section(text, "## 20. Review and Acceptance")
+    heading = "### 20.5 Blocking Manual Check"
+    if heading not in review:
+        return [f"Template Version 5 is missing required subsection: {heading}"]
+
+    body = heading_body(review, heading)
+    if "| Check ID | Applicability | Status | Evidence | Finding | Required action/exception |" not in body:
+        errors.append("Blocking Manual Check requires the canonical six-column table")
+    rows = markdown_table_rows(body, "Check ID")
+    rows_by_id: dict[str, list[str]] = {}
+    for row_number, row in enumerate(rows, start=1):
+        if len(row) < 6:
+            errors.append(f"Manual Check row {row_number} requires six columns; found {len(row)}")
+            continue
+        check_id, applicability, status, evidence, finding, action = [clean(cell) for cell in row[:6]]
+        if check_id in rows_by_id:
+            errors.append(f"Duplicate Manual Check ID: {check_id}")
+            continue
+        rows_by_id[check_id] = [applicability, status, evidence, finding, action]
+
+    expected = set(MANUAL_CHECK_IDS)
+    actual = set(rows_by_id)
+    for check_id in sorted(expected - actual):
+        errors.append(f"Missing blocking Manual Check ID: {check_id}")
+    for check_id in sorted(actual - expected):
+        errors.append(f"Unknown blocking Manual Check ID: {check_id}")
+
+    unresolved: list[str] = []
+    for check_id in MANUAL_CHECK_IDS:
+        row = rows_by_id.get(check_id)
+        if not row:
+            continue
+        applicability, status, evidence, finding, action = row
+        if applicability not in {"Applicable", "Not applicable"}:
+            errors.append(
+                f"{check_id} Applicability must be Applicable or Not applicable: {applicability}"
+            )
+        if applicability == "Applicable" and status not in {"PASS", "FAIL", "BLOCKED"}:
+            errors.append(f"{check_id} applicable status must be PASS, FAIL, or BLOCKED: {status}")
+        if applicability == "Not applicable" and status != "N/A":
+            errors.append(f"{check_id} not-applicable status must be N/A: {status}")
+        for label, value in (("Evidence", evidence), ("Finding", finding)):
+            if not value or value.lower() in {"none", "n/a", "unknown", "tbd", "todo"}:
+                errors.append(f"{check_id} requires concrete {label.lower()}")
+        if status in {"FAIL", "BLOCKED"}:
+            unresolved.append(check_id)
+            if not action or action.lower() in {"none", "n/a", "unknown", "tbd", "todo"}:
+                errors.append(f"{check_id} {status} requires an exact action/owner")
+
+    blocker_status = rows_by_id.get("MC-BLOCKER-001", ["", "", "", "", ""])[1]
+    unresolved_without_summary = [item for item in unresolved if item != "MC-BLOCKER-001"]
+    if unresolved_without_summary and blocker_status not in {"FAIL", "BLOCKED"}:
+        errors.append(
+            "MC-BLOCKER-001 must be FAIL or BLOCKED while other Manual Checks are unresolved"
+        )
+    if not unresolved_without_summary and blocker_status not in {"PASS", ""}:
+        errors.append("MC-BLOCKER-001 must be PASS when all other Manual Checks are closed")
+    if pass_verdict:
+        nonpassing = [
+            check_id
+            for check_id, row in rows_by_id.items()
+            if row[1] not in {"PASS", "N/A"}
+        ]
+        if nonpassing:
+            errors.append(
+                "PASS verdict requires every Manual Check to be PASS or evidence-backed N/A: "
+                + ", ".join(sorted(nonpassing))
+            )
+    return errors
 
 
 def validate_ordered_subheadings(owner: str, text: str, headings: list[str]) -> list[str]:
@@ -655,6 +748,7 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
     if status and status not in VALID_STATUSES:
         errors.append(f"Invalid Status '{status}'. Expected one of: {', '.join(sorted(VALID_STATUSES))}")
 
+    parsed_template_version = 0
     template_version = clean(fields.get("Template Version", ""))
     if template_version:
         if not template_version.isdigit():
@@ -730,6 +824,14 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
         warnings.append("Draft status uses a PASS verdict; verify that no major decision remains")
     elif status in {"Review", "Accepted"} and "BLOCKED — User decision required" in present_verdicts:
         errors.append(f"Status {status} cannot use the BLOCKED verdict")
+
+    if parsed_template_version >= 5:
+        errors.extend(
+            validate_manual_checks(
+                text,
+                pass_verdict="PASS — Ready for user review" in present_verdicts,
+            )
+        )
 
     traceability = section(text, "## 19. Traceability Matrix")
     for requirement in requirements:

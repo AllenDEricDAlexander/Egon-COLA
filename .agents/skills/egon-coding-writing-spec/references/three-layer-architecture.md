@@ -1,6 +1,6 @@
 # Traditional Three-Layer Java Package Design
 
-This is the only Java package-design profile currently standardized by this skill. DDD and COLA profiles are intentionally deferred.
+This reference standardizes the traditional profile only. The skill also permits the exact COLA structure of the repository-selected `egon-cola-archetypes` family; use `references/java-spring-egon-coding-standards.md` to select the profile. Never mix this `biz.*` tree into an Archetype COLA project.
 
 ## Applicability gate
 
@@ -57,7 +57,7 @@ utils -> no reverse dependency on controller/service/dao workflows
 Apply `references/pojo-modeling.md` before adding objects under `biz.domain`.
 
 - Use `po`, `entity`, or the repository's existing persistence term; do not create synonymous persistence models without a real boundary.
-- Use DTO, VO, BO, Query, Command, Request, Response, Form, Param, PageQuery, or PageResult only when its distinct semantics justify a class.
+- Use DTO, VO, BO, Query, Command, Event, Request, Response, PageQuery, or PageResult only when its distinct semantics justify a class. Do not introduce ambiguous `Data`, `Info`, `Param`, or `Bean` carriers.
 - Request/Response may remain under `biz.domain` for this profile unless the repository consistently places them below `controller`.
 - DAO is an access component and never belongs in the POJO inventory.
 - Do not introduce Aggregate, Domain Service, Repository Port, or DDD Value Object concepts in this profile.

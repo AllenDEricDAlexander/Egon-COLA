@@ -1,6 +1,6 @@
 ---
 name: egon-coding-writing-spec
-description: 当编码任务在实施计划之前需要基于仓库现状编写 RFC 风格 Spec 时使用，包括按影响深度处理局部分层变更、需求与用例分析、最小自洽架构、系统/概要/详细设计、复杂跨模块分析、必要接口契约或 Mermaid ER/数据库设计。当前 Java 分包设计只支持传统三层结构：biz.controller、biz.service、嵌套的 biz.service.impl、biz.dao、biz.config、biz.utils 和 biz.domain。
+description: 当编码任务在实施 Plan 前需要基于仓库编写 RFC 风格 Spec 时使用，包括局部变更、Java/Spring/Egon-COLA 编码规范、阻断型 Manual Check、传统分层与准确 egon-cola-archetype COLA 架构选择、需求/用例、详细契约或数据库设计。
 ---
 
 # EGON 编码 Spec 编写
@@ -24,7 +24,7 @@ Spec 定义的是**必须构建什么，以及该设计为什么自洽**。它�
   - `ABSTRACT` 替换为简洁的小写 ASCII kebab-case 摘要，通常为 3–8 个单词。
   - 示例：`docs/egon/spec/2026-08-15-14-30-account-lockout-design.md`。
   - 同一分钟且摘要相同时不得覆盖旧文档，应使用更具体的摘要。
-- 必须以 `assets/spec-template.md` 中的 Template Version 4 为模板，保留所有编号章节，但按 `references/change-surface-and-proportional-depth.zh-CN.md` 分配深度：只完整设计 `Affected` 区域，`Context-only` 和 `Unchanged` 保持简洁，只有 `Not applicable` 才写有证据的 `N/A`。校验器继续按原契约接受既有 Version 2 和 Version 3 Spec。
+- 必须以 `assets/spec-template.md` 中的 Template Version 5 为模板，保留所有编号章节，但按 `references/change-surface-and-proportional-depth.zh-CN.md` 分配深度：只完整设计 `Affected` 区域，`Context-only` 和 `Unchanged` 保持简洁，只有 `Not applicable` 才写有证据的 `N/A`。校验器继续按原契约接受既有 Version 2、Version 3 和 Version 4 Spec。
 
 ## 资源完整性预检
 
@@ -50,9 +50,9 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 10. 未经用户或决策负责人明确批准，不能标记为 `Accepted`。内部完整、等待审核时为 `Review`；仍有重大未决项时必须为 `Draft`，结论为阻塞。
 11. 所有 `Affected` 区域都要达到适用的详细设计深度：精确路径/包、符号、契约、字段、状态规则、Schema、页面状态、测试用例、兼容与失败语义。`Context-only` 和 `Unchanged` 区域只记录证据、保持不变量、无需修改的原因和聚焦验证。不能编写完整生产实现，也不能重设计相邻层。
 12. 交付前必须对照原始用户需求和当前仓库复核。内部缺陷自行修复，只把仍未解决的重大决策交给用户。
-13. Java 对象必须按照真实边界和生命周期职责分类。遵循 `references/pojo-modeling.zh-CN.md`；不能把 POJO/PO/DO/DTO/VO/BO/Entity/Query/Command/Request/Response/Form/Param/PageQuery/PageResult 当成必须并列创建的类清单。
+13. Java 对象必须按真实边界和生命周期职责分类，遵循 `references/pojo-modeling.zh-CN.md` 和 `references/java-spring-egon-coding-standards.zh-CN.md`。新增或实质修改载体使用 PO、BO、DTO、VO、Query、Command、Event、Request、Response、PageQuery、PageResult 等明确后缀；DAO 表示访问组件。不得默认创建平行类，禁止新增含糊的 `Data`、`Info`、`Param`、`Bean` 载体名。
 14. 防止类爆炸。每个独立对象和 Mapper 都必须有具体语义依据。PO/ORM Entity 只有在仓库惯例和生命周期依据充分时才能继承；具体业务 Service 默认采用组合与委托，不采用继承。
-15. Java 分包设计必须读取 `references/three-layer-architecture.zh-CN.md`，并只使用当前已规范的传统三层结构：`biz.controller`、`biz.service`、`biz.service.impl`、`biz.dao`、`biz.config`、`biz.utils` 和 `biz.domain`。本 skill 明确扩展前，不得设计 DDD 或 COLA 分包。现有仓库采用其他架构时，应保持现状，并在提出结构迁移前询问用户。
+15. Java 分包设计前必须把当前项目准确分类为一种允许形态：`references/three-layer-architecture.zh-CN.md` 定义的传统结构，或准确选中的 `egon-cola-archetypes/egon-cola-archetype-{light,service,web}` 家族契约（包括明确选中的 Open 变体）。保持该形态及其 Verifier/依赖方向，禁止发明、混搭或重命名层/模块。项目不符合任一形态或证据冲突时，必须作为重大阻断询问用户。
 16. 必须使用 `references/complex-scenario-analysis.zh-CN.md` 把 Spec 分类为 `Simple` 或 `Complex`。Complex Spec 在选择架构前必须完成证据图谱、场景矩阵、所有权/一致性分析、质量约束和“证据到决策”结论链；Simple Spec 不得为了形式套用重型分析。
 17. 第 7 章必须分为系统架构设计、概要设计和详细设计，但只描述受影响协作和证明边界所需的上下文。Complex Spec 必须包含架构 Mermaid Flowchart、独立的关键业务/控制 Flowchart，以及覆盖主要参与者/重要失败的 Mermaid 泳道图/Sequence Diagram；聚焦 Simple Spec 不得增加装饰性的全系统图。
 18. HTTP/RPC/事件/Job/内部 Service 契约为 `Affected` 时才读取 `references/interface-contract-design.zh-CN.md`。一个原子 Method + URL 或协议操作分配一个接口 ID，禁止合并 CRUD 接口族；清单和完整详情只覆盖发生变化的契约。已有接口只是 `Context-only` 或 `Unchanged` 时，只引用准确当前符号/路由和保持不变量，不复写完整入参/出参。
@@ -61,6 +61,8 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 21. 关系型数据模型、表、Key、约束或关系为 `Affected` 时，必须增加 Mermaid `erDiagram`，覆盖所有受影响清单表、直接相关邻表、真实基数、关系标签和重要 PK/FK/UK 字段，并映射准确物理表。DAO-only 查询或映射变更不得重画不变 ER 模型。
 22. 选择架构元素或分配接口 ID 前必须读取 `references/minimal-design-and-interface-necessity.zh-CN.md`。从复用现有/不新增元素的直接方案开始。每个新增或实质扩展的 API、RPC/事件、类、分层、表、缓存、Job、依赖或前端 Store/Provider，都必须证明当前需求无法由简单方案满足，并记录新增调用、状态、耦合、失败、迁移和运维成本。如果接口返回值只被原样复制到另一个请求，而目标端可以自行派生或校验，必须拒绝该“先查再转发”接口。
 23. 目标设计前必须读取 `references/change-surface-and-proportional-depth.zh-CN.md`。从需求点名符号建立影响锥，把相关区域分类为 `Affected`、`Context-only`、`Unchanged` 或 `Not applicable`，并在 Header 记录 `Change Surface` 和 `Affected Chapters`。某层存在不是重设计它的依据；仓库证据要求超出用户边界的重大扩张时，必须在扩大范围前询问用户。
+24. 每个 Java 任务必须读取 `references/java-spring-egon-coding-standards.zh-CN.md`。选择新代码前先证明架构和已有能力发现；设计语义命名、Bean Validation/Group/规范化、Record/Lombok 构造、MapStruct/MapStructPlus 与 `BaseConverter` 复用、`@Slf4j`、显式 Bean 名、Qualifier 构造注入、获准工具、Jackson、`java.time`、配置一致性和有依据设计模式。新增依赖或自研基础设施必须证明能力缺口。
+25. 第 20 章必须完成阻断型 Manual Check。每个适用 `MC-*` 行必须有具体仓库/设计证据且状态为 `PASS`；不适用行必须有证据和原因且为 `N/A`。任何 `FAIL`、`BLOCKED`、`UNKNOWN`、缺失 ID、缺失证据或未关闭例外都禁止 PASS。
 
 ## 强制参考资料加载与分阶段写作
 
@@ -71,7 +73,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 | 场景 | 必须完整读取的参考资料 |
 | --- | --- |
 | 所有 Spec | `references/ambiguity-policy.md`、`references/rfc-governance.md`、`references/complex-scenario-analysis.zh-CN.md`、`references/requirements-use-case-analysis.zh-CN.md`、`references/change-surface-and-proportional-depth.zh-CN.md`、`references/minimal-design-and-interface-necessity.zh-CN.md`、`references/review-checklist.md` 和 `assets/spec-template.md` |
-| Java 设计 | `references/three-layer-architecture.zh-CN.md` 和 `references/pojo-modeling.zh-CN.md` |
+| 所有 Java 设计 | `references/java-spring-egon-coding-standards.zh-CN.md`；传统形态还读取 `references/three-layer-architecture.zh-CN.md` 和 `references/pojo-modeling.zh-CN.md`，COLA 形态读取仓库中准确选中的 Archetype Tree/Verifier |
 | 任意 `Affected` HTTP/RPC/事件/Job/内部 Service 契约 | `references/interface-contract-design.zh-CN.md` |
 | 任意 `Affected` Schema/数据/约束/索引/Migration/事务/锁/持久化所有权表面 | `references/database-design.zh-CN.md` |
 
@@ -110,7 +112,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 | 字段 | 必需含义 |
 | --- | --- |
 | Document | 当前文件名，使用仓库相对链接或代码值 |
-| Template Version | 当前模板固定为 `4`；既有 Version 2 和 Version 3 文档继续按原规则有效 |
+| Template Version | 当前模板固定为 `5`；既有 Version 2、Version 3 和 Version 4 文档继续按原规则有效 |
 | Status | `Draft`、`Review`、`Accepted`、`Implemented`、`Superseded` 或 `Rejected` |
 | Type | `Feature`、`Refactor`、`Bugfix`、`Architecture` 或清晰定义的其他编码类型 |
 | Complexity | `Simple` 或 `Complex` |
@@ -165,7 +167,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
    - 执行 `references/minimal-design-and-interface-necessity.zh-CN.md`。先评估直接遵循仓库、复用现有且不新增元素的方案；只有当前已批准需求证明其不足时，才选择更复杂方案。
    - 明确考虑 Strategy、Template Method、Factory、Adapter、Facade、State、Observer、Command、Specification 等合适模式。
    - 只有模式确实解决变化点、耦合、生命周期、编排或可测试性问题时才采用；否则记录为什么直接设计更清晰且避免过度设计。
-   - Java 工作必须阅读 `references/three-layer-architecture.zh-CN.md` 和 `references/pojo-modeling.zh-CN.md`。确认传统三层架构适用门禁，保持 `impl` 位于 `service` 下，按语义职责分类每个拟议对象，执行类必要性检验，并分别评估持久化继承与 Service 组合。
+   - Java 工作必须执行 `references/java-spring-egon-coding-standards.zh-CN.md`，先确认唯一允许架构并建立复用账本，再设计依赖或抽象。传统形态还读取 `references/three-layer-architecture.zh-CN.md` 和 `references/pojo-modeling.zh-CN.md`；COLA 形态检查准确 Archetype Tree、模块依赖、示例和生成 Verifier。
    - 接口或数据库表面为 `Affected` 时才读取 `references/interface-contract-design.zh-CN.md` 和 `references/database-design.zh-CN.md`；否则只简洁引用权威当前契约/持久化证据和保持不变量。
    - 关系型模型受影响时，先根据已有表所有权、Key 和基数推导 Mermaid `erDiagram`，再定案逐表详情；查询单独变化时不能重画不变关系。
 7. **编写 Spec**
@@ -176,6 +178,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 8. **复核并修复**
    - 执行 `references/review-checklist.md`。
    - 修复遗漏、矛盾、过期路径、含糊占位、追踪断点和无依据的范围膨胀。
+   - 逐项人工执行全部阻断型 `MC-*`；失败/阻断必须关闭或改变最终结论，禁止把多项压缩成一句声明。
 9. **校验并交付**
    - 运行 `scripts/validate_spec.py <spec-path> --strict`。
    - 报告路径、状态、前置关系、假设和未决用户决策。
@@ -204,7 +207,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 17. **替代方案与决策**——只针对受影响决策比较直接/不新增元素基线和可行替代方案，不能为不变层制造替代方案。
 18. **风险与开放问题**——包含受影响表面的风险和有证据的范围扩张冲突，不能盘点通用项目风险。
 19. **追踪矩阵**——每个 `REQ-*` 映射到受影响区域/章节、Context-only 或 Unchanged 边界、测试和验收证据；每个设计元素映射回需求或必要基础设施理由。
-20. **复核与验收**——原始需求符合性、仓库符合性、跨章节一致性、引用关系正确性和最终结论。
+20. **复核与验收**——原始需求符合性、仓库符合性、跨章节一致性、引用关系正确性、完整阻断型 Manual Check 表和最终结论。
 
 ## 完成结论
 
@@ -214,7 +217,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 - `BLOCKED — User decision required`
 - `REVISE — Internal inconsistency found`
 
-`PASS` 只表示文档内部完整，不表示用户已经接受。`BLOCKED` 必须指出所需决策。仅编写 Spec 时，不能声称已经完成实现或运行时验证。
+`PASS` 表示文档内部完整且全部阻断型 Manual Check 为 `PASS` 或有证据的 `N/A`，不表示用户已经接受。`BLOCKED` 必须指出所需决策。仅编写 Spec 时不能声称实现或运行时验证完成。
 
 ## 常见失败
 
@@ -240,7 +243,11 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 | 为减少类数量而把持久化对象直接作为公开契约 | 持久化关注点留在边界内部，只创建确有必要的传输/展示类型 |
 | 为复用代码给业务 Service 设计基类继承树 | 组合显式协作者；只有合理的现有框架扩展契约才允许继承 |
 | 把 `impl` 与 `service` 平级 | 把实现移动到 `biz.service.impl` |
-| 在当前规范中引入聚合、领域服务、仓储端口或 COLA 分层 | 删除暂缓的 DDD/COLA 结构，使用已批准的传统三层分包 |
+| 混用传统分层与 Archetype COLA 职责，或在已选择传统分层时引入 COLA 概念 | 根据仓库证据只选择一种形态；传统分层保持批准的包结构，COLA 则严格遵循所选 `egon-cola-archetype` Tree |
+| 不选择现有传统/准确 Archetype 形态而发明混合架构 | 停止，引用真实 Tree 与 Archetype 证据，结构变更前获得用户决策 |
+| 未检查 Spring/Egon/模块复用就增加依赖或 Helper | 建立复用账本；复用现有能力，或说明已证明缺口和获批影响 |
+| 新载体使用 `Data`、`Info`、`Param` 或 `Bean` | 改成准确 PO/BO/DTO/VO/Query/Command/Event/Request/Response 或行为职责 |
+| Manual Check 缺失、失败或未知仍标记 PASS | 关闭全部阻断并补充证据，否则使用 `BLOCKED`/`REVISE` |
 | Controller 直接访问 DAO 或 `service.impl` | 依赖 Service 接口，并把持久化隐藏在实现内部 |
 | 只写模式名，没有变化点 | 拒绝该模式，或说明它解决的具体问题 |
 | 把集成测试当作单测设计 | 定义隔离的单元行为，并分开更高层测试 |
@@ -251,4 +258,4 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 
 ## Skill 维护
 
-修改本 skill 时，先运行资源完整性单元测试（`scripts/test_validate_skill_resources.py`）、变更面校验测试（`scripts/test_validate_spec_scope.py`）和预检（`scripts/validate_skill_resources.py`），再用 `references/acceptance-scenarios.md` 进行场景复核，并执行适用的输出校验器。必须保持 `SKILL.md` 和所有 `*.zh-CN.md` 审核镜像与英文运行契约同步。任何内置资源缺失、使用歧义裸路径、越出 skill 根目录或包含失效本地 Markdown 链接时，本次修改都不能算完成。
+修改本 skill 时，先运行资源完整性测试（`scripts/test_validate_skill_resources.py`）、变更面测试（`scripts/test_validate_spec_scope.py`）、Manual Check 测试（`scripts/test_validate_manual_checks.py`）和预检（`scripts/validate_skill_resources.py`），再用 `references/acceptance-scenarios.md` 进行场景复核，并执行适用输出校验器。必须保持 `SKILL.md` 和所有 `*.zh-CN.md` 审核镜像与英文运行契约同步。任何内置资源缺失、使用歧义裸路径、越出 skill 根目录或包含失效本地 Markdown 链接时，本次修改都不能算完成。
