@@ -8,6 +8,9 @@ const forbidden = [
   'rbac3:resource-catalog:report',
   'RBAC3_SERVICE_ACCESS_TOKEN',
   'SERVICE_ACCESS_TOKEN',
+  'RolePermission',
+  'PermissionResource',
+  '/iam/roles/:roleId/permissions',
 ]
 
 const files = async (directory) => {
