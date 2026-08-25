@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.3.2",
-    "@egon-cola/admin-web-shared": "^0.1.4",
+    "@egon-cola/admin-web-shared": "^0.2.0",
     "@tanstack/react-query": "^5.101.4",
     "antd": "^6.5.2",
     "i18next": "^24.0.0",

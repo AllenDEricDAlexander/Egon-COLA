@@ -53,11 +53,13 @@ afterEach(() => {
 })
 
 describe('AdminLayout', () => {
-  it('renders the unified header, navigation, user and footer on desktop', () => {
+  it('renders the unified Banner and grouped left navigation on desktop', () => {
     setViewport(1280)
     renderLayout()
 
     expect(screen.getByText('DDC Admin')).toBeInTheDocument()
+    expect(screen.getByRole('navigation', {name: '主菜单'})).toBeInTheDocument()
+    expect(screen.queryByRole('menu', {name: '主导航'})).not.toBeInTheDocument()
     expect(screen.getByText('服务注册')).toBeInTheDocument()
     expect(screen.getByText('DDC 已连接')).toBeInTheDocument()
     expect(screen.getByText('Mario')).toBeInTheDocument()
@@ -82,11 +84,11 @@ describe('AdminLayout', () => {
     expect(logout).toHaveBeenCalled()
   })
 
-  it('uses a grouped drawer navigation on narrow screens', async () => {
+  it('uses the same tree in a left drawer on narrow screens', async () => {
     setViewport(600)
     renderLayout()
 
-    expect(screen.queryByRole('menu', { name: '主导航' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('navigation', {name: '主菜单'})).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '打开导航' }))
     expect(await screen.findByRole('dialog')).toBeInTheDocument()
     expect(screen.getByText('元数据管理')).toBeInTheDocument()
