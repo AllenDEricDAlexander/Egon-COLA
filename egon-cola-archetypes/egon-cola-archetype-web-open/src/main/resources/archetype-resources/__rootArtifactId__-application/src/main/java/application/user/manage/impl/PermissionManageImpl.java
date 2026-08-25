@@ -51,7 +51,7 @@ public class PermissionManageImpl implements PermissionManage {
             aggregate.grant(permission);
             userDomainService.saveRole(aggregate.role());
             OrganizationTransactionHooks.afterCommit(() -> eventPublisher.publish(
-                new PermissionGrantedEvent(idGenerator.nextLongId(), role.id(), Instant.now(),
+                new PermissionGrantedEvent(Long.toString(idGenerator.nextLongId()), role.id(), Instant.now(),
                     role.code().value(), permission.code().value())));
         });
     }

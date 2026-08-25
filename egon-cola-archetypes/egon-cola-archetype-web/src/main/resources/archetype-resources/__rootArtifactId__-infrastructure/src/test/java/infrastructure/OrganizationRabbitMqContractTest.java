@@ -31,10 +31,10 @@ class OrganizationRabbitMqContractTest {
 
         Instant occurredAt = Instant.parse("2026-07-11T00:00:00Z");
         new RabbitOrganizationEventPublisher(producer).publish(
-            new RoleAssignedEvent(1001L, 2001L, occurredAt, "STUDENT"));
+            new RoleAssignedEvent("e-1", 2001L, occurredAt, "STUDENT"));
         verify(producer).send("student.organization.event.v1",
             "organization.event.user.role-assigned.v1",
-            new OrganizationEventMessage(1001L, "ROLE_ASSIGNED", 2001L, occurredAt,
+            new OrganizationEventMessage("e-1", "ROLE_ASSIGNED", 2001L, occurredAt,
                 Map.of("roleCode", "STUDENT")));
     }
 }

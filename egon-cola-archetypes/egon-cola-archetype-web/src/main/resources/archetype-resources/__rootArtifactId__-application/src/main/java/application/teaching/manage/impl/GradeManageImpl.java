@@ -48,7 +48,7 @@ public class GradeManageImpl implements GradeManage {
                 idGenerator.nextLongId(), code.value(), command.name()));
             OrganizationTransactionHooks.afterCommit(() -> {
                 gradeCache.evict(grade.id());
-                eventPublisher.publish(new GradeChangedEvent(idGenerator.nextLongId(),
+                eventPublisher.publish(new GradeChangedEvent(Long.toString(idGenerator.nextLongId()),
                     grade.id(), Instant.now(), "CREATED"));
             });
             return assembler.toResult(grade);

@@ -58,7 +58,7 @@ public class SchoolClassManageImpl implements SchoolClassManage {
                 new SchoolClassId(idGenerator.nextLongId()), command.name(), grade));
             OrganizationTransactionHooks.afterCommit(() -> {
                 schoolClassCache.evict(schoolClass.gradeId(), schoolClass.id());
-                eventPublisher.publish(new SchoolClassChangedEvent(idGenerator.nextLongId(),
+                eventPublisher.publish(new SchoolClassChangedEvent(Long.toString(idGenerator.nextLongId()),
                     schoolClass.id().value(), Instant.now(), schoolClass.gradeId(), "CREATED"));
             });
             return assembler.toResult(schoolClass);
@@ -101,7 +101,7 @@ public class SchoolClassManageImpl implements SchoolClassManage {
             schoolClassDomainService.addUser(command.gradeId(), classId, memberId);
             OrganizationTransactionHooks.afterCommit(() -> {
                 schoolClassCache.evict(command.gradeId(), classId);
-                eventPublisher.publish(new SchoolClassMembershipChangedEvent(idGenerator.nextLongId(),
+                eventPublisher.publish(new SchoolClassMembershipChangedEvent(Long.toString(idGenerator.nextLongId()),
                     classId.value(), Instant.now(), memberId.value(), "ASSIGNED"));
             });
         });
