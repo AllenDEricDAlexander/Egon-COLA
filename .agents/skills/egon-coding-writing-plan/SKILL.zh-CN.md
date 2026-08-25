@@ -1,6 +1,6 @@
 ---
 name: egon-coding-writing-plan
-description: 当编码任务已有明确且经过审核或接受的 Spec，需要在修改代码前编写基于仓库、可直接实施的逐文件 Plan，并明确依赖顺序、仓库语言伪代码、中间状态、验证命令和逐 Step 提交范围时使用。
+description: 当编码任务已有明确且经过审核或接受的 Spec，需要在修改代码前编写基于仓库、可直接实施的逐文件 Plan，并明确依赖顺序、Java/Spring/Egon-COLA 规范、阻断型 Manual Check、仓库语言伪代码、验证命令和逐 Step 提交范围时使用。
 ---
 
 # EGON 编码 Plan 编写
@@ -23,7 +23,7 @@ Plan 定义的是**先处理哪个文件、其中怎么写、接着处理哪个�
   - `ABSTRACT` 替换为简洁的小写 ASCII kebab-case 摘要，通常 3–8 个单词。
   - 示例：`docs/egon/plan/2026-08-15-16-10-account-lockout-implementation.md`。
   - 同一分钟且摘要相同时不能覆盖旧文档，应使用更具体的摘要。
-- 必须以 `assets/plan-template.md` 中的 Plan Template Version 2 为模板，保留全部编号章节。不适用的章节写有证据的 `N/A`。校验器继续按旧契约接受既有无版本 Plan。
+- 必须以 `assets/plan-template.md` 中的 Plan Template Version 3 为模板，保留全部编号章节。不适用的章节写有证据的 `N/A`。校验器继续按原契约接受 Version 2 和既有无版本 Plan。
 
 ## 资源完整性预检
 
@@ -54,6 +54,9 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 15. 主 Spec 未明确接受、Plan 未经用户/决策负责人批准时，不能把 Plan 标为 `Ready`。完整待审时为 `Review`；存在 Spec 或决策阻塞时为 `Draft` 或 `Blocked`。
 16. 必须完整读取 `references/file-by-file-planning.zh-CN.md`。每个 Step 都要写基线/结束状态、Test-first 适用性、准确文件顺序、验证工作目录、Commit Paths 和一个语义结果。每个文件都要写当前仓库证据、依赖/消费者、输入输出/状态映射、错误/边界行为、承载实现信息的伪代码、验证贡献和 After-file 状态。
 17. 规划文件前执行 Spec 简洁性与实施必要性审核。不能把无依据 API、参数 Preflight、类、分层、表、缓存、Job、依赖或页面静默编译成实施步骤。如果直接/复用方案满足同一需求，或 Spec 缺少必要性决策，必须带证据和准确 Spec 章节返回 `REVISE`/`BLOCKED`；不能在 Plan 内重新设计。
+18. 每个 Java Plan 必须完整读取 `references/java-spring-egon-coding-standards.zh-CN.md`。分配文件前，根据当前 Tree 和已选 Archetype 证明且只证明一种允许架构，并建立覆盖 Spring、Spring Boot Starter、Egon-COLA Component/公共基础设施和模块内候选的复用账本。没有已证明能力缺口与获批影响时不能规划新依赖或自研替代。
+19. 每个 Step 都必须列出适用阻断型 `MC-*`，每个受影响 Java 文件写明规范影响。伪代码和验证必须把语义命名、Validation/Group/规范化、Record/Lombok、MapStruct/MapStructPlus 与 `BaseConverter`、Bean 名/注入/Qualifier 传播、`@Slf4j`、工具、Jackson、`java.time`、配置一致性和有依据模式选择落实为可执行内容。
+20. 第 12 章逐项完成全部 Manual Check。适用行必须有具体仓库/Plan 证据且为 `PASS`，不适用行必须有证据地 `N/A`。缺失 ID/证据、`FAIL`、`BLOCKED`、`UNKNOWN` 或未关闭例外都禁止 PASS。
 
 ## 目标 Spec 与有效设计解析
 
@@ -94,6 +97,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 3. **检查当前仓库基线**
    - 验证真实文件/符号，识别已完成、缺失、移动、生成或冲突的工作。
    - 保护无关脏工作树变更，并规划 path-limited commits。
+   - Java 工作在提出新文件或依赖前，必须确定准确的传统分层或已选 Archetype COLA 形态，并按 `references/java-spring-egon-coding-standards.zh-CN.md` 建立能力复用账本。
 4. **解决阻塞与澄清项**
    - 重大缺陷/歧义询问用户；只推断小型实现空白。
 5. **推导依赖路径**
@@ -106,10 +110,12 @@ python3 <skill-root>/scripts/validate_skill_resources.py
    - 每个文件给出语言/框架相关伪代码和完成该文件后的仓库状态。
    - 每个 Step 以定向验证、客观完成证据、回滚方式和一个建议提交结束。
    - 记录基线/结束状态、Test-first 门禁、验证工作目录和准确 Commit Paths；使用 `references/file-by-file-planning.zh-CN.md` 要求的全部逐文件字段。
+   - 为 Step 列出适用 `MC-*`，为每个 Java 文件写规范影响；Step 验证必须在建议提交前证明这些检查。
 8. **编写质量与发布门禁**
    - 使用仓库真实命令覆盖聚焦测试、模块测试、静态检查、构建、集成/E2E/人工验证、迁移校验和最终回归。
 9. **复核并修复**
    - 执行 `references/review-checklist.md`，解决与有效 Spec 的所有不一致。
+   - 逐项执行第 12 章 Manual Check；关闭失败/阻断或改变结论，不能把多项检查折叠成一句无证据断言。
 10. **校验并交付**
     - 运行 `scripts/validate_plan.py <plan-path> --strict`。
     - 报告 Plan 路径/状态、目标/有效 Specs、Step 数量、Clarification、阻塞项和验证边界。
@@ -120,6 +126,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 每个 Step 必须遵循以下顺序：
 
 1. 说明需求、依赖、基线状态、一个可观察结果、准确结束状态，以及 Test-first 是 Required 还是有证据的 Not applicable。
+   同时列出该 Step 全部适用阻断型 Manual Check ID。
 2. 按实现者应处理的精确顺序列出文件。
 3. 每个文件提供：
    - `CREATE`、`MODIFY`、`DELETE`、`RENAME` 或 `GENERATED` 操作；
@@ -131,6 +138,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
    - 输入/输出/字段/状态映射，包括空值/默认/枚举/时间/精度和持久化/副作用；
    - 适用的校验、权限、不存在、重复、并发、依赖、回滚和兼容行为；
    - 针对控制流、映射、持久化、错误和测试的语言相关伪代码；
+   - 适用 Java/Spring/Egon-COLA 规范、准确注解/契约和 Manual Check ID；
    - 本文件贡献的准确测试/门禁；
    - 该文件完成后的预期中间仓库状态。
 4. 写明验证工作目录、准确聚焦命令、准确成功结果和失败回退点。
@@ -153,7 +161,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 9. **迁移、兼容、发布与回滚**。
 10. **需求到 Step 追踪矩阵**。
 11. **风险、阻塞和用户决策**。
-12. **复核与验收**——原始需求符合性、Spec 一致性、仓库可执行性、覆盖和发布安全，以及最终结论。
+12. **复核与验收**——原始需求符合性、Spec 一致性、仓库可执行性、覆盖和发布安全、完整阻断型 Manual Check 表，以及最终结论。
 
 ## 完成结论
 
@@ -163,7 +171,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 - `BLOCKED — Spec or user decision required`
 - `REVISE — Plan and Spec are inconsistent`
 
-`PASS` 只表示内部完整，不表示用户已批准或可以开始实现。仅写 Plan 时，不能声称代码、数据库、服务、浏览器或运行时已验证。
+`PASS` 只表示内部完整且所有阻断型 Manual Check 为 `PASS` 或有证据的 `N/A`，不表示用户已批准或可以开始实现。仅写 Plan 时，不能声称代码、数据库、服务、浏览器或运行时已验证。
 
 ## 常见失败
 
@@ -182,8 +190,12 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 | 猜测验证命令 | 从仓库脚本/构建文件读取并写明客观通过标准 |
 | 遗漏迁移/配置/文档/权限/可观测性文件 | 把所有适用文件加入文件树与有序 Steps |
 | Plan 文件树无升级就偏离 Spec | 除非证据证明是语义不变重命名，否则回到 Spec |
+| 未检查当前 Tree 就规划混合/新分层 | 选择既有传统形态或准确 Archetype 形态，否则阻断并找用户决策 |
+| 未发现 Spring/Egon/模块复用就新增 Helper/依赖 | 完成复用账本并证明能力缺口，否则移除新增项 |
+| Java 伪代码遗漏 Validation Group、转换、Bean 名/Qualifier、时间/JSON/配置语义或适用注解 | 补充准确且符合仓库惯例的实施与验证结果 |
+| Manual Check 缺失、失败或未知仍标记 PASS | 用证据关闭全部阻断，否则使用 `BLOCKED`/`REVISE` |
 | 写完 Plan 就编码或启动运行时 | 停止并交付用户审核 |
 
 ## Skill 维护
 
-修改本 skill 时，先运行资源完整性单元测试（`scripts/test_validate_skill_resources.py`）和预检（`scripts/validate_skill_resources.py`），再用 `references/acceptance-scenarios.md` 进行场景复核，并执行适用的输出校验器。必须保持 `SKILL.md` 和所有 `*.zh-CN.md` 审核镜像与英文运行契约同步。任何内置资源缺失、使用歧义裸路径、越出 skill 根目录或包含失效本地 Markdown 链接时，本次修改都不能算完成。
+修改本 skill 时，先运行资源完整性测试（`scripts/test_validate_skill_resources.py`）、Manual Check 测试（`scripts/test_validate_manual_checks.py`）和预检（`scripts/validate_skill_resources.py`），再用 `references/acceptance-scenarios.md` 进行场景复核，并执行适用的输出校验器。必须保持 `SKILL.md` 和所有 `*.zh-CN.md` 审核镜像与英文运行契约同步。任何内置资源缺失、使用歧义裸路径、越出 skill 根目录或包含失效本地 Markdown 链接时，本次修改都不能算完成。

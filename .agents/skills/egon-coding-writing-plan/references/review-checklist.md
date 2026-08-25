@@ -34,6 +34,20 @@
 - [ ] Every validation gate names its working directory, exact command/method and selectors/environment, expected exit/result, failure return point, and static/module/runtime boundary.
 - [ ] Unrelated work is protected by non-overlapping, path-limited scopes and commits.
 
+## Java, Spring, Egon-COLA, and Manual Check gate
+
+- [ ] For Java work, `references/java-spring-egon-coding-standards.md` was read completely and the actual tree was classified as exactly one traditional-layer or exact selected Archetype profile; no hybrid/new layer was invented.
+- [ ] The capability reuse ledger names Spring/Spring Boot Starter, Egon-COLA Component/common infrastructure, and module-local candidates with exact evidence, fit/gap, decision, and owning Step.
+- [ ] Every added dependency/custom replacement has an effective-Spec decision, proven gap, managed version/owner, impact, and validation; otherwise the Plan reuses existing capability.
+- [ ] New/changed Java type names have semantic PO/BO/DTO/VO/Query/Command/Event/Request/Response or behavior roles and do not introduce ambiguous `Data`, `Info`, `Param`, or `Bean` carriers.
+- [ ] Each affected cross-layer input plans Jakarta/Spring Validation, `@Valid`/`@Validated`, groups for reused objects, approved normalization, error mapping, and tests; telephone rules use an approved mature standard rather than a duplicate Validator.
+- [ ] Each object has a justified record/class/Lombok construction model; converters use MapStruct/MapStructPlus and the applicable Egon `BaseConverter` without manual/BeanUtils/JSON copying.
+- [ ] Each affected Spring Bean plans a stable explicit name, `@RequiredArgsConstructor`, final qualified dependencies, verified `lombok.config` propagation, and `@Slf4j` for concrete business classes.
+- [ ] Utility, Jackson-only JSON, `java.time`, `@ConfigurationProperties`, and all-environment key-parity consequences appear in exact files/pseudocode/tests.
+- [ ] Pattern decisions name a present variation point and participants, or explicitly retain direct logic; neither hard-coded complexity nor ceremonial abstraction remains.
+- [ ] Every Step lists applicable `MC-*` IDs, every file has an evidence-bearing `Standards impact`, and its validation proves the checks before commit.
+- [ ] Chapter 12 contains all stable Manual Check IDs exactly once; every applicable row is `PASS`, every `N/A` has evidence/reason, and `MC-BLOCKER-001` matches all unresolved rows.
+
 ## Step and pseudocode quality
 
 - [ ] Every Step has source requirements, dependencies, baseline/end state, one observable outcome, a `Required` or evidence-backed `Not applicable` test-first gate, ordered files, validation working directory, verification, expected result, completion criteria, rollback, exact commit paths, and one commit.
@@ -67,4 +81,5 @@
 - [ ] No unresolved `TBD`, `TODO`, `FIXME`, vague placeholder, uncovered requirement, or internal contradiction remains in a `Review`/`Ready` Plan.
 - [ ] A non-accepted/blocked Spec cannot produce a `Ready` Plan.
 - [ ] Final verdict is exactly `PASS`, `BLOCKED`, or `REVISE` and matches reality.
+- [ ] A PASS verdict has no missing evidence, `FAIL`, `BLOCKED`, `UNKNOWN`, unresolved exception, or open Manual Check.
 - [ ] No source/test code, migration execution, service start, browser action, database change, or runtime claim occurred as a side effect.

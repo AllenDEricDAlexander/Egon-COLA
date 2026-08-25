@@ -1,6 +1,6 @@
 ---
 name: egon-coding-writing-plan
-description: Use when a coding task has a specific reviewed or accepted specification and needs a repository-grounded, implementation-ready, file-by-file plan with exact dependency order, repository-language pseudocode, intermediate states, validation commands, and per-Step commit scopes before code changes begin.
+description: Use when a coding task has a specific reviewed or accepted specification and needs a repository-grounded, implementation-ready, file-by-file plan with exact dependency order, Java/Spring/Egon-COLA standards, blocking Manual Checks, repository-language pseudocode, validation commands, and per-Step commit scopes before code changes begin.
 ---
 
 # EGON Coding Plan Writing
@@ -21,7 +21,7 @@ The Plan defines **which file is handled first, what is written there, which fil
   - Replace `ABSTRACT` with a concise lowercase ASCII kebab-case summary, normally 3–8 words.
   - Example: `docs/egon/plan/2026-08-15-16-10-account-lockout-implementation.md`.
   - Never overwrite a same-minute/same-abstract document; choose a more specific abstract.
-- Start from Plan Template Version 2 in `assets/plan-template.md`. Keep all numbered chapters. Use evidence-backed `N/A` when a chapter does not apply. The validator continues to accept existing unversioned Plans under their legacy contract.
+- Start from Plan Template Version 3 in `assets/plan-template.md`. Keep all numbered chapters. Use evidence-backed `N/A` when a chapter does not apply. The validator continues to accept Version 2 and existing unversioned Plans under their original contracts.
 
 ## Resource-integrity preflight
 
@@ -52,6 +52,9 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 15. Do not mark a Plan `Ready` without an explicitly accepted primary Spec and explicit user/decision-owner approval of the Plan. A complete Plan awaiting review is `Review`; a Spec or decision blocker requires `Draft` or `Blocked`.
 16. Read `references/file-by-file-planning.md` completely. Every Step must state baseline/end state, test-first applicability, exact ordered files, validation working directory, commit paths, and one semantic outcome. Every file must include current repository evidence, dependencies/consumers, input/output/state mapping, error/edge behavior, implementation-bearing pseudocode, verification contribution, and after-file state.
 17. Before planning files, perform a Spec simplicity and implementation-necessity audit. Do not silently compile an unjustified API, parameter-preflight flow, class, layer, table, cache, job, dependency, or page into implementation. When the direct/reuse alternative satisfies the same requirements or the Spec lacks a necessity decision, return `REVISE`/`BLOCKED` with evidence and exact Spec sections; do not redesign inside the Plan.
+18. For every Java Plan, read `references/java-spring-egon-coding-standards.md` completely. Before assigning files, prove exactly one allowed architecture profile from the current tree and selected Archetype, then build a reuse ledger covering Spring, Spring Boot Starters, Egon-COLA Components/common infrastructure, and module-local candidates. Do not plan a new dependency or custom replacement without a proven capability gap and approved impact.
+19. Every Step must list the applicable blocking `MC-*` IDs, and every affected Java file must state its standards impact. The pseudocode and validation must make semantic naming, Validation/groups/normalization, record/Lombok modeling, MapStruct/MapStructPlus and `BaseConverter`, Bean names/injection/Qualifier propagation, `@Slf4j`, utilities, Jackson, `java.time`, configuration parity, and justified pattern choices executable rather than aspirational.
+20. Complete every Manual Check row one by one in Chapter 12. An applicable row requires `PASS` and concrete repository/Plan evidence; an inapplicable row requires evidence-backed `N/A`. Any missing ID/evidence, `FAIL`, `BLOCKED`, `UNKNOWN`, or unresolved exception prohibits a PASS verdict.
 
 ## Target Spec and effective-design resolution
 
@@ -92,6 +95,7 @@ Treat overdesign as a material Spec defect when it changes public interaction co
 3. **Inspect the current repository baseline**
    - Verify actual files/symbols and identify already-complete, missing, moved, generated, or conflicting work.
    - Preserve unrelated dirty-worktree changes and plan path-limited commits.
+   - For Java work, identify the exact traditional-layer or selected Archetype COLA profile and build the capability-reuse ledger required by `references/java-spring-egon-coding-standards.md` before proposing new files or dependencies.
 4. **Resolve blockers and clarifications**
    - Ask about major defects/ambiguities; infer and record only small implementation gaps.
 5. **Derive the dependency path**
@@ -104,10 +108,12 @@ Treat overdesign as a material Spec defect when it changes public interaction co
    - For each file, write language/framework-specific pseudocode and the state after that file is completed.
    - End each Step with targeted verification, objective completion evidence, rollback, and one proposed commit.
    - Record baseline/end state, test-first gate, validation working directory, and exact commit paths. Use every per-file field required by `references/file-by-file-planning.md`.
+   - List the applicable `MC-*` IDs for the Step and the standards impact for every Java file. The Step validation must prove those checks before its proposed commit.
 8. **Write quality and release gates**
    - Use exact repository commands for focused tests, module tests, static checks, builds, integration/E2E/manual checks, migration validation, and final regression.
 9. **Review and repair**
    - Apply `references/review-checklist.md` and reconcile every mismatch with the effective Spec.
+   - Execute all Chapter 12 Manual Checks individually; close failures/blockers or change the verdict. Never collapse them into one unsupported assertion.
 10. **Validate and deliver**
     - Run `scripts/validate_plan.py <plan-path> --strict`.
     - Report the Plan path/status, target/effective Specs, Step count, clarification entries, blockers, and validation boundary.
@@ -118,6 +124,7 @@ Treat overdesign as a material Spec defect when it changes public interaction co
 Each Step must use this sequence contract:
 
 1. State requirements, dependencies, baseline state, one observable outcome, exact end state, and whether test-first is required or evidence-backed not applicable.
+   State every applicable blocking Manual Check ID for the Step.
 2. List files in the exact order an implementer should handle them.
 3. For each file, provide:
    - `CREATE`, `MODIFY`, `DELETE`, `RENAME`, or `GENERATED` operation;
@@ -129,6 +136,7 @@ Each Step must use this sequence contract:
    - input/output/field/state mapping, including null/default/enum/time/precision and persistence/side effects;
    - validation, permission, missing, duplicate, concurrent, dependency, rollback, and compatibility behavior as applicable;
    - language-appropriate pseudocode for control flow, mapping, persistence, errors, and tests;
+   - applicable Java/Spring/Egon-COLA standards, exact annotations/contracts, and Manual Check IDs;
    - the exact test/gate to which this file contributes;
    - the expected intermediate repository state after this file.
 4. State the validation working directory, exact focused verification command, exact success result, and failure return point.
@@ -151,7 +159,7 @@ Avoid placeholders such as “implement service,” “handle errors,” “upda
 9. **Migration, compatibility, rollout, and rollback**.
 10. **Requirement-to-Step traceability matrix**.
 11. **Risks, blockers, and user decisions**.
-12. **Review and acceptance** — original requirement fidelity, Spec consistency, repository executability, coverage, release safety, and final verdict.
+12. **Review and acceptance** — original requirement fidelity, Spec consistency, repository executability, coverage, release safety, the complete blocking Manual Check table, and final verdict.
 
 ## Completion verdicts
 
@@ -161,7 +169,7 @@ Use exactly one:
 - `BLOCKED — Spec or user decision required`
 - `REVISE — Plan and Spec are inconsistent`
 
-`PASS` means internally complete, not user-approved or ready to implement. Never claim code, database, service, browser, or runtime verification from a Plan-only task.
+`PASS` means internally complete and every blocking Manual Check is `PASS` or evidence-backed `N/A`; it does not mean user-approved or ready to implement. Never claim code, database, service, browser, or runtime verification from a Plan-only task.
 
 ## Common failures
 
@@ -180,8 +188,12 @@ Use exactly one:
 | Guessing validation commands | Read repository scripts/build files and state objective pass criteria |
 | Omitting migration/config/docs/permission/observability files | Add every applicable file to the tree and ordered Steps |
 | Plan file tree differs from Spec without escalation | Return to the Spec unless it is a proven semantic-preserving rename |
+| Planning a hybrid/new package structure without inspecting the current tree | Select the existing traditional profile or exact Archetype profile; otherwise block for a user decision |
+| Adding a helper/dependency before Spring/Egon/module reuse discovery | Complete the reuse ledger and prove the capability gap, or remove the addition |
+| Java pseudocode omits validation groups, mapping, Bean names/Qualifiers, time/JSON/config semantics, or applicable annotations | Add the exact repository-consistent implementation and validation consequences |
+| Marking PASS with a missing/failed/unknown Manual Check | Close every blocker with evidence or use `BLOCKED`/`REVISE` |
 | Writing code or starting runtime after the Plan | Stop and deliver for user review |
 
 ## Skill maintenance
 
-When changing this skill, first run the resource-integrity unit tests (`scripts/test_validate_skill_resources.py`) and preflight (`scripts/validate_skill_resources.py`), then run `references/acceptance-scenarios.md` as review cases and the applicable output validator. Keep `SKILL.zh-CN.md` plus all `*.zh-CN.md` review mirrors synchronized with the English operational contract. A change is not complete if any bundled resource is missing, uses an ambiguous bare path, escapes the skill root, or contains a broken local Markdown link.
+When changing this skill, first run the resource-integrity tests (`scripts/test_validate_skill_resources.py`), Manual Check tests (`scripts/test_validate_manual_checks.py`), and preflight (`scripts/validate_skill_resources.py`), then run `references/acceptance-scenarios.md` as review cases and the applicable output validator. Keep `SKILL.zh-CN.md` plus all `*.zh-CN.md` review mirrors synchronized with the English operational contract. A change is not complete if any bundled resource is missing, uses an ambiguous bare path, escapes the skill root, or contains a broken local Markdown link.

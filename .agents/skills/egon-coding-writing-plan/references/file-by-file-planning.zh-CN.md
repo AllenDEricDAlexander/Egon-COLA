@@ -15,6 +15,7 @@
 - [数据库 Migration 完整 Step 示例](#数据库-migration-完整-step-示例)
 - [验证阶梯](#验证阶梯)
 - [提交与交接契约](#提交与交接契约)
+- [规范与 Manual Check 门禁](#规范与-manual-check-门禁)
 - [最终详细度门禁](#最终详细度门禁)
 
 ## 可执行性标准
@@ -167,6 +168,7 @@ Proto/IDL 契约测试 -> IDL -> 生成命令/产物 -> Provider -> Client Adapt
 - Observable outcome: 同租户/Key/载荷返回第一次结果；不同载荷冲突；不创建重复订单。
 - End state: Service 与 DAO 实现已批准幂等契约；Controller 契约不变；并发集成由本 Step 后续文件覆盖。
 - Test-first gate: `Required`——当前聚焦重复测试会创建两笔订单或找不到已保存结果。
+- Manual Checks: `MC-ARCH-001`、`MC-REUSE-001`、`MC-NAME-001`、`MC-VALID-001`、`MC-MODEL-001`、`MC-CONVERT-001`、`MC-LOG-001`、`MC-BEAN-001`、`MC-PATTERN-001`、`MC-SCOPE-001`、`MC-TEST-001`
 - Ordered files:
 
 #### File 1 — `MODIFY src/test/java/.../OrderServiceImplTest.java`
@@ -179,6 +181,7 @@ Proto/IDL 契约测试 -> IDL -> 生成命令/产物 -> Provider -> Client Adapt
 - Contract/signature changes: 复用现有创建签名；只有已在 Spec 中规定时才给 Command 增加幂等 Key。
 - Input/output and state mapping: 租户来自测试安全上下文；Canonical Request -> Hash；已保存结果 -> 返回结果。
 - Error and edge behavior: 同 Hash 返回第一次结果；不同 Hash 抛 `IdempotencyConflictException`；都断言只写一笔订单。
+- Standards impact: `MC-VALID-001`、`MC-SCOPE-001`、`MC-TEST-001`——复用已批准 Command 和 Validation Group，不新增契约类型并证明行为。
 - Implementation pseudocode:
 
 ```java
@@ -211,6 +214,7 @@ Proto/IDL 契约测试 -> IDL -> 生成命令/产物 -> Provider -> Client Adapt
 - Contract/signature changes: Controller Route 不变；使用已批准 Command/Key 字段。
 - Input/output and state mapping: 从可信上下文派生 Tenant；Canonical 业务字段 -> Request Hash；持久化第一次结果 -> Response。
 - Error and edge behavior: 同 Hash 重放，不同 Hash 冲突；唯一竞争后重读 Winner；事务失败不写部分订单/结果。
+- Standards impact: `MC-ARCH-001`、`MC-REUSE-001`、`MC-NAME-001`、`MC-VALID-001`、`MC-MODEL-001`、`MC-CONVERT-001`、`MC-LOG-001`、`MC-BEAN-001`、`MC-PATTERN-001`、`MC-SCOPE-001`——保持 `biz.service.impl`，复用带 Qualifier 的 DAO/Validator/Converter Bean，使用 `@Slf4j`；只有获批变化点需要时才使用模式。
 - Implementation pseudocode:
 
 ```java
@@ -233,6 +237,38 @@ OrderResult create(CreateOrderCommand command) {
 
 - Verification contribution: 顺序单测 GREEN；事务集成观察竞争/回滚。
 - After this file: 聚焦单元行为 GREEN；数据库唯一竞争仍由 File 3 集成覆盖。
+
+#### File 3 — `MODIFY src/test/java/.../OrderIdempotencyIT.java`
+
+- Purpose: 基于真实 DAO/数据库路径证明唯一 Key 竞争、事务回滚和已持久化重放。
+- Symbols: `concurrentSameKeyCreatesOneOrder`、`failedCreateLeavesNoIdempotencyResult`
+- Repository evidence: 模块已有集成测试基类、事务清理、方言 Profile 和并发 Executor。
+- Dependencies and consumers: 通过公共 Service 执行 File 2，并使用 Migration 创建的唯一约束；通过 Fixture 读取订单/幂等表。
+- Why now: 单元编排已 GREEN；提交前关闭持久化/事务风险。
+- Contract/signature changes: 无；只测试获批公共 Service 和持久化契约。
+- Input/output and state mapping: 两个同租户/同 Key Command -> 一笔订单/结果；强制下游失败 -> 零订单/幂等行。
+- Error and edge behavior: Loser 重读已提交 Winner；意外完整性/超时错误使测试失败；回滚不留下可重放部分结果。
+- Standards impact: `MC-VALID-001`、`MC-SCOPE-001`、`MC-TEST-001`——执行真实边界校验并证明聚焦持久化行为，不修改无关 Fixture。
+- Implementation pseudocode:
+
+```java
+@Test concurrent_same_key_creates_one_order() {
+    start two calls with tenant(TENANT_A) and command(KEY_1, PAYLOAD_A)
+    await both results and assert both equal the same OrderResult
+    assertThat(orderRows(TENANT_A, KEY_1)).hasSize(1)
+    assertThat(idempotencyRows(TENANT_A, KEY_1)).hasSize(1)
+}
+
+@Test failed_create_rolls_back_order_and_idempotency_result() {
+    arrange downstream item insert failure
+    assertThatThrownBy(() -> service.create(command(KEY_2, PAYLOAD_A)))
+    assertThat(orderRows(TENANT_A, KEY_2)).isEmpty()
+    assertThat(idempotencyRows(TENANT_A, KEY_2)).isEmpty()
+}
+```
+
+- Verification contribution: 基于真实持久化边界证明并发与回滚完成标准。
+- After this file: 顺序、并发与回滚行为均 GREEN，Step 可进行 Path-limited Commit。
 
 - Validation working directory: 仓库模块根目录
 - Verification command: `mvn -pl order-module -Dtest=OrderServiceImplTest,OrderIdempotencyIT test`
@@ -322,6 +358,14 @@ Plan 中的验证命令是未来指令，不是验证已通过的证据。
 - 不能用一个提交包含多个独立结果，也不能为空实现创建提交。
 
 同一文件必须在多个 Step 修改时，说明每个 Step 所有的准确符号/章节、为什么一个原子 Step 更差，并保证实施过程不会提交已知不完整的公共契约。
+
+## 规范与 Manual Check 门禁
+
+Java 工作在依赖排序前读取 `references/java-spring-egon-coding-standards.zh-CN.md`。每个 Step 必须列出全部适用 `MC-*`；每个文件的 `Standards impact` 必须说明准确影响，不能只重复 ID。Plan 必须写明提交前用哪个准确 Test、Static Search、Build 输出、Profile 对比或代码复核观察证明每项检查。
+
+Step 发明架构、重复已有能力、引入未批准依赖、使用含糊类型名、遗漏跨层 Validation/Group、规划手工对象复制、隐含 Bean 名/Qualifier、混用 JSON/时间体系、只改一个环境 Profile 或隐藏硬编码复杂度时，必须拒绝。已知违规不能推给“后续清理”。
+
+第 12 章 Manual Check 是完整 Plan 的第二道门。每个稳定 ID 正好出现一次。只有所有适用项 PASS 且所有不适用项有证据地 N/A 时才允许整体 PASS；缺证据、失败、阻断、未知状态或未关闭例外都必须使用非 PASS 结论。
 
 ## 最终详细度门禁
 

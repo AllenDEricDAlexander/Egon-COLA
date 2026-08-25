@@ -15,6 +15,7 @@ Read this reference before writing Chapter 4, Chapter 5, or any implementation S
 - [Database migration worked Step](#database-migration-worked-step)
 - [Validation ladder](#validation-ladder)
 - [Commit and handoff contract](#commit-and-handoff-contract)
+- [Standards and Manual Check gate](#standards-and-manual-check-gate)
 - [Final detail gate](#final-detail-gate)
 
 ## Executability standard
@@ -167,6 +168,7 @@ Illustrative structure only; replace every symbol/path/command with repository e
 - Observable outcome: same tenant/key/payload returns the first result; different payload conflicts; no duplicate order is written.
 - End state: Service and DAO implement the approved idempotency contract; Controller contract is unchanged; concurrency integration remains for the next declared file in this Step.
 - Test-first gate: `Required` — focused duplicate test currently creates two orders or cannot find stored result.
+- Manual Checks: `MC-ARCH-001`, `MC-REUSE-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`
 - Ordered files:
 
 #### File 1 — `MODIFY src/test/java/.../OrderServiceImplTest.java`
@@ -179,6 +181,7 @@ Illustrative structure only; replace every symbol/path/command with repository e
 - Contract/signature changes: reuse existing create signature and add idempotency key to the repository-approved command only if already specified.
 - Input/output and state mapping: tenant from test security context; canonical request -> hash; stored result -> returned result.
 - Error and edge behavior: same hash returns first result; different hash throws `IdempotencyConflictException`; both assert one order write.
+- Standards impact: `MC-VALID-001`, `MC-SCOPE-001`, `MC-TEST-001` — reuse the approved Command and Validation Group; prove behavior without new contract types.
 - Implementation pseudocode:
 
 ```java
@@ -211,6 +214,7 @@ Illustrative structure only; replace every symbol/path/command with repository e
 - Contract/signature changes: no Controller route change; use approved command/key fields.
 - Input/output and state mapping: derive tenant from trusted context; canonical business fields -> request hash; persisted first result -> response.
 - Error and edge behavior: same hash replay; different hash conflict; unique race reloads winner; transaction failure writes no partial order/result.
+- Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-PATTERN-001`, `MC-SCOPE-001` — preserve `biz.service.impl`, reuse qualified DAO/validator/converter Beans, use `@Slf4j` and direct orchestration unless the approved variation proves a pattern.
 - Implementation pseudocode:
 
 ```java
@@ -233,6 +237,38 @@ OrderResult create(CreateOrderCommand command) {
 
 - Verification contribution: makes sequential tests GREEN; transaction integration observes race/rollback.
 - After this file: focused unit behavior is GREEN; database uniqueness race still requires File 3 integration coverage.
+
+#### File 3 — `MODIFY src/test/java/.../OrderIdempotencyIT.java`
+
+- Purpose: Prove the unique-key race, transaction rollback, and persisted replay against the actual DAO/database path.
+- Symbols: `concurrentSameKeyCreatesOneOrder`, `failedCreateLeavesNoIdempotencyResult`
+- Repository evidence: existing integration-test base, transaction cleanup, dialect profile, and concurrency executor in the module.
+- Dependencies and consumers: exercises File 2 through the public Service and the migration-created unique constraint; reads order/idempotency tables through test fixtures.
+- Why now: unit orchestration is GREEN; this closes the persistence/transaction risk before the Step commit.
+- Contract/signature changes: none; tests only the approved public Service and persistence contract.
+- Input/output and state mapping: two same-tenant/same-key Commands -> one stored order/result; forced downstream failure -> zero order/idempotency rows.
+- Error and edge behavior: loser reloads the committed winner; unexpected integrity or timeout error fails the test; rollback never leaves a replayable partial result.
+- Standards impact: `MC-VALID-001`, `MC-SCOPE-001`, `MC-TEST-001` — execute the real boundary validation and prove focused persistence behavior without changing unrelated fixtures.
+- Implementation pseudocode:
+
+```java
+@Test concurrent_same_key_creates_one_order() {
+    start two calls with tenant(TENANT_A) and command(KEY_1, PAYLOAD_A)
+    await both results and assert both equal the same OrderResult
+    assertThat(orderRows(TENANT_A, KEY_1)).hasSize(1)
+    assertThat(idempotencyRows(TENANT_A, KEY_1)).hasSize(1)
+}
+
+@Test failed_create_rolls_back_order_and_idempotency_result() {
+    arrange downstream item insert failure
+    assertThatThrownBy(() -> service.create(command(KEY_2, PAYLOAD_A)))
+    assertThat(orderRows(TENANT_A, KEY_2)).isEmpty()
+    assertThat(idempotencyRows(TENANT_A, KEY_2)).isEmpty()
+}
+```
+
+- Verification contribution: proves the Step's concurrency and rollback completion criteria against the real persistence boundary.
+- After this file: sequential, concurrent, and rollback behavior are GREEN and the Step is ready for its path-limited commit.
 
 - Validation working directory: repository module root
 - Verification command: `mvn -pl order-module -Dtest=OrderServiceImplTest,OrderIdempotencyIT test`
@@ -322,6 +358,14 @@ For every Step:
 - do not use one commit for several independent outcomes or empty commits for already-complete work.
 
 If the same file must be modified in more than one Step, name the exact symbols/sections owned by each Step, explain why one atomic Step is worse, and ensure execution will not require committing a knowingly incomplete public contract.
+
+## Standards and Manual Check gate
+
+For Java work, read `references/java-spring-egon-coding-standards.md` before dependency ordering. Each Step must list all applicable `MC-*` IDs; every file must explain its `Standards impact`, not just repeat IDs. The Plan must state which exact test, static search, build output, profile comparison, or code review observation will prove each Step check before commit.
+
+Reject the Step when it invents an architecture, duplicates an existing capability, introduces an unapproved dependency, uses an ambiguous type name, omits cross-layer Validation/groups, plans manual object copying, leaves Bean names/Qualifiers implicit, mixes JSON/time stacks, changes only one environment profile, or hides hard-coded complexity. A known violation cannot be deferred to “later cleanup.”
+
+The Chapter 12 Manual Check table is a second gate over the complete Plan. Every stable ID appears exactly once. PASS is legal only when each applicable row is PASS and each inapplicable row is evidence-backed N/A; any missing evidence, failure, blocker, unknown state, or unresolved exception makes the final verdict non-PASS.
 
 ## Final detail gate
 

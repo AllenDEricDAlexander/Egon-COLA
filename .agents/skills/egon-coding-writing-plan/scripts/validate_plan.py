@@ -18,8 +18,28 @@ SOURCE_ID_RE = re.compile(
 )
 REQ_ID_RE = re.compile(r"\bREQ-\d{3}\b")
 VALID_STATUSES = {"Draft", "Review", "Ready", "In Progress", "Completed", "Blocked", "Superseded"}
-CURRENT_TEMPLATE_VERSION = 2
-SUPPORTED_TEMPLATE_VERSIONS = {2}
+CURRENT_TEMPLATE_VERSION = 3
+SUPPORTED_TEMPLATE_VERSIONS = {2, 3}
+MANUAL_CHECK_IDS = (
+    "MC-ARCH-001",
+    "MC-REUSE-001",
+    "MC-DEP-001",
+    "MC-NAME-001",
+    "MC-VALID-001",
+    "MC-MODEL-001",
+    "MC-CONVERT-001",
+    "MC-LOG-001",
+    "MC-BEAN-001",
+    "MC-UTIL-001",
+    "MC-JSON-001",
+    "MC-TIME-001",
+    "MC-CONFIG-001",
+    "MC-PATTERN-001",
+    "MC-SCOPE-001",
+    "MC-TEST-001",
+    "MC-BLOCKER-001",
+)
+MANUAL_CHECK_RE = re.compile(r"\bMC-[A-Z]+-\d{3}\b")
 REQUIRED_FIELDS = [
     "Document",
     "Status",
@@ -97,6 +117,16 @@ FILE_MARKERS_V2 = [
     "- Verification contribution:",
     *FILE_MARKERS_V1[5:],
 ]
+STEP_MARKERS_V3 = [
+    *STEP_MARKERS_V2[:6],
+    "- Manual Checks:",
+    *STEP_MARKERS_V2[6:],
+]
+FILE_MARKERS_V3 = [
+    *FILE_MARKERS_V2[:8],
+    "- Standards impact:",
+    *FILE_MARKERS_V2[8:],
+]
 PLACEHOLDER_PATTERNS = [
     re.compile(r"\b(?:TBD|TODO|FIXME|XXX)\b", re.IGNORECASE),
     re.compile(
@@ -146,6 +176,116 @@ def section(text: str, heading: str) -> str:
     next_heading = re.search(r"(?m)^##\s+\d+\.", text[body_start:])
     end = body_start + next_heading.start() if next_heading else len(text)
     return text[body_start:end]
+
+
+def heading_body(text: str, heading: str) -> str:
+    """Return one Markdown heading body up to the next same-or-higher heading."""
+    start = text.find(heading)
+    if start < 0:
+        return ""
+    level_match = re.match(r"^(#+)\s", heading)
+    if not level_match:
+        return ""
+    level = len(level_match.group(1))
+    body_start = start + len(heading)
+    next_heading = re.search(rf"(?m)^#{{1,{level}}}\s+", text[body_start:])
+    end = body_start + next_heading.start() if next_heading else len(text)
+    return text[body_start:end]
+
+
+def markdown_table_rows(text: str, first_header_cell: str) -> list[list[str]]:
+    """Return data rows from the first Markdown table with the requested header."""
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        if not line.lstrip().startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if not cells or clean(cells[0]) != first_header_cell:
+            continue
+        separator_index = index + 1
+        if separator_index >= len(lines) or not lines[separator_index].lstrip().startswith("|"):
+            return []
+        rows: list[list[str]] = []
+        for row in lines[separator_index + 1:]:
+            if not row.lstrip().startswith("|"):
+                break
+            row_cells = [cell.strip() for cell in row.strip().strip("|").split("|")]
+            if row_cells and any(cell for cell in row_cells):
+                rows.append(row_cells)
+        return rows
+    return []
+
+
+def validate_manual_checks(text: str, pass_verdict: bool) -> list[str]:
+    """Validate the blocking Manual Check catalog and Plan verdict consistency."""
+    errors: list[str] = []
+    review = section(text, "## 12. Review and Acceptance")
+    heading = "### 12.5 Blocking Manual Check"
+    if heading not in review:
+        return [f"Template Version 3 is missing required subsection: {heading}"]
+
+    body = heading_body(review, heading)
+    if "| Check ID | Applicability | Status | Evidence | Finding | Required action/exception |" not in body:
+        errors.append("Blocking Manual Check requires the canonical six-column table")
+    rows = markdown_table_rows(body, "Check ID")
+    rows_by_id: dict[str, list[str]] = {}
+    for row_number, row in enumerate(rows, start=1):
+        if len(row) < 6:
+            errors.append(f"Manual Check row {row_number} requires six columns; found {len(row)}")
+            continue
+        check_id, applicability, status, evidence, finding, action = [clean(cell) for cell in row[:6]]
+        if check_id in rows_by_id:
+            errors.append(f"Duplicate Manual Check ID: {check_id}")
+            continue
+        rows_by_id[check_id] = [applicability, status, evidence, finding, action]
+
+    expected = set(MANUAL_CHECK_IDS)
+    actual = set(rows_by_id)
+    for check_id in sorted(expected - actual):
+        errors.append(f"Missing blocking Manual Check ID: {check_id}")
+    for check_id in sorted(actual - expected):
+        errors.append(f"Unknown blocking Manual Check ID: {check_id}")
+
+    unresolved: list[str] = []
+    for check_id in MANUAL_CHECK_IDS:
+        row = rows_by_id.get(check_id)
+        if not row:
+            continue
+        applicability, status, evidence, finding, action = row
+        if applicability not in {"Applicable", "Not applicable"}:
+            errors.append(
+                f"{check_id} Applicability must be Applicable or Not applicable: {applicability}"
+            )
+        if applicability == "Applicable" and status not in {"PASS", "FAIL", "BLOCKED"}:
+            errors.append(f"{check_id} applicable status must be PASS, FAIL, or BLOCKED: {status}")
+        if applicability == "Not applicable" and status != "N/A":
+            errors.append(f"{check_id} not-applicable status must be N/A: {status}")
+        for label, value in (("Evidence", evidence), ("Finding", finding)):
+            if not value or value.lower() in {"none", "n/a", "unknown", "tbd", "todo"}:
+                errors.append(f"{check_id} requires concrete {label.lower()}")
+        if status in {"FAIL", "BLOCKED"}:
+            unresolved.append(check_id)
+            if not action or action.lower() in {"none", "n/a", "unknown", "tbd", "todo"}:
+                errors.append(f"{check_id} {status} requires an exact action/owner")
+
+    blocker_status = rows_by_id.get("MC-BLOCKER-001", ["", "", "", "", ""])[1]
+    unresolved_without_summary = [item for item in unresolved if item != "MC-BLOCKER-001"]
+    if unresolved_without_summary and blocker_status not in {"FAIL", "BLOCKED"}:
+        errors.append(
+            "MC-BLOCKER-001 must be FAIL or BLOCKED while other Manual Checks are unresolved"
+        )
+    if not unresolved_without_summary and blocker_status not in {"PASS", ""}:
+        errors.append("MC-BLOCKER-001 must be PASS when all other Manual Checks are closed")
+    if pass_verdict:
+        nonpassing = [
+            check_id for check_id, row in rows_by_id.items() if row[1] not in {"PASS", "N/A"}
+        ]
+        if nonpassing:
+            errors.append(
+                "PASS verdict requires every Manual Check to be PASS or evidence-backed N/A: "
+                + ", ".join(sorted(nonpassing))
+            )
+    return errors
 
 
 def markdown_links(value: str) -> list[str]:
@@ -279,19 +419,36 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
         if heading not in text:
             errors.append(f"Missing required section: {heading}")
 
-    if template_version == 2:
-        required_v2_headings = [
+    if template_version in {2, 3}:
+        required_detailed_headings = [
             "### 4.5 Spec Simplicity and Implementation-necessity Audit",
             "### 4.6 Change-unit Dependency Matrix",
         ]
-        for heading in required_v2_headings:
+        for heading in required_detailed_headings:
             if heading not in text:
-                errors.append(f"Template Version 2 is missing required subsection: {heading}")
+                errors.append(
+                    f"Template Version {template_version} is missing required subsection: {heading}"
+                )
         strategy = section(text, "## 4. Implementation Strategy and Dependency Order")
         if "| Spec element | Spec necessity verdict/section | Current repository evidence |" not in strategy:
-            errors.append("Template Version 2 requires the Spec simplicity/necessity audit table")
+            errors.append(
+                f"Template Version {template_version} requires the Spec simplicity/necessity audit table"
+            )
         if "| Change unit | Requirements | Proof/RED point |" not in strategy:
-            errors.append("Template Version 2 requires the change-unit dependency matrix")
+            errors.append(
+                f"Template Version {template_version} requires the change-unit dependency matrix"
+            )
+    if template_version == 3:
+        if "### 4.7 Java, Spring, and Egon-COLA Implementation Standards" not in text:
+            errors.append(
+                "Template Version 3 is missing required subsection: "
+                "### 4.7 Java, Spring, and Egon-COLA Implementation Standards"
+            )
+        strategy = section(text, "## 4. Implementation Strategy and Dependency Order")
+        if "| Concern | Current repository evidence | Effective Spec decision |" not in strategy:
+            errors.append("Template Version 3 requires the implementation-standards decision table")
+        if "| Need | Candidates inspected | Exact evidence | Fit/gap | Decision |" not in strategy:
+            errors.append("Template Version 3 requires the capability reuse ledger")
 
     implements_errors, primary_paths = validate_link_field(
         path, "Implements Spec", fields.get("Implements Spec", ""), require_link=True
@@ -341,17 +498,42 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
 
     step_requirements: set[str] = set()
     for step_number, step in steps:
-        step_markers = STEP_MARKERS_V2 if template_version == 2 else STEP_MARKERS_V1
-        file_markers = FILE_MARKERS_V2 if template_version == 2 else FILE_MARKERS_V1
+        if template_version == 3:
+            step_markers = STEP_MARKERS_V3
+            file_markers = FILE_MARKERS_V3
+        elif template_version == 2:
+            step_markers = STEP_MARKERS_V2
+            file_markers = FILE_MARKERS_V2
+        else:
+            step_markers = STEP_MARKERS_V1
+            file_markers = FILE_MARKERS_V1
         for marker in step_markers:
             if marker not in step:
                 errors.append(f"Step {step_number} missing required marker: {marker}")
 
-        if template_version == 2:
+        if template_version in {2, 3}:
             test_first = re.search(r"(?m)^- Test-first gate:\s*(.+)$", step)
             if test_first and not re.match(r"(?:`)?(?:Required|Not applicable)\b", test_first.group(1), re.IGNORECASE):
                 errors.append(
                     f"Step {step_number} Test-first gate must start with Required or Not applicable"
+                )
+        if template_version == 3:
+            manual_line = re.search(r"(?m)^- Manual Checks:\s*(.+)$", step)
+            manual_ids = set(MANUAL_CHECK_RE.findall(manual_line.group(1))) if manual_line else set()
+            if manual_line and not manual_ids:
+                errors.append(f"Step {step_number} Manual Checks line contains no MC-* IDs")
+            unknown_manual_ids = sorted(manual_ids - set(MANUAL_CHECK_IDS))
+            if unknown_manual_ids:
+                errors.append(
+                    f"Step {step_number} contains unknown Manual Check IDs: "
+                    + ", ".join(unknown_manual_ids)
+                )
+            required_step_checks = {"MC-SCOPE-001", "MC-TEST-001"}
+            missing_step_checks = sorted(required_step_checks - manual_ids)
+            if missing_step_checks:
+                errors.append(
+                    f"Step {step_number} Manual Checks must include: "
+                    + ", ".join(missing_step_checks)
                 )
 
         coverage = re.search(r"(?m)^- Requirements:\s*(.+)$", step)
@@ -385,14 +567,28 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
                     warnings.append(
                         f"Step {step_number} File {file_number} contains generic, non-implementable pseudocode"
                     )
-                if template_version == 2:
+                if template_version in {2, 3}:
                     nonempty_lines = [line for line in pseudocode_body.splitlines() if line.strip()]
                     if len(re.sub(r"\s+", " ", pseudocode_body).strip()) < 120 or len(nonempty_lines) < 3:
                         errors.append(
-                            f"Step {step_number} File {file_number} pseudocode is too shallow for Template Version 2"
+                            f"Step {step_number} File {file_number} pseudocode is too shallow "
+                            f"for Template Version {template_version}"
                         )
+            if template_version == 3:
+                standards = re.search(r"(?m)^- Standards impact:\s*(.+)$", block)
+                standards_ids = set(MANUAL_CHECK_RE.findall(standards.group(1))) if standards else set()
+                if standards and not standards_ids:
+                    errors.append(
+                        f"Step {step_number} File {file_number} Standards impact contains no MC-* IDs"
+                    )
+                unknown_standards_ids = sorted(standards_ids - set(MANUAL_CHECK_IDS))
+                if unknown_standards_ids:
+                    errors.append(
+                        f"Step {step_number} File {file_number} contains unknown Manual Check IDs: "
+                        + ", ".join(unknown_standards_ids)
+                    )
 
-        if template_version == 2 and files:
+        if template_version in {2, 3} and files:
             commit_paths = re.search(r"(?m)^- Commit paths:\s*(.+)$", step)
             if commit_paths:
                 commit_scope = commit_paths.group(1)
@@ -431,6 +627,14 @@ def validate(path: Path, strict: bool) -> tuple[list[str], list[str]]:
         errors.append("Document must contain exactly one allowed final verdict")
     elif status in {"Review", "Ready"} and "BLOCKED — Spec or user decision required" in present_verdicts:
         errors.append(f"Status {status} cannot use the BLOCKED verdict")
+
+    if template_version == 3:
+        errors.extend(
+            validate_manual_checks(
+                text,
+                pass_verdict="PASS — Ready for user review" in present_verdicts,
+            )
+        )
 
     if strict and warnings:
         errors.extend(f"STRICT: {warning}" for warning in warnings)
