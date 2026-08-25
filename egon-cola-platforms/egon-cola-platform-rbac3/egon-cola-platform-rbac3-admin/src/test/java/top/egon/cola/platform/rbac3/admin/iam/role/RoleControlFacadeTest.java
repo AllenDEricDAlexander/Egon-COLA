@@ -19,8 +19,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleinheritance.repository.RoleHierarchyRepository;
 import top.egon.cola.platform.rbac3.admin.iam.role.repository.RoleControlRepository;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.CreateRoleCommandDTO;
-import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.AssignPermissionCommandDTO;
-import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.AssignPermissionsCommandDTO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleMutationResultVO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleinheritance.domain.dto.InheritanceCommandDTO;
 import top.egon.cola.platform.rbac3.core.hierarchy.RoleNode;
@@ -62,23 +60,10 @@ class RoleControlFacadeTest {
     }
 
     @Test
-    void permissionBindingPreservesOneAtomicBatchAtTheStoreBoundary() {
+    void roleQueriesRemainAtTheRoleControlBoundary() {
         RecordingControlStore controlStore = new RecordingControlStore();
         RoleFacade facade = new RoleFacade(new EmptyHierarchyStore(), controlStore);
-        AssignPermissionsCommandDTO command = new AssignPermissionsCommandDTO(
-                "10001",
-                "71001",
-                "50001",
-                List.of("72001", "72002"),
-                Instant.EPOCH,
-                null,
-                3L,
-                "20001");
-
-        RoleMutationResultVO result = facade.assignPermissions(command, Instant.EPOCH);
-
-        assertEquals(List.of("72001", "72002"), controlStore.lastCommand.permissionIds());
-        assertEquals("50001", result.resourceId());
+        assertEquals(List.of(), facade.roles("10001", "71001"));
     }
 
     @Test
@@ -93,8 +78,6 @@ class RoleControlFacadeTest {
 
     private static final class RecordingControlStore implements RoleControlRepository {
 
-        private AssignPermissionsCommandDTO lastCommand;
-
         @Override
         public RoleMutationResultVO create(
                 CreateRoleCommandDTO command,
@@ -103,18 +86,10 @@ class RoleControlFacadeTest {
         }
 
         @Override
-        public RoleMutationResultVO assignPermission(
-                AssignPermissionCommandDTO command,
-                Instant now) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public RoleMutationResultVO assignPermissions(
-                AssignPermissionsCommandDTO command,
-                Instant now) {
-            lastCommand = command;
-            return new RoleMutationResultVO("50001", 4L, "event-1", true);
+        public List<top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleVO> roles(
+                String tenantId,
+                String applicationId) {
+            return List.of();
         }
     }
 

@@ -11,7 +11,7 @@ import java.lang.reflect.Parameter;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import top.egon.cola.platform.rbac3.admin.iam.role.controller.RolePermissionController;
+import top.egon.cola.platform.rbac3.admin.iam.role.controller.RoleController;
 
 class ControllerRequestParameterMetadataTest {
 
@@ -20,7 +20,7 @@ class ControllerRequestParameterMetadataTest {
                 List<String> missingNames = List.of(
                         UserDirectoryController.class,
                         DirectoryController.class,
-                        RolePermissionController.class,
+                        RoleController.class,
                         AuditController.class)
                 .stream()
                 .flatMap(type -> List.of(type.getDeclaredMethods()).stream())

@@ -16,8 +16,15 @@ public interface RoleResourceGrantRepository {
 
     Set<Long> activeDirectResourceIds(Set<Long> roleIds, Instant now);
 
-    record GrantTreeFacts(List<RoleResourceGrantPO> directGrants) {
+    record GrantTreeFacts(
+            Long applicationId,
+            long roleVersion,
+            List<RoleResourceGrantPO> directGrants) {
         public GrantTreeFacts {
+            applicationId = positive(applicationId, "applicationId");
+            if (roleVersion < 0L) {
+                throw new IllegalArgumentException("roleVersion must not be negative");
+            }
             directGrants = List.copyOf(Objects.requireNonNull(
                     directGrants, "directGrants"));
         }

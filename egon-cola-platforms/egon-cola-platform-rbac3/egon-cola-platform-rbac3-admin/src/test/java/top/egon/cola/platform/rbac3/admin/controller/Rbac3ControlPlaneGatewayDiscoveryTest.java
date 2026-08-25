@@ -23,13 +23,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import top.egon.cola.platform.rbac3.admin.authorization.resource.controller.ApplicationResourceController;
 import top.egon.cola.platform.rbac3.admin.authorization.resource.service.GlobalResourceCatalogService;
-import top.egon.cola.platform.rbac3.admin.iam.role.controller.RolePermissionController;
+import top.egon.cola.platform.rbac3.admin.iam.role.controller.RoleController;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.controller.ConstraintController;
 
 @WebMvcTest(
         controllers = {
                 ApplicationResourceController.class,
-                RolePermissionController.class,
+                RoleController.class,
                 ConstraintController.class
         },
         excludeAutoConfiguration = {
@@ -79,13 +79,13 @@ class Rbac3ControlPlaneGatewayDiscoveryTest {
 
         assertEquals(Set.of(
                         ApplicationResourceController.class.getName(),
-                        RolePermissionController.class.getName(),
+                        RoleController.class.getName(),
                         ConstraintController.class.getName()),
                 methodsByController.keySet());
         assertTrue(methodsByController.get(ApplicationResourceController.class.getName())
                 .contains("GET /api/rbac3/v1/iam/resource-catalog/applications"));
-        assertTrue(methodsByController.get(RolePermissionController.class.getName())
-                .contains("POST /api/rbac3/v1/roles/{roleId}/permissions"));
+        assertTrue(methodsByController.get(RoleController.class.getName())
+                .contains("POST /api/rbac3/v1/iam/roles"));
         assertTrue(methodsByController.get(ConstraintController.class.getName())
                 .contains("POST /api/rbac3/v1/iam/policies/sod-sets"));
         assertTrue(methodsByController.get(ConstraintController.class.getName())

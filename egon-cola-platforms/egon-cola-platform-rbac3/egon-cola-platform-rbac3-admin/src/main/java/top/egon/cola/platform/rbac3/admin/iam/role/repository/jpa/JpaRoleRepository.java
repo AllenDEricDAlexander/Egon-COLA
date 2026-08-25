@@ -8,10 +8,8 @@ import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.AuthorizationEventPublisher;
 import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.state.repository.TenantAuthorizationStateRepository;
-import top.egon.cola.platform.rbac3.admin.authorization.permission.domain.po.PermissionPO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.po.RolePO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleinheritance.domain.po.RoleInheritancePO;
-import top.egon.cola.platform.rbac3.admin.iam.role.domain.po.RolePermissionPO;
 import top.egon.cola.platform.rbac3.core.hierarchy.RoleEdge;
 import top.egon.cola.platform.rbac3.core.hierarchy.RoleHierarchy;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
@@ -22,14 +20,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
-import top.egon.cola.platform.rbac3.admin.authorization.permission.domain.enums.PermissionStatusEnum;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleinheritance.repository.RoleHierarchyRepository;
 import top.egon.cola.platform.rbac3.admin.iam.role.repository.RoleControlRepository;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleinheritance.repository.jdbc.PostgresqlRoleClosureRepository;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.CreateRoleCommandDTO;
-import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.AssignPermissionCommandDTO;
-import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.AssignPermissionsCommandDTO;
-import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.RemovePermissionCommandDTO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.UpdateRoleCommandDTO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleVO;
 import top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleImpactVO;
@@ -333,190 +327,6 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
                 "ROLE",
                 Long.toString(roleId),
                 "ROLE_CREATED",
-                command.actorId(),
-                now);
-    }
-
-    /**
-     * 方法 `assignPermission` 按照 `JpaRoleRepository` 的职责处理输入，完成 `assign Permission` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `assignPermission` processes its inputs according to `JpaRoleRepository`'s responsibility, performs the `assign Permission` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `assignPermission` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `assignPermission`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param command 输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param ignoredNow 输入参数 `ignoredNow`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Override
-    @Transactional
-    public RoleMutationResultVO assignPermission(
-            AssignPermissionCommandDTO command,
-            Instant ignoredNow) {
-        Instant now = databaseClock.transactionNow();
-        Long tenantId = Long.valueOf(command.tenantId());
-        Long applicationId = Long.valueOf(command.applicationId());
-        requireActiveTenantApplication(tenantId, applicationId, now);
-        RolePO role = entityManager.find(
-                RolePO.class, Long.valueOf(command.roleId()), LockModeType.PESSIMISTIC_WRITE);
-        PermissionPO permission = entityManager.find(
-                PermissionPO.class,
-                Long.valueOf(command.permissionId()),
-                LockModeType.PESSIMISTIC_WRITE);
-        if (role == null || permission == null
-                || !role.getTenantId().equals(tenantId)
-                || !role.getApplicationId().equals(applicationId)
-                || !permission.getApplicationId().equals(applicationId)
-                || permission.getStatus() != PermissionStatusEnum.ACTIVE) {
-            throw new Rbac3RuleViolation("ROLE_APPLICATION_MISMATCH");
-        }
-        long assignmentId = idGenerator.nextLongId();
-        entityManager.persist(new RolePermissionPO(
-                assignmentId,
-                tenantId,
-                applicationId,
-                role.getId(),
-                permission.getId(),
-                command.validFrom(),
-                command.validTo(),
-                command.actorId(),
-                now));
-        return policyMutation(
-                command.tenantId(),
-                "ROLE_PERMISSION",
-                Long.toString(assignmentId),
-                "ROLE_PERMISSION_ASSIGNED",
-                command.actorId(),
-                now);
-    }
-
-    /**
-     * 方法 `assignPermissions` 按照 `JpaRoleRepository` 的职责处理输入，完成 `assign Permissions` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `assignPermissions` processes its inputs according to `JpaRoleRepository`'s responsibility, performs the `assign Permissions` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `assignPermissions` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `assignPermissions`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param command 输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param ignoredNow 输入参数 `ignoredNow`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Override
-    @Transactional
-    public RoleMutationResultVO assignPermissions(
-            AssignPermissionsCommandDTO command,
-            Instant ignoredNow) {
-        Instant now = databaseClock.transactionNow();
-        Long tenantId = Long.valueOf(command.tenantId());
-        Long applicationId = Long.valueOf(command.applicationId());
-        requireActiveTenantApplication(tenantId, applicationId, now);
-        RolePO role = entityManager.find(
-                RolePO.class, Long.valueOf(command.roleId()), LockModeType.PESSIMISTIC_WRITE);
-        if (role == null
-                || !role.getTenantId().equals(tenantId)
-                || !role.getApplicationId().equals(applicationId)) {
-            throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
-        }
-        if (role.getVersion() != command.expectedRoleVersion()) {
-            throw new Rbac3RuleViolation("RESOURCE_VERSION_CONFLICT");
-        }
-        List<Long> permissionIds = command.permissionIds().stream().map(Long::valueOf).toList();
-        List<PermissionPO> permissions = entityManager.createQuery("""
-                select p from PermissionEntity p
-                         where p.applicationId = :applicationId
-                           and p.id in :permissionIds
-                """, PermissionPO.class)
-                .setParameter("applicationId", applicationId)
-                .setParameter("permissionIds", permissionIds)
-                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
-                .getResultList();
-        if (permissions.size() != permissionIds.size()
-                || permissions.stream().anyMatch(permission ->
-                permission.getStatus() != PermissionStatusEnum.ACTIVE)) {
-            throw new Rbac3RuleViolation("ROLE_APPLICATION_MISMATCH");
-        }
-        Set<Long> existing = new LinkedHashSet<>(entityManager.createQuery("""
-                        select rp.permissionId from RolePermissionEntity rp
-                         where rp.tenantId = :tenantId
-                           and rp.roleId = :roleId
-                           and rp.permissionId in :permissionIds
-                           and rp.status = :status
-                        """, Long.class)
-                .setParameter("tenantId", tenantId)
-                .setParameter("roleId", role.getId())
-                .setParameter("permissionIds", permissionIds)
-                .setParameter("status", RolePermissionStatusEnum.ACTIVE)
-                .getResultList());
-        if (!existing.isEmpty()) {
-            throw new Rbac3RuleViolation("REQUEST_INVALID");
-        }
-        for (Long permissionId : permissionIds) {
-            entityManager.persist(new RolePermissionPO(
-                    idGenerator.nextLongId(),
-                    tenantId,
-                    applicationId,
-                    role.getId(),
-                    permissionId,
-                    command.validFrom(),
-                    command.validTo(),
-                    command.actorId(),
-                    now));
-        }
-        role.markUpdated(command.actorId(), now);
-        return policyMutation(
-                command.tenantId(),
-                "ROLE_PERMISSION",
-                command.roleId(),
-                "ROLE_PERMISSIONS_ASSIGNED",
-                command.actorId(),
-                now);
-    }
-
-    /**
-     * 方法 `removePermission` 按照 `JpaRoleRepository` 的职责处理输入，完成 `remove Permission` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
-     * Method `removePermission` processes its inputs according to `JpaRoleRepository`'s responsibility, performs the `remove Permission` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
-     *
-     * 用法：调用 `removePermission` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
-     * Usage: provide contract-compliant arguments before calling `removePermission`, then continue the business flow using its result, exception, or side effect.
-     *
-     * @param command 输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param ignoredNow 输入参数 `ignoredNow`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
-     */
-    @Override
-    @Transactional
-    public RoleMutationResultVO removePermission(
-            RemovePermissionCommandDTO command,
-            Instant ignoredNow) {
-        Instant now = databaseClock.transactionNow();
-        RolePO role = requireRole(
-                command.tenantId(), command.applicationId(), command.roleId());
-        if (role.getVersion() != command.expectedRoleVersion()) {
-            throw new Rbac3RuleViolation("RESOURCE_VERSION_CONFLICT");
-        }
-        List<RolePermissionPO> bindings = entityManager.createQuery("""
-                        select rp from RolePermissionEntity rp
-                         where rp.tenantId = :tenantId
-                           and rp.roleId = :roleId
-                           and rp.permissionId = :permissionId
-                           and rp.status = :status
-                        """, RolePermissionPO.class)
-                .setParameter("tenantId", Long.valueOf(command.tenantId()))
-                .setParameter("roleId", role.getId())
-                .setParameter("permissionId", Long.valueOf(command.permissionId()))
-                .setParameter("status", RolePermissionStatusEnum.ACTIVE)
-                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
-                .getResultList();
-        if (bindings.isEmpty()) {
-            throw new Rbac3RuleViolation("RESOURCE_NOT_FOUND");
-        }
-        bindings.forEach(binding -> binding.disable(command.actorId(), now));
-        role.markUpdated(command.actorId(), now);
-        return policyMutation(
-                command.tenantId(),
-                "ROLE_PERMISSION",
-                command.roleId(),
-                "ROLE_PERMISSION_REMOVED",
                 command.actorId(),
                 now);
     }
