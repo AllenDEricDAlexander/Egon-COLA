@@ -15,24 +15,27 @@ import {version} from '../../package.json'
 interface NavItem {
     key: string
     label: string
-    path: string
+    path?: string
     permission: string
+    activePathPrefixes?: readonly string[]
+    children?: readonly NavItem[]
 }
 
-// 平台自己的导航数据，按 bootstrap 权限过滤后交给统一 Header。
+// 平台自己的导航树；按 bootstrap 权限递归剪枝后交给 shared 左侧树。
 const ALL_NAV_ITEMS: NavItem[] = [
     {key: 'overview', label: '身份概览', path: '/overview', permission: ''},
-    {key: 'users', label: '全局用户', path: '/users', permission: 'idp:identity-user:read'},
-    {key: 'clients', label: 'OAuth 客户端', path: '/clients', permission: 'idp:oauth-client:read'},
-    {key: 'tenants', label: '租户目录', path: '/tenants', permission: 'idp:tenant:read'},
-    {
-        key: 'resource-servers',
-        label: 'Resource Server',
-        path: '/resource-servers',
-        permission: 'idp:resource-server:read'
-    },
-    {key: 'keys', label: '签名密钥', path: '/keys', permission: 'idp:signing-key:read'},
-    {key: 'audits', label: '安全审计', path: '/audits', permission: 'idp:audit:read'},
+    {key: 'identity', label: '身份目录', permission: '', children: [
+        {key: 'users', label: '全局用户', path: '/users', permission: 'idp:identity-user:read'},
+        {key: 'tenants', label: '租户目录', path: '/tenants', permission: 'idp:tenant:read'},
+    ]},
+    {key: 'oauth', label: 'OAuth 与资源', permission: '', children: [
+        {key: 'clients', label: 'OAuth 客户端', path: '/clients', activePathPrefixes: ['/clients'], permission: 'idp:oauth-client:read'},
+        {key: 'resource-servers', label: 'Resource Server', path: '/resource-servers', permission: 'idp:resource-server:read'},
+    ]},
+    {key: 'security', label: '安全治理', permission: '', children: [
+        {key: 'keys', label: '签名密钥', path: '/keys', permission: 'idp:signing-key:read'},
+        {key: 'audits', label: '安全审计', path: '/audits', permission: 'idp:audit:read'},
+    ]},
 ]
 
 const PATH_LABELS: Record<string, string> = {
@@ -52,9 +55,7 @@ export const AdminLayout = ({ children }: PropsWithChildren) => {
     const { has } = usePermission(auth.bootstrap?.permissions ?? [])
 
     const navigation: EnterpriseNavigationItem[] = useMemo(
-        () => ALL_NAV_ITEMS
-            .filter((item) => !item.permission || has(item.permission))
-            .map((item) => ({ key: item.key, label: item.label, path: item.path })),
+        () => filterNavigation(ALL_NAV_ITEMS, has),
         [has],
     )
 
@@ -104,3 +105,20 @@ export const AdminLayout = ({ children }: PropsWithChildren) => {
         </EnterpriseLayout>
     )
 }
+
+const filterNavigation = (
+    items: readonly NavItem[],
+    has: (permission: string) => boolean,
+): EnterpriseNavigationItem[] => items.flatMap((item): EnterpriseNavigationItem[] => {
+    const children = item.children ? filterNavigation(item.children, has) : []
+    const allowed = !item.permission || has(item.permission)
+    if (item.children) {
+        return children.length > 0 ? [{key: item.key, label: item.label, children}] : []
+    }
+    return allowed ? [{
+        key: item.key,
+        label: item.label,
+        path: item.path,
+        activePathPrefixes: item.activePathPrefixes,
+    }] : []
+})

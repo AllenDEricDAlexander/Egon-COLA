@@ -1,9 +1,25 @@
-import {cleanup, render, screen, waitFor} from '@testing-library/react'
+import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/react'
 import type {ReactNode} from 'react'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {App} from './App'
 
-const admin = vi.hoisted(() => ({ request: vi.fn() }))
+const admin = vi.hoisted(() => ({
+  request: vi.fn(),
+  permissions: [
+    'idp:identity-user:read',
+    'idp:oauth-client:read',
+    'idp:oauth-client:create',
+    'idp:oauth-client:update',
+    'idp:tenant:read',
+    'idp:tenant:manage',
+    'idp:resource-server:read',
+    'idp:resource-server:create',
+    'idp:resource-server:status',
+    'idp:resource-server:grant',
+    'idp:signing-key:read',
+    'idp:audit:read',
+  ],
+}))
 
 vi.mock('../auth/AuthContext', () => ({
   AuthProvider: ({ children }: { children: ReactNode }) => children,
@@ -12,20 +28,7 @@ vi.mock('../auth/AuthContext', () => ({
     bootstrap: {
         user: {id: 'user-1', identitySub: 'alice-sub', tenantId: 'default', status: 'ACTIVE'},
         activeRoleContexts: [],
-      permissions: [
-          'idp:identity-user:read',
-          'idp:oauth-client:read',
-          'idp:oauth-client:create',
-          'idp:oauth-client:update',
-          'idp:tenant:read',
-          'idp:tenant:manage',
-          'idp:resource-server:read',
-          'idp:resource-server:create',
-          'idp:resource-server:status',
-          'idp:resource-server:grant',
-          'idp:signing-key:read',
-          'idp:audit:read',
-      ],
+      permissions: admin.permissions,
         apps: [], menus: [], routes: [], actions: [], fieldPolicies: {},
         defaultApplicationCode: null, defaultRoute: null, authVersion: 1, policyVersion: 1,
     },
@@ -34,6 +37,13 @@ vi.mock('../auth/AuthContext', () => ({
 }))
 
 beforeEach(() => {
+  admin.permissions = [
+    'idp:identity-user:read', 'idp:oauth-client:read', 'idp:oauth-client:create',
+    'idp:oauth-client:update', 'idp:tenant:read', 'idp:tenant:manage',
+    'idp:resource-server:read', 'idp:resource-server:create',
+    'idp:resource-server:status', 'idp:resource-server:grant',
+    'idp:signing-key:read', 'idp:audit:read',
+  ]
   admin.request.mockReset().mockImplementation((path: string) => {
     if (path === '/api/v1/identity/users') {
       return Promise.resolve([{
@@ -148,5 +158,29 @@ describe('IdP Admin application providers', () => {
     await waitFor(() => expect(screen.getByText('Orders API')).toBeInTheDocument())
     expect(screen.queryByText(/JWK|准入|Admission/)).not.toBeInTheDocument()
     expect(admin.request).toHaveBeenCalledWith('/api/v1/identity/resource-servers')
+  })
+
+  it('recursively prunes unauthorized navigation groups', async () => {
+    admin.permissions = ['idp:identity-user:read']
+    window.history.replaceState({}, '', '/users')
+
+    render(<App />)
+
+    await waitFor(() => expect(screen.getByText('alice')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', {name: '打开导航'}))
+    fireEvent.click(screen.getByText('身份目录'))
+    expect(screen.getByText('身份目录')).toBeInTheDocument()
+    expect(screen.getAllByText('全局用户').length).toBeGreaterThan(0)
+    expect(screen.queryByText('OAuth 与资源')).not.toBeInTheDocument()
+    expect(screen.queryByText('安全治理')).not.toBeInTheDocument()
+  })
+
+  it('selects OAuth clients for a resource-grant deep link', async () => {
+    window.history.replaceState({}, '', '/clients/client-1/resource-grants')
+    render(<App />)
+    await waitFor(() => expect(screen.getByRole('button', {name: '打开导航'})).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', {name: '打开导航'}))
+    fireEvent.click(screen.getByText('OAuth 与资源'))
+    expect(screen.getByText('OAuth 客户端').closest('.ant-menu-item')).toHaveClass('ant-menu-item-selected')
   })
 })
