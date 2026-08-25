@@ -10,6 +10,7 @@ import top.egon.cola.platform.rbac3.contract.authorization.Decision;
 import top.egon.cola.platform.rbac3.contract.authorization.FieldAccessLevel;
 import top.egon.cola.platform.rbac3.contract.authorization.FieldPolicyDecision;
 import top.egon.cola.platform.rbac3.contract.authorization.OperationSodDecision;
+import top.egon.cola.platform.rbac3.contract.authorization.PermissionRequest;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -24,6 +25,20 @@ class AuthorizationContractTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper()
             .registerModule(new JavaTimeModule());
+
+    @Test
+    void permissionRequestSupportsGenericAndApiModes() {
+        PermissionRequest generic = PermissionRequest.of("system:user:read");
+        assertEquals(null, generic.resourceCode());
+
+        PermissionRequest api = PermissionRequest.api(
+                "system:user:read", "iam.api.users.list");
+
+        assertEquals("system:user:read", api.permissionCode());
+        assertEquals("iam.api.users.list", api.resourceCode());
+        assertThrows(IllegalArgumentException.class, () -> PermissionRequest.api(
+                "system:user:read", " "));
+    }
 
     @Test
     void allowDecisionRejectsNoneScope() {

@@ -102,6 +102,15 @@ public final class DefaultAuthorizationService implements AuthorizationService {
             }
             boolean allowed = context.snapshot().permissions()
                     .contains(request.permissionCode());
+            if (allowed && request.resourceCode() != null
+                    && !context.snapshot().resourceCodes()
+                    .contains(request.resourceCode())) {
+                return permissionDecision(
+                        context,
+                        request.permissionCode(),
+                        Decision.DENY,
+                        "RESOURCE_NOT_GRANTED");
+            }
             return permissionDecision(
                     context, request.permissionCode(),
                     allowed ? Decision.ALLOW : Decision.DENY,

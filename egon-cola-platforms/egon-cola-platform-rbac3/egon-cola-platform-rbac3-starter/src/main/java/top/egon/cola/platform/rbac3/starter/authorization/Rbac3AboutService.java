@@ -28,6 +28,7 @@ public final class Rbac3AboutService {
                 applicationCode,
                 details.activeRoles(),
                 details.permissions(),
+                details.snapshot().resourceCodes(),
                 details.fieldPolicies(),
                 details.snapshot().landingRouteCode(),
                 details.authVersion(),

@@ -1,10 +1,12 @@
 package top.egon.cola.platform.rbac3.contract.authorization;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Immutable authorization facts for one USER subject and system.
@@ -20,6 +22,7 @@ public record SystemAuthorizationSnapshot(
         List<ActiveRoleDescriptor> activeRoles,
         String landingRouteCode,
         Set<String> permissions,
+        Set<String> resourceCodes,
         Map<String, DataScopeDecision> dataScopes,
         Map<String, FieldPolicyDecision> fieldPolicies,
         String checksum,
@@ -40,6 +43,7 @@ public record SystemAuthorizationSnapshot(
                 : List.copyOf(activeRoles);
         landingRouteCode = optional(landingRouteCode, "landingRouteCode");
         permissions = Set.copyOf(Objects.requireNonNull(permissions, "permissions"));
+        resourceCodes = immutableSortedSet(resourceCodes, "resourceCodes");
         dataScopes = Map.copyOf(Objects.requireNonNull(dataScopes, "dataScopes"));
         fieldPolicies = Map.copyOf(Objects.requireNonNull(fieldPolicies, "fieldPolicies"));
         checksum = required(checksum, "checksum");
@@ -80,6 +84,7 @@ public record SystemAuthorizationSnapshot(
                 legacyRoles(activeRoleIds, systemCode),
                 null,
                 permissions,
+                Set.of(),
                 dataScopes,
                 fieldPolicies,
                 checksum,
@@ -114,6 +119,7 @@ public record SystemAuthorizationSnapshot(
                 activeRoles,
                 null,
                 permissions,
+                Set.of(),
                 dataScopes,
                 fieldPolicies,
                 checksum,
@@ -151,5 +157,16 @@ public record SystemAuthorizationSnapshot(
         if (value < 0) {
             throw new IllegalArgumentException(fieldName + " must not be negative");
         }
+    }
+
+    private static Set<String> immutableSortedSet(
+            Set<String> values,
+            String fieldName) {
+        Objects.requireNonNull(values, fieldName);
+        TreeSet<String> sorted = new TreeSet<>();
+        for (String value : values) {
+            sorted.add(required(value, fieldName));
+        }
+        return Collections.unmodifiableSet(sorted);
     }
 }

@@ -40,9 +40,8 @@ public final class Rbac3MethodAuthorizationManager
         Class<?> targetClass = invocation.getThis() == null
                 ? method.getDeclaringClass()
                 : invocation.getThis().getClass();
-        for (String permission : permissions(method, targetClass)) {
-            var decision = authorization.requirePermission(
-                    PermissionRequest.of(permission));
+        for (PermissionRequest request : permissions(method, targetClass)) {
+            var decision = authorization.requirePermission(request);
             if (decision == null || decision.decision() != Decision.ALLOW) {
                 return new AuthorizationDecision(false);
             }
@@ -51,7 +50,7 @@ public final class Rbac3MethodAuthorizationManager
     }
 
     /** Resolves method/type/API declarations in stable declaration order. */
-    List<String> permissions(MethodInvocation invocation) {
+    List<PermissionRequest> permissions(MethodInvocation invocation) {
         Method method = Objects.requireNonNull(invocation.getMethod(), "method");
         Class<?> targetClass = invocation.getThis() == null
                 ? method.getDeclaringClass()
@@ -63,8 +62,10 @@ public final class Rbac3MethodAuthorizationManager
         return !permissions(method, targetClass).isEmpty();
     }
 
-    private List<String> permissions(Method method, Class<?> targetClass) {
-        LinkedHashSet<String> required = new LinkedHashSet<>();
+    private List<PermissionRequest> permissions(
+            Method method,
+            Class<?> targetClass) {
+        LinkedHashSet<PermissionRequest> required = new LinkedHashSet<>();
         addGeneric(required, targetClass);
         addGeneric(required, method.getDeclaringClass());
         addGeneric(required, method);
@@ -74,18 +75,23 @@ public final class Rbac3MethodAuthorizationManager
         return List.copyOf(required);
     }
 
-    private void addApi(LinkedHashSet<String> required, AnnotatedElement element) {
+    private void addApi(
+            LinkedHashSet<PermissionRequest> required,
+            AnnotatedElement element) {
         RBACAPIResource resource = element.getAnnotation(RBACAPIResource.class);
         if (resource == null) {
             return;
         }
         required(resource.code(), "RBACAPIResource.code");
-        required.add(required(resource.permission(), "RBACAPIResource.permission"));
+        String permission = required(
+                resource.permission(),
+                "RBACAPIResource.permission");
         required(resource.name(), "RBACAPIResource.name");
+        required.add(PermissionRequest.api(permission, resource.code()));
     }
 
     private void addGeneric(
-            LinkedHashSet<String> required,
+            LinkedHashSet<PermissionRequest> required,
             AnnotatedElement element) {
         for (Annotation annotation : element.getAnnotations()) {
             if (!"RequiresRbac3Permission".equals(
@@ -96,9 +102,9 @@ public final class Rbac3MethodAuthorizationManager
                 Method permission = annotation.annotationType()
                         .getDeclaredMethod("permission");
                 Object value = permission.invoke(annotation);
-                required.add(required(
+                required.add(PermissionRequest.of(required(
                         value == null ? null : value.toString(),
-                        "RequiresRbac3Permission.permission"));
+                        "RequiresRbac3Permission.permission")));
             } catch (ReflectiveOperationException exception) {
                 throw new IllegalArgumentException(
                         "invalid RequiresRbac3Permission annotation", exception);
@@ -106,7 +112,8 @@ public final class Rbac3MethodAuthorizationManager
         }
         RequiresPermission generic = element.getAnnotation(RequiresPermission.class);
         if (generic != null) {
-            required.add(required(generic.value(), "RequiresPermission.value"));
+            required.add(PermissionRequest.of(
+                    required(generic.value(), "RequiresPermission.value")));
         }
     }
 

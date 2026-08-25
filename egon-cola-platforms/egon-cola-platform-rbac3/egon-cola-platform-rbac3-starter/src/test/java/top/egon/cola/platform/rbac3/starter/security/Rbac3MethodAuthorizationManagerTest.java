@@ -5,6 +5,7 @@ import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.aopalliance.intercept.MethodInvocation;
+import org.mockito.ArgumentCaptor;
 import top.egon.cola.platform.rbac3.starter.authorization.AuthorizationService;
 import top.egon.cola.platform.rbac3.contract.authorization.Decision;
 import top.egon.cola.platform.rbac3.contract.authorization.PermissionRequest;
@@ -16,7 +17,9 @@ import java.util.function.Supplier;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class Rbac3MethodAuthorizationManagerTest {
@@ -34,6 +37,14 @@ class Rbac3MethodAuthorizationManagerTest {
 
         assertThat(decision).isNotNull();
         assertThat(decision.isGranted()).isTrue();
+        ArgumentCaptor<PermissionRequest> requests = ArgumentCaptor.forClass(
+                PermissionRequest.class);
+        verify(authorization, atLeastOnce()).requirePermission(requests.capture());
+        PermissionRequest apiRequest = requests.getAllValues().stream()
+                .filter(request -> "api:read".equals(request.permissionCode()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(apiRequest.resourceCode()).isEqualTo("fixture.api");
     }
 
     @Test

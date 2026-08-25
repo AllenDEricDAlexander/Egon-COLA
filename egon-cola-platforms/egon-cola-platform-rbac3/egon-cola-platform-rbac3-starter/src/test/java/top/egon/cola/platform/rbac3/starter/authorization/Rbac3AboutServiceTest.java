@@ -26,10 +26,7 @@ class Rbac3AboutServiceTest {
                 "alice-sub", "tenant-a", "access-jti", Set.of("rbac3-admin"),
                 now.minusSeconds(30), now.plusSeconds(300), AuthenticationContext.password());
         Rbac3UserDetails details = new Rbac3UserDetails(identity,
-                new SystemAuthorizationSnapshot(
-                        "tenant-a", "alice-sub", "user-1", "rbac3-admin", 4L, 7L,
-                        List.of("role-1"), Set.of("payment:read"), Map.of(), Map.of(),
-                        "sha256:snapshot", now, now.plusSeconds(300)));
+                resourceAwareSnapshot(now));
         CurrentRbac3User current = mock(CurrentRbac3User.class);
         when(current.require()).thenReturn(details);
 
@@ -39,7 +36,17 @@ class Rbac3AboutServiceTest {
         assertThat(about.user().subject()).isEqualTo("alice-sub");
         assertThat(about.currentApplicationCode()).isEqualTo("rbac3-admin");
         assertThat(about.permissions()).containsExactly("payment:read");
+        assertThat(json).contains("resourceCodes");
+        assertThat(json).contains("iam.api.payment.read");
         assertThat(json).doesNotContain("apps", "menus", "routes", "actions",
                 "navigationTree", "componentKey", "path");
+    }
+
+    private SystemAuthorizationSnapshot resourceAwareSnapshot(Instant now) {
+        return new SystemAuthorizationSnapshot(
+                "tenant-a", "alice-sub", "user-1", "rbac3-admin", 4L, 7L,
+                List.of("role-1"), null, null, Set.of("payment:read"),
+                Set.of("iam.api.payment.read"), Map.of(), Map.of(),
+                "sha256:snapshot", now, now.plusSeconds(300));
     }
 }

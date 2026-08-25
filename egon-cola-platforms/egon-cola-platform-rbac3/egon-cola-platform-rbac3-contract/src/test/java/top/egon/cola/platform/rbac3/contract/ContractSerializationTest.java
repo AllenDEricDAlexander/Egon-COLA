@@ -10,6 +10,7 @@ import top.egon.cola.platform.rbac3.contract.authorization.ActiveRoleDescriptor;
 import top.egon.cola.platform.rbac3.contract.authorization.ApplicationAccessScope;
 import top.egon.cola.platform.rbac3.contract.authorization.BusinessAccessScope;
 import top.egon.cola.platform.rbac3.contract.authorization.GatewayBizAppScopeSnapshot;
+import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.contract.authorization.UserAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.contract.error.Rbac3ErrorCode;
 import top.egon.cola.platform.rbac3.contract.error.Rbac3ErrorResponse;
@@ -39,6 +40,21 @@ class ContractSerializationTest {
         assertTrue(json.path("appContexts").isArray());
         assertFalse(json.has("sessionId"));
         assertFalse(json.has("sessionVersion"));
+    }
+
+    @Test
+    void systemAuthorizationSnapshotSerializesResourceCodes() throws Exception {
+        Instant generated = Instant.parse("2026-07-30T08:00:00Z");
+        SystemAuthorizationSnapshot snapshot = new SystemAuthorizationSnapshot(
+                "tenant-a", "subject-a", "101", "finance", 43L, 3L,
+                List.of("role-1"), Set.of("finance:payment:read"), Map.of(), Map.of(),
+                "sha256:snapshot", generated, generated.plusSeconds(3600));
+
+        JsonNode json = objectMapper.readTree(
+                objectMapper.writeValueAsString(snapshot));
+
+        assertTrue(json.has("resourceCodes"));
+        assertTrue(json.path("resourceCodes").isArray());
     }
 
     @Test

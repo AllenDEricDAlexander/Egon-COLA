@@ -71,6 +71,25 @@ class DefaultAuthorizationServiceTest {
                         "finance:payment:read")).decision());
     }
 
+    @Test
+    void apiPermissionRequiresTheDeclaredResourceCode() throws Exception {
+        DefaultAuthorizationService service = new DefaultAuthorizationService(
+                () -> context(false),
+                request -> AuthorizationService.OperationSodResult.allowed(),
+                request -> AuthorizationService.FenceResult.allowed(NOW),
+                Clock.fixed(NOW, ZoneOffset.UTC));
+
+        PermissionRequest declaredApi = PermissionRequest.api(
+                "finance:payment:read", "finance.api.payment.read");
+
+        assertEquals(Decision.ALLOW,
+                service.requirePermission(declaredApi).decision());
+        PermissionRequest missingApi = PermissionRequest.api(
+                "finance:payment:read", "finance.api.payment.approve");
+        assertEquals("RESOURCE_NOT_GRANTED",
+                service.requirePermission(missingApi).reasonCode());
+    }
+
     private AuthorizationService.RuntimeAuthorizationContext context(boolean fenced) {
         return new AuthorizationService.RuntimeAuthorizationContext(
                 claims(), snapshot(), fenced);
@@ -85,9 +104,10 @@ class DefaultAuthorizationServiceTest {
 
     private SystemAuthorizationSnapshot snapshot() {
         return new SystemAuthorizationSnapshot(
-                "10001", "identity-1", "20001", "finance",
-                1L, 2L, List.of("50001", "50002"),
+                "10001", "identity-1", "20001", "finance", 1L, 2L,
+                List.of("50001", "50002"), null, null,
                 Set.of("finance:payment:read"),
+                Set.of("finance.api.payment.read"),
                 Map.of("finance:payment:read", dataScope()),
                 Map.of("finance:payment:read:finance:payment", fieldPolicy()),
                 "sha256:snapshot", NOW, NOW.plusSeconds(300));

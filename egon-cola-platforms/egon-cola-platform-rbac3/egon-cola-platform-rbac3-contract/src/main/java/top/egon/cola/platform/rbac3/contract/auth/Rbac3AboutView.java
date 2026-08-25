@@ -3,10 +3,12 @@ package top.egon.cola.platform.rbac3.contract.auth;
 import top.egon.cola.platform.rbac3.contract.authorization.ActiveRoleDescriptor;
 import top.egon.cola.platform.rbac3.contract.authorization.FieldPolicyDecision;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 
 /** Minimal current-user authorization context; it deliberately contains no resource tree. */
 public record Rbac3AboutView(
@@ -14,6 +16,7 @@ public record Rbac3AboutView(
         String currentApplicationCode,
         List<ActiveRoleDescriptor> activeRoles,
         Set<String> permissions,
+        Set<String> resourceCodes,
         Map<String, FieldPolicyDecision> fieldPolicies,
         String landingRouteCode,
         long authVersion,
@@ -24,6 +27,7 @@ public record Rbac3AboutView(
         currentApplicationCode = optional(currentApplicationCode, "currentApplicationCode");
         activeRoles = List.copyOf(Objects.requireNonNull(activeRoles, "activeRoles"));
         permissions = Set.copyOf(Objects.requireNonNull(permissions, "permissions"));
+        resourceCodes = immutableSortedSet(resourceCodes, "resourceCodes");
         fieldPolicies = Map.copyOf(Objects.requireNonNull(fieldPolicies, "fieldPolicies"));
         landingRouteCode = optional(landingRouteCode, "landingRouteCode");
         nonNegative(authVersion, "authVersion");
@@ -53,5 +57,16 @@ public record Rbac3AboutView(
         if (value < 0L) {
             throw new IllegalArgumentException(name + " must not be negative");
         }
+    }
+
+    private static Set<String> immutableSortedSet(
+            Set<String> values,
+            String name) {
+        Objects.requireNonNull(values, name);
+        TreeSet<String> sorted = new TreeSet<>();
+        for (String value : values) {
+            sorted.add(required(value, name));
+        }
+        return Collections.unmodifiableSet(sorted);
     }
 }
