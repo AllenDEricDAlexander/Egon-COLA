@@ -21,6 +21,25 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 
 Replace `<skill-root>` with the resolved absolute directory. Bundled resources must use skill-root-relative `references/` or `scripts/` paths. If the preflight reports a missing, escaping, ambiguous, or broken resource, stop execution, report the exact diagnostic, and repair/reinstall the skill. Never continue with an invented or partial checklist.
 
+## User-mandated Java rules — verbatim normative source
+
+The following rules are preserved exactly and are mandatory at coding, Step, commit, and final-audit gates. Read `references/user-mandated-java-rules.md` for the concrete inspection contract.
+
+```text
+1 类名规范，必须以 java的pojo规范命名。以dao po bo vo dto query command event等结尾
+2 每层之间必须被 springboot-validation 校验，复用的对象 validation 要分组校验，ValidatorUtils使用 libphonenumber进行规范化校验或者validation原生注解，若非必要，不要自己写。
+3 实体类规范：复杂对象使用java类并使用Lombok进行@Data\@NoArgsConstructor(access = AccessLevel.PROTECTED) @AllArgsConstructor\@RequiredArgsConstructor\@Builder\@Accessors(chain = true)修饰。简单对象使用Java Record。使用MapStruct、MapStructPlus 进行转换，egon-cola-component-common-core有通用的convertor，必须继承实现这个。如果是不可变对象，使用@Value注释修饰。record场景Record 构造器很适合做数据规范化，推荐使用紧凑构造器，Record 可以作为局部类，在方法内部定义临时数据结构。
+4业务类必须使用@Slf4j注解注入log对象。如果业务类被spring管理，必须指定名称，如果是单例的情况下，参考@Service("userService")。如果需要依赖注入，必须@RequiredArgsConstructor进行修饰，不要代码中写。且属性必须被@qualify修饰。
+5 工具类只允许使用jdk原生、Apache Commons(commons-lang3、commons-collections4、commons-io、commons-text、commons-codec、commons-beanutils)、Guava。针对Tika按需引入。
+6 json 使用SpringBoot-JackSon 对外交互层的实体类必须按需被jackson注解修饰。
+7 springboot 多环境配置文件，必须保持配置一致，但值不一定一致。
+9 复杂业务必须引入设计模式，不允许硬编码
+10 日期相关的必须使用java.time下的实体类，不允许使用java.util下的
+11 plan中必须确认代码结构，分层结构或者egon-cola-archetype，只允许这两种代码结构规范。&#x20;
+```
+
+Do not translate, renumber, correct, shorten, summarize, or weaken this block. Literal spellings are mapped to exact code symbols by `references/user-mandated-java-rules.md` without changing the source.
+
 ## Entry conditions and execution authorization
 
 Before modifying code:
@@ -34,7 +53,7 @@ Before modifying code:
    - the user explicitly authorizes execution of the exact Plan and Spec revisions in the current conversation.
 6. Run the structural validator supplied by the installed `egon-coding-writing-plan` skill against the exact Plan with strict mode enabled.
 7. Inspect `git status`, the current branch/HEAD, staged changes, and untracked files. Preserve all unrelated work.
-8. For Java work, read `references/java-spring-egon-coding-standards.md` completely. Confirm the actual project tree is either the established traditional layered profile or the exact selected Egon-COLA Archetype profile. Revalidate the Plan's Spring/Starter/Egon/module capability reuse ledger before adding code or dependencies.
+8. For Java work, read `references/user-mandated-java-rules.md` and `references/java-spring-egon-coding-standards.md` completely. Confirm the actual project tree is either the established traditional layered profile or the exact selected Egon-COLA Archetype profile. Revalidate the Plan's Spring/Starter/Egon/module capability reuse ledger before adding code or dependencies.
 
 Stop before implementation when the Plan target is ambiguous, authorization is absent, an effective Spec conflicts, a major decision is open, the Plan is structurally invalid, or repository drift changes architecture, behavior, contracts, data, security, migration, compatibility, or Step ownership.
 
@@ -78,7 +97,9 @@ Pending -> In Progress -> Verified -> Committed
 16. Do not silently skip, reorder, merge, split, or expand Steps. Obtain user approval for a material execution-sequence change.
 17. Every coding Step has a blocking Manual Check. At Step lock, enumerate all applicable stable `MC-*` IDs from `references/java-spring-egon-coding-standards.md`; before commit, evaluate each row manually with concrete diff/path/symbol/command evidence. `MC-SCOPE-001` and `MC-TEST-001` always apply.
 18. A Step cannot become `Verified` or be committed as complete while any applicable Manual Check is `FAIL`, `BLOCKED`, `UNKNOWN`, missing, lacks evidence, or has an unresolved exception. Evidence-backed `N/A` is allowed only when the concern is truly outside the Step.
-19. For touched Java code, enforce semantic type suffixes, Jakarta/Spring Validation and groups, approved normalization, record/Lombok construction, MapStruct/MapStructPlus and applicable `BaseConverter`, `@Slf4j`, explicit Bean names, qualified Lombok constructor injection, approved utilities, Jackson, `java.time`, configuration-profile parity, and justified pattern choices. Do not perform unrelated broad cleanup.
+19. For touched Java code, enforce semantic type suffixes, Jakarta/Spring Validation and groups at every affected handoff, approved normalization, the exact record/`@Value`/complete complex-class Lombok classification, MapStruct/MapStructPlus plus mandatory Egon `BaseConverter`, `@Slf4j`, explicit Bean names, qualified Lombok constructor injection, approved utilities, Jackson, `java.time`, configuration-profile parity, and a mandatory approved pattern for every Complex business flow. Do not perform unrelated broad cleanup.
+20. Apply `references/user-mandated-java-rules.md` literally. At Step lock and before commit, execute separate Rule 1, 2, 3, 4, 5, 6, 7, 9, 10, and 11 rows. Rule 11 always applies. No rule may be collapsed into a generic Manual Check assertion, changed to preference language, or waived because tests pass.
+21. Complex objects must retain the complete mandated Lombok baseline and every new affected Converter must use MapStruct/MapStructPlus plus Egon `BaseConverter`; any constructor/framework/converter conflict blocks the Step. Every affected layer handoff must be validated, and every Complex business flow must implement the approved pattern rather than direct branching.
 
 ## Per-Step execution workflow
 
@@ -91,6 +112,7 @@ Read `references/step-gate-checklist.md` at the start and end of every Step.
 - Verify all dependencies are represented by earlier committed hashes.
 - Confirm the Step's paths do not overlap unrelated work.
 - Copy the Plan's applicable `MC-*` IDs into the Step Manual Check table, add any concern newly revealed by current repository evidence, and record architecture/reuse baselines before editing.
+- Copy all ten original `Rule N` rows into the Literal Rule Gate. Record current applicability/evidence before editing; Rule 11 is always `Applicable`.
 
 ### 2. Revalidate the current repository
 
@@ -113,6 +135,7 @@ Read `references/step-gate-checklist.md` at the start and end of every Step.
 - Run `git diff --check` on the Step paths.
 - Re-read the Step requirements and relevant Spec sections. Confirm every stated behavior, error path, field, state, permission, migration, UI state, and test obligation represented by this Step is implemented.
 - Execute each applicable Manual Check row in `references/step-gate-checklist.md`. Record independent evidence and findings; close failures or mark the Step blocked.
+- Re-execute every Literal Rule Gate row against the final diff. Tests/static searches support but never replace the manual per-rule inspection.
 
 Any failed gate keeps the Step `In Progress` or `Blocked`; it cannot be committed as complete.
 
@@ -156,6 +179,7 @@ For each Step record:
 | Paths | Exact committed file list |
 | Validation | Commands and observed results |
 | Manual Check | All stable IDs with `PASS` or evidence-backed `N/A`; no unresolved row |
+| Literal Rules | Rules 1, 2, 3, 4, 5, 6, 7, 9, 10, 11 each `PASS` or evidence-backed `N/A`; Rule 11 `PASS` |
 | Deviations | `None`, approved clarification, or corrective-commit explanation |
 
 Use path-limited staging/commits. Never include unrelated work merely because it was already staged. Do not push, open a PR, merge, or release unless the user separately authorizes it.
@@ -175,8 +199,8 @@ After every Plan Step is committed, read `references/final-spec-audit.md` and pe
    - `Runtime unverified`: source/module evidence exists, but the Spec requires user-controlled live-system proof that was not run.
 6. Check non-goals and scope boundaries for accidental behavior, dependency, migration, or refactor expansion.
 7. Check every Plan Step has a verified commit and no planned file/validation gate was silently omitted.
-8. Re-execute all 17 Manual Checks against the final tree and delivery commits. Every applicable row must be `PASS`; every `N/A` needs evidence and reason; `MC-BLOCKER-001` must reconcile all remaining findings.
-9. Report every `Partial`, `Not satisfied`, `Runtime unverified`, failed/blocked Manual Check, and silent-exception attempt with evidence, impact, and recommended next action.
+8. Re-execute all ten original Literal Rules and all 17 Manual Checks against the final tree and delivery commits. Every applicable row must be `PASS`; every `N/A` needs evidence and reason; Rule 11 and `MC-BLOCKER-001` must pass and reconcile all findings.
+9. Report every `Partial`, `Not satisfied`, `Runtime unverified`, failed/blocked Literal Rule or Manual Check, and silent-exception attempt with evidence, impact, and recommended next action.
 
 Do not silently add unplanned fixes during the final audit. If the audit finds a gap, report it and wait for the user to approve a corrective Plan/Step.
 
@@ -189,6 +213,7 @@ The completion report must contain:
 - final validation commands and actual results;
 - a Spec conformance matrix with every requirement status;
 - a final Manual Check matrix containing every stable `MC-*` ID, applicability, status, evidence, finding, and required action/exception;
+- a final Literal Rule matrix containing Rules 1, 2, 3, 4, 5, 6, 7, 9, 10, and 11 separately with applicability, status, diff evidence, validation evidence, finding, and action;
 - explicit unmet, partial, and runtime-unverified requirements;
 - approved deviations and corrective commits;
 - remaining worktree state and confirmation that unrelated work was preserved;
@@ -198,7 +223,7 @@ The completion report must contain:
   - `PARTIAL — Spec requirements are unmet or unverified`
   - `BLOCKED — Final verification could not be completed`
 
-Never claim full completion when any effective requirement is `Partial`, `Not satisfied`, required runtime evidence is missing, or any Manual Check is missing/non-passing/unsupported. Final PASS requires every Spec requirement satisfied and every applicable Manual Check passed.
+Never claim full completion when any effective requirement is `Partial`, `Not satisfied`, required runtime evidence is missing, or any Literal Rule/Manual Check is missing, non-passing, weakened, or unsupported. Final PASS requires every Spec requirement satisfied, every applicable literal rule passed, Rule 11 passed, and every applicable Manual Check passed.
 
 ## Common failures
 
@@ -216,8 +241,12 @@ Never claim full completion when any effective requirement is `Partial`, `Not sa
 | Adding a dependency/helper without current Spring/Egon/module reuse proof | Stop, rebuild the reuse ledger, and use existing capability or return to the Spec/Plan for gap approval |
 | Creating a hybrid package tree during execution | Stop; preserve the existing traditional or exact Archetype profile and request a structural Plan/Spec correction |
 | Passing final audit by summarizing Manual Checks in one sentence | Re-run and record all stable IDs individually against the final commits/tree |
+| Replacing the exact numbered rules with a general coding-standard summary | Restore the verbatim source and re-run every original Rule row independently |
+| Tests pass while a complex class lacks the full Lombok baseline or a Converter bypasses `BaseConverter` | Keep the Step blocked; compiler/test success cannot waive Rule 3 |
+| Only Controller input is validated | Add and verify Validation/groups at every affected layer handoff before commit |
+| Complex business logic remains `if/else` or `switch` | Implement the approved design-pattern participants and tests before commit |
 | Starting the project automatically | Leave runtime testing to the user unless explicitly requested |
 
 ## Skill maintenance
 
-When changing this skill, run `scripts/test_validate_skill_resources.py` and `scripts/validate_skill_resources.py`, review `references/acceptance-scenarios.md`, and confirm the English operational file, Chinese review mirror, standards, checklists, and metadata still express the same execution contract.
+When changing this skill, run `scripts/test_user_mandated_java_rules.py`, `scripts/test_validate_skill_resources.py`, and `scripts/validate_skill_resources.py`, review `references/acceptance-scenarios.md`, and confirm the verbatim source, English operational file, Chinese review mirror, standards, checklists, and metadata still express the same execution contract.

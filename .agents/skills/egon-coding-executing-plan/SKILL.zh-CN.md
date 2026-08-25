@@ -18,6 +18,25 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 
 必须用解析后的绝对目录替换 `<skill-root>`。内置资源使用相对 Skill 根的 `references/` 或 `scripts/` 路径。预检报告缺失、越界、歧义或本地链接失效时，停止执行并报告准确诊断，修复/重装 Skill；不能用虚构或不完整 Checklist 继续。
 
+## 用户强制 Java 规则——逐字规范源
+
+以下规则逐字保留，在编码、Step、提交和最终审核门禁中都属于强制要求。具体检查契约见 `references/user-mandated-java-rules.zh-CN.md`。
+
+```text
+1 类名规范，必须以 java的pojo规范命名。以dao po bo vo dto query command event等结尾
+2 每层之间必须被 springboot-validation 校验，复用的对象 validation 要分组校验，ValidatorUtils使用 libphonenumber进行规范化校验或者validation原生注解，若非必要，不要自己写。
+3 实体类规范：复杂对象使用java类并使用Lombok进行@Data\@NoArgsConstructor(access = AccessLevel.PROTECTED) @AllArgsConstructor\@RequiredArgsConstructor\@Builder\@Accessors(chain = true)修饰。简单对象使用Java Record。使用MapStruct、MapStructPlus 进行转换，egon-cola-component-common-core有通用的convertor，必须继承实现这个。如果是不可变对象，使用@Value注释修饰。record场景Record 构造器很适合做数据规范化，推荐使用紧凑构造器，Record 可以作为局部类，在方法内部定义临时数据结构。
+4业务类必须使用@Slf4j注解注入log对象。如果业务类被spring管理，必须指定名称，如果是单例的情况下，参考@Service("userService")。如果需要依赖注入，必须@RequiredArgsConstructor进行修饰，不要代码中写。且属性必须被@qualify修饰。
+5 工具类只允许使用jdk原生、Apache Commons(commons-lang3、commons-collections4、commons-io、commons-text、commons-codec、commons-beanutils)、Guava。针对Tika按需引入。
+6 json 使用SpringBoot-JackSon 对外交互层的实体类必须按需被jackson注解修饰。
+7 springboot 多环境配置文件，必须保持配置一致，但值不一定一致。
+9 复杂业务必须引入设计模式，不允许硬编码
+10 日期相关的必须使用java.time下的实体类，不允许使用java.util下的
+11 plan中必须确认代码结构，分层结构或者egon-cola-archetype，只允许这两种代码结构规范。&#x20;
+```
+
+禁止翻译、重新编号、纠错、缩写、概括或弱化该区块。`references/user-mandated-java-rules.zh-CN.md` 只把原始拼写映射为准确代码符号，不能修改原文。
+
 ## 进入条件与执行授权
 
 修改代码前必须：
@@ -31,7 +50,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
    - 用户在当前对话中明确授权执行这些准确版本的 Plan 与 Spec。
 6. 使用已安装 `egon-coding-writing-plan` skill 提供的结构校验器，对准确 Plan 启用 Strict Mode 校验。
 7. 检查 `git status`、当前分支与 HEAD、暂存改动和未跟踪文件，保留所有无关工作。
-8. Java 工作完整读取 `references/java-spring-egon-coding-standards.zh-CN.md`。确认实际项目 Tree 是既有传统分层或准确已选 Egon-COLA Archetype；增加代码/依赖前重新验证 Plan 的 Spring/Starter/Egon/模块能力复用账本。
+8. Java 工作完整读取 `references/user-mandated-java-rules.zh-CN.md` 和 `references/java-spring-egon-coding-standards.zh-CN.md`。确认实际项目 Tree 是既有传统分层或准确已选 Egon-COLA Archetype；增加代码/依赖前重新验证 Plan 的 Spring/Starter/Egon/模块能力复用账本。
 
 出现以下任一情况时，停止实现并找用户确认：Plan 目标不明确、缺少授权、有效 Spec 互相冲突、重大决策未关闭、Plan 结构无效，或者仓库漂移改变了架构、行为、契约、数据、安全、迁移、兼容性或 Step 的文件归属。
 
@@ -75,7 +94,9 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 16. 不得静默跳过、重排、合并、拆分或扩大 Step。任何实质性的执行顺序变化都必须获得用户批准。
 17. 每个 Coding Step 都有阻断型 Manual Check。锁定 Step 时，从 `references/java-spring-egon-coding-standards.zh-CN.md` 枚举全部适用稳定 `MC-*`；提交前逐项用具体 Diff/路径/符号/命令证据人工校验。`MC-SCOPE-001` 与 `MC-TEST-001` 始终适用。
 18. 只要任一适用 Manual Check 为 `FAIL`、`BLOCKED`、`UNKNOWN`、缺失、无证据或例外未关闭，Step 就不能到 `Verified`，也不能按完成提交。只有关注点真实不在 Step 范围时才允许有证据的 `N/A`。
-19. 触达 Java 代码必须执行语义后缀、Jakarta/Spring Validation 与 Group、获批规范化、Record/Lombok 构造、MapStruct/MapStructPlus 与适用 `BaseConverter`、`@Slf4j`、显式 Bean 名、带 Qualifier 的 Lombok 构造注入、获准工具、Jackson、`java.time`、多环境配置一致性和有依据模式；不能借机大范围清理。
+19. 触达 Java 代码必须执行语义后缀、每个受影响交接的 Jakarta/Spring Validation 与 Group、获批规范化、准确 Record/`@Value`/复杂类完整 Lombok 分类、MapStruct/MapStructPlus 与强制 Egon `BaseConverter`、`@Slf4j`、显式 Bean 名、带 Qualifier 的 Lombok 构造注入、获准工具、Jackson、`java.time`、多环境配置一致性，以及每个 Complex 业务 Flow 的强制获批模式；不能借机大范围清理。
+20. 必须逐字执行 `references/user-mandated-java-rules.zh-CN.md`。锁定 Step 和提交前分别执行 Rule 1、2、3、4、5、6、7、9、10、11，Rule 11 始终适用。禁止把规则压缩成泛化 Manual Check、改成建议或因测试通过而豁免。
+21. 复杂对象必须保留完整 Lombok 基线；每个新增受影响 Converter 必须使用 MapStruct/MapStructPlus 加 Egon `BaseConverter`；构造器/框架/Converter 冲突会阻断。每个受影响层间交接必须校验，每个 Complex 业务 Flow 必须实现获批模式，不能直接分支。
 
 ## 单个 Step 的执行流程
 
@@ -88,6 +109,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 - 确认所有依赖都已经由更早的提交哈希提供。
 - 确认 Step 路径不会覆盖无关工作。
 - 把 Plan 的适用 `MC-*` 写入 Step Manual Check 表；当前证据新暴露关注点时补充 ID，并在编辑前记录架构/复用基线。
+- 把全部十个原始 `Rule N` 写入 Literal Rule Gate；编辑前记录适用性/证据，Rule 11 始终为 `Applicable`。
 
 ### 2. 重新验证当前仓库
 
@@ -110,6 +132,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 - 对 Step 路径运行 `git diff --check`。
 - 重读当前 Step 的需求和相关 Spec 章节，逐项确认本 Step 承担的行为、错误路径、字段、状态、权限、迁移、UI 状态和测试义务已经落实。
 - 使用 `references/step-gate-checklist.md` 逐项执行全部适用 Manual Check，分别记录证据与结论；关闭失败，否则把 Step 标为阻断。
+- 针对最终 Diff 重新执行每个 Literal Rule Gate 行；Test/Static Search 只能补充，不能替代逐条人工复核。
 
 任何失败门禁都会使 Step 保持 `In Progress` 或变为 `Blocked`，不得作为已完成进行提交。
 
@@ -151,6 +174,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 | Paths | 准确的已提交文件列表 |
 | Validation | 实际执行的命令和观察结果 |
 | Manual Check | 全部稳定 ID 为 `PASS` 或有证据的 `N/A`，没有未关闭行 |
+| Literal Rules | Rule 1、2、3、4、5、6、7、9、10、11 分别为 `PASS` 或有证据的 `N/A`，Rule 11 为 `PASS` |
 | Deviations | `None`、已批准的澄清或纠正提交说明 |
 
 必须使用路径受限的暂存与提交，不能因为无关工作已经暂存就把它带入提交。除非用户另行授权，不得 push、创建 PR、merge 或 release。
@@ -170,8 +194,8 @@ python3 <skill-root>/scripts/validate_skill_resources.py
    - `Runtime unverified`：源码/模块证据存在，但 Spec 还要求用户控制的真实运行环境验证，而该验证未执行。
 6. 审核非目标和范围边界，确认没有意外增加行为、依赖、迁移或无关重构。
 7. 确认每个 Plan Step 都有已核验提交，且没有静默遗漏计划文件或验证门禁。
-8. 针对最终 Tree 和 Delivery Commit 重新执行全部 17 项 Manual Check。适用行必须 `PASS`，每个 `N/A` 要有证据与原因，`MC-BLOCKER-001` 必须与全部发现一致。
-9. 报告全部 `Partial`、`Not satisfied`、`Runtime unverified`、失败/阻断 Manual Check 和静默例外尝试及其证据、影响和建议下一步。
+8. 针对最终 Tree 和 Delivery Commit 重新执行十个原始 Literal Rule 与全部 17 项 Manual Check。适用行必须 `PASS`，每个 `N/A` 要有证据与原因，Rule 11 和 `MC-BLOCKER-001` 必须通过并与全部发现一致。
+9. 报告全部 `Partial`、`Not satisfied`、`Runtime unverified`、失败/阻断 Literal Rule、Manual Check 和静默例外尝试及其证据、影响和建议下一步。
 
 最终审核发现缺口时，不得静默追加未计划修复；应先报告并等待用户批准纠正 Plan/Step。
 
@@ -184,6 +208,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 - 最终验证命令及真实结果；
 - 覆盖每项需求的 Spec 一致性矩阵；
 - 包含全部稳定 `MC-*` 的最终 Manual Check 矩阵，逐项写 Applicability、Status、Evidence、Finding 与 Required action/exception；
+- 包含 Rule 1、2、3、4、5、6、7、9、10、11 的最终 Literal Rule 矩阵，逐项写 Applicability、Status、Diff Evidence、Validation Evidence、Finding 与 Action；
 - 明确列出的未满足、部分满足和运行时未验证要求；
 - 已批准偏差和纠正提交；
 - 剩余工作区状态，以及无关工作得到保留的确认；
@@ -193,7 +218,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
   - `PARTIAL — Spec requirements are unmet or unverified`
   - `BLOCKED — Final verification could not be completed`
 
-只要任一有效要求为 `Partial`、`Not satisfied`、缺少强制运行时证据，或任一 Manual Check 缺失/未通过/无证据，就绝不能声称完全完成。最终 PASS 要求全部 Spec 要求满足且全部适用 Manual Check 通过。
+只要任一有效要求为 `Partial`、`Not satisfied`、缺少强制运行时证据，或任一 Literal Rule/Manual Check 缺失、未通过、被弱化或无证据，就绝不能声称完全完成。最终 PASS 要求全部 Spec 要求满足、全部适用逐字规则通过、Rule 11 通过且全部适用 Manual Check 通过。
 
 ## 常见错误
 
@@ -211,8 +236,12 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 | 没有当前 Spring/Egon/模块复用证明就新增依赖/Helper | 停止，重建复用账本；复用现有能力，或返回 Spec/Plan 批准缺口 |
 | 执行中创建混合分包 Tree | 停止；保持已有传统或准确 Archetype 形态，并申请结构性 Plan/Spec 修订 |
 | 最终审核用一句话概括 Manual Check | 针对最终 Commit/Tree 逐项重新执行并记录全部稳定 ID |
+| 用一般编码规范摘要替代准确编号规则 | 恢复逐字源，逐项重新执行全部原始 Rule |
+| 测试通过但复杂类缺完整 Lombok 基线，或 Converter 绕过 `BaseConverter` | 保持 Step 阻断；编译/Test 成功不能豁免 Rule 3 |
+| 只校验 Controller 输入 | 提交前增加并验证每个受影响层间交接的 Validation/Group |
+| Complex 业务仍为 `if/else` 或 `switch` | 提交前实现获批模式参与者和测试 |
 | 自动启动项目 | 除非用户明确要求，否则把运行测试留给用户 |
 
 ## Skill 维护
 
-修改本 skill 时，必须运行 `scripts/test_validate_skill_resources.py` 与 `scripts/validate_skill_resources.py`，使用 `references/acceptance-scenarios.md` 复核，并确认英文运行入口、中文审核镜像、规范、检查清单和元数据仍然表达同一套执行契约。
+修改本 skill 时，必须运行 `scripts/test_user_mandated_java_rules.py`、`scripts/test_validate_skill_resources.py` 与 `scripts/validate_skill_resources.py`，使用 `references/acceptance-scenarios.md` 复核，并确认逐字源、英文运行入口、中文审核镜像、规范、检查清单和元数据仍然表达同一套执行契约。

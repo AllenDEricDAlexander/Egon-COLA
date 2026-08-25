@@ -1,6 +1,6 @@
 # Java, Spring, and Egon-COLA Execution Standards
 
-Read this reference before the first Java Step, at every Step gate, and during the final audit. These rules apply to new files and materially changed symbols. They do not authorize unrelated cleanup of legacy code.
+Read `references/user-mandated-java-rules.md` first, then this reference before the first Java Step, at every Step gate, and during the final audit. The literal rules are absolute; this reference adds execution evidence and cannot weaken them. These rules do not authorize unrelated cleanup.
 
 ## Precedence and stop boundary
 
@@ -33,7 +33,7 @@ Do not add ambiguous `Data`, `Info`, `Param`, or `Bean` carrier names. Do not cr
 
 ### Validation and normalization
 
-Every affected external or cross-layer input uses Jakarta Bean Validation from `spring-boot-starter-validation`, including `@Valid` cascades and `@Validated` activation where required. Reusable inputs use Validation Groups. Prefer native constraints and existing `ValidationUtils`.
+Every affected layer-to-layer input handoff uses Jakarta Bean Validation from `spring-boot-starter-validation`; Controller-only validation fails. Inspect external -> Controller/Adapter, Controller/Adapter -> Service/Application, Service/Application -> Domain Service/Component, Service/Application -> DAO/Repository/Gateway, and Event/Job/internal re-entry separately, including `@Valid`, `@Validated`, exact groups, `ValidationUtils`, errors, and tests.
 
 Telephone semantics use one named boundary and a mature standard such as libphonenumber for region-aware parsing, normalization, and validation. Do not write a duplicate `ConstraintValidator` unless approved evidence proves annotations, composition, groups, `ValidationUtils`, and mature libraries insufficient.
 
@@ -43,10 +43,10 @@ Verify constraint selection, group invocation, normalization order, null/blank b
 
 - simple immutable carrier: prefer `record`; compact constructors may normalize or enforce deterministic invariants; method-local temporary structures may use a local `record`;
 - immutable non-record: prefer Lombok `@Value`;
-- complex mutable/ORM/framework/lifecycle object: normal class with only the necessary annotations from `@Data`, protected `@NoArgsConstructor`, `@AllArgsConstructor`, `@RequiredArgsConstructor`, `@Builder`, and `@Accessors(chain = true)`;
-- reject conflicting constructor/mutability annotation stacks.
+- complex object: normal class with the complete mandated `@Data`, protected `@NoArgsConstructor`, `@AllArgsConstructor`, `@RequiredArgsConstructor`, `@Builder`, and `@Accessors(chain = true)` baseline;
+- compile the complete baseline; constructor/framework conflicts block and cannot be silently solved by deleting annotations.
 
-Use MapStruct/MapStructPlus for cross-layer conversion and the available, semantically compatible Egon `BaseConverter<S,T>` contract. Verify exact null/default/enum/time/sensitive-field mappings and generated Bean wiring. Do not introduce scattered setter/getter mapping, `BeanUtils.copyProperties`, reflection copying, or JSON round trips. A one-way converter exception must match an existing approved pattern.
+Use MapStruct/MapStructPlus for cross-layer conversion and require every new affected Converter to implement/inherit the Egon `BaseConverter<S,T>` system. Verify exact generics, null/default/enum/time/sensitive-field mappings, generated implementation, Bean wiring, and tests. Reject setter/getter mapping, `BeanUtils.copyProperties`, reflection, JSON round trips, and one-way/local converter bypasses. A contract mismatch blocks.
 
 ### Spring Bean, logging, and injection
 
@@ -66,7 +66,7 @@ Use MapStruct/MapStructPlus for cross-layer conversion and the available, semant
 
 ### Complex business behavior
 
-Do not leave large hard-coded `if/else`, `switch`, type checks, or orchestration for a real variation, state flow, rule composition, algorithm, responsibility chain, creation, or event collaboration. Implement the Spec/Plan-selected Strategy, Template Method, Factory, Chain of Responsibility, State, Specification, Domain Event, or other established pattern only when its present variation point is real. Reject ceremonial pattern classes for direct logic.
+Classify each touched business flow. Every Complex flow must implement the Spec/Plan-selected Strategy, Template Method, Factory, Chain of Responsibility, State, Specification, Domain Event, or other established pattern with actual participants, selection/wiring, orchestration, failure handling, and tests. Reject direct `if/else`, `switch`, type/string/reflection dispatch for Complex logic. Simple flow remains direct; reject ceremonial pattern classes there.
 
 ## Per-Step blocking Manual Check
 
@@ -91,15 +91,15 @@ Use the six-column table from `references/step-gate-checklist.md`. Manual inspec
 | `MC-DEP-001` | Added dependency/custom code has a proven approved gap, or none was added |
 | `MC-NAME-001` | Touched type names use semantic roles and avoid ambiguous carrier suffixes |
 | `MC-VALID-001` | Affected cross-layer inputs use Validation, groups, normalization, and tests |
-| `MC-MODEL-001` | Record/class/Lombok choice matches construction and framework semantics |
-| `MC-CONVERT-001` | MapStruct/MapStructPlus and applicable `BaseConverter` own mappings |
+| `MC-MODEL-001` | Record/`@Value`/complete complex-class Lombok baseline is present, or conflict blocks |
+| `MC-CONVERT-001` | MapStruct/MapStructPlus and mandatory Egon `BaseConverter` own every new affected Converter |
 | `MC-LOG-001` | Touched concrete business classes use `@Slf4j` and safe logging |
 | `MC-BEAN-001` | Touched Beans have names, Lombok constructor injection, Qualifiers, and propagation |
 | `MC-UTIL-001` | Only approved utilities are used and no duplicate helper is introduced |
 | `MC-JSON-001` | Jackson is the sole JSON stack and contract annotations are correct |
 | `MC-TIME-001` | Touched time modeling uses `java.time` with explicit semantics |
 | `MC-CONFIG-001` | All environment profiles preserve equivalent configuration keys |
-| `MC-PATTERN-001` | Complex variation uses the approved pattern, or direct logic avoids overdesign |
+| `MC-PATTERN-001` | Every Complex business flow implements the approved pattern; only Simple flow remains direct |
 | `MC-SCOPE-001` | Touched code complies without unrelated broad refactoring |
 | `MC-TEST-001` | Focused tests/static checks prove applicable standards and behavior |
 | `MC-BLOCKER-001` | All blockers/check failures are closed with no silent exception |

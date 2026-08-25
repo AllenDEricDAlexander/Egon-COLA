@@ -69,7 +69,22 @@ Do not downgrade a concrete implementation defect to `Runtime unverified`. That 
 
 ## 7. Re-run the blocking Manual Check
 
-Read `references/java-spring-egon-coding-standards.md` and inspect the final tree plus all delivery commits. Do not copy the Plan's predicted statuses or merely aggregate Step assertions. Execute every row independently with current evidence.
+First read `references/user-mandated-java-rules.md` and execute this literal-rule matrix against the final tree and all delivery commits. Do not copy Step results:
+
+| Literal rule | Applicability | Status | Final diff/path/symbol evidence | Final test/static evidence | Finding | Required action/exception |
+| --- | --- | --- | --- | --- | --- | --- |
+| Rule 1 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<type inventory>` | `<compile/name search>` | `<result>` | `None / action and owner` |
+| Rule 2 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<all layer handoffs>` | `<validation/group tests>` | `<result>` | `None / action and owner` |
+| Rule 3 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<models/converters>` | `<compile/mapping tests>` | `<result>` | `None / action and owner` |
+| Rule 4 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<business Beans/logging/injection>` | `<compile/wiring/review>` | `<result>` | `None / action and owner` |
+| Rule 5 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<imports/dependencies/helpers>` | `<allowlist search>` | `<result>` | `None / action and owner` |
+| Rule 6 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<external Jackson contracts>` | `<serialization tests>` | `<result>` | `None / action and owner` |
+| Rule 7 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<all profiles>` | `<key-parity/config tests>` | `<result>` | `None / action and owner` |
+| Rule 9 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<Complex patterns/Simple flows>` | `<behavior/branch tests>` | `<result>` | `None / action and owner` |
+| Rule 10 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<time code/mappings>` | `<time tests/import search>` | `<result>` | `None / action and owner` |
+| Rule 11 | Applicable | PASS / FAIL / BLOCKED | `<final tree/archetype/verifier>` | `<architecture gate>` | `<result>` | `None / action and owner` |
+
+All applicable literal rules and Rule 11 must PASS before final PASS. Then read `references/java-spring-egon-coding-standards.md` and inspect the final tree plus all delivery commits. Do not copy the Plan's predicted statuses or merely aggregate Step assertions. Execute every Manual Check row independently with current evidence.
 
 | Check ID | Applicability | Status | Evidence | Finding | Required action/exception |
 | --- | --- | --- | --- | --- | --- |
@@ -78,15 +93,15 @@ Read `references/java-spring-egon-coding-standards.md` and inspect the final tre
 | `MC-DEP-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<final manifests/gap approval>` | `<dependency result>` | `<None or action/owner>` |
 | `MC-NAME-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<changed Java types/search>` | `<naming result>` | `<None or action/owner>` |
 | `MC-VALID-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<boundaries/groups/tests>` | `<validation result>` | `<None or action/owner>` |
-| `MC-MODEL-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<record/class/Lombok inspection>` | `<model result>` | `<None or action/owner>` |
-| `MC-CONVERT-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<converter generation/search/tests>` | `<conversion result>` | `<None or action/owner>` |
+| `MC-MODEL-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<record/@Value/complete complex Lombok inspection>` | `<model/conflict result>` | `<None or action/owner>` |
+| `MC-CONVERT-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<MapStruct + mandatory BaseConverter generation/search/tests>` | `<conversion/no-bypass result>` | `<None or action/owner>` |
 | `MC-LOG-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<business-class/log inspection>` | `<logging result>` | `<None or action/owner>` |
 | `MC-BEAN-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<Bean names/injection/Qualifier evidence>` | `<Bean result>` | `<None or action/owner>` |
 | `MC-UTIL-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<imports/dependencies/helper inventory>` | `<utility result>` | `<None or action/owner>` |
 | `MC-JSON-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<JSON imports/contracts/tests>` | `<JSON result>` | `<None or action/owner>` |
 | `MC-TIME-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<time types/boundaries/tests>` | `<time result>` | `<None or action/owner>` |
 | `MC-CONFIG-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<all profile key comparisons>` | `<configuration result>` | `<None or action/owner>` |
-| `MC-PATTERN-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<variation/branch/participant inspection>` | `<pattern result>` | `<None or action/owner>` |
+| `MC-PATTERN-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<flow classification/pattern participant inspection>` | `<mandatory Complex pattern / Simple direct result>` | `<None or action/owner>` |
 | `MC-SCOPE-001` | `Applicable` | `PASS / FAIL / BLOCKED` | `<commit scopes/final diff/non-goals>` | `<scope result>` | `<None or action/owner>` |
 | `MC-TEST-001` | `Applicable` | `PASS / FAIL / BLOCKED` | `<commands/output/static checks>` | `<proof result>` | `<None or action/owner>` |
 | `MC-BLOCKER-001` | `Applicable` | `PASS / FAIL / BLOCKED` | `<all rows/requirements/open risks>` | `<closure result>` | `<None or exact unresolved action/owner>` |
@@ -97,12 +112,12 @@ Gate rules:
 - every applicable row is `PASS` with concrete final evidence;
 - `N/A` requires positive scope evidence and reason;
 - `MC-BLOCKER-001` is `PASS` only when every other row is `PASS` or valid `N/A`;
-- any failed/blocked/unknown/missing/unsupported row prohibits final PASS and must be reported, not silently fixed during the audit.
+- any failed/blocked/unknown/missing/unsupported Literal Rule or Manual Check row prohibits final PASS and must be reported, not silently fixed during the audit.
 
 ## 8. Determine the verdict
 
-- `PASS — Implementation conforms to the effective Specs`: every requirement is `Satisfied`, no required runtime evidence is missing, and every applicable Manual Check is `PASS` with all other rows evidence-backed `N/A`.
-- `PARTIAL — Spec requirements are unmet or unverified`: one or more requirement rows are `Partial`, `Not satisfied`, or `Runtime unverified`, or one or more Manual Checks are failed, blocked, unknown, missing, or unsupported.
+- `PASS — Implementation conforms to the effective Specs`: every requirement is `Satisfied`, no required runtime evidence is missing, every applicable Literal Rule is `PASS`, Rule 11 is `PASS`, and every applicable Manual Check is `PASS` with all other rows evidence-backed `N/A`.
+- `PARTIAL — Spec requirements are unmet or unverified`: one or more requirement rows are `Partial`, `Not satisfied`, or `Runtime unverified`, or one or more Literal Rules/Manual Checks are failed, blocked, unknown, missing, weakened, or unsupported.
 - `BLOCKED — Final verification could not be completed`: the effective baseline, repository evidence, or required safe validation cannot be determined.
 
 List every non-passing row with its evidence, impact, and recommended corrective Plan/Step. Do not silently implement a newly discovered gap during this audit.

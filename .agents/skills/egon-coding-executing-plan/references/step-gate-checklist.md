@@ -31,6 +31,32 @@ Use this checklist for every Plan Step. Record objective evidence; do not replac
 - [ ] No undeclared public contract, dependency, migration, schema, permission, page, or architecture change was introduced.
 - [ ] No unrelated refactor, formatting sweep, debug output, secret, or generated noise was added.
 
+## User-mandated Literal Rule gate
+
+Read `references/user-mandated-java-rules.md`. Copy all rows into the Step record at Step lock and refresh them against the final diff before commit. Do not merge rows or substitute a general standards statement.
+
+| Literal rule | Applicability | Status | Diff/path/symbol evidence | Test/static evidence | Finding | Required action/exception |
+| --- | --- | --- | --- | --- | --- | --- |
+| Rule 1 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<type inventory and declarations>` | `<compile/name search>` | `<semantic suffix result>` | `None / action and owner` |
+| Rule 2 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<every affected handoff/groups/normalization>` | `<positive/negative/group tests>` | `<layer validation result>` | `None / action and owner` |
+| Rule 3 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<record/@Value/complete Lombok/Converter diff>` | `<compile/mapping tests/generated mapper>` | `<model/conversion result>` | `None / action and owner` |
+| Rule 4 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<business classes/Bean names/Qualifier/lombok.config>` | `<compile/wiring/log review>` | `<logging/injection result>` | `None / action and owner` |
+| Rule 5 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<imports/manifests/helpers>` | `<dependency/import search>` | `<allowlist result>` | `None / action and owner` |
+| Rule 6 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<external contracts/Jackson annotations>` | `<serialization/compatibility tests>` | `<Jackson result>` | `None / action and owner` |
+| Rule 7 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<base and every environment profile>` | `<normalized key-parity/config tests>` | `<profile structure result>` | `None / action and owner` |
+| Rule 9 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<flow classification/pattern participants/wiring>` | `<pattern behavior/branch search>` | `<Complex pattern or Simple direct result>` | `None / action and owner` |
+| Rule 10 | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<time fields/imports/mappings>` | `<time tests/forbidden import search>` | `<java.time result>` | `None / action and owner` |
+| Rule 11 | Applicable | PASS / FAIL / BLOCKED | `<Step paths/current and target tree/verifier>` | `<architecture/static/build gate>` | `<selected structure preserved>` | `None / action and owner` |
+
+Literal Rule verdict rules:
+
+- [ ] Original order is exactly Rule 1, 2, 3, 4, 5, 6, 7, 9, 10, 11; no Rule 8 is invented.
+- [ ] Rule 11 is always `Applicable` and `PASS` before a completion commit.
+- [ ] Every applicable rule is `PASS` with fresh final-diff evidence.
+- [ ] Every `N/A` has positive scope evidence and does not hide a touched violation.
+- [ ] Tests/compile/static searches supplement manual inspection and cannot waive a rule.
+- [ ] Any missing row/evidence, `FAIL`, `BLOCKED`, `UNKNOWN`, reduced mandatory implementation, or silent exception prohibits `Verified` and commit-as-complete.
+
 ## Blocking Manual Check gate
 
 Read `references/java-spring-egon-coding-standards.md`. Copy all stable IDs below into the Step record and evaluate them one by one after implementation and again immediately before commit. `Applicable` permits `PASS`, `FAIL`, or `BLOCKED`; `Not applicable` permits only `N/A`. Every row requires concrete evidence and a finding. A failed/blocked row requires an exact action and owner.
@@ -42,15 +68,15 @@ Read `references/java-spring-egon-coding-standards.md`. Copy all stable IDs belo
 | `MC-DEP-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<manifest/diff/gap approval>` | `<dependency conclusion>` | `<None or action/owner>` |
 | `MC-NAME-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<touched type list/search>` | `<semantic-name conclusion>` | `<None or action/owner>` |
 | `MC-VALID-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<constraints/groups/normalizer/tests>` | `<boundary coverage>` | `<None or action/owner>` |
-| `MC-MODEL-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<record/class/Lombok diff>` | `<construction conclusion>` | `<None or action/owner>` |
-| `MC-CONVERT-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<MapStruct/BaseConverter diff/search>` | `<mapping conclusion>` | `<None or action/owner>` |
+| `MC-MODEL-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<record/@Value/complete complex Lombok diff>` | `<construction/conflict conclusion>` | `<None or action/owner>` |
+| `MC-CONVERT-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<MapStruct + mandatory BaseConverter diff/search>` | `<mapping/no-bypass conclusion>` | `<None or action/owner>` |
 | `MC-LOG-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<business-class/log diff>` | `<logging conclusion>` | `<None or action/owner>` |
 | `MC-BEAN-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<Bean names/Qualifier/lombok.config>` | `<injection conclusion>` | `<None or action/owner>` |
 | `MC-UTIL-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<imports/dependencies/helper search>` | `<utility conclusion>` | `<None or action/owner>` |
 | `MC-JSON-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<JSON imports/contract annotations/tests>` | `<Jackson conclusion>` | `<None or action/owner>` |
 | `MC-TIME-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<time types/converters/tests>` | `<java.time conclusion>` | `<None or action/owner>` |
 | `MC-CONFIG-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<all profile key comparisons/properties>` | `<configuration parity>` | `<None or action/owner>` |
-| `MC-PATTERN-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<variation/branch/participant evidence>` | `<pattern/direct-logic conclusion>` | `<None or action/owner>` |
+| `MC-PATTERN-001` | `Applicable / Not applicable` | `PASS / N/A / FAIL / BLOCKED` | `<flow classification/pattern participant evidence>` | `<mandatory Complex pattern / Simple direct conclusion>` | `<None or action/owner>` |
 | `MC-SCOPE-001` | `Applicable` | `PASS / FAIL / BLOCKED` | `<Step diff/status and untouched paths>` | `<scope conclusion>` | `<None or action/owner>` |
 | `MC-TEST-001` | `Applicable` | `PASS / FAIL / BLOCKED` | `<actual commands/output/static review>` | `<standards/behavior proof>` | `<None or action/owner>` |
 | `MC-BLOCKER-001` | `Applicable` | `PASS / FAIL / BLOCKED` | `<all rows and Step blockers>` | `<closure conclusion>` | `<None or exact unresolved action/owner>` |
@@ -70,6 +96,7 @@ Manual Check verdict rules:
 - [ ] Required compile, typecheck, lint/format, XML/schema, module, integration, or regression gates passed.
 - [ ] Expected GREEN behavior and relevant error paths are covered.
 - [ ] Current Step requirements and effective Spec sections were reread against the implementation.
+- [ ] All Literal Rule rows are `PASS` or evidence-backed `N/A`, with Rule 11 `PASS`; evidence was refreshed after the final diff.
 - [ ] All Step Manual Check rows are `PASS` or evidence-backed `N/A`; evidence was refreshed after the final diff.
 - [ ] `git diff --check -- <Step paths>` passed.
 - [ ] Failures, skips, warnings, timeouts, and unavailable runtime evidence are classified honestly.
@@ -83,6 +110,7 @@ Manual Check verdict rules:
 - [ ] Cached `--stat` and `--name-only` match the declared Step scope.
 - [ ] The commit message is semantic and matches the Plan proposal or repository convention.
 - [ ] The commit is non-empty.
+- [ ] The final Literal Rule verdict is PASS; no mandatory rule was reduced or waived because tests passed.
 - [ ] The final pre-commit Manual Check verdict is PASS; no blocker was waived in prose.
 
 ## Post-commit gate
