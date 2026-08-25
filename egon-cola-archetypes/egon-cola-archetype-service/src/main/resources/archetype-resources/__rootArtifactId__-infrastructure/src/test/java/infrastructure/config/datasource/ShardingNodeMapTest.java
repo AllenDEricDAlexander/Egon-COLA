@@ -59,29 +59,22 @@ class ShardingNodeMapTest {
                 INITIAL_NODE_MAP
                         + ",4=shard_2:0,5=shard_2:1,6=shard_3:0,7=shard_3:1");
 
-        List<String> keys = List.of(
-                "018f5f9c-4f6a-7c2b-8a1d-123456789abc",
-                "018f5f9c-4f6b-7c2b-8a1d-123456789abd",
-                "018f5f9c-4f6c-7c2b-8a1d-123456789abe",
-                "018f5f9c-4f6d-7c2b-8a1d-123456789abf");
+        List<Long> keys = List.of(2001L, 2002L, 2003L, 2004L);
 
         keys.forEach(key -> assertThat(expanded.routeSlot(key))
                 .isIn(current.routeSlot(key), current.routeSlot(key) + current.nodeCount()));
     }
 
     @Test
-    void acceptsOnlyUuidV7ShardingKeys() {
+    void acceptsOnlyPositiveLongShardingKeys() {
         ShardingNodeMap nodeMap = parse("4", INITIAL_NODE_MAP);
 
         assertThatThrownBy(() -> nodeMap.route(null))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("UUIDv7");
-        assertThatThrownBy(() -> nodeMap.route(" "))
+                .hasMessageContaining("positive");
+        assertThatThrownBy(() -> nodeMap.route(0L))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("UUIDv7");
-        assertThatThrownBy(() -> nodeMap.route("550e8400-e29b-41d4-a716-446655440000"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("UUIDv7");
+                .hasMessageContaining("positive");
     }
 
     private static ShardingNodeMap parse(String nodeCount, String nodes) {

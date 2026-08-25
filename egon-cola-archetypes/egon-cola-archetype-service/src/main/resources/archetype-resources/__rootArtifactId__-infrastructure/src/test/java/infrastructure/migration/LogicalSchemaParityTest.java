@@ -30,11 +30,11 @@ class LogicalSchemaParityTest {
         Map<String, List<String>> shardingSchema = new TreeMap<>(masterDataSchema);
         mergeSchema(shardingSchema, shardZeroSchema);
         assertThat(shardingSchema.keySet()).containsExactly(
-                "course",
-                "course_schedule",
-                "exam",
-                "exam_paper",
-                "score");
+                "evaluation_course",
+                "evaluation_course_schedule",
+                "evaluation_exam",
+                "evaluation_exam_paper",
+                "evaluation_score");
     }
 
     private static Map<String, List<String>> migrateAndRead(

@@ -16,6 +16,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-common-mybatis-plus-spring-boot-starter</artifactId>
+            <version>${egon-cola.version}</version>
+        </dependency>
+        <dependency>
             <groupId>${groupId}</groupId>
             <artifactId>${rootArtifactId}-common</artifactId>
             <version>${version}</version>

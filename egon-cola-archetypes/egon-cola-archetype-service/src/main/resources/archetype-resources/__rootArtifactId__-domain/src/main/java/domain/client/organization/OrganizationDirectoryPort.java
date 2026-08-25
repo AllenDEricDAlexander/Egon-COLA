@@ -5,7 +5,7 @@ package ${package}.domain.client.organization;
 
 public interface OrganizationDirectoryPort {
 
-    OrganizationUser getUser(String userId);
+    OrganizationUser getUser(Long userId);
 
-    OrganizationSchoolClass getSchoolClass(String gradeId, String schoolClassId);
+    OrganizationSchoolClass getSchoolClass(Long gradeId, Long schoolClassId);
 }

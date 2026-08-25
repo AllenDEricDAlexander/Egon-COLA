@@ -320,7 +320,7 @@ adapter/vo
 ```text
 1. 不提供 HTTP Controller、Web Filter、Web Interceptor 或 GraphQL Resolver。
 2. 不定义 VO。
-3. 不直接调用 Mapper、JPA Repository、RedisTemplate 或 MQ Producer。
+3. 不直接调用 DAO、RedisTemplate 或 MQ Producer。
 4. 不写核心业务规则。
 5. 不绕过 Application 直接调用 Domain。
 ```
@@ -405,7 +405,7 @@ application
 
 ```text
 1. 编排业务流程和事务边界。
-2. 调用 Domain Service 与 Domain Repository 接口。
+2. 调用 Domain Service 接口；持久化由 Infrastructure 的 Service 实现承接。
 3. 做应用级校验、权限、幂等和流程前置校验。
 4. 完成入参、领域模型和结果模型之间的转换。
 5. 聚合多个领域完成一个业务用例。
@@ -414,7 +414,7 @@ application
 ### 3.4.4 不能做什么
 
 ```text
-1. 不直接调用 Mapper、JPA Repository、RedisTemplate 或 MQ Template。
+1. 不直接调用 DAO、RedisTemplate 或 MQ Template。
 2. 不直接调用外部 RPC 技术实现。
 3. 不写 RPC Provider、MQ Consumer 或 Web 相关逻辑。
 ```
@@ -436,7 +436,6 @@ domain
         - entities
         - enums
         - event
-        - repos
         - service
         - validators
         - vos
@@ -452,8 +451,8 @@ domain
 
 ```text
 1. 定义领域实体、聚合、值对象和事件。
-2. 定义并实现领域服务。
-3. 定义领域仓储和外部能力端口。
+2. 定义泛型领域服务接口（继承 Common MP 的 `EgonColaIService`）。
+3. 定义外部能力端口。
 4. 定义领域校验器、枚举和核心业务规则。
 ```
 
@@ -461,7 +460,7 @@ domain
 
 ```text
 1. 不依赖 Application、Infrastructure、Adapter 或 Facade。
-2. 不依赖 JPA、MyBatis、Redis、MQ、Dubbo 或 gRPC 技术实现。
+2. 不依赖 JPA、Redis、MQ、Dubbo 或 gRPC 技术实现；仅依赖 Common MP starter 暴露的共享模型/Service 抽象。
 ```
 
 ---
@@ -478,10 +477,11 @@ domain
 infrastructure
     - <domain>
         - repo
-            - impl
+            - dao
             - po
-            - jpa
             - converter
+        - service
+            - impl
         - mq
             - message
     - client
@@ -497,8 +497,8 @@ infrastructure
 ### 3.6.3 能做什么
 
 ```text
-1. 实现 Domain Repository 与外部能力端口。
-2. 调用 JPA Repository、Mapper、外部 Facade、Dubbo、gRPC 或 HTTP Client。
+1. 实现 Domain Service 与外部能力端口。
+2. 调用 MyBatis-Plus DAO、外部 Facade、Dubbo、gRPC 或 HTTP Client。
 3. 发送出站 MQ 消息。
 4. 封装缓存和基础设施配置。
 ```
@@ -846,8 +846,7 @@ RpcProvider -> Application Manage
 
 ```text
 RpcProvider -> Domain Service
-RpcProvider -> RepositoryImpl
-RpcProvider -> Mapper
+RpcProvider -> Domain Service
 RpcProvider -> RedisTemplate
 ```
 
@@ -859,7 +858,7 @@ RpcProvider -> RedisTemplate
 3. MQ Consumer 不写核心业务规则。
 4. MQ Consumer 不直接写数据库。
 5. MQ Consumer 不直接操作 Redis。
-6. MQ Consumer 不直接调用 RepositoryImpl。
+6. MQ Consumer 不直接调用 DAO。
 ```
 
 允许：
@@ -871,8 +870,7 @@ MQ Consumer -> Application Manage
 不允许：
 
 ```text
-MQ Consumer -> Mapper
-MQ Consumer -> RepositoryImpl
+MQ Consumer -> DAO
 MQ Consumer -> RedisTemplate
 MQ Consumer -> Domain Repository
 ```
@@ -897,12 +895,12 @@ Application -> Application EventPublisher Interface -> Infrastructure MQ Produce
 ```text
 1. application 负责业务用例编排。
 2. application 可以调用 domain service。
-3. application 可以调用 domain repository 接口。
+3. application 可以调用 domain service 接口。
 4. application 可以调用 application client 接口。
 5. application 负责事务控制。
 6. application 不依赖 infrastructure。
 7. application 不直接调用 mapper。
-8. application 不直接调用 jpa repository。
+8. application 不直接调用 DAO。
 9. application 不直接操作 RedisTemplate。
 10. application 不直接调用 MQ Template。
 ```
@@ -915,7 +913,7 @@ Application -> Application EventPublisher Interface -> Infrastructure MQ Produce
 3. domain 不依赖 facade。
 4. domain 不依赖 application。
 5. domain 不依赖 infrastructure。
-6. domain 不依赖 MyBatis-Plus。
+6. domain 只依赖 Common MP starter 提供的 `EgonColaIService`/`EgonModel` 抽象。
 7. domain 不依赖 JPA。
 8. domain 不依赖 Redis。
 9. domain 不依赖 MQ。
@@ -926,10 +924,10 @@ Application -> Application EventPublisher Interface -> Infrastructure MQ Produce
 
 ```text
 1. infrastructure 负责技术实现。
-2. infrastructure 实现 domain repository 接口。
+2. infrastructure 实现 domain service 接口。
 3. infrastructure 实现 application client 接口。
-4. infrastructure 可以调用 mapper。
-5. infrastructure 可以调用 jpa repository。
+4. infrastructure 可以调用 MyBatis-Plus DAO。
+5. infrastructure 不调用 JPA repository。
 6. infrastructure 可以调用 RedisTemplate。
 7. infrastructure 可以发送出站 MQ。
 8. infrastructure 可以调用外部 RPC / HTTP / SDK。
@@ -1086,8 +1084,8 @@ adapter
 最终调用链路：
 
 ```text
-RPC -> Adapter -> Application -> Domain -> Repository Interface -> Infrastructure
-MQ  -> Adapter -> Application -> Domain -> Repository Interface -> Infrastructure
+RPC -> Adapter -> Application -> Domain Service -> Infrastructure DAO
+MQ  -> Adapter -> Application -> Domain Service -> Infrastructure DAO
 ```
 
 最终依赖方向：

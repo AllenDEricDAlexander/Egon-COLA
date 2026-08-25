@@ -37,60 +37,60 @@ class DubboOrganizationDirectoryClientTest {
 
     @Test
     void mapsOrganizationUserToConsumerProjection() {
-        when(userFacade.getUser("user-1")).thenReturn(new UserDetailDTO(
-                "user-1", "Mario", "m@example.com", "ACTIVE", List.of("STUDENT")));
+        when(userFacade.getUser(1001L)).thenReturn(new UserDetailDTO(
+                1001L, "Mario", "m@example.com", "ACTIVE", List.of("STUDENT")));
 
-        assertThat(client.getUser("user-1"))
-                .isEqualTo(new OrganizationUser("user-1", "Mario", "ACTIVE"));
+        assertThat(client.getUser(1001L))
+                .isEqualTo(new OrganizationUser(1001L, "Mario", "ACTIVE"));
     }
 
     @Test
     void mapsOrganizationSchoolClassToConsumerProjection() {
-        when(schoolClassFacade.getSchoolClass("grade-1", "class-1")).thenReturn(new SchoolClassDetailDTO(
-                "class-1", "Class One", "G1", "Grade One", "ACTIVE", List.of("user-1")));
+        when(schoolClassFacade.getSchoolClass(2001L, 3001L)).thenReturn(new SchoolClassDetailDTO(
+                3001L, "Class One", "G1", "Grade One", "ACTIVE", List.of(1001L)));
 
-        assertThat(client.getSchoolClass("grade-1", "class-1")).isEqualTo(new OrganizationSchoolClass(
-                "class-1", "Class One", "G1", "ACTIVE", List.of("user-1")));
+        assertThat(client.getSchoolClass(2001L, 3001L)).isEqualTo(new OrganizationSchoolClass(
+                3001L, "Class One", "G1", "ACTIVE", List.of(1001L)));
     }
 
     @Test
     void mapsProviderNotFoundFailure() {
-        when(userFacade.getUser("missing-user")).thenThrow(new OrganizationFacadeException(
+        when(userFacade.getUser(0L)).thenThrow(new OrganizationFacadeException(
                 "USER_NOT_FOUND", "remote details", "trace-1"));
 
-        assertFailure(() -> client.getUser("missing-user"), ExternalDependencyFailure.NOT_FOUND);
+        assertFailure(() -> client.getUser(0L), ExternalDependencyFailure.NOT_FOUND);
     }
 
     @Test
     void mapsProviderValidationFailure() {
-        when(userFacade.getUser("invalid-user")).thenThrow(new OrganizationFacadeException(
+        when(userFacade.getUser(-1L)).thenThrow(new OrganizationFacadeException(
                 "INVALID_USER_ID", "remote details", "trace-2"));
 
-        assertFailure(() -> client.getUser("invalid-user"), ExternalDependencyFailure.VALIDATION_FAILED);
+        assertFailure(() -> client.getUser(-1L), ExternalDependencyFailure.VALIDATION_FAILED);
     }
 
     @Test
     void mapsDubboTimeout() {
-        when(userFacade.getUser("user-1")).thenThrow(new RpcException(
+        when(userFacade.getUser(1001L)).thenThrow(new RpcException(
                 RpcException.TIMEOUT_EXCEPTION, "remote timeout"));
 
-        assertFailure(() -> client.getUser("user-1"), ExternalDependencyFailure.TIMEOUT);
+        assertFailure(() -> client.getUser(1001L), ExternalDependencyFailure.TIMEOUT);
     }
 
     @Test
     void mapsDubboAvailabilityFailure() {
-        when(userFacade.getUser("user-1")).thenThrow(new RpcException(
+        when(userFacade.getUser(1001L)).thenThrow(new RpcException(
                 RpcException.NETWORK_EXCEPTION, "remote network details"));
 
-        assertFailure(() -> client.getUser("user-1"), ExternalDependencyFailure.UNAVAILABLE);
+        assertFailure(() -> client.getUser(1001L), ExternalDependencyFailure.UNAVAILABLE);
     }
 
     @Test
     void rejectsNullProviderResponse() {
-        when(userFacade.getUser("user-1")).thenReturn(null);
+        when(userFacade.getUser(1001L)).thenReturn(null);
 
         assertFailure(
-                () -> client.getUser("user-1"),
+                () -> client.getUser(1001L),
                 ExternalDependencyFailure.CONTRACT_INCOMPATIBLE);
     }
 

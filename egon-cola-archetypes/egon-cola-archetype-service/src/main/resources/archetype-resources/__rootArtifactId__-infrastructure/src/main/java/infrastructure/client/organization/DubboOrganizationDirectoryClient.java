@@ -44,7 +44,7 @@ public class DubboOrganizationDirectoryClient implements OrganizationDirectoryPo
     }
 
     @Override
-    public OrganizationUser getUser(String userId) {
+    public OrganizationUser getUser(Long userId) {
         try {
             UserDetailDTO response = userFacade.getUser(userId);
             if (response == null) {
@@ -59,7 +59,7 @@ public class DubboOrganizationDirectoryClient implements OrganizationDirectoryPo
     }
 
     @Override
-    public OrganizationSchoolClass getSchoolClass(String gradeId, String schoolClassId) {
+    public OrganizationSchoolClass getSchoolClass(Long gradeId, Long schoolClassId) {
         try {
             SchoolClassDetailDTO response = schoolClassFacade.getSchoolClass(gradeId, schoolClassId);
             if (response == null) {

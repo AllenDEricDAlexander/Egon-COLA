@@ -94,8 +94,8 @@ class ShardingTopologyValidatorTest {
     void shouldRejectSchemaQualifiedActualDataNodes() {
         byte[] invalid = replace(
                 validYaml(),
-                "master_data.course",
-                "master_data.public.course");
+                "master_data.evaluation_course",
+                "master_data.public.evaluation_course");
 
         assertThatThrownBy(() -> new ShardingTopologyValidator()
                         .validate(validProperties(), invalid))
@@ -107,7 +107,7 @@ class ShardingTopologyValidatorTest {
     void shouldRejectActualDataNodesWhosePhysicalTableDoesNotMatchLogicalTable() {
         byte[] invalid = replace(
                 validYaml(),
-                "sample_$->{0..1}",
+                "evaluation_sample_$->{0..1}",
                 "another_table_$->{0..1}");
 
         assertThatThrownBy(() -> new ShardingTopologyValidator()
@@ -219,33 +219,33 @@ class ShardingTopologyValidatorTest {
                 rules:
                   - !SHARDING
                     tables:
-                      course:
-                        actualDataNodes: master_data.course
+                      evaluation_course:
+                        actualDataNodes: master_data.evaluation_course
                         databaseStrategy:
                           none:
                         tableStrategy:
                           none:
-                      sample:
-                        actualDataNodes: shard_$->{0..1}.sample_$->{0..1}
+                      evaluation_sample:
+                        actualDataNodes: shard_$->{0..1}.evaluation_sample_$->{0..1}
                         databaseStrategy:
                           standard:
-                            shardingColumn: id
-                            shardingAlgorithmName: uuid_v7_database_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_database_bucket
                         tableStrategy:
                           standard:
-                            shardingColumn: id
-                            shardingAlgorithmName: uuid_v7_table_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_table_bucket
                         auditStrategy:
                           auditorNames:
                             - sharding_key_required_auditor
                           allowHintDisable: false
                     shardingAlgorithms:
-                      uuid_v7_database_bucket:
+                      tenant_long_database_bucket:
                         type: CLASS_BASED
                         props:
                           node-count: 4
                           node-map: 0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1
-                      uuid_v7_table_bucket:
+                      tenant_long_table_bucket:
                         type: CLASS_BASED
                         props:
                           node-count: 4

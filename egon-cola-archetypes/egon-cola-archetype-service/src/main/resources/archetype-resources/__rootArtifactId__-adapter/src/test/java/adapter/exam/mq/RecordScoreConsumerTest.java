@@ -19,10 +19,10 @@ class RecordScoreConsumerTest {
         ScoreManage scoreManage = mock(ScoreManage.class);
         RecordScoreConsumer consumer = new RecordScoreConsumer(scoreManage);
         RecordScoreMessage message = new RecordScoreMessage(
-                "message-1", "exam-1", "student-1", 92, Instant.EPOCH);
+                "message-1", 4001L, 6001L, 92, Instant.EPOCH);
 
         consumer.consume(message);
 
-        verify(scoreManage).record(new RecordScoreCommand("exam-1", "student-1", 92));
+        verify(scoreManage).record(new RecordScoreCommand(4001L, 6001L, 92));
     }
 }

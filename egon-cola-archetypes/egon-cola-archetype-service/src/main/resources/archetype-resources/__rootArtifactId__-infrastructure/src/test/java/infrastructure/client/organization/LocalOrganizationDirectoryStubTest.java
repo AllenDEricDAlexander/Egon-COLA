@@ -16,14 +16,14 @@ class LocalOrganizationDirectoryStubTest {
 
     @Test
     void returnsDeterministicLocalData() {
-        assertThat(stub.getUser("user-1").name()).isEqualTo("Local User user-1");
-        assertThat(stub.getSchoolClass("grade-1", "class-1").userIds())
-                .containsExactly("local-user");
+        assertThat(stub.getUser(1001L).name()).isEqualTo("Local User 1001");
+        assertThat(stub.getSchoolClass(2001L, 3001L).userIds())
+                .containsExactly(1001L);
     }
 
     @Test
     void mapsMissingIdentifiersToNotFound() {
-        assertThatThrownBy(() -> stub.getUser("missing-user"))
+        assertThatThrownBy(() -> stub.getUser(0L))
                 .isInstanceOfSatisfying(ExternalDependencyException.class,
                         failure -> assertThat(failure.failure())
                                 .isEqualTo(ExternalDependencyFailure.NOT_FOUND));

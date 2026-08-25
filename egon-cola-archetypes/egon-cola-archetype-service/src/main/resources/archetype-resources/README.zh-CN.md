@@ -8,9 +8,9 @@ ${symbol_pound} ${rootArtifactId}
 ${symbol_pound}${symbol_pound} 模块职责
 
 - `${rootArtifactId}-common`：稳定的错误、常量、枚举和标识符工具。
-- `${rootArtifactId}-domain`：实体、聚合、值对象、领域服务、仓储/事件端口，以及由消费者拥有的 Organization 目录端口。不包含持久化、MQ、Facade 或 Dubbo 实现。
+- `${rootArtifactId}-domain`：实体、聚合、值对象、泛型 `EgonColaIService` 契约、事件端口，以及由消费者拥有的 Organization 目录端口。只为共享 Service/Model 契约依赖 Common MyBatis-Plus starter；不包含 DAO、PO、持久化、MQ、Facade 或 Dubbo 实现。
 - `${rootArtifactId}-application`：命令、查询、用例管理器、应用校验和结果模型。
-- `${rootArtifactId}-infrastructure`：Spring Data JPA 仓储、Flyway migration、RabbitMQ/本地发布器实现，以及 `top.egon:egon-cola-organization-facade` 防腐适配器。
+- `${rootArtifactId}-infrastructure`：MyBatis-Plus `*PO`/`*DAO` 持久化、泛型领域 Service 实现、Flyway migration、RabbitMQ/本地发布器实现，以及 `top.egon:egon-cola-organization-facade` 防腐适配器。
 - `${rootArtifactId}-adapter`：`top.egon:egon-cola-evaluation-facade` 的 Dubbo provider、facade 转换、校验、异常转换和 score-command MQ consumer。
 - `${rootArtifactId}-starter`：Spring Boot 组装、profile、管理配置以及架构/上下文测试。
 
@@ -21,7 +21,8 @@ ${symbol_pound}${symbol_pound} 领域优先包布局
 ```text
 domain/exam/entities
 application/course/manage
-infrastructure/exam/repo
+infrastructure/exam/repo/dao
+infrastructure/exam/service/impl
 adapter/course/facade/impl
 adapter/exam/mq
 ```
@@ -81,12 +82,12 @@ primary。模板内置 Compose 不模拟 replica，只默认运行 `SHARDING`。
 
 表拓扑如下：
 
-- 主数据表 `course` 固定在 `master_data`，并在 `!SHARDING.tables` 中显式使用
+- 主数据表 `evaluation_course` 固定在 `master_data`，并在 `!SHARDING.tables` 中显式使用
   `databaseStrategy.none` 和 `tableStrategy.none`。不使用 `!SINGLE`，也不存在
   应用级单数据源模式。
-- `course_schedule` 按 `course_id` 分片。
-- binding tables `exam`、`exam_paper`、`score` 分别按 `id`、`exam_id`、
-  `exam_id` 分片；考试聚合统一使用 `examId`，因此共置在同一个物理库和表后缀。
+- `evaluation_course_schedule`、`evaluation_exam`、`evaluation_exam_paper`、
+  `evaluation_score` 都按正数 `tenant_id` 同时进行库和表路由；同一租户的 evaluation
+  数据固定落在同一个物理库和表后缀。
 - 四个分片表都启用 `DML_SHARDING_CONDITIONS`，拒绝未携带分片条件的 DML，
   且 `allowHintDisable=false` 禁止 hint 绕过。
 
@@ -104,7 +105,7 @@ Flyway 只使用 `db/migration/sharding/master-data` 和
 Spring Boot Flyway 自动配置被排除，replica 和逻辑数据源均不会刷表；
 `FLYWAY_ENABLED=false` 时跳过物理 migration。
 
-代理主键统一由应用生成 UUIDv7，并持久化为 36 位 RFC 字符串。迁移文件名必须符合
+代理主键统一由 Common ID starter 生成正数 `Long`。迁移文件名必须符合
 `VyyyyMMdd_NNN__description.sql`，每个文件开头依次包含 `变更内容`、`影响范围`
 和 `兼容性说明` 三项注释。
 
@@ -126,7 +127,7 @@ SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean verify
 SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp -DskipTests package
 ```
 
-测试套件包括 Domain 规则、Application 编排、JPA adapter、日期序列 Flyway
+测试套件包括 Domain 规则、Application 编排、MyBatis-Plus DAO 契约、日期序列 Flyway
 migration 契约、无 broker 的 MQ adapter、实际 Dubbo Triple proxy 调用、
 无外部依赖的 Spring context 组装和架构依赖检查。构建镜像不会启动服务。
 

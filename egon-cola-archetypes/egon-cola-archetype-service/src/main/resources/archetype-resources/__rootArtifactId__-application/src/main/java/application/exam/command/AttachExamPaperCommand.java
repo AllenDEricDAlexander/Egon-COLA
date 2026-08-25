@@ -3,5 +3,5 @@
 #set( $symbol_escape = '\\' )
 package ${package}.application.exam.command;
 
-public record AttachExamPaperCommand(String examId, String title, int totalPoints) {
+public record AttachExamPaperCommand(Long examId, String title, int totalPoints) {
 }

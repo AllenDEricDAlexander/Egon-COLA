@@ -9,13 +9,15 @@ import ${package}.application.exam.converter.ExamApplicationConverter;
 import ${package}.application.exam.manage.impl.ExamManageImpl;
 import ${package}.application.exam.validators.ExamApplicationValidator;
 import ${package}.domain.course.entities.Course;
-import ${package}.domain.exam.event.ExamEventPublisher;
-import ${package}.domain.course.repos.CourseRepository;
-import ${package}.domain.exam.repos.ExamPaperRepository;
-import ${package}.domain.exam.repos.ExamRepository;
-import ${package}.domain.exam.service.impl.ExamDomainServiceImpl;
+import ${package}.domain.course.service.CourseDomainService;
 import ${package}.domain.course.vos.CourseCode;
-import ${package}.domain.course.vos.CourseId;
+import ${package}.domain.exam.entities.Exam;
+import ${package}.domain.exam.entities.ExamPaper;
+import ${package}.domain.exam.enums.ExamPaperStatus;
+import ${package}.domain.exam.enums.ExamStatus;
+import ${package}.domain.exam.event.ExamEventPublisher;
+import ${package}.domain.exam.service.ExamDomainService;
+import ${package}.domain.exam.vos.ExamId;
 import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -29,44 +31,41 @@ class ExamManageTest {
 
     @Test
     void shouldCreateExamForExistingCourse() {
-        CourseRepository courses = mock(CourseRepository.class);
-        ExamRepository exams = mock(ExamRepository.class);
-        Course course = Course.create("course-1", new CourseCode("MATH-101"), "Math", 3);
-        when(courses.findById(new CourseId("course-1"))).thenReturn(Optional.of(course));
-        when(exams.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        CourseDomainService courses = mock(CourseDomainService.class);
+        ExamDomainService exams = mock(ExamDomainService.class);
+        Course course = Course.create(1001L, new CourseCode("MATH-101"), "Math", 3);
+        Exam exam = new Exam(new ExamId(4001L), new ${package}.domain.course.vos.CourseId(1001L),
+                "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60), ExamStatus.DRAFT);
+        when(courses.findById(any())).thenReturn(Optional.of(course));
+        when(exams.createExam(any(), any(), any(), any())).thenReturn(exam);
+        when(exams.save(exam)).thenReturn(exam);
         ExamManageImpl manage = new ExamManageImpl(
-                courses, exams, mock(ExamPaperRepository.class), mock(ExamEventPublisher.class),
-                new ExamDomainServiceImpl(),
-                new ExamApplicationConverter(), new ExamApplicationValidator(),
-                () -> "01901234-5678-7abc-8def-0123456789ad");
+                courses, exams, mock(ExamEventPublisher.class),
+                new ExamApplicationConverter(), new ExamApplicationValidator());
 
         var result = manage.create(new CreateExamCommand(
-                "course-1", "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
+                1001L, "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
 
-        assertEquals("01901234-5678-7abc-8def-0123456789ad", result.id());
-        assertEquals("course-1", result.courseId());
+        assertEquals(4001L, result.id());
+        assertEquals(1001L, result.courseId());
     }
 
     @Test
-    void shouldGenerateExamPaperIdThroughSharedGenerator() {
-        ExamRepository exams = mock(ExamRepository.class);
-        ExamPaperRepository papers = mock(ExamPaperRepository.class);
-        var exam = new ExamDomainServiceImpl().createExam(
-                "01901234-5678-7abc-8def-0123456789ad",
-                Course.create("course-1", new CourseCode("MATH-101"), "Math", 3),
-                "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60));
+    void shouldPersistExamPaper() {
+        ExamDomainService exams = mock(ExamDomainService.class);
+        Exam exam = new Exam(new ExamId(4001L), new ${package}.domain.course.vos.CourseId(1001L),
+                "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60), ExamStatus.DRAFT);
+        ExamPaper paper = new ExamPaper(5001L, exam.getId(), "Paper", 100, ExamPaperStatus.DRAFT);
         when(exams.findById(exam.getId())).thenReturn(Optional.of(exam));
-        when(papers.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(exams.attachPaper(any(), any(), any(Integer.class))).thenReturn(paper);
+        when(exams.savePaper(paper)).thenReturn(paper);
         ExamManageImpl manage = new ExamManageImpl(
-                mock(CourseRepository.class), exams, papers, mock(ExamEventPublisher.class),
-                new ExamDomainServiceImpl(),
-                new ExamApplicationConverter(), new ExamApplicationValidator(),
-                () -> "01901234-5678-7abc-8def-0123456789ae");
+                mock(CourseDomainService.class), exams, mock(ExamEventPublisher.class),
+                new ExamApplicationConverter(), new ExamApplicationValidator());
 
-        var result = manage.attachPaper(new AttachExamPaperCommand(
-                exam.getId().value(), "Midterm paper", 100));
+        var result = manage.attachPaper(new AttachExamPaperCommand(4001L, "Paper", 100));
 
-        assertEquals("01901234-5678-7abc-8def-0123456789ae", result.id());
-        assertEquals(exam.getId().value(), result.examId());
+        assertEquals(5001L, result.id());
+        assertEquals(4001L, result.examId());
     }
 }

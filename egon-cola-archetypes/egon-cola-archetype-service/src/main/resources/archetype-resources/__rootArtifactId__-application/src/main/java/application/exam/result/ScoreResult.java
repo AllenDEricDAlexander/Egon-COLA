@@ -4,10 +4,10 @@
 package ${package}.application.exam.result;
 
 public record ScoreResult(
-        String id,
-        String examId,
-        String courseId,
-        String studentId,
+        Long id,
+        Long examId,
+        Long courseId,
+        Long studentId,
         int points,
         String status) {
 }

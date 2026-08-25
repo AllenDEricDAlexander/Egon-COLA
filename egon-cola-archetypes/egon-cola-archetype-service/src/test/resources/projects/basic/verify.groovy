@@ -186,6 +186,9 @@ assert rootPomText.contains("<artifactId>shardingsphere-jdbc</artifactId>")
 assert rootPomText.contains("<artifactId>shardingsphere-sharding-core</artifactId>")
 assert assertFile("student-management-evaluation-common/pom.xml").text
         .contains("<artifactId>egon-cola-component-common-id-starter</artifactId>")
+assert assertFile("student-management-evaluation-domain/pom.xml").text
+        .contains("<artifactId>egon-cola-component-common-mybatis-plus-spring-boot-starter</artifactId>")
+assert !rootPomText.contains("<artifactId>mybatis-plus-spring-boot3-starter</artifactId>")
 [
     "lombok.version",
     "lombok.mapstruct.binding.version",
@@ -261,7 +264,7 @@ def requiredPackagePaths = [
     "starter/config/encryption",
 ]
 ["course", "exam"].each { businessDomain ->
-    ["aggregates", "entities", "enums", "event", "repos", "service", "validators", "vos"].each { role ->
+    ["aggregates", "entities", "enums", "event", "service", "validators", "vos"].each { role ->
         requiredPackagePaths << "domain/${businessDomain}/${role}"
     }
 }
@@ -274,10 +277,11 @@ def requiredPackagePaths = [
 ["course", "exam"].each { businessDomain ->
     requiredPackagePaths.addAll([
         "infrastructure/${businessDomain}/repo",
-        "infrastructure/${businessDomain}/repo/impl",
         "infrastructure/${businessDomain}/repo/po",
-        "infrastructure/${businessDomain}/repo/jpa",
+        "infrastructure/${businessDomain}/repo/dao",
         "infrastructure/${businessDomain}/repo/converter",
+        "infrastructure/${businessDomain}/service",
+        "infrastructure/${businessDomain}/service/impl",
         "infrastructure/${businessDomain}/mq",
         "infrastructure/${businessDomain}/mq/message"
     ])
@@ -323,8 +327,11 @@ def serviceApplication = assertFile(
         "student-management-evaluation-starter/src/main/java/it/pkg/starter/EvaluationServiceApplication.java").text
 assert serviceApplication.contains('"it.pkg.adapter.course.facade.impl"')
 assert serviceApplication.contains('"it.pkg.adapter.exam.facade.impl"')
-assert serviceApplication.contains("enableDefaultTransactions = false")
-assert serviceApplication.contains("UuidV7Generator")
+assert !serviceApplication.contains("enableDefaultTransactions")
+assert serviceApplication.contains("LongIdGenerator")
+assert serviceApplication.contains("@MapperScan")
+assert serviceApplication.contains("infrastructure.course.repo.dao")
+assert serviceApplication.contains("infrastructure.exam.repo.dao")
 assert serviceApplication.contains("exclude = FlywayAutoConfiguration.class")
 assert !serviceApplication.contains('"it.pkg.adapter.facade"')
 
@@ -599,7 +606,9 @@ migrationDir.eachFileRecurse(FileType.FILES) { file ->
 }
 assert migrations.sort() == [
     "sharding/master-data/V20260726_001__init_evaluation_master_data_schema.sql",
-    "sharding/shard/V20260726_002__init_evaluation_sharded_schema.sql"
+    "sharding/master-data/V20260825_001__migrate_evaluation_master_data_to_egon_model.sql",
+    "sharding/shard/V20260726_002__init_evaluation_sharded_schema.sql",
+    "sharding/shard/V20260825_002__migrate_evaluation_sharded_to_tenant_model.sql"
 ]
 assertMissing(
         "student-management-evaluation-infrastructure/src/main/resources/db/migration/V1__init_student_management_evaluation.sql")
@@ -614,9 +623,15 @@ def masterDataMigration = assertFile(
         "student-management-evaluation-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260726_001__init_evaluation_master_data_schema.sql").text
 def shardMigration = assertFile(
         "student-management-evaluation-infrastructure/src/main/resources/db/migration/sharding/shard/V20260726_002__init_evaluation_sharded_schema.sql").text
+def masterDataMigrationV2 = assertFile(
+        "student-management-evaluation-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260825_001__migrate_evaluation_master_data_to_egon_model.sql").text
+def shardMigrationV2 = assertFile(
+        "student-management-evaluation-infrastructure/src/main/resources/db/migration/sharding/shard/V20260825_002__migrate_evaluation_sharded_to_tenant_model.sql").text
 [
     masterDataMigration,
-    shardMigration
+    shardMigration,
+    masterDataMigrationV2,
+    shardMigrationV2
 ].each { migration ->
     assert migration.startsWith("-- 变更内容：")
     assert migration.contains("\n-- 影响范围：")
@@ -630,6 +645,13 @@ assert shardMigration.contains("CREATE TABLE exam_paper_0")
 assert shardMigration.contains("CREATE TABLE score_0")
 assert shardMigration.contains("REFERENCES exam_0(id)")
 assert shardMigration.contains("UNIQUE (exam_id, student_id)")
+assert masterDataMigrationV2.contains("evaluation_course")
+assert masterDataMigrationV2.contains("tenant_id")
+assert shardMigrationV2.contains("evaluation_course_schedule_0")
+assert shardMigrationV2.contains("evaluation_exam_0")
+assert shardMigrationV2.contains("evaluation_exam_paper_0")
+assert shardMigrationV2.contains("evaluation_score_0")
+assert shardMigrationV2.contains("tenant_id")
 
 def applicationYaml = assertFile(
         "student-management-evaluation-starter/src/main/resources/application.yml").text
@@ -703,10 +725,11 @@ def serviceShardingRule = assertFile(
         "student-management-evaluation-starter/src/main/resources/sharding/shardingsphere-sharding.yml").text
 assert serviceShardingRule.contains(
         '${app.sharding.database-name:${EVALUATION_SHARDING_DATABASE_NAME:evaluation}}')
-assert serviceShardingRule.contains("shardingColumn: course_id")
-assert serviceShardingRule.contains("shardingColumn: exam_id")
-assert serviceShardingRule.contains("exam,exam_paper,score")
-assert serviceShardingRule.contains("actualDataNodes: master_data.course")
+assert serviceShardingRule.contains("shardingColumn: tenant_id")
+assert serviceShardingRule.contains("evaluation_exam,evaluation_exam_paper,evaluation_score")
+assert serviceShardingRule.contains("actualDataNodes: master_data.evaluation_course")
+assert serviceShardingRule.contains("LongTenantShardingAlgorithm")
+assert !serviceShardingRule.contains("UuidV7BucketShardingAlgorithm")
 assert !serviceShardingRule.contains(".public.")
 assert !serviceShardingRule.contains("proxy-frontend-database-protocol-type")
 assert serviceShardingRule.count("none:") == 2
@@ -719,7 +742,9 @@ def serviceReadwriteRule = assertFile(
 assert serviceReadwriteRule.contains(
         '${app.sharding.database-name:${EVALUATION_SHARDING_DATABASE_NAME:evaluation}}')
 assert serviceReadwriteRule.contains("transactionalReadQueryStrategy: PRIMARY")
-assert serviceReadwriteRule.contains("exam,exam_paper,score")
+assert serviceReadwriteRule.contains("evaluation_exam,evaluation_exam_paper,evaluation_score")
+assert serviceReadwriteRule.contains("shardingColumn: tenant_id")
+assert serviceReadwriteRule.contains("LongTenantShardingAlgorithm")
 assert serviceReadwriteRule.contains("master_data_primary")
 assert serviceReadwriteRule.contains("master_data_replica_0")
 assert serviceReadwriteRule.count("auditStrategy:") == 4
@@ -733,12 +758,12 @@ assert !serviceReadwriteRule.contains("!SINGLE")
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingDataSourceBootstrapper.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingDataSourcePropertiesLoader.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingNodeMap.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/UuidV7BucketShardingAlgorithm.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/LongTenantShardingAlgorithm.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/DataSourceModePropertiesTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/PhysicalDataSourceFlywayMigratorTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ReadwriteRoutingIntegrationTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ShardingDataSourcePropertiesLoaderTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/UuidV7BucketShardingAlgorithmTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/LongTenantShardingAlgorithmTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/migration/FlywayMigrationConventionTest.java"
 ].each { assertFile(it) }
 [
@@ -775,16 +800,17 @@ assert readme.contains("Organization Facade client is an unused infrastructure f
     "top.egon:egon-cola-organization-facade",
     "domain/exam/entities",
     "application/course/manage",
-    "infrastructure/exam/repo",
+    "infrastructure/exam/repo/dao",
+    "infrastructure/exam/service/impl",
     "adapter/exam/mq"
 ].each { assert readme.contains(it) }
 [
     "SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING",
     "APP_DATASOURCE_MODE=SHARDING_READWRITE",
-    "course_schedule",
-    "exam_id",
+    "evaluation_course_schedule",
+    "tenant_id",
     "physical primary",
-    "36-character RFC",
+    "positive `Long`",
     "VyyyyMMdd_NNN__description.sql",
     "DML_SHARDING_CONDITIONS",
     "from `N` to `2N`",
@@ -794,8 +820,8 @@ assert readme.contains("Organization Facade client is an unused infrastructure f
 def serviceReadmeZh = assertFile("README.zh-CN.md").text
 [
     "SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING",
-    "exam_id",
-    "36 位 RFC 字符串",
+    "tenant_id",
+    "正数 `Long`",
     "VyyyyMMdd_NNN__description.sql",
     "DML_SHARDING_CONDITIONS",
     "调整为 `2N`",
@@ -1024,10 +1050,52 @@ def gitignoreLines = assertFile(".gitignore").readLines("UTF-8")
 }
 
 def coursePo = assertFile(
-        "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/course/repo/po/CoursePo.java").text
-assert coursePo.contains("@NoArgsConstructor(access = AccessLevel.PROTECTED)")
+        "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/course/repo/po/CoursePO.java").text
+assert coursePo.contains("@Data")
+assert coursePo.contains("@NoArgsConstructor")
 assert coursePo.contains("@AllArgsConstructor")
-assert !coursePo.contains("protected CoursePo()")
+assert coursePo.contains("@Builder")
+assert coursePo.contains("@Accessors(chain = true)")
+assert coursePo.contains('@TableName("evaluation_course")')
+assert coursePo.contains("extends EgonModel<CoursePO>")
+assert !coursePo.contains("@RequiredArgsConstructor")
+assert !coursePo.contains("@SuperBuilder")
+
+def persistencePoSources = javaFiles.findAll { file ->
+    def path = javaPath(file)
+    path.contains("/infrastructure/") && path.contains("/repo/po/")
+            && file.name.endsWith("PO.java")
+}
+assert persistencePoSources.size() == 5
+persistencePoSources.each { file ->
+    def source = file.text
+    ["@Data", "@NoArgsConstructor", "@AllArgsConstructor", "@Builder",
+     "@Accessors(chain = true)", "@TableName", "extends EgonModel<"].each { token ->
+        assert source.contains(token): "Expected ${file.name} to contain ${token}"
+    }
+    assert !source.contains("@RequiredArgsConstructor")
+    assert !source.contains("@SuperBuilder")
+}
+def domainServiceSources = javaFiles.findAll { file ->
+    def path = javaPath(file)
+    path.contains("/domain/") && path.contains("/service/")
+            && file.name.endsWith("DomainService.java")
+}
+assert domainServiceSources.size() == 3
+domainServiceSources.each { file ->
+    assert file.text.contains("extends EgonColaIService<"):
+            "Domain service must extend EgonColaIService: ${file.name}"
+}
+def infrastructureServiceSources = javaFiles.findAll { file ->
+    def path = javaPath(file)
+    path.contains("/infrastructure/") && path.contains("/service/impl/")
+            && file.name.endsWith("DomainServiceImpl.java")
+}
+assert infrastructureServiceSources.size() == 3
+infrastructureServiceSources.each { file ->
+    assert file.text.contains("extends EgonColaServiceImpl<"):
+            "Infrastructure service must extend EgonColaServiceImpl: ${file.name}"
+}
 
 [
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/exam/mq/RecordScoreConsumer.java",

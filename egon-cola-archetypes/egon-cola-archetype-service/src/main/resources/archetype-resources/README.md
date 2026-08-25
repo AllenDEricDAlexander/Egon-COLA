@@ -8,9 +8,9 @@ ${symbol_pound} ${rootArtifactId}
 ${symbol_pound}${symbol_pound} Module Ownership
 
 - `${rootArtifactId}-common`: stable errors, constants, enums, and identifier utilities.
-- `${rootArtifactId}-domain`: entities, aggregates, value objects, domain services, repository/event ports, and the consumer-owned Organization directory port. It contains no persistence, MQ, Facade, or Dubbo implementation.
+- `${rootArtifactId}-domain`: entities, aggregates, value objects, generic `EgonColaIService` contracts, event ports, and the consumer-owned Organization directory port. It depends on the Common MyBatis-Plus starter only for the shared service/model contract; it contains no DAO, PO, persistence, MQ, Facade, or Dubbo implementation.
 - `${rootArtifactId}-application`: commands, queries, use-case managers, application validation, and result models.
-- `${rootArtifactId}-infrastructure`: Spring Data JPA repositories, Flyway migrations, RabbitMQ/local publisher implementations, and the `top.egon:egon-cola-organization-facade` anti-corruption adapter.
+- `${rootArtifactId}-infrastructure`: MyBatis-Plus `*PO`/`*DAO` persistence, generic domain-service implementations, Flyway migrations, RabbitMQ/local publisher implementations, and the `top.egon:egon-cola-organization-facade` anti-corruption adapter.
 - `${rootArtifactId}-adapter`: Dubbo providers for `top.egon:egon-cola-evaluation-facade`, facade conversion, validation, exception translation, and the score-command MQ consumer.
 - `${rootArtifactId}-starter`: Spring Boot assembly, profiles, management configuration, and architecture/context tests.
 
@@ -21,7 +21,8 @@ Business-owned code puts the domain before the technical responsibility:
 ```text
 domain/exam/entities
 application/course/manage
-infrastructure/exam/repo
+infrastructure/exam/repo/dao
+infrastructure/exam/service/impl
 adapter/course/facade/impl
 adapter/exam/mq
 ```
@@ -84,14 +85,14 @@ does not emulate replicas and defaults to `SHARDING`.
 
 The table topology is:
 
-- Master table `course` stays on `master_data` through explicit
+- Master table `evaluation_course` stays on `master_data` through explicit
   `databaseStrategy.none` and `tableStrategy.none` rules inside
   `!SHARDING.tables`. Neither `!SINGLE` nor an application-wide single data
   source mode is used.
-- `course_schedule` is sharded by `course_id`.
-- Binding tables `exam`, `exam_paper`, and `score` are sharded by `id`,
-  `exam_id`, and `exam_id`. One exam aggregate uses the same `examId`, so
-  all three tables are colocated in one physical database and table suffix.
+- `evaluation_course_schedule`, `evaluation_exam`, `evaluation_exam_paper`, and
+  `evaluation_score` are sharded by positive `tenant_id` for both database and
+  table selection. One tenant therefore uses one stable physical database/table
+  slot for the whole evaluation family.
 - All four sharded tables enable `DML_SHARDING_CONDITIONS`; DML without a
   sharding condition is rejected and `allowHintDisable=false` prevents bypass.
 
@@ -110,8 +111,8 @@ before the logical data source is created. Spring Boot Flyway auto-configuration
 is excluded, so replicas and the logical data source are never migrated.
 `FLYWAY_ENABLED=false` skips physical migrations.
 
-Application-generated surrogate keys use UUIDv7 serialized as 36-character RFC
-strings. Migration files follow `VyyyyMMdd_NNN__description.sql` and begin with
+Application-generated surrogate keys use positive `Long` values supplied by the
+Common ID starter. Migration files follow `VyyyyMMdd_NNN__description.sql` and begin with
 `变更内容`, `影响范围`, and `兼容性说明` comments.
 
 Database count, table count per database, and total physical-node count must all
@@ -137,8 +138,8 @@ SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean verify
 SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp -DskipTests package
 ```
 
-The test suite includes Domain rules, Application orchestration, JPA adapters,
-date-sequence Flyway migration contracts, broker-free MQ adapters, an actual
+The test suite includes Domain rules, Application orchestration, MyBatis-Plus DAO
+contracts, date-sequence Flyway migration contracts, broker-free MQ adapters, an actual
 Dubbo Triple proxy call, external-free Spring context assembly, and architecture
 dependency checks. Building the image does not start the service.
 

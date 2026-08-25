@@ -9,10 +9,10 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ExamApplicationValidator {
-    public void notBlank(String value, String field) {
-        if (value == null || value.isBlank()) {
+    public void positive(Long value, String field) {
+        if (value == null || value <= 0) {
             throw new ApplicationException(
-                    ApplicationErrorCode.VALIDATION_FAILED, field + " must not be blank");
+                    ApplicationErrorCode.VALIDATION_FAILED, field + " must be positive");
         }
     }
 }

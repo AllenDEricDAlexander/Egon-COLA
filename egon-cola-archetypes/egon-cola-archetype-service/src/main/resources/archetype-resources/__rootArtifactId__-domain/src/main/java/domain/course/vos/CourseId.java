@@ -6,12 +6,12 @@ package ${package}.domain.course.vos;
 import ${package}.domain.common.EvaluationDomainErrorCode;
 import ${package}.domain.common.EvaluationDomainException;
 
-public record CourseId(String value) {
+public record CourseId(Long value) {
 
     public CourseId {
-        if (value == null || value.isBlank()) {
+        if (value == null || value <= 0) {
             throw new EvaluationDomainException(
-                    EvaluationDomainErrorCode.VALIDATION_FAILED, "course id must not be blank");
+                    EvaluationDomainErrorCode.VALIDATION_FAILED, "course id must be positive");
         }
     }
 }

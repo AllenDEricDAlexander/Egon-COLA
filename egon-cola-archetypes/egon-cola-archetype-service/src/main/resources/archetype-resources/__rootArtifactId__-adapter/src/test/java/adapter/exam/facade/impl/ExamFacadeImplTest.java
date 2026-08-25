@@ -27,19 +27,19 @@ class ExamFacadeImplTest {
     void shouldValidateConvertDelegateAndReturnExam() {
         ExamManage manage = mock(ExamManage.class);
         CreateExamCommand command = new CreateExamCommand(
-                "course-1", "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60));
+                1001L, "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60));
         when(manage.create(command)).thenReturn(new ExamDetailResult(
-                "exam-1", "course-1", "Midterm",
+                4001L, 1001L, "Midterm",
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), "DRAFT"));
         ExamFacadeImpl facade = new ExamFacadeImpl(
                 manage, Mappers.getMapper(ExamFacadeConverter.class), new ExamFacadeValidator(),
                 new GlobalFacadeExceptionHandler());
 
         var response = facade.createExam(new CreateExamRequest(
-                "course-1", "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
+                1001L, "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
 
         assertTrue(response.isSuccess());
-        assertEquals("exam-1", response.getData().id());
+        assertEquals(4001L, response.getData().id());
         verify(manage).create(command);
     }
 }

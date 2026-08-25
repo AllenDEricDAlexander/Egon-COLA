@@ -4,5 +4,5 @@
 package ${package}.application.exam.result;
 
 public record ExamPaperResult(
-        String id, String examId, String title, int totalPoints, String status) {
+        Long id, Long examId, String title, int totalPoints, String status) {
 }

@@ -9,10 +9,10 @@ import ${package}.application.course.converter.CourseApplicationConverter;
 import ${package}.application.course.manage.impl.CourseManageImpl;
 import ${package}.application.course.validators.CourseApplicationValidator;
 import ${package}.domain.course.entities.Course;
+import ${package}.domain.course.entities.CourseSchedule;
+import ${package}.domain.course.enums.CourseScheduleStatus;
 import ${package}.domain.course.event.CourseEventPublisher;
-import ${package}.domain.course.repos.CourseRepository;
-import ${package}.domain.course.repos.CourseScheduleRepository;
-import ${package}.domain.course.service.impl.CourseDomainServiceImpl;
+import ${package}.domain.course.service.CourseDomainService;
 import ${package}.domain.course.vos.CourseCode;
 import ${package}.domain.course.vos.CourseId;
 import java.time.Instant;
@@ -29,42 +29,39 @@ class CourseManageTest {
 
     @Test
     void shouldCreateNormalizedCourse() {
-        CourseRepository repository = mock(CourseRepository.class);
-        when(repository.existsByCode(new CourseCode("MATH-101"))).thenReturn(false);
-        when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        CourseDomainService service = mock(CourseDomainService.class);
+        Course course = Course.create(1001L, new CourseCode("MATH-101"), "Math", 3);
+        when(service.existsByCode(new CourseCode("MATH-101"))).thenReturn(false);
+        when(service.createCourse(any(), any(), any(Integer.class))).thenReturn(course);
+        when(service.save(course)).thenReturn(course);
         CourseManageImpl manage = new CourseManageImpl(
-                repository, mock(CourseScheduleRepository.class), mock(CourseEventPublisher.class),
-                new CourseDomainServiceImpl(),
-                new CourseApplicationConverter(), new CourseApplicationValidator(),
-                () -> "01901234-5678-7abc-8def-0123456789ab");
+                mock(CourseEventPublisher.class), service,
+                new CourseApplicationConverter(), new CourseApplicationValidator());
 
         var result = manage.create(new CreateCourseCommand(" math-101 ", "Math", 3));
 
-        assertEquals("01901234-5678-7abc-8def-0123456789ab", result.id());
+        assertEquals(1001L, result.id());
         assertEquals("MATH-101", result.code());
     }
 
     @Test
-    void shouldGenerateScheduleIdThroughSharedGenerator() {
-        CourseRepository courseRepository = mock(CourseRepository.class);
-        CourseScheduleRepository scheduleRepository = mock(CourseScheduleRepository.class);
-        Course course = Course.create(
-                "01901234-5678-7abc-8def-0123456789ab",
-                new CourseCode("MATH-101"), "Math", 3);
-        when(courseRepository.findById(new CourseId(course.getId())))
-                .thenReturn(Optional.of(course));
-        when(scheduleRepository.findOverlapping(any(), any(), any(), any()))
-                .thenReturn(List.of());
-        when(scheduleRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+    void shouldGenerateScheduleThroughDomainService() {
+        CourseDomainService service = mock(CourseDomainService.class);
+        Course course = Course.create(1001L, new CourseCode("MATH-101"), "Math", 3);
+        CourseSchedule schedule = new CourseSchedule(
+                3001L, new CourseId(course.getId()), 2001L,
+                Instant.EPOCH, Instant.EPOCH.plusSeconds(60), CourseScheduleStatus.SCHEDULED);
+        when(service.findById(new CourseId(course.getId()))).thenReturn(Optional.of(course));
+        when(service.findOverlapping(any(), any(), any(), any())).thenReturn(List.of());
+        when(service.scheduleCourse(any(), any(), any(), any(), any())).thenReturn(schedule);
+        when(service.saveSchedule(schedule)).thenReturn(schedule);
         CourseManageImpl manage = new CourseManageImpl(
-                courseRepository, scheduleRepository, mock(CourseEventPublisher.class),
-                new CourseDomainServiceImpl(),
-                new CourseApplicationConverter(), new CourseApplicationValidator(),
-                () -> "01901234-5678-7abc-8def-0123456789ac");
+                mock(CourseEventPublisher.class), service,
+                new CourseApplicationConverter(), new CourseApplicationValidator());
 
         var result = manage.schedule(new ScheduleCourseCommand(
-                course.getId(), "class-1", Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
+                course.getId(), 2001L, Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
 
-        assertEquals("01901234-5678-7abc-8def-0123456789ac", result.id());
+        assertEquals(3001L, result.id());
     }
 }

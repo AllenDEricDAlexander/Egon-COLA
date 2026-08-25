@@ -43,13 +43,13 @@ class EvaluationDubboTripleIntegrationTest {
         int port = freePort();
         CourseManage manage = mock(CourseManage.class);
         when(manage.create(any(CreateCourseCommand.class))).thenReturn(
-                new CourseResult("course-1", "MATH-101", "Math", 3, "ACTIVE"));
+                new CourseResult(1001L, "MATH-101", "Math", 3, "ACTIVE"));
         CourseFacade provider = new CourseFacadeImpl(
                 manage, Mappers.getMapper(CourseFacadeConverter.class), new CourseFacadeValidator(),
                 new GlobalFacadeExceptionHandler());
         ExamManage examManage = mock(ExamManage.class);
         when(examManage.create(any())).thenReturn(new ExamDetailResult(
-                "exam-1", "course-1", "Midterm",
+                4001L, 1001L, "Midterm",
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), "DRAFT"));
         ExamFacade examProvider = new ExamFacadeImpl(
                 examManage, Mappers.getMapper(ExamFacadeConverter.class), new ExamFacadeValidator(),
@@ -88,11 +88,11 @@ class EvaluationDubboTripleIntegrationTest {
             bootstrap.start();
             var response = reference.get().create(new CreateCourseRequest("MATH-101", "Math", 3));
             assertTrue(response.isSuccess());
-            assertEquals("course-1", response.getData().id());
+            assertEquals(1001L, response.getData().id());
             var examResponse = examReference.get().createExam(new CreateExamRequest(
-                    "course-1", "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
+                    1001L, "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));
             assertTrue(examResponse.isSuccess());
-            assertEquals("exam-1", examResponse.getData().id());
+            assertEquals(4001L, examResponse.getData().id());
         } finally {
             bootstrap.destroy();
         }

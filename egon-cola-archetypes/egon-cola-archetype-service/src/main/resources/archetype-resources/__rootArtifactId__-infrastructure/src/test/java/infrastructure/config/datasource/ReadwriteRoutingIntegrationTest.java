@@ -46,14 +46,14 @@ class ReadwriteRoutingIntegrationTest {
 
             assertThat(queryMarker(logical)).isEqualTo("replica");
 
-            execute(logical, "INSERT INTO course(id, marker) VALUES (2, 'write')");
+            execute(logical, "INSERT INTO evaluation_course(id, marker) VALUES (2, 'write')");
             assertThat(queryCount(
                     physical.get("master_data_primary"),
-                    "SELECT COUNT(*) FROM course WHERE id = 2"))
+                    "SELECT COUNT(*) FROM evaluation_course WHERE id = 2"))
                     .isOne();
             assertThat(queryCount(
                     physical.get("master_data_replica_0"),
-                    "SELECT COUNT(*) FROM course WHERE id = 2"))
+                    "SELECT COUNT(*) FROM evaluation_course WHERE id = 2"))
                     .isZero();
 
             try (Connection connection = logical.getConnection()) {
@@ -86,7 +86,7 @@ class ReadwriteRoutingIntegrationTest {
 
             assertThatThrownBy(() -> execute(
                             logical,
-                            "UPDATE course_schedule SET id = id"))
+                            "UPDATE evaluation_course_schedule SET id = id"))
                     .isInstanceOf(DMLWithoutShardingKeyException.class)
                     .satisfies(failure -> assertThat(failure.getMessage())
                             .containsIgnoringCase("sharding"));
@@ -104,11 +104,11 @@ class ReadwriteRoutingIntegrationTest {
 
         DataSource logical = YamlShardingSphereDataSourceFactory.createDataSource(
                 physical, evaluationShardingRule());
-        String courseId = "019ba346-0000-7000-8000-000000000301";
-        String scheduleId = "019ba346-0000-7000-8000-000000000302";
-        String examId = "019ba346-0000-7000-8000-000000000303";
-        String paperId = "019ba346-0000-7000-8000-000000000304";
-        String scoreId = "019ba346-0000-7000-8000-000000000305";
+        Long courseId = 1001L;
+        Long scheduleId = 3001L;
+        Long examId = 4001L;
+        Long paperId = 5001L;
+        Long scoreId = 7001L;
         try {
             registerTables(
                     logical,
@@ -120,28 +120,28 @@ class ReadwriteRoutingIntegrationTest {
 
             try (Connection connection = logical.getConnection()) {
                 connection.setAutoCommit(false);
-                execute(connection, "INSERT INTO course_schedule(id, course_id) VALUES ('"
-                        + scheduleId + "', '" + courseId + "')");
+                execute(connection, "INSERT INTO evaluation_course_schedule(id, course_id, tenant_id) VALUES ("
+                        + scheduleId + ", " + courseId + ", 2001)");
                 connection.commit();
             }
             assertThat(writtenDataSources(
                     physical,
-                    List.of("course_schedule"),
+                    List.of("evaluation_course_schedule"),
                     List.of(scheduleId)))
                     .hasSize(1);
 
             try (Connection connection = logical.getConnection()) {
                 connection.setAutoCommit(false);
-                execute(connection, "INSERT INTO exam(id) VALUES ('" + examId + "')");
-                execute(connection, "INSERT INTO exam_paper(id, exam_id) VALUES ('"
-                        + paperId + "', '" + examId + "')");
-                execute(connection, "INSERT INTO score(id, exam_id) VALUES ('"
-                        + scoreId + "', '" + examId + "')");
+                execute(connection, "INSERT INTO evaluation_exam(id, tenant_id) VALUES (" + examId + ", 2001)");
+                execute(connection, "INSERT INTO evaluation_exam_paper(id, exam_id, tenant_id) VALUES ("
+                        + paperId + ", " + examId + ", 2001)");
+                execute(connection, "INSERT INTO evaluation_score(id, exam_id, tenant_id) VALUES ("
+                        + scoreId + ", " + examId + ", 2001)");
                 connection.commit();
             }
             assertThat(writtenDataSources(
                     physical,
-                    List.of("exam", "exam_paper", "score"),
+                    List.of("evaluation_exam", "evaluation_exam_paper", "evaluation_score"),
                     List.of(examId, paperId, scoreId)))
                     .hasSize(1);
         } finally {
@@ -163,29 +163,29 @@ class ReadwriteRoutingIntegrationTest {
     private static void initializeCourses(DataSource dataSource, String marker) {
         executeUnchecked(
                 dataSource,
-                "CREATE TABLE course(id INTEGER PRIMARY KEY, marker VARCHAR(32))");
+                "CREATE TABLE evaluation_course(id INTEGER PRIMARY KEY, marker VARCHAR(32))");
         executeUnchecked(
                 dataSource,
-                "INSERT INTO course(id, marker) VALUES (1, '" + marker + "')");
+                "INSERT INTO evaluation_course(id, marker) VALUES (1, '" + marker + "')");
     }
 
     private static void initializeEvaluationTables(DataSource dataSource) {
         for (int suffix = 0; suffix < 2; suffix++) {
             executeUnchecked(
                     dataSource,
-                    "CREATE TABLE course_schedule_" + suffix
-                            + "(id VARCHAR(36) PRIMARY KEY, course_id VARCHAR(36) NOT NULL)");
+                    "CREATE TABLE evaluation_course_schedule_" + suffix
+                            + "(id BIGINT PRIMARY KEY, course_id BIGINT NOT NULL, tenant_id BIGINT NOT NULL)");
             executeUnchecked(
                     dataSource,
-                    "CREATE TABLE exam_" + suffix + "(id VARCHAR(36) PRIMARY KEY)");
+                    "CREATE TABLE evaluation_exam_" + suffix + "(id BIGINT PRIMARY KEY, tenant_id BIGINT NOT NULL)");
             executeUnchecked(
                     dataSource,
-                    "CREATE TABLE exam_paper_" + suffix
-                            + "(id VARCHAR(36) PRIMARY KEY, exam_id VARCHAR(36) NOT NULL)");
+                    "CREATE TABLE evaluation_exam_paper_" + suffix
+                            + "(id BIGINT PRIMARY KEY, exam_id BIGINT NOT NULL, tenant_id BIGINT NOT NULL)");
             executeUnchecked(
                     dataSource,
-                    "CREATE TABLE score_" + suffix
-                            + "(id VARCHAR(36) PRIMARY KEY, exam_id VARCHAR(36) NOT NULL)");
+                    "CREATE TABLE evaluation_score_" + suffix
+                            + "(id BIGINT PRIMARY KEY, exam_id BIGINT NOT NULL, tenant_id BIGINT NOT NULL)");
         }
     }
 
@@ -212,34 +212,38 @@ class ReadwriteRoutingIntegrationTest {
 
     private static ShardingSphereTable courseTable() {
         return table(
-                "course",
+                "evaluation_course",
                 column("id", Types.INTEGER, true, false),
                 column("marker", Types.VARCHAR, false, true));
     }
 
     private static ShardingSphereTable courseScheduleTable() {
         return table(
-                "course_schedule",
-                column("id", Types.VARCHAR, true, false),
-                column("course_id", Types.VARCHAR, false, false));
+                "evaluation_course_schedule",
+                column("id", Types.BIGINT, true, false),
+                column("course_id", Types.BIGINT, false, false),
+                column("tenant_id", Types.BIGINT, false, false));
     }
 
     private static ShardingSphereTable examTable() {
-        return table("exam", column("id", Types.VARCHAR, true, false));
+        return table("evaluation_exam", column("id", Types.BIGINT, true, false),
+                column("tenant_id", Types.BIGINT, false, false));
     }
 
     private static ShardingSphereTable examPaperTable() {
         return table(
-                "exam_paper",
-                column("id", Types.VARCHAR, true, false),
-                column("exam_id", Types.VARCHAR, false, false));
+                "evaluation_exam_paper",
+                column("id", Types.BIGINT, true, false),
+                column("exam_id", Types.BIGINT, false, false),
+                column("tenant_id", Types.BIGINT, false, false));
     }
 
     private static ShardingSphereTable scoreTable() {
         return table(
-                "score",
-                column("id", Types.VARCHAR, true, false),
-                column("exam_id", Types.VARCHAR, false, false));
+                "evaluation_score",
+                column("id", Types.BIGINT, true, false),
+                column("exam_id", Types.BIGINT, false, false),
+                column("tenant_id", Types.BIGINT, false, false));
     }
 
     private static ShardingSphereTable table(
@@ -271,17 +275,17 @@ class ReadwriteRoutingIntegrationTest {
     private static Set<String> writtenDataSources(
             Map<String, DataSource> dataSources,
             Collection<String> tablePrefixes,
-            Collection<String> ids) throws SQLException {
+            Collection<?> ids) throws SQLException {
         Set<String> result = new LinkedHashSet<>();
         for (Map.Entry<String, DataSource> entry : dataSources.entrySet()) {
             int count = 0;
             for (String tablePrefix : tablePrefixes) {
                 for (int suffix = 0; suffix < 2; suffix++) {
-                    for (String id : ids) {
+                    for (Object id : ids) {
                         count += queryCount(
                                 entry.getValue(),
                                 "SELECT COUNT(*) FROM " + tablePrefix + "_" + suffix
-                                        + " WHERE id = '" + id + "'");
+                                        + " WHERE id = " + id);
                     }
                 }
             }
@@ -301,7 +305,7 @@ class ReadwriteRoutingIntegrationTest {
     private static String queryMarker(Connection connection) throws SQLException {
         try (var statement = connection.createStatement();
                 ResultSet result = statement.executeQuery(
-                        "SELECT marker FROM course WHERE id = 1")) {
+                        "SELECT marker FROM evaluation_course WHERE id = 1")) {
             assertThat(result.next()).isTrue();
             return result.getString(1);
         }
@@ -365,8 +369,8 @@ class ReadwriteRoutingIntegrationTest {
                         type: ROUND_ROBIN
                   - !SHARDING
                     tables:
-                      course:
-                        actualDataNodes: master_data.course
+                      evaluation_course:
+                        actualDataNodes: master_data.evaluation_course
                         databaseStrategy:
                           none:
                         tableStrategy:
@@ -382,78 +386,78 @@ class ReadwriteRoutingIntegrationTest {
                 rules:
                   - !SHARDING
                     tables:
-                      course_schedule:
-                        actualDataNodes: shard_$->{0..1}.course_schedule_$->{0..1}
+                      evaluation_course_schedule:
+                        actualDataNodes: shard_$->{0..1}.evaluation_course_schedule_$->{0..1}
                         databaseStrategy:
                           standard:
-                            shardingColumn: course_id
-                            shardingAlgorithmName: uuid_v7_database_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_database_bucket
                         tableStrategy:
                           standard:
-                            shardingColumn: course_id
-                            shardingAlgorithmName: uuid_v7_table_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_table_bucket
                         auditStrategy:
                           auditorNames:
                             - sharding_key_required_auditor
                           allowHintDisable: false
-                      exam:
-                        actualDataNodes: shard_$->{0..1}.exam_$->{0..1}
+                      evaluation_exam:
+                        actualDataNodes: shard_$->{0..1}.evaluation_exam_$->{0..1}
                         databaseStrategy:
                           standard:
-                            shardingColumn: id
-                            shardingAlgorithmName: uuid_v7_database_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_database_bucket
                         tableStrategy:
                           standard:
-                            shardingColumn: id
-                            shardingAlgorithmName: uuid_v7_table_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_table_bucket
                         auditStrategy:
                           auditorNames:
                             - sharding_key_required_auditor
                           allowHintDisable: false
-                      exam_paper:
-                        actualDataNodes: shard_$->{0..1}.exam_paper_$->{0..1}
+                      evaluation_exam_paper:
+                        actualDataNodes: shard_$->{0..1}.evaluation_exam_paper_$->{0..1}
                         databaseStrategy:
                           standard:
-                            shardingColumn: exam_id
-                            shardingAlgorithmName: uuid_v7_database_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_database_bucket
                         tableStrategy:
                           standard:
-                            shardingColumn: exam_id
-                            shardingAlgorithmName: uuid_v7_table_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_table_bucket
                         auditStrategy:
                           auditorNames:
                             - sharding_key_required_auditor
                           allowHintDisable: false
-                      score:
-                        actualDataNodes: shard_$->{0..1}.score_$->{0..1}
+                      evaluation_score:
+                        actualDataNodes: shard_$->{0..1}.evaluation_score_$->{0..1}
                         databaseStrategy:
                           standard:
-                            shardingColumn: exam_id
-                            shardingAlgorithmName: uuid_v7_database_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_database_bucket
                         tableStrategy:
                           standard:
-                            shardingColumn: exam_id
-                            shardingAlgorithmName: uuid_v7_table_bucket
+                            shardingColumn: tenant_id
+                            shardingAlgorithmName: tenant_long_table_bucket
                         auditStrategy:
                           auditorNames:
                             - sharding_key_required_auditor
                           allowHintDisable: false
                     bindingTables:
-                      - exam,exam_paper,score
+                      - evaluation_exam,evaluation_exam_paper,evaluation_score
                     shardingAlgorithms:
-                      uuid_v7_database_bucket:
+                      tenant_long_database_bucket:
                         type: CLASS_BASED
                         props:
                           strategy: STANDARD
-                          algorithmClassName: ${package}.infrastructure.config.datasource.UuidV7BucketShardingAlgorithm
+                          algorithmClassName: ${package}.infrastructure.config.datasource.LongTenantShardingAlgorithm
                           target: database
                           node-count: 4
                           node-map: 0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1
-                      uuid_v7_table_bucket:
+                      tenant_long_table_bucket:
                         type: CLASS_BASED
                         props:
                           strategy: STANDARD
-                          algorithmClassName: ${package}.infrastructure.config.datasource.UuidV7BucketShardingAlgorithm
+                          algorithmClassName: ${package}.infrastructure.config.datasource.LongTenantShardingAlgorithm
                           target: table
                           node-count: 4
                           node-map: 0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1

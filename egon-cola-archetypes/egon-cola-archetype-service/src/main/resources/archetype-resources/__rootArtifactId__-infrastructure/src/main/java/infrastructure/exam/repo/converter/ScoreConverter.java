@@ -2,27 +2,34 @@
 #set( $symbol_dollar = '$' )
 #set( $symbol_escape = '\\' )
 package ${package}.infrastructure.exam.repo.converter;
+
+import ${package}.domain.course.vos.CourseId;
 import ${package}.domain.exam.entities.Score;
 import ${package}.domain.exam.enums.ScoreStatus;
-import ${package}.domain.course.vos.CourseId;
 import ${package}.domain.exam.vos.ExamId;
 import ${package}.domain.exam.vos.ScoreValue;
-import ${package}.infrastructure.exam.repo.po.ScorePo;
-import java.time.Instant;
-import org.springframework.stereotype.Component;
-@Component
-public class ScoreConverter {
-    public ScorePo toPo(Score score, Instant createdAt) {
-        return new ScorePo(score.getId(), score.getExamId().value(), score.getCourseId().value(),
-                score.getStudentId(), score.getPoints().value(), score.getStatus().name(), createdAt, Instant.now());
-    }
-    public ScorePo updatePo(Score score, ScorePo po) {
-        po.update(score.getCourseId().value(), score.getStudentId(), score.getPoints().value(),
-                score.getStatus().name(), Instant.now());
-        return po;
-    }
-    public Score toDomain(ScorePo po) {
-        return new Score(po.getId(), new ExamId(po.getExamId()), new CourseId(po.getCourseId()),
-                po.getStudentId(), new ScoreValue(po.getPoints()), ScoreStatus.valueOf(po.getStatus()));
+import ${package}.infrastructure.exam.repo.po.ScorePO;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.ReportingPolicy;
+import top.egon.cola.component.common.core.converter.BaseConverter;
+
+@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+public interface ScoreConverter extends BaseConverter<Score, ScorePO> {
+
+    @Override
+    @Mapping(target = "examId", expression = "java(source.getExamId().value())")
+    @Mapping(target = "courseId", expression = "java(source.getCourseId().value())")
+    @Mapping(target = "studentId", source = "studentId")
+    @Mapping(target = "points", expression = "java(source.getPoints().value())")
+    @Mapping(target = "status", expression = "java(source.getStatus().name())")
+    ScorePO toTarget(Score source);
+
+    @Override
+    default Score toSource(ScorePO target) {
+        return new Score(
+                target.getId(), new ExamId(target.getExamId()), new CourseId(target.getCourseId()),
+                target.getStudentId(), new ScoreValue(target.getPoints()),
+                ScoreStatus.valueOf(target.getStatus()));
     }
 }

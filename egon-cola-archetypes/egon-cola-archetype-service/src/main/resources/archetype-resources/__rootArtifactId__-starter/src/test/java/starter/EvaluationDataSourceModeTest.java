@@ -21,7 +21,11 @@ class EvaluationDataSourceModeTest {
                 "db/migration/sharding/master-data/"
                         + "V20260726_001__init_evaluation_master_data_schema.sql",
                 "db/migration/sharding/shard/"
-                        + "V20260726_002__init_evaluation_sharded_schema.sql");
+                        + "V20260726_002__init_evaluation_sharded_schema.sql",
+                "db/migration/sharding/master-data/"
+                        + "V20260825_001__migrate_evaluation_master_data_to_egon_model.sql",
+                "db/migration/sharding/shard/"
+                        + "V20260825_002__migrate_evaluation_sharded_to_tenant_model.sql");
 
         for (String resource : resources) {
             String sql = new ClassPathResource(resource)
@@ -34,7 +38,7 @@ class EvaluationDataSourceModeTest {
         assertThat(resources)
                 .extracting(path -> path.substring(
                         path.indexOf('V') + 10, path.indexOf("__")))
-                .containsExactly("001", "002");
+                .containsExactly("001", "002", "001", "002");
     }
 
     @Test
@@ -75,7 +79,7 @@ class EvaluationDataSourceModeTest {
                     .contains("ShardingSphereDataSource");
             assertThat(context.getBeansOfType(Flyway.class)).isEmpty();
             assertThat(context.getBean(
-                            jakarta.persistence.EntityManagerFactory.class))
+                            top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties.class))
                     .isNotNull();
         }
     }

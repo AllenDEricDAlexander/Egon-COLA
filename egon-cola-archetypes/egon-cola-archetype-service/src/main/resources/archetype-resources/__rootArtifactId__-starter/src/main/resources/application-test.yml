@@ -5,14 +5,6 @@ spring:
     clean-disabled: false
     validate-on-migrate: true
     validate-migration-naming: true
-  jpa:
-    hibernate:
-      # ShardingSphere does not load complete metadata from the H2 route-probe stores.
-      # Flyway schema parity and routing are verified by dedicated integration tests.
-      ddl-auto: none
-    open-in-view: false
-    show-sql: false
-
 app:
   datasource:
     mode: ${symbol_dollar}{APP_DATASOURCE_MODE:SHARDING}
