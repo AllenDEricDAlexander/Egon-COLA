@@ -200,7 +200,7 @@ public class GlobalResourceCatalogService {
                 String.valueOf(row[0]), String.valueOf(row[1]), String.valueOf(row[2]),
                 String.valueOf(row[3]), String.valueOf(row[4]),
                 row[5] == null ? null : String.valueOf(row[5]),
-                row[6] == null ? null : String.valueOf(row[6]),
+                row[6] == null ? "UNCONFIGURED" : "CONFIGURED",
                 String.valueOf(row[7]), ((Number) row[8]).longValue());
     }
 

@@ -381,6 +381,22 @@ public class ResourcePO extends GlobalAuditedPO {
         return suggestedPermissionCode;
     }
 
+    /** Changes the authoritative mapping; CI suggestion updates must use the separate method above. */
+    public boolean confirmActualPermission(
+            Long permissionId,
+            String actorId,
+            Instant now) {
+        if (permissionId == null || permissionId <= 0L) {
+            throw new IllegalArgumentException("permissionId must be positive");
+        }
+        if (permissionId.equals(requiredPermissionId)) {
+            return false;
+        }
+        requiredPermissionId = permissionId;
+        markUpdated(actorId, Objects.requireNonNull(now, "now"));
+        return true;
+    }
+
     /**
      * 方法 `getStatus` 按照 `ResourcePO` 的职责处理输入，完成 `get ResourceStatusEnum` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
      * Method `getStatus` processes its inputs according to `ResourcePO`'s responsibility, performs the `get ResourceStatusEnum` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.

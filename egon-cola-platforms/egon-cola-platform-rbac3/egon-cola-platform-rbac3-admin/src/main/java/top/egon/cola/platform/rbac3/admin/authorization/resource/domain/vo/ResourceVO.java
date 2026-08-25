@@ -17,7 +17,7 @@ import java.util.Objects;
      * @param resourceCode 记录组件 `resourceCode` 表示构造该记录时传入的业务数据，其取值含义由所属记录的契约定义；record component `resourceCode` carries constructor data whose meaning is defined by the record contract.
      * @param resourceName 记录组件 `resourceName` 表示构造该记录时传入的业务数据，其取值含义由所属记录的契约定义；record component `resourceName` carries constructor data whose meaning is defined by the record contract.
      * @param parentResourceId 记录组件 `parentResourceId` 表示构造该记录时传入的业务数据，其取值含义由所属记录的契约定义；record component `parentResourceId` carries constructor data whose meaning is defined by the record contract.
-     * @param requiredPermissionId 记录组件 `requiredPermissionId` 表示构造该记录时传入的业务数据，其取值含义由所属记录的契约定义；record component `requiredPermissionId` carries constructor data whose meaning is defined by the record contract.
+     * @param mappingStatus 记录组件 `mappingStatus` 表示实际权限映射是否已配置；record component `mappingStatus` reports whether the actual mapping is configured.
      * @param status 记录组件 `status` 表示构造该记录时传入的业务数据，其取值含义由所属记录的契约定义；record component `status` carries constructor data whose meaning is defined by the record contract.
      * @param version 记录组件 `version` 表示构造该记录时传入的业务数据，其取值含义由所属记录的契约定义；record component `version` carries constructor data whose meaning is defined by the record contract.
      */
@@ -71,13 +71,11 @@ import java.util.Objects;
              */
             String parentResourceId,
             /**
-             * 字段 `requiredPermissionId` 表示 `ResourceVO` 中与 `required Permission Id` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-             * Field `requiredPermissionId` stores the `required Permission Id`-related state, dependency, configuration, or result of `ResourceVO` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
+             * 字段 `mappingStatus` 表示 `ResourceVO` 中实际权限映射的配置状态；field `mappingStatus` reports the actual mapping state.
              *
-             * 含义与用法：读取、传递或更新 `requiredPermissionId` 时应保持 `ResourceVO` 的生命周期、不可变性和线程安全约束。
-             * Meaning and usage: when reading, passing, or updating `requiredPermissionId`, preserve `ResourceVO`'s lifecycle, immutability, and thread-safety constraints.
+             * 普通资源目录不会暴露权限字符或权限 ID；管理员映射接口负责读取和修改实际映射。
              */
-            String requiredPermissionId,
+            String mappingStatus,
             /**
              * 字段 `status` 表示 `ResourceVO` 中与 `status` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
              * Field `status` stores the `status`-related state, dependency, configuration, or result of `ResourceVO` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
