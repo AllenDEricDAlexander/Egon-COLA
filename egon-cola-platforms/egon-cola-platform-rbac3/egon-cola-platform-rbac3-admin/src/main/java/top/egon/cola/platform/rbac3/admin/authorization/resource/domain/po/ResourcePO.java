@@ -92,6 +92,9 @@ public class ResourcePO extends GlobalAuditedPO {
      */
     @Column(name = "required_permission_id")
     private Long requiredPermissionId;
+
+    @Column(name = "suggested_permission_code", length = 128)
+    private String suggestedPermissionCode;
     /**
      * 字段 `status` 表示 `ResourcePO` 中与 `status` 相关的状态、依赖、配置或结果（声明类型 `ResourceStatusEnum`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `status` stores the `status`-related state, dependency, configuration, or result of `ResourcePO` (declared type `ResourceStatusEnum`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -192,6 +195,19 @@ public class ResourcePO extends GlobalAuditedPO {
             Long requiredPermissionId, Long sourceManifestId, String sourceBuildId,
             Map<String, Object> mechanicalFacts, Map<String, Object> displayMetadata,
             String actorId, Instant now) {
+        this(
+                id, tenantId, applicationId, resourceType, resourceCode, resourceName,
+                parentResourceId, requiredPermissionId, null, sourceManifestId,
+                sourceBuildId, mechanicalFacts, displayMetadata, actorId, now);
+    }
+
+    public ResourcePO(
+            Long id, Long tenantId, Long applicationId, ResourceTypeEnum resourceType,
+            String resourceCode, String resourceName, Long parentResourceId,
+            Long requiredPermissionId, String suggestedPermissionCode,
+            Long sourceManifestId, String sourceBuildId,
+            Map<String, Object> mechanicalFacts, Map<String, Object> displayMetadata,
+            String actorId, Instant now) {
         this.id = Objects.requireNonNull(id, "id");
         setTenantId(Objects.requireNonNull(tenantId, "tenantId"));
         this.applicationId = Objects.requireNonNull(applicationId, "applicationId");
@@ -200,12 +216,22 @@ public class ResourcePO extends GlobalAuditedPO {
         this.resourceName = required(resourceName, "resourceName");
         this.parentResourceId = parentResourceId;
         this.requiredPermissionId = requiredPermissionId;
+        this.suggestedPermissionCode = optional(suggestedPermissionCode);
         this.status = ResourceStatusEnum.PENDING_VALIDATION;
         this.sourceManifestId = sourceManifestId;
         this.sourceBuildId = sourceBuildId;
         this.mechanicalFacts = Map.copyOf(mechanicalFacts);
         this.displayMetadata = Map.copyOf(displayMetadata);
         markCreated(actorId, now);
+    }
+
+    /** Updates only the non-authoritative CI suggestion; actual mapping is untouched. */
+    public void updateSuggestedPermissionCode(
+            String suggestedPermissionCode,
+            String actorId,
+            Instant now) {
+        this.suggestedPermissionCode = optional(suggestedPermissionCode);
+        markUpdated(actorId, Objects.requireNonNull(now, "now"));
     }
 
     /**
@@ -351,6 +377,10 @@ public class ResourcePO extends GlobalAuditedPO {
         return requiredPermissionId;
     }
 
+    public String getSuggestedPermissionCode() {
+        return suggestedPermissionCode;
+    }
+
     /**
      * 方法 `getStatus` 按照 `ResourcePO` 的职责处理输入，完成 `get ResourceStatusEnum` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
      * Method `getStatus` processes its inputs according to `ResourcePO`'s responsibility, performs the `get ResourceStatusEnum` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
@@ -393,5 +423,9 @@ public class ResourcePO extends GlobalAuditedPO {
     private static String required(String value, String fieldName) {
         if (value == null || value.isBlank()) throw new IllegalArgumentException(fieldName + " is required");
         return value.trim();
+    }
+
+    private static String optional(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }
