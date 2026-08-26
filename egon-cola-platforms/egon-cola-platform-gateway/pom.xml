@@ -23,6 +23,9 @@
         <module>egon-cola-platform-gateway-engine</module>
         <module>egon-cola-platform-gateway-admin</module>
         <module>egon-cola-platform-gateway-starter</module>
+        <module>egon-cola-platform-gateway-starter-openapi</module>
+        <module>egon-cola-platform-gateway-starter-openapi-webmvc</module>
+        <module>egon-cola-platform-gateway-starter-openapi-webflux</module>
         <module>egon-cola-platform-gateway-test</module>
     </modules>
 
@@ -56,6 +59,21 @@
             <dependency>
                 <groupId>top.egon</groupId>
                 <artifactId>egon-cola-platform-gateway-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-gateway-starter-openapi</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-gateway-starter-openapi-webmvc</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-platform-gateway-starter-openapi-webflux</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
