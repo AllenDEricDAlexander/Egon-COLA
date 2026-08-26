@@ -38,6 +38,9 @@ import type {
     McpToolReference,
     McpValidationReport,
     OperationDetail,
+    GatewayOpenApiDocument,
+    GatewayOpenApiSyncState,
+    GatewayOperationOpenApi,
     Page,
     ProviderInstance,
     RuntimeConsistency,
@@ -281,6 +284,21 @@ export const gatewayApi = {
   ),
   operation: (operationId: string, signal?: AbortSignal) =>
     apiRequest<OperationDetail>(`${admin}/operations/${operationId}`, { signal }),
+  openapiSyncStates: (filters: Partial<Scope> = {}, signal?: AbortSignal) =>
+    apiRequest<GatewayOpenApiSyncState[]>(
+      withQuery(`${admin}/openapi/sync-states`, filters),
+      { signal },
+    ),
+  operationOpenApi: (operationId: string, signal?: AbortSignal) =>
+    apiRequest<GatewayOperationOpenApi>(
+      `${admin}/operations/${encodeURIComponent(operationId)}/openapi`,
+      { signal },
+    ),
+  openapiSnapshotDocument: (snapshotId: string, signal?: AbortSignal) =>
+    apiRequest<GatewayOpenApiDocument>(
+      `${admin}/openapi/snapshots/${encodeURIComponent(snapshotId)}/document`,
+      { signal },
+    ),
   draft: async (groupId: string, signal?: AbortSignal) =>
     mapDraft(await apiRequest<DraftResponse>(
       `${admin}/gateway-groups/${groupId}/draft`,

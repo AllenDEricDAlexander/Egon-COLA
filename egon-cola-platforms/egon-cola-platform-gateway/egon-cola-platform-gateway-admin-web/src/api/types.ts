@@ -122,7 +122,7 @@ export type OperationNode = {
   methodIdentity: string
   externalAccessible: boolean
   lifecycleStatus: string
-  sourceType: 'STARTER' | 'MANUAL' | string
+  sourceType: GatewayOpenApiSourceType | string
   revision: number
 }
 
@@ -130,7 +130,7 @@ export type InterfaceGroupNode = {
   id: string
   code: string
   displayName: string
-  sourceType: 'STARTER' | 'MANUAL' | string
+  sourceType: GatewayOpenApiSourceType | string
   className?: string
   operations: OperationNode[]
 }
@@ -179,6 +179,68 @@ export type OperationDetail = {
     currentDefinitionId?: string
   }
   definitions: OperationDefinition[]
+}
+
+export type GatewayOpenApiSourceType = 'MANUAL' | 'RPC_DESCRIPTOR' | 'OPENAPI31'
+
+export type GatewayOpenApiSyncStatus =
+  | 'DISCOVERED'
+  | 'FETCHING'
+  | 'VALIDATING'
+  | 'INVALID'
+  | 'INCONSISTENT_BUILD'
+  | 'INGESTING'
+  | 'VALID'
+  | 'INGEST_FAILED'
+  | 'FETCH_FAILED'
+  | 'STALE'
+  | string
+
+export type GatewayOpenApiSyncState = {
+  id: string
+  applicationId: string
+  buildId: string
+  artifactVersion: string
+  openapiGroup: string
+  sourceType: GatewayOpenApiSourceType | string
+  status: GatewayOpenApiSyncStatus
+  snapshotId: string | null
+  definitionSetId: string | null
+  operationCount: number | null
+  schemaCount: number | null
+  canonicalSha256: string | null
+  lastErrorCode: string | null
+  lastErrorMessage: string | null
+  lastAttemptAt: string | null
+  lastSuccessAt: string | null
+  nextRetryAt: string | null
+}
+
+export type GatewayOperationOpenApi = {
+  operationId: string
+  operationKey: string
+  snapshotId: string
+  openapiVersion: string
+  openapiGroup: string
+  path: string
+  method: string
+  openapiOperationId: string
+  requestContentTypes: string[]
+  responseContentTypes: string[]
+  operation: Record<string, unknown>
+  syncedAt: string
+}
+
+export type GatewayOpenApiDocument = {
+  snapshotId: string
+  applicationId: string
+  buildId: string
+  openapiVersion: string
+  documentSha256: string
+  canonicalSha256: string
+  document: Record<string, unknown>
+  fetchedAt: string
+  validatedAt: string
 }
 
 export type GatewayRouteProfile = 'DEFAULT' | 'OPENAI_HTTP'

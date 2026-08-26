@@ -10,20 +10,71 @@ import {
   Select,
   Space,
   Table,
+  Tag,
   Typography,
   message,
 } from 'antd'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { gatewayApi } from '../../api/gatewayApi'
 import { GatewayApiError } from '../../api/client'
-import type { Application, Credential, IssuedCredential } from '../../api/types'
+import type {
+  Application,
+  Credential,
+  GatewayOpenApiSyncState,
+  IssuedCredential,
+} from '../../api/types'
 import { useCapability } from '../../app/capabilities'
 import { JsonPanel } from '../../components/JsonPanel'
 import { LoadingBlock, QueryFailure } from '../../components/QueryState'
 import { GatewayScopeFilter } from '../../components/GatewayScopeFilter'
 import { useGatewayScopeBindings } from '../../hooks/useGatewayScopeBindings'
 import { readScopeSearchParams, writeScopeSearchParams } from '../../hooks/scopeSearchParams'
+
+const openApiStatusOrder = [
+  'INCONSISTENT_BUILD',
+  'INVALID',
+  'INGEST_FAILED',
+  'FETCH_FAILED',
+  'STALE',
+  'FETCHING',
+  'VALIDATING',
+  'INGESTING',
+  'DISCOVERED',
+  'NOT_DISCOVERED',
+  'VALID',
+] as const
+
+const openApiStatusRank = (status: string): number => {
+  const index = openApiStatusOrder.indexOf(status as typeof openApiStatusOrder[number])
+  return index < 0 ? openApiStatusOrder.length + 1 : openApiStatusOrder.length - index
+}
+
+const observedAt = (state: GatewayOpenApiSyncState): number => Math.max(
+  Date.parse(state.lastAttemptAt ?? '') || 0,
+  Date.parse(state.lastSuccessAt ?? '') || 0,
+  Date.parse(state.nextRetryAt ?? '') || 0,
+)
+
+const primaryBuild = (states: GatewayOpenApiSyncState[]): string | undefined => [...new Set(
+  states.map((state) => state.buildId),
+)].sort((left, right) => {
+  const leftTime = Math.max(...states.filter((state) => state.buildId === left).map(observedAt))
+  const rightTime = Math.max(...states.filter((state) => state.buildId === right).map(observedAt))
+  return rightTime - leftTime || right.localeCompare(left)
+})[0]
+
+const OpenApiStatusTag = ({ status }: { status: string }) => {
+  const normalized = status || 'NOT_DISCOVERED'
+  const color = normalized === 'VALID'
+    ? 'success'
+    : ['INCONSISTENT_BUILD', 'INVALID', 'INGEST_FAILED', 'FETCH_FAILED'].includes(normalized)
+      ? 'error'
+      : ['STALE', 'FETCHING', 'VALIDATING', 'INGESTING'].includes(normalized)
+        ? 'processing'
+        : 'default'
+  return <Tag color={color}>{normalized}</Tag>
+}
 
 export const ApplicationsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -40,6 +91,19 @@ export const ApplicationsPage = () => {
     queryKey: ['applications', filters],
     queryFn: ({ signal }) => gatewayApi.applications(filters, signal),
   })
+  const openapiSync = useQuery({
+    queryKey: ['openapi-sync-states', filters],
+    queryFn: ({ signal }) => gatewayApi.openapiSyncStates(filters, signal),
+  })
+  const syncStatesByApplication = useMemo(() => {
+    const states = new Map<string, GatewayOpenApiSyncState[]>()
+    for (const state of openapiSync.data ?? []) {
+      const current = states.get(state.applicationId) ?? []
+      current.push(state)
+      states.set(state.applicationId, current)
+    }
+    return states
+  }, [openapiSync.data])
   const credentials = useQuery({
     queryKey: ['credentials', application?.id],
     queryFn: ({ signal }) => gatewayApi.credentials(application!.id, signal),
@@ -103,6 +167,78 @@ export const ApplicationsPage = () => {
 
   if (applications.isLoading) return <LoadingBlock />
   if (applications.error) return <QueryFailure error={applications.error} />
+  const openApiStates = (application: Application) =>
+    syncStatesByApplication.get(application.id) ?? []
+  const openApiSummary = (application: Application) => {
+    const states = openApiStates(application)
+    if (openapiSync.isLoading) return <Tag>加载中</Tag>
+    if (!states.length) return <OpenApiStatusTag status="NOT_DISCOVERED" />
+    const buildId = primaryBuild(states)
+    const currentBuildStates = states.filter((state) => state.buildId === buildId)
+    const worst = [...currentBuildStates].sort(
+      (left, right) => openApiStatusRank(right.status) - openApiStatusRank(left.status),
+    )[0]
+    const setIds = [...new Set(currentBuildStates
+      .map((state) => state.definitionSetId)
+      .filter((value): value is string => Boolean(value)))]
+    const aggregateComplete = currentBuildStates.length > 0
+      && currentBuildStates.every((state) => state.status === 'VALID')
+      && setIds.length === 1
+    return (
+      <Space direction="vertical" size={0}>
+        <Space size={4}>
+          <OpenApiStatusTag status={worst.status} />
+          <Typography.Text type="secondary">Build {buildId}</Typography.Text>
+        </Space>
+        <Typography.Text type="secondary">
+          {aggregateComplete ? `Aggregate · ${setIds[0]}` : 'Aggregate · set 未完成'}
+        </Typography.Text>
+      </Space>
+    )
+  }
+  const openApiDetail = (application: Application) => {
+    const states = openApiStates(application)
+    const buildId = primaryBuild(states)
+    const rows = states
+      .sort((left, right) => {
+        const leftPrimary = left.buildId === buildId
+        const rightPrimary = right.buildId === buildId
+        if (leftPrimary !== rightPrimary) return leftPrimary ? -1 : 1
+        return left.buildId.localeCompare(right.buildId)
+          || left.openapiGroup.localeCompare(right.openapiGroup)
+      })
+    return (
+      <Table<GatewayOpenApiSyncState>
+        size="small"
+        pagination={false}
+        rowKey="id"
+        dataSource={rows}
+        columns={[
+          { title: 'Group', dataIndex: 'openapiGroup' },
+          { title: 'Source', dataIndex: 'sourceType' },
+          {
+            title: '状态',
+            dataIndex: 'status',
+            render: (status: string) => <OpenApiStatusTag status={status} />,
+          },
+          { title: 'Build', dataIndex: 'buildId' },
+          {
+            title: 'Canonical SHA-256',
+            dataIndex: 'canonicalSha256',
+            render: (value: string | null) => value
+              ? <Typography.Text code copyable={{ text: value }}>{value}</Typography.Text>
+              : '—',
+          },
+          {
+            title: '错误',
+            render: (_: unknown, state: GatewayOpenApiSyncState) => state.lastErrorCode
+              ? <Typography.Text type="danger">{state.lastErrorCode}: {state.lastErrorMessage}</Typography.Text>
+              : '—',
+          },
+        ]}
+      />
+    )
+  }
   return (
     <section>
       <Space className="page-title" align="center">
@@ -129,12 +265,29 @@ export const ApplicationsPage = () => {
       <Table<Application>
         rowKey="id"
         dataSource={applications.data}
+        expandable={{
+          rowExpandable: (application) => openApiStates(application).length > 0,
+          expandedRowRender: openApiDetail,
+          expandIcon: ({ expanded, onExpand, record }) => openApiStates(record).length > 0
+            ? (
+              <Button
+                type="link"
+                size="small"
+                aria-label={`${expanded ? '收起' : '展开'} OpenAPI Groups ${record.displayName}`}
+                onClick={(event) => onExpand(record, event)}
+              >
+                {expanded ? '收起 Groups' : '查看 Groups'}
+              </Button>
+            )
+            : null,
+        }}
         columns={[
           { title: 'Biz', dataIndex: 'bizCode' },
           { title: 'Code', dataIndex: 'applicationCode' },
           { title: '名称', dataIndex: 'displayName' },
           { title: 'Env', dataIndex: 'env' },
           { title: 'Namespace', dataIndex: 'namespace' },
+          { title: 'OpenAPI 状态', key: 'openapi', render: (_, row) => openApiSummary(row) },
           { title: 'Revision', dataIndex: 'revision' },
           {
             title: '操作',
@@ -155,6 +308,16 @@ export const ApplicationsPage = () => {
           },
         ]}
       />
+      {openapiSync.error && (
+        <Alert
+          className="section-row"
+          type="warning"
+          showIcon
+          message="OpenAPI 同步状态暂不可用"
+          description={<QueryFailure error={openapiSync.error} />}
+          action={<Button onClick={() => void openapiSync.refetch()}>重试</Button>}
+        />
+      )}
       <Modal
         title={editing?.id ? '编辑 Application' : '新建 Application'}
         open={Boolean(editing)}

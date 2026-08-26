@@ -15,12 +15,14 @@ const scope = {
 
 const mocks = vi.hoisted(() => ({
   applications: vi.fn(),
+  openapiSyncStates: vi.fn(),
   createApplication: vi.fn(),
 }))
 
 vi.mock('../../api/gatewayApi', () => ({
   gatewayApi: {
     applications: mocks.applications,
+    openapiSyncStates: mocks.openapiSyncStates,
     createApplication: mocks.createApplication,
     updateApplication: vi.fn(),
     credentials: vi.fn(),
@@ -90,6 +92,7 @@ const renderPage = () => {
 
 beforeEach(() => {
   mocks.applications.mockReset().mockResolvedValue([])
+  mocks.openapiSyncStates.mockReset().mockResolvedValue([])
   mocks.createApplication.mockReset().mockResolvedValue({
     id: 'application-order',
     applicationCode: 'order',
@@ -165,5 +168,91 @@ describe('ApplicationsPage DDC identity', () => {
     expect(await screen.findByText(
       'gateway application already exists: application-order',
     )).toBeInTheDocument()
+  })
+})
+
+describe('ApplicationsPage OpenAPI aggregation', () => {
+  it('shows the newest build worst status and expandable Group details', async () => {
+    mocks.applications.mockResolvedValue([{
+      id: 'application-order',
+      applicationCode: 'order',
+      displayName: 'Order Gateway',
+      ...scope,
+      ddcMatched: true,
+      revision: 0,
+    }])
+    mocks.openapiSyncStates.mockResolvedValue([
+      {
+        id: 'sync-orders',
+        applicationId: 'application-order',
+        buildId: 'build-2',
+        artifactVersion: '2.0.0',
+        openapiGroup: 'orders',
+        sourceType: 'OPENAPI31',
+        status: 'VALID',
+        snapshotId: 'snapshot-orders',
+        definitionSetId: 'set-2',
+        operationCount: 2,
+        schemaCount: 1,
+        canonicalSha256: 'a'.repeat(64),
+        lastErrorCode: null,
+        lastErrorMessage: null,
+        lastAttemptAt: '2026-08-26T03:00:00Z',
+        lastSuccessAt: '2026-08-26T03:00:01Z',
+        nextRetryAt: null,
+      },
+      {
+        id: 'sync-inventory',
+        applicationId: 'application-order',
+        buildId: 'build-2',
+        artifactVersion: '2.0.0',
+        openapiGroup: 'inventory',
+        sourceType: 'OPENAPI31',
+        status: 'INCONSISTENT_BUILD',
+        snapshotId: 'snapshot-inventory',
+        definitionSetId: null,
+        operationCount: 1,
+        schemaCount: 1,
+        canonicalSha256: 'b'.repeat(64),
+        lastErrorCode: 'GATEWAY_OPENAPI_GROUP_DRIFT',
+        lastErrorMessage: 'inventory document drifted',
+        lastAttemptAt: '2026-08-26T03:00:00Z',
+        lastSuccessAt: null,
+        nextRetryAt: null,
+      },
+      {
+        id: 'sync-old',
+        applicationId: 'application-order',
+        buildId: 'build-1',
+        artifactVersion: '1.0.0',
+        openapiGroup: 'orders',
+        sourceType: 'OPENAPI31',
+        status: 'VALID',
+        snapshotId: 'snapshot-old',
+        definitionSetId: 'set-1',
+        operationCount: 1,
+        schemaCount: 1,
+        canonicalSha256: 'c'.repeat(64),
+        lastErrorCode: null,
+        lastErrorMessage: null,
+        lastAttemptAt: '2026-08-25T03:00:00Z',
+        lastSuccessAt: '2026-08-25T03:00:01Z',
+        nextRetryAt: null,
+      },
+    ])
+
+    renderPage()
+
+    expect(await screen.findByText('Order Gateway')).toBeInTheDocument()
+    expect(screen.getByText('INCONSISTENT_BUILD')).toBeInTheDocument()
+    expect(screen.getByText('Aggregate · set 未完成')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', {
+      name: '展开 OpenAPI Groups Order Gateway',
+    }))
+
+    expect(await screen.findByText('inventory')).toBeInTheDocument()
+    expect(screen.getByText(/GATEWAY_OPENAPI_GROUP_DRIFT/)).toBeInTheDocument()
+    expect(screen.getByText(/inventory document drifted/)).toBeInTheDocument()
   })
 })

@@ -19,39 +19,61 @@ import { useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import type { DataNode } from 'antd/es/tree'
 import { gatewayApi } from '../../api/gatewayApi'
-import type { CatalogTree } from '../../api/types'
+import type { CatalogTree, GatewayOpenApiSourceType } from '../../api/types'
 import { EmptyBlock, LoadingBlock, QueryFailure } from '../../components/QueryState'
 import { GatewayScopeFilter } from '../../components/GatewayScopeFilter'
 import { readScopeSearchParams, writeScopeSearchParams } from '../../hooks/scopeSearchParams'
 import { useCapability } from '../../app/capabilities'
 
-const toTree = (catalog: CatalogTree, search: string): DataNode[] => {
+const sourceOptions: Array<{ value: 'ALL' | GatewayOpenApiSourceType; label: string }> = [
+  { value: 'ALL', label: '全部来源' },
+  { value: 'MANUAL', label: 'MANUAL' },
+  { value: 'RPC_DESCRIPTOR', label: 'RPC_DESCRIPTOR' },
+  { value: 'OPENAPI31', label: 'OPENAPI31' },
+]
+
+export const toTree = (
+  catalog: CatalogTree,
+  search: string,
+  sourceType: 'ALL' | GatewayOpenApiSourceType,
+): DataNode[] => {
   const keyword = search.toLowerCase()
-  return catalog.businessDomains.map((business) => ({
-    key: `b:${business.id}`,
-    title: `${business.displayName} (${business.code})`,
-    children: business.entityDomains.map((entity) => ({
-      key: `e:${entity.id}`,
-      title: `${entity.displayName} (${entity.code})`,
-      children: entity.interfaceGroups.map((group) => ({
-        key: `g:${group.id}`,
-        title: (
-          <Space>
-            {group.displayName}
-            <Tag>{group.sourceType}</Tag>
-          </Space>
-        ),
-        children: group.operations
+  return catalog.businessDomains.flatMap((business) => {
+    const entities = business.entityDomains.flatMap((entity) => {
+      const groups = entity.interfaceGroups.flatMap((group) => {
+        if (sourceType !== 'ALL' && group.sourceType !== sourceType) return []
+        const operations = group.operations
           .filter((operation) =>
             `${operation.operationKey} ${operation.methodIdentity}`.toLowerCase().includes(keyword),
           )
           .map((operation) => ({
             key: `o:${operation.id}`,
             title: <Link to={`/operations/${operation.id}`}>{operation.methodIdentity}</Link>,
-          })),
-      })),
-    })),
-  }))
+          }))
+        if (!operations.length && (keyword || sourceType !== 'ALL')) return []
+        return [{
+          key: `g:${group.id}`,
+          title: (
+            <Space>
+              {group.displayName}
+              <Tag>{group.sourceType}</Tag>
+            </Space>
+          ),
+          children: operations,
+        }]
+      })
+      return groups.length ? [{
+        key: `e:${entity.id}`,
+        title: `${entity.displayName} (${entity.code})`,
+        children: groups,
+      }] : []
+    })
+    return entities.length ? [{
+      key: `b:${business.id}`,
+      title: `${business.displayName} (${business.code})`,
+      children: entities,
+    }] : []
+  })
 }
 
 export const CatalogPage = () => {
@@ -60,6 +82,7 @@ export const CatalogPage = () => {
   const filters = readScopeSearchParams(searchParams, ['bizCode', 'namespace', 'env', 'appCode'])
   const [applicationId, setApplicationId] = useState<string>()
   const [search, setSearch] = useState('')
+  const [sourceType, setSourceType] = useState<'ALL' | GatewayOpenApiSourceType>('ALL')
   const [hierarchyOpen, setHierarchyOpen] = useState(false)
   const [operationOpen, setOperationOpen] = useState(false)
   const [hierarchyForm] = Form.useForm()
@@ -80,7 +103,10 @@ export const CatalogPage = () => {
     queryFn: ({ signal }) => gatewayApi.catalog(selected!, signal),
     enabled: Boolean(selected),
   })
-  const tree = useMemo(() => (catalog.data ? toTree(catalog.data, search) : []), [catalog.data, search])
+  const tree = useMemo(
+    () => (catalog.data ? toTree(catalog.data, search, sourceType) : []),
+    [catalog.data, search, sourceType],
+  )
   const groups = useMemo(
     () => catalog.data?.businessDomains.flatMap((business) =>
       business.entityDomains.flatMap((entity) =>
@@ -184,6 +210,13 @@ export const CatalogPage = () => {
             onSearch={setSearch}
             onChange={(event) => setSearch(event.target.value)}
             style={{ width: 380 }}
+          />
+          <Select
+            aria-label="来源过滤"
+            style={{ width: 180 }}
+            value={sourceType}
+            options={sourceOptions}
+            onChange={(value: 'ALL' | GatewayOpenApiSourceType) => setSourceType(value)}
           />
         </Space>
       </Card>

@@ -12,6 +12,76 @@ afterEach(() => {
 })
 
 describe('gateway API response adapters', () => {
+  it('loads OpenAPI sync states with encoded scope filters and immutable reads', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse([{
+        id: 'sync-1',
+        applicationId: 'application-1',
+        buildId: 'build-1',
+        artifactVersion: '1.0.0',
+        openapiGroup: 'orders',
+        sourceType: 'OPENAPI31',
+        status: 'VALID',
+        snapshotId: 'snapshot-1',
+        definitionSetId: 'set-1',
+        operationCount: 2,
+        schemaCount: 1,
+        canonicalSha256: 'a'.repeat(64),
+        lastErrorCode: null,
+        lastErrorMessage: null,
+        lastAttemptAt: null,
+        lastSuccessAt: '2026-08-26T03:00:00Z',
+        nextRetryAt: null,
+      }]))
+      .mockResolvedValueOnce(jsonResponse({
+        operationId: 'operation-1',
+        operationKey: 'orders:http:GET:/orders/{id}',
+        sourceType: 'OPENAPI31',
+        snapshotId: 'snapshot-1',
+        openapiVersion: '3.1.0',
+        openapiGroup: 'orders',
+        path: '/orders/{id}',
+        method: 'GET',
+        openapiOperationId: 'getOrder',
+        requestContentTypes: ['application/json'],
+        responseContentTypes: ['application/json'],
+        operation: { operationId: 'getOrder' },
+        syncedAt: '2026-08-26T03:00:00Z',
+      }))
+      .mockResolvedValueOnce(jsonResponse({
+        snapshotId: 'snapshot-1',
+        applicationId: 'application-1',
+        buildId: 'build-1',
+        openapiVersion: '3.1.0',
+        documentSha256: 'b'.repeat(64),
+        canonicalSha256: 'a'.repeat(64),
+        document: { openapi: '3.1.0' },
+        fetchedAt: '2026-08-26T02:59:00Z',
+        validatedAt: '2026-08-26T03:00:00Z',
+      }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await gatewayApi.openapiSyncStates({
+      bizCode: 'retail',
+      namespace: 'ops',
+      env: 'test',
+      appCode: 'orders',
+    })
+    await gatewayApi.operationOpenApi('operation-1')
+    await gatewayApi.openapiSnapshotDocument('snapshot-1')
+
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/v1/gateway/admin/openapi/sync-states?bizCode=retail&namespace=ops&env=test&appCode=orders',
+    )
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      '/api/v1/gateway/admin/operations/operation-1/openapi',
+    )
+    expect(fetchMock.mock.calls[2][0]).toBe(
+      '/api/v1/gateway/admin/openapi/snapshots/snapshot-1/document',
+    )
+    expect(fetchMock.mock.calls.every(([, request]) => (request as RequestInit).method === undefined)).toBe(true)
+  })
+
   it('loads the authoritative scope catalog without static filters', async () => {
     const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse([])))
     vi.stubGlobal('fetch', fetchMock)
