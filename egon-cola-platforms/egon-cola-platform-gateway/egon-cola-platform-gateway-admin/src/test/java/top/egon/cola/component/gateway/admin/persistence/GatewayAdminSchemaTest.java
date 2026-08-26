@@ -19,7 +19,7 @@ class GatewayAdminSchemaTest {
                              "src/main/resources",
                              root
                      ))) {
-            assertEquals(11, migrations.filter(
+            assertEquals(12, migrations.filter(
                     path -> path.getFileName().toString().endsWith(".sql")
             ).count());
         }
@@ -100,6 +100,31 @@ class GatewayAdminSchemaTest {
         ));
         assertTrue(managedMcp.contains(
                 "DROP TABLE gateway_mcp_tool_draft"
+        ));
+
+        String openApi = new String(
+                getClass().getClassLoader().getResourceAsStream(
+                        root + "/V12__add_gateway_openapi_sync.sql"
+                ).readAllBytes(),
+                StandardCharsets.UTF_8
+        );
+        assertTrue(openApi.contains(
+                "CREATE TABLE gateway_openapi_snapshot"
+        ));
+        assertTrue(openApi.contains(
+                "CREATE TABLE gateway_openapi_sync_state"
+        ));
+        assertTrue(openApi.contains(
+                "uk_gateway_openapi_snapshot_contract"
+        ));
+        assertTrue(openApi.contains(
+                "idx_gateway_openapi_snapshot_definition"
+        ));
+        assertTrue(openApi.contains(
+                "uk_gateway_openapi_sync_key"
+        ));
+        assertTrue(openApi.contains(
+                "revision BIGINT NOT NULL DEFAULT 0"
         ));
     }
 }
