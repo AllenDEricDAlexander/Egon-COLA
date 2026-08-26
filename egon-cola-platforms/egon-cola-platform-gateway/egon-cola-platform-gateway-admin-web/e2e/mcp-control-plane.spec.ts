@@ -302,7 +302,7 @@ const authenticate = async (page: Page) => {
           id: 'interface-e2e',
           code: 'order-query',
           displayName: 'Order Query',
-          sourceType: 'STARTER',
+          sourceType: 'OPENAPI31',
           operations: [{
             id: 'operation-e2e',
             operationKey: 'order.query',
@@ -310,7 +310,7 @@ const authenticate = async (page: Page) => {
             methodIdentity: 'GET /orders/{id}',
             externalAccessible: false,
             lifecycleStatus: 'ACTIVE',
-            sourceType: 'STARTER',
+            sourceType: 'OPENAPI31',
             revision: 1,
           }],
         }],

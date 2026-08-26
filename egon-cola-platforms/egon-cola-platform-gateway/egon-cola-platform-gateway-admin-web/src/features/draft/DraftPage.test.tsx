@@ -139,7 +139,7 @@ const operationDetail = (
     },
     externalAccessible: true,
     lifecycleStatus: 'ACTIVE',
-    sourceType: 'STARTER',
+    sourceType: 'OPENAPI31',
     revision: 3,
   },
   definitions: [],

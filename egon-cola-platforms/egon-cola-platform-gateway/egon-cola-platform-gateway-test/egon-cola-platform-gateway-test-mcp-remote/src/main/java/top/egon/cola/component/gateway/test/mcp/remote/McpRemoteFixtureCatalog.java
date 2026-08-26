@@ -27,11 +27,11 @@ public final class McpRemoteFixtureCatalog {
     }
 
     public static Operation httpOperation() {
-        return new Operation("HTTP", "mcp.fixture.echo");
+        return new Operation("HTTP", "mcp.fixture.echo", "OPENAPI31");
     }
 
     public static Operation rpcOperation() {
-        return new Operation("RPC", "gateway.rpc.test.echo");
+        return new Operation("RPC", "gateway.rpc.test.echo", "RPC_DESCRIPTOR");
     }
 
     public static Fixture stable() {
@@ -42,7 +42,10 @@ public final class McpRemoteFixtureCatalog {
         return RC;
     }
 
-    public record Operation(String protocol, String operationKey) {
+    public record Operation(
+            String protocol,
+            String operationKey,
+            String sourceType) {
     }
 
     public record Fixture(

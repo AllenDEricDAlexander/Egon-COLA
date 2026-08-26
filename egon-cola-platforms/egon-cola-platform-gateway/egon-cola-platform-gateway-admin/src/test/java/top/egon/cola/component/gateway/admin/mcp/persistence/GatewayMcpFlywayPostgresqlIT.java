@@ -148,7 +148,7 @@ class GatewayMcpFlywayPostgresqlIT {
                     id, entity_domain_id, code, display_name, source_type,
                     deleted, created_at, updated_at
                 ) VALUES (
-                    'interface-1', 'entity-1', 'orders', 'Orders', 'STARTER',
+                    'interface-1', 'entity-1', 'orders', 'Orders', 'OPENAPI31',
                     FALSE, ?, ?
                 )
                 """, timestamp, timestamp);
@@ -161,7 +161,7 @@ class GatewayMcpFlywayPostgresqlIT {
                 ) VALUES (
                     'operation-1', 'app-1', 'interface-1', 'orders.get',
                     'HTTP', 'GET /orders/{id}', FALSE, '{}'::jsonb,
-                    'STARTER', 'ACTIVE', 0, ?, ?
+                    'OPENAPI31', 'ACTIVE', 0, ?, ?
                 )
                 """, timestamp, timestamp);
         jdbc.update("""

@@ -58,6 +58,114 @@ const application = {
   revision: 1,
 }
 
+const openApiSyncStates = [
+  {
+    id: `${prefix}-sync-orders`,
+    applicationId: application.id,
+    buildId: 'build-2',
+    artifactVersion: '2.0.0',
+    openapiGroup: 'orders',
+    sourceType: 'OPENAPI31',
+    status: 'VALID',
+    snapshotId: `${prefix}-snapshot-orders`,
+    definitionSetId: `${prefix}-definition-set-2`,
+    operationCount: 2,
+    schemaCount: 1,
+    canonicalSha256: 'a'.repeat(64),
+    lastErrorCode: null,
+    lastErrorMessage: null,
+    lastAttemptAt: '2026-07-25T00:00:00Z',
+    lastSuccessAt: '2026-07-25T00:00:01Z',
+    nextRetryAt: null,
+  },
+  {
+    id: `${prefix}-sync-inventory`,
+    applicationId: application.id,
+    buildId: 'build-2',
+    artifactVersion: '2.0.0',
+    openapiGroup: 'inventory',
+    sourceType: 'OPENAPI31',
+    status: 'INCONSISTENT_BUILD',
+    snapshotId: `${prefix}-snapshot-inventory`,
+    definitionSetId: null,
+    operationCount: 1,
+    schemaCount: 1,
+    canonicalSha256: 'b'.repeat(64),
+    lastErrorCode: 'GATEWAY_OPENAPI_GROUP_DRIFT',
+    lastErrorMessage: 'inventory document drifted',
+    lastAttemptAt: '2026-07-25T00:00:00Z',
+    lastSuccessAt: null,
+    nextRetryAt: null,
+  },
+]
+
+const openApiOperation = {
+  id: `${prefix}-operation-openapi`,
+  applicationId: application.id,
+  interfaceGroupId: 'interface-openapi',
+  operationKey: 'orders:http:GET:/orders/{id}',
+  protocol: 'HTTP',
+  methodIdentity: 'GET /orders/{id}',
+  externalAccessible: true,
+  lifecycleStatus: 'ACTIVE',
+  sourceType: 'OPENAPI31',
+  revision: 1,
+  providerServiceIdentity: { serviceName: 'orders' },
+  currentDefinitionId: `${prefix}-definition-openapi`,
+}
+
+const openApiDefinition = {
+  id: `${prefix}-definition-openapi`,
+  operationId: openApiOperation.id,
+  definitionVersion: 1,
+  definitionSha256: 'a'.repeat(64),
+  summary: 'Get order',
+  tags: ['orders'],
+  requestSchema: { type: 'object' },
+  responseSchema: { type: 'object' },
+  errorSchema: [],
+  attributes: {},
+  externalAccessible: true,
+  createdAt: '2026-07-25T00:00:00Z',
+  createdBy: 'fixture',
+}
+
+const openApiFragment = {
+  operationId: openApiOperation.id,
+  operationKey: openApiOperation.operationKey,
+  snapshotId: `${prefix}-snapshot-orders`,
+  openapiVersion: '3.1.0',
+  openapiGroup: 'orders',
+  path: '/orders/{id}',
+  method: 'GET',
+  openapiOperationId: 'getOrder',
+  requestContentTypes: ['application/json'],
+  responseContentTypes: ['application/json'],
+  operation: { operationId: 'getOrder', 'x-egon': { permission: 'orders:read' } },
+  syncedAt: '2026-07-25T00:00:01Z',
+}
+
+const openApiSnapshot = {
+  snapshotId: `${prefix}-snapshot-orders`,
+  applicationId: application.id,
+  buildId: 'build-2',
+  openapiVersion: '3.1.0',
+  documentSha256: 'c'.repeat(64),
+  canonicalSha256: 'a'.repeat(64),
+  document: { openapi: '3.1.0', paths: {} },
+  fetchedAt: '2026-07-25T00:00:00Z',
+  validatedAt: '2026-07-25T00:00:01Z',
+}
+
+const rpcOperation = {
+  ...openApiOperation,
+  id: `${prefix}-operation-rpc`,
+  operationKey: 'orders.rpc:GetOrder',
+  protocol: 'RPC',
+  methodIdentity: 'orders.Order/GetOrder',
+  sourceType: 'RPC_DESCRIPTOR',
+}
+
 const emptyDraft = {
   gatewayGroupId: group.id,
   revision: 1,
@@ -166,6 +274,24 @@ const installReadFixtures = async (page: Page) => {
     }))
   await page.route('**/api/v1/gateway/admin/applications*', (route) =>
     json(route, [application]))
+  await page.route('**/api/v1/gateway/admin/openapi/sync-states*', (route) =>
+    json(route, openApiSyncStates))
+  await page.route(`**/api/v1/gateway/admin/operations/${openApiOperation.id}`, (route) =>
+    json(route, { operation: openApiOperation, definitions: [openApiDefinition] }))
+  await page.route(`**/api/v1/gateway/admin/operations/${rpcOperation.id}`, (route) =>
+    json(route, {
+      operation: rpcOperation,
+      definitions: [{
+        ...openApiDefinition,
+        id: `${prefix}-definition-rpc`,
+        operationId: rpcOperation.id,
+        descriptorSnapshot: { fullMethodName: 'orders.Order/GetOrder' },
+      }],
+    }))
+  await page.route(`**/api/v1/gateway/admin/operations/${openApiOperation.id}/openapi`, (route) =>
+    json(route, openApiFragment))
+  await page.route(`**/api/v1/gateway/admin/openapi/snapshots/${openApiSnapshot.snapshotId}/document`, (route) =>
+    json(route, openApiSnapshot))
   await page.route(`**/api/v1/gateway/admin/applications/${application.id}/catalog`, (route) =>
     json(route, {
       applicationId: application.id,
@@ -183,6 +309,16 @@ const installReadFixtures = async (page: Page) => {
             displayName: 'Order Controller',
             sourceType: 'MANUAL',
             operations: [],
+          }, {
+            id: 'interface-openapi',
+            code: 'orders-openapi',
+            displayName: 'Orders OpenAPI',
+            sourceType: 'OPENAPI31',
+            operations: [{
+              ...openApiOperation,
+              applicationId: application.id,
+              interfaceGroupId: 'interface-openapi',
+            }],
           }],
         }],
       }],
@@ -306,6 +442,41 @@ test('application and credential lifecycle never re-displays old secrets', async
   await expect(page.getByText('Secret 只显示一次')).toBeVisible()
   await page.getByText('新 Credential', { exact: true }).click()
   await expect(page.locator('.json-panel')).toContainText('shown-once')
+})
+
+test('OpenAPI sync groups show aggregate failure and stay separate from routes', async ({ page }) => {
+  await authenticate(page)
+  await installReadFixtures(page)
+
+  await page.goto('/applications')
+  await expect(page.getByText('E2E Application')).toBeVisible()
+  await expect(page.getByText('INCONSISTENT_BUILD')).toBeVisible()
+  await expect(page.getByText('Aggregate · set 未完成')).toBeVisible()
+  await page.getByRole('button', {
+    name: '展开 OpenAPI Groups E2E Application',
+  }).click()
+  await expect(page.getByText('inventory')).toBeVisible()
+  await expect(page.getByText('GATEWAY_OPENAPI_GROUP_DRIFT')).toBeVisible()
+
+  await page.goto(`/operations/${openApiOperation.id}`)
+  await expect(page.getByText('GET /orders/{id}')).toBeVisible()
+  await page.getByRole('tab', { name: 'OpenAPI' }).click()
+  await expect(page.getByText('OpenAPI Group')).toBeVisible()
+  await expect(page.getByText('getOrder')).toBeVisible()
+  await expect(page.getByRole('button', { name: '复制 OpenAPI Operation' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '下载完整 OpenAPI 文档' })).toBeVisible()
+
+  await page.goto(`/applications/${application.id}/catalog`)
+  await expect(page.getByText('Orders OpenAPI')).toBeVisible()
+
+  await page.goto(`/operations/${rpcOperation.id}`)
+  await expect(page.getByText('RPC_DESCRIPTOR')).toBeVisible()
+  await expect(page.getByText('当前 Operation 没有 OpenAPI source')).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'OpenAPI' })).toHaveCount(0)
+
+  await page.goto(`/gateway-groups/${group.id}/draft/routes`)
+  await expect(page.getByText('Route ID')).toBeVisible()
+  await expect(page.getByText('route-auto')).toHaveCount(0)
 })
 
 test('manual three-level catalog and operation use structured forms', async ({ page }) => {

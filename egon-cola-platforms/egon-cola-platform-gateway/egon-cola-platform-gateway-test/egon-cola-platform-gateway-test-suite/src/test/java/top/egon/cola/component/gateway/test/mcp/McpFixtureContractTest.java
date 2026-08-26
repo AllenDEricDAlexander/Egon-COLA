@@ -36,8 +36,12 @@ class McpFixtureContractTest {
         assertEquals("unified-local", group.mcpServerCode());
         assertEquals("HTTP", McpRemoteFixtureCatalog.httpOperation()
                 .protocol());
+        assertEquals("OPENAPI31", McpRemoteFixtureCatalog.httpOperation()
+                .sourceType());
         assertEquals("RPC", McpRemoteFixtureCatalog.rpcOperation()
                 .protocol());
+        assertEquals("RPC_DESCRIPTOR", McpRemoteFixtureCatalog.rpcOperation()
+                .sourceType());
         assertEquals(Set.of(
                 "local_echo_task",
                 "local_query",
