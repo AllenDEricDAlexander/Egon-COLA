@@ -19,7 +19,7 @@
     <dependencies>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-platform-gateway-starter</artifactId>
+            <artifactId>egon-cola-platform-gateway-starter-openapi-webmvc</artifactId>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>

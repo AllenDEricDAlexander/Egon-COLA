@@ -5,7 +5,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.ConfigDataApplicationContextInitializer;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
-import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcProperties;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -20,27 +19,19 @@ class McpTestProviderConfigurationTest {
                     .withUserConfiguration(TestConfiguration.class);
 
     @Test
-    void bindsHostLocalDdcAndGatewayReportingEnvironment() {
+    void bindsHostLocalDdcEnvironment() {
         contextRunner.withSystemProperties(
                         "DDC_RPC_TARGET=dns:///127.0.0.1:19110",
                         "DDC_RPC_RUNTIME_ACCESS_KEY=ddc-access",
                         "DDC_RPC_RUNTIME_SECRET_KEY=ddc-secret",
                         "DDC_REGISTRY_REDIS_PASSWORD=redis-secret",
-                        "MCP_TEST_PROVIDER_INSTANCE_ID=mcp-provider-local-1",
-                        "GATEWAY_ADMIN_BASE_URL=http://127.0.0.1:18140",
-                        "GATEWAY_REPORT_ACCESS_KEY=gateway-access",
-                        "GATEWAY_REPORT_SECRET_KEY=gateway-secret",
-                        "GATEWAY_REPORT_STATE_FILE=target/mcp-provider-state.json"
+                        "MCP_TEST_PROVIDER_INSTANCE_ID=mcp-provider-local-1"
                 )
                 .run(context -> {
                     DdcProperties ddc = context.getBean(DdcProperties.class);
                     DdcRpcProperties rpc = context.getBean(
                             DdcRpcProperties.class
                     );
-                    GatewayReportingProperties reporting = context.getBean(
-                            GatewayReportingProperties.class
-                    );
-
                     assertThat(rpc.getTarget())
                             .isEqualTo("dns:///127.0.0.1:19110");
                     assertThat(rpc.getAuth().getRuntime().getAccessKey())
@@ -51,19 +42,12 @@ class McpTestProviderConfigurationTest {
                             .isEqualTo("redis-secret");
                     assertThat(ddc.getInstance().getId())
                             .isEqualTo("mcp-provider-local-1");
-                    assertThat(reporting.getAdminBaseUrl())
-                            .isEqualTo("http://127.0.0.1:18140");
-                    assertThat(reporting.getAccessKey())
-                            .isEqualTo("gateway-access");
-                    assertThat(reporting.getSecretKey())
-                            .isEqualTo("gateway-secret");
                 });
     }
 
     @EnableConfigurationProperties({
             DdcProperties.class,
-            DdcRpcProperties.class,
-            GatewayReportingProperties.class
+            DdcRpcProperties.class
     })
     static class TestConfiguration {
     }

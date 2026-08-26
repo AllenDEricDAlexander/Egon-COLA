@@ -1,17 +1,20 @@
 package top.egon.cola.component.gateway.test.http;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
+import java.io.InputStream;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.web.servlet.mvc.method.annotation
-        .RequestMappingHandlerMapping;
+import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
@@ -28,34 +31,40 @@ import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.http.registration
         .DdcHttpRegistrationContributor;
-import top.egon.cola.component.gateway.contract.reporting
-        .GatewayInterfaceDefinitionReport;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
-import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.component.gateway.starter.discovery
-        .GatewayDefinitionContributor;
-import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefinitionContributor;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
+import java.util.HashSet;
+import java.util.Iterator;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import static org.springframework.security.test.web.servlet.request
+        .SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(
         classes = GatewayHttpTestProviderApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
+@AutoConfigureMockMvc
 @Import(HttpProviderContractTest.ProviderTestConfiguration.class)
 class HttpProviderContractTest {
 
@@ -69,14 +78,10 @@ class HttpProviderContractTest {
     private RecordingRegistry registry;
 
     @Autowired
-    private GatewayReportingProperties reportingProperties;
-
-    @Autowired
-    @Qualifier("requestMappingHandlerMapping")
-    private RequestMappingHandlerMapping handlerMappings;
-
-    @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private MockMvc mockMvc;
 
     @Test
     void consumesProviderAutoConfigurationAndOneVersionSource() {
@@ -84,8 +89,7 @@ class HttpProviderContractTest {
         assertFalse(context.containsBean("httpProviderRuntimeConfiguration"));
         assertEquals(1, registry.registrations.get());
         assertEquals(
-                reportingProperties.getArtifactVersion(),
-                registry.registration.serviceKey().version()
+                "1.0.0-live", registry.registration.serviceKey().version()
         );
         assertEquals(
                 "gateway-test-http-provider",
@@ -102,28 +106,25 @@ class HttpProviderContractTest {
     }
 
     @Test
-    void everyControllerDefinesItsOwnInterfaceGroup() {
-        assertNotNull(OrderController.class.getAnnotation(
-                GatewayInterfaceGroup.class
-        ));
-        assertNotNull(InventoryController.class.getAnnotation(
-                GatewayInterfaceGroup.class
-        ));
-        assertNotNull(BehaviorController.class.getAnnotation(
-                GatewayInterfaceGroup.class
-        ));
-        assertNotNull(ProviderIdentityController.class.getAnnotation(
-                GatewayInterfaceGroup.class
-        ));
+    void everyControllerDeclaresItsPublishedApiCatalog() {
+        assertEquals("orders", OrderController.class.getAnnotation(
+                EgonApiCatalog.class).interfaceGroupCode());
+        assertEquals("inventory", InventoryController.class.getAnnotation(
+                EgonApiCatalog.class).interfaceGroupCode());
+        assertEquals("orders", BehaviorController.class.getAnnotation(
+                EgonApiCatalog.class).interfaceGroupCode());
+        assertEquals("orders", ProviderIdentityController.class
+                .getAnnotation(EgonApiCatalog.class).interfaceGroupCode());
     }
 
     @Test
     void internalInventoryIsNotExternallyAccessible() throws Exception {
-        GatewayOperation operation = InventoryController.class
+        EgonGatewayPolicy operation = InventoryController.class
                 .getMethod("inventory", String.class)
-                .getAnnotation(GatewayOperation.class);
+                .getAnnotation(EgonGatewayPolicy.class);
 
-        assertFalse(operation.externalAccessible());
+        assertEquals(EgonGatewayPolicy.Exposure.INTERNAL,
+                operation.exposure());
     }
 
     @Test
@@ -144,114 +145,98 @@ class HttpProviderContractTest {
     }
 
     @Test
-    void orderSchemasExposeEveryFieldTypeAndDescription() {
-        GatewayReportingProperties properties = new GatewayReportingProperties();
-        properties.setBizCode("test-biz");
-        properties.setApplicationCode("gateway-test-http-provider");
-        properties.setEnv("test");
-        properties.setNamespace("gateway-test");
-        properties.setArtifactVersion("1.0.0-live");
-        List<GatewayDefinitionContributor.DiscoveredInterfaceGroup> groups =
-                new MvcGatewayDefinitionContributor(
-                        handlerMappings,
-                        properties,
-                        objectMapper
-                ).discover();
-        Map<String, GatewayInterfaceDefinitionReport.Operation> operations =
-                groups.stream()
-                        .filter(group -> OrderController.class.getName().equals(
-                                group.interfaceGroup().className()
-                        ))
-                        .flatMap(group -> group.interfaceGroup()
-                                .operations().stream())
-                        .collect(Collectors.toMap(
-                                GatewayInterfaceDefinitionReport.Operation
-                                        ::methodIdentity,
-                                operation -> operation
-                        ));
+    void groupedOpenApiDocumentsAreScopedAndDisjoint() throws Exception {
+        JsonNode orders = readDocument("orders");
+        JsonNode inventory = readDocument("inventory");
 
-        Map<String, SchemaExpectation> expected = Map.of(
-                "GET /api/orders/{id}", new SchemaExpectation(
-                        Set.of("id", "X-Request-Source"),
-                        Set.of("id", "status", "source")
-                ),
-                "POST /api/orders", new SchemaExpectation(
-                        Set.of("customerId", "channel"),
-                        Set.of("id", "status", "source")
-                ),
-                "GET /api/orders/search", new SchemaExpectation(
-                        Set.of("customerId", "limit"),
-                        Set.of("customerId", "limit", "count")
-                ),
-                "POST /api/orders/{id}/cancel", new SchemaExpectation(
-                        Set.of("id", "Idempotency-Key"),
-                        Set.of("id", "status", "source")
-                )
-        );
+        assertGolden(orders, "orders");
+        assertGolden(inventory, "inventory");
 
-        assertEquals(expected.keySet(), operations.keySet());
-        expected.forEach((method, expectation) -> {
-            GatewayInterfaceDefinitionReport.Operation operation =
-                    operations.get(method);
-            assertSchemaFields(
-                    method + " request",
-                    operation.requestSchema(),
-                    expectation.requestFields()
-            );
-            assertSchemaFields(
-                    method + " response",
-                    operation.responseSchema(),
-                    expectation.responseFields()
-            );
-        });
+        assertEquals("3.1.0", orders.path("openapi").asText());
+        assertEquals("orders", orders.path("x-egon-service")
+                .path("openapiGroup").asText());
+        assertEquals("inventory", inventory.path("x-egon-service")
+                .path("openapiGroup").asText());
+        assertTrue(orders.path("paths").has("/api/orders/{id}"));
+        assertTrue(orders.path("paths").has("/api/slow/{millis}"));
+        assertTrue(inventory.path("paths")
+                .has("/api/internal/inventory/{sku}"));
+        assertFalse(orders.path("paths")
+                .has("/api/internal/inventory/{sku}"));
+        assertTrue(operationIds(orders).stream()
+                .noneMatch(operationIds(inventory)::contains));
     }
 
-    private void assertSchemaFields(
-            String schemaName,
-            Map<String, Object> schema,
-            Set<String> expectedNames) {
-        Object value = "gateway-operation-request/v2".equals(
-                schema.get("x-egon-schema-model")
-        ) ? requestProperties(schema) : schema.get("properties");
-        assertTrue(value instanceof Map<?, ?>, schemaName);
-        Map<?, ?> fields = (Map<?, ?>) value;
-        assertEquals(expectedNames, fields.keySet(), schemaName);
-        fields.forEach((name, field) -> {
-            assertTrue(field instanceof Map<?, ?>, schemaName + "." + name);
-            Map<?, ?> details = (Map<?, ?>) field;
-            assertTrue(details.get("type") instanceof String, schemaName
-                    + "." + name + " type");
-            assertTrue(details.get("description") instanceof String description
-                            && !description.isBlank(),
-                    schemaName + "." + name + " description");
-        });
+    @Test
+    void groupedDocumentsRequireTheGatewayOpenApiScope() throws Exception {
+        mockMvc.perform(get("/v3/api-docs/orders"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/v3/api-docs/orders")
+                        .with(jwt().authorities(new SimpleGrantedAuthority(
+                                "SCOPE_gateway.other"))))
+                .andExpect(status().isForbidden());
     }
 
-    private Map<String, Object> requestProperties(
-            Map<String, Object> schema) {
-        Map<String, Object> result = new java.util.LinkedHashMap<>();
-        Map<?, ?> locations = (Map<?, ?>) schema.get("properties");
-        locations.values().forEach(location -> {
-            Map<?, ?> locationSchema = (Map<?, ?>) location;
-            Object properties = locationSchema.get("properties");
-            if (properties instanceof Map<?, ?> fields) {
-                fields.forEach((name, field) -> result.put(
-                        String.valueOf(name),
-                        field
-                ));
+    private JsonNode readDocument(String group) throws Exception {
+        return objectMapper.readTree(mockMvc.perform(get(
+                        "/v3/api-docs/" + group)
+                        .with(jwt().authorities(new SimpleGrantedAuthority(
+                                "SCOPE_gateway.openapi.read"))))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(
+                        MediaType.APPLICATION_JSON))
+                .andReturn().getResponse().getContentAsByteArray());
+    }
+
+    private void assertGolden(JsonNode document, String group)
+            throws Exception {
+        JsonNode golden;
+        try (InputStream stream = getClass().getResourceAsStream(
+                "/openapi/" + group + "-golden.json")) {
+            assertNotNull(stream);
+            golden = objectMapper.readTree(stream);
+        }
+        assertEquals(golden.path("group").asText(),
+                document.path("x-egon-service").path("openapiGroup")
+                        .asText());
+        assertEquals(golden.path("openapi").asText(),
+                document.path("openapi").asText());
+        assertEquals(golden.path("x-egon-service"),
+                document.path("x-egon-service"));
+        assertEquals(values(golden.path("paths")), pathNames(document));
+        assertEquals(values(golden.path("operationIds")),
+                operationIds(document));
+    }
+
+    private Set<String> values(JsonNode nodes) {
+        Set<String> values = new HashSet<>();
+        nodes.elements().forEachRemaining(node -> values.add(node.asText()));
+        return values;
+    }
+
+    private Set<String> pathNames(JsonNode document) {
+        Set<String> paths = new HashSet<>();
+        document.path("paths").fieldNames().forEachRemaining(paths::add);
+        return paths;
+    }
+
+    private Set<String> operationIds(JsonNode document) {
+        Set<String> result = new HashSet<>();
+        Iterator<JsonNode> paths = document.path("paths").elements();
+        while (paths.hasNext()) {
+            Iterator<JsonNode> methods = paths.next().elements();
+            while (methods.hasNext()) {
+                JsonNode operation = methods.next();
+                if (operation.has("operationId")) {
+                    result.add(operation.path("operationId").asText());
+                }
             }
-        });
+        }
         return result;
-    }
-
-    private record SchemaExpectation(
-            Set<String> requestFields,
-            Set<String> responseFields) {
     }
 
     @TestConfiguration(proxyBeanMethods = false)
     @EnableConfigurationProperties({
-            GatewayReportingProperties.class,
             DdcProperties.class
     })
     static class ProviderTestConfiguration {
@@ -267,21 +252,32 @@ class HttpProviderContractTest {
         }
 
         @Bean
-        DdcHttpRegistrationContributor httpRegistrationContributor(
-                GatewayReportingProperties properties) {
+        IdpServiceOAuth2Client idpServiceOAuth2Client() {
+            IdpServiceOAuth2Client client = mock(IdpServiceOAuth2Client.class);
+            Instant issuedAt = Instant.now();
+            when(client.authorize(any(IdpServiceTokenRequest.class)))
+                    .thenReturn(new OAuth2AccessToken(
+                            OAuth2AccessToken.TokenType.BEARER,
+                            "test-ddc-token",
+                            issuedAt,
+                            issuedAt.plusSeconds(300)
+                    ));
+            return client;
+        }
+
+        @Bean
+        DdcHttpRegistrationContributor httpRegistrationContributor() {
             return new DdcHttpRegistrationContributor() {
                 @Override
                 public String serviceVersion() {
-                    return properties.getArtifactVersion();
+                    return "1.0.0-live";
                 }
 
                 @Override
                 public Map<String, String> metadata() {
                     return Map.of(
                             "gateway.definition-set-id",
-                            "test-definition-set",
-                            "gateway.build-id",
-                            "test-build"
+                            "test-definition-set"
                     );
                 }
             };

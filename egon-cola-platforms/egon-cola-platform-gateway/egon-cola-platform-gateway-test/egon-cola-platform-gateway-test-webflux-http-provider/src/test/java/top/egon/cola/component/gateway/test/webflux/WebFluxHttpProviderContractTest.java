@@ -1,10 +1,11 @@
 package top.egon.cola.component.gateway.test.webflux;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -13,10 +14,11 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.oauth2.core.OAuth2AccessToken;
+import org.springframework.security.config.web.server.ServerHttpSecurity;
+import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import org.springframework.web.reactive.result.method.annotation
-        .RequestMappingHandlerMapping;
 import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseOperationStatus;
 import top.egon.cola.component.ddc.model.lease.DdcLeaseRole;
@@ -33,15 +35,16 @@ import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.ddc.http.registration
         .DdcHttpRegistrationContributor;
-import top.egon.cola.component.gateway.contract.reporting
-        .GatewayInterfaceDefinitionReport;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
-import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
-import top.egon.cola.component.gateway.starter.discovery.http.WebFluxGatewayDefinitionContributor;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.WebSocket;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -49,7 +52,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HexFormat;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -62,23 +66,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.reactive.server.SecurityMockServerConfigurers.mockJwt;
 
 @SpringBootTest(
         classes = GatewayWebFluxHttpTestProviderApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
 )
+@AutoConfigureWebTestClient
 @Import(WebFluxHttpProviderContractTest.ProviderTestConfiguration.class)
 class WebFluxHttpProviderContractTest {
-
-    @Autowired
-    @Qualifier("requestMappingHandlerMapping")
-    private RequestMappingHandlerMapping mappings;
-
-    @Autowired
-    private GatewayReportingProperties reportingProperties;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private DdcHttpRegistrationRuntime runtime;
@@ -88,6 +87,9 @@ class WebFluxHttpProviderContractTest {
 
     @Autowired
     private WebTestClient webTestClient;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Autowired
     private RealtimeWebSocketProbe webSocketProbe;
@@ -104,7 +106,7 @@ class WebFluxHttpProviderContractTest {
                 registry.registration.serviceKey().serviceName()
         );
         assertEquals(
-                reportingProperties.getArtifactVersion(),
+                "1.0.0-live",
                 registry.registration.serviceKey().version()
         );
         assertEquals(
@@ -117,35 +119,18 @@ class WebFluxHttpProviderContractTest {
         );
         assertTrue(registry.registration.port() > 0);
 
-        GatewayInterfaceDefinitionReport.Operation operation =
-                new WebFluxGatewayDefinitionContributor(
-                        mappings,
-                        reportingProperties,
-                        objectMapper
-                ).discover().stream()
-                        .flatMap(group -> group.interfaceGroup()
-                                .operations().stream())
-                        .filter(candidate -> "/test/items/{id}".equals(
-                                candidate.attributes().get("path")
-                        ))
-                        .findFirst()
-                        .orElseThrow();
-
-        assertEquals("GET", operation.attributes().get("httpMethod"));
-        assertEquals(
-                "TRANSPARENT",
-                operation.attributes().get("responseMode")
-        );
-        assertFalse((Boolean) operation.attributes().get("streaming"));
-        assertEquals("SUPPORTED", operation.gatewaySupport());
-        assertEquals("gateway-operation-response/v2",
-                operation.responseSchema().get("x-egon-schema-model"));
-        assertEquals("object", operation.responseSchema().get("type"));
-        assertEquals(
-                Set.of("id", "providerId", "framework"),
-                ((Map<?, ?>) operation.responseSchema().get("properties"))
-                        .keySet()
-        );
+        webTestClient.mutateWith(mockJwt().authorities(
+                        new org.springframework.security.core.authority
+                                .SimpleGrantedAuthority(
+                                "SCOPE_gateway.openapi.read")))
+                .get()
+                .uri("/v3/api-docs/inventory-reactive")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(JsonNode.class)
+                .value(document -> assertGolden(
+                        document,
+                        "inventory-reactive"));
 
         webTestClient.get()
                 .uri("/test/items/item-1")
@@ -166,6 +151,37 @@ class WebFluxHttpProviderContractTest {
                 .jsonPath("$.providerId")
                 .isEqualTo("webflux-http-provider-default")
                 .jsonPath("$.framework").isEqualTo("webflux");
+    }
+
+    @Test
+    void groupedDocumentsRequireTheGatewayOpenApiScope() {
+        webTestClient.get()
+                .uri("/v3/api-docs/inventory-reactive")
+                .exchange()
+                .expectStatus().isUnauthorized();
+        webTestClient.mutateWith(mockJwt().authorities(
+                        new org.springframework.security.core.authority
+                                .SimpleGrantedAuthority(
+                                "SCOPE_gateway.other")))
+                .get()
+                .uri("/v3/api-docs/inventory-reactive")
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    void everyReactiveControllerUsesThePublishedCatalogGroup()
+            throws Exception {
+        assertEquals("inventory-reactive", ProviderIdentityController.class
+                .getAnnotation(EgonApiCatalog.class).interfaceGroupCode());
+        assertEquals("inventory-reactive", ReactiveInventoryController.class
+                .getAnnotation(EgonApiCatalog.class).interfaceGroupCode());
+        assertEquals("inventory-reactive", StreamingTransportController.class
+                .getAnnotation(EgonApiCatalog.class).interfaceGroupCode());
+        assertEquals(EgonGatewayPolicy.Exposure.EXTERNAL,
+                ReactiveInventoryController.class.getMethod(
+                        "item", String.class)
+                        .getAnnotation(EgonGatewayPolicy.class).exposure());
     }
 
     @Test
@@ -252,19 +268,17 @@ class WebFluxHttpProviderContractTest {
         assertEquals((byte) 0xff, binary[0]);
         assertEquals((byte) 0x80, binary[3]);
 
-        List<GatewayInterfaceDefinitionReport.Operation> operations =
-                new WebFluxGatewayDefinitionContributor(
-                        mappings,
-                        reportingProperties,
-                        objectMapper
-                ).discover().stream()
-                        .flatMap(group -> group.interfaceGroup()
-                                .operations().stream())
-                        .toList();
-        assertTrue(operations.stream().noneMatch(operation ->
-                "/test/transport/realtime".equals(
-                        operation.attributes().get("path")
-                )));
+        webTestClient.mutateWith(mockJwt().authorities(
+                        new org.springframework.security.core.authority
+                                .SimpleGrantedAuthority(
+                                "SCOPE_gateway.openapi.read")))
+                .get()
+                .uri("/v3/api-docs/inventory-reactive")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(String.class)
+                .value(body -> assertFalse(body.contains(
+                        "/test/transport/realtime")));
     }
 
     @Test
@@ -320,9 +334,56 @@ class WebFluxHttpProviderContractTest {
         return chunk;
     }
 
+    private void assertGolden(JsonNode document, String group) {
+        JsonNode golden;
+        try (InputStream stream = getClass().getResourceAsStream(
+                "/openapi/" + group + "-golden.json")) {
+            assertNotNull(stream);
+            golden = objectMapper.readTree(stream);
+        } catch (java.io.IOException exception) {
+            throw new AssertionError("Unable to read OpenAPI Golden", exception);
+        }
+        assertEquals(golden.path("group").asText(),
+                document.path("x-egon-service").path("openapiGroup")
+                        .asText());
+        assertEquals(golden.path("openapi").asText(),
+                document.path("openapi").asText());
+        assertEquals(golden.path("x-egon-service"),
+                document.path("x-egon-service"));
+        assertEquals(values(golden.path("paths")), pathNames(document));
+        assertEquals(values(golden.path("operationIds")),
+                operationIds(document));
+    }
+
+    private Set<String> values(JsonNode nodes) {
+        Set<String> values = new HashSet<>();
+        nodes.elements().forEachRemaining(node -> values.add(node.asText()));
+        return values;
+    }
+
+    private Set<String> pathNames(JsonNode document) {
+        Set<String> paths = new HashSet<>();
+        document.path("paths").fieldNames().forEachRemaining(paths::add);
+        return paths;
+    }
+
+    private Set<String> operationIds(JsonNode document) {
+        Set<String> operationIds = new HashSet<>();
+        Iterator<JsonNode> paths = document.path("paths").elements();
+        while (paths.hasNext()) {
+            Iterator<JsonNode> methods = paths.next().elements();
+            while (methods.hasNext()) {
+                JsonNode operation = methods.next();
+                if (operation.has("operationId")) {
+                    operationIds.add(operation.path("operationId").asText());
+                }
+            }
+        }
+        return operationIds;
+    }
+
     @TestConfiguration(proxyBeanMethods = false)
     @EnableConfigurationProperties({
-            GatewayReportingProperties.class,
             DdcProperties.class
     })
     static class ProviderTestConfiguration {
@@ -338,21 +399,44 @@ class WebFluxHttpProviderContractTest {
         }
 
         @Bean
-        DdcHttpRegistrationContributor httpRegistrationContributor(
-                GatewayReportingProperties properties) {
+        @org.springframework.core.annotation.Order(
+                org.springframework.core.Ordered.LOWEST_PRECEDENCE)
+        SecurityWebFilterChain providerSecurityWebFilterChain(
+                ServerHttpSecurity http) {
+            return http
+                    .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                    .authorizeExchange(authorize -> authorize
+                            .anyExchange().permitAll())
+                    .build();
+        }
+
+        @Bean
+        IdpServiceOAuth2Client idpServiceOAuth2Client() {
+            IdpServiceOAuth2Client client = mock(IdpServiceOAuth2Client.class);
+            Instant issuedAt = Instant.now();
+            when(client.authorize(any(IdpServiceTokenRequest.class)))
+                    .thenReturn(new OAuth2AccessToken(
+                            OAuth2AccessToken.TokenType.BEARER,
+                            "test-ddc-token",
+                            issuedAt,
+                            issuedAt.plusSeconds(300)
+                    ));
+            return client;
+        }
+
+        @Bean
+        DdcHttpRegistrationContributor httpRegistrationContributor() {
             return new DdcHttpRegistrationContributor() {
                 @Override
                 public String serviceVersion() {
-                    return properties.getArtifactVersion();
+                    return "1.0.0-live";
                 }
 
                 @Override
                 public Map<String, String> metadata() {
                     return Map.of(
                             "gateway.definition-set-id",
-                            "test-webflux-definition-set",
-                            "gateway.build-id",
-                            "test-webflux-build"
+                            "test-webflux-definition-set"
                     );
                 }
             };

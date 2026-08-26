@@ -1,6 +1,11 @@
 spring:
   application:
     name: gateway-test-idp-backend
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
   config:
     import:
       - optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/mock-backend.properties
@@ -22,6 +27,15 @@ management:
     health:
       probes:
         enabled: true
+
+springdoc:
+  api-docs:
+    enabled: true
+    version: OPENAPI_3_1
+  group-configs:
+    - group: identity
+      paths-to-match:
+        - /api/mock/**
 
 egon:
   cola:
@@ -91,16 +105,13 @@ egon:
             heartbeat-interval-seconds: 10
             fail-fast: true
       gateway:
-        reporting:
-          enabled: ${MOCK_BACKEND_GATEWAY_REPORTING_ENABLED:false}
-          admin-base-url: ${GATEWAY_ADMIN_BASE_URL:http://127.0.0.1:18082}
+        openapi:
+          enabled: true
+          publish-to-ddc: true
+          published-groups:
+            - identity
           biz-code: ${MOCK_BACKEND_RESOURCE_BIZ_CODE:identity}
           application-code: ${MOCK_BACKEND_RESOURCE_APP_CODE:mock-backend}
-          application-name: Unified Identity Mock Backend
-          env: ${DEPLOYMENT_ENV:local}
-          namespace: ${DEPLOYMENT_NAMESPACE:default}
+          resource-uri: ${MOCK_BACKEND_RESOURCE_URI:https://api.egon.internal/local/identity/mock-backend}
           artifact-version: ${MOCK_BACKEND_ARTIFACT_VERSION:5.3.2}
           build-id: ${MOCK_BACKEND_BUILD_ID:local}
-          declared-hosts: ${MOCK_BACKEND_DECLARED_HOSTS:127.0.0.1}
-          access-key: ${GATEWAY_REPORT_ACCESS_KEY:}
-          secret-key: ${GATEWAY_REPORT_SECRET_KEY:}

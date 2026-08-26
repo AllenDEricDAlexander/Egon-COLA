@@ -1,0 +1,32 @@
+{
+  "group": "orders",
+  "openapi": "3.1.0",
+  "paths": [
+    "/api/body/echo",
+    "/api/fail/{status}",
+    "/api/orders",
+    "/api/orders/{id}",
+    "/api/orders/{id}/cancel",
+    "/api/orders/search",
+    "/api/providers/{requestId}",
+    "/api/slow/{millis}"
+  ],
+  "operationIds": [
+    "orders.bodyEcho",
+    "orders.cancel",
+    "orders.create",
+    "orders.fail",
+    "orders.get",
+    "orders.providerIdentity",
+    "orders.search",
+    "orders.slow"
+  ],
+  "x-egon-service": {
+    "version": 1,
+    "bizCode": "gateway-test",
+    "applicationCode": "gateway-test-http-provider",
+    "artifactVersion": "1.0.0-live",
+    "buildId": "local-http",
+    "openapiGroup": "orders"
+  }
+}

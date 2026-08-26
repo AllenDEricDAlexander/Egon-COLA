@@ -1,0 +1,18 @@
+{
+  "group": "inventory",
+  "openapi": "3.1.0",
+  "paths": [
+    "/api/internal/inventory/{sku}"
+  ],
+  "operationIds": [
+    "inventory.get"
+  ],
+  "x-egon-service": {
+    "version": 1,
+    "bizCode": "gateway-test",
+    "applicationCode": "gateway-test-http-provider",
+    "artifactVersion": "1.0.0-live",
+    "buildId": "local-http",
+    "openapiGroup": "inventory"
+  }
+}

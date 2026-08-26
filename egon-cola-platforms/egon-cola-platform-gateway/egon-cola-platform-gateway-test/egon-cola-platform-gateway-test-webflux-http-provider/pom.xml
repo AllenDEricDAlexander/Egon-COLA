@@ -19,7 +19,7 @@
     <dependencies>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-platform-gateway-starter</artifactId>
+            <artifactId>egon-cola-platform-gateway-starter-openapi-webflux</artifactId>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
@@ -40,6 +40,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

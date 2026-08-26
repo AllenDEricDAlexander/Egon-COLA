@@ -1,5 +1,7 @@
 package top.egon.cola.component.gateway.test.http;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -7,26 +9,30 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 
 @RestController
 @RequestMapping("/api")
-@GatewayInterfaceGroup(
+@Tag(name = "orders")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台域",
         entityDomainCode = "gateway-test",
         entityDomainName = "网关测试实体域",
-        code = "failure-and-body",
-        name = "故障与报文接口组"
+        interfaceGroupCode = "orders"
 )
 public class BehaviorController {
 
     @GetMapping("/slow/{millis}")
-    @GatewayOperation(
-            name = "延迟响应",
-            externalAccessible = true,
+    @Operation(
+            operationId = "orders.slow",
+            summary = "延迟响应",
             tags = {"failure-test"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.FALSE
     )
     public DelayView slow(@PathVariable("millis") long millis)
             throws InterruptedException {
@@ -36,10 +42,14 @@ public class BehaviorController {
     }
 
     @GetMapping("/fail/{status}")
-    @GatewayOperation(
-            name = "指定状态失败",
-            externalAccessible = true,
+    @Operation(
+            operationId = "orders.fail",
+            summary = "指定状态失败",
             tags = {"failure-test"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.FALSE
     )
     public ResponseEntity<FailureView> fail(
             @PathVariable("status") int status) {
@@ -49,11 +59,14 @@ public class BehaviorController {
     }
 
     @PostMapping("/body/echo")
-    @GatewayOperation(
-            name = "回显请求体",
-            externalAccessible = true,
-            idempotent = true,
+    @Operation(
+            operationId = "orders.bodyEcho",
+            summary = "回显请求体",
             tags = {"body"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.TRUE
     )
     public byte[] echo(@RequestBody byte[] body) {
         return body;

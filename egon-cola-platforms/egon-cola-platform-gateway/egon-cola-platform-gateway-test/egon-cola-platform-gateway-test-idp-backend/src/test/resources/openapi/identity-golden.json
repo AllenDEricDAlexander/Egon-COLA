@@ -1,0 +1,11 @@
+{
+  "group": "identity",
+  "operationIds": [
+    "identity.admin",
+    "identity.read"
+  ],
+  "paths": [
+    "/api/mock/admin",
+    "/api/mock/read"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "group": "inventory-reactive",
+  "openapi": "3.1.0",
+  "paths": [
+    "/api/providers/{requestId}",
+    "/test/items/{id}",
+    "/test/transport/binary",
+    "/test/transport/json",
+    "/test/transport/sse",
+    "/test/transport/upload"
+  ],
+  "operationIds": [
+    "inventory-reactive.binary",
+    "inventory-reactive.item",
+    "inventory-reactive.json",
+    "inventory-reactive.providerIdentity",
+    "inventory-reactive.sse",
+    "inventory-reactive.upload"
+  ],
+  "x-egon-service": {
+    "version": 1,
+    "bizCode": "gateway-test",
+    "applicationCode": "gateway-test-webflux-http-provider",
+    "artifactVersion": "1.0.0-live",
+    "buildId": "local-webflux",
+    "openapiGroup": "inventory-reactive"
+  }
+}

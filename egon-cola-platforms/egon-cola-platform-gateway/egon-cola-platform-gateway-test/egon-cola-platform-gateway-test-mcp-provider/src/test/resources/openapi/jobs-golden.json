@@ -1,0 +1,19 @@
+{
+  "group": "jobs",
+  "operationIds": [
+    "jobs.cancel",
+    "jobs.echo",
+    "jobs.get",
+    "jobs.highRisk",
+    "jobs.list",
+    "jobs.query",
+    "jobs.startJob",
+    "jobs.submitInput",
+    "jobs.write"
+  ],
+  "mcpTools": [
+    "local_echo_task",
+    "local_query",
+    "high_risk_action"
+  ]
+}

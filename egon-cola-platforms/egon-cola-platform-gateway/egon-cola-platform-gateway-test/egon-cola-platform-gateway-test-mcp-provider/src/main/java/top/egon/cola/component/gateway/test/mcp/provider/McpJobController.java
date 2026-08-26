@@ -1,5 +1,9 @@
 package top.egon.cola.component.gateway.test.mcp.provider;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,13 +14,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRiskLevel;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.component.gateway.starter.annotation.GatewayRequestLocation;
-import top.egon.cola.component.gateway.starter.annotation.GatewayRequestSchemaField;
-import top.egon.cola.component.gateway.starter.annotation.GatewayResponseSchema;
-import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
-import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaShape;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
+import top.egon.cola.component.gateway.openapi.annotation.EgonMcpTool;
 
 import java.time.Instant;
 import java.util.Comparator;
@@ -30,15 +30,13 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 @RestController
 @RequestMapping("/api/mcp-fixtures")
-@GatewayInterfaceGroup(
+@Tag(name = "jobs", description = "MCP Fixture Operations")
+@EgonApiCatalog(
         businessDomainCode = "mcp-test",
         businessDomainName = "MCP 测试域",
         entityDomainCode = "fixture",
         entityDomainName = "Fixture",
-        code = "mcp-fixture-operations",
-        name = "MCP Fixture Operations",
-        description = "完全本地且确定性的 MCP Operation 测试接口",
-        mcpServerCode = "unified-local"
+        interfaceGroupCode = "jobs"
 )
 public class McpJobController {
 
@@ -47,108 +45,106 @@ public class McpJobController {
     private final Map<String, JobView> jobs = new ConcurrentHashMap<>();
 
     @PostMapping("/echo")
-    @GatewayOperation(
-            name = "MCP Echo",
+    @Operation(
+            operationId = "jobs.echo",
             summary = "返回原始本地输入",
+            tags = {"mcp", "query"})
+    @EgonGatewayPolicy(
             owner = "gateway-test",
-            externalAccessible = false,
-            idempotent = true,
-            registerMcp = true,
-            mcpName = "local_echo_task",
-            mcpRequiredPermissions = "mock:read",
-            mcpRiskLevel = McpRiskLevel.MEDIUM,
-            tags = {"mcp", "query"},
-            requestSchemaFields = @GatewayRequestSchemaField(
-                    location = GatewayRequestLocation.BODY,
-                    schema = EchoCommand.class,
-                    shape = GatewaySchemaShape.OBJECT
-            ),
-            responseSchema = @GatewayResponseSchema(
-                    schema = EchoView.class,
-                    shape = GatewaySchemaShape.OBJECT
-            )
-    )
-    public EchoView echo(@RequestBody EchoCommand command) {
+            exposure = EgonGatewayPolicy.Exposure.INTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.TRUE)
+    @EgonMcpTool(
+            enabled = true,
+            serverCode = "unified-local",
+            name = "local_echo_task",
+            permissions = {"mock:read"},
+            riskLevel = McpRiskLevel.MEDIUM)
+    public EchoView echo(
+            @RequestBody
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "回显命令")
+            EchoCommand command) {
         return new EchoView(command.value(), "HTTP");
     }
 
     @GetMapping("/query")
-    @GatewayOperation(
-            name = "MCP Query",
+    @Operation(
+            operationId = "jobs.query",
             summary = "确定性查询",
+            tags = {"mcp", "query"})
+    @EgonGatewayPolicy(
             owner = "gateway-test",
-            externalAccessible = false,
-            idempotent = true,
-            registerMcp = true,
-            mcpName = "local_query",
-            mcpRequiredPermissions = "mock:read",
-            tags = {"mcp", "query"},
-            requestSchemaFields = @GatewayRequestSchemaField(
-                    location = GatewayRequestLocation.QUERY,
-                    name = "prefix",
-                    schema = String.class,
-                    shape = GatewaySchemaShape.VALUE
-            ),
-            responseSchema = @GatewayResponseSchema(
-                    schema = QueryView.class,
-                    shape = GatewaySchemaShape.OBJECT
-            )
-    )
+            exposure = EgonGatewayPolicy.Exposure.INTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.TRUE)
+    @EgonMcpTool(
+            enabled = true,
+            serverCode = "unified-local",
+            name = "local_query",
+            permissions = {"mock:read"},
+            riskLevel = McpRiskLevel.LOW)
     public QueryView query(
             @RequestParam(value = "prefix", defaultValue = "fixture")
+            @Parameter(description = "查询前缀")
             String prefix) {
         return new QueryView(List.of(prefix + "-1", prefix + "-2"));
     }
 
     @PostMapping("/write")
     @ResponseStatus(HttpStatus.CREATED)
-    @GatewayOperation(
-            name = "MCP Write",
+    @Operation(
+            operationId = "jobs.write",
             summary = "确定性写操作",
+            tags = {"mcp", "command"})
+    @EgonGatewayPolicy(
             owner = "gateway-test",
-            externalAccessible = false,
-            idempotent = true,
-            tags = {"mcp", "command"}
-    )
-    public WriteView write(@RequestBody WriteCommand command) {
+            exposure = EgonGatewayPolicy.Exposure.INTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.TRUE)
+    public WriteView write(
+            @RequestBody
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "写入命令")
+            WriteCommand command) {
         return new WriteView("write-" + command.key(), command.value());
     }
 
     @PostMapping("/high-risk")
-    @GatewayOperation(
-            name = "MCP High Risk",
+    @Operation(
+            operationId = "jobs.highRisk",
             summary = "用于一次性审批验证的高风险操作",
+            tags = {"mcp", "command", "high-risk"})
+    @EgonGatewayPolicy(
             owner = "gateway-test",
-            externalAccessible = false,
-            registerMcp = true,
-            mcpName = "high_risk_action",
-            mcpRequiredPermissions = "mock:admin",
-            mcpRiskLevel = McpRiskLevel.HIGH,
-            tags = {"mcp", "command", "high-risk"},
-            requestSchemaFields = @GatewayRequestSchemaField(
-                    location = GatewayRequestLocation.BODY,
-                    schema = ApprovalCommand.class,
-                    shape = GatewaySchemaShape.OBJECT
-            ),
-            responseSchema = @GatewayResponseSchema(
-                    schema = ApprovalView.class,
-                    shape = GatewaySchemaShape.OBJECT
-            )
-    )
-    public ApprovalView highRisk(@RequestBody ApprovalCommand command) {
+            exposure = EgonGatewayPolicy.Exposure.INTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.FALSE)
+    @EgonMcpTool(
+            enabled = true,
+            serverCode = "unified-local",
+            name = "high_risk_action",
+            permissions = {"mock:admin"},
+            riskLevel = McpRiskLevel.HIGH)
+    public ApprovalView highRisk(
+            @RequestBody
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "审批命令")
+            ApprovalCommand command) {
         return new ApprovalView(command.action(), "APPROVED_FIXTURE");
     }
 
     @PostMapping("/jobs")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    @GatewayOperation(
-            name = "MCP Start Job",
+    @Operation(
+            operationId = "jobs.startJob",
             summary = "创建可恢复或等待输入的本地任务",
+            tags = {"mcp", "job", "command"})
+    @EgonGatewayPolicy(
             owner = "gateway-test",
-            externalAccessible = false,
-            tags = {"mcp", "job", "command"}
-    )
-    public JobView startJob(@RequestBody StartJob command) {
+            exposure = EgonGatewayPolicy.Exposure.INTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.FALSE)
+    public JobView startJob(
+            @RequestBody
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "启动任务命令")
+            StartJob command) {
         String id = "job-" + sequence.incrementAndGet();
         JobView created = new JobView(
                 id,
@@ -162,13 +158,14 @@ public class McpJobController {
     }
 
     @GetMapping("/jobs")
-    @GatewayOperation(
-            name = "MCP List Jobs",
+    @Operation(
+            operationId = "jobs.list",
             summary = "列出确定性本地任务",
+            tags = {"mcp", "job", "query"})
+    @EgonGatewayPolicy(
             owner = "gateway-test",
-            externalAccessible = false,
-            tags = {"mcp", "job", "query"}
-    )
+            exposure = EgonGatewayPolicy.Exposure.INTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.AUTO)
     public List<JobView> jobs() {
         return jobs.values().stream()
                 .sorted(Comparator.comparing(JobView::id))
@@ -176,29 +173,35 @@ public class McpJobController {
     }
 
     @GetMapping("/jobs/{id}")
-    @GatewayOperation(
-            name = "MCP Get Job",
+    @Operation(
+            operationId = "jobs.get",
             summary = "读取本地任务",
+            tags = {"mcp", "job", "query"})
+    @EgonGatewayPolicy(
             owner = "gateway-test",
-            externalAccessible = false,
-            tags = {"mcp", "job", "query"}
-    )
-    public JobView job(@PathVariable String id) {
+            exposure = EgonGatewayPolicy.Exposure.INTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.AUTO)
+    public JobView job(@PathVariable
+                       @Parameter(description = "任务标识") String id) {
         return required(id);
     }
 
     @PostMapping("/jobs/{id}/input")
-    @GatewayOperation(
-            name = "MCP Submit Job Input",
+    @Operation(
+            operationId = "jobs.submitInput",
             summary = "向等待输入的任务提交一次输入",
+            tags = {"mcp", "job", "command"})
+    @EgonGatewayPolicy(
             owner = "gateway-test",
-            externalAccessible = false,
-            idempotent = true,
-            tags = {"mcp", "job", "command"}
-    )
+            exposure = EgonGatewayPolicy.Exposure.INTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.TRUE)
     public JobView submitInput(
-            @PathVariable String id,
-            @RequestBody JobInput input) {
+            @PathVariable
+            @Parameter(description = "任务标识") String id,
+            @RequestBody
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "任务输入")
+            JobInput input) {
         JobView current = required(id);
         if (!"INPUT_REQUIRED".equals(current.state())) {
             throw new IllegalStateException("job does not require input");
@@ -215,15 +218,16 @@ public class McpJobController {
     }
 
     @PostMapping("/jobs/{id}/cancel")
-    @GatewayOperation(
-            name = "MCP Cancel Job",
+    @Operation(
+            operationId = "jobs.cancel",
             summary = "取消未结束的本地任务",
+            tags = {"mcp", "job", "command"})
+    @EgonGatewayPolicy(
             owner = "gateway-test",
-            externalAccessible = false,
-            idempotent = true,
-            tags = {"mcp", "job", "command"}
-    )
-    public JobView cancelJob(@PathVariable String id) {
+            exposure = EgonGatewayPolicy.Exposure.INTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.TRUE)
+    public JobView cancelJob(@PathVariable
+                             @Parameter(description = "任务标识") String id) {
         JobView current = required(id);
         JobView cancelled = new JobView(
                 id,
@@ -245,18 +249,18 @@ public class McpJobController {
     }
 
     public record EchoCommand(
-            @GatewaySchemaField(description = "回显内容") String value
+            @Schema(description = "回显内容") String value
     ) {
     }
 
     public record EchoView(
-            @GatewaySchemaField(description = "回显内容") String value,
-            @GatewaySchemaField(description = "调用协议") String protocol
+            @Schema(description = "回显内容") String value,
+            @Schema(description = "调用协议") String protocol
     ) {
     }
 
     public record QueryView(
-            @GatewaySchemaField(description = "排序后的确定性结果")
+            @Schema(description = "排序后的确定性结果")
             List<String> items
     ) {
     }
@@ -268,13 +272,13 @@ public class McpJobController {
     }
 
     public record ApprovalCommand(
-            @GatewaySchemaField(description = "待审批动作") String action
+            @Schema(description = "待审批动作") String action
     ) {
     }
 
     public record ApprovalView(
-            @GatewaySchemaField(description = "审批动作") String action,
-            @GatewaySchemaField(description = "审批结果") String outcome
+            @Schema(description = "审批动作") String action,
+            @Schema(description = "审批结果") String outcome
     ) {
     }
 

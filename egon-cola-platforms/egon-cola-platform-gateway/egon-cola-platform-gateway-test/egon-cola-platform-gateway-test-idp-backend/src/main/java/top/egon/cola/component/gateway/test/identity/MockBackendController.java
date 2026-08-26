@@ -1,5 +1,8 @@
 package top.egon.cola.component.gateway.test.identity;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.HttpStatus;
@@ -8,28 +11,32 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 
 @RestController
 @RequestMapping("/api/mock")
-@GatewayInterfaceGroup(
+@Tag(name = "identity", description = "统一身份端到端验证")
+@EgonApiCatalog(
         businessDomainCode = "identity",
         businessDomainName = "统一身份",
         entityDomainCode = "authorization-fixture",
         entityDomainName = "授权验证后端",
-        code = "unified-identity-fixture",
-        name = "统一身份端到端验证接口")
+        interfaceGroupCode = "identity")
 public class MockBackendController {
 
     @GetMapping("/read")
     @RequiresPermission("mock:read")
-    @GatewayOperation(
-            name = "统一身份读取验证",
-            externalAccessible = true,
+    @Operation(
+            operationId = "identity.read",
+            summary = "统一身份读取验证",
             tags = {"identity", "authorization", "read"})
+    @EgonGatewayPolicy(
+            owner = "gateway-test",
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.AUTO)
     public IdentityView read(
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal identity) {
         return view("read", identity);
@@ -37,10 +44,14 @@ public class MockBackendController {
 
     @GetMapping("/admin")
     @RequiresPermission("mock:admin")
-    @GatewayOperation(
-            name = "统一身份管理验证",
-            externalAccessible = true,
+    @Operation(
+            operationId = "identity.admin",
+            summary = "统一身份管理验证",
             tags = {"identity", "authorization", "admin"})
+    @EgonGatewayPolicy(
+            owner = "gateway-test",
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.AUTO)
     public IdentityView admin(
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal identity) {
         return view("admin", identity);
@@ -62,8 +73,11 @@ public class MockBackendController {
     }
 
     public record IdentityView(
+            @Schema(description = "主体标识")
             String subject,
+            @Schema(description = "租户标识")
             String tenantId,
+            @Schema(description = "验证操作")
             String operation) {
     }
 }

@@ -1,5 +1,8 @@
 package top.egon.cola.component.gateway.test.webflux;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -12,8 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
@@ -25,14 +28,13 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @RestController
 @RequestMapping("/test/transport")
-@GatewayInterfaceGroup(
+@Tag(name = "inventory-reactive")
+@EgonApiCatalog(
         businessDomainCode = "gateway-test",
         businessDomainName = "网关测试域",
         entityDomainCode = "streaming-transport",
         entityDomainName = "流式传输实体域",
-        code = "streaming-transport",
-        name = "流式传输测试接口组",
-        description = "验证 JSON、SSE、上传和二进制流的 Provider 夹具"
+        interfaceGroupCode = "inventory-reactive"
 )
 public class StreamingTransportController {
 
@@ -46,14 +48,18 @@ public class StreamingTransportController {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    @GatewayOperation(
-            name = "流式回显 JSON",
+    @Operation(
+            operationId = "inventory-reactive.json",
             summary = "不解析请求内容并按 DataBuffer 回显 JSON",
-            owner = "gateway-test",
-            externalAccessible = true,
             tags = {"streaming", "json", "openai"}
     )
-    public Flux<DataBuffer> json(ServerHttpRequest request) {
+    @EgonGatewayPolicy(
+            owner = "gateway-test",
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.FALSE
+    )
+    public Flux<DataBuffer> json(@Parameter(hidden = true)
+                                 ServerHttpRequest request) {
         return request.getBody();
     }
 
@@ -61,14 +67,18 @@ public class StreamingTransportController {
             path = "/sse",
             produces = MediaType.TEXT_EVENT_STREAM_VALUE
     )
-    @GatewayOperation(
-            name = "流式发送 SSE",
+    @Operation(
+            operationId = "inventory-reactive.sse",
             summary = "逐事件发送 OpenAI 风格 SSE 响应",
-            owner = "gateway-test",
-            externalAccessible = true,
             tags = {"streaming", "sse", "openai"}
     )
-    public Flux<DataBuffer> sse(ServerHttpResponse response) {
+    @EgonGatewayPolicy(
+            owner = "gateway-test",
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.FALSE
+    )
+    public Flux<DataBuffer> sse(@Parameter(hidden = true)
+                                ServerHttpResponse response) {
         response.getHeaders().setCacheControl("no-cache");
         response.getHeaders().add("X-Accel-Buffering", "no");
         return Flux.just(
@@ -90,14 +100,18 @@ public class StreamingTransportController {
             },
             produces = MediaType.APPLICATION_JSON_VALUE
     )
-    @GatewayOperation(
-            name = "流式接收上传",
+    @Operation(
+            operationId = "inventory-reactive.upload",
             summary = "直接消费 DataBuffer 并增量计算上传摘要",
-            owner = "gateway-test",
-            externalAccessible = true,
             tags = {"streaming", "multipart", "upload"}
     )
-    public Mono<UploadSummary> upload(ServerHttpRequest request) {
+    @EgonGatewayPolicy(
+            owner = "gateway-test",
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.FALSE
+    )
+    public Mono<UploadSummary> upload(@Parameter(hidden = true)
+                                     ServerHttpRequest request) {
         MessageDigest digest = sha256();
         AtomicLong bytes = new AtomicLong();
         AtomicInteger chunks = new AtomicInteger();
@@ -123,14 +137,18 @@ public class StreamingTransportController {
             path = "/binary",
             produces = "audio/mpeg"
     )
-    @GatewayOperation(
-            name = "流式发送二进制内容",
+    @Operation(
+            operationId = "inventory-reactive.binary",
             summary = "按 DataBuffer 发送包含非 UTF-8 字节的音频响应",
-            owner = "gateway-test",
-            externalAccessible = true,
             tags = {"streaming", "binary", "audio"}
     )
-    public Flux<DataBuffer> binary(ServerHttpResponse response) {
+    @EgonGatewayPolicy(
+            owner = "gateway-test",
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
+            idempotency = EgonGatewayPolicy.Idempotency.FALSE
+    )
+    public Flux<DataBuffer> binary(@Parameter(hidden = true)
+                                   ServerHttpResponse response) {
         response.getHeaders().setContentDisposition(
                 ContentDisposition.attachment()
                         .filename("gateway-test-audio.bin")
