@@ -1,5 +1,9 @@
 package top.egon.cola.component.gateway.admin.mcp.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,8 +20,6 @@ import top.egon.cola.component.gateway.admin.mcp.domain.vo.McpApprovalOwnerVO;
 import top.egon.cola.component.gateway.admin.mcp.domain.vo.McpApprovalVO;
 import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpApprovalRepository;
 import top.egon.cola.component.gateway.mcp.common.security.McpSecurityDigests;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 
 import java.security.SecureRandom;
@@ -36,13 +38,13 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/gateway/admin/mcp/approvals")
 @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:approve','CAP_*')")
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-mcp-approval-controller",
-        name = "McpApprovalController 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class McpApprovalController {
 
     /**
@@ -135,7 +137,9 @@ public class McpApprovalController {
      * @param authentication 参数 authentication；parameter authentication。
      * @return 返回 issue 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpApprovalController.issue")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public McpApprovalVO issue(

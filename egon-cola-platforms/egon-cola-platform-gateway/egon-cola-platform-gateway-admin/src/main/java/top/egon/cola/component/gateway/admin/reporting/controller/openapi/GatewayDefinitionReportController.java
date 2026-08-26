@@ -1,5 +1,9 @@
 package top.egon.cola.component.gateway.admin.reporting.controller.openapi;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,8 +18,6 @@ import top.egon.cola.component.gateway.admin.reporting.service.GatewayDefinition
 import top.egon.cola.component.gateway.admin.reporting.service.GatewayReportAuthentication;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReport;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReportResult;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 /**
  * 中文说明：{@code GatewayDefinitionReportController} 是接口控制器，位于当前 Gateway 模块的相关包中，负责网关定义报告控制器相关的职责与边界。
@@ -27,13 +29,13 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 @RequestMapping(
         "/api/v1/gateway/openapi/interface-definitions/reports"
 )
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-gateway-definition-report-controller",
-        name = "GatewayDefinitionReportController 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class GatewayDefinitionReportController {
 
     /**
@@ -67,7 +69,9 @@ public class GatewayDefinitionReportController {
      * @param request 参数 请求；parameter request。
      * @return 返回 报告 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayDefinitionReportController.report")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping
     @ResponseStatus(HttpStatus.ACCEPTED)
     public GatewayInterfaceDefinitionReportResult report(
@@ -93,7 +97,9 @@ public class GatewayDefinitionReportController {
      * @param request 参数 请求；parameter request。
      * @return 返回 find 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayDefinitionReportController.find")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/{reportId}")
     public GatewayInterfaceDefinitionReportResult find(
             @PathVariable String reportId,

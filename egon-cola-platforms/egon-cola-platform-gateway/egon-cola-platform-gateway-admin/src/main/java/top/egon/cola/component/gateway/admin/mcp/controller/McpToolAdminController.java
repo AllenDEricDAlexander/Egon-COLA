@@ -1,5 +1,9 @@
 package top.egon.cola.component.gateway.admin.mcp.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,8 +24,6 @@ import top.egon.cola.component.gateway.admin.mcp.domain.dto.McpToolMutationReque
 import top.egon.cola.component.gateway.admin.mcp.service.McpToolAdminService;
 import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
 import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 import java.util.List;
 
@@ -34,13 +36,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/gateway/admin/mcp")
 @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:read','CAP_*')")
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-mcp-tool-admin-controller",
-        name = "McpToolAdminController 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class McpToolAdminController {
 
     /**
@@ -71,7 +73,9 @@ public class McpToolAdminController {
      * @param serverId 参数 服务器Id；parameter server id。
      * @return 返回 managedTools 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpToolAdminController.managedTools")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/groups/{groupId}/managed-tools")
     public List<top.egon.cola.component.gateway.admin.mcp.domain.vo.McpManagedToolVO> managedTools(
             @PathVariable String groupId,
@@ -90,7 +94,9 @@ public class McpToolAdminController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 putOverride 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpToolAdminController.putOverride")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/managed-tools/{toolId}/override")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.mcp.domain.vo.McpMutationResultVO putOverride(
@@ -118,7 +124,9 @@ public class McpToolAdminController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 deleteOverride 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpToolAdminController.deleteOverride")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/managed-tools/{toolId}/override")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.mcp.domain.vo.McpMutationResultVO deleteOverride(
@@ -144,7 +152,9 @@ public class McpToolAdminController {
      * @param serverId 参数 服务器Id；parameter server id。
      * @return 返回 远程Tools 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpToolAdminController.remoteTools")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/remote-tools")
     public List<top.egon.cola.component.gateway.admin.mcp.domain.vo.McpRemoteToolVO> remoteTools(
             @RequestParam String gatewayGroupId,
@@ -162,7 +172,9 @@ public class McpToolAdminController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 create远程工具 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpToolAdminController.createRemoteTool")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/remote-tools")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
@@ -190,7 +202,9 @@ public class McpToolAdminController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 update远程工具 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpToolAdminController.updateRemoteTool")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/remote-tools/{toolId}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.mcp.domain.vo.McpMutationResultVO updateRemoteTool(
@@ -218,7 +232,9 @@ public class McpToolAdminController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 delete远程工具 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpToolAdminController.deleteRemoteTool")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/remote-tools/{toolId}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.mcp.domain.vo.McpMutationResultVO deleteRemoteTool(

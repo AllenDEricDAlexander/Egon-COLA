@@ -1,5 +1,6 @@
 package top.egon.cola.component.gateway.admin.shared.controller;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +16,7 @@ import top.egon.cola.component.gateway.admin.shared.domain.exception.GatewayAdmi
 import top.egon.cola.component.gateway.admin.shared.domain.vo.GatewayAdminErrorVO;
 import top.egon.cola.component.gateway.admin.shared.domain.vo.GatewayAdminFieldErrorVO;
 import top.egon.cola.component.gateway.core.mcp.app.McpAppArtifactStore;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
 
 import java.time.Instant;
 import java.util.List;
@@ -27,13 +28,13 @@ import java.util.List;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @RestControllerAdvice
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-gateway-admin-exception-handler",
-        name = "GatewayAdminExceptionHandler 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class GatewayAdminExceptionHandler {
 
     /**

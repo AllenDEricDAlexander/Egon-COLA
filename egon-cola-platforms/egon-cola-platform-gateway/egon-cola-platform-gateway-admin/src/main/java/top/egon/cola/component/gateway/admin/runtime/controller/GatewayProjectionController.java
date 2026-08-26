@@ -1,5 +1,9 @@
 package top.egon.cola.component.gateway.admin.runtime.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -11,8 +15,6 @@ import top.egon.cola.component.ddc.model.management.DdcManagementServiceCatalog;
 import top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayProjectionEnvelopeVO;
 import top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayProviderInstanceVO;
 import top.egon.cola.component.gateway.admin.runtime.service.GatewayProjectionService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 import java.util.List;
 
@@ -25,13 +27,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/gateway/admin")
 @PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-gateway-projection-controller",
-        name = "GatewayProjectionController 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class GatewayProjectionController {
 
     /**
@@ -61,7 +63,9 @@ public class GatewayProjectionController {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 引擎Nodes 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayProjectionController.engineNodes")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/gateway-groups/{gatewayGroupId}/engine-nodes")
     public GatewayProjectionEnvelopeVO<List<DdcManagementConfigClientInstance>> engineNodes(
             @PathVariable String gatewayGroupId) {
@@ -84,7 +88,9 @@ public class GatewayProjectionController {
      * @param version 参数 version；parameter version。
      * @return 返回 services 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayProjectionController.services")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/providers/services")
     public GatewayProjectionEnvelopeVO<DdcManagementServiceCatalog> services(
             @RequestParam String bizCode,
@@ -125,7 +131,9 @@ public class GatewayProjectionController {
      * @param version 参数 version；parameter version。
      * @return 返回 instances 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayProjectionController.instances")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/providers/instances")
     public GatewayProjectionEnvelopeVO<List<GatewayProviderInstanceVO>> instances(
             @RequestParam String bizCode,
@@ -166,7 +174,9 @@ public class GatewayProjectionController {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 consistency 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayProjectionController.consistency")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/gateway-groups/{gatewayGroupId}/runtime-consistency")
     public top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayRuntimeConsistencyVO consistency(
             @PathVariable String gatewayGroupId) {

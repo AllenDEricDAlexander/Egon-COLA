@@ -1,10 +1,12 @@
 package top.egon.cola.component.gateway.admin.auth.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.platform.rbac3.contract.auth.AuthorizationBootstrapView;
 import top.egon.cola.platform.rbac3.contract.auth.Rbac3AboutView;
 import top.egon.cola.platform.rbac3.starter.authorization.Rbac3AboutService;
@@ -20,13 +22,13 @@ import java.util.Objects;
  */
 @RestController
 @RequestMapping("/api/v1/auth")
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-gateway-auth-bootstrap-controller",
-        name = "GatewayAuthBootstrapController 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class GatewayAuthBootstrapController {
 
     /**
@@ -55,7 +57,9 @@ public class GatewayAuthBootstrapController {
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayAuthBootstrapController.bootstrap(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @return 返回 bootstrap 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayAuthBootstrapController.bootstrap")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/bootstrap")
     @RequiresPermission("gateway:read")
     public AuthorizationBootstrapView bootstrap() {

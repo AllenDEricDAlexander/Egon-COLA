@@ -1,5 +1,9 @@
 package top.egon.cola.component.gateway.admin.credential.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,8 +18,6 @@ import top.egon.cola.component.gateway.admin.credential.domain.dto.GatewayCreden
 import top.egon.cola.component.gateway.admin.credential.service.GatewayCredentialService;
 import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
 import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 import java.time.Duration;
 import java.util.List;
@@ -29,13 +31,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/gateway/admin/applications/{applicationId}/credentials")
 @PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-gateway-credential-controller",
-        name = "GatewayCredentialController 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class GatewayCredentialController {
 
     /**
@@ -65,7 +67,9 @@ public class GatewayCredentialController {
      * @param applicationId 参数 applicationId；parameter application id。
      * @return 返回 list 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayCredentialController.list")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
     public List<top.egon.cola.component.gateway.admin.credential.domain.vo.GatewayCredentialVO> list(
             @PathVariable String applicationId) {
@@ -81,7 +85,9 @@ public class GatewayCredentialController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 create 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayCredentialController.create")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('CAP_gateway:credentials:write','CAP_*')")
@@ -102,7 +108,9 @@ public class GatewayCredentialController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 rotate 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayCredentialController.rotate")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/{keyId}/rotate")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('CAP_gateway:credentials:write','CAP_*')")
@@ -130,7 +138,9 @@ public class GatewayCredentialController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 revoke 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayCredentialController.revoke")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/{keyId}/revoke")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:credentials:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.credential.domain.vo.GatewayCredentialVO revoke(

@@ -1,5 +1,6 @@
 package top.egon.cola.component.gateway.admin.mcp.domain.vo;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Set;
 
@@ -87,8 +88,8 @@ public record McpManagedToolVO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.mcp.domain.vo.McpManagedToolVO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.mcp.domain.vo.McpManagedToolVO}; do not couple callers to its representation when the owning type exposes an API.
          */
-        @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
-                allowArbitraryJson = true)
+        @Schema(type = "object",
+                additionalProperties = Schema.AdditionalPropertiesValue.TRUE)
         Object inputSchema,
         /**
          * 中文说明：保存 output模式 对应的状态、依赖或配置值；字段类型为 {@code Object}，由 {@code top.egon.cola.component.gateway.admin.mcp.domain.vo.McpManagedToolVO} 在其生命周期内读取或更新。
@@ -96,8 +97,8 @@ public record McpManagedToolVO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.mcp.domain.vo.McpManagedToolVO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.mcp.domain.vo.McpManagedToolVO}; do not couple callers to its representation when the owning type exposes an API.
          */
-        @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
-                allowArbitraryJson = true)
+        @Schema(type = "object",
+                additionalProperties = Schema.AdditionalPropertiesValue.TRUE)
         Object outputSchema,
         /**
          * 中文说明：保存 code服务器Id 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code top.egon.cola.component.gateway.admin.mcp.domain.vo.McpManagedToolVO} 在其生命周期内读取或更新。

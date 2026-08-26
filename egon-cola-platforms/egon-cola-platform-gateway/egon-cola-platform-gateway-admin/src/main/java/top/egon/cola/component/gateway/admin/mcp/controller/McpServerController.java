@@ -1,5 +1,9 @@
 package top.egon.cola.component.gateway.admin.mcp.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -20,8 +24,6 @@ import top.egon.cola.component.gateway.admin.mcp.domain.dto.McpServerRequestDTO;
 import top.egon.cola.component.gateway.admin.mcp.service.McpControlPlaneService;
 import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
 import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 import java.util.List;
 
@@ -35,13 +37,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/gateway/admin/mcp/servers")
 @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:read','CAP_*')")
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-mcp-server-controller",
-        name = "McpServerController 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class McpServerController {
 
     /**
@@ -71,7 +73,9 @@ public class McpServerController {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 list 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpServerController.list")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
     public List<top.egon.cola.component.gateway.admin.mcp.domain.vo.McpServerVO> list(
             @RequestParam String gatewayGroupId) {
@@ -88,7 +92,9 @@ public class McpServerController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 create 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpServerController.create")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
@@ -112,7 +118,9 @@ public class McpServerController {
      * @param id 参数 id；parameter id。
      * @return 返回 get 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpServerController.get")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/{id}")
     public top.egon.cola.component.gateway.admin.mcp.domain.vo.McpServerVO get(@PathVariable String id) {
         return service.getServer(id);
@@ -129,7 +137,9 @@ public class McpServerController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 update 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpServerController.update")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.mcp.domain.vo.McpMutationResultVO update(
@@ -157,7 +167,9 @@ public class McpServerController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 delete 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpServerController.delete")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.mcp.domain.vo.McpMutationResultVO delete(
@@ -182,7 +194,9 @@ public class McpServerController {
      * @param id 参数 id；parameter id。
      * @return 返回 validate 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpServerController.validate")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/{id}/validate")
     public top.egon.cola.component.gateway.admin.mcp.domain.vo.McpValidationReportVO validate(
             @PathVariable String id) {
@@ -197,7 +211,9 @@ public class McpServerController {
      * @param id 参数 id；parameter id。
      * @return 返回 preview 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpServerController.preview")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/{id}/capability-preview")
     public top.egon.cola.component.gateway.admin.mcp.domain.vo.McpCapabilityPreviewVO preview(@PathVariable String id) {
         return service.preview(service.getServer(id).gatewayGroupId());

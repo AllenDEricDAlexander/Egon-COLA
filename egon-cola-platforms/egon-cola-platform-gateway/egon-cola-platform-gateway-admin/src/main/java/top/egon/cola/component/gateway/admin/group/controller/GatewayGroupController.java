@@ -1,5 +1,9 @@
 package top.egon.cola.component.gateway.admin.group.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,8 +21,6 @@ import top.egon.cola.component.gateway.admin.group.domain.dto.GatewayGroupUpdate
 import top.egon.cola.component.gateway.admin.group.service.GatewayGroupService;
 import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
 import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 import java.util.List;
 
@@ -31,13 +33,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/gateway/admin/gateway-groups")
 @PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-gateway-group-controller",
-        name = "GatewayGroupController 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class GatewayGroupController {
 
     /**
@@ -66,7 +68,9 @@ public class GatewayGroupController {
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayGroupController.list(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @return 返回 list 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayGroupController.list")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
     public List<top.egon.cola.component.gateway.admin.group.domain.vo.GatewayGroupVO> list() {
         return service.list();
@@ -82,7 +86,9 @@ public class GatewayGroupController {
      * @param requestId 参数 请求Id；parameter request id。
      * @return 返回 create 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayGroupController.create")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('CAP_gateway:groups:write','CAP_*')")
@@ -112,7 +118,9 @@ public class GatewayGroupController {
      * @param id 参数 id；parameter id。
      * @return 返回 get 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayGroupController.get")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/{id}")
     public top.egon.cola.component.gateway.admin.group.domain.vo.GatewayGroupVO get(
             @PathVariable String id) {
@@ -130,7 +138,9 @@ public class GatewayGroupController {
      * @param requestId 参数 请求Id；parameter request id。
      * @return 返回 update 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayGroupController.update")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:groups:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.group.domain.vo.GatewayGroupVO update(
@@ -160,7 +170,9 @@ public class GatewayGroupController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 enable 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayGroupController.enable")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/{id}/enable")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:groups:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.group.domain.vo.GatewayGroupVO enable(
@@ -183,7 +195,9 @@ public class GatewayGroupController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 disable 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayGroupController.disable")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/{id}/disable")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:groups:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.group.domain.vo.GatewayGroupVO disable(

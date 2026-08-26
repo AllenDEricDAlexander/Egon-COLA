@@ -1,5 +1,9 @@
 package top.egon.cola.component.gateway.admin.release.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,8 +17,6 @@ import top.egon.cola.component.gateway.admin.release.domain.dto.GatewayReleaseRo
 import top.egon.cola.component.gateway.admin.release.service.GatewayReleaseService;
 import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
 import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 import java.util.List;
 import java.util.Map;
@@ -28,13 +30,13 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/gateway/admin")
 @PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-gateway-release-controller",
-        name = "GatewayReleaseController 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class GatewayReleaseController {
 
     /**
@@ -66,7 +68,9 @@ public class GatewayReleaseController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 create 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayReleaseController.create")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/gateway-groups/{gatewayGroupId}/releases")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:releases:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.release.domain.vo.GatewayReleaseVO create(
@@ -92,7 +96,9 @@ public class GatewayReleaseController {
      * @param releaseId 参数 发布Id；parameter release id。
      * @return 返回 get 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayReleaseController.get")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/releases/{releaseId}")
     public top.egon.cola.component.gateway.admin.release.domain.vo.GatewayReleaseVO get(
             @PathVariable String releaseId) {
@@ -107,9 +113,9 @@ public class GatewayReleaseController {
      * @param releaseId 参数 发布Id；parameter release id。
      * @return 返回 diff 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
-    @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
-            allowArbitraryJson = true)
+    @Operation(operationId = "admin.gatewayReleaseController.diff")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/releases/{releaseId}/diff")
     public Map<String, Object> diff(@PathVariable String releaseId) {
         return service.diff(releaseId);
@@ -124,7 +130,9 @@ public class GatewayReleaseController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 重试 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayReleaseController.retry")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/releases/{releaseId}/retry")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:releases:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.release.domain.vo.GatewayReleaseVO retry(
@@ -147,7 +155,9 @@ public class GatewayReleaseController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 rollback 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayReleaseController.rollback")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/gateway-groups/{gatewayGroupId}/rollback")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:releases:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.release.domain.vo.GatewayReleaseVO rollback(
@@ -174,7 +184,9 @@ public class GatewayReleaseController {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 history 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayReleaseController.history")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/gateway-groups/{gatewayGroupId}/releases")
     public List<top.egon.cola.component.gateway.admin.release.domain.vo.GatewayReleaseVO> history(
             @PathVariable String gatewayGroupId) {

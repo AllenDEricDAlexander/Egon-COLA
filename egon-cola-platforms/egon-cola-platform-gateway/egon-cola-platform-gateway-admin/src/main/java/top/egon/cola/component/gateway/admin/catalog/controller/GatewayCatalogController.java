@@ -1,5 +1,9 @@
 package top.egon.cola.component.gateway.admin.catalog.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,8 +23,6 @@ import top.egon.cola.component.gateway.admin.catalog.domain.vo.GatewayCatalogRes
 import top.egon.cola.component.gateway.admin.catalog.service.GatewayCatalogService;
 import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
 import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 /**
  * 中文说明：{@code GatewayCatalogController} 是接口控制器，位于当前 Gateway 模块的相关包中，负责网关目录控制器相关的职责与边界。
@@ -31,13 +33,13 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 @RestController
 @RequestMapping("/api/v1/gateway/admin")
 @PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-gateway-catalog-controller",
-        name = "GatewayCatalogController 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class GatewayCatalogController {
 
     /**
@@ -67,7 +69,9 @@ public class GatewayCatalogController {
      * @param applicationId 参数 applicationId；parameter application id。
      * @return 返回 目录 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayCatalogController.catalog")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/applications/{applicationId}/catalog")
     public top.egon.cola.component.gateway.admin.catalog.domain.vo.GatewayCatalogTreeVO catalog(
             @PathVariable String applicationId) {
@@ -84,7 +88,9 @@ public class GatewayCatalogController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 create接口Group 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayCatalogController.createInterfaceGroup")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/applications/{applicationId}/manual-interface-groups")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('CAP_gateway:catalog:write','CAP_*')")
@@ -120,7 +126,9 @@ public class GatewayCatalogController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 create操作 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayCatalogController.createOperation")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/interface-groups/{interfaceGroupId}/manual-operations")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('CAP_gateway:catalog:write','CAP_*')")
@@ -144,7 +152,9 @@ public class GatewayCatalogController {
      * @param operationId 参数 操作Id；parameter operation id。
      * @return 返回 操作 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayCatalogController.operation")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/operations/{operationId}")
     public top.egon.cola.component.gateway.admin.catalog.domain.vo.GatewayOperationDetailVO operation(
             @PathVariable String operationId) {
@@ -161,7 +171,9 @@ public class GatewayCatalogController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 update元数据 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayCatalogController.updateMetadata")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/operations/{operationId}/metadata")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:catalog:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.catalog.domain.vo.GatewayOperationDetailVO updateMetadata(
@@ -190,7 +202,9 @@ public class GatewayCatalogController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 update定义 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayCatalogController.updateDefinition")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/operations/{operationId}/manual-definition")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:catalog:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.catalog.domain.vo.GatewayOperationDetailVO updateDefinition(
@@ -214,7 +228,9 @@ public class GatewayCatalogController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 deprecate 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayCatalogController.deprecate")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/operations/{operationId}/deprecate")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:catalog:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.catalog.domain.vo.GatewayOperationDetailVO deprecate(

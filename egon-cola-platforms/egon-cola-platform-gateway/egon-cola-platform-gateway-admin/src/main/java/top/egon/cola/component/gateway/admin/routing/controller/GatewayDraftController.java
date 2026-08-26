@@ -1,5 +1,9 @@
 package top.egon.cola.component.gateway.admin.routing.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -16,8 +20,6 @@ import top.egon.cola.component.gateway.admin.routing.domain.dto.GatewayDraftRout
 import top.egon.cola.component.gateway.admin.routing.service.GatewayDraftService;
 import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
 import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 /**
  * 中文说明：{@code GatewayDraftController} 是接口控制器，位于当前 Gateway 模块的相关包中，负责网关草稿控制器相关的职责与边界。
@@ -28,13 +30,13 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 @RestController
 @RequestMapping("/api/v1/gateway/admin/gateway-groups/{gatewayGroupId}/draft")
 @PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-gateway-draft-controller",
-        name = "GatewayDraftController 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class GatewayDraftController {
 
     /**
@@ -64,7 +66,9 @@ public class GatewayDraftController {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 get 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayDraftController.get")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
     public top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftVO get(
             @PathVariable String gatewayGroupId) {
@@ -82,7 +86,9 @@ public class GatewayDraftController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 put路由 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayDraftController.putRoute")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/routes/{routeId}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:drafts:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftMutationResultVO putRoute(
@@ -117,7 +123,9 @@ public class GatewayDraftController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 delete路由 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayDraftController.deleteRoute")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/routes/{routeId}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:drafts:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftMutationResultVO deleteRoute(
@@ -145,7 +153,9 @@ public class GatewayDraftController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 put策略 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayDraftController.putPolicy")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/policies/{policyId}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:drafts:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftMutationResultVO putPolicy(
@@ -181,7 +191,9 @@ public class GatewayDraftController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 delete策略 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayDraftController.deletePolicy")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/policies/{policyId}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:drafts:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftMutationResultVO deletePolicy(
@@ -206,7 +218,9 @@ public class GatewayDraftController {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 validate 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayDraftController.validate")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/validate")
     public top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftValidationReportVO validate(
             @PathVariable String gatewayGroupId) {
@@ -221,7 +235,9 @@ public class GatewayDraftController {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 diff 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayDraftController.diff")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/diff")
     public top.egon.cola.component.gateway.admin.routing.domain.vo.GatewayDraftDiffVO diff(
             @PathVariable String gatewayGroupId) {

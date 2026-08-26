@@ -1,5 +1,9 @@
 package top.egon.cola.component.gateway.admin.mcp.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -11,8 +15,6 @@ import top.egon.cola.component.gateway.admin.mcp.domain.dto.McpProtocolInspectRe
 import top.egon.cola.component.gateway.admin.mcp.domain.vo.McpProtocolInspectionVO;
 import top.egon.cola.component.gateway.admin.mcp.service.McpControlPlaneService;
 import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -26,13 +28,13 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/gateway/admin/mcp/servers")
 @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:test','CAP_*')")
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-mcp-protocol-inspector-controller",
-        name = "McpProtocolInspectorController 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class McpProtocolInspectorController {
 
     /**
@@ -63,7 +65,9 @@ public class McpProtocolInspectorController {
      * @param request 参数 请求；parameter request。
      * @return 返回 inspect 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpProtocolInspectorController.inspect")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/{serverId}/protocol-inspect")
     public McpProtocolInspectionVO inspect(
             @PathVariable String serverId,

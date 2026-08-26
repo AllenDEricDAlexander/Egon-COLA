@@ -1,5 +1,9 @@
 package top.egon.cola.component.gateway.admin.mcp.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,8 +22,6 @@ import top.egon.cola.component.gateway.admin.mcp.domain.dto.McpCapabilityRequest
 import top.egon.cola.component.gateway.admin.mcp.service.McpControlPlaneService;
 import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
 import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 import java.util.List;
 import java.util.Locale;
@@ -33,13 +35,13 @@ import java.util.Locale;
 @RestController
 @RequestMapping("/api/v1/gateway/admin/mcp")
 @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:read','CAP_*')")
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-mcp-capability-controller",
-        name = "McpCapabilityController 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class McpCapabilityController {
 
     /**
@@ -81,7 +83,9 @@ public class McpCapabilityController {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 list 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpCapabilityController.list")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/servers/{serverId}/" + CAPABILITY_COLLECTION)
     public List<top.egon.cola.component.gateway.admin.mcp.domain.po.McpCapabilityRecordPO> list(
             @PathVariable String serverId,
@@ -106,7 +110,9 @@ public class McpCapabilityController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 create 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpCapabilityController.create")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/servers/{serverId}/" + CAPABILITY_COLLECTION)
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
@@ -138,7 +144,9 @@ public class McpCapabilityController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 update 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpCapabilityController.update")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/" + CAPABILITY_COLLECTION + "/{id}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.mcp.domain.vo.McpMutationResultVO update(
@@ -169,7 +177,9 @@ public class McpCapabilityController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 delete 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpCapabilityController.delete")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/" + CAPABILITY_COLLECTION + "/{id}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.mcp.domain.vo.McpMutationResultVO delete(
@@ -203,7 +213,9 @@ public class McpCapabilityController {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 validate 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpCapabilityController.validate")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/" + CAPABILITY_COLLECTION + "/{id}/validate")
     public top.egon.cola.component.gateway.admin.mcp.domain.vo.McpValidationReportVO validate(
             @PathVariable String plural,

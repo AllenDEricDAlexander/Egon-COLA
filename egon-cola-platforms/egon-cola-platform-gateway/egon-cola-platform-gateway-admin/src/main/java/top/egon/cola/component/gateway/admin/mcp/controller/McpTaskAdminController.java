@@ -1,5 +1,9 @@
 package top.egon.cola.component.gateway.admin.mcp.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,8 +19,6 @@ import top.egon.cola.component.gateway.admin.mcp.domain.vo.McpTaskCancelResultVO
 import top.egon.cola.component.gateway.admin.mcp.service.McpControlPlaneService;
 import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
 import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 import java.util.List;
 
@@ -29,13 +31,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/gateway/admin/mcp/tasks")
 @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:runtime:read','CAP_*')")
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-mcp-task-admin-controller",
-        name = "McpTaskAdminController 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class McpTaskAdminController {
 
     /**
@@ -66,7 +68,9 @@ public class McpTaskAdminController {
      * @param clientId 参数 客户端Id；parameter client id。
      * @return 返回 list 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpTaskAdminController.list")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
     public List<top.egon.cola.component.gateway.admin.mcp.domain.po.McpTaskPO> list(
             @RequestParam String tenantId,
@@ -82,7 +86,9 @@ public class McpTaskAdminController {
      * @param id 参数 id；parameter id。
      * @return 返回 get 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpTaskAdminController.get")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/{id}")
     public top.egon.cola.component.gateway.admin.mcp.domain.po.McpTaskPO get(@PathVariable String id) {
         return service.task(id);
@@ -99,7 +105,9 @@ public class McpTaskAdminController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 cancel 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpTaskAdminController.cancel")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/{id}/cancel")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
     public McpTaskCancelResultVO cancel(

@@ -106,8 +106,6 @@ public record McpTaskPO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.mcp.domain.po.McpTaskPO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.mcp.domain.po.McpTaskPO}; do not couple callers to its representation when the owning type exposes an API.
          */
-        @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
-                allowArbitraryJson = true)
         Map<String, Object> inputPayload,
         /**
          * 中文说明：保存 resultPayload 对应的状态、依赖或配置值；字段类型为 {@code Map<String, Object>}，由 {@code top.egon.cola.component.gateway.admin.mcp.domain.po.McpTaskPO} 在其生命周期内读取或更新。
@@ -115,8 +113,6 @@ public record McpTaskPO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.mcp.domain.po.McpTaskPO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.mcp.domain.po.McpTaskPO}; do not couple callers to its representation when the owning type exposes an API.
          */
-        @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
-                allowArbitraryJson = true)
         Map<String, Object> resultPayload,
         /**
          * 中文说明：保存 errorPayload 对应的状态、依赖或配置值；字段类型为 {@code Map<String, Object>}，由 {@code top.egon.cola.component.gateway.admin.mcp.domain.po.McpTaskPO} 在其生命周期内读取或更新。
@@ -124,8 +120,6 @@ public record McpTaskPO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.mcp.domain.po.McpTaskPO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.mcp.domain.po.McpTaskPO}; do not couple callers to its representation when the owning type exposes an API.
          */
-        @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
-                allowArbitraryJson = true)
         Map<String, Object> errorPayload,
         /**
          * 中文说明：保存 workerOwner 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code top.egon.cola.component.gateway.admin.mcp.domain.po.McpTaskPO} 在其生命周期内读取或更新。

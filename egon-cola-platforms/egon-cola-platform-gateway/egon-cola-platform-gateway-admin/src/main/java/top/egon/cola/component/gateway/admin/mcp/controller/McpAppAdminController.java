@@ -1,5 +1,9 @@
 package top.egon.cola.component.gateway.admin.mcp.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -23,8 +27,6 @@ import top.egon.cola.component.gateway.admin.mcp.domain.dto.McpArtifactRequestDT
 import top.egon.cola.component.gateway.admin.mcp.service.McpControlPlaneService;
 import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
 import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 import java.io.IOException;
 import java.util.List;
@@ -39,13 +41,13 @@ import java.util.Set;
 @RestController
 @RequestMapping("/api/v1/gateway/admin/mcp/apps")
 @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:read','CAP_*')")
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-mcp-app-admin-controller",
-        name = "McpAppAdminController 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class McpAppAdminController {
 
     /**
@@ -75,7 +77,9 @@ public class McpAppAdminController {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 list 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpAppAdminController.list")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/artifacts")
     public List<top.egon.cola.component.gateway.admin.mcp.domain.po.McpArtifactMetadataPO> list(
             @RequestParam String gatewayGroupId) {
@@ -92,7 +96,9 @@ public class McpAppAdminController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 register 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpAppAdminController.register")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/artifacts")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
@@ -130,7 +136,9 @@ public class McpAppAdminController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 upload 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpAppAdminController.upload")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping(
             value = "/artifacts/upload",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
@@ -183,7 +191,9 @@ public class McpAppAdminController {
      * @param id 参数 id；parameter id。
      * @return 返回 get 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpAppAdminController.get")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/artifacts/{id}")
     public top.egon.cola.component.gateway.admin.mcp.domain.po.McpArtifactMetadataPO get(
             @PathVariable String id) {
@@ -201,7 +211,9 @@ public class McpAppAdminController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 revoke 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.mcpAppAdminController.revoke")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/artifacts/{id}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.mcp.domain.vo.McpMutationResultVO revoke(

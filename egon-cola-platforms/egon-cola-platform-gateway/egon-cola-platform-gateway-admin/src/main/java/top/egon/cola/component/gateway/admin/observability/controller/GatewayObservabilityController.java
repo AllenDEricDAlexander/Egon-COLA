@@ -1,13 +1,15 @@
 package top.egon.cola.component.gateway.admin.observability.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.gateway.admin.observability.service.GatewayObservabilityQueryService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 /**
  * 中文说明：{@code GatewayObservabilityController} 是接口控制器，位于当前 Gateway 模块的相关包中，负责网关可观测性控制器相关的职责与边界。
@@ -18,13 +20,13 @@ import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 @RestController
 @RequestMapping("/api/v1/gateway/admin")
 @PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-gateway-observability-controller",
-        name = "GatewayObservabilityController 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class GatewayObservabilityController {
 
     /**
@@ -58,7 +60,9 @@ public class GatewayObservabilityController {
      * @param namespace 参数 命名空间；parameter namespace。
      * @return 返回 dashboard 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayObservabilityController.dashboard")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/dashboard")
     public top.egon.cola.component.gateway.admin.observability.domain.vo.GatewayDashboardVO dashboard(
             @RequestParam String bizCode,
@@ -82,7 +86,9 @@ public class GatewayObservabilityController {
      * @param size 参数 size；parameter size。
      * @return 返回 traces 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayObservabilityController.traces")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/observability/traces")
     public top.egon.cola.component.gateway.admin.observability.domain.vo.GatewayPageVO<
             top.egon.cola.component.gateway.admin.observability.domain.vo.GatewayTraceVO> traces(
@@ -119,7 +125,9 @@ public class GatewayObservabilityController {
      * @param size 参数 size；parameter size。
      * @return 返回 audits 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayObservabilityController.audits")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/audit")
     public top.egon.cola.component.gateway.admin.observability.domain.vo.GatewayPageVO<
             top.egon.cola.component.gateway.admin.observability.domain.vo.GatewayAuditVO> audits(

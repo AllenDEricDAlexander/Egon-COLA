@@ -54,8 +54,6 @@ public record GatewayPolicyDraftPO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.routing.domain.po.GatewayPolicyDraftPO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.routing.domain.po.GatewayPolicyDraftPO}; do not couple callers to its representation when the owning type exposes an API.
          */
-        @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
-                allowArbitraryJson = true)
         Map<String, Object> content,
         /**
          * 中文说明：保存 enabled 对应的状态、依赖或配置值；字段类型为 {@code boolean}，由 {@code top.egon.cola.component.gateway.admin.routing.domain.po.GatewayPolicyDraftPO} 在其生命周期内读取或更新。

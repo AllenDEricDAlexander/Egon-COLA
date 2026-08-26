@@ -1,5 +1,9 @@
 package top.egon.cola.component.gateway.admin.application.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,8 +21,6 @@ import top.egon.cola.component.gateway.admin.application.domain.dto.GatewayAppli
 import top.egon.cola.component.gateway.admin.application.service.GatewayApplicationService;
 import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
 import top.egon.cola.component.gateway.admin.shared.domain.RequestAuditContext;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 
 import java.util.List;
 
@@ -31,13 +33,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/gateway/admin/applications")
 @PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
-@GatewayInterfaceGroup(
+@Tag(name = "gateway-admin")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "gateway-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        code = "gateway-admin-gateway-application-controller",
-        name = "GatewayApplicationController 管理接口组")
+        interfaceGroupCode = "gateway-admin")
 public class GatewayApplicationController {
 
     /**
@@ -70,7 +72,9 @@ public class GatewayApplicationController {
      * @param appCode 参数 appCode；parameter app code。
      * @return 返回 list 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayApplicationController.list")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
     public List<top.egon.cola.component.gateway.admin.application.domain.vo.GatewayApplicationVO> list(
             @RequestParam(required = false) String bizCode,
@@ -94,7 +98,9 @@ public class GatewayApplicationController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 create 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayApplicationController.create")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyAuthority('CAP_gateway:applications:write','CAP_*')")
@@ -123,7 +129,9 @@ public class GatewayApplicationController {
      * @param id 参数 id；parameter id。
      * @return 返回 get 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayApplicationController.get")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/{id}")
     public top.egon.cola.component.gateway.admin.application.domain.vo.GatewayApplicationVO get(
             @PathVariable String id) {
@@ -140,7 +148,9 @@ public class GatewayApplicationController {
      * @param actor 参数 actor；parameter actor。
      * @return 返回 update 的处理结果；returns the result of the operation.
      */
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "admin.gatewayApplicationController.update")
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('CAP_gateway:applications:write','CAP_*')")
     public top.egon.cola.component.gateway.admin.application.domain.vo.GatewayApplicationVO update(

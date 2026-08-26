@@ -1,5 +1,6 @@
 package top.egon.cola.component.gateway.admin.observability.domain.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Duration;
 import java.util.Map;
@@ -82,8 +83,7 @@ public record GatewayKafkaConsumerSettingsDTO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.observability.domain.dto.GatewayKafkaConsumerSettingsDTO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.observability.domain.dto.GatewayKafkaConsumerSettingsDTO}; do not couple callers to its representation when the owning type exposes an API.
          */
-        @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
-                allowArbitraryJson = true)
+        @Schema
         Map<String, Object> additionalProperties
 ) {
 
