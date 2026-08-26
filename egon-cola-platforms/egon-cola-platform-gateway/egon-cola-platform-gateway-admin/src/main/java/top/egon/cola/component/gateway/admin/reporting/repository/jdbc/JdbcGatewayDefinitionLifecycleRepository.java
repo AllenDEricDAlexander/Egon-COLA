@@ -286,7 +286,7 @@ public class JdbcGatewayDefinitionLifecycleRepository
                            revision = operation.revision + 1,
                            updated_at = :now
                      WHERE operation.application_id = :applicationId
-                       AND operation.source_type = 'RPC_DESCRIPTOR'
+                       AND operation.source_type IN ('RPC_DESCRIPTOR', 'OPENAPI31')
                        AND operation.lifecycle_status <> 'OFFLINE'
                        AND NOT EXISTS (
                            SELECT 1
@@ -303,6 +303,16 @@ public class JdbcGatewayDefinitionLifecycleRepository
                 activatedOperations,
                 offlinedOperations
         );
+    }
+
+    @Override
+    public Set<String> activeOpenApiDefinitionSetIds() {
+        return Set.copyOf(jdbc.getJdbcTemplate().queryForList("""
+                SELECT DISTINCT definition_set_id
+                  FROM gateway_openapi_sync_state
+                 WHERE status = 'VALID'
+                   AND definition_set_id IS NOT NULL
+                """, String.class));
     }
 
     /**

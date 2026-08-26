@@ -29,6 +29,19 @@ public interface GatewayDefinitionReportRepository {
             String buildId);
 
     /**
+     * Finds an immutable fingerprint scoped by the transport protocol and
+     * source. The default keeps existing RPC callers source-compatible while
+     * new HTTP aggregation callers provide the richer identity.
+     */
+    default Optional<String> findBuildFingerprint(
+            String applicationId,
+            String buildId,
+            String protocol,
+            String sourceScope) {
+        return findBuildFingerprint(applicationId, buildId);
+    }
+
+    /**
      * 中文说明：执行 定义SetExists 操作；该方法是 {@code GatewayDefinitionReportRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
      * English summary: Executes the definition set exists operation; this method is the invocation entry point on {@code GatewayDefinitionReportRepository} and performs the corresponding runtime, management, or protocol work.
      *

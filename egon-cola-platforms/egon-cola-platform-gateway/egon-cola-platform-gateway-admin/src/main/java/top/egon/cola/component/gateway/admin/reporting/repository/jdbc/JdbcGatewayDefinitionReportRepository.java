@@ -111,6 +111,7 @@ import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.gateway.admin.reporting.repository.GatewayDefinitionReportRepository;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReport;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReportResult;
+import top.egon.cola.component.gateway.contract.reporting.GatewayDefinitionSourceTypeEnum;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -215,6 +216,26 @@ public class JdbcGatewayDefinitionReportRepository
         ).stream().findFirst();
     }
 
+    @Override
+    public Optional<String> findBuildFingerprint(
+            String applicationId,
+            String buildId,
+            String protocol,
+            String sourceScope) {
+        return jdbc.queryForList("""
+                        SELECT DISTINCT fingerprint
+                          FROM gateway_definition_set
+                         WHERE application_id = ?
+                           AND build_id = ?
+                           AND protocol = ?
+                        """,
+                String.class,
+                applicationId,
+                buildId,
+                protocol
+        ).stream().findFirst();
+    }
+
     /**
      * 中文说明：执行 定义SetExists 操作；该方法是 {@code JdbcGatewayDefinitionReportRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
      * English summary: Executes the definition set exists operation; this method is the invocation entry point on {@code JdbcGatewayDefinitionReportRepository} and performs the corresponding runtime, management, or protocol work.
@@ -314,13 +335,19 @@ public class JdbcGatewayDefinitionReportRepository
                 );
                 for (GatewayInterfaceDefinitionReport.InterfaceGroup group
                         : entity.interfaceGroups()) {
-                    String groupId = interfaceGroup(entityId, group, now);
+                    String groupId = interfaceGroup(
+                            entityId,
+                            group,
+                            group.sourceType(),
+                            now
+                    );
                     for (GatewayInterfaceDefinitionReport.Operation operation
                             : group.operations()) {
                         storeOperation(
                                 applicationId,
                                 groupId,
                                 report.definitionSetId(),
+                                group.sourceType(),
                                 operation,
                                 now,
                                 stored
@@ -410,6 +437,7 @@ public class JdbcGatewayDefinitionReportRepository
     private String interfaceGroup(
             String entityId,
             GatewayInterfaceDefinitionReport.InterfaceGroup group,
+            GatewayDefinitionSourceTypeEnum sourceType,
             Instant now) {
         List<GatewayDefinitionGroupRow> existing = jdbc.query("""
                 SELECT id, source_type
@@ -422,9 +450,9 @@ public class JdbcGatewayDefinitionReportRepository
         ), entityId, group.code());
         if (!existing.isEmpty()) {
             GatewayDefinitionGroupRow row = existing.getFirst();
-            if (!"RPC_DESCRIPTOR".equals(row.sourceType())) {
+            if (!sourceType.name().equals(row.sourceType())) {
                 throw new IllegalStateException(
-                        "GATEWAY_ADMIN_RPC_DESCRIPTOR_MANUAL_CONFLICT: "
+                        "GATEWAY_ADMIN_DEFINITION_SOURCE_CONFLICT: "
                                 + group.code()
                 );
             }
@@ -447,12 +475,13 @@ public class JdbcGatewayDefinitionReportRepository
                 INSERT INTO gateway_interface_group(
                     id, entity_domain_id, code, display_name, source_type,
                     class_name, description, deleted, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, 'RPC_DESCRIPTOR', ?, ?, FALSE, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, FALSE, ?, ?)
                 """,
                 id,
                 entityId,
                 group.code(),
                 group.name(),
+                sourceType.name(),
                 group.className(),
                 group.description(),
                 timestamp(now),
@@ -477,6 +506,7 @@ public class JdbcGatewayDefinitionReportRepository
             String applicationId,
             String groupId,
             String definitionSetId,
+            GatewayDefinitionSourceTypeEnum sourceType,
             GatewayInterfaceDefinitionReport.Operation operation,
             Instant now,
             GatewayMutableStoredReport stored) {
@@ -511,7 +541,7 @@ public class JdbcGatewayDefinitionReportRepository
                         provider_service_identity, source_type,
                         lifecycle_status, current_definition_id, revision,
                         created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, 'RPC_DESCRIPTOR',
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?,
                               'DISCOVERED', NULL, 0, ?, ?)
                     """,
                     operationId,
@@ -522,6 +552,7 @@ public class JdbcGatewayDefinitionReportRepository
                     operation.methodIdentity(),
                     operation.externalAccessible(),
                     json(operation.providerService()),
+                    sourceType.name(),
                     timestamp(now),
                     timestamp(now)
             );
@@ -530,6 +561,7 @@ public class JdbcGatewayDefinitionReportRepository
                     definitionSetId,
                     1,
                     definitionSha,
+                    sourceType,
                     operation,
                     now
             );
@@ -546,9 +578,9 @@ public class JdbcGatewayDefinitionReportRepository
             return;
         }
         GatewayDefinitionOperationRow row = existing.getFirst();
-        if (!"RPC_DESCRIPTOR".equals(row.sourceType())) {
+        if (!sourceType.name().equals(row.sourceType())) {
             throw new IllegalStateException(
-                    "GATEWAY_ADMIN_RPC_DESCRIPTOR_MANUAL_CONFLICT: "
+                    "GATEWAY_ADMIN_DEFINITION_SOURCE_CONFLICT: "
                             + operation.operationKey()
             );
         }
@@ -575,6 +607,7 @@ public class JdbcGatewayDefinitionReportRepository
                         definitionSetId,
                         row.maxVersion() + 1,
                         definitionSha,
+                        sourceType,
                         operation,
                         now
                 ));
@@ -608,6 +641,7 @@ public class JdbcGatewayDefinitionReportRepository
             String definitionSetId,
             long version,
             String definitionSha,
+            GatewayDefinitionSourceTypeEnum sourceType,
             GatewayInterfaceDefinitionReport.Operation operation,
             Instant now) {
         String id = UuidV7.simpleString();
@@ -618,7 +652,7 @@ public class JdbcGatewayDefinitionReportRepository
                     response_schema, error_schema, descriptor_snapshot,
                     attributes, external_accessible, created_at, created_by
                 ) VALUES (?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb,
-                          ?::jsonb, ?::jsonb, ?::jsonb, ?, ?, 'RPC_DESCRIPTOR')
+                          ?::jsonb, ?::jsonb, ?::jsonb, ?, ?, ?)
                 """,
                 id,
                 operationId,
@@ -635,7 +669,8 @@ public class JdbcGatewayDefinitionReportRepository
                         : json(operation.descriptorSnapshot()),
                 json(attributes(operation)),
                 operation.externalAccessible(),
-                timestamp(now)
+                timestamp(now),
+                sourceType.name()
         );
         return id;
     }

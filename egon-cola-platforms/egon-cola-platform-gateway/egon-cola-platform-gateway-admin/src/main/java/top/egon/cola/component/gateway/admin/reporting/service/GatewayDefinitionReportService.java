@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.gateway.admin.reporting.repository.GatewayDefinitionReportRepository;
+import top.egon.cola.component.gateway.admin.reporting.domain.dto.GatewayDefinitionIngestionCommandDTO;
 import top.egon.cola.component.gateway.admin.shared.domain.exception.GatewayAdminIdempotencyConflictException;
 import top.egon.cola.component.gateway.admin.shared.domain.exception.GatewayAdminNotFoundException;
 import top.egon.cola.component.gateway.admin.shared.repository.IdempotencyRepository;
@@ -81,6 +82,9 @@ public class GatewayDefinitionReportService {
      */
     private final GatewayOperationSchemaValidator schemaValidator;
 
+    /** Shared transport-neutral definition writer; null only in legacy unit setup. */
+    private final GatewayDefinitionIngestionService ingestion;
+
     /**
      * 中文说明：保存 canonicalizer 对应的状态、依赖或配置值；字段类型为 {@code GatewayReportCanonicalizer}，由 {@code GatewayDefinitionReportService} 在其生命周期内读取或更新。
      * English summary: Holds the state, dependency, or configuration represented by canonicalizer; its type is {@code GatewayReportCanonicalizer}, and {@code GatewayDefinitionReportService} reads or updates it during its lifecycle.
@@ -111,8 +115,26 @@ public class GatewayDefinitionReportService {
     public GatewayDefinitionReportService(
             GatewayDefinitionReportRepository reports,
             IdempotencyRepository idempotency,
+            ObjectMapper objectMapper,
+            GatewayDefinitionIngestionService ingestion) {
+        this(
+                reports,
+                idempotency,
+                objectMapper,
+                Clock.systemUTC(),
+                ingestion
+        );
+    }
+
+    /**
+     * Compatibility constructor for focused tests and callers that do not
+     * create the Spring shared ingestion bean.
+     */
+    public GatewayDefinitionReportService(
+            GatewayDefinitionReportRepository reports,
+            IdempotencyRepository idempotency,
             ObjectMapper objectMapper) {
-        this(reports, idempotency, objectMapper, Clock.systemUTC());
+        this(reports, idempotency, objectMapper, Clock.systemUTC(), null);
     }
 
     /**
@@ -130,11 +152,21 @@ public class GatewayDefinitionReportService {
             IdempotencyRepository idempotency,
             ObjectMapper objectMapper,
             Clock clock) {
+        this(reports, idempotency, objectMapper, clock, null);
+    }
+
+    GatewayDefinitionReportService(
+            GatewayDefinitionReportRepository reports,
+            IdempotencyRepository idempotency,
+            ObjectMapper objectMapper,
+            Clock clock,
+            GatewayDefinitionIngestionService ingestion) {
         this.reports = reports;
         this.idempotency = idempotency;
         this.objectMapper = objectMapper;
         this.schemaValidator = new GatewayOperationSchemaValidator(objectMapper);
         this.clock = clock;
+        this.ingestion = ingestion;
     }
 
     /**
@@ -177,19 +209,21 @@ public class GatewayDefinitionReportService {
                     GatewayInterfaceDefinitionReportResult.class
             );
         }
-        reports.findBuildFingerprint(
-                        authentication.applicationId(),
-                        report.build().buildId()
-                )
-                .filter(fingerprint -> !fingerprint.equals(
-                        report.definitionFingerprint()
-                ))
-                .ifPresent(conflict -> {
-                    throw new IllegalStateException(
-                            "GATEWAY_ADMIN_IMMUTABLE_BUILD_CONFLICT: "
-                                    + report.build().buildId()
-                    );
-                });
+        if (ingestion == null) {
+            reports.findBuildFingerprint(
+                            authentication.applicationId(),
+                            report.build().buildId()
+                    )
+                    .filter(fingerprint -> !fingerprint.equals(
+                            report.definitionFingerprint()
+                    ))
+                    .ifPresent(conflict -> {
+                        throw new IllegalStateException(
+                                "GATEWAY_ADMIN_IMMUTABLE_BUILD_CONFLICT: "
+                                        + report.build().buildId()
+                        );
+                    });
+        }
         GatewayInterfaceDefinitionReportResult result =
                 reports.definitionSetExists(
                         authentication.applicationId(),
@@ -251,6 +285,16 @@ public class GatewayDefinitionReportService {
     private GatewayInterfaceDefinitionReportResult ingest(
             GatewayReportAuthentication authentication,
             GatewayInterfaceDefinitionReport report) {
+        if (ingestion != null) {
+            return ingestion.ingest(
+                    GatewayDefinitionIngestionCommandDTO.rpc(
+                            authentication.applicationId(),
+                            "rpc:" + report.application().applicationCode()
+                                    + ":" + report.build().buildId(),
+                            report
+                    )
+            );
+        }
         int previousCount = reports.countStarterOperations(
                 authentication.applicationId()
         );

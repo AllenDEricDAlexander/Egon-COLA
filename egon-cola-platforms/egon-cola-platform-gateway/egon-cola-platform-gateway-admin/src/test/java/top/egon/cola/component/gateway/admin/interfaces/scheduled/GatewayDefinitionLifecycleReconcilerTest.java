@@ -207,6 +207,75 @@ class GatewayDefinitionLifecycleReconcilerTest {
         verify(lifecycle).reconcile(Set.of(), now);
     }
 
+    @Test
+    void unionsValidOpenApiAggregateSetsWithDdcProviderSets() {
+        Instant now = Instant.parse("2026-07-25T08:00:00Z");
+        GatewayApplicationRepository applications =
+                mock(GatewayApplicationRepository.class);
+        GatewayProjectionService projections = mock(GatewayProjectionService.class);
+        GatewayDefinitionLifecycleRepository lifecycle =
+                mock(GatewayDefinitionLifecycleRepository.class);
+        TransactionTemplate transactions = mock(TransactionTemplate.class);
+        doAnswer(invocation -> {
+            java.util.function.Consumer<org.springframework.transaction
+                    .TransactionStatus> callback = invocation.getArgument(0);
+            callback.accept(null);
+            return null;
+        }).when(transactions).executeWithoutResult(any());
+        when(applications.findAllByDeletedFalseOrderByCreatedAtDesc())
+                .thenReturn(List.of(new GatewayApplicationPO(
+                        "application-1",
+                        "test-biz",
+                        "orders",
+                        "Orders",
+                        "test",
+                        "gateway",
+                        null,
+                        "admin",
+                        now
+                )));
+        when(projections.instances(
+                "test-biz", "orders", "test", "gateway"
+        )).thenReturn(new top.egon.cola.component.gateway.admin.runtime.domain.vo
+                .GatewayProjectionEnvelopeVO<>(
+                List.of(provider(
+                        "provider-1",
+                        "rpc-set",
+                        "ONLINE",
+                        now.plusSeconds(30)
+                )),
+                now,
+                "DDC_SERVICE_REGISTRY",
+                false,
+                null
+        ));
+        when(lifecycle.activeOpenApiDefinitionSetIds()).thenReturn(
+                Set.of("openapi-set")
+        );
+        when(lifecycle.reconcile(
+                Set.of("rpc-set", "openapi-set"),
+                now
+        )).thenReturn(new GatewayReconcileResultVO(0, 0, 0, 0));
+
+        GatewayDefinitionLifecycleReconciler reconciler =
+                new GatewayDefinitionLifecycleReconciler(
+                        mock(DdcManagementClient.class),
+                        applications,
+                        projections,
+                        lifecycle,
+                        mock(GatewayAuditLogRepository.class),
+                        transactions,
+                        Clock.fixed(now, ZoneOffset.UTC)
+                );
+
+        reconciler.reconcile();
+
+        verify(lifecycle).reconcile(
+                Set.of("rpc-set", "openapi-set"),
+                now
+        );
+    }
+
     private top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayProviderInstanceVO provider(
             String instanceId,
             String definitionSetId,

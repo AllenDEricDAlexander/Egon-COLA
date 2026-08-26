@@ -199,6 +199,11 @@ public class GatewayDefinitionLifecycleReconciler {
                     .filter(value -> value != null && !value.isBlank())
                     .forEach(activeDefinitionSets::add);
         }
+        Set<String> openApiDefinitionSets =
+                lifecycle.activeOpenApiDefinitionSetIds();
+        if (openApiDefinitionSets != null) {
+            activeDefinitionSets.addAll(openApiDefinitionSets);
+        }
         transactions.executeWithoutResult(status -> {
             top.egon.cola.component.gateway.admin.reporting.domain.vo.GatewayReconcileResultVO result =
                     lifecycle.reconcile(activeDefinitionSets, now);

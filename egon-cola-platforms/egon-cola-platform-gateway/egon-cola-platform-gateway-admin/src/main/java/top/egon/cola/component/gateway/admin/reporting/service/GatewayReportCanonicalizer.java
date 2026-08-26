@@ -14,6 +14,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Map;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * 中文说明：{@code GatewayReportCanonicalizer} 是类型，位于当前 Gateway 模块的相关包中，负责网关报告Canonicalizer相关的职责与边界。
@@ -48,33 +50,74 @@ public final class GatewayReportCanonicalizer {
      * @param report 参数 报告；parameter report。
      */
     public void verify(GatewayInterfaceDefinitionReport report) {
-        String fingerprint = sha256(bytes(Map.of(
-                "application", report.application(),
-                "build", report.build(),
-                "businessDomains", report.businessDomains(),
-                "complete", report.complete(),
-                "definitionSchemaVersion", "v2"
-        )));
+        Objects.requireNonNull(report, "report");
+        String fingerprint = definitionFingerprint(
+                report.application(),
+                report.build(),
+                report.complete(),
+                report.businessDomains()
+        );
         if (!fingerprint.equals(report.definitionFingerprint())) {
             throw new IllegalArgumentException(
                     "definitionFingerprint does not match canonical report"
             );
         }
-        String definitionSetId = sha256(String.join(
-                "\n",
-                report.application().bizCode(),
-                report.application().applicationCode(),
-                report.application().env(),
-                report.application().namespace(),
-                report.build().artifactVersion(),
-                report.build().buildId(),
+        String definitionSetId = definitionSetId(
+                report.application(),
+                report.build(),
                 fingerprint
-        ).getBytes(StandardCharsets.UTF_8));
+        );
         if (!definitionSetId.equals(report.definitionSetId())) {
             throw new IllegalArgumentException(
                     "definitionSetId does not match canonical identity"
             );
         }
+    }
+
+    /**
+     * Computes the canonical normalized Report v2 definition fingerprint.
+     * Keeping this algorithm public lets aggregate coordinators derive one
+     * immutable identity without duplicating Jackson canonicalization rules.
+     */
+    public String definitionFingerprint(
+            GatewayInterfaceDefinitionReport.Application application,
+            GatewayInterfaceDefinitionReport.Build build,
+            boolean complete,
+            List<GatewayInterfaceDefinitionReport.BusinessDomain>
+                    businessDomains) {
+        Objects.requireNonNull(application, "application");
+        Objects.requireNonNull(build, "build");
+        Objects.requireNonNull(businessDomains, "businessDomains");
+        return sha256(bytes(Map.of(
+                "application", application,
+                "build", build,
+                "businessDomains", businessDomains,
+                "complete", complete,
+                "definitionSchemaVersion", "v2"
+        )));
+    }
+
+    /** Computes the canonical Definition Set id for an application/build. */
+    public String definitionSetId(
+            GatewayInterfaceDefinitionReport.Application application,
+            GatewayInterfaceDefinitionReport.Build build,
+            String fingerprint) {
+        Objects.requireNonNull(application, "application");
+        Objects.requireNonNull(build, "build");
+        String normalizedFingerprint = Objects.requireNonNull(
+                fingerprint,
+                "fingerprint"
+        );
+        return sha256(String.join(
+                "\n",
+                application.bizCode(),
+                application.applicationCode(),
+                application.env(),
+                application.namespace(),
+                build.artifactVersion(),
+                build.buildId(),
+                normalizedFingerprint
+        ).getBytes(StandardCharsets.UTF_8));
     }
 
     /**

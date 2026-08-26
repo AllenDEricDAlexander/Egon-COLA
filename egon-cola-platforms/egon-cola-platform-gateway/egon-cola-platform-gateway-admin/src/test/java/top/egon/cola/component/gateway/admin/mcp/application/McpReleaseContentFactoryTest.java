@@ -13,6 +13,7 @@ import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpManagedT
 import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpRemoteProviderRepository;
 import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpRemoteToolDraftRepository;
 import top.egon.cola.component.gateway.admin.mcp.domain.po.McpServerPO;
+import top.egon.cola.component.gateway.admin.mcp.domain.vo.McpManagedToolProjectionVO;
 import top.egon.cola.component.gateway.admin.mcp.repository.McpServerRepository;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool;
 
@@ -281,6 +282,30 @@ class McpReleaseContentFactoryTest {
     }
 
     @Test
+    void projectsOptionalExposureOnOpenApiOperation() {
+        var current = current(
+                "operation-openapi",
+                "http:orders:GET:/orders",
+                "HTTP",
+                Map.of("mcpExposure", exposure(
+                        "orders",
+                        "orders.list",
+                        "LOW"
+                )),
+                Map.of("type", "object"),
+                Map.of("type", "object"),
+                "OPENAPI31"
+        );
+        when(catalog.loadCurrentOperationDefinitions("group-1"))
+                .thenReturn(List.of(current));
+
+        assertThat(factory.managedTools("group-1"))
+                .singleElement()
+                .extracting(McpManagedToolProjectionVO::operationKey)
+                .isEqualTo("http:orders:GET:/orders");
+    }
+
+    @Test
     void overrideCanOnlyTightenPermissionsRiskAndEnabledState() {
         McpServerPO codeServer = server("server-1", "orders");
         McpServerPO strictServer = server("server-2", "restricted");
@@ -348,6 +373,25 @@ class McpReleaseContentFactoryTest {
             Map<String, Object> attributes,
             Map<String, Object> requestSchema,
             Map<String, Object> responseSchema) {
+        return current(
+                operationId,
+                operationKey,
+                protocol,
+                attributes,
+                requestSchema,
+                responseSchema,
+                "RPC_DESCRIPTOR"
+        );
+    }
+
+    private top.egon.cola.component.gateway.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO current(
+            String operationId,
+            String operationKey,
+            String protocol,
+            Map<String, Object> attributes,
+            Map<String, Object> requestSchema,
+            Map<String, Object> responseSchema,
+            String sourceType) {
         var operation = new top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationPO(
                 operationId,
                 "app-1",
@@ -357,7 +401,7 @@ class McpReleaseContentFactoryTest {
                 operationKey,
                 false,
                 Map.of(),
-                "RPC_DESCRIPTOR",
+                sourceType,
                 "ACTIVE",
                 "definition-1",
                 0,
@@ -378,7 +422,7 @@ class McpReleaseContentFactoryTest {
                 attributes,
                 false,
                 NOW,
-                "RPC_DESCRIPTOR"
+                sourceType
         );
         return new top.egon.cola.component.gateway.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO(
                 operation,
