@@ -41,6 +41,25 @@ gateway:
       enabled: false
       target-biz-code: ${GATEWAY_ADMIN_DDC_TARGET_BIZ_CODE:infra}
       target-app-code: ${GATEWAY_ADMIN_DDC_TARGET_APP_CODE:ge}
+    openapi:
+      enabled: ${GATEWAY_ADMIN_OPENAPI_ENABLED:false}
+      reconcile-delay: ${GATEWAY_ADMIN_OPENAPI_RECONCILE_DELAY:PT30S}
+      batch-size: ${GATEWAY_ADMIN_OPENAPI_BATCH_SIZE:50}
+      maximum-instance-attempts: ${GATEWAY_ADMIN_OPENAPI_MAX_INSTANCE_ATTEMPTS:3}
+      claim-timeout: ${GATEWAY_ADMIN_OPENAPI_CLAIM_TIMEOUT:PT2M}
+      connect-timeout: ${GATEWAY_ADMIN_OPENAPI_CONNECT_TIMEOUT:PT3S}
+      read-timeout: ${GATEWAY_ADMIN_OPENAPI_READ_TIMEOUT:PT10S}
+      maximum-document-bytes: ${GATEWAY_ADMIN_OPENAPI_MAX_DOCUMENT_BYTES:5242880}
+      maximum-operations: ${GATEWAY_ADMIN_OPENAPI_MAX_OPERATIONS:5000}
+      maximum-schema-nodes: ${GATEWAY_ADMIN_OPENAPI_MAX_SCHEMA_NODES:50000}
+      maximum-ref-depth: ${GATEWAY_ADMIN_OPENAPI_MAX_REF_DEPTH:64}
+      retry-initial-delay: ${GATEWAY_ADMIN_OPENAPI_RETRY_INITIAL_DELAY:PT5S}
+      retry-maximum-delay: ${GATEWAY_ADMIN_OPENAPI_RETRY_MAXIMUM_DELAY:PT5M}
+      retry-jitter: ${GATEWAY_ADMIN_OPENAPI_RETRY_JITTER:0.20}
+      drift-sample-interval: ${GATEWAY_ADMIN_OPENAPI_DRIFT_SAMPLE_INTERVAL:PT5M}
+      allowed-cidrs:
+        - ${GATEWAY_ADMIN_OPENAPI_ALLOWED_CIDR:}
+      required-scope: ${GATEWAY_ADMIN_OPENAPI_REQUIRED_SCOPE:gateway.openapi.read}
     observability:
       retention: 168h
       kafka:

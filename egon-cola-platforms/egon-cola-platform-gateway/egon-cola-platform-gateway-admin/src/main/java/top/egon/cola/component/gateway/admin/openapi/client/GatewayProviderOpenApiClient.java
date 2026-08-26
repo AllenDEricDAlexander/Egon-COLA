@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.gateway.admin.openapi.domain.dto.GatewayOpenApiDocumentDTO;
@@ -35,6 +36,10 @@ import java.util.Objects;
 @Slf4j
 @Validated
 @Component("gatewayProviderOpenApiClient")
+@ConditionalOnProperty(
+        name = "gateway.admin.openapi.enabled",
+        havingValue = "true"
+)
 @RequiredArgsConstructor
 public class GatewayProviderOpenApiClient {
 

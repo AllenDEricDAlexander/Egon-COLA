@@ -2,6 +2,8 @@ package top.egon.cola.component.gateway.admin.bootstrap;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import top.egon.cola.component.gateway.admin.config.properties.GatewayAdminOpenApiProperties;
 import top.egon.cola.component.ddc.api.client.DdcManagementClient;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
@@ -54,5 +56,17 @@ class GatewayAdminConfigurationTest {
                         "${gateway.admin.observability.kafka.topic:"
                                 + "egon.gateway.call.v1}"
                 );
+    }
+
+    @Test
+    void enablesTheTypedOpenApiConfigurationContract() {
+        EnableConfigurationProperties annotation =
+                GatewayAdminConfiguration.class.getAnnotation(
+                        EnableConfigurationProperties.class
+                );
+
+        assertThat(annotation).isNotNull();
+        assertThat(annotation.value())
+                .contains(GatewayAdminOpenApiProperties.class);
     }
 }

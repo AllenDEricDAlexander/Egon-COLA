@@ -33,6 +33,28 @@ public interface GatewayOpenApiSyncRepository {
     Optional<GatewayOpenApiSyncPO> findById(String syncId);
 
     /**
+     * Lists synchronization rows owned by one Gateway application.
+     *
+     * @param applicationId physical Gateway application identifier
+     * @return rows in stable build/group order
+     */
+    default List<GatewayOpenApiSyncPO> findByApplicationId(
+            String applicationId) {
+        return List.of();
+    }
+
+    /**
+     * Lists rows in a lifecycle state for restart repair and diagnostics.
+     *
+     * @param state state to query
+     * @return rows in stable update order
+     */
+    default List<GatewayOpenApiSyncPO> findByStatus(
+            GatewayOpenApiSyncStateEnum state) {
+        return List.of();
+    }
+
+    /**
      * Inserts a discovered row or updates only its provider observation fields.
      * Existing lifecycle state and immutable links are preserved.
      *

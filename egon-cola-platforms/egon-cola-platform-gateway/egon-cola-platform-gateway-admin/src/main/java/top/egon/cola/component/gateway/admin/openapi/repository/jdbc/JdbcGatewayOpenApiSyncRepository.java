@@ -83,6 +83,29 @@ public class JdbcGatewayOpenApiSyncRepository
     }
 
     @Override
+    public List<GatewayOpenApiSyncPO> findByApplicationId(
+            String applicationId) {
+        return jdbc.query(
+                SELECT_COLUMNS + " WHERE application_id = ?"
+                        + " ORDER BY build_id, openapi_group, id",
+                rowMapper(),
+                required(applicationId, "applicationId")
+        );
+    }
+
+    @Override
+    public List<GatewayOpenApiSyncPO> findByStatus(
+            GatewayOpenApiSyncStateEnum state) {
+        Objects.requireNonNull(state, "state");
+        return jdbc.query(
+                SELECT_COLUMNS + " WHERE status = ?"
+                        + " ORDER BY updated_at, id",
+                rowMapper(),
+                state.name()
+        );
+    }
+
+    @Override
     public GatewayOpenApiSyncPO upsertDiscovered(
             GatewayOpenApiSyncPO state) {
         Objects.requireNonNull(state, "state");

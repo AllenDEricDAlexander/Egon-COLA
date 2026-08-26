@@ -5,15 +5,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import top.egon.cola.component.ddc.api.client.DdcManagementClient;
 import top.egon.cola.component.gateway.admin.config.GatewayAdminProperties;
+import top.egon.cola.component.gateway.admin.config.properties.GatewayAdminOpenApiProperties;
 import top.egon.cola.component.gateway.admin.credential.service.AesGcmGatewaySecretProtector;
 import top.egon.cola.component.gateway.admin.credential.service.GatewaySecretProtector;
 import top.egon.cola.component.gateway.admin.mcp.repository.filesystem.FileSystemMcpAppArtifactRepository;
@@ -31,13 +34,21 @@ import top.egon.cola.component.gateway.admin.release.repository.GatewayReleaseRe
 import top.egon.cola.component.gateway.admin.release.service.GatewayReleasePublicationCoordinator;
 import top.egon.cola.component.gateway.admin.rule.service.GatewayDdcRulePublisher;
 import top.egon.cola.component.gateway.admin.runtime.service.GatewayProjectionService;
+import top.egon.cola.component.gateway.admin.openapi.client.GatewayOpenApiDnsPolicy;
+import top.egon.cola.component.gateway.admin.openapi.client.GatewayOpenApiTokenSupplier;
 import top.egon.cola.component.gateway.mcp.app.domain.McpAppSecurityValidator;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
+import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
+import top.egon.cola.platform.idp.contract.ServiceTokenContext;
 
+import java.net.http.HttpClient;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.Set;
 
 /**
  * 中文说明：{@code GatewayAdminConfiguration} 是配置类，位于当前 Gateway 模块的相关包中，负责网关管理端配置相关的职责与边界。
@@ -47,8 +58,120 @@ import java.time.Duration;
  */
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
-@EnableConfigurationProperties(GatewayAdminProperties.class)
+@EnableConfigurationProperties({
+        GatewayAdminProperties.class,
+        GatewayAdminOpenApiProperties.class
+})
 public class GatewayAdminConfiguration {
+
+    /** Creates the bounded JDK HTTP client used by the OpenAPI fetch boundary. */
+    @Bean(name = "gatewayOpenApiHttpClient")
+    @ConditionalOnProperty(
+            name = "gateway.admin.openapi.enabled",
+            havingValue = "true"
+    )
+    HttpClient gatewayOpenApiHttpClient(
+            GatewayAdminOpenApiProperties properties) {
+        properties.validate();
+        return HttpClient.newBuilder()
+                .connectTimeout(properties.getConnectTimeout())
+                .followRedirects(HttpClient.Redirect.NEVER)
+                .build();
+    }
+
+    /** Reuses Spring Boot's configured Jackson mapper at the OpenAPI boundary. */
+    @Bean(name = "gatewayOpenApiObjectMapper")
+    @Primary
+    @ConditionalOnBean(ObjectMapper.class)
+    ObjectMapper gatewayOpenApiObjectMapper(ObjectMapper objectMapper) {
+        return objectMapper;
+    }
+
+    /** Provides the injected UTC clock for deterministic OpenAPI timestamps. */
+    @Bean(name = "gatewayOpenApiClock")
+    @ConditionalOnProperty(
+            name = "gateway.admin.openapi.enabled",
+            havingValue = "true"
+    )
+    Clock gatewayOpenApiClock() {
+        return Clock.systemUTC();
+    }
+
+    /** Binds the configured provider read timeout to the client qualifier. */
+    @Bean(name = "gatewayOpenApiReadTimeout")
+    @ConditionalOnProperty(
+            name = "gateway.admin.openapi.enabled",
+            havingValue = "true"
+    )
+    Duration gatewayOpenApiReadTimeout(
+            GatewayAdminOpenApiProperties properties) {
+        properties.validate();
+        return properties.getReadTimeout();
+    }
+
+    /** Binds the immutable document byte limit to the client qualifier. */
+    @Bean(name = "gatewayOpenApiMaximumDocumentBytes")
+    @ConditionalOnProperty(
+            name = "gateway.admin.openapi.enabled",
+            havingValue = "true"
+    )
+    int gatewayOpenApiMaximumDocumentBytes(
+            GatewayAdminOpenApiProperties properties) {
+        properties.validate();
+        return properties.getMaximumDocumentBytes();
+    }
+
+    /** Creates the DNS/CIDR policy only when the reconciler is explicitly enabled. */
+    @Bean(name = "gatewayOpenApiDnsPolicy")
+    @ConditionalOnProperty(
+            name = "gateway.admin.openapi.enabled",
+            havingValue = "true"
+    )
+    GatewayOpenApiDnsPolicy gatewayOpenApiDnsPolicy(
+            GatewayAdminOpenApiProperties properties) {
+        properties.validate();
+        return new GatewayOpenApiDnsPolicy(properties.getAllowedCidrs());
+    }
+
+    /**
+     * Bridges provider reads to the existing IdP SERVICE-token facade. If
+     * OAuth is not configured, the boundary fails closed and exposes no
+     * credential or target details.
+     */
+    @Bean(name = "gatewayOpenApiTokenSupplier")
+    @ConditionalOnProperty(
+            name = "gateway.admin.openapi.enabled",
+            havingValue = "true"
+    )
+    GatewayOpenApiTokenSupplier gatewayOpenApiTokenSupplier(
+            ObjectProvider<IdpServiceOAuth2Client> oauth,
+            ObjectProvider<IdpStarterProperties> idpProperties,
+            GatewayAdminOpenApiProperties properties) {
+        properties.validate();
+        IdpServiceOAuth2Client client = oauth.getIfAvailable();
+        IdpStarterProperties settings = idpProperties.getIfAvailable();
+        if (client == null || settings == null) {
+            return (resourceUri, scope) -> {
+                throw new top.egon.cola.component.gateway.admin.openapi.client
+                        .GatewayOpenApiFetchException(
+                        "GATEWAY_OPENAPI_OAUTH_NOT_CONFIGURED",
+                        false,
+                        "OpenAPI service token authorization is not configured"
+                );
+            };
+        }
+        settings.getServiceClient().validate();
+        return (resourceUri, scope) -> client.authorize(
+                new IdpServiceTokenRequest(
+                        settings.getServiceClient().getRegistrationId(),
+                        settings.getServiceClient().getAppId(),
+                        resourceUri,
+                        ServiceTokenContext.PLATFORM,
+                        null,
+                        Set.of(scope)
+                )
+        ).getTokenValue();
+    }
 
     /**
      * 中文说明：执行 MCPApp制品存储 操作；该方法是 {@code GatewayAdminConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
