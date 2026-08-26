@@ -99,6 +99,28 @@ public class JdbcGatewayOpenApiSnapshotRepository
     }
 
     @Override
+    public Optional<GatewayOpenApiSnapshotPO>
+    findByApplicationGroupAndCanonicalSha256(
+            String applicationId,
+            String openapiGroup,
+            String canonicalSha256) {
+        return jdbc.query(
+                        SELECT_COLUMNS + """
+                                 WHERE application_id = ?
+                                   AND openapi_group = ?
+                                   AND canonical_sha256 = ?
+                                 ORDER BY fetched_at DESC, id
+                                """,
+                        rowMapper(),
+                        applicationId,
+                        openapiGroup,
+                        canonicalSha256
+                )
+                .stream()
+                .findFirst();
+    }
+
+    @Override
     public GatewayOpenApiSnapshotPO insertOrReuse(
             GatewayOpenApiSnapshotPO snapshot) {
         Objects.requireNonNull(snapshot, "snapshot");

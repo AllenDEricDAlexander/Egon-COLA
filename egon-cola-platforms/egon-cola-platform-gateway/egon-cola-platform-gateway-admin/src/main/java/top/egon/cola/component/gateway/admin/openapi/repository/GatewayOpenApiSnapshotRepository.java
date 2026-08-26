@@ -37,6 +37,27 @@ public interface GatewayOpenApiSnapshotRepository {
             String canonicalSha256);
 
     /**
+     * Finds the newest immutable snapshot for an application Group and
+     * canonical document hash, independent of the provider build identifier.
+     *
+     * <p>中文：Operation provenance stores the OpenAPI Group and canonical
+     * hash; this read-only lookup resolves that provenance to the newest
+     * matching immutable snapshot without contacting a Provider.</p>
+     *
+     * @param applicationId owning application
+     * @param openapiGroup source Group
+     * @param canonicalSha256 canonical document hash
+     * @return newest matching snapshot when present
+     */
+    default Optional<GatewayOpenApiSnapshotPO>
+    findByApplicationGroupAndCanonicalSha256(
+            String applicationId,
+            String openapiGroup,
+            String canonicalSha256) {
+        return Optional.empty();
+    }
+
+    /**
      * Inserts a snapshot or returns the identical existing row.
      *
      * @param snapshot immutable snapshot row

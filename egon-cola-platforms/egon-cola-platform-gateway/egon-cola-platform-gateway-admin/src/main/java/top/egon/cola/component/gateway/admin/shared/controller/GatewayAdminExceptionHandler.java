@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.admin.shared.controller;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import top.egon.cola.component.gateway.admin.mcp.domain.exception.McpValidationE
 import top.egon.cola.component.gateway.admin.shared.domain.exception.GatewayAdminIdempotencyConflictException;
 import top.egon.cola.component.gateway.admin.shared.domain.exception.GatewayAdminNotFoundException;
 import top.egon.cola.component.gateway.admin.shared.domain.exception.GatewayAdminRevisionConflictException;
+import top.egon.cola.component.gateway.admin.shared.domain.exception.GatewayOpenApiSourceNotAvailableException;
 import top.egon.cola.component.gateway.admin.shared.domain.vo.GatewayAdminErrorVO;
 import top.egon.cola.component.gateway.admin.shared.domain.vo.GatewayAdminFieldErrorVO;
 import top.egon.cola.component.gateway.core.mcp.app.McpAppArtifactStore;
@@ -237,6 +239,21 @@ public class GatewayAdminExceptionHandler {
         );
     }
 
+    /** Maps an OpenAPI source mismatch to the stable management conflict. */
+    @ExceptionHandler(GatewayOpenApiSourceNotAvailableException.class)
+    public ResponseEntity<GatewayAdminErrorVO> openApiSourceNotAvailable(
+            GatewayOpenApiSourceNotAvailableException error) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                new GatewayAdminErrorVO(
+                        "GATEWAY_OPENAPI_SOURCE_NOT_AVAILABLE",
+                        error.getMessage(),
+                        null,
+                        List.of(),
+                        Instant.now()
+                )
+        );
+    }
+
     /**
      * 中文说明：执行 validation 操作；该方法是 {@code GatewayAdminExceptionHandler} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
      * English summary: Executes the validation operation; this method is the invocation entry point on {@code GatewayAdminExceptionHandler} and performs the corresponding runtime, management, or protocol work.
@@ -256,6 +273,28 @@ public class GatewayAdminExceptionHandler {
                         "INVALID",
                         item.getDefaultMessage()
                 ))
+                .toList();
+        return ResponseEntity.unprocessableEntity().body(
+                new GatewayAdminErrorVO(
+                        "GATEWAY_ADMIN_VALIDATION_FAILED",
+                        "request validation failed",
+                        null,
+                        fields,
+                        Instant.now()
+                )
+        );
+    }
+
+    /** Maps method/path/query constraint violations to the standard 422 body. */
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<GatewayAdminErrorVO> constraintViolation(
+            ConstraintViolationException error) {
+        List<GatewayAdminFieldErrorVO> fields = error.getConstraintViolations()
+                .stream()
+                .map(violation -> new GatewayAdminFieldErrorVO(
+                        violation.getPropertyPath().toString(),
+                        "INVALID",
+                        violation.getMessage()))
                 .toList();
         return ResponseEntity.unprocessableEntity().body(
                 new GatewayAdminErrorVO(

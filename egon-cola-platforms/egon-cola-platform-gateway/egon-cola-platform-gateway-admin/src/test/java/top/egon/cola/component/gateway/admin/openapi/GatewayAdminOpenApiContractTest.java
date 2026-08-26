@@ -22,6 +22,7 @@ import top.egon.cola.component.gateway.admin.observability.controller.GatewayObs
 import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
 import top.egon.cola.component.gateway.admin.release.controller.GatewayReleaseController;
 import top.egon.cola.component.gateway.admin.reporting.controller.openapi.GatewayDefinitionReportController;
+import top.egon.cola.component.gateway.admin.openapi.controller.GatewayOpenApiController;
 import top.egon.cola.component.gateway.admin.routing.controller.GatewayDraftController;
 import top.egon.cola.component.gateway.admin.runtime.controller.GatewayProjectionController;
 import top.egon.cola.component.gateway.admin.scope.controller.GatewayScopeController;
@@ -54,7 +55,8 @@ class GatewayAdminOpenApiContractTest {
             GatewayDefinitionReportController.class,
             GatewayDraftController.class,
             GatewayProjectionController.class,
-            GatewayScopeController.class
+            GatewayScopeController.class,
+            GatewayOpenApiController.class
     );
 
     @Test
