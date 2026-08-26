@@ -95,7 +95,7 @@ class GatewayCatalogServiceTest {
                 "GET /orders/{id}",
                 false,
                 Map.of(),
-                "STARTER",
+                "RPC_DESCRIPTOR",
                 "ACTIVE",
                 "definition-1",
                 1,
@@ -110,7 +110,7 @@ class GatewayCatalogServiceTest {
                 actor(),
                 audit()
         )).isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("STARTER");
+                .hasMessageContaining("RPC_DESCRIPTOR");
     }
 
     private GatewayCatalogService service(FakeStore store) {

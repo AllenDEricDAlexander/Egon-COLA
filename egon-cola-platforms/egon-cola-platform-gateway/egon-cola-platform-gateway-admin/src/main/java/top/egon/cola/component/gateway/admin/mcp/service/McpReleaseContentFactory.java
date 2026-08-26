@@ -351,7 +351,7 @@ public class McpReleaseContentFactory {
         List<McpManagedToolProjectionVO> result = new ArrayList<>();
         for (top.egon.cola.component.gateway.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO current
                 : catalog.loadCurrentOperationDefinitions(gatewayGroupId)) {
-            if (!"STARTER".equals(current.operation().sourceType())) {
+            if (!"RPC_DESCRIPTOR".equals(current.operation().sourceType())) {
                 continue;
             }
             Map<String, Object> exposure = objectMap(

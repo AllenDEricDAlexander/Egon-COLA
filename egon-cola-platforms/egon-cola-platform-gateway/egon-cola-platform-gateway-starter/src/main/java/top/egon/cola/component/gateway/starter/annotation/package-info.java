@@ -1,7 +1,7 @@
 /**
- * Defines annotations and enums that describe catalogued Gateway services,
- * interface groups, operations, and HTTP request and response schemas.
+ * Defines the RPC governance annotations used by catalogued Gateway
+ * interface groups and operations.
  *
- * <p>中文：定义描述目录化网关服务、接口分组、操作以及 HTTP 请求和响应模式的注解与枚举。
+ * <p>中文：定义描述目录化网关 RPC 接口分组与操作治理信息的注解。
  */
 package top.egon.cola.component.gateway.starter.annotation;

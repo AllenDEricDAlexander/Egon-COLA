@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import top.egon.cola.component.gateway.contract.schema.proto.GatewayRequiredOption;
 import top.egon.cola.component.gateway.contract.schema.proto.GatewaySchemaFieldOption;
 import top.egon.cola.component.gateway.contract.schema.proto.SchemaOptions;
-import top.egon.cola.component.gateway.starter.discovery.schema.GatewayJavaSchemaMapper;
 import top.egon.cola.component.gateway.starter.discovery.schema.ProtobufSchemaMapper;
 
 import java.util.List;
@@ -93,7 +92,7 @@ class ProtobufSchemaMapperTest {
         assertThat(schema)
                 .containsEntry(
                         "$schema",
-                        GatewayJavaSchemaMapper.JSON_SCHEMA_2020_12
+                        ProtobufSchemaMapper.JSON_SCHEMA_2020_12
                 );
     }
 

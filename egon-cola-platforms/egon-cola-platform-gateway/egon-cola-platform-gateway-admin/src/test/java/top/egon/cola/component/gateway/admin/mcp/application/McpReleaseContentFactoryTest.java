@@ -357,7 +357,7 @@ class McpReleaseContentFactoryTest {
                 operationKey,
                 false,
                 Map.of(),
-                "STARTER",
+                "RPC_DESCRIPTOR",
                 "ACTIVE",
                 "definition-1",
                 0,
@@ -378,7 +378,7 @@ class McpReleaseContentFactoryTest {
                 attributes,
                 false,
                 NOW,
-                "STARTER"
+                "RPC_DESCRIPTOR"
         );
         return new top.egon.cola.component.gateway.admin.catalog.domain.vo.GatewayCurrentOperationDefinitionVO(
                 operation,

@@ -4,14 +4,11 @@ import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.Type;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.gateway.contract.reporting.GatewayDefinitionSourceTypeEnum;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReport;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.component.gateway.starter.annotation.GatewayRequestLocation;
-import top.egon.cola.component.gateway.starter.annotation.GatewayRequestSchemaField;
-import top.egon.cola.component.gateway.starter.annotation.GatewayResponseSchema;
-import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaShape;
 import top.egon.cola.component.gateway.starter.discovery.mcp.McpExposureMapper;
 import top.egon.cola.component.gateway.starter.discovery.rpc.RpcGatewayDefinitionContributor;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
@@ -29,7 +26,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RpcGatewayDefinitionContributorTest {
 
@@ -63,16 +59,11 @@ class RpcGatewayDefinitionContributorTest {
     }
 
     @Test
-    void rejectsJavaSchemaDeclarationsOnRpcMethods() {
-        assertThatThrownBy(() -> operation(DeclaredSchemaContract.class))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining(
-                        "RPC schema is derived from Protobuf Descriptor"
-                )
-                .hasMessageContaining(
-                        "requestSchemaFields and responseSchema "
-                                + "must not be declared"
-                );
+    void keepsJavaSchemaMembersOutOfTheRpcGovernanceAnnotation() {
+        assertThat(java.util.Arrays.stream(
+                        GatewayOperation.class.getDeclaredMethods())
+                .map(Method::getName))
+                .doesNotContain("requestSchemaFields", "responseSchema");
     }
 
     @Test
@@ -100,6 +91,8 @@ class RpcGatewayDefinitionContributorTest {
         assertThat(definitions).singleElement().satisfies(definition -> {
             assertThat(definition.interfaceGroup().code())
                     .isEqualTo("rpc-orders");
+            assertThat(definition.interfaceGroup().sourceType())
+                    .isEqualTo(GatewayDefinitionSourceTypeEnum.RPC_DESCRIPTOR);
             assertThat(definition.interfaceGroup().attributes())
                     .containsEntry("serviceName", "test.Catalog");
             assertThat(definition.interfaceGroup().operations())
@@ -257,35 +250,6 @@ class RpcGatewayDefinitionContributorTest {
                 idempotent = true,
                 registerMcp = true,
                 mcpName = "rpc_order_lookup"
-        )
-        Type lookup(Type request);
-    }
-
-    @GatewayInterfaceGroup(
-            businessDomainCode = "trade",
-            businessDomainName = "交易域",
-            entityDomainCode = "order",
-            entityDomainName = "订单",
-            code = "declared-rpc-orders",
-            name = "显式 Schema RPC 订单",
-            mcpServerCode = "trade-mcp"
-    )
-    private interface DeclaredSchemaContract {
-
-        @EgonRpcMethod(name = "Lookup", idempotent = true)
-        @GatewayOperation(
-                idempotent = true,
-                registerMcp = true,
-                mcpName = "declared_rpc_order_lookup",
-                requestSchemaFields = @GatewayRequestSchemaField(
-                        location = GatewayRequestLocation.BODY,
-                        schema = Type.class,
-                        shape = GatewaySchemaShape.OBJECT
-                ),
-                responseSchema = @GatewayResponseSchema(
-                        schema = Type.class,
-                        shape = GatewaySchemaShape.OBJECT
-                )
         )
         Type lookup(Type request);
     }

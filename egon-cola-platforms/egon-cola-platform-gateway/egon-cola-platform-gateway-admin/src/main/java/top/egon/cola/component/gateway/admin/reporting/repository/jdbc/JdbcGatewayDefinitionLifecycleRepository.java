@@ -286,7 +286,7 @@ public class JdbcGatewayDefinitionLifecycleRepository
                            revision = operation.revision + 1,
                            updated_at = :now
                      WHERE operation.application_id = :applicationId
-                       AND operation.source_type = 'STARTER'
+                       AND operation.source_type = 'RPC_DESCRIPTOR'
                        AND operation.lifecycle_status <> 'OFFLINE'
                        AND NOT EXISTS (
                            SELECT 1

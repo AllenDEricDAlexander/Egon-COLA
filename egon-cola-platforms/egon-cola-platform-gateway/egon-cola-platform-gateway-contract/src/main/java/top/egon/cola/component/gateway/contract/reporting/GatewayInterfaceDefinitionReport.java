@@ -139,7 +139,7 @@ public record GatewayInterfaceDefinitionReport(
             String code,
             String name,
             String description,
-            String sourceType,
+            GatewayDefinitionSourceTypeEnum sourceType,
             String className,
             String protocol,
             @GatewayDynamicJson
@@ -150,8 +150,29 @@ public record GatewayInterfaceDefinitionReport(
         public InterfaceGroup {
             code = required(code, "interfaceGroup.code");
             name = required(name, "interfaceGroup.name");
-            sourceType = required(sourceType, "interfaceGroup.sourceType");
+            sourceType = Objects.requireNonNull(
+                    sourceType,
+                    "interfaceGroup.sourceType"
+            );
             protocol = required(protocol, "interfaceGroup.protocol");
+            if (!"HTTP".equals(protocol) && !"RPC".equals(protocol)) {
+                throw new IllegalArgumentException(
+                        "unsupported interface group protocol: " + protocol
+                );
+            }
+            if ("HTTP".equals(protocol)
+                    && sourceType != GatewayDefinitionSourceTypeEnum.OPENAPI31
+                    && sourceType != GatewayDefinitionSourceTypeEnum.MANUAL) {
+                throw new IllegalArgumentException(
+                        "HTTP interface groups require OPENAPI31 or MANUAL source"
+                );
+            }
+            if ("RPC".equals(protocol)
+                    && sourceType != GatewayDefinitionSourceTypeEnum.RPC_DESCRIPTOR) {
+                throw new IllegalArgumentException(
+                        "RPC interface groups require RPC_DESCRIPTOR source"
+                );
+            }
             attributes = Map.copyOf(Objects.requireNonNull(
                     attributes,
                     "interfaceGroup.attributes"

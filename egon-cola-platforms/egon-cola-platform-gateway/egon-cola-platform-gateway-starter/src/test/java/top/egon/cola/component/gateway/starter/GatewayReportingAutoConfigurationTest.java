@@ -1,17 +1,12 @@
 package top.egon.cola.component.gateway.starter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import org.springframework.web.reactive.result.method.annotation
-        .RequestMappingHandlerMapping;
 import top.egon.cola.component.ddc.http.registration
         .DdcHttpRegistrationContributor;
 import top.egon.cola.component.gateway.contract.reporting.GatewayDefinitionIdentity;
-import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefinitionContributor;
-import top.egon.cola.component.gateway.starter.discovery.http.WebFluxGatewayDefinitionContributor;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportHttpClient;
 import top.egon.cola.component.gateway.starter.reporting.GatewayReportingCoordinator;
 import top.egon.cola.component.rpc.config.EgonRpcAutoConfig;
@@ -125,80 +120,6 @@ class GatewayReportingAutoConfigurationTest {
                             "build-1"
                     );
                 });
-    }
-
-    @Test
-    void selectsApplicationWebFluxMappingsWhenActuatorMappingsAlsoExist() {
-        runner.withPropertyValues(
-                        "egon.cola.component.gateway.reporting.enabled=true",
-                        "egon.cola.component.gateway.reporting.admin-base-url="
-                                + "http://127.0.0.1:18080",
-                        "egon.cola.component.gateway.reporting.biz-code=test-biz",
-                        "egon.cola.component.gateway.reporting."
-                                + "application-code=inventory",
-                        "egon.cola.component.gateway.reporting."
-                                + "application-name=Inventory",
-                        "egon.cola.component.gateway.reporting.env=test",
-                        "egon.cola.component.gateway.reporting.namespace=default",
-                        "egon.cola.component.gateway.reporting."
-                                + "artifact-version=1.0.0",
-                        "egon.cola.component.gateway.reporting.build-id=build-1",
-                        "egon.cola.component.gateway.reporting.access-key=ak",
-                        "egon.cola.component.gateway.reporting.secret-key=sk"
-                )
-                .withBean(
-                        "requestMappingHandlerMapping",
-                        RequestMappingHandlerMapping.class,
-                        RequestMappingHandlerMapping::new
-                )
-                .withBean(
-                        "controllerEndpointHandlerMapping",
-                        RequestMappingHandlerMapping.class,
-                        RequestMappingHandlerMapping::new
-                )
-                .withBean(ObjectMapper.class, ObjectMapper::new)
-                .run(context -> assertThat(context).hasSingleBean(
-                        WebFluxGatewayDefinitionContributor.class
-                ));
-    }
-
-    @Test
-    void selectsApplicationMvcMappingsWhenActuatorMappingsAlsoExist() {
-        runner.withPropertyValues(
-                        "egon.cola.component.gateway.reporting.enabled=true",
-                        "egon.cola.component.gateway.reporting.admin-base-url="
-                                + "http://127.0.0.1:18080",
-                        "egon.cola.component.gateway.reporting.biz-code=test-biz",
-                        "egon.cola.component.gateway.reporting."
-                                + "application-code=inventory",
-                        "egon.cola.component.gateway.reporting."
-                                + "application-name=Inventory",
-                        "egon.cola.component.gateway.reporting.env=test",
-                        "egon.cola.component.gateway.reporting.namespace=default",
-                        "egon.cola.component.gateway.reporting."
-                                + "artifact-version=1.0.0",
-                        "egon.cola.component.gateway.reporting.build-id=build-1",
-                        "egon.cola.component.gateway.reporting.access-key=ak",
-                        "egon.cola.component.gateway.reporting.secret-key=sk"
-                )
-                .withBean(
-                        "requestMappingHandlerMapping",
-                        org.springframework.web.servlet.mvc.method.annotation
-                                .RequestMappingHandlerMapping.class,
-                        org.springframework.web.servlet.mvc.method.annotation
-                                .RequestMappingHandlerMapping::new
-                )
-                .withBean(
-                        "controllerEndpointHandlerMapping",
-                        org.springframework.web.servlet.mvc.method.annotation
-                                .RequestMappingHandlerMapping.class,
-                        org.springframework.web.servlet.mvc.method.annotation
-                                .RequestMappingHandlerMapping::new
-                )
-                .withBean(ObjectMapper.class, ObjectMapper::new)
-                .run(context -> assertThat(context).hasSingleBean(
-                        MvcGatewayDefinitionContributor.class
-                ));
     }
 
     private GatewayReportingProperties enabledProperties() {

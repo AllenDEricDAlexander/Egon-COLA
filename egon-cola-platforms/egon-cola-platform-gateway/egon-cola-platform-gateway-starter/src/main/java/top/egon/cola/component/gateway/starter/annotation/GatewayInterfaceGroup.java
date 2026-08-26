@@ -7,15 +7,15 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Groups the operations declared by an HTTP controller or RPC contract into one
- * catalogued gateway interface.
+ * Groups the operations declared by an RPC contract into one catalogued
+ * gateway interface.
  *
  * <p>The business and entity domain attributes place the interface in the
  * catalogue taxonomy. The interface code identifies the group within that
  * taxonomy, while the optional MCP server code selects the server used when an
  * operation in the group is exposed through MCP.
  *
- * <p>将 HTTP 控制器或 RPC 契约中的操作归入同一个目录化网关接口分组。
+ * <p>将 RPC 契约中的操作归入同一个目录化网关接口分组。
  */
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)

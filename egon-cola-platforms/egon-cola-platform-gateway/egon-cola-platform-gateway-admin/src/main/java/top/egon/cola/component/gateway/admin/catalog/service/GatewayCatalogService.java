@@ -548,7 +548,7 @@ public class GatewayCatalogService {
                 requiredOperation(id);
         if (!"MANUAL".equals(operation.sourceType())) {
             throw new IllegalArgumentException(
-                    "STARTER operation cannot be modified by manual API"
+                    "RPC_DESCRIPTOR operation cannot be modified by manual API"
             );
         }
         return operation;

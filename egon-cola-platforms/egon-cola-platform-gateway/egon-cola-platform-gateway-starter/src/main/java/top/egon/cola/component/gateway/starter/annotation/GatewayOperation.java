@@ -9,11 +9,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Supplies catalogue and MCP metadata for a gateway operation method.
+ * Supplies catalogue and MCP metadata for an RPC gateway operation method.
  *
- * <p>Protocol-specific facts such as the HTTP route or RPC method identity are
- * discovered from the hosting framework. This annotation adds descriptive,
- * governance and schema metadata that those framework declarations do not own.
+ * <p>The RPC method identity and descriptor remain owned by the RPC contract;
+ * this annotation adds descriptive and governance metadata that the descriptor
+ * does not own.
  *
  * <p>为网关操作方法补充目录、治理和 MCP 元数据；协议路由等事实仍由宿主框架发现。
  */
@@ -126,31 +126,4 @@ public @interface GatewayOperation {
      */
     String[] tags() default {};
 
-    /**
-     * Complete schema declarations for the HTTP operation's request parameters.
-     *
-     * <p>Every HTTP parameter must be covered when MCP registration is enabled.
-     * RPC request schemas are generated from Protobuf descriptors and must not be
-     * declared here.
-     *
-     * <p>HTTP 操作请求参数的完整模式声明；启用 MCP 时必须覆盖每个 HTTP 参数。
-     * RPC 请求模式由 Protobuf 描述符生成，不应在此重复声明。
-     *
-     * @return the HTTP request schema declarations
-     */
-    GatewayRequestSchemaField[] requestSchemaFields() default {};
-
-    /**
-     * Schema declaration for the HTTP response and any business payload wrapper.
-     *
-     * <p>A non-void HTTP operation registered with MCP requires an explicit
-     * declaration. RPC response schemas are generated from Protobuf descriptors
-     * and must not be declared here.
-     *
-     * <p>HTTP 响应及业务载荷包装的模式声明；注册 MCP 的非 void HTTP 操作必须显式提供。
-     * RPC 响应模式由 Protobuf 描述符生成，不应在此重复声明。
-     *
-     * @return the HTTP response schema declaration
-     */
-    GatewayResponseSchema responseSchema() default @GatewayResponseSchema;
 }

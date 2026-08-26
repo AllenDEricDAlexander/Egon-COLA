@@ -249,7 +249,7 @@ public class JdbcGatewayDefinitionReportRepository
         Integer count = jdbc.queryForObject("""
                 SELECT COUNT(*)
                   FROM gateway_operation
-                 WHERE application_id = ? AND source_type = 'STARTER'
+                 WHERE application_id = ? AND source_type = 'RPC_DESCRIPTOR'
                 """, Integer.class, applicationId);
         return count == null ? 0 : count;
     }
@@ -422,9 +422,9 @@ public class JdbcGatewayDefinitionReportRepository
         ), entityId, group.code());
         if (!existing.isEmpty()) {
             GatewayDefinitionGroupRow row = existing.getFirst();
-            if (!"STARTER".equals(row.sourceType())) {
+            if (!"RPC_DESCRIPTOR".equals(row.sourceType())) {
                 throw new IllegalStateException(
-                        "GATEWAY_ADMIN_STARTER_MANUAL_CONFLICT: "
+                        "GATEWAY_ADMIN_RPC_DESCRIPTOR_MANUAL_CONFLICT: "
                                 + group.code()
                 );
             }
@@ -447,7 +447,7 @@ public class JdbcGatewayDefinitionReportRepository
                 INSERT INTO gateway_interface_group(
                     id, entity_domain_id, code, display_name, source_type,
                     class_name, description, deleted, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, 'STARTER', ?, ?, FALSE, ?, ?)
+                ) VALUES (?, ?, ?, ?, 'RPC_DESCRIPTOR', ?, ?, FALSE, ?, ?)
                 """,
                 id,
                 entityId,
@@ -511,7 +511,7 @@ public class JdbcGatewayDefinitionReportRepository
                         provider_service_identity, source_type,
                         lifecycle_status, current_definition_id, revision,
                         created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, 'STARTER',
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?::jsonb, 'RPC_DESCRIPTOR',
                               'DISCOVERED', NULL, 0, ?, ?)
                     """,
                     operationId,
@@ -546,15 +546,15 @@ public class JdbcGatewayDefinitionReportRepository
             return;
         }
         GatewayDefinitionOperationRow row = existing.getFirst();
-        if (!"STARTER".equals(row.sourceType())) {
+        if (!"RPC_DESCRIPTOR".equals(row.sourceType())) {
             throw new IllegalStateException(
-                    "GATEWAY_ADMIN_STARTER_MANUAL_CONFLICT: "
+                    "GATEWAY_ADMIN_RPC_DESCRIPTOR_MANUAL_CONFLICT: "
                             + operation.operationKey()
             );
         }
         if (!groupId.equals(row.interfaceGroupId())) {
             throw new IllegalStateException(
-                    "GATEWAY_ADMIN_STARTER_GROUP_CONFLICT: "
+                    "GATEWAY_ADMIN_RPC_DESCRIPTOR_GROUP_CONFLICT: "
                             + operation.operationKey()
             );
         }
@@ -618,7 +618,7 @@ public class JdbcGatewayDefinitionReportRepository
                     response_schema, error_schema, descriptor_snapshot,
                     attributes, external_accessible, created_at, created_by
                 ) VALUES (?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb,
-                          ?::jsonb, ?::jsonb, ?::jsonb, ?, ?, 'STARTER')
+                          ?::jsonb, ?::jsonb, ?::jsonb, ?, ?, 'RPC_DESCRIPTOR')
                 """,
                 id,
                 operationId,

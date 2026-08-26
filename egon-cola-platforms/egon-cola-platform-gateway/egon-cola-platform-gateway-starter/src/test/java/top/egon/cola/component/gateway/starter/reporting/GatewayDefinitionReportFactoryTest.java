@@ -1,6 +1,7 @@
 package top.egon.cola.component.gateway.starter.reporting;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.gateway.contract.reporting.GatewayDefinitionSourceTypeEnum;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReport;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.discovery.GatewayDefinitionContributor;
@@ -135,7 +136,7 @@ class GatewayDefinitionReportFactoryTest {
                         code,
                         code,
                         null,
-                        "STARTER",
+                        GatewayDefinitionSourceTypeEnum.OPENAPI31,
                         "example." + code,
                         "HTTP",
                         Map.of(),

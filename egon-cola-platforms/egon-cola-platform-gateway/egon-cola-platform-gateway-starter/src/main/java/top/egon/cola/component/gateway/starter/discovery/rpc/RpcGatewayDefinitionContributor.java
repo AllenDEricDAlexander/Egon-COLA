@@ -1,12 +1,11 @@
 package top.egon.cola.component.gateway.starter.discovery.rpc;
 
 import top.egon.cola.component.gateway.contract.identity.GatewayOperationKey;
+import top.egon.cola.component.gateway.contract.reporting.GatewayDefinitionSourceTypeEnum;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReport;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
 import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
 import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.component.gateway.starter.annotation.GatewayResponseSchema;
-import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaShape;
 import top.egon.cola.component.gateway.starter.discovery.GatewayDefinitionContributor;
 import top.egon.cola.component.gateway.starter.discovery.GatewayOperationSemantics;
 import top.egon.cola.component.gateway.starter.discovery.mcp.McpExposureMapper;
@@ -101,7 +100,7 @@ public final class RpcGatewayDefinitionContributor
                             group.code(),
                             group.name(),
                             group.description(),
-                            "STARTER",
+                            GatewayDefinitionSourceTypeEnum.RPC_DESCRIPTOR,
                             null,
                             "RPC",
                             Map.of(
@@ -157,7 +156,6 @@ public final class RpcGatewayDefinitionContributor
                 ));
         GatewayOperation annotation = descriptor.javaMethod()
                 .getAnnotation(GatewayOperation.class);
-        rejectSchemaDeclarations(annotation, method);
         boolean idempotent = GatewayOperationSemantics.idempotent(annotation);
         if (descriptor.idempotent() != idempotent) {
             throw new IllegalArgumentException(
@@ -191,8 +189,7 @@ public final class RpcGatewayDefinitionContributor
                 group,
                 annotation,
                 method.fullMethodName(),
-                false,
-                List.of()
+                false
         );
         if (!mcpExposure.isEmpty()) {
             attributes.put(McpExposureMapper.ATTRIBUTE_NAME, mcpExposure);
@@ -249,68 +246,6 @@ public final class RpcGatewayDefinitionContributor
                 descriptor.javaMethod().isAnnotationPresent(
                         Deprecated.class
                 )
-        );
-    }
-
-    /**
-     * Rejects Java annotation schemas for RPC operations whose schemas must be
-     * derived from the Protobuf descriptor.
-     *
-     * 对于必须从 Protobuf 描述符推导模式的 RPC 操作，拒绝 Java 注解中显式声明的模式。
-     *
-     * @param operation the Gateway operation annotation, or {@code null}，网关操作注解，可为 {@code null}
-     * @param method    the RPC method used to identify validation failures，用于标识校验失败的 RPC 方法
-     * @throws IllegalArgumentException if an explicit request or response
-     *                                  schema is declared
-     */
-    private void rejectSchemaDeclarations(
-            GatewayOperation operation,
-            RpcMethodSnapshot method) {
-        if (operation == null) {
-            return;
-        }
-        GatewayResponseSchema response = operation.responseSchema();
-        if (operation.requestSchemaFields().length > 0
-                || !defaultResponse(response)) {
-            throw invalid(
-                    method,
-                    "RPC schema is derived from Protobuf Descriptor; "
-                            + "requestSchemaFields and responseSchema "
-                            + "must not be declared"
-            );
-        }
-    }
-
-    /**
-     * Determines whether a response schema annotation retains all defaults.
-     *
-     * 判断响应模式注解是否仍保留全部默认值。
-     *
-     * @param response the response schema annotation，响应模式注解
-     * @return {@code true} when no explicit response schema is declared，未声明显式响应模式时返回 {@code true}
-     */
-    private boolean defaultResponse(GatewayResponseSchema response) {
-        return response.wrapper() == Void.class
-                && response.payloadField().isBlank()
-                && response.schema() == Void.class
-                && response.shape() == GatewaySchemaShape.AUTO;
-    }
-
-    /**
-     * Creates a method-specific invalid RPC schema exception.
-     *
-     * 创建包含具体方法信息的无效 RPC 模式异常。
-     *
-     * @param method  the invalid RPC method，无效的 RPC 方法
-     * @param message the validation failure detail，校验失败详情
-     * @return the exception describing the invalid schema，描述无效模式的异常
-     */
-    private IllegalArgumentException invalid(
-            RpcMethodSnapshot method,
-            String message) {
-        return new IllegalArgumentException(
-                "invalid RPC Gateway schema for "
-                        + method.fullMethodName() + ": " + message
         );
     }
 

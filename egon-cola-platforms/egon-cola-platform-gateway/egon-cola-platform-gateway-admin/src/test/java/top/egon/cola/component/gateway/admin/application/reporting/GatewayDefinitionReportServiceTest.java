@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.gateway.admin.shared.repository.IdempotencyRepository;
 import top.egon.cola.component.gateway.admin.reporting.repository.GatewayDefinitionReportRepository;
+import top.egon.cola.component.gateway.contract.reporting.GatewayDefinitionSourceTypeEnum;
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReport;
 
 import java.time.Instant;
@@ -109,7 +110,7 @@ class GatewayDefinitionReportServiceTest {
                 "orders",
                 "Orders",
                 null,
-                "STARTER",
+                GatewayDefinitionSourceTypeEnum.OPENAPI31,
                 "OrdersController",
                 "HTTP",
                 Map.of(),

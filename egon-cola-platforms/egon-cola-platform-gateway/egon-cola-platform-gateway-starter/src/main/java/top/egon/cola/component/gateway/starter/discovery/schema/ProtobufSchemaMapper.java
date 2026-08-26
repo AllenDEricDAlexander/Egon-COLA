@@ -21,6 +21,10 @@ import java.util.Map;
  */
 public final class ProtobufSchemaMapper {
 
+    /** JSON Schema dialect emitted for RPC descriptor-derived schemas. */
+    public static final String JSON_SCHEMA_2020_12 =
+            "https://json-schema.org/draft/2020-12/schema";
+
     /** Mapper used to parse JSON examples declared in Protobuf field options. 用于解析字段选项中的 JSON 示例。 */
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -45,7 +49,7 @@ public final class ProtobufSchemaMapper {
         } else {
             result = copyMap(root);
         }
-        result.put("$schema", GatewayJavaSchemaMapper.JSON_SCHEMA_2020_12);
+        result.put("$schema", JSON_SCHEMA_2020_12);
         if (!context.definitions.isEmpty()) {
             result.put("$defs", context.definitions);
         }
