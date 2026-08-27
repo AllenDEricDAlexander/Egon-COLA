@@ -487,7 +487,7 @@ assert_env_equals "${gateway_engine_env}" \
   dns:///127.0.0.1:18122 \
   'Gateway Engine must use the static IdP admission RPC target'
 assert_env_equals "${gateway_engine_env}" \
-  EGON_COLA_COMPONENT_DDC_RPC_MAX_INBOUND_MESSAGE_SIZE 33554432 \
+  EGON_COLA_COMPONENT_DDC_RPC_MAX_INBOUND_MESSAGE_SIZE 67108864 \
   'Gateway Engine must accept the complete DDC Gateway rule document'
 assert_env_equals "${gateway_engine_env}" \
   GATEWAY_MCP_TASK_SERVICE_TOKEN_ENABLED true \

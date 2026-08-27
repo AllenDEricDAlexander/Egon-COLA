@@ -459,9 +459,9 @@ common_identity_env() {
   write_env "${file}" EGON_COLA_COMPONENT_DDC_REGISTRATION_RESOURCE_URI \
     https://api.egon.internal/local/platform/ddc
   write_env "${file}" EGON_COLA_COMPONENT_DDC_RPC_MAX_INBOUND_MESSAGE_SIZE \
-    33554432
+    67108864
   write_env "${file}" EGON_COLA_COMPONENT_RPC_PROVIDER_MAX_INBOUND_MESSAGE_SIZE \
-    33554432
+    67108864
   write_env "${file}" EGON_COLA_PLATFORM_RBAC3_RUNTIME_PASSWORD_FILE \
     "${secret_dir}/redis.password"
   write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_CACHE_TTL 1s
@@ -888,7 +888,7 @@ write_service_env_files() {
   write_env "${file}" DDC_ENABLED true
   write_env "${file}" DDC_MAX_CONFIG_BYTES 33554432
   write_env "${file}" EGON_COLA_COMPONENT_DDC_RPC_MAX_INBOUND_MESSAGE_SIZE \
-    33554432
+    67108864
   write_env "${file}" DDC_BIZ_CODE identity
   write_env "${file}" DDC_APP_CODE gateway-engine-default
   write_env "${file}" DDC_ENV local
