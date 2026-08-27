@@ -1678,8 +1678,8 @@ publish_gateway_routes() {
     draft="$(gateway_api GET "/api/v1/gateway/admin/gateway-groups/${group_id}/draft")"
   done < <(jq -r --argjson operations "${managed_operation_ids}" '
     .routes[]?
-    | select((.routeId | startswith("unified-"))
-      and ([.operationId] - $operations | length) > 0)
+    | select(([.operationId] - $operations | length) > 0
+      and ((.routeId | startswith("unified-")) or .enabled != true))
     | .routeId' <<<"${draft}")
 
   if jq -e '.policies[]? | select(.policyId == "identity-basic" and .policyScope == "GLOBAL")' \
