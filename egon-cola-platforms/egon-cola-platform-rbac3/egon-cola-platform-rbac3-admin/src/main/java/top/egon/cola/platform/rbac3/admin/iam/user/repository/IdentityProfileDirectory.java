@@ -27,7 +27,11 @@ public final class IdentityProfileDirectory {
 
     private static final int MAX_SUBJECTS = 100;
 
-    @EgonRpcReference(mode = RpcReferenceMode.GATEWAY, timeoutMs = 1500)
+    @EgonRpcReference(
+            mode = RpcReferenceMode.DIRECT,
+            bizCode = "permission",
+            appCode = "idp",
+            timeoutMs = 1500)
     private IdentityDirectoryRpc rpc;
 
     public IdentityProfileDirectory() {

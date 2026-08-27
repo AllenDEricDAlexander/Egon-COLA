@@ -1,6 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.iam.user.repository;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.rpc.annotation.EgonRpcReference;
+import top.egon.cola.component.rpc.consumer.reference.RpcReferenceMode;
 import top.egon.cola.platform.idp.rpc.contract.IdentityDirectoryRpc;
 import top.egon.cola.platform.idp.rpc.contract.proto.v1.GetTenantMembershipRequest;
 import top.egon.cola.platform.idp.rpc.contract.proto.v1.GetTenantMembershipResponse;
@@ -10,6 +12,8 @@ import top.egon.cola.platform.idp.rpc.contract.proto.v1.TenantMembershipProfile;
 import top.egon.cola.platform.idp.rpc.contract.proto.v1.TenantStatus;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
+import java.lang.reflect.Field;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -18,6 +22,19 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class IdentityTenantMembershipDirectoryTest {
+
+    @Test
+    void usesTheDirectIdpProviderForAuthoritativeMembershipChecks()
+            throws NoSuchFieldException {
+        Field field = IdentityTenantMembershipDirectory.class
+                .getDeclaredField("rpc");
+        EgonRpcReference reference = field.getAnnotation(
+                EgonRpcReference.class);
+
+        assertThat(reference.mode()).isEqualTo(RpcReferenceMode.DIRECT);
+        assertThat(reference.bizCode()).isEqualTo("permission");
+        assertThat(reference.appCode()).isEqualTo("idp");
+    }
 
     @Test
     void returnsTypedVerificationOnlyForAnActiveTenantIdentityMembership() {

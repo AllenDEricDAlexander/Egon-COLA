@@ -108,6 +108,9 @@ egon:
         enabled: true
         machine-id: ${RBAC3_SNOWFLAKE_MACHINE_ID}
       rpc:
+        enabled: ${RBAC3_RPC_ENABLED:true}
+        consumer:
+          enabled: ${RBAC3_RPC_CONSUMER_ENABLED:true}
         tls:
           enabled: ${IDP_ADMISSION_RPC_TLS_ENABLED:false}
           development-plaintext: ${IDP_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT:${DDC_RPC_DEVELOPMENT_PLAINTEXT:false}}

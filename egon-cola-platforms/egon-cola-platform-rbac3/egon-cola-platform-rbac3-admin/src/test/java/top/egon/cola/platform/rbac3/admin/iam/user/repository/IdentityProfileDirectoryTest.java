@@ -1,11 +1,14 @@
 package top.egon.cola.platform.rbac3.admin.iam.user.repository;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.rpc.annotation.EgonRpcReference;
+import top.egon.cola.component.rpc.consumer.reference.RpcReferenceMode;
 import top.egon.cola.platform.idp.rpc.contract.IdentityDirectoryRpc;
 import top.egon.cola.platform.idp.rpc.contract.proto.v1.BatchGetIdentityProfilesRequest;
 import top.egon.cola.platform.idp.rpc.contract.proto.v1.BatchGetIdentityProfilesResponse;
 import top.egon.cola.platform.idp.rpc.contract.proto.v1.IdentityProfile;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Set;
 
@@ -15,6 +18,18 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class IdentityProfileDirectoryTest {
+
+    @Test
+    void usesTheDirectIdpProviderForOptionalProfileEnrichment()
+            throws NoSuchFieldException {
+        Field field = IdentityProfileDirectory.class.getDeclaredField("rpc");
+        EgonRpcReference reference = field.getAnnotation(
+                EgonRpcReference.class);
+
+        assertThat(reference.mode()).isEqualTo(RpcReferenceMode.DIRECT);
+        assertThat(reference.bizCode()).isEqualTo("permission");
+        assertThat(reference.appCode()).isEqualTo("idp");
+    }
 
     @Test
     void returnsEnrichedProfilesAndMissingMarker() {

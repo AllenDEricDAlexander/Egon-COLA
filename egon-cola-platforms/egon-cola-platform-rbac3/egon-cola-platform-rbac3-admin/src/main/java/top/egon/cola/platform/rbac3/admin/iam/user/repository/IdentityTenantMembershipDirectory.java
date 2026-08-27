@@ -31,7 +31,11 @@ public final class IdentityTenantMembershipDirectory {
     private static final String INVALID =
             "IDENTITY_TENANT_MEMBERSHIP_INVALID";
 
-    @EgonRpcReference(mode = RpcReferenceMode.GATEWAY, timeoutMs = 1500)
+    @EgonRpcReference(
+            mode = RpcReferenceMode.DIRECT,
+            bizCode = "permission",
+            appCode = "idp",
+            timeoutMs = 1500)
     private IdentityDirectoryRpc rpc;
 
     public IdentityTenantMembershipDirectory() {

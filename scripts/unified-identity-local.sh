@@ -647,6 +647,10 @@ write_service_env_files() {
   write_env "${file}" RBAC3_ADVERTISED_HOST "${advertised_host}"
   write_env "${file}" RBAC3_INSTANCE_ID rbac3-local-1
   write_env "${file}" RBAC3_ARTIFACT_VERSION local
+  # The RBAC3 identity-directory references are direct RPC references. Keep the
+  # consumer disabled until DDC has admitted the IdP RPC Provider lease.
+  write_env "${file}" RBAC3_RPC_ENABLED false
+  write_env "${file}" RBAC3_RPC_CONSUMER_ENABLED false
   write_env "${file}" RBAC3_DDC_ENABLED true
   write_env "${file}" EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST false
   write_env "${file}" RBAC3_HTTP_PROVIDER_ENABLED true
@@ -1897,6 +1901,8 @@ command_start() {
   wait_http ddc "${ddc_url}/actuator/health/readiness"
   wait_ddc_rpc
   write_env "${env_dir}/rbac3.env" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED true
+  write_env "${env_dir}/rbac3.env" RBAC3_RPC_ENABLED true
+  write_env "${env_dir}/rbac3.env" RBAC3_RPC_CONSUMER_ENABLED true
   write_env "${env_dir}/idp.env" IDP_RPC_PROVIDER_REGISTRATION_MODE REQUIRED
   start_process idp "${env_dir}/idp.env" "${idp_jar}"
   wait_http idp "${idp_url}/actuator/health/readiness"

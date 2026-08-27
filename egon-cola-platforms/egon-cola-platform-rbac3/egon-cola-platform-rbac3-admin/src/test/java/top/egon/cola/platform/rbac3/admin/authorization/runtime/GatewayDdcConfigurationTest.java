@@ -112,6 +112,11 @@ class GatewayDdcConfigurationTest {
         assertThat(production.getProperty(
                 "egon.cola.component.ddc.registry.http.enabled"))
                 .isEqualTo(true);
+        assertThat(production.getProperty("egon.cola.component.rpc.enabled"))
+                .isEqualTo("${RBAC3_RPC_ENABLED:true}");
+        assertThat(production.getProperty(
+                "egon.cola.component.rpc.consumer.enabled"))
+                .isEqualTo("${RBAC3_RPC_CONSUMER_ENABLED:true}");
     }
 
     @Test
@@ -123,7 +128,7 @@ class GatewayDdcConfigurationTest {
         assertThat(local.getProperty("egon.cola.component.ddc.registry.enabled"))
                 .isEqualTo("${RBAC3_DDC_ENABLED:false}");
         assertThat(local.getProperty("egon.cola.component.gateway.reporting.enabled"))
-                .isEqualTo(false);
+                .isEqualTo("${RBAC3_GATEWAY_REPORTING_ENABLED:false}");
         assertThat(local.getProperty(
                 "egon.cola.component.ddc.registry.http.enabled"))
                 .isEqualTo("${RBAC3_HTTP_PROVIDER_ENABLED:false}");

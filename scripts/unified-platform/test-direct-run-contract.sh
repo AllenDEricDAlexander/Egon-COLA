@@ -693,11 +693,23 @@ assert_contains "${identity_script}" \
   'write_env "${file}" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED false' \
   'the first RBAC3 startup must defer topology bootstrap until DDC publication'
 assert_contains "${identity_script}" \
+  'write_env "${file}" RBAC3_RPC_ENABLED false' \
+  'the first RBAC3 startup must defer direct RPC runtime creation until IdP publication'
+assert_contains "${identity_script}" \
+  'write_env "${file}" RBAC3_RPC_CONSUMER_ENABLED false' \
+  'the first RBAC3 startup must keep direct RPC consumers disabled until IdP publication'
+assert_contains "${identity_script}" \
   '--egon.rbac3.development-bootstrap.enabled=false' \
   'the first RBAC3 bootstrap phase must defer topology activation until DDC publication'
 assert_contains "${identity_script}" \
   'write_env "${env_dir}/rbac3.env" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED true' \
   'the final RBAC3 startup must enable topology bootstrap after DDC publication'
+assert_contains "${identity_script}" \
+  'write_env "${env_dir}/rbac3.env" RBAC3_RPC_ENABLED true' \
+  'the final RBAC3 startup must enable direct RPC runtime after IdP publication'
+assert_contains "${identity_script}" \
+  'write_env "${env_dir}/rbac3.env" RBAC3_RPC_CONSUMER_ENABLED true' \
+  'the final RBAC3 startup must enable direct RPC consumers after IdP publication'
 assert_contains "${identity_script}" \
   'wait_ddc_rpc_provider_registration permission idp egon.idp.v1.IdentityDirectoryService idp 1.0.0' \
   'RBAC3 topology bootstrap must wait for the IdP RPC provider publication'
