@@ -202,6 +202,20 @@ export type DdcInstance = {
   runtimeMetadata?: Record<string, string>
 }
 
+export type DdcInstancePage = PageResultRecord<DdcInstance>
+
+export type DdcCapabilityState =
+  | 'READY'
+  | 'NOT_CONFIGURED'
+  | 'FORBIDDEN'
+  | 'UNAVAILABLE'
+
+export type DdcCapabilityView = {
+  state: DdcCapabilityState
+  message: string
+  traceId?: string
+}
+
 export type DdcCacheCheckRow = {
   resourceName: string
   databaseValue?: string

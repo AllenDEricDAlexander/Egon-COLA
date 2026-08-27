@@ -125,4 +125,36 @@ describe('ddcApi', () => {
     expect(error.category).toBe('NETWORK')
     expect(error.code).toBe('DDC_ADMIN_WEB_UPSTREAM_UNAVAILABLE')
   })
+
+  it('keeps page metadata for configuration client instances', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse(pageRecord([
+      { instanceId: 'instance-1' },
+    ], 41)))
+
+    await expect(ddcPageApi<{ instanceId: string }>(
+      '/api/v1/ddc/instances/page?pageNo=1&pageSize=20',
+    )).resolves.toMatchObject({
+      records: [{ instanceId: 'instance-1' }],
+      page: { total: 41, pageNo: 2, pageSize: 20, pages: 2 },
+    })
+  })
+
+  it('classifies a missing audit endpoint instead of returning an empty success', async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({
+      success: false,
+      code: 404,
+      status: 'NOT_FOUND',
+      message: '审计接口不存在',
+      data: null,
+      traceId: 'trace-audit-missing',
+      timestamp: 1,
+    }, 404))
+
+    await expect(ddcPageApi('/api/v1/ddc/audits/page'))
+      .rejects.toMatchObject({
+        status: 404,
+        category: 'NOT_FOUND',
+        traceId: 'trace-audit-missing',
+      })
+  })
 })

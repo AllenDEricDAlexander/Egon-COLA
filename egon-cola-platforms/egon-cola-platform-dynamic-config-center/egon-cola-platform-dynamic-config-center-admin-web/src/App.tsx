@@ -10,6 +10,7 @@ import AppsPage from './pages/AppsPage'
 import NamespacesPage from './pages/NamespacesPage'
 import PublishTasksPage from './pages/PublishTasksPage'
 import CachePage from './pages/CachePage'
+import InstancesPage from './pages/InstancesPage'
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="namespaces" element={<NamespacesPage />} />
             <Route path="publish-tasks" element={<PublishTasksPage />} />
             <Route path="cache" element={<CachePage />} />
+            <Route path="instances" element={<InstancesPage />} />
           </Route>
         </Routes>
       </AuthProvider>

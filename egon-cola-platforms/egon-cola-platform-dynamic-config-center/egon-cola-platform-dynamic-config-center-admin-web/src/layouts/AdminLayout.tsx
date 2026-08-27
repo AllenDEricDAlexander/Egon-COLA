@@ -23,6 +23,7 @@ import { useAuth } from '../auth/AuthContext'
 const navigation: readonly EnterpriseNavigationItem[] = [
   { key: 'runtime', label: '运行状态', icon: <ClusterOutlined />, children: [
     { key: 'registry', label: '服务注册', path: '/registry', icon: <ClusterOutlined /> },
+    { key: 'instances', label: '配置客户端实例', path: '/instances', icon: <ClusterOutlined /> },
     { key: 'publish-tasks', label: '发布任务', path: '/publish-tasks', icon: <DeploymentUnitOutlined /> },
     { key: 'cache', label: '缓存', path: '/cache', icon: <DatabaseOutlined /> },
   ] },

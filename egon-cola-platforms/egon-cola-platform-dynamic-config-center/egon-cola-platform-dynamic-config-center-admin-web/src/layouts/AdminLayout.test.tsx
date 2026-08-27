@@ -32,12 +32,13 @@ const setViewport = (width: number) => {
   })
 }
 
-const renderLayout = () => render(
+const renderLayout = (path = '/registry') => render(
   <AntdApp>
-    <MemoryRouter initialEntries={['/registry']}>
+    <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/" element={<AdminLayout />}>
           <Route path="registry" element={<div>注册页内容</div>} />
+          <Route path="instances" element={<div>实例页内容</div>} />
         </Route>
       </Routes>
     </MemoryRouter>
@@ -72,6 +73,15 @@ describe('AdminLayout', () => {
     renderLayout()
 
     expect(screen.getByText('服务注册').closest('.ant-menu-item'))
+      .toHaveClass('ant-menu-item-selected')
+  })
+
+  it('shows configuration client instances under runtime and highlights it', () => {
+    setViewport(1280)
+    renderLayout('/instances')
+
+    expect(screen.getByText('配置客户端实例')).toBeInTheDocument()
+    expect(screen.getByText('配置客户端实例').closest('.ant-menu-item'))
       .toHaveClass('ant-menu-item-selected')
   })
 
