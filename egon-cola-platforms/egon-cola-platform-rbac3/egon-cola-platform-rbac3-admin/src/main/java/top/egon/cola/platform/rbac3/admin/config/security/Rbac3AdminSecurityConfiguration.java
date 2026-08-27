@@ -3,6 +3,7 @@ package top.egon.cola.platform.rbac3.admin.config.security;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.Ordered;
@@ -90,6 +91,27 @@ public class Rbac3AdminSecurityConfiguration {
     @Bean
     TenantContextFilter tenantContextFilter(TenantContextResolver resolver) {
         return new TenantContextFilter(resolver);
+    }
+
+    /**
+     * Keeps tenant resolution inside the selected Spring Security chain.
+     *
+     * <p>A {@link TenantContextFilter} is also a Servlet {@code Filter} Bean,
+     * so Boot would otherwise register it globally in addition to the explicit
+     * chain registration. The global invocation runs after SecurityContext
+     * cleanup and can overwrite a successful response with 401.</p>
+     *
+     * @param filter tenant context filter used by the security chains
+     * @return disabled Servlet registration; the chain owns invocation order
+     */
+    @Bean
+    FilterRegistrationBean<TenantContextFilter>
+    tenantContextFilterRegistration(TenantContextFilter filter) {
+        FilterRegistrationBean<TenantContextFilter> registration =
+                new FilterRegistrationBean<>(filter);
+        registration.setName("tenantContextFilter");
+        registration.setEnabled(false);
+        return registration;
     }
 
     /**

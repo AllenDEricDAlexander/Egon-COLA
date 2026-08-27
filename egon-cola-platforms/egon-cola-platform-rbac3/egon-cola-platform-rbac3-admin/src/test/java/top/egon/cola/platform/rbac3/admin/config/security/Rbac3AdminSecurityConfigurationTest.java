@@ -1,7 +1,10 @@
 package top.egon.cola.platform.rbac3.admin.config.security;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.mock.web.MockHttpServletRequest;
+import top.egon.cola.platform.rbac3.admin.shared.tenant.controller.filter.TenantContextFilter;
+import top.egon.cola.platform.rbac3.admin.shared.tenant.service.TenantContextResolver;
 import top.egon.cola.platform.idp.starter.security.IdpEndpointAuthenticationPolicy;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,5 +25,20 @@ class Rbac3AdminSecurityConfigurationTest {
                 "GET",
                 "/api/rbac3/v1/iam/roles"
         ))).isEqualTo(IdpEndpointAuthenticationPolicy.Requirement.USER);
+    }
+
+    @Test
+    void keepsTenantFilterOutOfTheServletContainerRegistration() {
+        Rbac3AdminSecurityConfiguration configuration =
+                new Rbac3AdminSecurityConfiguration();
+        TenantContextFilter filter = configuration.tenantContextFilter(
+                new TenantContextResolver()
+        );
+
+        FilterRegistrationBean<TenantContextFilter> registration =
+                configuration.tenantContextFilterRegistration(filter);
+
+        assertThat(registration.getFilter()).isSameAs(filter);
+        assertThat(registration.isEnabled()).isFalse();
     }
 }
