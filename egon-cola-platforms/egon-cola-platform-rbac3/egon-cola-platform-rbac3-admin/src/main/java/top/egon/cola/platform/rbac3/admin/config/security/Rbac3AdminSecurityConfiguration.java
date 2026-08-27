@@ -42,7 +42,11 @@ public class Rbac3AdminSecurityConfiguration {
     IdpEndpointAuthenticationPolicy rbac3EndpointAuthenticationPolicy() {
         return new IdpEndpointAuthenticationPolicy(
                 List.of(),
-                List.of("/internal/**", "/api/rbac3/v1/internal/**"));
+                List.of(
+                        "/internal/**",
+                        "/api/rbac3/v1/internal/**",
+                        "/v3/api-docs/**"
+                ));
     }
 
     /**
