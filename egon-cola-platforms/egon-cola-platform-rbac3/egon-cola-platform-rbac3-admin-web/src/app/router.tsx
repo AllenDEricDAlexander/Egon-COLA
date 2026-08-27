@@ -7,7 +7,7 @@ import {version} from '../../package.json'
 import {applicationRouteDescriptors, isRouteAllowed, resolveApplicationLanding, visibleNavigation} from './navigation'
 import type {FeatureRouteDescriptor} from '../features/shared/RouteDescriptor'
 
-export const ApplicationRouter = () => {
+export const ApplicationRouter = ({ embedded = false }: { readonly embedded?: boolean }) => {
     const {about} = useRbac3Authorization()
   if (!about) return null
   const landing = resolveApplicationLanding(about)
@@ -15,7 +15,7 @@ export const ApplicationRouter = () => {
     ? <Result status="403" title="没有可访问页面" subTitle="当前激活角色没有可用的本地路由。" />
     : <Navigate to={landing} replace />
   return (
-    <AdminLayout>
+    <AdminLayout embedded={embedded}>
       <Routes>
         {applicationRouteDescriptors.map((route) => (
           <Route key={route.key} path={route.path} element={<RouteAccessGuard route={route}><route.component /></RouteAccessGuard>} />
@@ -32,7 +32,7 @@ const RouteAccessGuard = ({ route, children }: PropsWithChildren<{ readonly rout
   return children
 }
 
-const AdminLayout = ({ children }: PropsWithChildren) => {
+const AdminLayout = ({ children, embedded = false }: PropsWithChildren<{ readonly embedded?: boolean }>) => {
     const {about} = useRbac3Authorization()
   if (!about) return null
   // 导航由 SDK 的 visibleNavigation 提供（含权限过滤），shared 只负责渲染与高亮。
@@ -45,5 +45,5 @@ const AdminLayout = ({ children }: PropsWithChildren) => {
     },
     footer: { version },
   }
-  return <EnterpriseLayout config={config}>{children}</EnterpriseLayout>
+  return embedded ? <>{children}</> : <EnterpriseLayout config={config}>{children}</EnterpriseLayout>
 }

@@ -9,10 +9,10 @@ const queryClient = new QueryClient({
   },
 })
 
-export const App = () => (
+export const App = ({ embedded = false }: { readonly embedded?: boolean }) => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
-      <AppRouter />
+      <AppRouter embedded={embedded} />
     </BrowserRouter>
   </QueryClientProvider>
 )

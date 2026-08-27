@@ -48,7 +48,7 @@ const PATH_LABELS: Record<string, string> = {
     '/audits': '安全审计',
 }
 
-export const AdminLayout = ({ children }: PropsWithChildren) => {
+export const AdminLayout = ({ children, embedded = false }: PropsWithChildren<{ readonly embedded?: boolean }>) => {
     const auth = useAuth()
     const navigate = useNavigate()
     const location = useLocation()
@@ -97,6 +97,8 @@ export const AdminLayout = ({ children }: PropsWithChildren) => {
             : undefined,
         footer: { version },
     }
+
+    if (embedded) return <>{children}</>
 
     return (
         <EnterpriseLayout config={config}>

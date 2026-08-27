@@ -11,7 +11,7 @@ import {ApplicationRouter} from './router'
 const queryClient = createAdminQueryClient()
 const clients = createAdminApiClients(import.meta.env.VITE_RBAC3_API_BASE ?? '')
 
-export const App = () => (
+export const App = ({ embedded = false }: { readonly embedded?: boolean }) => (
     <QueryClientProvider client={queryClient}>
         <Rbac3Provider client={clients.rbac3Client}>
             <FeatureApiProvider client={clients.featureClient}>
@@ -20,7 +20,7 @@ export const App = () => (
                         console.error('[RBAC3] Unhandled error:', error, info.componentStack)
                     }}>
                         <AuthenticationShell>
-                            <ApplicationRouter/>
+                            <ApplicationRouter embedded={embedded}/>
                         </AuthenticationShell>
                     </AppErrorBoundary>
                 </BrowserRouter>

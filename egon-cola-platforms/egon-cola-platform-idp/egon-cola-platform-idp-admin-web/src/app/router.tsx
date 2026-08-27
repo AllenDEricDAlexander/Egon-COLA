@@ -24,24 +24,24 @@ const LoginRoute = () => {
   return <CentralLoginPage />
 }
 
-const ConsoleGuard = () => {
+const ConsoleGuard = ({ embedded }: { readonly embedded: boolean }) => {
   const auth = useAuth()
   if (auth.loading) return <Spin fullscreen description="校验统一登录态" />
   if (!auth.bootstrap) return <Navigate to="/login" replace />
   return (
-    <AdminLayout>
+    <AdminLayout embedded={embedded}>
       <Outlet />
     </AdminLayout>
   )
 }
 
-export const AppRouter = () => (
+export const AppRouter = ({ embedded = false }: { readonly embedded?: boolean }) => (
   <AppErrorBoundary>
     <AuthProvider>
       <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/login" element={<LoginRoute />} />
-          <Route element={<ConsoleGuard />}>
+          <Route element={<ConsoleGuard embedded={embedded} />}>
             <Route index element={<Navigate to="/overview" replace />} />
             <Route path="/overview" element={<OverviewPage />} />
             <Route path="/users" element={<UserListPage />} />

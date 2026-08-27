@@ -33,6 +33,10 @@ interface GatewayNavItem {
   children?: readonly GatewayNavItem[]
 }
 
+interface WujieRuntimeWindow extends Window {
+  $wujie?: { props?: { embedded?: boolean } }
+}
+
 const navigation: readonly GatewayNavItem[] = [
   { key: '/dashboard', path: '/dashboard', icon: <DashboardOutlined />, label: '总览', capability: 'gateway:read' },
   {
@@ -75,6 +79,9 @@ export const AdminLayout = () => {
   const auth = useAuth()
   const canRead = useCapability('gateway:read')
   const canReadMcp = useCapability('gateway:mcp:read')
+
+  const embedded = (window as WujieRuntimeWindow).$wujie?.props?.embedded === true
+  if (embedded) return <Outlet />
 
   const items: EnterpriseNavigationItem[] = filterNavigation(navigation, canRead, canReadMcp)
 

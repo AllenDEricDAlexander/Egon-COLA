@@ -19,6 +19,10 @@ import { Outlet } from 'react-router-dom'
 import { version } from '../../package.json'
 import { useAuth } from '../auth/AuthContext'
 
+interface WujieRuntimeWindow extends Window {
+  $wujie?: { props?: { embedded?: boolean } }
+}
+
 // 平台自己的导航树；shared 只负责左侧递归树的渲染与高亮。
 const navigation: readonly EnterpriseNavigationItem[] = [
   { key: 'runtime', label: '运行状态', icon: <ClusterOutlined />, children: [
@@ -40,6 +44,9 @@ const navigation: readonly EnterpriseNavigationItem[] = [
 
 export default function AdminLayout() {
   const { identity, logout } = useAuth()
+  const embedded = (window as WujieRuntimeWindow).$wujie?.props?.embedded === true
+
+  if (embedded) return <Outlet />
 
   const config: EnterpriseLayoutConfig = {
     platformName: 'DDC Admin',
