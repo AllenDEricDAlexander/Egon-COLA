@@ -1,5 +1,7 @@
 package top.egon.cola.platform.rbac3.admin.iam.user.repository;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import top.egon.cola.component.rpc.annotation.EgonRpcReference;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferenceMode;
@@ -23,6 +25,9 @@ import java.util.Objects;
  */
 @Component
 public final class IdentityTenantMembershipDirectory {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(
+            IdentityTenantMembershipDirectory.class);
 
     private static final String NOT_ACTIVE =
             "IDENTITY_TENANT_MEMBERSHIP_NOT_ACTIVE";
@@ -56,6 +61,7 @@ public final class IdentityTenantMembershipDirectory {
         String normalizedIdentitySub = identitySub(identitySub);
         IdentityDirectoryRpc client = rpc;
         if (client == null) {
+            LOGGER.error("IdP identity RPC reference was not injected");
             throw unavailable();
         }
 
@@ -67,6 +73,8 @@ public final class IdentityTenantMembershipDirectory {
                             .setIdentitySub(normalizedIdentitySub)
                             .build());
         } catch (RuntimeException unavailable) {
+            LOGGER.error("IdP tenant membership RPC call failed: clientType={}, message={}",
+                    client.getClass().getName(), unavailable.getMessage(), unavailable);
             throw unavailable();
         }
         if (response == null || !response.hasProfile()) {

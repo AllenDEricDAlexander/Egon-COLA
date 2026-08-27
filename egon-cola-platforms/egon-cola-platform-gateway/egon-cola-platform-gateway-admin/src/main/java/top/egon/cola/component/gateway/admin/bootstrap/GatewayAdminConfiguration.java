@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.admin.bootstrap;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,6 +37,7 @@ import top.egon.cola.component.gateway.admin.rule.service.GatewayDdcRulePublishe
 import top.egon.cola.component.gateway.admin.runtime.service.GatewayProjectionService;
 import top.egon.cola.component.gateway.admin.openapi.client.GatewayOpenApiDnsPolicy;
 import top.egon.cola.component.gateway.admin.openapi.client.GatewayOpenApiTokenSupplier;
+import top.egon.cola.component.gateway.admin.openapi.validation.GatewayOpenApiValidationLimits;
 import top.egon.cola.component.gateway.mcp.app.domain.McpAppSecurityValidator;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
@@ -79,12 +81,23 @@ public class GatewayAdminConfiguration {
                 .build();
     }
 
-    /** Reuses Spring Boot's configured Jackson mapper at the OpenAPI boundary. */
+    /** Provides the configured JSON mapper used by the OpenAPI boundary. */
     @Bean(name = "gatewayOpenApiObjectMapper")
     @Primary
-    @ConditionalOnBean(ObjectMapper.class)
-    ObjectMapper gatewayOpenApiObjectMapper(ObjectMapper objectMapper) {
-        return objectMapper;
+    ObjectMapper gatewayOpenApiObjectMapper() {
+        return JsonMapper.builder().findAndAddModules().build();
+    }
+
+    /** Binds the validated OpenAPI graph limits used by the always-available validation chain. */
+    @Bean(name = "gatewayOpenApiValidationLimits")
+    GatewayOpenApiValidationLimits gatewayOpenApiValidationLimits(
+            GatewayAdminOpenApiProperties properties) {
+        properties.validate();
+        return new GatewayOpenApiValidationLimits(
+                properties.getMaximumDocumentBytes(),
+                properties.getMaximumOperations(),
+                properties.getMaximumSchemaNodes(),
+                properties.getMaximumRefDepth());
     }
 
     /** Provides the injected UTC clock for deterministic OpenAPI timestamps. */

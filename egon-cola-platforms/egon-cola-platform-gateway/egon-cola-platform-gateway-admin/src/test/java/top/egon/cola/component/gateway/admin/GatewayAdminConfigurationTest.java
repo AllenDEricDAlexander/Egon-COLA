@@ -1,5 +1,6 @@
 package top.egon.cola.component.gateway.admin.bootstrap;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -9,6 +10,7 @@ import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
 
 import java.lang.reflect.Method;
+import java.time.Instant;
 import java.util.Arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -68,5 +70,15 @@ class GatewayAdminConfigurationTest {
         assertThat(annotation).isNotNull();
         assertThat(annotation.value())
                 .contains(GatewayAdminOpenApiProperties.class);
+    }
+
+    @Test
+    void providesOpenApiMapperWithJavaTimeSupport() throws Exception {
+        ObjectMapper mapper = new GatewayAdminConfiguration()
+                .gatewayOpenApiObjectMapper();
+
+        assertThat(mapper.getRegisteredModuleIds()).isNotEmpty();
+        assertThat(mapper.readTree(mapper.writeValueAsString(
+                Instant.parse("2026-08-27T00:00:00Z")))).isNotNull();
     }
 }
