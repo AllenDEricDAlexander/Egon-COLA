@@ -12,38 +12,32 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
-import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
-import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
 import top.egon.cola.platform.rbac3.admin.iam.organization.domain.vo.DirectoryPageVO;
 import top.egon.cola.platform.rbac3.admin.iam.organization.service.DirectoryQueryService;
-import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
+import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.service.DirectoryCommandService;
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.dto.CreateUserCommandDTO;
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.dto.UpdateUserCommandDTO;
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.dto.UserStatusCommandDTO;
 import top.egon.cola.platform.rbac3.admin.iam.user.domain.vo.UserDirectoryVO;
 import top.egon.cola.platform.rbac3.admin.iam.user.service.UserCrudFacade;
-import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.service.DirectoryCommandService;
-import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 
 /** RBAC-only user membership administration. IdP owns credentials and profile data. */
 @RestController
 @RequestMapping("/api/rbac3/v1/iam")
-@GatewayInterfaceGroup(
+@Tag(name = "iam-user", description = "IAM用户成员接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "iam-user",
-        name = "IAM用户成员接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        interfaceGroupCode = "iam-user"
+)
 public class UserController {
 
     private final DirectoryCommandService commandPort;
@@ -61,8 +55,14 @@ public class UserController {
 
     @GetMapping("/users")
     @RequiresPermission(value = "system:user:read")
-    @GatewayOperation(name = "rbac3-iam-user-list-v1", summary = "分页查询租户用户",
-            externalAccessible = true, tags = {"rbac3", "iam", "user"})
+    @Operation(
+            operationId = "rbac3-iam-user-list-v1",
+            summary = "分页查询租户用户",
+            tags = {"rbac3", "iam", "user"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<DirectoryPageVO<UserDirectoryVO>> users(
             @RequestParam(required = false) String query,
             @RequestParam(required = false) String status,
@@ -76,8 +76,14 @@ public class UserController {
 
     @PostMapping("/users")
     @RequiresPermission(value = "system:user:manage")
-    @GatewayOperation(name = "rbac3-iam-user-create-v1", summary = "创建RBAC用户成员",
-            externalAccessible = true, tags = {"rbac3", "iam", "user"})
+    @Operation(
+            operationId = "rbac3-iam-user-create-v1",
+            summary = "创建RBAC用户成员",
+            tags = {"rbac3", "iam", "user"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<UserDirectoryVO> create(
             @Valid @RequestBody CreateUserCommandDTO command
             ) {
@@ -87,16 +93,28 @@ public class UserController {
 
     @GetMapping("/users/{userId}")
     @RequiresPermission(value = "system:user:read")
-    @GatewayOperation(name = "rbac3-iam-user-get-v1", summary = "查询RBAC用户成员",
-            externalAccessible = true, tags = {"rbac3", "iam", "user"})
+    @Operation(
+            operationId = "rbac3-iam-user-get-v1",
+            summary = "查询RBAC用户成员",
+            tags = {"rbac3", "iam", "user"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<UserDirectoryVO> user(@PathVariable String userId) {
         return ResultRecord.success(queryPort.findUser(tenantId(), userId));
     }
 
     @PutMapping("/users/{userId}")
     @RequiresPermission(value = "system:user:manage")
-    @GatewayOperation(name = "rbac3-iam-user-update-v1", summary = "更新RBAC用户成员绑定",
-            externalAccessible = true, tags = {"rbac3", "iam", "user"})
+    @Operation(
+            operationId = "rbac3-iam-user-update-v1",
+            summary = "更新RBAC用户成员绑定",
+            tags = {"rbac3", "iam", "user"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<UserDirectoryVO> update(
             @PathVariable Long userId,
             @Valid @RequestBody UpdateUserCommandDTO command
@@ -107,8 +125,14 @@ public class UserController {
 
     @DeleteMapping("/users/{userId}")
     @RequiresPermission(value = "system:user:manage")
-    @GatewayOperation(name = "rbac3-iam-user-delete-v1", summary = "归档RBAC用户成员",
-            externalAccessible = true, tags = {"rbac3", "iam", "user"})
+    @Operation(
+            operationId = "rbac3-iam-user-delete-v1",
+            summary = "归档RBAC用户成员",
+            tags = {"rbac3", "iam", "user"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<Void> delete(
             @PathVariable Long userId,
             @RequestParam long expectedAuthVersion) {
@@ -119,8 +143,14 @@ public class UserController {
 
     @PutMapping("/users/{userId}/status")
     @RequiresPermission(value = "system:user-status:manage")
-    @GatewayOperation(name = "rbac3-iam-user-status-v1", summary = "变更RBAC用户成员状态",
-            externalAccessible = true, tags = {"rbac3", "iam", "user"})
+    @Operation(
+            operationId = "rbac3-iam-user-status-v1",
+            summary = "变更RBAC用户成员状态",
+            tags = {"rbac3", "iam", "user"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<UserDirectoryVO> changeStatus(
             @PathVariable String userId,
             @Valid @RequestBody UserStatusCommandDTO command

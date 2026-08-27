@@ -1,5 +1,7 @@
 package top.egon.cola.platform.idp.admin.resource.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -11,9 +13,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.BatchResourceServerActionDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.CreateResourceServerDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.ResourceVersionDTO;
@@ -33,18 +34,15 @@ import java.util.Objects;
 @Validated
 @RestController
 @RequestMapping("/api/v1/identity/resource-servers")
-@GatewayInterfaceGroup(
+@Tag(name = "resource-servers", description = "Resource Server接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity",
         entityDomainName = "统一身份实体域",
-        code = "resource-servers",
-        name = "Resource Server接口组")
-@EgonHttpService(
-        serviceName = "idp-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/v1/identity")
+        interfaceGroupCode = "resource-servers"
+)
+
 public class ResourceServerController {
 
     /** Resource Server 管理服务；Resource Server management service. */
@@ -71,9 +69,14 @@ public class ResourceServerController {
 
     /** @return 全部 Resource Server；all Resource Servers */
     @GetMapping
-    @GatewayOperation(name = "idp-resource-server-list-v1",
-            summary = "查询Resource Server", externalAccessible = true,
-            tags = {"idp", "resource-server"})
+    @Operation(
+            operationId = "idp-resource-server-list-v1",
+            summary = "查询Resource Server",
+            tags = {"idp", "resource-server"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public List<ResourceServerVO> list(
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
@@ -87,9 +90,14 @@ public class ResourceServerController {
      * <p>Gets one Resource Server.</p>
      */
     @GetMapping("/{resourceServerId}")
-    @GatewayOperation(name = "idp-resource-server-detail-v1",
-            summary = "查询Resource Server详情", externalAccessible = true,
-            tags = {"idp", "resource-server"})
+    @Operation(
+            operationId = "idp-resource-server-detail-v1",
+            summary = "查询Resource Server详情",
+            tags = {"idp", "resource-server"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResourceServerVO detail(
             @PathVariable("resourceServerId") String resourceServerId,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
@@ -105,9 +113,14 @@ public class ResourceServerController {
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @GatewayOperation(name = "idp-resource-server-create-v1",
-            summary = "创建Resource Server", externalAccessible = true,
-            tags = {"idp", "resource-server"})
+    @Operation(
+            operationId = "idp-resource-server-create-v1",
+            summary = "创建Resource Server",
+            tags = {"idp", "resource-server"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResourceServerVO create(
             @Valid @RequestBody CreateResourceServerDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
@@ -122,9 +135,14 @@ public class ResourceServerController {
      * <p>Enables a Resource Server.</p>
      */
     @PostMapping("/{resourceServerId}/enable")
-    @GatewayOperation(name = "idp-resource-server-enable-v1",
-            summary = "启用Resource Server", externalAccessible = true,
-            tags = {"idp", "resource-server"})
+    @Operation(
+            operationId = "idp-resource-server-enable-v1",
+            summary = "启用Resource Server",
+            tags = {"idp", "resource-server"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResourceServerVO enable(
             @PathVariable("resourceServerId") String resourceServerId,
             @Valid @RequestBody ResourceVersionDTO request,
@@ -140,9 +158,14 @@ public class ResourceServerController {
      * <p>Disables a Resource Server.</p>
      */
     @PostMapping("/{resourceServerId}/disable")
-    @GatewayOperation(name = "idp-resource-server-disable-v1",
-            summary = "禁用Resource Server", externalAccessible = true,
-            tags = {"idp", "resource-server"})
+    @Operation(
+            operationId = "idp-resource-server-disable-v1",
+            summary = "禁用Resource Server",
+            tags = {"idp", "resource-server"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResourceServerVO disable(
             @PathVariable("resourceServerId") String resourceServerId,
             @Valid @RequestBody ResourceVersionDTO request,
@@ -158,9 +181,14 @@ public class ResourceServerController {
      * <p>Batch-changes status for explicitly selected applications.</p>
      */
     @PostMapping("/actions/batch")
-    @GatewayOperation(name = "idp-resource-server-batch-v1",
-            summary = "批量变更Resource Server", externalAccessible = true,
-            tags = {"idp", "resource-server"})
+    @Operation(
+            operationId = "idp-resource-server-batch-v1",
+            summary = "批量变更Resource Server",
+            tags = {"idp", "resource-server"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public List<ResourceServerVO> batch(
             @Valid @RequestBody BatchResourceServerActionDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal

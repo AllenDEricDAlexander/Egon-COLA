@@ -1,6 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.audit.domain.vo;
-
-import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -153,7 +152,8 @@ import java.util.TreeMap;
              * 含义与用法：读取、传递或更新 `beforeSnapshot` 时应保持 `AuditVO` 的生命周期、不可变性和线程安全约束。
              * Meaning and usage: when reading, passing, or updating `beforeSnapshot`, preserve `AuditVO`'s lifecycle, immutability, and thread-safety constraints.
              */
-            @GatewaySchemaField(allowArbitraryJson = true)
+            @Schema(type = "object",
+                    additionalProperties = Schema.AdditionalPropertiesValue.TRUE)
             Map<String, Object> beforeSnapshot,
             /**
              * 字段 `afterSnapshot` 表示 `AuditVO` 中与 `after Snapshot` 相关的状态、依赖、配置或结果（声明类型 `Map&lt;String, Object&gt;`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -162,7 +162,8 @@ import java.util.TreeMap;
              * 含义与用法：读取、传递或更新 `afterSnapshot` 时应保持 `AuditVO` 的生命周期、不可变性和线程安全约束。
              * Meaning and usage: when reading, passing, or updating `afterSnapshot`, preserve `AuditVO`'s lifecycle, immutability, and thread-safety constraints.
              */
-            @GatewaySchemaField(allowArbitraryJson = true)
+            @Schema(type = "object",
+                    additionalProperties = Schema.AdditionalPropertiesValue.TRUE)
             Map<String, Object> afterSnapshot,
             /**
              * 字段 `payloadChecksum` 表示 `AuditVO` 中与 `payload Checksum` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。

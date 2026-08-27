@@ -4,9 +4,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
 import top.egon.cola.platform.rbac3.contract.auth.Rbac3AboutView;
 import top.egon.cola.platform.rbac3.starter.authorization.Rbac3AboutService;
 import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
@@ -14,18 +12,14 @@ import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 /** Returns only the current user's RBAC authorization facts for local frontend filtering. */
 @RestController
 @RequestMapping("/api/v1/auth")
-@GatewayInterfaceGroup(
+@Tag(name = "rbac3-auth-about", description = "RBAC3当前授权上下文接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "rbac3-auth-about",
-        name = "RBAC3当前授权上下文接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/v1")
+        interfaceGroupCode = "rbac3-auth-about"
+)
 public class Rbac3AboutController {
 
     private final Rbac3AboutService aboutService;
@@ -36,11 +30,14 @@ public class Rbac3AboutController {
 
     @GetMapping("/about")
     @RequiresPermission(value = "system:about:read")
-    @GatewayOperation(
-            name = "rbac3-auth-about-v1",
+    @Operation(
+            operationId = "rbac3-auth-about-v1",
             summary = "查询当前授权上下文",
-            externalAccessible = true,
-            tags = {"rbac3", "identity"})
+            tags = {"rbac3", "identity"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<Rbac3AboutView> about() {
         return ResultRecord.success(aboutService.current());
     }

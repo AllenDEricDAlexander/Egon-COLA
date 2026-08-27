@@ -11,34 +11,28 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
-import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
-import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
 import top.egon.cola.platform.rbac3.admin.iam.organization.domain.vo.OrgUnitVO;
 import top.egon.cola.platform.rbac3.admin.iam.organization.service.OrganizationFacade;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
-import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 
 import java.util.List;
 
 /** CRUD and tree operations for RBAC-owned MANUAL organization units. */
 @RestController
 @RequestMapping("/api/rbac3/v1/iam/organizations")
-@GatewayInterfaceGroup(
+@Tag(name = "iam-organization", description = "IAM组织接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "iam-organization",
-        name = "IAM组织接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        interfaceGroupCode = "iam-organization"
+)
 public class OrganizationController {
 
     private final OrganizationFacade facade;
@@ -49,11 +43,14 @@ public class OrganizationController {
 
     @GetMapping
     @RequiresPermission(value = "system:organization:read")
-    @GatewayOperation(
-            name = "rbac3-iam-organization-list-v1",
+    @Operation(
+            operationId = "rbac3-iam-organization-list-v1",
             summary = "查询手工组织",
-            externalAccessible = true,
-            tags = {"rbac3", "iam", "organization"})
+            tags = {"rbac3", "iam", "organization"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<OrgUnitVO>> list(
             @RequestParam(required = false) Long parentId) {
         return ResultRecord.success(facade.list(tenantId(), parentId));
@@ -61,11 +58,14 @@ public class OrganizationController {
 
     @PostMapping
     @RequiresPermission(value = "system:organization:manage")
-    @GatewayOperation(
-            name = "rbac3-iam-organization-create-v1",
+    @Operation(
+            operationId = "rbac3-iam-organization-create-v1",
             summary = "创建手工组织",
-            externalAccessible = true,
-            tags = {"rbac3", "iam", "organization"})
+            tags = {"rbac3", "iam", "organization"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<OrgUnitVO> create(
             @Valid @RequestBody OrganizationFacade.CreateCommand command
 ) {
@@ -75,11 +75,14 @@ public class OrganizationController {
 
     @PutMapping("/{orgUnitId}")
     @RequiresPermission(value = "system:organization:manage")
-    @GatewayOperation(
-            name = "rbac3-iam-organization-update-v1",
+    @Operation(
+            operationId = "rbac3-iam-organization-update-v1",
             summary = "更新或移动手工组织",
-            externalAccessible = true,
-            tags = {"rbac3", "iam", "organization"})
+            tags = {"rbac3", "iam", "organization"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<OrgUnitVO> update(
             @PathVariable Long orgUnitId,
             @Valid @RequestBody OrganizationFacade.UpdateCommand command
@@ -90,11 +93,14 @@ public class OrganizationController {
 
     @DeleteMapping("/{orgUnitId}")
     @RequiresPermission(value = "system:organization:manage")
-    @GatewayOperation(
-            name = "rbac3-iam-organization-delete-v1",
+    @Operation(
+            operationId = "rbac3-iam-organization-delete-v1",
             summary = "停用手工组织",
-            externalAccessible = true,
-            tags = {"rbac3", "iam", "organization"})
+            tags = {"rbac3", "iam", "organization"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<Void> remove(
             @PathVariable Long orgUnitId,
             @RequestParam long expectedVersion

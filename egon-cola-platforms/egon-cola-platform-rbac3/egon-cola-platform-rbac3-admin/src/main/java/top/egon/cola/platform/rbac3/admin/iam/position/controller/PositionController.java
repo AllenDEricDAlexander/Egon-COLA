@@ -11,34 +11,28 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
-import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
-import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
 import top.egon.cola.platform.rbac3.admin.iam.position.domain.vo.PositionVO;
 import top.egon.cola.platform.rbac3.admin.iam.position.service.PositionFacade;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
-import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 
 import java.util.List;
 
 /** CRUD operations for RBAC-owned MANUAL positions. */
 @RestController
 @RequestMapping("/api/rbac3/v1/iam/positions")
-@GatewayInterfaceGroup(
+@Tag(name = "iam-position", description = "IAM岗位接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "iam-position",
-        name = "IAM岗位接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        interfaceGroupCode = "iam-position"
+)
 public class PositionController {
 
     private final PositionFacade facade;
@@ -49,11 +43,14 @@ public class PositionController {
 
     @GetMapping
     @RequiresPermission(value = "system:position:read")
-    @GatewayOperation(
-            name = "rbac3-iam-position-list-v1",
+    @Operation(
+            operationId = "rbac3-iam-position-list-v1",
             summary = "查询手工岗位",
-            externalAccessible = true,
-            tags = {"rbac3", "iam", "position"})
+            tags = {"rbac3", "iam", "position"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<PositionVO>> list(
             @RequestParam(required = false) Long orgUnitId) {
         return ResultRecord.success(facade.list(tenantId(), orgUnitId));
@@ -61,11 +58,14 @@ public class PositionController {
 
     @PostMapping
     @RequiresPermission(value = "system:position:manage")
-    @GatewayOperation(
-            name = "rbac3-iam-position-create-v1",
+    @Operation(
+            operationId = "rbac3-iam-position-create-v1",
             summary = "创建手工岗位",
-            externalAccessible = true,
-            tags = {"rbac3", "iam", "position"})
+            tags = {"rbac3", "iam", "position"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<PositionVO> create(
             @Valid @RequestBody PositionFacade.CreateCommand command
 ) {
@@ -75,11 +75,14 @@ public class PositionController {
 
     @PutMapping("/{positionId}")
     @RequiresPermission(value = "system:position:manage")
-    @GatewayOperation(
-            name = "rbac3-iam-position-update-v1",
+    @Operation(
+            operationId = "rbac3-iam-position-update-v1",
             summary = "更新手工岗位",
-            externalAccessible = true,
-            tags = {"rbac3", "iam", "position"})
+            tags = {"rbac3", "iam", "position"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<PositionVO> update(
             @PathVariable Long positionId,
             @Valid @RequestBody PositionFacade.UpdateCommand command
@@ -90,11 +93,14 @@ public class PositionController {
 
     @DeleteMapping("/{positionId}")
     @RequiresPermission(value = "system:position:manage")
-    @GatewayOperation(
-            name = "rbac3-iam-position-delete-v1",
+    @Operation(
+            operationId = "rbac3-iam-position-delete-v1",
             summary = "停用手工岗位",
-            externalAccessible = true,
-            tags = {"rbac3", "iam", "position"})
+            tags = {"rbac3", "iam", "position"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<Void> remove(
             @PathVariable Long positionId,
             @RequestParam long expectedVersion

@@ -1,26 +1,22 @@
 package top.egon.cola.platform.rbac3.admin.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
-import top.egon.cola.component.gateway.starter.discovery.http.MvcGatewayDefinitionContributor;
 import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.service.ConstraintFacade;
 import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleFacade;
 
-import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import top.egon.cola.platform.rbac3.admin.authorization.resource.controller.ApplicationResourceController;
 import top.egon.cola.platform.rbac3.admin.authorization.resource.service.GlobalResourceCatalogService;
 import top.egon.cola.platform.rbac3.admin.iam.role.controller.RoleController;
@@ -41,9 +37,6 @@ class Rbac3ControlPlaneGatewayDiscoveryTest {
     @Autowired
     private RequestMappingHandlerMapping handlerMappings;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     @MockitoBean
     private RoleFacade roleFacade;
 
@@ -60,39 +53,25 @@ class Rbac3ControlPlaneGatewayDiscoveryTest {
     private LongIdGenerator idGenerator;
 
     @Test
-    void gatewayScannerDiscoversAllResourceRoleAndTypedConstraintRoutes() {
-        GatewayReportingProperties properties = new GatewayReportingProperties();
-        properties.setBizCode("rbac3");
-        properties.setApplicationCode("rbac3-admin");
-        properties.setEnv("test");
-        properties.setNamespace("default");
-        properties.setArtifactVersion("5.3.2");
+    void openApiAnnotationsExposeAllResourceRoleAndTypedConstraintOperations() {
+        org.assertj.core.api.Assertions.assertThat(operationIds(ApplicationResourceController.class))
+                .contains("rbac3-application-list-v1", "rbac3-application-resource-list-v1");
+        org.assertj.core.api.Assertions.assertThat(operationIds(RoleController.class))
+                .contains("rbac3-role-create-v1", "rbac3-role-inheritance-add-v1");
+        org.assertj.core.api.Assertions.assertThat(operationIds(ConstraintController.class))
+                .contains(
+                        "rbac3-sod-set-create-v1",
+                        "rbac3-data-rule-create-v1",
+                        "rbac3-field-rule-create-v1",
+                        "rbac3-operation-sod-create-v1");
+    }
 
-        var groups = new MvcGatewayDefinitionContributor(
-                handlerMappings, properties, objectMapper).discover();
-        Map<String, Set<String>> methodsByController = groups.stream()
-                .collect(Collectors.toMap(
-                        group -> group.interfaceGroup().className(),
-                        group -> group.interfaceGroup().operations().stream()
-                                .map(operation -> operation.methodIdentity())
-                                .collect(Collectors.toSet())));
-
-        assertEquals(Set.of(
-                        ApplicationResourceController.class.getName(),
-                        RoleController.class.getName(),
-                        ConstraintController.class.getName()),
-                methodsByController.keySet());
-        assertTrue(methodsByController.get(ApplicationResourceController.class.getName())
-                .contains("GET /api/rbac3/v1/iam/resource-catalog/applications"));
-        assertTrue(methodsByController.get(RoleController.class.getName())
-                .contains("POST /api/rbac3/v1/iam/roles"));
-        assertTrue(methodsByController.get(ConstraintController.class.getName())
-                .contains("POST /api/rbac3/v1/iam/policies/sod-sets"));
-        assertTrue(methodsByController.get(ConstraintController.class.getName())
-                .contains("POST /api/rbac3/v1/iam/policies/data-rules"));
-        assertTrue(methodsByController.get(ConstraintController.class.getName())
-                .contains("POST /api/rbac3/v1/iam/policies/field-rules"));
-        assertTrue(methodsByController.get(ConstraintController.class.getName())
-                .contains("POST /api/rbac3/v1/iam/policies/operation-sod-rules"));
+    private Set<String> operationIds(Class<?> controllerType) {
+        return handlerMappings.getHandlerMethods().values().stream()
+                .filter(handler -> controllerType.equals(handler.getBeanType()))
+                .map(handler -> handler.getMethod().getAnnotation(Operation.class))
+                .filter(Objects::nonNull)
+                .map(Operation::operationId)
+                .collect(Collectors.toSet());
     }
 }

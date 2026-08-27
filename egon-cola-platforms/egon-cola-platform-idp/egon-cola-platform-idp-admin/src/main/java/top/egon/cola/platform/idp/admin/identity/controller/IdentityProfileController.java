@@ -1,29 +1,27 @@
 package top.egon.cola.platform.idp.admin.identity.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthorizationPort;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 
 import java.util.Objects;
 
 @RestController
-@GatewayInterfaceGroup(
+@Tag(name = "identity-profile-me", description = "统一身份本人信息接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity-profile",
         entityDomainName = "统一身份本人信息域",
-        code = "identity-profile-me",
-        name = "统一身份本人信息接口组")
-@EgonHttpService(
-        serviceName = "idp-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/")
+        interfaceGroupCode = "identity-profile-me"
+)
+
 public class IdentityProfileController {
 
     private final IdpAdminAuthorizationPort authorization;
@@ -38,11 +36,14 @@ public class IdentityProfileController {
     }
 
     @GetMapping("/api/v1/identity/me")
-    @GatewayOperation(
-            name = "idp-identity-me-v1",
+    @Operation(
+            operationId = "idp-identity-me-v1",
             summary = "查询当前统一身份",
-            externalAccessible = true,
-            tags = {"idp", "identity"})
+            tags = {"idp", "identity"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public IdentityPrincipal me(
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {

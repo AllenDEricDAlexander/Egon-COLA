@@ -9,9 +9,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.idp.starter.security.AccessTokenVerification;
@@ -27,7 +26,6 @@ import top.egon.cola.platform.rbac3.admin.authorization.runtime.decision.service
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.SystemAuthorizationSnapshotService;
 import top.egon.cola.platform.rbac3.contract.authorization.SystemAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
-import top.egon.cola.component.common.core.pojo.ResultRecord;
 
 import java.util.Objects;
 
@@ -36,18 +34,14 @@ import java.util.Objects;
  */
 @RestController
 @RequestMapping("/internal/v1/authorization")
-@GatewayInterfaceGroup(
+@Tag(name = "internal-authorization", description = "内部授权决策接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "internal-authorization",
-        name = "内部授权决策接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/internal/v1")
+        interfaceGroupCode = "internal-authorization"
+)
 public class InternalAuthorizationController {
 
     private static final String SUBJECT_TOKEN_HEADER = "X-Egon-Subject-Token";
@@ -70,9 +64,14 @@ public class InternalAuthorizationController {
      */
     @GetMapping("/snapshots/current")
     @top.egon.cola.platform.idp.starter.security.RequiresServiceScope("service:authorization:snapshot")
-    @GatewayOperation(name = "rbac3-internal-system-snapshot-v2",
+    @Operation(
+            operationId = "rbac3-internal-system-snapshot-v2",
             summary = "按已验证用户身份读取系统授权快照",
-            externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
+            tags = {"rbac3", "internal", "authorization"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.INTERNAL
+    )
     public ResultRecord<SystemAuthorizationSnapshot> currentSnapshot(
             @RequestParam String systemCode,
             @RequestHeader(SUBJECT_TOKEN_HEADER) String userAccessToken,
@@ -85,9 +84,14 @@ public class InternalAuthorizationController {
     /** Executes a typed decision after binding the request to the verified USER subject. */
     @PostMapping("/decisions")
     @top.egon.cola.platform.idp.starter.security.RequiresServiceScope("service:authorization:decide")
-    @GatewayOperation(name = "rbac3-internal-authorization-decision-v2",
+    @Operation(
+            operationId = "rbac3-internal-authorization-decision-v2",
             summary = "使用已验证用户身份执行类型化授权决策",
-            externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
+            tags = {"rbac3", "internal", "authorization"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.INTERNAL
+    )
     public ResultRecord<DecisionBundleVO> decide(
             @Valid @RequestBody DecisionRequestDTO request,
             @RequestHeader(SUBJECT_TOKEN_HEADER) String userAccessToken,
@@ -100,9 +104,14 @@ public class InternalAuthorizationController {
     /** Decides whether the verified USER may enter an application. */
     @PostMapping("/resource-access-decisions")
     @top.egon.cola.platform.idp.starter.security.RequiresServiceScope("service:authorization:decide")
-    @GatewayOperation(name = "rbac3-internal-resource-access-decision-v2",
+    @Operation(
+            operationId = "rbac3-internal-resource-access-decision-v2",
             summary = "判定已验证用户是否具备应用入口权限",
-            externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
+            tags = {"rbac3", "internal", "authorization"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.INTERNAL
+    )
     public ResultRecord<ResourceAccessDecisionResponseVO> decideResourceAccess(
             @Valid @RequestBody ResourceAccessDecisionRequestDTO request,
             @RequestHeader(SUBJECT_TOKEN_HEADER) String userAccessToken,
@@ -119,9 +128,14 @@ public class InternalAuthorizationController {
     /** Checks the user-scoped authorization publication fence. */
     @PostMapping("/fences/verify")
     @top.egon.cola.platform.idp.starter.security.RequiresServiceScope("service:authorization:fence")
-    @GatewayOperation(name = "rbac3-internal-authorization-fence-verify-v2",
+    @Operation(
+            operationId = "rbac3-internal-authorization-fence-verify-v2",
             summary = "校验用户授权传播 Fence",
-            externalAccessible = false, tags = {"rbac3", "internal", "authorization"})
+            tags = {"rbac3", "internal", "authorization"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.INTERNAL
+    )
     public ResultRecord<FenceVerificationVO> verifyFence(
             @Valid @RequestBody AuthorizationFenceRequestDTO request,
             @RequestHeader(SUBJECT_TOKEN_HEADER) String userAccessToken,

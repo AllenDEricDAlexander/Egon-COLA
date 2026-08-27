@@ -9,18 +9,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.AuthorizationMutationPageVO;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.RetryResultVO;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.RuntimeStatusVO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.RuntimeQueryService;
+import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
 import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
-import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
-import top.egon.cola.component.common.core.pojo.ResultRecord;
-import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.RuntimeStatusVO;
-import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.AuthorizationMutationPageVO;
-import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.RetryResultVO;
 
 /**
  * 类型 `RuntimeController` 位于当前包内，是类型，用于承载 `Runtime Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -31,18 +29,14 @@ import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.RetryR
  */
 @RestController
 @RequestMapping("/api/rbac3/v1/runtime")
-@GatewayInterfaceGroup(
+@Tag(name = "authorization-runtime", description = "授权运行状态接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "authorization-runtime",
-        name = "授权运行状态接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        interfaceGroupCode = "authorization-runtime"
+)
 public class RuntimeController {
 
     /**
@@ -78,8 +72,14 @@ public class RuntimeController {
      */
     @GetMapping("/status")
     @RequiresPermission(value = "system:authorization-runtime:read")
-    @GatewayOperation(name = "rbac3-runtime-status-v1", summary = "查询授权运行状态",
-            externalAccessible = true, tags = {"rbac3", "runtime"})
+    @Operation(
+            operationId = "rbac3-runtime-status-v1",
+            summary = "查询授权运行状态",
+            tags = {"rbac3", "runtime"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<RuntimeStatusVO> status() {
         return ResultRecord.success(service.status());
     }
@@ -98,9 +98,14 @@ public class RuntimeController {
      */
     @GetMapping("/mutations")
     @RequiresPermission(value = "system:authorization-runtime:read")
-    @GatewayOperation(name = "rbac3-runtime-mutations-v1",
+    @Operation(
+            operationId = "rbac3-runtime-mutations-v1",
             summary = "游标查询授权 Mutation Journal",
-            externalAccessible = true, tags = {"rbac3", "runtime"})
+            tags = {"rbac3", "runtime"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<AuthorizationMutationPageVO> mutations(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String cursor,
@@ -122,9 +127,14 @@ public class RuntimeController {
      */
     @PostMapping("/mutations/{mutationId}/retry")
     @RequiresPermission(value = "system:authorization-runtime:operate")
-    @GatewayOperation(name = "rbac3-runtime-mutation-retry-v1",
+    @Operation(
+            operationId = "rbac3-runtime-mutation-retry-v1",
             summary = "按 Mutation ID 触发幂等受控恢复",
-            externalAccessible = true, tags = {"rbac3", "runtime"})
+            tags = {"rbac3", "runtime"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<RetryResultVO> retry(
             @PathVariable String mutationId
 ) {
@@ -143,9 +153,14 @@ public class RuntimeController {
      */
     @GetMapping("/gateway-ddc-status")
     @RequiresPermission(value = "system:authorization-runtime:read")
-    @GatewayOperation(name = "rbac3-runtime-gateway-ddc-status-v1",
+    @Operation(
+            operationId = "rbac3-runtime-gateway-ddc-status-v1",
             summary = "分别查询 Definition、DDC Lease 和 Gateway Release",
-            externalAccessible = true, tags = {"rbac3", "runtime", "gateway", "ddc"})
+            tags = {"rbac3", "runtime", "gateway", "ddc"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<RuntimeStatusVO> gatewayDdcStatus() {
         return ResultRecord.success(service.gatewayDdcStatus());
     }

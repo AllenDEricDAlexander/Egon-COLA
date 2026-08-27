@@ -1,5 +1,7 @@
 package top.egon.cola.platform.idp.admin.oauth.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -9,9 +11,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.OAuthStepUpDTO;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.idp.core.identity.AuthenticatedIdentity;
@@ -27,18 +28,15 @@ import java.util.Objects;
  * Re-authenticates the current subject and replaces only its short-lived USER AT.
  */
 @RestController
-@GatewayInterfaceGroup(
+@Tag(name = "idp-oauth-step-up", description = "IdP OAuth 二次认证接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "oauth-protocol",
         entityDomainName = "OAuth 协议域",
-        code = "idp-oauth-step-up",
-        name = "IdP OAuth 二次认证接口组")
-@EgonHttpService(
-        serviceName = "idp-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/")
+        interfaceGroupCode = "idp-oauth-step-up"
+)
+
 public class OAuthStepUpController {
 
     private final IdentityFacade identities;
@@ -59,10 +57,14 @@ public class OAuthStepUpController {
     }
 
     @PostMapping("/oauth2/step-up")
-    @GatewayOperation(name = "idp-oauth-step-up-v1",
+    @Operation(
+            operationId = "idp-oauth-step-up-v1",
             summary = "重新校验密码并签发强化认证 USER Access Token",
-            externalAccessible = true,
-            tags = {"idp", "oauth"})
+            tags = {"idp", "oauth"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResponseEntity<Void> stepUp(
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal,
             @RequestBody OAuthStepUpDTO request) {

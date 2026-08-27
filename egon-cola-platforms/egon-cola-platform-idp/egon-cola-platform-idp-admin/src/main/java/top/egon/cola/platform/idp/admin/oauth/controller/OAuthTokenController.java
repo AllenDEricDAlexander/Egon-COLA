@@ -1,5 +1,7 @@
 package top.egon.cola.platform.idp.admin.oauth.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -13,9 +15,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthErrorVO;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthTokenVO;
 import top.egon.cola.platform.idp.admin.oauth.service.impl.ClientSecretBasicAuthenticator;
@@ -41,18 +42,15 @@ import java.util.TreeSet;
  * Stateless USER refresh/revoke/logout and SERVICE client-credentials transport.
  */
 @RestController
-@GatewayInterfaceGroup(
+@Tag(name = "idp-oauth-token", description = "IdP OAuth Token 接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "oauth-protocol",
         entityDomainName = "OAuth 协议域",
-        code = "idp-oauth-token",
-        name = "IdP OAuth Token 接口组")
-@EgonHttpService(
-        serviceName = "idp-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/")
+        interfaceGroupCode = "idp-oauth-token"
+)
+
 public class OAuthTokenController {
 
     private final TokenFacade tokens;
@@ -81,10 +79,14 @@ public class OAuthTokenController {
     }
 
     @PostMapping(value = "/oauth2/token", consumes = "application/x-www-form-urlencoded")
-    @GatewayOperation(name = "idp-oauth-token-v1",
+    @Operation(
+            operationId = "idp-oauth-token-v1",
             summary = "刷新 USER Access Token 或签发 SERVICE Access Token",
-            externalAccessible = true,
-            tags = {"idp", "oauth"})
+            tags = {"idp", "oauth"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResponseEntity<OAuthTokenVO> token(
             @RequestParam MultiValueMap<String, String> form,
             HttpServletRequest request) {
@@ -112,10 +114,14 @@ public class OAuthTokenController {
     }
 
     @PostMapping(value = "/oauth2/revoke", consumes = "application/x-www-form-urlencoded")
-    @GatewayOperation(name = "idp-oauth-revoke-v1",
+    @Operation(
+            operationId = "idp-oauth-revoke-v1",
             summary = "撤销 USER Refresh Token",
-            externalAccessible = true,
-            tags = {"idp", "oauth"})
+            tags = {"idp", "oauth"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResponseEntity<Void> revoke(HttpServletRequest request) {
         String refresh = cookieValue(request, refreshCookieName());
         if (refresh != null && !refresh.isBlank()) {
@@ -131,10 +137,14 @@ public class OAuthTokenController {
     }
 
     @PostMapping("/oauth2/logout")
-    @GatewayOperation(name = "idp-oauth-logout-v1",
+    @Operation(
+            operationId = "idp-oauth-logout-v1",
             summary = "注销并删除 USER Refresh Token",
-            externalAccessible = true,
-            tags = {"idp", "oauth"})
+            tags = {"idp", "oauth"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResponseEntity<Void> logout(HttpServletRequest request) {
         String refresh = cookieValue(request, refreshCookieName());
         if (refresh != null && !refresh.isBlank()) {

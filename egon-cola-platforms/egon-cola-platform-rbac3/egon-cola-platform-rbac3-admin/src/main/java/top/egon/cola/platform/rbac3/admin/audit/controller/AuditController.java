@@ -8,17 +8,15 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
 import top.egon.cola.platform.rbac3.admin.audit.domain.dto.QueryDTO;
 import top.egon.cola.platform.rbac3.admin.audit.domain.vo.AuditQueryPageVO;
 import top.egon.cola.platform.rbac3.admin.audit.service.AuditQueryService;
+import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
 import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
-import top.egon.cola.component.common.core.pojo.ResultRecord;
-import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 
 import java.time.Instant;
 
@@ -28,18 +26,14 @@ import java.time.Instant;
  */
 @RestController
 @RequestMapping("/api/rbac3/v1")
-@GatewayInterfaceGroup(
+@Tag(name = "audit", description = "审计接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "audit",
-        name = "审计接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        interfaceGroupCode = "audit"
+)
 public class AuditController {
 
     /** 审计查询服务。 / Audit query service. */
@@ -63,9 +57,14 @@ public class AuditController {
      */
     @GetMapping("/audit-logs")
     @RequiresPermission(value = "system:audit:read")
-    @GatewayOperation(name = "rbac3-audit-log-list-v1",
+    @Operation(
+            operationId = "rbac3-audit-log-list-v1",
             summary = "按租户和精确过滤条件游标查询审计",
-            externalAccessible = true, tags = {"rbac3", "audit"})
+            tags = {"rbac3", "audit"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<AuditQueryPageVO> auditLogs(
             @RequestParam Instant from,
             @RequestParam Instant to,

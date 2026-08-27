@@ -14,36 +14,34 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.CardinalityCommandDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.CardinalityRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.DataRuleCommandDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.DataRuleRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.FieldRuleCommandDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.FieldRuleRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.OperationSodRuleCommandDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.OperationSodRuleRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.PrerequisiteGroupCommandDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.PrerequisiteGroupRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.SaveSodCommandDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.SodSetRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.enums.ConstraintTypeEnum;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.vo.DataRuleVO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.vo.FieldRuleVO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.vo.MutationResultVO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.vo.OperationSodRuleVO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.vo.SodVO;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.service.ConstraintFacade;
+import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
 import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
-import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 
 import java.time.Instant;
 import java.util.List;
-import top.egon.cola.component.common.core.pojo.ResultRecord;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.SodSetRequestDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.PrerequisiteGroupRequestDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.CardinalityRequestDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.DataRuleRequestDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.FieldRuleRequestDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.OperationSodRuleRequestDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.SaveSodCommandDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.PrerequisiteGroupCommandDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.CardinalityCommandDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.DataRuleCommandDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.FieldRuleCommandDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.dto.OperationSodRuleCommandDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.vo.MutationResultVO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.vo.SodVO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.vo.DataRuleVO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.vo.FieldRuleVO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.vo.OperationSodRuleVO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.enums.ConstraintTypeEnum;
 
 /**
  * 类型 `ConstraintController` 位于当前包内，是类型，用于承载 `Constraint Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -54,18 +52,14 @@ import top.egon.cola.platform.rbac3.admin.authorization.policy.domain.enums.Cons
  */
 @RestController
 @RequestMapping("/api/rbac3/v1/iam/policies")
-@GatewayInterfaceGroup(
+@Tag(name = "authorization-constraint", description = "授权约束接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "authorization-constraint",
-        name = "授权约束接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        interfaceGroupCode = "authorization-constraint"
+)
 public class ConstraintController {
 
     /**
@@ -101,8 +95,14 @@ public class ConstraintController {
      */
     @GetMapping("/sod-sets")
     @RequiresPermission(value = "system:authorization-constraint:read")
-    @GatewayOperation(name = "rbac3-sod-set-list-v1", summary = "查询SSD和DSD集合",
-            externalAccessible = true, tags = {"rbac3", "constraint"})
+    @Operation(
+            operationId = "rbac3-sod-set-list-v1",
+            summary = "查询SSD和DSD集合",
+            tags = {"rbac3", "constraint"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<SodVO>> sodSets() {
         return ResultRecord.success(facade.sodSets(tenantId()));
     }
@@ -120,8 +120,14 @@ public class ConstraintController {
      */
     @PostMapping("/sod-sets")
     @RequiresPermission(value = "system:authorization-constraint:manage")
-    @GatewayOperation(name = "rbac3-sod-set-create-v1", summary = "创建SSD或DSD集合",
-            externalAccessible = true, tags = {"rbac3", "constraint"})
+    @Operation(
+            operationId = "rbac3-sod-set-create-v1",
+            summary = "创建SSD或DSD集合",
+            tags = {"rbac3", "constraint"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<MutationResultVO> createSodSet(
             @Valid @RequestBody SodSetRequestDTO request
 ) {
@@ -142,8 +148,14 @@ public class ConstraintController {
      */
     @PutMapping("/sod-sets/{setId}")
     @RequiresPermission(value = "system:authorization-constraint:manage")
-    @GatewayOperation(name = "rbac3-sod-set-update-v1", summary = "更新SSD或DSD集合",
-            externalAccessible = true, tags = {"rbac3", "constraint"})
+    @Operation(
+            operationId = "rbac3-sod-set-update-v1",
+            summary = "更新SSD或DSD集合",
+            tags = {"rbac3", "constraint"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<MutationResultVO> updateSodSet(
             @PathVariable String setId,
             @Valid @RequestBody SodSetRequestDTO request
@@ -165,9 +177,14 @@ public class ConstraintController {
      */
     @PostMapping("/roles/{roleId}/prerequisite-groups")
     @RequiresPermission(value = "system:authorization-constraint:manage")
-    @GatewayOperation(name = "rbac3-role-prerequisite-save-v1",
-            summary = "替换角色前置条件组", externalAccessible = true,
-            tags = {"rbac3", "constraint"})
+    @Operation(
+            operationId = "rbac3-role-prerequisite-save-v1",
+            summary = "替换角色前置条件组",
+            tags = {"rbac3", "constraint"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<MutationResultVO> prerequisites(
             @PathVariable String roleId,
             @Valid @RequestBody PrerequisiteGroupRequestDTO request
@@ -197,9 +214,14 @@ public class ConstraintController {
      */
     @PutMapping("/roles/{roleId}/cardinality")
     @RequiresPermission(value = "system:authorization-constraint:manage")
-    @GatewayOperation(name = "rbac3-role-cardinality-save-v1",
-            summary = "配置角色容量", externalAccessible = true,
-            tags = {"rbac3", "constraint"})
+    @Operation(
+            operationId = "rbac3-role-cardinality-save-v1",
+            summary = "配置角色容量",
+            tags = {"rbac3", "constraint"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<MutationResultVO> cardinality(
             @PathVariable String roleId,
             @Valid @RequestBody CardinalityRequestDTO request
@@ -227,8 +249,14 @@ public class ConstraintController {
      */
     @GetMapping("/data-rules")
     @RequiresPermission(value = "system:data-rule:read")
-    @GatewayOperation(name = "rbac3-data-rule-list-v1", summary = "查询数据规则",
-            externalAccessible = true, tags = {"rbac3", "data-rule"})
+    @Operation(
+            operationId = "rbac3-data-rule-list-v1",
+            summary = "查询数据规则",
+            tags = {"rbac3", "data-rule"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<DataRuleVO>> dataRules() {
         return ResultRecord.success(facade.dataRules(tenantId()));
     }
@@ -246,8 +274,14 @@ public class ConstraintController {
      */
     @PostMapping("/data-rules")
     @RequiresPermission(value = "system:data-rule:manage")
-    @GatewayOperation(name = "rbac3-data-rule-create-v1", summary = "创建类型化数据规则",
-            externalAccessible = true, tags = {"rbac3", "data-rule"})
+    @Operation(
+            operationId = "rbac3-data-rule-create-v1",
+            summary = "创建类型化数据规则",
+            tags = {"rbac3", "data-rule"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<MutationResultVO> createDataRule(
             @Valid @RequestBody DataRuleRequestDTO request
 ) {
@@ -269,8 +303,14 @@ public class ConstraintController {
      */
     @PutMapping("/data-rules/{ruleId}")
     @RequiresPermission(value = "system:data-rule:manage")
-    @GatewayOperation(name = "rbac3-data-rule-update-v1", summary = "更新类型化数据规则",
-            externalAccessible = true, tags = {"rbac3", "data-rule"})
+    @Operation(
+            operationId = "rbac3-data-rule-update-v1",
+            summary = "更新类型化数据规则",
+            tags = {"rbac3", "data-rule"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<MutationResultVO> updateDataRule(
             @PathVariable String ruleId,
             @Valid @RequestBody DataRuleRequestDTO request
@@ -290,8 +330,14 @@ public class ConstraintController {
      */
     @GetMapping("/field-rules")
     @RequiresPermission(value = "system:field-rule:read")
-    @GatewayOperation(name = "rbac3-field-rule-list-v1", summary = "查询字段规则",
-            externalAccessible = true, tags = {"rbac3", "field-rule"})
+    @Operation(
+            operationId = "rbac3-field-rule-list-v1",
+            summary = "查询字段规则",
+            tags = {"rbac3", "field-rule"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<FieldRuleVO>> fieldRules() {
         return ResultRecord.success(facade.fieldRules(tenantId()));
     }
@@ -309,8 +355,14 @@ public class ConstraintController {
      */
     @PostMapping("/field-rules")
     @RequiresPermission(value = "system:field-rule:manage")
-    @GatewayOperation(name = "rbac3-field-rule-create-v1", summary = "创建字段访问规则",
-            externalAccessible = true, tags = {"rbac3", "field-rule"})
+    @Operation(
+            operationId = "rbac3-field-rule-create-v1",
+            summary = "创建字段访问规则",
+            tags = {"rbac3", "field-rule"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<MutationResultVO> createFieldRule(
             @Valid @RequestBody FieldRuleRequestDTO request
 ) {
@@ -332,8 +384,14 @@ public class ConstraintController {
      */
     @PutMapping("/field-rules/{ruleId}")
     @RequiresPermission(value = "system:field-rule:manage")
-    @GatewayOperation(name = "rbac3-field-rule-update-v1", summary = "更新字段访问规则",
-            externalAccessible = true, tags = {"rbac3", "field-rule"})
+    @Operation(
+            operationId = "rbac3-field-rule-update-v1",
+            summary = "更新字段访问规则",
+            tags = {"rbac3", "field-rule"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<MutationResultVO> updateFieldRule(
             @PathVariable String ruleId,
             @Valid @RequestBody FieldRuleRequestDTO request
@@ -353,8 +411,14 @@ public class ConstraintController {
      */
     @GetMapping("/operation-sod-rules")
     @RequiresPermission(value = "system:operation-sod:read")
-    @GatewayOperation(name = "rbac3-operation-sod-list-v1", summary = "查询同对象职责分离规则",
-            externalAccessible = true, tags = {"rbac3", "operation-sod"})
+    @Operation(
+            operationId = "rbac3-operation-sod-list-v1",
+            summary = "查询同对象职责分离规则",
+            tags = {"rbac3", "operation-sod"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<OperationSodRuleVO>> operationSodRules() {
         return ResultRecord.success(facade.operationSodRules(tenantId()));
     }
@@ -372,9 +436,14 @@ public class ConstraintController {
      */
     @PostMapping("/operation-sod-rules")
     @RequiresPermission(value = "system:operation-sod:manage")
-    @GatewayOperation(name = "rbac3-operation-sod-create-v1",
-            summary = "创建同对象职责分离规则", externalAccessible = true,
-            tags = {"rbac3", "operation-sod"})
+    @Operation(
+            operationId = "rbac3-operation-sod-create-v1",
+            summary = "创建同对象职责分离规则",
+            tags = {"rbac3", "operation-sod"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<MutationResultVO> createOperationSodRule(
             @Valid @RequestBody OperationSodRuleRequestDTO request
 ) {
@@ -396,9 +465,14 @@ public class ConstraintController {
      */
     @PutMapping("/operation-sod-rules/{ruleId}")
     @RequiresPermission(value = "system:operation-sod:manage")
-    @GatewayOperation(name = "rbac3-operation-sod-update-v1",
-            summary = "更新同对象职责分离规则", externalAccessible = true,
-            tags = {"rbac3", "operation-sod"})
+    @Operation(
+            operationId = "rbac3-operation-sod-update-v1",
+            summary = "更新同对象职责分离规则",
+            tags = {"rbac3", "operation-sod"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<MutationResultVO> updateOperationSodRule(
             @PathVariable String ruleId,
             @Valid @RequestBody OperationSodRuleRequestDTO request

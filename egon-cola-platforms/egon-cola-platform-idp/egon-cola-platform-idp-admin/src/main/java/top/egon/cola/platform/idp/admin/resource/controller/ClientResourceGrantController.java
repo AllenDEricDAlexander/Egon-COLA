@@ -1,5 +1,7 @@
 package top.egon.cola.platform.idp.admin.resource.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -11,9 +13,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.BatchClientResourceGrantDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.DeleteClientResourceGrantDTO;
 import top.egon.cola.platform.idp.admin.resource.domain.dto.UpsertClientResourceGrantDTO;
@@ -32,18 +33,15 @@ import java.util.Objects;
  */
 @RestController
 @RequestMapping("/api/v1/identity/clients")
-@GatewayInterfaceGroup(
+@Tag(name = "client-resource-grants", description = "Client Resource Grant接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity",
         entityDomainName = "统一身份实体域",
-        code = "client-resource-grants",
-        name = "Client Resource Grant接口组")
-@EgonHttpService(
-        serviceName = "idp-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/v1/identity")
+        interfaceGroupCode = "client-resource-grants"
+)
+
 public class ClientResourceGrantController {
 
     /** Resource Server 管理服务；Resource Server management service. */
@@ -74,9 +72,14 @@ public class ClientResourceGrantController {
      * <p>Creates or updates one application-level Grant.</p>
      */
     @PutMapping("/{clientId}/resources/{resourceServerId}")
-    @GatewayOperation(name = "idp-client-resource-grant-put-v1",
-            summary = "登记Client Resource Grant", externalAccessible = true,
-            tags = {"idp", "resource-server"})
+    @Operation(
+            operationId = "idp-client-resource-grant-put-v1",
+            summary = "登记Client Resource Grant",
+            tags = {"idp", "resource-server"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ClientResourceGrantVO put(
             @PathVariable("clientId") String clientId,
             @PathVariable("resourceServerId") String resourceServerId,
@@ -94,9 +97,14 @@ public class ClientResourceGrantController {
      */
     @DeleteMapping("/{clientId}/resources/{resourceServerId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @GatewayOperation(name = "idp-client-resource-grant-delete-v1",
-            summary = "删除Client Resource Grant", externalAccessible = true,
-            tags = {"idp", "resource-server"})
+    @Operation(
+            operationId = "idp-client-resource-grant-delete-v1",
+            summary = "删除Client Resource Grant",
+            tags = {"idp", "resource-server"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public void delete(
             @PathVariable("clientId") String clientId,
             @PathVariable("resourceServerId") String resourceServerId,
@@ -113,9 +121,14 @@ public class ClientResourceGrantController {
      * <p>Batch-adds or deletes Grants for explicitly selected applications.</p>
      */
     @PostMapping("/{clientId}/resource-grants/actions/batch")
-    @GatewayOperation(name = "idp-client-resource-grant-batch-v1",
-            summary = "批量变更Client Resource Grant", externalAccessible = true,
-            tags = {"idp", "resource-server"})
+    @Operation(
+            operationId = "idp-client-resource-grant-batch-v1",
+            summary = "批量变更Client Resource Grant",
+            tags = {"idp", "resource-server"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public List<ClientResourceGrantVO> batch(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody BatchClientResourceGrantDTO request,

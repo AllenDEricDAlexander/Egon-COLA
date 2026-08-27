@@ -6,11 +6,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
 import top.egon.cola.platform.rbac3.admin.authorization.simulation.domain.dto.AuthorizationRoleChangeImpactRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.simulation.domain.dto.AuthorizationSimulationRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.simulation.domain.dto.RoleChangeImpactRequestDTO;
@@ -18,6 +15,7 @@ import top.egon.cola.platform.rbac3.admin.authorization.simulation.domain.dto.Si
 import top.egon.cola.platform.rbac3.admin.authorization.simulation.domain.vo.RoleChangeImpactResultVO;
 import top.egon.cola.platform.rbac3.admin.authorization.simulation.domain.vo.SimulationResultVO;
 import top.egon.cola.platform.rbac3.admin.authorization.simulation.service.AuthorizationSimulationService;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 
 /**
  * 授权模拟 HTTP 入口。
@@ -25,18 +23,14 @@ import top.egon.cola.platform.rbac3.admin.authorization.simulation.service.Autho
  */
 @RestController
 @RequestMapping("/api/rbac3/v1")
-@GatewayInterfaceGroup(
+@Tag(name = "authorization-simulation", description = "授权模拟接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "authorization-simulation",
-        name = "授权模拟接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        interfaceGroupCode = "authorization-simulation"
+)
 public class AuthorizationSimulationController {
 
     /** 授权模拟服务。 / Authorization simulation service. */
@@ -61,9 +55,14 @@ public class AuthorizationSimulationController {
      */
     @PostMapping("/simulations/authorization")
     @RequiresPermission(value = "system:authorization-simulation:execute")
-    @GatewayOperation(name = "rbac3-authorization-simulation-v1",
+    @Operation(
+            operationId = "rbac3-authorization-simulation-v1",
             summary = "基于一致快照执行无业务副作用的授权模拟",
-            externalAccessible = true, tags = {"rbac3", "simulation"})
+            tags = {"rbac3", "simulation"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<SimulationResultVO> simulate(
             @Valid @RequestBody AuthorizationSimulationRequestDTO request,
             @RequestHeader("X-Request-Id") String requestId,
@@ -83,9 +82,14 @@ public class AuthorizationSimulationController {
      */
     @PostMapping("/simulations/role-change-impact")
     @RequiresPermission(value = "system:authorization-simulation:execute")
-    @GatewayOperation(name = "rbac3-role-change-impact-simulation-v1",
+    @Operation(
+            operationId = "rbac3-role-change-impact-simulation-v1",
             summary = "查询带策略版本和证据校验和的角色变更影响",
-            externalAccessible = true, tags = {"rbac3", "simulation"})
+            tags = {"rbac3", "simulation"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<RoleChangeImpactResultVO> simulateRoleChangeImpact(
             @Valid @RequestBody AuthorizationRoleChangeImpactRequestDTO request,
             @RequestHeader("X-Request-Id") String requestId,

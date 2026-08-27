@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.admin.controller.config;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,20 +26,21 @@ import top.egon.cola.component.ddc.admin.model.vo.DdcPublishResultVO;
 import top.egon.cola.component.ddc.admin.service.config.DdcConfigService;
 import top.egon.cola.component.ddc.admin.service.publish.DdcPublishService;
 import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/ddc/configs")
-@GatewayInterfaceGroup(
+@Tag(name = "ddc-admin-ddc-config-controller", description = "DdcConfigController 管理接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "ddc-admin",
         entityDomainName = "Dynamic Config Center 管理实体域",
-        code = "ddc-admin-ddc-config-controller",
-        name = "DdcConfigController 管理接口组")
+        interfaceGroupCode = "ddc-admin-ddc-config-controller"
+)
 public class DdcConfigController {
 
     private final DdcConfigService configService;
@@ -49,13 +52,15 @@ public class DdcConfigController {
         this.publishService = publishService;
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcConfigController.list")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
     public ResultRecord<List<DdcConfigVO>> list(DdcConfigQueryRequest request) {
         return ResultRecord.success(configService.list(request));
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcConfigController.page")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/page")
     public PageResultRecord<DdcConfigVO> page(
             DdcConfigQueryRequest request,
@@ -63,7 +68,8 @@ public class DdcConfigController {
         return DdcAdminPageSupport.result(configService.page(request, pageQuery));
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcConfigController.create")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping
     public ResultRecord<DdcConfigVO> create(@RequestBody DdcConfigCreateRequest request,
                                       @RequestParam(name = "operator", defaultValue = "system") String operator,
@@ -74,7 +80,8 @@ public class DdcConfigController {
         ));
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcConfigController.update")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{id}")
     public ResultRecord<DdcConfigVO> update(@PathVariable("id") String id,
                                       @RequestBody DdcConfigUpdateRequest request,
@@ -87,7 +94,8 @@ public class DdcConfigController {
         ));
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcConfigController.delete")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/{id}")
     public ResultRecord<DdcConfigVO> delete(@PathVariable("id") String id,
                                       @RequestParam(name = "operator", defaultValue = "system") String operator,
@@ -100,7 +108,8 @@ public class DdcConfigController {
         ));
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcConfigController.publish")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/{id}/publish")
     public ResultRecord<DdcPublishResultVO> publish(@PathVariable("id") String id,
                                               @RequestBody DdcPublishRequest request,
@@ -118,13 +127,15 @@ public class DdcConfigController {
         ));
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcConfigController.versions")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/{id}/versions")
     public ResultRecord<List<DdcConfigVersionVO>> versions(@PathVariable("id") String id) {
         return ResultRecord.success(configService.versions(id));
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcConfigController.pageVersions")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/{id}/versions/page")
     public PageResultRecord<DdcConfigVersionVO> pageVersions(
             @PathVariable("id") String id,
@@ -133,7 +144,8 @@ public class DdcConfigController {
                 configService.pageVersions(id, pageQuery));
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcConfigController.rollback")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/{id}/rollback")
     public ResultRecord<DdcConfigVO> rollback(@PathVariable("id") String id,
                                         @RequestBody DdcConfigRollbackRequest request,

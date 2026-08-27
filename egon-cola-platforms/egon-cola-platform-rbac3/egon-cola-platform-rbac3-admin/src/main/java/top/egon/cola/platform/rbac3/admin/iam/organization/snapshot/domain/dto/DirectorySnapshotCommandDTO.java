@@ -1,5 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.domain.dto;
-
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -15,10 +15,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 import java.time.Instant;
 import java.util.List;
@@ -77,7 +73,8 @@ import java.util.Map;
              * 含义与用法：读取、传递或更新 `payload` 时应保持 `DirectorySnapshotCommandDTO` 的生命周期、不可变性和线程安全约束。
              * Meaning and usage: when reading, passing, or updating `payload`, preserve `DirectorySnapshotCommandDTO`'s lifecycle, immutability, and thread-safety constraints.
              */
-            @GatewaySchemaField(allowArbitraryJson = true)
+            @Schema(type = "object",
+                    additionalProperties = Schema.AdditionalPropertiesValue.TRUE)
             @NotNull Map<String, Object> payload
     ) {
     }

@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.admin.controller.register;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -15,18 +17,19 @@ import top.egon.cola.component.ddc.model.management.DdcManagementServiceInstance
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceKey;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementServiceSnapshot;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 
 @RestController
 @RequestMapping("/api/v1/ddc/registry")
-@GatewayInterfaceGroup(
+@Tag(name = "ddc-admin-ddc-registry-admin-controller", description = "DdcRegistryAdminController 管理接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "ddc-admin",
         entityDomainName = "Dynamic Config Center 管理实体域",
-        code = "ddc-admin-ddc-registry-admin-controller",
-        name = "DdcRegistryAdminController 管理接口组")
+        interfaceGroupCode = "ddc-admin-ddc-registry-admin-controller"
+)
 public class DdcRegistryAdminController {
 
     private final DdcManagementFacade facade;
@@ -41,7 +44,8 @@ public class DdcRegistryAdminController {
         this.pageService = pageService;
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcRegistryAdminController.services")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/services")
     public ResultRecord<DdcManagementServiceCatalog> services(
             @RequestParam(value = "bizCode", required = false) String bizCode,
@@ -70,7 +74,8 @@ public class DdcRegistryAdminController {
         )));
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcRegistryAdminController.pageServices")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/services/page")
     public PageResultRecord<DdcManagementServiceKey> pageServices(
             @RequestParam(value = "bizCode", required = false) String bizCode,
@@ -96,7 +101,8 @@ public class DdcRegistryAdminController {
         ));
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcRegistryAdminController.instances")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/instances")
     public ResultRecord<DdcManagementServiceSnapshot> instances(
             @RequestParam("bizCode") String bizCode,
@@ -121,7 +127,8 @@ public class DdcRegistryAdminController {
         )));
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcRegistryAdminController.pageInstances")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/instances/page")
     public PageResultRecord<DdcManagementServiceInstance> pageInstances(
             @RequestParam("bizCode") String bizCode,

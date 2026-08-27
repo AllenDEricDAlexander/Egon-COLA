@@ -12,29 +12,27 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.roleinheritance.domain.dto.InheritanceCommandDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.roleinheritance.domain.dto.InheritanceRequestDTO;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.CreateRoleCommandDTO;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.CreateRoleRequestDTO;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.UpdateRoleCommandDTO;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.UpdateRoleRequestDTO;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleImpactVO;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleMutationResultVO;
+import top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleVO;
 import top.egon.cola.platform.rbac3.admin.iam.role.service.RoleFacade;
+import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
+import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
 import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
-import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
-import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;
 import java.util.List;
-import top.egon.cola.component.common.core.pojo.ResultRecord;
-import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.CreateRoleRequestDTO;
-import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.UpdateRoleRequestDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.grant.roleinheritance.domain.dto.InheritanceRequestDTO;
-import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.CreateRoleCommandDTO;
-import top.egon.cola.platform.rbac3.admin.iam.role.domain.dto.UpdateRoleCommandDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.grant.roleinheritance.domain.dto.InheritanceCommandDTO;
-import top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleVO;
-import top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleImpactVO;
-import top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleMutationResultVO;
 
 /**
  * 类型 `RoleController` 位于当前包内，是类型，用于承载 `Role Permission Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -45,18 +43,14 @@ import top.egon.cola.platform.rbac3.admin.iam.role.domain.vo.RoleMutationResultV
  */
 @RestController
 @RequestMapping("/api/rbac3/v1/iam/roles")
-@GatewayInterfaceGroup(
+@Tag(name = "role-permission", description = "角色与权限接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "role-permission",
-        name = "角色与权限接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        interfaceGroupCode = "role-permission"
+)
 public class RoleController {
 
     /**
@@ -103,11 +97,14 @@ public class RoleController {
      */
     @GetMapping
     @RequiresPermission(value = "system:role:read")
-    @GatewayOperation(
-            name = "rbac3-role-list-v1",
+    @Operation(
+            operationId = "rbac3-role-list-v1",
             summary = "查询租户角色",
-            externalAccessible = true,
-            tags = {"rbac3", "role"})
+            tags = {"rbac3", "role"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<RoleVO>> roles(
             @RequestParam(required = false) String applicationId) {
         return ResultRecord.success(facade.roles(tenantId(), applicationId));
@@ -126,11 +123,14 @@ public class RoleController {
      */
     @PostMapping
     @RequiresPermission(value = "system:role:create")
-    @GatewayOperation(
-            name = "rbac3-role-create-v1",
+    @Operation(
+            operationId = "rbac3-role-create-v1",
             summary = "创建应用角色",
-            externalAccessible = true,
-            tags = {"rbac3", "role"})
+            tags = {"rbac3", "role"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<RoleMutationResultVO> create(
             @Valid @RequestBody CreateRoleRequestDTO request
 ) {
@@ -166,11 +166,14 @@ public class RoleController {
      */
     @PutMapping("/{roleId}")
     @RequiresPermission(value = "system:role:update")
-    @GatewayOperation(
-            name = "rbac3-role-update-v1",
+    @Operation(
+            operationId = "rbac3-role-update-v1",
             summary = "更新角色可变属性",
-            externalAccessible = true,
-            tags = {"rbac3", "role"})
+            tags = {"rbac3", "role"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<RoleMutationResultVO> update(
             @PathVariable String roleId,
             @Valid @RequestBody UpdateRoleRequestDTO request
@@ -202,11 +205,14 @@ public class RoleController {
      */
     @PostMapping("/{roleId}/inheritances")
     @RequiresPermission(value = "system:role-inheritance:manage")
-    @GatewayOperation(
-            name = "rbac3-role-inheritance-add-v1",
+    @Operation(
+            operationId = "rbac3-role-inheritance-add-v1",
             summary = "新增角色继承边并重建闭包",
-            externalAccessible = true,
-            tags = {"rbac3", "role", "inheritance"})
+            tags = {"rbac3", "role", "inheritance"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<RoleImpactVO> addInheritance(
             @PathVariable String roleId,
             @Valid @RequestBody InheritanceRequestDTO request
@@ -233,11 +239,14 @@ public class RoleController {
      */
     @DeleteMapping("/{roleId}/inheritances/{juniorRoleId}")
     @RequiresPermission(value = "system:role-inheritance:manage")
-    @GatewayOperation(
-            name = "rbac3-role-inheritance-remove-v1",
+    @Operation(
+            operationId = "rbac3-role-inheritance-remove-v1",
             summary = "删除角色继承边并重建闭包",
-            externalAccessible = true,
-            tags = {"rbac3", "role", "inheritance"})
+            tags = {"rbac3", "role", "inheritance"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<RoleImpactVO> removeInheritance(
             @PathVariable String roleId,
             @PathVariable String juniorRoleId,
@@ -262,11 +271,14 @@ public class RoleController {
      */
     @GetMapping("/{roleId}/impact-analysis")
     @RequiresPermission(value = "system:role:read")
-    @GatewayOperation(
-            name = "rbac3-role-impact-v1",
+    @Operation(
+            operationId = "rbac3-role-impact-v1",
             summary = "分析角色族与权限扩张影响",
-            externalAccessible = true,
-            tags = {"rbac3", "role", "impact"})
+            tags = {"rbac3", "role", "impact"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<RoleImpactVO> impact(@PathVariable String roleId) {
         return ResultRecord.success(facade.impact(tenantId(), roleId));
     }

@@ -1,11 +1,12 @@
 package top.egon.cola.platform.idp.admin.oauth.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthAuthorizationServerMetadataVO;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthJwkSetVO;
 import top.egon.cola.platform.idp.admin.token.service.impl.Rs256TokenService;
@@ -21,18 +22,15 @@ import java.util.Objects;
  * <p>Publishes OAuth Authorization Server Metadata and the IdP public JWK Set.</p>
  */
 @RestController
-@GatewayInterfaceGroup(
+@Tag(name = "idp-oauth-metadata", description = "IdP OAuth 元数据接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "oauth-protocol",
         entityDomainName = "OAuth 协议域",
-        code = "idp-oauth-metadata",
-        name = "IdP OAuth 元数据接口组")
-@EgonHttpService(
-        serviceName = "idp-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/")
+        interfaceGroupCode = "idp-oauth-metadata"
+)
+
 public class OAuthMetadataController {
 
     /** 规范化 IdP Issuer；normalized IdP issuer. */
@@ -66,10 +64,14 @@ public class OAuthMetadataController {
      * @return OAuth Metadata；OAuth metadata
      */
     @GetMapping("/.well-known/oauth-authorization-server")
-    @GatewayOperation(name = "idp-oauth-metadata-v1",
+    @Operation(
+            operationId = "idp-oauth-metadata-v1",
             summary = "查询 OAuth Authorization Server 元数据",
-            externalAccessible = true,
-            tags = {"idp", "oauth"})
+            tags = {"idp", "oauth"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public OAuthAuthorizationServerMetadataVO metadata() {
         return new OAuthAuthorizationServerMetadataVO(
                 issuer,
@@ -89,10 +91,14 @@ public class OAuthMetadataController {
      * @return 公开 JWK Set；public JWK Set
      */
     @GetMapping("/oauth2/jwks")
-    @GatewayOperation(name = "idp-oauth-jwks-v1",
+    @Operation(
+            operationId = "idp-oauth-jwks-v1",
             summary = "查询 IdP 公钥 JWK Set",
-            externalAccessible = true,
-            tags = {"idp", "oauth"})
+            tags = {"idp", "oauth"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public OAuthJwkSetVO jwks() {
         Object rawKeys = tokens.jwkSet().get("keys");
         if (!(rawKeys instanceof List<?> keys)

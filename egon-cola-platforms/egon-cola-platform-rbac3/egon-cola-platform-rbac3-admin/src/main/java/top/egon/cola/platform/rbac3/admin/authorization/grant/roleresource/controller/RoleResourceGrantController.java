@@ -7,33 +7,27 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.dto.ReplaceRoleResourcesRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.vo.RoleResourceGrantMutationVO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.vo.RoleResourceGrantTreeVO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.service.RoleResourceGrantService;
+import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
 import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
-import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 
 /** Resource-first role authorization endpoints; permission characters stay server-side. */
 @RestController
 @RequestMapping("/api/rbac3/v1/iam/roles/{roleId}/resources")
-@GatewayInterfaceGroup(
+@Tag(name = "role-resource-grant", description = "角色资源授权接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "role-resource-grant",
-        name = "角色资源授权接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        interfaceGroupCode = "role-resource-grant"
+)
 public class RoleResourceGrantController {
 
     private final RoleResourceGrantService service;
@@ -48,11 +42,14 @@ public class RoleResourceGrantController {
 
     @GetMapping
     @RequiresPermission(value = "system:role-resource:read")
-    @GatewayOperation(
-            name = "rbac3-role-resource-tree-v1",
+    @Operation(
+            operationId = "rbac3-role-resource-tree-v1",
             summary = "查询角色资源树",
-            externalAccessible = true,
-            tags = {"rbac3", "role", "resource"})
+            tags = {"rbac3", "role", "resource"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<RoleResourceGrantTreeVO> tree(@PathVariable String roleId) {
         Rbac3UserDetails principal = new CurrentRbac3User().require();
         return ResultRecord.success(service.tree(
@@ -61,11 +58,14 @@ public class RoleResourceGrantController {
 
     @PutMapping
     @RequiresPermission(value = "system:role-resource:manage")
-    @GatewayOperation(
-            name = "rbac3-role-resource-replace-v1",
+    @Operation(
+            operationId = "rbac3-role-resource-replace-v1",
             summary = "原子替换角色资源授权",
-            externalAccessible = true,
-            tags = {"rbac3", "role", "resource"})
+            tags = {"rbac3", "role", "resource"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<RoleResourceGrantMutationVO> replace(
             @PathVariable String roleId,
             @RequestBody ReplaceRoleResourcesRequestDTO request) {

@@ -9,9 +9,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.userrole.domain.dto.AssignRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.userrole.domain.dto.RoleAssignmentChangeDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.userrole.domain.dto.RoleAssignmentChangeRequestDTO;
@@ -20,17 +19,16 @@ import top.egon.cola.platform.rbac3.admin.authorization.grant.userrole.domain.en
 import top.egon.cola.platform.rbac3.admin.authorization.grant.userrole.domain.vo.AssignmentResultVO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.userrole.domain.vo.AssignmentVO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.userrole.service.AssignmentFacade;
-import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
-import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
-import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.dto.IdempotencyCommandDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.enums.IdempotencyOutcomeEnum;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.IdempotencyClaimVO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.IdempotencyService;
 import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
-import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -45,18 +43,14 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/rbac3/v1/users/{userId}/role-assignments")
-@GatewayInterfaceGroup(
+@Tag(name = "role-assignment", description = "角色任职接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "role-assignment",
-        name = "角色任职接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        interfaceGroupCode = "role-assignment"
+)
 public class AssignmentController {
 
     /**
@@ -126,11 +120,14 @@ public class AssignmentController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping
-    @GatewayOperation(
-            name = "rbac3-assignment-list-v1",
+    @Operation(
+            operationId = "rbac3-assignment-list-v1",
             summary = "查询用户角色任职及历史状态",
-            externalAccessible = true,
-            tags = {"rbac3", "assignment"})
+            tags = {"rbac3", "assignment"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<AssignmentVO>> assignments(
             @PathVariable String userId
 ) {
@@ -157,11 +154,14 @@ public class AssignmentController {
      */
     @PostMapping
     @RequiresPermission(value = "system:role-assignment:manage")
-    @GatewayOperation(
-            name = "rbac3-assignment-create-v1",
+    @Operation(
+            operationId = "rbac3-assignment-create-v1",
             summary = "按完整委托策略创建角色任职",
-            externalAccessible = true,
-            tags = {"rbac3", "assignment"})
+            tags = {"rbac3", "assignment"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<AssignmentResultVO> assign(
             @PathVariable String userId,
             @Valid @RequestBody AssignRequestDTO request,
@@ -203,11 +203,14 @@ public class AssignmentController {
      */
     @PostMapping("/{assignmentId}/revoke")
     @RequiresPermission(value = "system:role-assignment:manage")
-    @GatewayOperation(
-            name = "rbac3-assignment-revoke-v1",
+    @Operation(
+            operationId = "rbac3-assignment-revoke-v1",
             summary = "撤销角色任职并保留历史",
-            externalAccessible = true,
-            tags = {"rbac3", "assignment"})
+            tags = {"rbac3", "assignment"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<AssignmentResultVO> revoke(
             @PathVariable String userId,
             @PathVariable String assignmentId,
@@ -234,11 +237,14 @@ public class AssignmentController {
      */
     @PostMapping("/{assignmentId}/suspend")
     @RequiresPermission(value = "system:role-assignment:manage")
-    @GatewayOperation(
-            name = "rbac3-assignment-suspend-v1",
+    @Operation(
+            operationId = "rbac3-assignment-suspend-v1",
             summary = "暂停角色任职",
-            externalAccessible = true,
-            tags = {"rbac3", "assignment"})
+            tags = {"rbac3", "assignment"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<AssignmentResultVO> suspend(
             @PathVariable String userId,
             @PathVariable String assignmentId,
@@ -265,11 +271,14 @@ public class AssignmentController {
      */
     @PostMapping("/{assignmentId}/resume")
     @RequiresPermission(value = "system:role-assignment:manage")
-    @GatewayOperation(
-            name = "rbac3-assignment-resume-v1",
+    @Operation(
+            operationId = "rbac3-assignment-resume-v1",
             summary = "恢复角色任职",
-            externalAccessible = true,
-            tags = {"rbac3", "assignment"})
+            tags = {"rbac3", "assignment"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<AssignmentResultVO> resume(
             @PathVariable String userId,
             @PathVariable String assignmentId,

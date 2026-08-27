@@ -7,22 +7,20 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.activation.domain.dto.ReplaceCommandDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.activation.service.RoleActivationCandidateService;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.activation.service.RoleActivationFacade;
-import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
-import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
-import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
-import top.egon.cola.component.common.core.pojo.ResultRecord;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.contract.activation.ActiveRoleSetView;
 import top.egon.cola.platform.rbac3.contract.activation.ReplaceActiveRolesRequest;
 import top.egon.cola.platform.rbac3.contract.activation.ReplaceActiveRolesResult;
 import top.egon.cola.platform.rbac3.contract.activation.RoleActivationCandidateView;
+import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
+import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -38,18 +36,14 @@ import java.util.HexFormat;
  */
 @RestController
 @RequestMapping("/api/rbac3/v1/auth")
-@GatewayInterfaceGroup(
+@Tag(name = "role-activation", description = "当前会话角色激活接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "role-activation",
-        name = "当前会话角色激活接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        interfaceGroupCode = "role-activation"
+)
 public class RoleActivationController {
 
     /**
@@ -110,11 +104,14 @@ public class RoleActivationController {
      */
     @GetMapping("/role-activation-candidates")
     @RequiresPermission(value = "system:role-activation:read")
-    @GatewayOperation(
-            name = "rbac3-role-activation-candidates-v1",
+    @Operation(
+            operationId = "rbac3-role-activation-candidates-v1",
             summary = "查询当前会话可激活的规范根角色",
-            externalAccessible = true,
-            tags = {"rbac3", "role-activation"})
+            tags = {"rbac3", "role-activation"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<RoleActivationCandidateView> candidates() {
         return ResultRecord.success(candidateService.candidates(
                 tenantId(), new CurrentRbac3User().require().rbac3UserId(), databaseClock.transactionNow()));
@@ -132,11 +129,14 @@ public class RoleActivationController {
      */
     @GetMapping("/role-activations")
     @RequiresPermission(value = "system:role-activation:read")
-    @GatewayOperation(
-            name = "rbac3-role-activation-current-v1",
+    @Operation(
+            operationId = "rbac3-role-activation-current-v1",
             summary = "查询当前会话已激活的规范根角色",
-            externalAccessible = true,
-            tags = {"rbac3", "role-activation"})
+            tags = {"rbac3", "role-activation"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<ActiveRoleSetView> current() {
         return ResultRecord.success(facade.current(
                 tenantId(), new CurrentRbac3User().require().identitySub(), new CurrentRbac3User().require().rbac3UserId()));
@@ -155,11 +155,14 @@ public class RoleActivationController {
      */
     @PutMapping("/role-activations")
     @RequiresPermission(value = "system:role-activation:use")
-    @GatewayOperation(
-            name = "rbac3-role-activation-replace-v1",
+    @Operation(
+            operationId = "rbac3-role-activation-replace-v1",
             summary = "原子替换当前会话激活角色集合",
-            externalAccessible = true,
-            tags = {"rbac3", "role-activation"})
+            tags = {"rbac3", "role-activation"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<ReplaceActiveRolesResult> replace(
             @Valid @RequestBody ReplaceActiveRolesRequest request
 ) {

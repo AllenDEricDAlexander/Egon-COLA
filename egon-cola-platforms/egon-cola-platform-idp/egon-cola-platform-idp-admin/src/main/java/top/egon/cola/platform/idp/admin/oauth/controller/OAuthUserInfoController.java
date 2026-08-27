@@ -1,11 +1,12 @@
 package top.egon.cola.platform.idp.admin.oauth.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthUserInfoVO;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 
@@ -17,26 +18,26 @@ import java.util.Objects;
  * <p>Returns identity claims associated with the current access token to OAuth clients.</p>
  */
 @RestController
-@GatewayInterfaceGroup(
+@Tag(name = "oauth-userinfo", description = "统一身份本人信息接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity-profile",
         entityDomainName = "统一身份本人信息域",
-        code = "oauth-userinfo",
-        name = "统一身份本人信息接口组")
-@EgonHttpService(
-        serviceName = "idp-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/")
+        interfaceGroupCode = "oauth-userinfo"
+)
+
 public class OAuthUserInfoController {
 
     @GetMapping("/oauth2/userinfo")
-    @GatewayOperation(
-            name = "idp-oauth-userinfo-v1",
+    @Operation(
+            operationId = "idp-oauth-userinfo-v1",
             summary = "查询 OAuth 当前身份声明",
-            externalAccessible = true,
-            tags = {"idp", "oauth"})
+            tags = {"idp", "oauth"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public OAuthUserInfoVO userInfo(
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {

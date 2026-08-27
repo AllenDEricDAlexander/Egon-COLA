@@ -14,16 +14,28 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.dto.ManagementPolicyRestrictionsDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.dto.PolicyRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.dto.SaveCommandDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.vo.CapabilityVO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.vo.ManagedRoleVO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.vo.ManagedUserVO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.vo.ManagementPolicyRestrictionsVO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.vo.ManagementPolicyScopeVO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.vo.ManagementPolicySubjectVO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.vo.PolicyVO;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.management.service.ManagementPolicyFacade;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.dto.IdempotencyCommandDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.enums.IdempotencyOutcomeEnum;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.IdempotencyClaimVO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.IdempotencyService;
+import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
+import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
 import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
-import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -31,20 +43,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import top.egon.cola.component.common.core.pojo.ResultRecord;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.dto.PolicyRequestDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.dto.ManagementPolicyRestrictionsDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.dto.SaveCommandDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.vo.PolicyVO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.vo.CapabilityVO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.vo.ManagedUserVO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.vo.ManagedRoleVO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.vo.ManagementPolicyRestrictionsVO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.vo.ManagementPolicyScopeVO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.vo.ManagementPolicySubjectVO;
-import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.dto.IdempotencyCommandDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.IdempotencyClaimVO;
-import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.enums.IdempotencyOutcomeEnum;
 
 /**
  * 类型 `ManagementPolicyController` 位于当前包内，是类型，用于承载 `Management Policy Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -55,18 +53,14 @@ import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.enums.Ide
  */
 @RestController
 @RequestMapping("/api/rbac3/v1")
-@GatewayInterfaceGroup(
+@Tag(name = "management-policy", description = "委托管理策略接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "management-policy",
-        name = "委托管理策略接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        interfaceGroupCode = "management-policy"
+)
 public class ManagementPolicyController {
 
     /**
@@ -135,11 +129,14 @@ public class ManagementPolicyController {
      */
     @GetMapping("/management-policies")
     @RequiresPermission(value = "system:management-policy:read")
-    @GatewayOperation(
-            name = "rbac3-management-policy-list-v1",
+    @Operation(
+            operationId = "rbac3-management-policy-list-v1",
             summary = "查询完整委托管理策略",
-            externalAccessible = true,
-            tags = {"rbac3", "management-policy"})
+            tags = {"rbac3", "management-policy"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<PolicyVO>> policies() {
         return ResultRecord.success(facade.policies(tenantId()));
     }
@@ -156,11 +153,14 @@ public class ManagementPolicyController {
      */
     @GetMapping("/management-policies/{policyId}")
     @RequiresPermission(value = "system:management-policy:read")
-    @GatewayOperation(
-            name = "rbac3-management-policy-get-v1",
+    @Operation(
+            operationId = "rbac3-management-policy-get-v1",
             summary = "读取委托管理策略完整聚合",
-            externalAccessible = true,
-            tags = {"rbac3", "management-policy"})
+            tags = {"rbac3", "management-policy"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<PolicyVO> policy(
             @PathVariable String policyId
     ) {
@@ -181,11 +181,14 @@ public class ManagementPolicyController {
      */
     @PostMapping("/management-policies")
     @RequiresPermission(value = "system:management-policy:manage")
-    @GatewayOperation(
-            name = "rbac3-management-policy-create-v1",
+    @Operation(
+            operationId = "rbac3-management-policy-create-v1",
             summary = "创建完整委托管理策略",
-            externalAccessible = true,
-            tags = {"rbac3", "management-policy"})
+            tags = {"rbac3", "management-policy"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<PolicyVO> create(
             @Valid @RequestBody PolicyRequestDTO request,
             @RequestHeader("Idempotency-Key") String idempotencyKey
@@ -210,11 +213,14 @@ public class ManagementPolicyController {
      */
     @PutMapping("/management-policies/{policyId}")
     @RequiresPermission(value = "system:management-policy:manage")
-    @GatewayOperation(
-            name = "rbac3-management-policy-update-v1",
+    @Operation(
+            operationId = "rbac3-management-policy-update-v1",
             summary = "按版本完整替换委托管理策略",
-            externalAccessible = true,
-            tags = {"rbac3", "management-policy"})
+            tags = {"rbac3", "management-policy"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<PolicyVO> update(
             @PathVariable String policyId,
             @RequestHeader("If-Match") String ifMatch,
@@ -240,11 +246,14 @@ public class ManagementPolicyController {
      */
     @PostMapping("/management-policies/{policyId}/disable")
     @RequiresPermission(value = "system:management-policy:manage")
-    @GatewayOperation(
-            name = "rbac3-management-policy-disable-v1",
+    @Operation(
+            operationId = "rbac3-management-policy-disable-v1",
             summary = "禁用委托管理策略并保留历史明细",
-            externalAccessible = true,
-            tags = {"rbac3", "management-policy"})
+            tags = {"rbac3", "management-policy"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<PolicyVO> disable(
             @PathVariable String policyId,
             @RequestHeader("If-Match") String ifMatch,
@@ -274,11 +283,14 @@ public class ManagementPolicyController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/management-capabilities/me")
-    @GatewayOperation(
-            name = "rbac3-management-capabilities-mine-v1",
+    @Operation(
+            operationId = "rbac3-management-capabilities-mine-v1",
             summary = "查询当前操作者委托管理能力",
-            externalAccessible = true,
-            tags = {"rbac3", "management-policy", "capability"})
+            tags = {"rbac3", "management-policy", "capability"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<CapabilityVO> capabilities() {
         return ResultRecord.success(facade.capabilities(
                 tenantId(), new CurrentRbac3User().require().rbac3UserId(), databaseClock.transactionNow()));
@@ -296,11 +308,14 @@ public class ManagementPolicyController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/manageable-users")
-    @GatewayOperation(
-            name = "rbac3-manageable-user-search-v1",
+    @Operation(
+            operationId = "rbac3-manageable-user-search-v1",
             summary = "按委托范围搜索可管理用户",
-            externalAccessible = true,
-            tags = {"rbac3", "management-policy", "user"})
+            tags = {"rbac3", "management-policy", "user"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<ManagedUserVO>> manageableUsers(
             @RequestParam(required = false) String query
 ) {
@@ -321,11 +336,14 @@ public class ManagementPolicyController {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @GetMapping("/manageable-roles")
-    @GatewayOperation(
-            name = "rbac3-manageable-role-search-v1",
+    @Operation(
+            operationId = "rbac3-manageable-role-search-v1",
             summary = "按委托白名单搜索可管理角色根",
-            externalAccessible = true,
-            tags = {"rbac3", "management-policy", "role"})
+            tags = {"rbac3", "management-policy", "role"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<ManagedRoleVO>> manageableRoles(
             @RequestParam(required = false) String query
 ) {

@@ -9,18 +9,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.idp.starter.security.RequiresServiceScope;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.participation.domain.dto.ConflictQueryDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.participation.domain.vo.ConflictDecisionVO;
+import top.egon.cola.platform.rbac3.admin.authorization.policy.participation.domain.vo.RecordResultVO;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.participation.service.ParticipationFacade;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.contract.participation.BusinessParticipationCommand;
-import top.egon.cola.component.common.core.pojo.ResultRecord;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.participation.domain.vo.RecordResultVO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.participation.domain.dto.ConflictQueryDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.policy.participation.domain.vo.ConflictDecisionVO;
 
 /**
  * 类型 `ParticipationController` 位于当前包内，是类型，用于承载 `Participation Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -31,18 +29,14 @@ import top.egon.cola.platform.rbac3.admin.authorization.policy.participation.dom
  */
 @RestController
 @RequestMapping("/api/rbac3/v1/internal/business-participations")
-@GatewayInterfaceGroup(
+@Tag(name = "business-participation", description = "业务参与事实接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "business-participation",
-        name = "业务参与事实接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        interfaceGroupCode = "business-participation"
+)
 public class ParticipationController {
 
     /**
@@ -80,9 +74,14 @@ public class ParticipationController {
      */
     @PostMapping
     @RequiresServiceScope("service:participation:write")
-    @GatewayOperation(name = "rbac3-business-participation-record-v1",
+    @Operation(
+            operationId = "rbac3-business-participation-record-v1",
             summary = "幂等追加业务对象参与事实",
-            externalAccessible = false, tags = {"rbac3", "internal", "participation"})
+            tags = {"rbac3", "internal", "participation"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.INTERNAL
+    )
     public ResultRecord<RecordResultVO> record(
             @Valid @RequestBody BusinessParticipationCommand command,
             @AuthenticationPrincipal ServiceIdentityPrincipal principal) {
@@ -106,9 +105,14 @@ public class ParticipationController {
      */
     @GetMapping("/conflicts")
     @RequiresServiceScope("service:participation:read")
-    @GatewayOperation(name = "rbac3-business-participation-conflicts-v1",
+    @Operation(
+            operationId = "rbac3-business-participation-conflicts-v1",
             summary = "查询同一业务对象的职责冲突证据",
-            externalAccessible = false, tags = {"rbac3", "internal", "participation"})
+            tags = {"rbac3", "internal", "participation"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.INTERNAL
+    )
     public ResultRecord<ConflictDecisionVO> conflicts(
             @RequestParam @NotBlank String applicationCode,
             @RequestParam @NotBlank String businessResource,

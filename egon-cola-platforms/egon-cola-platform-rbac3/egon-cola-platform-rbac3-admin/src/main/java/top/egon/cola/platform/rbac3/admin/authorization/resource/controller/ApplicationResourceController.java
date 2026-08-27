@@ -10,24 +10,22 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.platform.rbac3.admin.authorization.resource.domain.dto.ArchiveResourceRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.resource.domain.vo.ArchiveResultVO;
+import top.egon.cola.platform.rbac3.admin.authorization.resource.domain.vo.ResourceVO;
+import top.egon.cola.platform.rbac3.admin.authorization.resource.field.domain.dto.ChangeFieldDefinitionStatusRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.resource.field.domain.dto.CreateFieldDefinitionRequestDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.resource.field.domain.vo.FieldDefinitionVO;
 import top.egon.cola.platform.rbac3.admin.authorization.resource.service.GlobalResourceCatalogService;
+import top.egon.cola.platform.rbac3.admin.iam.application.domain.vo.ApplicationVO;
+import top.egon.cola.platform.rbac3.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
 import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 
 import java.util.List;
-import top.egon.cola.component.common.core.pojo.ResultRecord;
-import top.egon.cola.platform.rbac3.admin.authorization.resource.domain.dto.ArchiveResourceRequestDTO;
-import top.egon.cola.platform.rbac3.admin.iam.application.domain.vo.ApplicationVO;
-import top.egon.cola.platform.rbac3.admin.authorization.resource.domain.vo.ResourceVO;
-import top.egon.cola.platform.rbac3.admin.authorization.resource.domain.vo.ArchiveResultVO;
-import top.egon.cola.platform.rbac3.admin.authorization.resource.field.domain.dto.ChangeFieldDefinitionStatusRequestDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.resource.field.domain.dto.CreateFieldDefinitionRequestDTO;
-import top.egon.cola.platform.rbac3.admin.authorization.resource.field.domain.vo.FieldDefinitionVO;
 
 /**
  * 类型 `ApplicationResourceController` 位于当前包内，是类型，用于承载 `Application Resource Controller` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
@@ -38,18 +36,14 @@ import top.egon.cola.platform.rbac3.admin.authorization.resource.field.domain.vo
  */
 @RestController
 @RequestMapping("/api/rbac3/v1/iam/resource-catalog")
-@GatewayInterfaceGroup(
+@Tag(name = "application-resource", description = "应用与资源接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "application-resource",
-        name = "应用与资源接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        interfaceGroupCode = "application-resource"
+)
 public class ApplicationResourceController {
 
     /**
@@ -97,11 +91,14 @@ public class ApplicationResourceController {
      */
     @GetMapping("/applications")
     @RequiresPermission(value = "system:application:read")
-    @GatewayOperation(
-            name = "rbac3-application-list-v1",
+    @Operation(
+            operationId = "rbac3-application-list-v1",
             summary = "查询租户应用",
-            externalAccessible = true,
-            tags = {"rbac3", "application"})
+            tags = {"rbac3", "application"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<ApplicationVO>> applications() {
         return ResultRecord.success(facade.applications());
     }
@@ -118,11 +115,14 @@ public class ApplicationResourceController {
      */
     @GetMapping("/applications/{applicationId}/resources")
     @RequiresPermission(value = "system:resource:read")
-    @GatewayOperation(
-            name = "rbac3-application-resource-list-v1",
+    @Operation(
+            operationId = "rbac3-application-resource-list-v1",
             summary = "查询应用资源",
-            externalAccessible = true,
-            tags = {"rbac3", "resource"})
+            tags = {"rbac3", "resource"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<ResourceVO>> resources(
             @PathVariable String applicationId) {
         return ResultRecord.success(facade.resources(applicationId));
@@ -130,6 +130,14 @@ public class ApplicationResourceController {
 
     @GetMapping("/applications/{applicationId}/fields")
     @RequiresPermission(value = "system:field-definition:read")
+    @Operation(
+            operationId = "rbac3-application-field-list-v1",
+            summary = "查询应用字段定义",
+            tags = {"rbac3", "resource", "field"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<FieldDefinitionVO>> fields(
             @PathVariable String applicationId) {
         return ResultRecord.success(facade.fields(applicationId, null));
@@ -137,6 +145,14 @@ public class ApplicationResourceController {
 
     @GetMapping("/resources/{resourceId}/fields")
     @RequiresPermission(value = "system:field-definition:read")
+    @Operation(
+            operationId = "rbac3-resource-field-list-v1",
+            summary = "查询资源字段定义",
+            tags = {"rbac3", "resource", "field"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<FieldDefinitionVO>> resourceFields(
             @PathVariable String resourceId,
             @RequestParam String applicationId) {
@@ -145,6 +161,14 @@ public class ApplicationResourceController {
 
     @PostMapping("/fields")
     @RequiresPermission(value = "system:field-definition:manage")
+    @Operation(
+            operationId = "rbac3-resource-field-create-v1",
+            summary = "创建资源字段定义",
+            tags = {"rbac3", "resource", "field"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<FieldDefinitionVO> createField(
             @Valid @RequestBody CreateFieldDefinitionRequestDTO command
             ) {
@@ -154,6 +178,14 @@ public class ApplicationResourceController {
 
     @PutMapping("/fields/{fieldId}/status")
     @RequiresPermission(value = "system:field-definition:manage")
+    @Operation(
+            operationId = "rbac3-resource-field-status-v1",
+            summary = "变更资源字段状态",
+            tags = {"rbac3", "resource", "field"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<FieldDefinitionVO> changeFieldStatus(
             @PathVariable String fieldId,
             @Valid @RequestBody ChangeFieldDefinitionStatusRequestDTO command
@@ -176,11 +208,14 @@ public class ApplicationResourceController {
      */
     @PostMapping("/resources/{resourceId}/archive")
     @RequiresPermission(value = "system:resource:archive")
-    @GatewayOperation(
-            name = "rbac3-resource-archive-v1",
+    @Operation(
+            operationId = "rbac3-resource-archive-v1",
             summary = "归档已失效资源",
-            externalAccessible = true,
-            tags = {"rbac3", "resource"})
+            tags = {"rbac3", "resource"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<ArchiveResultVO> archive(
             @PathVariable String resourceId,
             @Valid @RequestBody ArchiveResourceRequestDTO request

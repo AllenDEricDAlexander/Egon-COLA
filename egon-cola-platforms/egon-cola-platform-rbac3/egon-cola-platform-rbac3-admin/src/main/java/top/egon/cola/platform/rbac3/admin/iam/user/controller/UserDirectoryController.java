@@ -15,25 +15,22 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.platform.rbac3.admin.iam.organization.domain.vo.DirectoryPageVO;
+import top.egon.cola.platform.rbac3.admin.iam.organization.service.DirectoryQueryService;
+import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.service.DirectoryCommandService;
+import top.egon.cola.platform.rbac3.admin.iam.user.domain.dto.UserStatusCommandDTO;
+import top.egon.cola.platform.rbac3.admin.iam.user.domain.vo.UserDirectoryVO;
+import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
+import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
 import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
-import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
-import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import top.egon.cola.component.common.core.pojo.ResultRecord;
-import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.service.DirectoryCommandService;
-import top.egon.cola.platform.rbac3.admin.iam.organization.service.DirectoryQueryService;
-import top.egon.cola.platform.rbac3.admin.iam.user.domain.dto.UserStatusCommandDTO;
-import top.egon.cola.platform.rbac3.admin.iam.user.domain.vo.UserDirectoryVO;
-import top.egon.cola.platform.rbac3.admin.iam.organization.domain.vo.DirectoryPageVO;
 
 /**
  * 租户用户目录 HTTP 入口。
@@ -41,18 +38,14 @@ import top.egon.cola.platform.rbac3.admin.iam.organization.domain.vo.DirectoryPa
  */
 @RestController
 @RequestMapping("/api/rbac3/v1")
-@GatewayInterfaceGroup(
+@Tag(name = "user-directory", description = "租户用户与目录接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "user-directory",
-        name = "租户用户与目录接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        interfaceGroupCode = "user-directory"
+)
 public class UserDirectoryController {
     private final DirectoryCommandService commandPort;
     private final DirectoryQueryService queryPort;
@@ -81,11 +74,14 @@ public class UserDirectoryController {
      */
     @GetMapping("/users")
     @RequiresPermission(value = "system:user:read")
-    @GatewayOperation(
-            name = "rbac3-directory-user-list-v1",
+    @Operation(
+            operationId = "rbac3-directory-user-list-v1",
             summary = "分页查询租户用户",
-            externalAccessible = true,
-            tags = {"rbac3", "directory"})
+            tags = {"rbac3", "directory"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<DirectoryPageVO<UserDirectoryVO>> users(
             @RequestParam(required = false) String query,
             @RequestParam(required = false) String status,
@@ -109,11 +105,14 @@ public class UserDirectoryController {
      */
     @GetMapping("/users/{userId}")
     @RequiresPermission(value = "system:user:read")
-    @GatewayOperation(
-            name = "rbac3-directory-user-get-v1",
+    @Operation(
+            operationId = "rbac3-directory-user-get-v1",
             summary = "读取租户用户详情",
-            externalAccessible = true,
-            tags = {"rbac3", "directory"})
+            tags = {"rbac3", "directory"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<UserDirectoryVO> user(@PathVariable String userId) {
         return ResultRecord.success(queryPort.findUser(tenantId(), userId));
     }
@@ -132,11 +131,14 @@ public class UserDirectoryController {
      */
     @PutMapping("/users/{userId}/status")
     @RequiresPermission(value = "system:user-status:manage")
-    @GatewayOperation(
-            name = "rbac3-directory-user-status-v1",
+    @Operation(
+            operationId = "rbac3-directory-user-status-v1",
             summary = "按授权版本变更租户用户状态",
-            externalAccessible = true,
-            tags = {"rbac3", "directory"})
+            tags = {"rbac3", "directory"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<UserDirectoryVO> changeUserStatus(
             @PathVariable String userId,
             @Valid @RequestBody UserStatusCommandDTO command

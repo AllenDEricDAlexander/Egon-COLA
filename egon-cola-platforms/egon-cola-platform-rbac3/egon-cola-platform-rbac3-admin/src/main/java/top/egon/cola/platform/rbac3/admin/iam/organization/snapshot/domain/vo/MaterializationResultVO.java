@@ -1,5 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.domain.vo;
-
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
@@ -90,8 +90,8 @@ import java.util.Set;
          *
          * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
          */
-        @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
-                allowArbitraryJson = true)
+        @Schema(type = "object",
+                additionalProperties = Schema.AdditionalPropertiesValue.TRUE)
         public Map<String, Object> counts() {
             return Map.of(
                     "created", created,

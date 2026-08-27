@@ -1,6 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.audit.domain.dto;
 
-import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

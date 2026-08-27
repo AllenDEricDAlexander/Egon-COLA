@@ -7,9 +7,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;
 import top.egon.cola.platform.idp.contract.ServiceIdentityPrincipal;
 import top.egon.cola.platform.idp.starter.security.RequiresServiceScope;
 import top.egon.cola.platform.rbac3.admin.registration.ci.domain.dto.CiResourceRegistrationRequestDTO;
@@ -21,11 +20,6 @@ import java.util.Objects;
 /** CI-only global resource registration endpoint; it never accepts a tenant id. */
 @RestController
 @RequestMapping("/api/rbac3/v1/registration")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
 public class CiResourceRegistrationController {
 
     private final CiResourceRegistrationService service;
@@ -36,11 +30,14 @@ public class CiResourceRegistrationController {
 
     @PutMapping("/businesses/{businessCode}/applications/{applicationCode}/frontend-resources")
     @RequiresServiceScope(CiResourceRegistrationService.REGISTRATION_SCOPE)
-    @GatewayOperation(
-            name = "rbac3-resource-registration-v1",
+    @Operation(
+            operationId = "rbac3-resource-registration-v1",
             summary = "接收流水线前端资源注册",
-            externalAccessible = true,
-            tags = {"rbac3", "resource", "ci"})
+            tags = {"rbac3", "resource", "ci"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<CiResourceRegistrationResultVO> register(
             @PathVariable String businessCode,
             @PathVariable String applicationCode,

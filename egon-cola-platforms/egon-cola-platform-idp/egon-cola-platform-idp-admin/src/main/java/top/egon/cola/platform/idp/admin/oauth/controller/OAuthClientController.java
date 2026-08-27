@@ -1,5 +1,7 @@
 package top.egon.cola.platform.idp.admin.oauth.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -14,9 +16,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.CreateOAuthClientDTO;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.OAuthValueDTO;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.RotateClientSecretDTO;
@@ -33,18 +34,15 @@ import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/v1/identity/clients")
-@GatewayInterfaceGroup(
+@Tag(name = "oauth-clients", description = "OAuth客户端接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity",
         entityDomainName = "统一身份实体域",
-        code = "oauth-clients",
-        name = "OAuth客户端接口组")
-@EgonHttpService(
-        serviceName = "idp-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/v1/identity")
+        interfaceGroupCode = "oauth-clients"
+)
+
 public class OAuthClientController {
 
     private final OAuthClientService clients;
@@ -62,9 +60,14 @@ public class OAuthClientController {
     }
 
     @GetMapping
-    @GatewayOperation(name = "idp-oauth-client-list-v1",
-            summary = "查询OAuth客户端", externalAccessible = true,
-            tags = {"idp", "oauth-client"})
+    @Operation(
+            operationId = "idp-oauth-client-list-v1",
+            summary = "查询OAuth客户端",
+            tags = {"idp", "oauth-client"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public List<OAuthClientVO> list(
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
@@ -74,9 +77,14 @@ public class OAuthClientController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @GatewayOperation(name = "idp-oauth-client-create-v1",
-            summary = "创建OAuth客户端", externalAccessible = true,
-            tags = {"idp", "oauth-client"})
+    @Operation(
+            operationId = "idp-oauth-client-create-v1",
+            summary = "创建OAuth客户端",
+            tags = {"idp", "oauth-client"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public CreatedOAuthClientVO create(
             @Valid @RequestBody CreateOAuthClientDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal,
@@ -88,9 +96,14 @@ public class OAuthClientController {
     }
 
     @PostMapping("/{clientId}/secret-rotations")
-    @GatewayOperation(name = "idp-oauth-client-secret-rotate-v1",
-            summary = "轮换OAuth客户端Secret", externalAccessible = true,
-            tags = {"idp", "oauth-client", "secret"})
+    @Operation(
+            operationId = "idp-oauth-client-secret-rotate-v1",
+            summary = "轮换OAuth客户端Secret",
+            tags = {"idp", "oauth-client", "secret"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public RotatedClientSecretVO rotateSecret(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody RotateClientSecretDTO request,
@@ -103,9 +116,14 @@ public class OAuthClientController {
     }
 
     @PatchMapping("/{clientId}")
-    @GatewayOperation(name = "idp-oauth-client-update-v1",
-            summary = "更新OAuth客户端", externalAccessible = true,
-            tags = {"idp", "oauth-client"})
+    @Operation(
+            operationId = "idp-oauth-client-update-v1",
+            summary = "更新OAuth客户端",
+            tags = {"idp", "oauth-client"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public OAuthClientVO update(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody UpdateOAuthClientDTO request,
@@ -116,9 +134,14 @@ public class OAuthClientController {
     }
 
     @PutMapping("/{clientId}/redirect-uris")
-    @GatewayOperation(name = "idp-oauth-client-redirect-put-v1",
-            summary = "登记OAuth回调地址", externalAccessible = true,
-            tags = {"idp", "oauth-client"})
+    @Operation(
+            operationId = "idp-oauth-client-redirect-put-v1",
+            summary = "登记OAuth回调地址",
+            tags = {"idp", "oauth-client"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public OAuthClientVO putRedirect(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody OAuthValueDTO request,
@@ -129,9 +152,14 @@ public class OAuthClientController {
     }
 
     @DeleteMapping("/{clientId}/redirect-uris")
-    @GatewayOperation(name = "idp-oauth-client-redirect-delete-v1",
-            summary = "删除OAuth回调地址", externalAccessible = true,
-            tags = {"idp", "oauth-client"})
+    @Operation(
+            operationId = "idp-oauth-client-redirect-delete-v1",
+            summary = "删除OAuth回调地址",
+            tags = {"idp", "oauth-client"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public OAuthClientVO deleteRedirect(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody OAuthValueDTO request,
@@ -142,9 +170,14 @@ public class OAuthClientController {
     }
 
     @PutMapping("/{clientId}/resource-uris")
-    @GatewayOperation(name = "idp-oauth-client-resource-put-v1",
-            summary = "登记OAuth Resource URI", externalAccessible = true,
-            tags = {"idp", "oauth-client"})
+    @Operation(
+            operationId = "idp-oauth-client-resource-put-v1",
+            summary = "登记OAuth Resource URI",
+            tags = {"idp", "oauth-client"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public OAuthClientVO putResourceUri(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody OAuthValueDTO request,
@@ -155,9 +188,14 @@ public class OAuthClientController {
     }
 
     @DeleteMapping("/{clientId}/resource-uris")
-    @GatewayOperation(name = "idp-oauth-client-resource-delete-v1",
-            summary = "删除OAuth Resource URI", externalAccessible = true,
-            tags = {"idp", "oauth-client"})
+    @Operation(
+            operationId = "idp-oauth-client-resource-delete-v1",
+            summary = "删除OAuth Resource URI",
+            tags = {"idp", "oauth-client"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public OAuthClientVO deleteResourceUri(
             @PathVariable("clientId") String clientId,
             @Valid @RequestBody OAuthValueDTO request,

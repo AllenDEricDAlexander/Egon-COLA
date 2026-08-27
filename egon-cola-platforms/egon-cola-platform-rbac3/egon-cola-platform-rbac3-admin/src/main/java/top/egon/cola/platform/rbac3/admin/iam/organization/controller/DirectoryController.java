@@ -15,25 +15,22 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField;
-import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.platform.rbac3.admin.iam.organization.domain.vo.OrgUnitVO;
+import top.egon.cola.platform.rbac3.admin.iam.organization.service.DirectoryQueryService;
+import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.domain.dto.DirectorySnapshotCommandDTO;
+import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.domain.vo.DirectorySnapshotVO;
+import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.domain.vo.DirectorySyncVO;
+import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.service.DirectoryCommandService;
+import top.egon.cola.platform.rbac3.admin.iam.position.domain.vo.PositionVO;
 import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import top.egon.cola.component.common.core.pojo.ResultRecord;
-import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.service.DirectoryCommandService;
-import top.egon.cola.platform.rbac3.admin.iam.organization.service.DirectoryQueryService;
-import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.domain.dto.DirectorySnapshotCommandDTO;
-import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.domain.vo.DirectorySyncVO;
-import top.egon.cola.platform.rbac3.admin.iam.organization.domain.vo.OrgUnitVO;
-import top.egon.cola.platform.rbac3.admin.iam.position.domain.vo.PositionVO;
-import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.domain.vo.DirectorySnapshotVO;
 
 /**
  * 组织、岗位与目录快照 HTTP 入口。
@@ -41,18 +38,14 @@ import top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.domain.vo.Di
  */
 @RestController
 @RequestMapping("/api/rbac3/v1")
-@GatewayInterfaceGroup(
+@Tag(name = "organization-directory", description = "用户与目录接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "organization-directory",
-        name = "用户与目录接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        interfaceGroupCode = "organization-directory"
+)
 public class DirectoryController {
     private final DirectoryCommandService commandPort;
     private final DirectoryQueryService queryPort;
@@ -78,11 +71,14 @@ public class DirectoryController {
      */
     @GetMapping("/org-units")
     @RequiresPermission(value = "system:directory:read")
-    @GatewayOperation(
-            name = "rbac3-directory-org-unit-list-v1",
+    @Operation(
+            operationId = "rbac3-directory-org-unit-list-v1",
             summary = "查询组织单元",
-            externalAccessible = true,
-            tags = {"rbac3", "directory"})
+            tags = {"rbac3", "directory"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<OrgUnitVO>> orgUnits(
             @RequestParam(required = false) String parentId,
             @RequestParam(required = false) String type,
@@ -104,11 +100,14 @@ public class DirectoryController {
      */
     @GetMapping("/positions")
     @RequiresPermission(value = "system:directory:read")
-    @GatewayOperation(
-            name = "rbac3-directory-position-list-v1",
+    @Operation(
+            operationId = "rbac3-directory-position-list-v1",
             summary = "查询岗位",
-            externalAccessible = true,
-            tags = {"rbac3", "directory"})
+            tags = {"rbac3", "directory"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<PositionVO>> positions(
             @RequestParam(required = false) String orgUnitId,
             @RequestParam(required = false) String status) {
@@ -128,11 +127,14 @@ public class DirectoryController {
      */
     @PostMapping("/internal/directory-snapshots")
     @RequiresPermission(value = "system:directory:sync")
-    @GatewayOperation(
-            name = "rbac3-directory-snapshot-submit-v1",
+    @Operation(
+            operationId = "rbac3-directory-snapshot-submit-v1",
             summary = "提交单调递增的目录快照",
-            externalAccessible = true,
-            tags = {"rbac3", "directory"})
+            tags = {"rbac3", "directory"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<DirectorySyncVO> submit(
             @Valid @RequestBody DirectorySnapshotCommandDTO command) {
         return ResultRecord.success(commandPort.submit(
@@ -151,11 +153,14 @@ public class DirectoryController {
      */
     @GetMapping("/directory-snapshots/{snapshotId}")
     @RequiresPermission(value = "system:directory-snapshot:read")
-    @GatewayOperation(
-            name = "rbac3-directory-snapshot-get-v1",
+    @Operation(
+            operationId = "rbac3-directory-snapshot-get-v1",
             summary = "读取不可变目录快照回执",
-            externalAccessible = true,
-            tags = {"rbac3", "directory"})
+            tags = {"rbac3", "directory"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<DirectorySnapshotVO> snapshot(
             @PathVariable String snapshotId) {
         return ResultRecord.success(queryPort.findSnapshot(tenantId(), snapshotId));

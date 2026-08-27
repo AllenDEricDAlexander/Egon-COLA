@@ -1,12 +1,13 @@
 package top.egon.cola.platform.idp.admin.identity.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthorizationPort;
 import top.egon.cola.platform.idp.contract.IdentityPrincipal;
 import top.egon.cola.platform.rbac3.contract.auth.AuthorizationBootstrapView;
@@ -18,18 +19,15 @@ import java.util.Objects;
 /** Provides the IdP administration web with its own authorization bootstrap. */
 @RestController
 @RequestMapping("/api/v1/identity/auth")
-@GatewayInterfaceGroup(
+@Tag(name = "identity-auth-bootstrap", description = "统一身份管理台授权上下文接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity-auth",
         entityDomainName = "统一身份认证上下文域",
-        code = "identity-auth-bootstrap",
-        name = "统一身份管理台授权上下文接口组")
-@EgonHttpService(
-        serviceName = "idp-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/v1/identity")
+        interfaceGroupCode = "identity-auth-bootstrap"
+)
+
 public final class IdentityAuthBootstrapController {
 
     private final Rbac3AboutService bootstrap;
@@ -42,11 +40,14 @@ public final class IdentityAuthBootstrapController {
         this.authorization = Objects.requireNonNull(authorization, "authorization");
     }
 
-    @GatewayOperation(
-            name = "idp-identity-auth-bootstrap-v1",
+    @Operation(
+            operationId = "idp-identity-auth-bootstrap-v1",
             summary = "查询统一身份管理台当前授权上下文",
-            externalAccessible = true,
-            tags = {"idp", "identity"})
+            tags = {"idp", "identity"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     @GetMapping("/bootstrap")
     public AuthorizationBootstrapView bootstrap(
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal) {

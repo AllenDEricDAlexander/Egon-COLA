@@ -1,5 +1,7 @@
 package top.egon.cola.component.ddc.admin.controller.metadata;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,20 +18,21 @@ import top.egon.cola.component.ddc.admin.model.dto.DdcNamespaceEnvAppBindingRequ
 import top.egon.cola.component.ddc.admin.model.vo.DdcNamespaceEnvAppBindingVO;
 import top.egon.cola.component.ddc.admin.service.metadata.DdcNamespaceEnvAppBindingService;
 import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/ddc/namespace-env-app-bindings")
-@GatewayInterfaceGroup(
+@Tag(name = "ddc-admin-ddc-namespace-env-app-binding-controller", description = "DdcNamespaceEnvAppBindingController 管理接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "ddc-admin",
         entityDomainName = "Dynamic Config Center 管理实体域",
-        code = "ddc-admin-ddc-namespace-env-app-binding-controller",
-        name = "DdcNamespaceEnvAppBindingController 管理接口组")
+        interfaceGroupCode = "ddc-admin-ddc-namespace-env-app-binding-controller"
+)
 public class DdcNamespaceEnvAppBindingController {
 
     private final DdcNamespaceEnvAppBindingService bindingService;
@@ -39,7 +42,8 @@ public class DdcNamespaceEnvAppBindingController {
         this.bindingService = bindingService;
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcNamespaceEnvAppBindingController.list")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
     public ResultRecord<List<DdcNamespaceEnvAppBindingVO>> list(
             @RequestParam(value = "bizCode", required = false) String bizCode,
@@ -50,7 +54,8 @@ public class DdcNamespaceEnvAppBindingController {
                 bizCode, namespaceCode, env, appCode));
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcNamespaceEnvAppBindingController.page")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/page")
     public PageResultRecord<DdcNamespaceEnvAppBindingVO> page(
             @RequestParam(value = "bizCode", required = false) String bizCode,
@@ -62,14 +67,16 @@ public class DdcNamespaceEnvAppBindingController {
                 bizCode, namespaceCode, env, appCode, pageQuery));
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcNamespaceEnvAppBindingController.create")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping
     public ResultRecord<DdcNamespaceEnvAppBindingVO> create(
             @RequestBody DdcNamespaceEnvAppBindingRequest request) {
         return ResultRecord.success(bindingService.create(request));
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcNamespaceEnvAppBindingController.update")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{id}")
     public ResultRecord<DdcNamespaceEnvAppBindingVO> update(
             @PathVariable("id") String id,
@@ -77,7 +84,8 @@ public class DdcNamespaceEnvAppBindingController {
         return ResultRecord.success(bindingService.update(id, request));
     }
 
-    @GatewayOperation(externalAccessible = true)
+    @Operation(operationId = "ddc.ddcNamespaceEnvAppBindingController.delete")
+    @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/{id}")
     public ResultRecord<Void> delete(@PathVariable("id") String id) {
         bindingService.delete(id);

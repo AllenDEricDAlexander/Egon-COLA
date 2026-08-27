@@ -1,5 +1,7 @@
 package top.egon.cola.platform.idp.admin.oauth.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,9 +16,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import top.egon.cola.platform.idp.admin.oauth.domain.dto.OAuthLoginDTO;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthCsrfVO;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthLoginErrorVO;
@@ -41,18 +42,15 @@ import java.util.Objects;
  * Password login endpoint that issues the IdP-owned USER AT/RT cookie pair.
  */
 @RestController
-@GatewayInterfaceGroup(
+@Tag(name = "idp-oauth-login", description = "IdP OAuth 登录接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "oauth-protocol",
         entityDomainName = "OAuth 协议域",
-        code = "idp-oauth-login",
-        name = "IdP OAuth 登录接口组")
-@EgonHttpService(
-        serviceName = "idp-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/")
+        interfaceGroupCode = "idp-oauth-login"
+)
+
 public class OAuthLoginController {
 
     public static final String CSRF_COOKIE_NAME = "EGON_IDP_CSRF";
@@ -85,10 +83,14 @@ public class OAuthLoginController {
     }
 
     @GetMapping("/oauth2/login/csrf")
-    @GatewayOperation(name = "idp-oauth-login-csrf-v1",
+    @Operation(
+            operationId = "idp-oauth-login-csrf-v1",
             summary = "获取 OAuth 登录 CSRF 挑战",
-            externalAccessible = true,
-            tags = {"idp", "oauth"})
+            tags = {"idp", "oauth"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResponseEntity<OAuthCsrfVO> csrf() {
         byte[] bytes = new byte[32];
         random.nextBytes(bytes);
@@ -100,10 +102,14 @@ public class OAuthLoginController {
     }
 
     @PostMapping("/oauth2/login")
-    @GatewayOperation(name = "idp-oauth-login-v1",
+    @Operation(
+            operationId = "idp-oauth-login-v1",
             summary = "使用密码登录并建立 USER Cookie",
-            externalAccessible = true,
-            tags = {"idp", "oauth"})
+            tags = {"idp", "oauth"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResponseEntity<OAuthLoginVO> login(
             @RequestBody OAuthLoginDTO request,
             @RequestHeader("X-IDP-CSRF") String csrfHeader,

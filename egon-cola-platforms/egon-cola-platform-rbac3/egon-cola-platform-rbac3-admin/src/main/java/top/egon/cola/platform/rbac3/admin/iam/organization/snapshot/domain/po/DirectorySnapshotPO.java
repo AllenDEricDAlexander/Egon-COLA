@@ -1,5 +1,5 @@
 package top.egon.cola.platform.rbac3.admin.iam.organization.snapshot.domain.po;
-
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -117,8 +117,7 @@ public class DirectorySnapshotPO extends TenantScopedPO {
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
-    @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
-            allowArbitraryJson = true)
+
     private Map<String, Object> payload;
 
     /**
@@ -130,8 +129,7 @@ public class DirectorySnapshotPO extends TenantScopedPO {
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(nullable = false, columnDefinition = "jsonb")
-    @top.egon.cola.component.gateway.starter.annotation.GatewaySchemaField(
-            allowArbitraryJson = true)
+
     private Map<String, Object> counts = new LinkedHashMap<>();
 
     /**

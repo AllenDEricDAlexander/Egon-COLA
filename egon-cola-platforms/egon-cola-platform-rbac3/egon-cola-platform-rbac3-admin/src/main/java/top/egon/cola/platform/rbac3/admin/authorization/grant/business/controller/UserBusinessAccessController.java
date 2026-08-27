@@ -8,36 +8,30 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;import io.swagger.v3.oas.annotations.Operation;import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;import io.swagger.v3.oas.annotations.tags.Tag;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.business.domain.command.ReplaceUserBusinessAccessesCommand;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.business.domain.vo.UserBusinessAccessVO;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.business.service.UserBusinessAccessFacade;
+import top.egon.cola.platform.rbac3.admin.iam.business.domain.vo.UserApplicationAccessVO;
+import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
 import top.egon.cola.platform.rbac3.starter.security.CurrentRbac3User;
 import top.egon.cola.platform.rbac3.starter.security.Rbac3UserDetails;
 import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
-import top.egon.cola.platform.rbac3.admin.authorization.grant.business.domain.command.ReplaceUserBusinessAccessesCommand;
-import top.egon.cola.platform.rbac3.admin.iam.business.domain.vo.UserApplicationAccessVO;
-import top.egon.cola.platform.rbac3.admin.authorization.grant.business.domain.vo.UserBusinessAccessVO;
-import top.egon.cola.platform.rbac3.admin.authorization.grant.business.service.UserBusinessAccessFacade;
-import top.egon.cola.platform.rbac3.admin.shared.tenant.domain.TenantContext;
-import top.egon.cola.component.common.core.pojo.ResultRecord;
 
 import java.util.List;
 
 /** User Business grant and derived Application access endpoints. */
 @RestController
 @RequestMapping("/api/rbac3/v1/iam")
-@GatewayInterfaceGroup(
+@Tag(name = "user-business-access", description = "用户业务域授权接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        code = "user-business-access",
-        name = "用户业务域授权接口组")
-@EgonHttpService(
-        serviceName = "rbac3-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/rbac3/v1")
+        interfaceGroupCode = "user-business-access"
+)
 public class UserBusinessAccessController {
 
     private final UserBusinessAccessFacade facade;
@@ -48,11 +42,14 @@ public class UserBusinessAccessController {
 
     @GetMapping("/users/{userId}/business-accesses")
     @RequiresPermission(value = "system:user-business-access:read")
-    @GatewayOperation(
-            name = "rbac3-user-business-access-list-v1",
+    @Operation(
+            operationId = "rbac3-user-business-access-list-v1",
             summary = "查询用户业务域授权",
-            externalAccessible = true,
-            tags = {"rbac3", "user", "business"})
+            tags = {"rbac3", "user", "business"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<UserBusinessAccessVO>> accesses(
             @PathVariable Long userId) {
         return ResultRecord.success(facade.accesses(tenantId(), userId));
@@ -60,11 +57,14 @@ public class UserBusinessAccessController {
 
     @PutMapping("/users/{userId}/business-accesses")
     @RequiresPermission(value = "system:user-business-access:manage")
-    @GatewayOperation(
-            name = "rbac3-user-business-access-replace-v1",
+    @Operation(
+            operationId = "rbac3-user-business-access-replace-v1",
             summary = "替换用户人工业务域授权",
-            externalAccessible = true,
-            tags = {"rbac3", "user", "business"})
+            tags = {"rbac3", "user", "business"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<UserBusinessAccessVO>> replace(
             @PathVariable Long userId,
             @Valid @RequestBody ReplaceUserBusinessAccessesCommand command
@@ -75,11 +75,14 @@ public class UserBusinessAccessController {
 
     @GetMapping("/users/{userId}/application-accesses")
     @RequiresPermission(value = "system:user-application-access:read")
-    @GatewayOperation(
-            name = "rbac3-user-application-access-list-v1",
+    @Operation(
+            operationId = "rbac3-user-application-access-list-v1",
             summary = "查询用户派生应用访问范围",
-            externalAccessible = true,
-            tags = {"rbac3", "user", "application"})
+            tags = {"rbac3", "user", "application"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResultRecord<List<UserApplicationAccessVO>> applicationAccesses(
             @PathVariable Long userId) {
         return ResultRecord.success(facade.applicationAccesses(tenantId(), userId));

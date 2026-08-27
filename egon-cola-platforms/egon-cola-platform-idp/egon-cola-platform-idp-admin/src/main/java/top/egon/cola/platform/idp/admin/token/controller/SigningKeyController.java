@@ -1,5 +1,7 @@
 package top.egon.cola.platform.idp.admin.token.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.PositiveOrZero;
 import org.springframework.http.HttpStatus;
@@ -12,9 +14,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthorizationPort;
 import top.egon.cola.platform.idp.admin.token.domain.dto.PublishSigningKeyDTO;
 import top.egon.cola.platform.idp.admin.token.domain.vo.SigningKeyVO;
@@ -26,18 +27,15 @@ import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/v1/identity/signing-keys")
-@GatewayInterfaceGroup(
+@Tag(name = "signing-keys", description = "签名密钥接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity",
         entityDomainName = "统一身份实体域",
-        code = "signing-keys",
-        name = "签名密钥接口组")
-@EgonHttpService(
-        serviceName = "idp-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/v1/identity")
+        interfaceGroupCode = "signing-keys"
+)
+
 public class SigningKeyController {
 
     private final SigningKeyService keys;
@@ -55,9 +53,14 @@ public class SigningKeyController {
     }
 
     @GetMapping
-    @GatewayOperation(name = "idp-signing-key-list-v1",
-            summary = "查询签名密钥", externalAccessible = true,
-            tags = {"idp", "signing-key"})
+    @Operation(
+            operationId = "idp-signing-key-list-v1",
+            summary = "查询签名密钥",
+            tags = {"idp", "signing-key"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public List<SigningKeyVO> list(
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
@@ -67,9 +70,14 @@ public class SigningKeyController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @GatewayOperation(name = "idp-signing-key-publish-v1",
-            summary = "预发布签名密钥", externalAccessible = true,
-            tags = {"idp", "signing-key"})
+    @Operation(
+            operationId = "idp-signing-key-publish-v1",
+            summary = "预发布签名密钥",
+            tags = {"idp", "signing-key"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public SigningKeyVO publish(
             @Valid @RequestBody PublishSigningKeyDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
@@ -79,9 +87,14 @@ public class SigningKeyController {
     }
 
     @PostMapping("/{kid}/activate")
-    @GatewayOperation(name = "idp-signing-key-activate-v1",
-            summary = "激活签名密钥", externalAccessible = true,
-            tags = {"idp", "signing-key"})
+    @Operation(
+            operationId = "idp-signing-key-activate-v1",
+            summary = "激活签名密钥",
+            tags = {"idp", "signing-key"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public SigningKeyVO activate(
             @PathVariable("kid") String kid,
             @RequestParam("expectedVersion")
@@ -93,9 +106,14 @@ public class SigningKeyController {
     }
 
     @PostMapping("/{kid}/retire")
-    @GatewayOperation(name = "idp-signing-key-retire-v1",
-            summary = "退役签名密钥", externalAccessible = true,
-            tags = {"idp", "signing-key"})
+    @Operation(
+            operationId = "idp-signing-key-retire-v1",
+            summary = "退役签名密钥",
+            tags = {"idp", "signing-key"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public SigningKeyVO retire(
             @PathVariable("kid") String kid,
             @RequestParam("expectedVersion")

@@ -3,12 +3,15 @@ package top.egon.cola.platform.idp.admin.tenant.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,10 +22,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.validation.annotation.Validated;
-import top.egon.cola.component.gateway.starter.annotation.EgonHttpService;
-import top.egon.cola.component.gateway.starter.annotation.GatewayInterfaceGroup;
-import top.egon.cola.component.gateway.starter.annotation.GatewayOperation;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
+import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import top.egon.cola.platform.idp.admin.support.security.IdpAdminAuthorizationPort;
 import top.egon.cola.platform.idp.admin.tenant.domain.dto.CreateTenantDTO;
 import top.egon.cola.platform.idp.admin.tenant.domain.dto.UpdateTenantDTO;
@@ -44,18 +45,15 @@ import java.util.Objects;
 @Validated
 @RestController
 @RequestMapping("/api/v1/identity/tenants")
-@GatewayInterfaceGroup(
+@Tag(name = "identity-tenants", description = "统一身份租户接口组")
+@EgonApiCatalog(
         businessDomainCode = "platform",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity",
         entityDomainName = "统一身份实体域",
-        code = "identity-tenants",
-        name = "统一身份租户接口组")
-@EgonHttpService(
-        serviceName = "idp-admin",
-        group = "default",
-        version = "1.0.0",
-        basePath = "/api/v1/identity")
+        interfaceGroupCode = "identity-tenants"
+)
+
 public class TenantController {
 
     private final TenantService tenants;
@@ -79,11 +77,14 @@ public class TenantController {
     }
 
     @GetMapping
-    @GatewayOperation(
-            name = "idp-tenant-list-v1",
+    @Operation(
+            operationId = "idp-tenant-list-v1",
             summary = "查询身份租户",
-            externalAccessible = true,
-            tags = {"idp", "tenant"})
+            tags = {"idp", "tenant"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public TenantPageVO list(
             @RequestParam(defaultValue = "0")
             @Min(0) int page,
@@ -110,11 +111,14 @@ public class TenantController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @GatewayOperation(
-            name = "idp-tenant-create-v1",
+    @Operation(
+            operationId = "idp-tenant-create-v1",
             summary = "创建身份租户",
-            externalAccessible = true,
-            tags = {"idp", "tenant"})
+            tags = {"idp", "tenant"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public TenantVO create(
             @Valid @RequestBody CreateTenantDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
@@ -129,11 +133,14 @@ public class TenantController {
     }
 
     @PatchMapping("/{tenantId}")
-    @GatewayOperation(
-            name = "idp-tenant-update-v1",
+    @Operation(
+            operationId = "idp-tenant-update-v1",
             summary = "更新身份租户",
-            externalAccessible = true,
-            tags = {"idp", "tenant"})
+            tags = {"idp", "tenant"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public TenantVO update(
             @PathVariable String tenantId,
             @Valid @RequestBody UpdateTenantDTO request,
@@ -153,11 +160,14 @@ public class TenantController {
     }
 
     @GetMapping("/{tenantId}/members")
-    @GatewayOperation(
-            name = "idp-tenant-membership-list-v1",
+    @Operation(
+            operationId = "idp-tenant-membership-list-v1",
             summary = "查询身份租户成员",
-            externalAccessible = true,
-            tags = {"idp", "tenant", "membership"})
+            tags = {"idp", "tenant", "membership"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public TenantMembershipPageVO listMembers(
             @PathVariable String tenantId,
             @RequestParam(defaultValue = "0")
@@ -186,11 +196,14 @@ public class TenantController {
     }
 
     @PutMapping("/{tenantId}/members/{identitySub}")
-    @GatewayOperation(
-            name = "idp-tenant-membership-upsert-v1",
+    @Operation(
+            operationId = "idp-tenant-membership-upsert-v1",
             summary = "更新身份租户成员",
-            externalAccessible = true,
-            tags = {"idp", "tenant", "membership"})
+            tags = {"idp", "tenant", "membership"}
+    )
+    @EgonGatewayPolicy(
+            exposure = EgonGatewayPolicy.Exposure.EXTERNAL
+    )
     public ResponseEntity<TenantMembershipVO> upsertMember(
             @PathVariable String tenantId,
             @PathVariable String identitySub,
