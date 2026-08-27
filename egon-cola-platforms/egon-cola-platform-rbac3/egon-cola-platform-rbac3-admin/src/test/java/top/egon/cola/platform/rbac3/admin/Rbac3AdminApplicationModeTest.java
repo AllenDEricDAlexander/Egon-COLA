@@ -2,6 +2,8 @@ package top.egon.cola.platform.rbac3.admin;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import top.egon.cola.platform.rbac3.admin.config.security.Rbac3AdminSecurityConfiguration;
 
 import java.util.Arrays;
@@ -24,6 +26,10 @@ class Rbac3AdminApplicationModeTest {
         assertThat(condition).isNotNull();
         assertThat(condition.type()).isEqualTo(
                 ConditionalOnWebApplication.Type.SERVLET);
+
+        Order order = filterChain.getAnnotation(Order.class);
+        assertThat(order).isNotNull();
+        assertThat(order.value()).isEqualTo(Ordered.LOWEST_PRECEDENCE);
     }
 
     @Test

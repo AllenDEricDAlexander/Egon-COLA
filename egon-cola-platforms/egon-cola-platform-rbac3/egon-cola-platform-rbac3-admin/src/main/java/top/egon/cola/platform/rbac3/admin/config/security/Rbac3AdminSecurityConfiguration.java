@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -136,7 +137,7 @@ public class Rbac3AdminSecurityConfiguration {
      * @throws Exception 当输入违反契约或依赖不可用时抛出；thrown when the contract is violated or a dependency is unavailable.
      */
     @Bean
-    @Order(2)
+    @Order(Ordered.LOWEST_PRECEDENCE)
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     SecurityFilterChain rbac3SecurityFilterChain(
             HttpSecurity http,
