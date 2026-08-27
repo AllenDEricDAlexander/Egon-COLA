@@ -1900,8 +1900,12 @@ command_start() {
   wait_http idp "${idp_url}/actuator/health/readiness"
   refresh_service_tokens
   stage "waiting for IdP identity RPC publication"
+  start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}" \
+    --egon.rbac3.development-bootstrap.enabled=false
+  wait_http rbac3 "${rbac3_url}/actuator/health/readiness"
   wait_ddc_rpc_provider_registration permission idp IdentityDirectoryService idp 1.0.0
   stage "starting RBAC3 topology bootstrap after IdP RPC publication"
+  stop_process rbac3
   start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}"
   wait_http rbac3 "${rbac3_url}/actuator/health/readiness"
 
