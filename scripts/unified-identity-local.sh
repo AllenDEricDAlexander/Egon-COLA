@@ -422,6 +422,9 @@ java_property_key() {
     GATEWAY_ADMIN_DEFINITION_RECONCILE_DELAY)
       printf 'gateway.admin.definition-reconcile-delay'
       ;;
+    GATEWAY_ADMIN_RELEASE_RECONCILE_ENABLED)
+      printf 'gateway.admin.release-reconcile-enabled'
+      ;;
     *) printf '%s' "$1" ;;
   esac
 }
@@ -772,6 +775,9 @@ write_service_env_files() {
   write_env "${file}" GATEWAY_ADMIN_DDC_TARGET_BIZ_CODE identity
   write_env "${file}" GATEWAY_ADMIN_DDC_TARGET_APP_CODE gateway-engine-default
   write_env "${file}" GATEWAY_ADMIN_DEFINITION_RECONCILE_DELAY 1000
+  if [[ "${startup_mode}" == "platforms" ]]; then
+    write_env "${file}" GATEWAY_ADMIN_RELEASE_RECONCILE_ENABLED false
+  fi
   write_env "${file}" GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED false
   write_env "${file}" GATEWAY_ADMIN_BASE_URL "${gateway_admin_url}"
   write_env "${file}" GATEWAY_ADMIN_RESOURCE_BIZ_CODE platform

@@ -33,6 +33,7 @@ management:
 
 gateway:
   admin:
+    release-reconcile-enabled: ${GATEWAY_ADMIN_RELEASE_RECONCILE_ENABLED:true}
     mcp:
       artifact-root: ${GATEWAY_MCP_ARTIFACT_ROOT:${java.io.tmpdir}/egon-cola/gateway-mcp-artifacts}
     transport-security:

@@ -75,6 +75,9 @@ source "${function_file}"
 [[ "$(java_property_key GATEWAY_ADMIN_DDC_ENABLED)" \
     == 'gateway.admin.ddc.enabled' ]] \
   || fail 'Gateway DDC enablement must use its canonical property key'
+[[ "$(java_property_key GATEWAY_ADMIN_RELEASE_RECONCILE_ENABLED)" \
+    == 'gateway.admin.release-reconcile-enabled' ]] \
+  || fail 'Gateway release recovery enablement must use its canonical property key'
 [[ "$(java_property_key GATEWAY_ADMIN_SECRETS_MASTER_KEY_BASE64)" \
     == 'gateway.admin.secrets.master-key-base64' ]] \
   || fail 'Gateway secret protection must use its canonical property key'
@@ -434,6 +437,9 @@ assert_env_equals "${gateway_admin_env}" \
 assert_env_equals "${gateway_admin_env}" \
   GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED false \
   'Gateway Admin must defer self-reporting until other catalogs are published'
+assert_env_equals "${gateway_admin_env}" \
+  GATEWAY_ADMIN_RELEASE_RECONCILE_ENABLED false \
+  'platform startup must defer historical Gateway release recovery until the current route release completes'
 assert_env_equals "${gateway_admin_env}" GATEWAY_ADMIN_RESOURCE_BIZ_CODE platform \
   'Gateway Admin must report under the platform business scope'
 assert_env_equals "${gateway_admin_env}" GATEWAY_ADMIN_RESOURCE_APP_CODE gateway-admin \

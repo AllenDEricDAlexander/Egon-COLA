@@ -3,6 +3,7 @@ package top.egon.cola.component.gateway.admin.release.controller.scheduled;
 
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -23,6 +24,11 @@ import java.util.List;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @Component
+@ConditionalOnProperty(
+        name = "gateway.admin.release-reconcile-enabled",
+        havingValue = "true",
+        matchIfMissing = true
+)
 public class GatewayReleaseReconciler {
 
     /**
