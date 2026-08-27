@@ -46,6 +46,25 @@ public interface DdcConfigClient {
     List<DdcConfigValue> pull();
 
     /**
+     * 拉取指定资源版本，用于通知省略内容时回源读取准备中的精确快照。
+     * Pulls an exact resource version when a notification defers its content.
+     *
+     * @param resourceName 资源名 / resource name
+     * @param targetVersion 目标版本 / target version
+     * @return 匹配的配置值，不存在时为空列表 / matching value, or an empty list when unavailable
+     */
+    default List<DdcConfigValue> pull(String resourceName, long targetVersion) {
+        if (resourceName == null || resourceName.isBlank() || targetVersion <= 0) {
+            return List.of();
+        }
+        return pull().stream()
+                .filter(value -> value != null
+                        && resourceName.equals(value.getResourceName())
+                        && Long.valueOf(targetVersion).equals(value.getVersion()))
+                .toList();
+    }
+
+    /**
      * 向管理端确认一次配置发布结果。 Acknowledges a configuration publication result to the management service.
      *
      * @param request 发布确认请求。 publication acknowledgement request

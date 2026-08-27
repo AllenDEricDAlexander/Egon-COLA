@@ -61,6 +61,8 @@ class RpcDdcConfigClientTest {
                 .isEqualTo(DdcLeaseOperationStatus.DELETED);
         assertThat(client.pull()).singleElement()
                 .extracting(DdcConfigValue::getVersion).isEqualTo(2L);
+        assertThat(client.pull("application.yml", 2L)).singleElement()
+                .extracting(DdcConfigValue::getVersion).isEqualTo(2L);
         client.ack(ack());
 
         verify(rpc).registerConfigClient(argThat(request ->
@@ -70,7 +72,14 @@ class RpcDdcConfigClientTest {
         verify(rpc).heartbeatConfigClient(argThat(request ->
                 request.getRegistrationToken().equals("config-heartbeat-ticket")));
         verify(rpc).pullConfig(argThat(request ->
-                request.getScope().getEnv().equals("test")));
+                request.getScope().getEnv().equals("test")
+                        && !request.hasResourceName()
+                        && !request.hasTargetVersion()));
+        verify(rpc).pullConfig(argThat(request ->
+                request.hasResourceName()
+                        && request.getResourceName().equals("application.yml")
+                        && request.hasTargetVersion()
+                        && request.getTargetVersion() == 2L));
         verify(rpc).acknowledgePublish(argThat(request ->
                 request.getLeaseId().equals("lease-1")));
     }

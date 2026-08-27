@@ -105,10 +105,34 @@ public class DdcConfigRpcProvider implements DdcConfigRuntimeRpc {
         if (!request.hasScope()) {
             throw new IllegalArgumentException("scope is required");
         }
+        String resourceName = request.hasResourceName()
+                ? request.getResourceName()
+                : null;
+        Long targetVersion = request.hasTargetVersion()
+                ? request.getTargetVersion()
+                : null;
+        if ((resourceName == null) != (targetVersion == null)
+                || (targetVersion != null && targetVersion <= 0)
+                || (resourceName != null && resourceName.isBlank())) {
+            throw new IllegalArgumentException(
+                    "resourceName and positive targetVersion must be provided together");
+        }
+        String bizCode = request.getScope().getBizCode();
+        String env = request.getScope().getEnv();
+        String appCode = request.getScope().getAppCode();
+        if (targetVersion == null) {
+            return mapper.toPullResponse(facade.pull(
+                    bizCode,
+                    env,
+                    appCode
+            ));
+        }
         return mapper.toPullResponse(facade.pull(
-                request.getScope().getBizCode(),
-                request.getScope().getEnv(),
-                request.getScope().getAppCode()
+                bizCode,
+                env,
+                appCode,
+                resourceName,
+                targetVersion
         ));
     }
 

@@ -16,13 +16,16 @@ import top.egon.cola.component.ddc.admin.model.dto.DdcConfigUpdateRequest;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigVersionEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcOperationLogEntity;
+import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.ddc.admin.model.enums.ChangeType;
+import top.egon.cola.component.ddc.admin.model.enums.PublishStatus;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVO;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVersionVO;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
 import top.egon.cola.component.ddc.admin.support.DdcAdminPageSupport;
 import top.egon.cola.component.ddc.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.ddc.format.DdcYamlConfigFormatStrategy;
@@ -49,6 +52,11 @@ public class DdcConfigService {
             DdcYamlConfigFormatStrategy.ALTERNATE_RESOURCE_NAME
     );
 
+    private static final List<String> PREPARED_PUBLISH_STATUSES = List.of(
+            PublishStatus.PUBLISHING.name(),
+            PublishStatus.UNKNOWN.name()
+    );
+
     private final DdcConfigItemRepository configItemRepository;
 
     private final DdcConfigVersionRepository versionRepository;
@@ -56,6 +64,8 @@ public class DdcConfigService {
     private final DdcOperationLogRepository operationLogRepository;
 
     private final DdcNamespaceEnvAppBindingRepository bindingRepository;
+
+    private final DdcPublishTaskRepository publishTaskRepository;
 
     private final DdcYamlConfigValidator yamlValidator;
 
@@ -65,11 +75,13 @@ public class DdcConfigService {
             DdcConfigVersionRepository versionRepository,
             DdcOperationLogRepository operationLogRepository,
             ObjectProvider<DdcAdminProperties> propertiesProvider,
-            DdcNamespaceEnvAppBindingRepository bindingRepository) {
+            DdcNamespaceEnvAppBindingRepository bindingRepository,
+            DdcPublishTaskRepository publishTaskRepository) {
         this.configItemRepository = configItemRepository;
         this.versionRepository = versionRepository;
         this.operationLogRepository = operationLogRepository;
         this.bindingRepository = bindingRepository;
+        this.publishTaskRepository = publishTaskRepository;
         DdcAdminProperties properties =
                 propertiesProvider.getIfAvailable(DdcAdminProperties::new);
         this.yamlValidator = new DdcYamlConfigValidator(
@@ -87,6 +99,23 @@ public class DdcConfigService {
                 versionRepository,
                 operationLogRepository,
                 propertiesProvider,
+                null,
+                null
+        );
+    }
+
+    public DdcConfigService(
+            DdcConfigItemRepository configItemRepository,
+            DdcConfigVersionRepository versionRepository,
+            DdcOperationLogRepository operationLogRepository,
+            ObjectProvider<DdcAdminProperties> propertiesProvider,
+            DdcNamespaceEnvAppBindingRepository bindingRepository) {
+        this(
+                configItemRepository,
+                versionRepository,
+                operationLogRepository,
+                propertiesProvider,
+                bindingRepository,
                 null
         );
     }
@@ -335,12 +364,65 @@ public class DdcConfigService {
     }
 
     public List<DdcConfigValue> pull(String bizCode, String env, String appCode) {
+        return pull(bizCode, env, appCode, null, null);
+    }
+
+    public List<DdcConfigValue> pull(
+            String bizCode,
+            String env,
+            String appCode,
+            String resourceName,
+            Long targetVersion) {
         return findScopeConfig(bizCode, env, appCode)
-                .flatMap(this::publishedVersion)
+                .flatMap(item -> requestedVersion(
+                        item,
+                        resourceName,
+                        targetVersion
+                ))
                 .filter(this::isRuntimeValue)
                 .map(this::toConfigValue)
                 .map(List::of)
                 .orElseGet(List::of);
+    }
+
+    private Optional<DdcConfigVersionEntity> requestedVersion(
+            DdcConfigItemEntity item,
+            String resourceName,
+            Long targetVersion) {
+        if (resourceName == null && targetVersion == null) {
+            return publishedVersion(item);
+        }
+        if (resourceName == null
+                || targetVersion == null
+                || targetVersion <= 0
+                || !Objects.equals(resourceName, item.getResourceName())) {
+            return Optional.empty();
+        }
+        boolean published = Objects.equals(
+                targetVersion,
+                item.getPublishedVersion()
+        );
+        boolean prepared = !published
+                && Objects.equals(targetVersion, item.getCurrentVersion())
+                && publishTaskRepository != null
+                && publishTaskRepository
+                .findFirstByBizCodeAndEnvAndAppCodeAndResourceNameAndStatusIn(
+                        item.getBizCode(),
+                        item.getEnv(),
+                        item.getAppCode(),
+                        item.getResourceName(),
+                        PREPARED_PUBLISH_STATUSES
+                )
+                .map(DdcPublishTaskEntity::getTargetVersion)
+                .filter(targetVersion::equals)
+                .isPresent();
+        if (!published && !prepared) {
+            return Optional.empty();
+        }
+        return versionRepository.findByConfigIdAndVersion(
+                item.getId(),
+                targetVersion
+        );
     }
 
     public List<DdcConfigVersionVO> versions(String configId) {

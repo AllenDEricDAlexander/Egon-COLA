@@ -50,7 +50,11 @@ class DdcRpcGeneratedContractTest {
                         "RevokeResourceAdmission",
                         "GetScopeBindings",
                         "GetServiceKeys",
-                        "GetInstances"
+                        "GetInstances",
+                        "GetBiz",
+                        "ListBizs",
+                        "GetApp",
+                        "ListApps"
                 );
     }
 

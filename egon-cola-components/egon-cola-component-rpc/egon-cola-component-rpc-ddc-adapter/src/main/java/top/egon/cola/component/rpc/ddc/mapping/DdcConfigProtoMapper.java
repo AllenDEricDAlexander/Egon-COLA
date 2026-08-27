@@ -156,6 +156,23 @@ public final class DdcConfigProtoMapper {
                 .build());
     }
 
+    public PullConfigRequest toPullRequest(
+            String bizCode,
+            String env,
+            String appCode,
+            String resourceName,
+            long targetVersion) {
+        if (resourceName == null || resourceName.isBlank() || targetVersion <= 0) {
+            throw new IllegalArgumentException(
+                    "resourceName and positive targetVersion are required");
+        }
+        return common.checked(PullConfigRequest.newBuilder()
+                .setScope(common.toScope(bizCode, env, appCode))
+                .setResourceName(resourceName)
+                .setTargetVersion(targetVersion)
+                .build());
+    }
+
     public DdcConfig toConfig(DdcConfigValue value) {
         require(value, "config");
         common.validateConfigContent(value.getContent(), maxConfigBytes);

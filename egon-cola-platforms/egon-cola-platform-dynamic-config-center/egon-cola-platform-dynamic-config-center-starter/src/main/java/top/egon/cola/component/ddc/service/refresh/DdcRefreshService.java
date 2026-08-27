@@ -398,7 +398,10 @@ public class DdcRefreshService {
                     "DDC deferred content requires a configuration client"
             );
         }
-        List<DdcConfigValue> configs = configClient.pull();
+        List<DdcConfigValue> configs = configClient.pull(
+                message.getResourceName(),
+                message.getTargetVersion()
+        );
         if (configs != null) {
             for (DdcConfigValue config : configs) {
                 if (config == null

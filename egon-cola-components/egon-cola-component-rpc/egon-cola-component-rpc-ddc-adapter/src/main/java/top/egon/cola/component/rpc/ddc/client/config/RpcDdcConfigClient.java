@@ -77,6 +77,18 @@ public final class RpcDdcConfigClient implements DdcConfigClient {
     }
 
     @Override
+    public List<DdcConfigValue> pull(String resourceName, long targetVersion) {
+        return invoke(DdcRpcOperation.CONFIG_PULL, () -> mapper.fromPullResponse(
+                rpc.pullConfig(mapper.toPullRequest(
+                        bizCode,
+                        env,
+                        appCode,
+                        resourceName,
+                        targetVersion
+                ))));
+    }
+
+    @Override
     public void ack(DdcAckRequest request) {
         invoke(DdcRpcOperation.PUBLISH_ACK, () -> {
             rpc.acknowledgePublish(mapper.toAcknowledgeRequest(request));

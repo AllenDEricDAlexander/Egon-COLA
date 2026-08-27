@@ -53,6 +53,13 @@ class DdcConfigRpcProviderTest {
         when(facade.heartbeat(any(DdcHeartbeatRequest.class))).thenReturn(renewed);
         when(facade.offline(any(DdcHeartbeatRequest.class))).thenReturn(deleted);
         when(facade.pull("biz", "test", "app")).thenReturn(List.of(config));
+        when(facade.pull(
+                "biz",
+                "test",
+                "app",
+                "application.yml",
+                2L
+        )).thenReturn(List.of(config));
 
         principal("SDK").bind(Context.current()).run(() -> {
             assertThat(provider.registerConfigClient(mapper.toRegisterRequest(registration))
@@ -63,6 +70,13 @@ class DdcConfigRpcProviderTest {
                     .getResult()).isEqualTo(common.toProto(deleted));
             assertThat(provider.pullConfig(mapper.toPullRequest("biz", "test", "app"))
                     .getConfigsList()).containsExactly(mapper.toConfig(config));
+            assertThat(provider.pullConfig(mapper.toPullRequest(
+                    "biz",
+                    "test",
+                    "app",
+                    "application.yml",
+                    2L
+            )).getConfigsList()).containsExactly(mapper.toConfig(config));
             assertThat(provider.acknowledgePublish(mapper.toAcknowledgeRequest(ack)))
                     .isNotNull();
         });
@@ -77,6 +91,13 @@ class DdcConfigRpcProviderTest {
                 value.getInstanceId().equals("instance-1")
                         && value.getLeaseId().equals("lease-1")));
         verify(facade).pull("biz", "test", "app");
+        verify(facade).pull(
+                "biz",
+                "test",
+                "app",
+                "application.yml",
+                2L
+        );
         verify(facade).ack(argThat(value ->
                 value.getChangeId().equals("change-1")
                         && value.getStatus() == DdcAckStatus.SUCCESS));

@@ -16,6 +16,8 @@ import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigVersionEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcNamespaceEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcNamespaceEnvAppBindingEntity;
+import top.egon.cola.component.ddc.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.ddc.admin.model.enums.PublishStatus;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVO;
 import top.egon.cola.component.ddc.admin.model.vo.DdcConfigVersionVO;
 import top.egon.cola.component.ddc.admin.repository.DdcAppRepository;
@@ -24,6 +26,8 @@ import top.egon.cola.component.ddc.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcConfigVersionRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.ddc.admin.repository.DdcNamespaceRepository;
+import top.egon.cola.component.ddc.admin.repository.DdcPublishTaskRepository;
+import top.egon.cola.component.ddc.model.config.DdcConfigValue;
 
 import java.time.LocalDateTime;
 
@@ -64,6 +68,9 @@ class DdcConfigServiceTest {
 
     @Autowired
     private DdcNamespaceEnvAppBindingRepository bindingRepository;
+
+    @Autowired
+    private DdcPublishTaskRepository publishTaskRepository;
 
     @Test
     void optionalFiltersReturnAllAndNamespaceRestrictsOnlyVisibility() {
@@ -292,6 +299,76 @@ class DdcConfigServiceTest {
                     assertThat(value.getFormat()).isEqualTo("YAML");
                     assertThat(value.getVersion()).isEqualTo(1L);
                 });
+    }
+
+    @Test
+    void targetedPullReturnsPreparedVersionOnlyForActivePublish() {
+        DdcConfigVO created = configService.create(new DdcConfigCreateRequest(
+                "commerce",
+                "test",
+                "orders",
+                null,
+                "application.yml",
+                "feature:\n  version: 1\n",
+                "YAML",
+                "rules"
+        ), "tester");
+        configService.upsert(new DdcConfigCreateRequest(
+                "commerce",
+                "test",
+                "orders",
+                null,
+                "application.yml",
+                "feature:\n  version: 2\n",
+                "YAML",
+                "rules"
+        ), created.getCurrentVersion(), "tester");
+        DdcConfigItemEntity item = configItemRepository.findById(created.getId())
+                .orElseThrow();
+        item.setPublishedVersion(1L);
+        configItemRepository.saveAndFlush(item);
+
+        DdcPublishTaskEntity task = new DdcPublishTaskEntity();
+        task.setId("prepared-task");
+        task.setChangeId("prepared-change");
+        task.setConfigId(created.getId());
+        task.setBizCode("commerce");
+        task.setAppCode("orders");
+        task.setEnv("test");
+        task.setResourceName("application.yml");
+        task.setTargetVersion(2L);
+        task.setStatus(PublishStatus.PUBLISHING.name());
+        task.setAttemptCount(0);
+        task.setCreatedAt(LocalDateTime.now());
+        task.setUpdatedAt(LocalDateTime.now());
+        publishTaskRepository.saveAndFlush(task);
+
+        assertThat(configService.pull(
+                "commerce",
+                "test",
+                "orders",
+                "application.yml",
+                2L
+        )).singleElement().satisfies(value -> {
+            assertThat(value.getVersion()).isEqualTo(2L);
+            assertThat(value.getContent()).isEqualTo(
+                    "feature:\n  version: 2\n"
+            );
+        });
+        assertThat(configService.pull("commerce", "test", "orders"))
+                .singleElement()
+                .extracting(DdcConfigValue::getVersion)
+                .isEqualTo(1L);
+
+        task.setStatus(PublishStatus.FAILED.name());
+        publishTaskRepository.saveAndFlush(task);
+        assertThat(configService.pull(
+                "commerce",
+                "test",
+                "orders",
+                "application.yml",
+                2L
+        )).isEmpty();
     }
 
     @Test

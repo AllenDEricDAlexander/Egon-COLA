@@ -63,6 +63,22 @@ public class DdcConfigFacade {
         return configService.pull(bizCode, env, appCode);
     }
 
+    /** 拉取指定版本配置。 / Pulls an exact prepared or published configuration version. */
+    public List<DdcConfigValue> pull(
+            String bizCode,
+            String env,
+            String appCode,
+            String resourceName,
+            Long targetVersion) {
+        return configService.pull(
+                bizCode,
+                env,
+                appCode,
+                resourceName,
+                targetVersion
+        );
+    }
+
     /** 处理发布确认。 / Handles a publication acknowledgement. */
     public DdcPublishResultVO ack(DdcAckRequest request) {
         return publishService.ack(request);
