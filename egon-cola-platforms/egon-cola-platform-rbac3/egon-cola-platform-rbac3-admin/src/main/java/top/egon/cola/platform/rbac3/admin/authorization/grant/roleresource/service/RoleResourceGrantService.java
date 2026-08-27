@@ -8,6 +8,7 @@ import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domai
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.repository.RoleResourceGrantRepository;
 import top.egon.cola.platform.rbac3.admin.authorization.resource.apibinding.repository.ResourceApiBindingRepository;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.state.repository.TenantAuthorizationStateRepository;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -18,6 +19,7 @@ import java.util.Objects;
 import java.util.Set;
 
 /** Coordinates resource-root reads and atomic direct-grant replacement. */
+@Service
 public class RoleResourceGrantService {
 
     private final RoleResourceGrantRepository grants;
