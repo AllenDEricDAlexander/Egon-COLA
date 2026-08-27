@@ -841,19 +841,24 @@ chmod 600 "${unified_platform_runtime_dir}/startup-mode"
 
 if [[ "${UNIFIED_IDENTITY_START_MODE}" != "full" ]]; then
   write_portal_manifest
-  unified_platform_stage "starting four Admin Web applications with direct platform proxies"
+  unified_platform_stage "starting Gateway Engine for the existing local release"
+  unified_platform_start_jar gateway-engine \
+    "${unified_platform_env_dir}/gateway-engine.env" "${gateway_engine_jar}"
+  unified_platform_wait_http gateway-engine \
+    "${GATEWAY_ENGINE_A_BASE_URL}/actuator/health/readiness"
+  unified_platform_stage "starting four Admin Web applications through Gateway"
   start_admin_web idp-admin-web "${idp_web_dir}" \
     "${idp_web_dir}/node_modules/.bin/vite" "${IDP_ADMIN_WEB_URL}" \
-    idp-admin-web IDP_ADMIN_PROXY "${IDP_BASE_URL}" ""
+    idp-admin-web IDP_ADMIN_PROXY "${GATEWAY_BASE_URL}"
   start_admin_web rbac3-admin-web "${rbac3_web_dir}" \
     "${rbac3_root_dir}/node_modules/.bin/vite" "${RBAC3_ADMIN_WEB_URL}" \
-    rbac3-admin-web RBAC3_ADMIN_PROXY "${RBAC3_BASE_URL}" ""
+    rbac3-admin-web RBAC3_ADMIN_PROXY "${GATEWAY_BASE_URL}"
   start_admin_web gateway-admin-web "${gateway_web_dir}" \
     "${gateway_web_dir}/node_modules/.bin/vite" "${GATEWAY_ADMIN_WEB_URL}" \
-    gateway-admin-web GATEWAY_ADMIN_PROXY "${GATEWAY_ADMIN_BASE_URL}" ""
+    gateway-admin-web GATEWAY_ADMIN_PROXY "${GATEWAY_BASE_URL}"
   start_admin_web ddc-admin-web "${ddc_web_dir}" \
     "${ddc_web_dir}/node_modules/.bin/vite" "${DDC_ADMIN_WEB_URL}" \
-    ddc-admin-web DDC_ADMIN_PROXY "${DDC_BASE_URL}" ""
+    ddc-admin-web DDC_ADMIN_PROXY "${GATEWAY_BASE_URL}"
   start_portal_web
   printf 'Unified platform local stack is running in %s.\n' \
     "${unified_platform_runtime_dir}"
