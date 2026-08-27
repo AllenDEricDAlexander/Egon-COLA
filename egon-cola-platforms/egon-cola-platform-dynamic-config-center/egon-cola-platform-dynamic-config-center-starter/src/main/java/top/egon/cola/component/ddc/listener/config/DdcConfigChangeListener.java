@@ -86,6 +86,10 @@ public class DdcConfigChangeListener implements MessageListener<DdcPublishMessag
      * @return 内容摘要有效时为 {@code true}。 {@code true} when the resource checksum is valid
      */
     private boolean matchesResourceChecksum(DdcPublishMessage message) {
+        if (message.getContent() == null) {
+            return message.getResourceChecksum() != null
+                    && !message.getResourceChecksum().isBlank();
+        }
         return message.getResourceChecksum() != null
                 && message.getResourceChecksum().equals(DdcChecksum.resource(
                 message.getResourceName(),

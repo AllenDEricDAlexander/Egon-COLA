@@ -63,7 +63,8 @@ import static org.mockito.Mockito.verify;
         "spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect",
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.datasource.hikari.maximum-pool-size=2",
-        "spring.flyway.enabled=false"
+        "spring.flyway.enabled=false",
+        "egon.cola.component.ddc.admin.publish.inline-content-max-bytes=64"
 })
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class DdcPublishDispatchConsistencyTest {
@@ -222,7 +223,33 @@ class DdcPublishDispatchConsistencyTest {
                 .isEqualTo(2L);
     }
 
+    @Test
+    void largeContentIsDeferredInRedisNotificationButRetainedInCommand() {
+        String largeYaml = "feature:\n  value: "
+                + "x".repeat(128)
+                + "\n";
+        DdcPublishTaskEntity task = savePreparedPublish(
+                "large-content",
+                largeYaml
+        );
+
+        DdcPublishTaskEntity result = dispatcher.dispatch(task.getChangeId());
+
+        assertThat(result.getStatus()).isEqualTo(PublishStatus.PUBLISHING.name());
+        ArgumentCaptor<DdcAtomicPublishCommand> command =
+                ArgumentCaptor.forClass(DdcAtomicPublishCommand.class);
+        verify(redisRepository).dispatch(command.capture());
+        assertThat(command.getValue().content()).isEqualTo(largeYaml);
+        assertThat(command.getValue().message().getContent()).isNull();
+    }
+
     private DdcPublishTaskEntity savePreparedPublish(String label) {
+        return savePreparedPublish(label, NEW_YAML);
+    }
+
+    private DdcPublishTaskEntity savePreparedPublish(
+            String label,
+            String newYaml) {
         LocalDateTime createdAt = LocalDateTime.of(2026, 7, 26, 8, 0);
         String configId = UuidV7.simpleString();
         DdcConfigItemEntity config = new DdcConfigItemEntity();
@@ -231,7 +258,7 @@ class DdcPublishDispatchConsistencyTest {
         config.setAppCode(label);
         config.setEnv("dev");
         config.setResourceName(DdcConfigService.DEFAULT_RESOURCE_NAME);
-        config.setContent(NEW_YAML);
+        config.setContent(newYaml);
         config.setDefaultValue(null);
         config.setFormat(DdcConfigService.YAML_FORMAT);
         config.setCurrentVersion(2L);
@@ -243,7 +270,7 @@ class DdcPublishDispatchConsistencyTest {
         configItemRepository.saveAndFlush(config);
 
         saveVersion(config, 1L, null, OLD_YAML, createdAt.minusDays(1));
-        saveVersion(config, 2L, OLD_YAML, NEW_YAML, createdAt);
+        saveVersion(config, 2L, OLD_YAML, newYaml, createdAt);
 
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
         task.setId(UuidV7.simpleString());
@@ -259,7 +286,7 @@ class DdcPublishDispatchConsistencyTest {
         task.setResourceChecksum(DdcChecksum.resource(
                 DdcConfigService.DEFAULT_RESOURCE_NAME,
                 DdcConfigService.YAML_FORMAT,
-                NEW_YAML
+                newYaml
         ));
         task.setAttemptCount(0);
         task.setStatus(PublishStatus.PENDING.name());

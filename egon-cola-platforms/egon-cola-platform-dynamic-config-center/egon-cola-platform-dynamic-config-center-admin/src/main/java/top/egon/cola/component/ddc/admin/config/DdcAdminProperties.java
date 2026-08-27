@@ -497,6 +497,11 @@ public class DdcAdminProperties {
 
     public static class Publish {
 
+        /**
+         * Redis notification content threshold; larger resources are pulled through DDC RPC.
+         */
+        private long inlineContentMaxBytes = 4L * 1024L * 1024L;
+
         private long dispatchTimeoutMs = 5000;
 
         private long defaultTimeoutMs = 30000;
@@ -508,6 +513,14 @@ public class DdcAdminProperties {
         private long completionPollIntervalMs = 100;
 
         private long recoveryStaleMs = 120000;
+
+        public long getInlineContentMaxBytes() {
+            return inlineContentMaxBytes;
+        }
+
+        public void setInlineContentMaxBytes(long inlineContentMaxBytes) {
+            this.inlineContentMaxBytes = inlineContentMaxBytes;
+        }
 
         public long getDispatchTimeoutMs() {
             return dispatchTimeoutMs;

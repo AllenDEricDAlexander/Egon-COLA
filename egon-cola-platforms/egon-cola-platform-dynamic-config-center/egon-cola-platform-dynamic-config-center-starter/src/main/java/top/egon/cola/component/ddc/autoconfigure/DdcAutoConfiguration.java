@@ -257,6 +257,7 @@ public class DdcAutoConfiguration {
      * @param repository        本地配置仓库。 local configuration repository
      * @param yamlConfigApplier YAML 配置应用器。 YAML configuration applier
      * @param ackDelivery       确认投递器。 acknowledgement delivery
+     * @param adminClient        管理端客户端，用于拉取延迟通知中的大内容。 DDC client for deferred large content
      * @param sessionHolder     当前租约会话持有器。 current lease-session holder
      * @return 配置刷新服务。 configuration refresh service
      */
@@ -270,11 +271,13 @@ public class DdcAutoConfiguration {
     public DdcRefreshService ddcRefreshService(DdcLocalConfigState repository,
                                                DdcYamlConfigApplier yamlConfigApplier,
                                                DdcAckDelivery ackDelivery,
+                                               DdcConfigClient adminClient,
                                                DdcLeaseSessionHolder sessionHolder) {
         return new DdcRefreshService(
                 repository,
                 yamlConfigApplier,
                 ackDelivery,
+                adminClient,
                 sessionHolder
         );
     }

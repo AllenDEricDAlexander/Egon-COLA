@@ -47,6 +47,11 @@ public class DdcRefreshService {
     private final DdcYamlConfigApplier yamlConfigApplier;
 
     /**
+     * DDC client used to resolve notifications that intentionally omit large content payloads.
+     */
+    private final DdcConfigClient configClient;
+
+    /**
      * 提交发布确认的抽象。 Abstraction that submits publication acknowledgments.
      */
     private final AckSubmitter ackSubmitter;
@@ -82,6 +87,7 @@ public class DdcRefreshService {
         this(
                 repository,
                 yamlConfigApplier,
+                adminClient,
                 directAck(adminClient),
                 sessionHolder
         );
@@ -103,6 +109,30 @@ public class DdcRefreshService {
         this(
                 repository,
                 yamlConfigApplier,
+                null,
+                ackDelivery::submit,
+                sessionHolder
+        );
+    }
+
+    /**
+     * Creates an asynchronous refresh service with RPC fallback for deferred content notifications.
+     *
+     * @param repository        local configuration repository
+     * @param yamlConfigApplier YAML configuration applier
+     * @param ackDelivery       asynchronous acknowledgement delivery
+     * @param adminClient       DDC client used to pull deferred content
+     * @param sessionHolder     current lease-session holder
+     */
+    public DdcRefreshService(DdcLocalConfigState repository,
+                             DdcYamlConfigApplier yamlConfigApplier,
+                             DdcAckDelivery ackDelivery,
+                             DdcConfigClient adminClient,
+                             DdcLeaseSessionHolder sessionHolder) {
+        this(
+                repository,
+                yamlConfigApplier,
+                adminClient,
                 ackDelivery::submit,
                 sessionHolder
         );
@@ -114,15 +144,18 @@ public class DdcRefreshService {
      *
      * @param repository        本地配置仓库; local configuration repository
      * @param yamlConfigApplier YAML 配置应用器; YAML configuration applier
+     * @param configClient      延迟内容拉取客户端; deferred-content pull client
      * @param ackSubmitter      ACK 提交器; ACK submitter
      * @param sessionHolder     租约会话持有器; lease session holder
      */
     private DdcRefreshService(DdcLocalConfigState repository,
                               DdcYamlConfigApplier yamlConfigApplier,
+                              DdcConfigClient configClient,
                               AckSubmitter ackSubmitter,
                               DdcLeaseSessionHolder sessionHolder) {
         this.repository = repository;
         this.yamlConfigApplier = yamlConfigApplier;
+        this.configClient = configClient;
         this.ackSubmitter = ackSubmitter;
         this.sessionHolder = sessionHolder;
         DdcDynamicPropertySource.Snapshot snapshot =
@@ -207,10 +240,20 @@ public class DdcRefreshService {
             return;
         }
 
-        AckOutcome outcome = repository.withConfigLock(
-                resourceName,
-                () -> apply(message)
-        );
+        AckOutcome outcome;
+        try {
+            String content = resolveContent(message);
+            outcome = repository.withConfigLock(
+                    resourceName,
+                    () -> apply(message, content)
+            );
+        } catch (RuntimeException exception) {
+            outcome = new AckOutcome(
+                    DdcAckStatus.FAILED,
+                    repository.version(resourceName),
+                    safeErrorMessage(exception)
+            );
+        }
         try {
             if (!ackSubmitter.submit(ack(message, session, outcome))) {
                 LOGGER.warn(
@@ -262,13 +305,13 @@ public class DdcRefreshService {
                 && message.getTargetVersion() != null
                 && message.getTargetVersion() > 0
                 && hasText(message.getResourceChecksum())
-                && message.getResourceChecksum().equals(
+                && (message.getContent() == null
+                || message.getResourceChecksum().equals(
                 DdcChecksum.resource(
                         message.getResourceName(),
                         message.getFormat(),
                         message.getContent()
-                )
-        );
+                )));
     }
 
     /**
@@ -287,9 +330,10 @@ public class DdcRefreshService {
      * Compares the publication version and returns a successful, ignored, conflicting, or failed ACK outcome.
      *
      * @param message 已校验发布消息; validated publication message
+     * @param content 完整配置内容; complete configuration content
      * @return ACK 结果; ACK outcome
      */
-    private AckOutcome apply(DdcPublishMessage message) {
+    private AckOutcome apply(DdcPublishMessage message, String content) {
         ConfigMetadata local = metadata();
         VersionRelation relation = compare(
                 local,
@@ -319,7 +363,7 @@ public class DdcRefreshService {
         }
         try {
             applyAndStore(
-                    message.getContent(),
+                    content,
                     message.getTargetVersion(),
                     message.getResourceChecksum(),
                     message.getChangeId(),
@@ -337,6 +381,45 @@ public class DdcRefreshService {
                     safeErrorMessage(exception)
             );
         }
+    }
+
+    /**
+     * Resolves a deferred notification from the authoritative DDC RPC snapshot and verifies its version and checksum.
+     *
+     * @param message publication notification
+     * @return complete configuration content
+     */
+    private String resolveContent(DdcPublishMessage message) {
+        if (message.getContent() != null) {
+            return message.getContent();
+        }
+        if (configClient == null) {
+            throw new IllegalStateException(
+                    "DDC deferred content requires a configuration client"
+            );
+        }
+        List<DdcConfigValue> configs = configClient.pull();
+        if (configs != null) {
+            for (DdcConfigValue config : configs) {
+                if (config == null
+                        || !resourceName.equals(config.getResourceName())
+                        || !format.equals(config.getFormat())
+                        || !message.getTargetVersion().equals(config.getVersion())
+                        || config.getContent() == null
+                        || !message.getResourceChecksum().equals(
+                        DdcChecksum.resource(
+                                config.getResourceName(),
+                                config.getFormat(),
+                                config.getContent()
+                        ))) {
+                    continue;
+                }
+                return config.getContent();
+            }
+        }
+        throw new IllegalStateException(
+                "DDC deferred content snapshot is unavailable"
+        );
     }
 
     /**

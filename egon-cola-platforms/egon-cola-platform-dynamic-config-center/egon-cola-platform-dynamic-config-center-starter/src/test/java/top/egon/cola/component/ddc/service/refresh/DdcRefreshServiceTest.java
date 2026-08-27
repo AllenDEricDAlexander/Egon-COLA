@@ -85,6 +85,34 @@ class DdcRefreshServiceTest {
     }
 
     @Test
+    void deferredNotificationPullsAuthoritativeSnapshotBeforeApply()
+            throws Exception {
+        AtomicReference<String> applied = new AtomicReference<>();
+        Harness harness = harness(registry -> registry.registerExact(
+                "feature.enabled",
+                (key, value, version) -> applied.set(value)
+        ));
+        String yaml = """
+                feature:
+                  enabled: true
+                  label: deferred
+                """;
+        harness.client.pulled = List.of(harness.config(yaml, 2L));
+        DdcPublishMessage deferred = harness.message(yaml, 2L);
+        deferred.setContent(null);
+
+        harness.service.refresh(deferred);
+
+        assertThat(applied).hasValue("true");
+        assertThat(harness.repository.version("application.yml"))
+                .isEqualTo(2L);
+        assertThat(harness.client.lastAck()).satisfies(ack -> {
+            assertThat(ack.getStatus()).isEqualTo(DdcAckStatus.SUCCESS);
+            assertThat(ack.getCurrentVersion()).isEqualTo(2L);
+        });
+    }
+
+    @Test
     void configDataSnapshotSeedsMetadataAndPreventsDuplicateReconcile()
             throws Exception {
         AtomicInteger applyCount = new AtomicInteger();
@@ -462,6 +490,8 @@ class DdcRefreshServiceTest {
 
         private DdcAckRequest lastAck;
 
+        private List<DdcConfigValue> pulled = List.of();
+
         private int ackCount;
 
         private boolean failAck;
@@ -483,7 +513,7 @@ class DdcRefreshServiceTest {
 
         @Override
         public List<DdcConfigValue> pull() {
-            return List.of();
+            return pulled;
         }
 
         @Override

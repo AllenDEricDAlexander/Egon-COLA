@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.ddc.admin.common.DdcAdminException;
+import top.egon.cola.component.ddc.admin.config.DdcAdminProperties;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigItemEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcConfigVersionEntity;
 import top.egon.cola.component.ddc.admin.model.entity.DdcPublishAckEntity;
@@ -21,6 +22,7 @@ import top.egon.cola.component.ddc.format.DdcChecksum;
 import top.egon.cola.component.ddc.model.config.DdcPublishMessage;
 import top.egon.cola.component.ddc.model.config.DdcPublishTarget;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -52,6 +54,8 @@ public class DdcPendingPublishDispatcher {
 
     private final TransactionTemplate transactionTemplate;
 
+    private final long inlineContentMaxBytes;
+
     private final Clock clock;
 
     @Autowired
@@ -62,6 +66,7 @@ public class DdcPendingPublishDispatcher {
             DdcPublishAckRepository ackRepository,
             DdcRedisRepository redisRepository,
             DdcPublishStateTransitionService stateTransitions,
+            DdcAdminProperties properties,
             PlatformTransactionManager transactionManager) {
         this(
                 configItemRepository,
@@ -70,6 +75,7 @@ public class DdcPendingPublishDispatcher {
                 ackRepository,
                 redisRepository,
                 stateTransitions,
+                properties,
                 transactionManager,
                 Clock.systemUTC()
         );
@@ -82,6 +88,7 @@ public class DdcPendingPublishDispatcher {
             DdcPublishAckRepository ackRepository,
             DdcRedisRepository redisRepository,
             DdcPublishStateTransitionService stateTransitions,
+            DdcAdminProperties properties,
             PlatformTransactionManager transactionManager,
             Clock clock) {
         this.configItemRepository = configItemRepository;
@@ -90,6 +97,14 @@ public class DdcPendingPublishDispatcher {
         this.ackRepository = ackRepository;
         this.redisRepository = redisRepository;
         this.stateTransitions = stateTransitions;
+        if (properties == null || properties.getPublish() == null
+                || properties.getPublish().getInlineContentMaxBytes() <= 0) {
+            throw new IllegalArgumentException(
+                    "DDC publish inline content threshold must be positive"
+            );
+        }
+        this.inlineContentMaxBytes = properties.getPublish()
+                .getInlineContentMaxBytes();
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.clock = clock;
     }
@@ -221,7 +236,7 @@ public class DdcPendingPublishDispatcher {
         message.setAppCode(task.getAppCode());
         message.setEnv(task.getEnv());
         message.setResourceName(task.getResourceName());
-        message.setContent(version.getNewContent());
+        message.setContent(notificationContent(version.getNewContent()));
         message.setFormat(version.getFormat());
         message.setTargetVersion(task.getTargetVersion());
         message.setPublishMode(PublishMode.SYNC_ALL_ACK.name());
@@ -236,6 +251,17 @@ public class DdcPendingPublishDispatcher {
                 .toList());
         message.setChecksum(DdcChecksum.sha256(message));
         return message;
+    }
+
+    /**
+     * Keeps Redis Pub/Sub notifications small; the complete resource remains in DDC storage and is pulled by the client.
+     */
+    private String notificationContent(String content) {
+        if (content == null || content.getBytes(StandardCharsets.UTF_8).length
+                > inlineContentMaxBytes) {
+            return null;
+        }
+        return content;
     }
 
     private boolean advancePublishedVersion(DdcAtomicPublishCommand command) {
