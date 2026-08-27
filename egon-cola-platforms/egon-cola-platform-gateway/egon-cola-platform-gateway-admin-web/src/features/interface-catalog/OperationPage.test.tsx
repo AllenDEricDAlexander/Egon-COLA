@@ -9,6 +9,9 @@ const mocks = vi.hoisted(() => ({
   operation: vi.fn(),
   operationOpenApi: vi.fn(),
   openapiSnapshotDocument: vi.fn(),
+  updateOperationMetadata: vi.fn(),
+  updateManualDefinition: vi.fn(),
+  deprecateOperation: vi.fn(),
 }))
 
 vi.mock('../../api/gatewayApi', () => ({
@@ -16,6 +19,9 @@ vi.mock('../../api/gatewayApi', () => ({
     operation: mocks.operation,
     operationOpenApi: mocks.operationOpenApi,
     openapiSnapshotDocument: mocks.openapiSnapshotDocument,
+    updateOperationMetadata: mocks.updateOperationMetadata,
+    updateManualDefinition: mocks.updateManualDefinition,
+    deprecateOperation: mocks.deprecateOperation,
   },
 }))
 
@@ -105,6 +111,9 @@ beforeEach(() => {
     fetchedAt: '2026-08-26T02:59:00Z',
     validatedAt: '2026-08-26T03:00:01Z',
   })
+  mocks.updateOperationMetadata.mockReset().mockResolvedValue({ operation: openApiOperation, definitions: [definition] })
+  mocks.updateManualDefinition.mockReset().mockResolvedValue({ operation: openApiOperation, definitions: [definition] })
+  mocks.deprecateOperation.mockReset().mockResolvedValue({ operation: openApiOperation, definitions: [definition] })
   vi.stubGlobal('matchMedia', vi.fn().mockImplementation(() => ({
     matches: false,
     addListener: vi.fn(),
@@ -128,6 +137,53 @@ afterEach(() => {
 })
 
 describe('OperationPage OpenAPI projection', () => {
+  it('allows catalog lifecycle actions only for a manual operation', async () => {
+    const manual = { ...openApiOperation, sourceType: 'MANUAL' }
+    mocks.operation.mockResolvedValue({ operation: manual, definitions: [definition] })
+    mocks.updateOperationMetadata.mockResolvedValue({ operation: manual, definitions: [definition] })
+    mocks.deprecateOperation.mockResolvedValue({ operation: manual, definitions: [definition] })
+
+    renderPage()
+
+    await screen.findByText('GET /orders/{id}')
+    fireEvent.click(screen.getByRole('button', { name: '编辑元数据' }))
+    fireEvent.change(screen.getByLabelText('摘要'), { target: { value: 'Updated order summary' } })
+    fireEvent.click(screen.getByRole('button', { name: '保存元数据' }))
+
+    await waitFor(() => expect(mocks.updateOperationMetadata).toHaveBeenCalledWith(
+      'operation-1',
+      expect.objectContaining({ summary: 'Updated order summary', tags: ['orders'] }),
+    ))
+    fireEvent.click(screen.getByRole('button', { name: '废弃 Operation' }))
+    fireEvent.click(screen.getByRole('button', { name: '确认废弃' }))
+    await waitFor(() => expect(mocks.deprecateOperation).toHaveBeenCalledWith('operation-1'))
+  })
+
+  it('keeps RPC operations read-only and removes secret-like provider fields', async () => {
+    mocks.operation.mockResolvedValue({
+      operation: {
+        ...openApiOperation,
+        sourceType: 'RPC_DESCRIPTOR',
+        protocol: 'RPC',
+        providerServiceIdentity: {
+          serviceName: 'orders',
+          secret: 'raw-secret-value',
+          Authorization: 'raw-authorization-value',
+        },
+      },
+      definitions: [{ ...definition, descriptorSnapshot: { fullMethodName: 'orders.Order/Get' } }],
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('RPC_DESCRIPTOR')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '编辑元数据' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '编辑定义' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('Provider Service Identity'))
+    expect(screen.queryByText('raw-secret-value')).not.toBeInTheDocument()
+    expect(screen.queryByText('raw-authorization-value')).not.toBeInTheDocument()
+  })
+
   it('loads the OpenAPI fragment and downloads the immutable snapshot by id', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined)
     vi.stubGlobal('navigator', { clipboard: { writeText } })

@@ -371,4 +371,58 @@ describe('gateway API response adapters', () => {
     })
     expect(new Headers(request.headers).has('Idempotency-Key')).toBe(true)
   })
+
+  it('maps catalog lifecycle commands to the existing Admin paths', async () => {
+    const operation = { operation: { id: 'op-1' }, definitions: [] }
+    const fetchMock = vi.fn().mockImplementation((_input: RequestInfo | URL, init?: RequestInit) => {
+      if ((init?.method ?? 'GET') === 'POST') return Promise.resolve(jsonResponse(operation))
+      return Promise.resolve(jsonResponse(operation))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await gatewayApi.updateOperationMetadata('op-1', {
+      summary: 'Orders',
+      tags: ['orders'],
+      owner: 'platform',
+    })
+    await gatewayApi.updateManualDefinition('op-1', {
+      summary: 'Orders',
+      tags: ['orders'],
+      requestSchema: {type: 'object'},
+      responseSchema: {type: 'object'},
+      errorSchema: [],
+      attributes: {},
+      externalAccessible: true,
+    })
+    await gatewayApi.deprecateOperation('op-1')
+
+    expect(fetchMock.mock.calls.map(([path]) => path)).toEqual([
+      '/api/v1/gateway/admin/operations/op-1/metadata',
+      '/api/v1/gateway/admin/operations/op-1/manual-definition',
+      '/api/v1/gateway/admin/operations/op-1/deprecate',
+    ])
+    expect(JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))).toEqual({
+      summary: 'Orders',
+      tags: ['orders'],
+      owner: 'platform',
+    })
+    expect(JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body))).not.toHaveProperty('secret')
+    expect((fetchMock.mock.calls[2][1] as RequestInit).body).toBeUndefined()
+    expect(new Headers((fetchMock.mock.calls[0][1] as RequestInit).headers).has('Idempotency-Key')).toBe(true)
+  })
+
+  it('loads release diff and keeps the trace detail candidate as a real 404', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({routes: {changed: 1}}))
+      .mockResolvedValueOnce(new Response(JSON.stringify({code: 'TRACE_DETAIL_NOT_AVAILABLE'}), {
+        status: 404,
+        headers: {'Content-Type': 'application/json'},
+      }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(gatewayApi.releaseDiff('release-1')).resolves.toEqual({routes: {changed: 1}})
+    await expect(gatewayApi.traceDetail('trace-1')).rejects.toMatchObject({status: 404})
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/gateway/admin/releases/release-1/diff')
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/v1/gateway/admin/observability/traces/trace-1')
+  })
 })

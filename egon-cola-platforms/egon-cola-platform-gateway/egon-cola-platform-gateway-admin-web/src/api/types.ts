@@ -181,6 +181,21 @@ export type OperationDetail = {
   definitions: OperationDefinition[]
 }
 
+export type GatewayOperationMutationResult = OperationDetail
+
+export type TraceDetail = {
+  traceId: string
+  startedAt?: string
+  finishedAt?: string
+  attempts: readonly {
+    attemptId: string
+    status: string
+    durationMs?: number
+    errorCode?: string
+  }[]
+  redactedAttributes: Readonly<Record<string, string | number | boolean | null>>
+}
+
 export type GatewayOpenApiSourceType = 'MANUAL' | 'RPC_DESCRIPTOR' | 'OPENAPI31'
 
 export type GatewayOpenApiSyncStatus =

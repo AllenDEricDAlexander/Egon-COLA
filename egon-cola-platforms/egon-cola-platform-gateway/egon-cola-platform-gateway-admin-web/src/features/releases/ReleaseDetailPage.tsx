@@ -19,6 +19,7 @@ export const ReleaseDetailPage = () => {
   const [visible, setVisible] = useState(document.visibilityState === 'visible')
   const [rollbackOpen, setRollbackOpen] = useState(false)
   const [reason, setReason] = useState('')
+  const [actionError, setActionError] = useState<string>()
   useEffect(() => {
     const listener = () => setVisible(document.visibilityState === 'visible')
     document.addEventListener('visibilitychange', listener)
@@ -38,10 +39,12 @@ export const ReleaseDetailPage = () => {
   })
   const retry = useMutation({
     mutationFn: () => gatewayApi.retryRelease(releaseId, createLogicalTrace()),
+    onMutate: () => setActionError(undefined),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['release', releaseId] })
       void message.success('已新增 Retry Attempt；原 Target 证据保持不变')
     },
+    onError: (error) => setActionError(error instanceof Error ? error.message : 'Retry 失败'),
   })
   const rollback = useMutation({
     mutationFn: () =>
@@ -52,18 +55,40 @@ export const ReleaseDetailPage = () => {
         reason,
         createLogicalTrace(),
       ),
+    onMutate: () => setActionError(undefined),
     onSuccess: (created) => {
       setRollbackOpen(false)
       void message.success(`回滚已创建新 Release：${created.id}`)
     },
+    onError: (error) => setActionError(error instanceof Error ? error.message : '回滚创建失败'),
   })
   if (release.isLoading) return <LoadingBlock />
   if (release.error || !release.data) return <QueryFailure error={release.error} />
+  const status = release.data.status.toUpperCase()
+  const recoveryMessage = release.data.partialApplied
+    ? '该 Release 存在部分生效，不能视为成功。'
+    : status === 'FAILED'
+      ? 'Release 发布失败，不能视为成功。'
+      : status === 'TIMEOUT'
+        ? 'Release 已超时，不能视为成功。'
+        : status === 'UNKNOWN'
+          ? 'Release 状态未知，不能视为成功。'
+          : undefined
   return (
     <section>
       <Typography.Title level={2}>Release {release.data.id}</Typography.Title>
-      {release.data.partialApplied && (
-        <Alert type="error" showIcon message="该 Release 存在部分生效，不能视为成功。" />
+      {recoveryMessage && (
+        <Alert
+          type="error"
+          showIcon
+          message={recoveryMessage}
+          description="请核对 Target ACK、结构化 Diff 和审计记录；确认后可使用原 Release 内容和原 Target 重试。"
+          action={canPublish ? (
+            <Button size="small" disabled={retry.isPending} onClick={() => retry.mutate()}>
+              重试该 Release
+            </Button>
+          ) : undefined}
+        />
       )}
       <Card className="section-row">
         <Descriptions column={2}>
@@ -73,14 +98,18 @@ export const ReleaseDetailPage = () => {
           <Descriptions.Item label="Rollback Of">{release.data.rollbackOfReleaseId ?? '-'}</Descriptions.Item>
           <Descriptions.Item label="变更原因">{release.data.changeReason}</Descriptions.Item>
         </Descriptions>
-        <Space>
-          <Button disabled={!canPublish} loading={retry.isPending} onClick={() => retry.mutate()}>
+        <Space wrap>
+          <Button disabled={!canPublish || retry.isPending} loading={retry.isPending} onClick={() => retry.mutate()}>
             使用原 Release 内容和原 Target 重试
           </Button>
-          <Button danger disabled={!canRollback} onClick={() => setRollbackOpen(true)}>
+          <Button danger disabled={!canRollback || rollback.isPending} onClick={() => {
+            setActionError(undefined)
+            setRollbackOpen(true)
+          }}>
             创建回滚 Release
           </Button>
         </Space>
+        {actionError && <Alert className="section-row" type="warning" showIcon message={actionError} />}
       </Card>
       <Tabs
         items={(release.data.attempts ?? []).map((attempt: ReleaseAttempt) => ({

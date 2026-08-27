@@ -41,11 +41,13 @@ import type {
     GatewayOpenApiDocument,
     GatewayOpenApiSyncState,
     GatewayOperationOpenApi,
+    GatewayOperationMutationResult,
     Page,
     ProviderInstance,
     RuntimeConsistency,
     Scope,
     TraceSummary,
+    TraceDetail,
     ValidationReport,
 } from './types'
 
@@ -284,6 +286,41 @@ export const gatewayApi = {
   ),
   operation: (operationId: string, signal?: AbortSignal) =>
     apiRequest<OperationDetail>(`${admin}/operations/${operationId}`, { signal }),
+  updateOperationMetadata: (
+    operationId: string,
+    body: { summary?: string; tags: string[]; owner?: string },
+    trace = createLogicalTrace(),
+  ) => apiRequest<GatewayOperationMutationResult>(
+    `${admin}/operations/${encodeURIComponent(operationId)}/metadata`,
+    {
+      method: 'PUT',
+      body,
+      trace,
+      idempotencyKey: newIdempotencyKey(),
+    },
+  ),
+  updateManualDefinition: (
+    operationId: string,
+    body: Record<string, unknown>,
+    trace = createLogicalTrace(),
+  ) => apiRequest<GatewayOperationMutationResult>(
+    `${admin}/operations/${encodeURIComponent(operationId)}/manual-definition`,
+    {
+      method: 'PUT',
+      body,
+      trace,
+      idempotencyKey: newIdempotencyKey(),
+    },
+  ),
+  deprecateOperation: (operationId: string, trace = createLogicalTrace()) =>
+    apiRequest<GatewayOperationMutationResult>(
+      `${admin}/operations/${encodeURIComponent(operationId)}/deprecate`,
+      {
+        method: 'POST',
+        trace,
+        idempotencyKey: newIdempotencyKey(),
+      },
+    ),
   openapiSyncStates: (filters: Partial<Scope> = {}, signal?: AbortSignal) =>
     apiRequest<GatewayOpenApiSyncState[]>(
       withQuery(`${admin}/openapi/sync-states`, filters),
@@ -406,6 +443,11 @@ export const gatewayApi = {
       signal,
       trace,
     }).then(mapRelease),
+  releaseDiff: (releaseId: string, signal?: AbortSignal) =>
+    apiRequest<Record<string, unknown>>(
+      `${admin}/releases/${encodeURIComponent(releaseId)}/diff`,
+      { signal },
+    ),
   publish: (
     groupId: string,
     draftRevision: number,
@@ -459,6 +501,11 @@ export const gatewayApi = {
   ) =>
     apiRequest<Page<TraceSummary>>(
       withFilters(`${admin}/observability/traces`, scope, filters),
+      { signal },
+    ),
+  traceDetail: (traceId: string, signal?: AbortSignal) =>
+    apiRequest<TraceDetail>(
+      `${admin}/observability/traces/${encodeURIComponent(traceId)}`,
       { signal },
     ),
   audits: (
