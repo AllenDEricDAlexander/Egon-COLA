@@ -1903,6 +1903,9 @@ command_start() {
   start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}" \
     --egon.rbac3.development-bootstrap.enabled=false
   wait_http rbac3 "${rbac3_url}/actuator/health/readiness"
+  stage "refreshing the USER token for DDC RPC registration polling"
+  idp_bootstrap_login default
+  ddc_admin_access_token="$(user_access_token_for_tenant default)"
   wait_ddc_rpc_provider_registration permission idp IdentityDirectoryService idp 1.0.0
   stage "starting RBAC3 topology bootstrap after IdP RPC publication"
   stop_process rbac3

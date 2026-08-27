@@ -704,6 +704,9 @@ assert_contains "${identity_script}" \
 assert_contains "${identity_script}" \
   'stage "starting RBAC3 topology bootstrap after IdP RPC publication"' \
   'RBAC3 topology bootstrap must have an explicit post-publication stage'
+assert_contains "${identity_script}" \
+  'ddc_admin_access_token="$(user_access_token_for_tenant default)"' \
+  'DDC registry polling must use a fresh USER Access Token after the IdP restart'
 assert_contains "${identity_script}" 'clear_local_rbac3_snapshots' \
   'local startup must discard stale derived RBAC3 snapshots before rebuilding them'
 assert_contains "${identity_script}" \
