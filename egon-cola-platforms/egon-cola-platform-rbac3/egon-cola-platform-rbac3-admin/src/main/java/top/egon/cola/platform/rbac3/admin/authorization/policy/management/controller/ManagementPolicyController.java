@@ -62,7 +62,7 @@ import java.util.stream.Collectors;
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        interfaceGroupCode = "management-policy"
+        interfaceGroupCode = "iam"
 )
 public class ManagementPolicyController {
 

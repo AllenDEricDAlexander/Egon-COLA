@@ -35,7 +35,7 @@ import java.util.List;
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        interfaceGroupCode = "application-scope"
+        interfaceGroupCode = "iam"
 )
 public class ApplicationController {
 

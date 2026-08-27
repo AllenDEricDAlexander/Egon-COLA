@@ -45,7 +45,7 @@ import java.util.HexFormat;
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        interfaceGroupCode = "role-activation"
+        interfaceGroupCode = "iam"
 )
 public class RoleActivationController {
 

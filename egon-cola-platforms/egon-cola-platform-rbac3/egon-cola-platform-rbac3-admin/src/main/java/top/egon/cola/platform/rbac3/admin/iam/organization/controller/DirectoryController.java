@@ -47,7 +47,7 @@ import java.util.Map;
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        interfaceGroupCode = "organization-directory"
+        interfaceGroupCode = "iam"
 )
 public class DirectoryController {
     private final DirectoryCommandService commandPort;

@@ -31,6 +31,19 @@ server:
   port: ${RBAC3_ADVERTISED_PORT:0}
   shutdown: graceful
 
+springdoc:
+  api-docs:
+    enabled: ${RBAC3_OPENAPI_ENABLED:false}
+    version: OPENAPI_3_1
+  group-configs:
+    - group: iam
+      paths-to-match:
+        - /api/rbac3/v1/**
+        - /api/v1/auth/about
+      paths-to-exclude:
+        - /api/rbac3/v1/registration/**
+        - /api/rbac3/v1/internal/business-participations/**
+
 management:
   endpoints:
     web:
@@ -157,6 +170,16 @@ egon:
             heartbeat-interval-seconds: 10
             fail-fast: true
       gateway:
+        openapi:
+          enabled: ${RBAC3_OPENAPI_ENABLED:false}
+          publish-to-ddc: ${RBAC3_OPENAPI_PUBLISH_TO_DDC:false}
+          published-groups:
+            - iam
+          biz-code: ${RBAC3_OPENAPI_BIZ_CODE:${RBAC3_RESOURCE_BIZ_CODE:permission}}
+          application-code: ${RBAC3_OPENAPI_APPLICATION_CODE:${RBAC3_RESOURCE_APP_CODE:rbac3}}
+          resource-uri: ${RBAC3_OPENAPI_RESOURCE_URI:${RBAC3_RESOURCE_URI:}}
+          artifact-version: ${RBAC3_OPENAPI_ARTIFACT_VERSION:${RBAC3_ARTIFACT_VERSION:local}}
+          build-id: ${RBAC3_OPENAPI_BUILD_ID:${RBAC3_BUILD_ID:local}}
         reporting:
           enabled: ${RBAC3_GATEWAY_REPORTING_ENABLED:true}
           admin-base-url: ${GATEWAY_ADMIN_BASE_URL}

@@ -7,8 +7,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import top.egon.cola.component.common.core.pojo.ResultRecord;
 import io.swagger.v3.oas.annotations.Operation;
+import top.egon.cola.component.common.core.pojo.ResultRecord;
+import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
 import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 import top.egon.cola.platform.rbac3.admin.authorization.permission.domain.dto.UpdateResourcePermissionMappingRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.permission.domain.vo.ResourcePermissionMappingVO;
@@ -21,6 +22,13 @@ import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 /** Dedicated administrator endpoint for the sole actual resource-permission mapping write path. */
 @RestController
 @RequestMapping("/api/rbac3/v1/iam/resources/{resourceId}/permission-mapping")
+@EgonApiCatalog(
+        businessDomainCode = "platform",
+        businessDomainName = "平台治理域",
+        entityDomainCode = "rbac3",
+        entityDomainName = "RBAC3权限实体域",
+        interfaceGroupCode = "iam"
+)
 public class ResourcePermissionMappingController {
 
     private final ResourcePermissionMappingService service;

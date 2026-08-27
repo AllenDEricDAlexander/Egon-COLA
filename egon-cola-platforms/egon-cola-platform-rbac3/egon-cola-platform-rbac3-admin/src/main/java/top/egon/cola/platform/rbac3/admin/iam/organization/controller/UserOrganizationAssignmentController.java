@@ -32,7 +32,7 @@ import java.util.List;
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        interfaceGroupCode = "iam-user-organization"
+        interfaceGroupCode = "iam"
 )
 public class UserOrganizationAssignmentController {
 

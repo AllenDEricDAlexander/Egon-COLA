@@ -21,7 +21,7 @@ import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
         businessDomainName = "平台治理域",
         entityDomainCode = "rbac3",
         entityDomainName = "RBAC3权限实体域",
-        interfaceGroupCode = "rbac3-auth-about"
+        interfaceGroupCode = "iam"
 )
 public class Rbac3AboutController {
 
