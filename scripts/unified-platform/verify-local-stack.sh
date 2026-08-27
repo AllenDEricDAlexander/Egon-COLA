@@ -123,6 +123,40 @@ verify_http() {
   fi
 }
 
+startup_mode=full
+if [[ -s "${unified_platform_runtime_dir}/startup-mode" ]]; then
+  startup_mode="$(<"${unified_platform_runtime_dir}/startup-mode")"
+fi
+if [[ "${startup_mode}" == "platforms" ]]; then
+  for name in ddc idp rbac3 gateway-admin \
+    idp-admin-web rbac3-admin-web gateway-admin-web ddc-admin-web portal-web; do
+    verify_process "${name}"
+  done
+  verify_http idp "${IDP_BASE_URL}/actuator/health/readiness"
+  verify_http rbac3 "${RBAC3_BASE_URL}/actuator/health/readiness"
+  verify_http ddc "${DDC_BASE_URL}/actuator/health/readiness"
+  verify_http gateway-admin "${GATEWAY_ADMIN_BASE_URL}/actuator/health/readiness"
+  verify_http idp-admin-web "${IDP_ADMIN_WEB_URL}/"
+  verify_http rbac3-admin-web "${RBAC3_ADMIN_WEB_URL}/"
+  verify_http gateway-admin-web "${GATEWAY_ADMIN_WEB_URL}/"
+  verify_http ddc-admin-web "${DDC_ADMIN_WEB_URL}/"
+  verify_http portal-web "${PLATFORM_PORTAL_URL}/"
+  manifest_response="$(curl --max-time 5 -fsS \
+    "${PLATFORM_PORTAL_URL}/portal-manifest/local.json" || true)"
+  if ! jq -e 'has("idp") and has("rbac3") and has("gateway") and has("ddc")' \
+      <<<"${manifest_response}" >/dev/null 2>&1; then
+    printf 'FAIL portal manifest is unavailable or invalid\n' >&2
+    failures=$((failures + 1))
+  fi
+  if ((failures > 0)); then
+    printf 'Unified platform verification failed with %d problem(s).\n' \
+      "${failures}" >&2
+    exit 1
+  fi
+  printf 'Unified platform core and Portal verification passed.\n'
+  exit 0
+fi
+
 for name in \
   ddc \
   idp \

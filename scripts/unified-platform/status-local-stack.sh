@@ -19,15 +19,23 @@ print_status() {
     "${name}" "${pid}" "${state}" "${status:-unreachable}"
 }
 
+startup_mode=full
+if [[ -s "${unified_platform_runtime_dir}/startup-mode" ]]; then
+  startup_mode="$(<"${unified_platform_runtime_dir}/startup-mode")"
+fi
+printf 'Startup mode: %s\n' "${startup_mode}"
+
 print_status idp "${IDP_BASE_URL}/actuator/health/readiness"
 print_status rbac3 "${RBAC3_BASE_URL}/actuator/health/readiness"
 print_status ddc "${DDC_BASE_URL}/actuator/health/readiness"
 print_status gateway-admin "${GATEWAY_ADMIN_BASE_URL}/actuator/health/readiness"
-print_status gateway-engine "${GATEWAY_ENGINE_A_BASE_URL}/actuator/health/readiness"
-print_status gateway-engine-b "${GATEWAY_ENGINE_B_BASE_URL}/actuator/health/readiness"
-print_status mock-backend "${MOCK_BACKEND_BASE_URL}/actuator/health/readiness"
-print_status mcp-provider "${MCP_PROVIDER_BASE_URL}/actuator/health/readiness"
-print_status mcp-remote "${MCP_REMOTE_BASE_URL}/actuator/health/readiness"
+if [[ "${startup_mode}" == "full" ]]; then
+  print_status gateway-engine "${GATEWAY_ENGINE_A_BASE_URL}/actuator/health/readiness"
+  print_status gateway-engine-b "${GATEWAY_ENGINE_B_BASE_URL}/actuator/health/readiness"
+  print_status mock-backend "${MOCK_BACKEND_BASE_URL}/actuator/health/readiness"
+  print_status mcp-provider "${MCP_PROVIDER_BASE_URL}/actuator/health/readiness"
+  print_status mcp-remote "${MCP_REMOTE_BASE_URL}/actuator/health/readiness"
+fi
 print_status idp-admin-web "${IDP_ADMIN_WEB_URL}/"
 print_status rbac3-admin-web "${RBAC3_ADMIN_WEB_URL}/"
 print_status gateway-admin-web "${GATEWAY_ADMIN_WEB_URL}/"
