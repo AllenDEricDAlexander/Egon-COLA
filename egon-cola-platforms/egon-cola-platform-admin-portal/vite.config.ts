@@ -27,10 +27,14 @@ export default defineConfig({
         target: process.env.PORTAL_API_PROXY ?? 'http://127.0.0.1:18100',
         changeOrigin: true,
       },
-      '/portal-manifest': {
-        target: process.env.PORTAL_MANIFEST_PROXY ?? 'http://127.0.0.1:18100',
-        changeOrigin: true,
-      },
+      ...(process.env.PORTAL_MANIFEST_PROXY
+        ? {
+            '/portal-manifest': {
+              target: process.env.PORTAL_MANIFEST_PROXY,
+              changeOrigin: true,
+            },
+          }
+        : {}),
     },
   },
   build: { sourcemap: false, chunkSizeWarningLimit: 900 },
