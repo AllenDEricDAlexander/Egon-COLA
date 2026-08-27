@@ -6,12 +6,12 @@
 | Template Version | `4` |
 | Status | `Review` |
 | Created | `2026-08-27 11:13 CST` |
-| Updated | `2026-08-27 11:44 CST` |
+| Updated | `2026-08-27 12:55 CST` |
 | Owner | User / Egon-COLA platform owner |
 | Repository | Egon-COLA |
 | Scope | `egon-cola-platforms` 下的 shared、IDP/RBAC3/Gateway/DDC Admin Web 与新增 Platform Portal；本 Plan 只实现 Web/Portal，后端缺失接口仍按 Spec §9 作为后续 Java API 输入 |
 | Source Requirement | 用户确认 Wujie、混合宿主、静态菜单、同源 Cookie/CSRF、首页只读 Facade、后续 Java 传统三层，并要求完善 Spec 后开始写 Plan |
-| Baseline Revision | `main@95039c0b`；2026-08-27 dirty-worktree snapshot，用户既有 docs/Plan/Spec 修改和 `egon-cola-archetype-web-open/` 按 §6.1 保持不动 |
+| Baseline Revision | 执行基线为 `main@27447b6a`；用户已授权保留该外部混合提交，不改写历史；原始设计基线为 `main@95039c0b`，其余既有 docs/Plan/Spec、archetype 和 SQL 变更按 §6.1 保持不动 |
 | Implements Spec | [platforms Admin Web 企业级平台与微前端需求架构规格](../spec/2026-08-27-08-09-platforms-web-enterprise-microfrontend.md) |
 | Spec Status | `Review` |
 | Spec Revision | `2026-08-27 11:44 CST`; baseline `main@95039c0b` |
@@ -112,6 +112,7 @@
 | --- | --- | --- | --- | --- | --- |
 | PageHeader | Spec §7.0 Keep/Expand、§8.3；四个平台重复标题/面包屑/主操作 | shared 当前只有 `PageTemplate`，平台页面重复 `Card`/`Typography.Title` | 继续每页自绘可少一个文件，但会保留标题、主操作和面包屑漂移 | 1 个 shared component、1 个测试、四个平台导入调整 | Implement in Step 1 |
 | PageState/PageTemplate | Spec §7.0 Keep/Expand | shared 已有 `PageState.tsx`、`PageTemplate.tsx` | 四个平台自写 loading/error/empty 会重复分支 | 不增加网络调用，只统一状态和可访问结构 | Implement in Step 1 |
+| EnterpriseLayout lint correction | 执行门禁要求 Step 1 的 package lint 通过；不改变 Spec 业务合同 | `EnterpriseLayout.tsx` 在执行基线已有 `react-hooks/exhaustive-deps` warning 和两处 `react-hooks/set-state-in-effect` error | 忽略既有错误会使 Step 1 无法达到计划的全包验证；改动仅稳定依赖并为必要的响应式 UI 同步保留有理由的局部 lint 例外 | 1 个已存在 shared layout 文件，复用现有回归测试，不增加公共 API | Implement in Step 1 corrective scope |
 | IDP page normalizer | Spec §4、§9、§12；三类列表同时面对旧 List/新 page wrapper | `UserListPage`、`ClientListPage`、`ResourceServerListPage` 当前直接消费数组 | 每页写一次兼容分支会重复且不一致 | 1 个纯函数和测试，无新网络调用 | Implement in Step 2 |
 | RBAC3 organization/position pages | Spec §4、§12；当前两条路由错误绑定 `UserDirectoryPage` | `governance.routes.tsx` 明确复用错误组件；后端 Organization/Position Controller 已存在 | 继续复用会展示错误业务事实 | 2 个页面组件、现有 API client 扩展和 focused tests | Implement in Step 3 |
 | DDC instances page | Spec §9.2、§12；后端 `/api/v1/ddc/instances/page` 已存在但前端无入口 | DDC `App.tsx`/`AdminLayout.tsx` 无 instances route/menu | 将实例藏在其他页面会混淆配置客户端与服务注册实例 | 1 个页面、1 个 route/menu、复用 `ddcPageApi` | Implement in Step 5 |
@@ -184,6 +185,7 @@ egon-cola-platforms/
 │       ├── components/PageTemplate.tsx                     MODIFY
 │       ├── i18n/en-US.ts                                   MODIFY
 │       ├── i18n/zh-CN.ts                                   MODIFY
+│       ├── layout/EnterpriseLayout.tsx                     MODIFY (lint correction)
 │       └── index.ts                                        MODIFY
 ├── egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/
 │   ├── api/page.test.ts                                    CREATE
@@ -223,6 +225,7 @@ egon-cola-platforms/
 | CREATE | `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/components/PageHeader.tsx` | No common PageHeader symbol; `PageTemplate.tsx` repeats title markup | `PageHeaderProps`, `PageHeader` | Title/subtitle/breadcrumb/action composition | Step 1 | `REQ-001`, `REQ-003` | shared typecheck/test |
 | MODIFY | `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/components/PageState.tsx` | Existing loading/empty/error/showPartial branches | Preserve branches and expose consistent retry/permission/partial copy | Step 1 | `REQ-003`, `REQ-013` | shared component tests |
 | MODIFY | `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/components/PageTemplate.tsx` | Existing Card title and PageState composition | Render PageHeader while preserving `PageTemplateProps` compatibility | Step 1 | `REQ-001`, `REQ-003` | shared typecheck/test |
+| MODIFY | `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.tsx` | Existing navigation memo and responsive synchronization trigger package Lint errors | Stabilize navigation dependency and retain documented UI synchronization exceptions without changing layout behavior | Step 1 corrective scope | `REQ-001`, `REQ-003`, `REQ-013` | shared test/lint |
 | MODIFY | `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/i18n/zh-CN.ts` | Existing common state/layout keys | Add only PageHeader/PageState/host-safe common copy keys | Step 1 | `REQ-003`, `REQ-013` | i18n key review |
 | MODIFY | `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/i18n/en-US.ts` | Mirrors `zh-CN` shape | Keep equivalent key structure and English values | Step 1 | `REQ-003`, `REQ-016` | key-parity review |
 | MODIFY | `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/index.ts` | Exports PageState/PageTemplate but no PageHeader | Export `PageHeader` and its prop type without changing old exports | Step 1 | `REQ-001`, `REQ-003` | package typecheck |
@@ -311,6 +314,7 @@ egon-cola-platforms/
 - 当前分支为 `main`，基线为 `95039c0b`；工作区已有 `docs/egon/plan/`、`docs/egon/spec/` 修改、未跟踪 Plan/Spec 和 `egon-cola-archetype-web-open/`，执行时只允许 path-limited stage 本 Plan 所列文件。
 - 适用的本地 AGENTS 约束要求：不自动启动项目；不修改无关文件；每个 Step 一次语义提交；Flyway 历史迁移不可修改；本 Plan 不涉及数据库。
 - 四个 Web 当前均有独立 `package.json`、Vite、Vitest、typecheck/lint；shared 有 `EnterpriseLayout`/`EnterpriseSidebar`/`PageState`/`PageTemplate`；Portal 当前不存在。
+- 当前执行基线为用户已提交的 `27447b6a`；该提交已包含原 Step 1 的 shared 文件和其他用户变更。为遵守不改写历史及后续 Step 路径限定，本次只允许新增一个 shared `EnterpriseLayout.tsx` 纠正提交；该文件此前未被用户变更覆盖。
 - 既有 Java Admin 模块的 feature-first 结构和架构测试是只读背景证据；本 Plan 不触及 `egon-cola-platforms/**/src/main/java`、`pom.xml`、`lombok.config` 或 Flyway。
 
 ### 6.2 Build, test, and environment prerequisites
@@ -342,6 +346,7 @@ egon-cola-platforms/
 | `PLAN-CLAR-002` | PageHeader 只抽取标题/副标题/面包屑/主操作，不新增万能业务表格或 Scope 数据组件 | shared `PageTemplate.tsx` 已有 title/subtitle/breadcrumbs/extra props；四个平台有重复标题壳 | 保留现有 `PageTemplateProps`，PageHeader 不拥有业务筛选或数据请求 | 若视觉审查不接受抽取，可回退 PageHeader 文件而不影响 API/page contracts |
 | `PLAN-CLAR-003` | Portal summary 首期允许 adapter 返回 `NOT_CONFIGURED`，等待 §9 后端摘要合同，不把业务 API 猜成固定路径 | Spec §9 P2 summary API 明确 deferred；各平台 scope model 不同且当前无统一 summary endpoint | 首页仍有统一 partial/error 状态和独立入口，未制造新的后端合同 | 若后续确定服务端摘要 API，只替换 adapter，不改变 Portal card/result state |
 | `PLAN-CLAR-004` | Wujie 子应用用 `window.__POWERED_BY_WUJIE__` 与 `$wujie.props.embedded` 作为运行态探测，入口同时保留 standalone 分支 | Wujie 官方 Vite/React wrapper 文档记录该 lifecycle/global 约定；现有四个入口都是直接 `createRoot` | 探测只影响壳和 mount lifecycle，不改变子应用业务 API、权限或数据所有权 | 若 spike 发现 wrapper lifecycle 差异，只改 Adapter/entry glue，不改 page contracts |
+| `PLAN-CLAR-005` | 将执行基线中已存在、且阻断 Step 1 全包 Lint 的 `EnterpriseLayout.tsx` 纳入一个授权的 Step 1 corrective scope；不回滚或改写 `27447b6a` | 基线文件未在用户提交中修改，但 `npm run lint` 报告其 2 个 error/1 个 warning；现有 `EnterpriseLayout.test.tsx` 覆盖响应式抽屉、嵌套菜单和路径高亮 | 只稳定 `navigation` memo 依赖，并对必要的 breakpoint/ancestor UI 同步保留带原因的局部 rule suppression；不改变组件 props、路由和菜单数据 | 若不纳入则全包 Lint 永远无法通过；若改变同步逻辑可能引入菜单/抽屉回归 |
 
 ## 7. Ordered File-by-file Implementation Steps
 
@@ -349,9 +354,9 @@ egon-cola-platforms/
 
 - Requirements: `REQ-001, REQ-003, REQ-013, REQ-016`
 - Dependencies: `None`
-- Baseline state: shared 已有 `EnterpriseLayout`/`EnterpriseSidebar`、`PageState`、`PageTemplate` 和测试；缺少可复用 PageHeader，页面状态文案和标题结构由各页面自行决定。
-- Observable outcome: shared 导出稳定的 `PageHeader`；`PageTemplate` 使用它但兼容原有 props；PageState 的 loading/empty/error/partial/retry 语义有聚焦测试。
-- End state: shared package 可被四个 Web 继续导入；没有改菜单权威、认证、API 或 Java/数据库。
+- Baseline state: 执行基线已包含 PageHeader/PageState/PageTemplate 的原 Step 1 结果，但 `EnterpriseLayout.tsx` 的 `react-hooks/exhaustive-deps` warning 和两处 `react-hooks/set-state-in-effect` error 仍阻断 package lint。
+- Observable outcome: shared 导出稳定的 `PageHeader`；`PageTemplate` 使用它但兼容原有 props；PageState 的 loading/empty/error/partial/retry 语义有聚焦测试；EnterpriseLayout package lint clean 且菜单/抽屉/路径高亮回归不变。
+- End state: shared package 可被四个 Web 继续导入；没有改菜单权威、认证、API 或 Java/数据库；外部混合提交不被改写。
 - Test-first gate: `Required — File 1 先建立 PageHeader import/behavior RED；模块不存在时的编译失败是已知 compile prerequisite，File 2 只提供最小契约后使行为断言继续 RED/GREEN。`
 - Manual Checks: `MC-REUSE-001, MC-SCOPE-001, MC-TEST-001`
 - Literal Rules: `Rule 11` — no Java file; preserve the Spec-selected future traditional profile and current Web package boundaries.
@@ -561,14 +566,50 @@ export {PageTemplate, type PageTemplateProps, type BreadcrumbItem} from './compo
 - Verification contribution: shared `typecheck` and `build` verify declaration/export resolution; downstream package typechecks consume the public path。
 - After this file: Step 1 call path is wired and can be committed。
 
+#### File 8 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.tsx`
+
+- Purpose: 清理执行基线中阻断 shared package lint 的既有 Hooks 规则错误，保持布局运行行为不变。
+- Symbols: `navigation` memo；responsive drawer synchronization effect；ancestor `openKeys` synchronization effect。
+- Repository evidence: 当前文件的 `config.navigation ?? []` 作为 `useMemo` 依赖触发 `react-hooks/exhaustive-deps` warning；两个响应式同步 effect 触发 `react-hooks/set-state-in-effect` error；`EnterpriseLayout.test.tsx` 已覆盖桌面/移动端、嵌套导航和 deep link。
+- Dependencies and consumers: `EnterpriseLayout` consumers in all four Web packages; `EnterpriseSidebar`, `EnterpriseHeader`, `EnterpriseFooter`, `resolveNavigationSelection`; no public prop or export change。
+- Why now: full Step 1 validation cannot pass while an unchanged shared file fails package lint；this is the user-authorized corrective scope from `PLAN-CLAR-005`。
+- Contract/signature changes: no public API change; memoize the fallback navigation value/dependency and retain the existing breakpoint/ancestor state synchronization with narrowly documented local lint exceptions where the effect intentionally synchronizes controlled UI state。
+- Input/output and state mapping: config navigation/path -> same selection/open keys; wide breakpoint -> drawer remains closed; selected ancestors -> same open menu keys; no route/API/auth change。
+- Error and edge behavior: empty navigation, mobile drawer, nested path selection and config updates retain current behavior; no new state store, timer, request or automatic navigation。
+- Standards impact: `MC-REUSE-001, MC-SCOPE-001, MC-TEST-001` — fix stays in the declared shared layout file, reuses existing components/tests, and is verified by focused layout tests plus package lint。
+- Literal rule enforcement: `Rule 11` — existing frontend shared layout only; no Java layer, module move or third architecture。
+- Implementation pseudocode:
+
+```tsx
+const navigation = useMemo(() => config.navigation ?? [], [config.navigation])
+const selection = useMemo(() => resolveNavigationSelection(navigation, location.pathname), [location.pathname, navigation])
+useEffect(() => {
+  if (!full) {
+    // Breakpoint changes must close the controlled mobile drawer.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDrawerOpen(false)
+  }
+}, [full])
+useEffect(() => {
+  if (selection.ancestorKeys.length === 0) return
+  // Selected ancestors are synchronized into the controlled menu state.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  setOpenKeys((current) => mergeMissingAncestorKeys(current, selection.ancestorKeys))
+}, [selection.ancestorKeys])
+```
+
+- Verification contribution: existing `EnterpriseLayout.test.tsx` proves the same responsive, nested-navigation and deep-link behavior; `npm run lint` proves the baseline errors are closed。
+- After this file: the full Step 1 package validation can reach GREEN without modifying any unplanned file or rewriting the external baseline commit。
+
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA/egon-cola-platforms/egon-cola-platform-admin-web-shared`
 - Verification command: `npm run test -- --run src/components/PageHeader.test.tsx src/layout/EnterpriseLayout.test.tsx && npm run typecheck && npm run lint`
 - Expected result: focused PageHeader and existing EnterpriseLayout tests pass; typecheck/lint exit 0; no removed public export or i18n key-shape error。
-- Failure returns to: File 1 for assertion/setup failure; File 2-4 for render/type failure; Files 5-7 for resource/export parity。
-- Completion criteria: shared PageHeader is exported, PageTemplate remains source-compatible, PageState has explicit state coverage, and only Step 1 paths are changed。
-- Rollback: path-limited revert of the seven Step 1 paths; no production API/database rollback required。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/components/PageHeader.test.tsx`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/components/PageHeader.tsx`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/components/PageState.tsx`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/components/PageTemplate.tsx`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/i18n/zh-CN.ts`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/i18n/en-US.ts`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/index.ts`
-- Commit: `feat(admin-web-shared): standardize page header and states`
+- Failure returns to: File 1 for assertion/setup failure; File 2-4 for render/type failure; Files 5-7 for resource/export parity; File 8 for package lint/regression failure。
+- Completion criteria: shared PageHeader is exported, PageTemplate remains source-compatible, PageState has explicit state coverage, `EnterpriseLayout.tsx` package lint is clean with behavior regression green, and only Step 1/corrective paths are involved。
+- Rollback: path-limited revert of the existing Step 1 paths if separately needed; the new corrective commit can be reverted by its single `EnterpriseLayout.tsx` path without rewriting `27447b6a`; no production API/database rollback required。
+- Commit paths: `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/components/PageHeader.test.tsx`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/components/PageHeader.tsx`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/components/PageState.tsx`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/components/PageTemplate.tsx`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/i18n/zh-CN.ts`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/i18n/en-US.ts`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/index.ts`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.tsx`
+- External baseline note: the first seven paths are already present in user commit `27447b6a`; the new path-limited corrective commit stages only `EnterpriseLayout.tsx` and does not rewrite or re-stage the external commit。
+- Commit: `fix(admin-web-shared): clear EnterpriseLayout lint gate`
 
 ### Step 2 — 闭合 IDP 列表、Grant 与审计页面的前端消费边界
 
