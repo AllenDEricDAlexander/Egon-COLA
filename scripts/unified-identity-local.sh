@@ -683,7 +683,7 @@ write_service_env_files() {
   write_env "${file}" RBAC3_RUNTIME_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
   write_env "${file}" RBAC3_AUDIT_CURSOR_SECRET_FILE "${secret_dir}/rbac3-audit.secret"
   write_env "${file}" RBAC3_SNOWFLAKE_MACHINE_ID 33
-  write_env "${file}" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED false
+  write_env "${file}" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED true
   write_env "${file}" RBAC3_DEVELOPMENT_AUTO_ACTIVATE_LOCAL_ADMIN_ROLES true
   write_env "${file}" RBAC3_DEVELOPMENT_TENANT_IDS "${service_tenant_id}"
   write_env "${file}" SPRING_FLYWAY_ENABLED true
@@ -1811,7 +1811,8 @@ command_start() {
   start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}" \
     --egon.cola.component.ddc.enabled=true \
     --egon.cola.component.ddc.registry.enabled=false \
-    --egon.cola.component.ddc.registry.http.enabled=false
+    --egon.cola.component.ddc.registry.http.enabled=false \
+    --egon.rbac3.development-bootstrap.enabled=false
   wait_http rbac3 "${rbac3_url}/actuator/health/readiness"
 
   service_tenant_id="$(rbac3_tenant_id default)"
@@ -1842,6 +1843,13 @@ command_start() {
   initialize_ddc_topology "${ddc_access_token}"
   stage "reconciling SQL-seeded RBAC3 applications with DDC catalog IDs"
   reconcile_local_rbac3_ddc_catalog
+  stage "initializing local RBAC3 resource catalog and admin grants"
+  stop_process rbac3
+  start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}" \
+    --egon.cola.component.ddc.enabled=true \
+    --egon.cola.component.ddc.registry.enabled=false \
+    --egon.cola.component.ddc.registry.http.enabled=false
+  wait_http rbac3 "${rbac3_url}/actuator/health/readiness"
   stage "activating non-mock roles"
   activate_roles "${rbac3_access_token}" false
 

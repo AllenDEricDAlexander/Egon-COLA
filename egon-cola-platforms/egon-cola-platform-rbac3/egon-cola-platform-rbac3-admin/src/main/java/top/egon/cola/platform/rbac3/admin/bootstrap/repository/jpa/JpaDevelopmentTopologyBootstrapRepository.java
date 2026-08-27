@@ -231,6 +231,10 @@ public class JpaDevelopmentTopologyBootstrapRepository
             changed |= ensureResourceGrants(
                     tenantId, application.getId(), role.getId(), permissionCode, now);
         }
+        if (definition.roleCode().endsWith("_LOCAL_ADMIN")) {
+            changed |= ensureAllResourceGrants(
+                    tenantId, application.getId(), role.getId(), now);
+        }
         if (!hasAssignment(tenantId, userId, role.getId())) {
             entityManager.persist(new UserRoleAssignmentPO(
                     idGenerator.nextLongId(), tenantId, userId, role.getId(),
@@ -256,10 +260,8 @@ public class JpaDevelopmentTopologyBootstrapRepository
     private ApplicationPO findApplication(Long tenantId, String applicationCode) {
         return singleOrNull(entityManager.createQuery("""
                         select application from ApplicationEntity application
-                         where application.tenantId = :tenantId
-                           and application.applicationCode = :applicationCode
+                         where application.applicationCode = :applicationCode
                         """, ApplicationPO.class)
-                .setParameter("tenantId", tenantId)
                 .setParameter("applicationCode", applicationCode)
                 .getResultList(), "application");
     }
@@ -311,10 +313,8 @@ public class JpaDevelopmentTopologyBootstrapRepository
             Instant now) {
         PermissionPO permission = singleOrNull(entityManager.createQuery("""
                         select permission from PermissionEntity permission
-                         where permission.tenantId = :tenantId
-                           and permission.permissionCode = :permissionCode
+                         where permission.permissionCode = :permissionCode
                         """, PermissionPO.class)
-                .setParameter("tenantId", tenantId)
                 .setParameter("permissionCode", permissionCode)
                 .getResultList(), "permission");
         boolean changed = false;
@@ -344,6 +344,45 @@ public class JpaDevelopmentTopologyBootstrapRepository
             throw new IllegalStateException(
                     "required mapped development resource is missing: " + permissionCode);
         }
+        for (ResourcePO resource : resources) {
+            if (!hasRoleResourceGrant(tenantId, roleId, resource.getId(), now)) {
+                entityManager.persist(new RoleResourceGrantPO(
+                        idGenerator.nextLongId(), tenantId, applicationId,
+                        roleId, resource.getId(), now, null, ACTOR, now));
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    /**
+     * 为 local administrator role 补齐当前应用的全部 ACTIVE 资源。
+     *
+     * <p>Local resource bootstrap may add menu/page/action/API facts beyond the minimum
+     * capability list. The administrator role is intentionally the only built-in role that
+     * receives those newly registered resources; the mock entry role remains least-privilege.</p>
+     *
+     * @param tenantId 租户标识；tenant identifier
+     * @param applicationId 应用标识；application identifier
+     * @param roleId 角色标识；role identifier
+     * @param now 当前数据库时间；current database time
+     * @return 是否产生持久化变更；whether persistence changed
+     */
+    private boolean ensureAllResourceGrants(
+            Long tenantId,
+            Long applicationId,
+            Long roleId,
+            Instant now) {
+        boolean changed = false;
+        List<ResourcePO> resources = entityManager.createQuery("""
+                        select resource from ResourceEntity resource
+                         where resource.applicationId = :applicationId
+                           and resource.status = :status
+                         order by resource.id
+                        """, ResourcePO.class)
+                .setParameter("applicationId", applicationId)
+                .setParameter("status", ResourceStatusEnum.ACTIVE)
+                .getResultList();
         for (ResourcePO resource : resources) {
             if (!hasRoleResourceGrant(tenantId, roleId, resource.getId(), now)) {
                 entityManager.persist(new RoleResourceGrantPO(

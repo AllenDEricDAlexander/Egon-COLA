@@ -660,6 +660,15 @@ assert_contains "${identity_script}" \
   'starting Gateway Engine after DDC control plane is ready' \
   'Gateway Engine must start after the final DDC provider restart'
 assert_contains "${identity_script}" \
+  'write_env "${file}" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED true' \
+  'local RBAC3 startup must enable the development resource bootstrap'
+assert_contains "${identity_script}" \
+  '--egon.rbac3.development-bootstrap.enabled=false' \
+  'the first RBAC3 bootstrap phase must defer resource activation until DDC reconciliation'
+assert_contains "${identity_script}" \
+  'initializing local RBAC3 resource catalog and admin grants' \
+  'local startup must initialize resources before activating administrator roles'
+assert_contains "${identity_script}" \
   'write_env "${file}" RBAC3_DEVELOPMENT_AUTO_ACTIVATE_LOCAL_ADMIN_ROLES true' \
   'local RBAC3 startup must activate the generated local administrator roles'
 assert_contains "${identity_script}" '[[ -s "${file}" ]] || return 0' \
