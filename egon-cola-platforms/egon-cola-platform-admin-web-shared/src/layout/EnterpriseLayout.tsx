@@ -19,7 +19,7 @@ export const EnterpriseLayout = ({config, children}: EnterpriseLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false)
   const [openKeys, setOpenKeys] = useState<readonly string[]>([])
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const navigation = config.navigation ?? []
+  const navigation = useMemo(() => config.navigation ?? [], [config.navigation])
   const full = screens.lg === true
   const selection = useMemo(
     () => resolveNavigationSelection(navigation, location.pathname),
@@ -27,11 +27,17 @@ export const EnterpriseLayout = ({config, children}: EnterpriseLayoutProps) => {
   )
 
   useEffect(() => {
-    if (!full) setDrawerOpen(false)
+    if (!full) {
+      // Breakpoint changes must close the controlled mobile drawer.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDrawerOpen(false)
+    }
   }, [full])
 
   useEffect(() => {
     if (selection.ancestorKeys.length === 0) return
+    // Selected ancestors are synchronized into the controlled menu state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpenKeys((current) => {
       const missing = selection.ancestorKeys.filter((key) => !current.includes(key))
       return missing.length > 0 ? [...current, ...missing] : current
