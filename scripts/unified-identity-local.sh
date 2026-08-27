@@ -1592,14 +1592,16 @@ wait_gateway_catalog() {
 }
 
 wait_gateway_openapi_sync_for_app() {
-  local biz_code="$1" app_code="$2" response
+  local biz_code="$1" app_code="$2" response build_id
+  build_id="$(local_build_id "${rbac3_jar}")"
   for ((attempt = 1; attempt <= 60; attempt++)); do
     response="$(gateway_api GET \
       "/api/v1/gateway/admin/openapi/sync-states?bizCode=${biz_code}&namespace=default&env=local&appCode=${app_code}" \
       || true)"
-    if jq -e '
-        length > 0
-        and all(.[]; .status == "VALID" and .definitionSetId != null)
+    if jq -e --arg build "${build_id}" '
+        [ .[] | select(.buildId == $build) ] as $current
+        | ($current | length) > 0
+        and all($current[]; .status == "VALID" and .definitionSetId != null)
       ' <<<"${response}" >/dev/null 2>&1; then
       return
     fi
