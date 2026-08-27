@@ -598,6 +598,7 @@ write_service_env_files() {
   write_env "${file}" EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST false
   write_env "${file}" IDP_HTTP_PROVIDER_ENABLED true
   write_env "${file}" IDP_RPC_PORT 18122
+  write_env "${file}" IDP_RPC_PROVIDER_REGISTRATION_MODE DISABLED
   write_env "${file}" IDP_RPC_DEVELOPMENT_PLAINTEXT true
   write_env "${file}" IDP_RESOURCE_SERVER_ID permission-idp-local
   write_env "${file}" IDP_RESOURCE_URI \
@@ -1896,6 +1897,7 @@ command_start() {
   wait_http ddc "${ddc_url}/actuator/health/readiness"
   wait_ddc_rpc
   write_env "${env_dir}/rbac3.env" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED true
+  write_env "${env_dir}/idp.env" IDP_RPC_PROVIDER_REGISTRATION_MODE REQUIRED
   start_process idp "${env_dir}/idp.env" "${idp_jar}"
   wait_http idp "${idp_url}/actuator/health/readiness"
   refresh_service_tokens

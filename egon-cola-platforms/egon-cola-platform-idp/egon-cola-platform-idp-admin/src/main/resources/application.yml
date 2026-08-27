@@ -98,7 +98,7 @@ egon:
           port: ${IDP_RPC_PORT:18122}
           advertised-host: ${IDP_RPC_ADVERTISED_HOST:${IDP_ADVERTISED_HOST:127.0.0.1}}
           advertised-port: ${IDP_RPC_ADVERTISED_PORT:${IDP_RPC_PORT:18122}}
-          registration-mode: DISABLED
+          registration-mode: ${IDP_RPC_PROVIDER_REGISTRATION_MODE:DISABLED}
         consumer:
           enabled: false
         tls:

@@ -712,6 +712,12 @@ assert_contains "${identity_script}" 'clear_local_rbac3_snapshots' \
 assert_contains "${identity_script}" \
   'write_env "${file}" RBAC3_DEVELOPMENT_AUTO_ACTIVATE_LOCAL_ADMIN_ROLES true' \
   'local RBAC3 startup must activate the generated local administrator roles'
+assert_contains "${identity_script}" \
+  'write_env "${file}" IDP_RPC_PROVIDER_REGISTRATION_MODE DISABLED' \
+  'IdP bootstrap startup must keep RPC registration disabled until DDC is ready'
+assert_contains "${identity_script}" \
+  'write_env "${env_dir}/idp.env" IDP_RPC_PROVIDER_REGISTRATION_MODE REQUIRED' \
+  'final IdP startup must require RPC provider registration in DDC'
 assert_contains "${identity_script}" '[[ -s "${file}" ]] || return 0' \
   'identity shutdown must tolerate an already stopped process'
 assert_contains "${repo_root}/scripts/unified-platform/lib/common.sh" \
