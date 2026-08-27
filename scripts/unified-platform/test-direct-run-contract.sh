@@ -694,7 +694,7 @@ assert_contains "${identity_script}" \
   'write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false' \
   'direct Gateway Engine startup must recover when DDC is still starting'
 assert_contains "${identity_script}" \
-  'write_env "${file}" DDC_MAX_CONFIG_BYTES 33554432' \
+  'write_env "${file}" DDC_MAX_CONFIG_BYTES 67108864' \
   'local Gateway rule documents must fit the complete chunked catalog'
 assert_contains "${identity_script}" \
   'EGON_COLA_COMPONENT_DDC_RPC_MAX_INBOUND_MESSAGE_SIZE' \

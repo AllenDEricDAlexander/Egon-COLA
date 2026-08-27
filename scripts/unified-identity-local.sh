@@ -557,7 +557,7 @@ write_service_env_files() {
   write_env "${file}" DDC_ADVERTISED_HOST "${advertised_host}"
   write_env "${file}" DDC_ADVERTISED_PORT 18150
   write_env "${file}" DDC_ARTIFACT_VERSION local
-  write_env "${file}" DDC_MAX_CONFIG_BYTES 33554432
+  write_env "${file}" DDC_MAX_CONFIG_BYTES 67108864
   write_env "${file}" DDC_REDIS_HOST "${redis_host}"
   write_env "${file}" DDC_REDIS_PORT "${redis_port}"
   write_env "${file}" DDC_REDIS_PASSWORD "${redis_password}"
@@ -750,7 +750,7 @@ write_service_env_files() {
   write_env "${file}" GATEWAY_ADMIN_OPENAPI_ALLOWED_CIDR \
     "${advertised_host}/32"
   write_env "${file}" GATEWAY_ADMIN_OPENAPI_RECONCILE_DELAY PT1S
-  write_env "${file}" DDC_MAX_CONFIG_BYTES 33554432
+  write_env "${file}" DDC_MAX_CONFIG_BYTES 67108864
   write_env "${file}" EGON_COLA_COMPONENT_DDC_RPC_DEFAULT_TIMEOUT 300s
   write_env "${file}" GATEWAY_ADMIN_RULE_CHUNK_RETENTION 1s
   write_env "${file}" GATEWAY_ADMIN_RULE_CHUNK_CLEANUP_DELAY 1s
@@ -886,7 +886,7 @@ write_service_env_files() {
   write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_NEAR_CACHE_TTL 0s
   write_env "${file}" EGON_COLA_COMPONENT_ID_MACHINE_ID 35
   write_env "${file}" DDC_ENABLED true
-  write_env "${file}" DDC_MAX_CONFIG_BYTES 33554432
+  write_env "${file}" DDC_MAX_CONFIG_BYTES 67108864
   write_env "${file}" EGON_COLA_COMPONENT_DDC_RPC_MAX_INBOUND_MESSAGE_SIZE \
     67108864
   write_env "${file}" DDC_BIZ_CODE identity
