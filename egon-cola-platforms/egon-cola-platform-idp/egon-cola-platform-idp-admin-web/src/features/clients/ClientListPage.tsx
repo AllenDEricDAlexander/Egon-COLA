@@ -19,13 +19,16 @@ import {
 } from 'antd'
 import {CopyOutlined, DeleteOutlined, EditOutlined, LinkOutlined, PlusOutlined, ReloadOutlined} from '@ant-design/icons'
 import {useState} from 'react'
-import {useNavigate} from 'react-router-dom'
+import {useNavigate, useSearchParams} from 'react-router-dom'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {httpClient, useAuth} from '../../auth/AuthContext'
 import {PageState, usePermission} from '@egon-cola/admin-web-shared'
+import {normalizePage} from '../../api/page'
 import type {
     CreateOAuthClientDTO,
     CreatedOAuthClientVO,
+    IdentityListFilter,
+    OAuthClientPageVO,
     OAuthClientVO,
     RotatedClientSecretVO,
     UpdateOAuthClientDTO,
@@ -37,11 +40,46 @@ const STATUS_COLORS: Record<string, string> = {
     SUSPENDED: 'orange',
 }
 
+const PAGE_SIZE = 20
+
+type ClientFilterForm = Pick<IdentityListFilter, 'query' | 'status'>
+
+const readClientFilter = (searchParams: URLSearchParams): IdentityListFilter => {
+    const pageValue = Number.parseInt(searchParams.get('page') ?? '0', 10)
+    const sizeValue = Number.parseInt(searchParams.get('size') ?? String(PAGE_SIZE), 10)
+
+    return {
+        page: Number.isInteger(pageValue) && pageValue >= 0 ? pageValue : 0,
+        size: Number.isInteger(sizeValue) && sizeValue > 0 ? sizeValue : PAGE_SIZE,
+        query: searchParams.get('query')?.trim() || undefined,
+        status: searchParams.get('status') || undefined,
+    }
+}
+
+const buildClientQuery = (filter: IdentityListFilter, includePaging: boolean): string => {
+    const query = new URLSearchParams()
+    if (includePaging) {
+        query.set('page', String(filter.page))
+        query.set('size', String(filter.size))
+    }
+    if (filter.query) query.set('query', filter.query)
+    if (filter.status) query.set('status', filter.status)
+    return query.toString()
+}
+
+const toClientSearchParams = ({page, size, query, status}: IdentityListFilter): URLSearchParams => {
+    const searchParams = new URLSearchParams({page: String(page), size: String(size)})
+    if (query?.trim()) searchParams.set('query', query.trim())
+    if (status) searchParams.set('status', status)
+    return searchParams
+}
+
 export const ClientListPage = () => {
   const auth = useAuth()
   const queryClient = useQueryClient()
     const navigate = useNavigate()
   const { has } = usePermission(auth.bootstrap?.permissions ?? [])
+    const [searchParams, setSearchParams] = useSearchParams()
     const [createOpen, setCreateOpen] = useState(false)
     const [detailClient, setDetailClient] = useState<OAuthClientVO | null>(null)
     const [editOpen, setEditOpen] = useState(false)
@@ -51,11 +89,16 @@ export const ClientListPage = () => {
     const [createForm] = Form.useForm()
     const [editForm] = Form.useForm()
     const [uriForm] = Form.useForm()
+    const [filterForm] = Form.useForm<ClientFilterForm>()
   const [messageApi, contextHolder] = message.useMessage()
+    const submitted = readClientFilter(searchParams)
+    const requestQuery = buildClientQuery(submitted, searchParams.has('page') || searchParams.has('size'))
 
   const clientsQuery = useQuery({
-    queryKey: ['idp', 'clients'],
-      queryFn: () => httpClient.request<OAuthClientVO[]>('/api/v1/identity/clients'),
+    queryKey: ['idp', 'clients', requestQuery],
+      queryFn: () => httpClient
+          .request<OAuthClientVO[] | OAuthClientPageVO>(`/api/v1/identity/clients${requestQuery ? `?${requestQuery}` : ''}`)
+          .then(normalizePage),
   })
 
   const createMutation = useMutation({
@@ -199,10 +242,45 @@ export const ClientListPage = () => {
               </Space>
           }
       >
+          <Form<ClientFilterForm>
+              form={filterForm}
+              layout="inline"
+              initialValues={{query: submitted.query, status: submitted.status}}
+              onFinish={(values) => {
+                  setSearchParams(toClientSearchParams({
+                      page: 0,
+                      size: PAGE_SIZE,
+                      query: values.query,
+                      status: values.status,
+                  }))
+              }}
+              style={{marginBottom: 16}}
+          >
+              <Form.Item name="query" label="客户端">
+                  <Input allowClear placeholder="Client ID/名称"/>
+              </Form.Item>
+              <Form.Item name="status" label="状态">
+                  <Select
+                      allowClear
+                      placeholder="全部"
+                      options={Object.keys(STATUS_COLORS).map((status) => ({label: status, value: status}))}
+                      style={{width: 160}}
+                  />
+              </Form.Item>
+              <Form.Item>
+                  <Space>
+                      <Button type="primary" htmlType="submit">查询</Button>
+                      <Button onClick={() => {
+                          filterForm.resetFields()
+                          setSearchParams(toClientSearchParams({page: 0, size: PAGE_SIZE}))
+                      }}>重置</Button>
+                  </Space>
+              </Form.Item>
+          </Form>
           <PageState
               loading={clientsQuery.isPending}
               error={clientsQuery.error}
-              empty={clientsQuery.data?.length === 0}
+              empty={clientsQuery.data?.content.length === 0}
               emptyDescription="暂无客户端"
               onRetry={() => {
                   void clientsQuery.refetch()
@@ -210,7 +288,16 @@ export const ClientListPage = () => {
           >
               <Table<OAuthClientVO>
                   rowKey="clientId"
-                  dataSource={clientsQuery.data ?? []}
+                  dataSource={clientsQuery.data?.content ?? []}
+                  pagination={{
+                      current: (clientsQuery.data?.page ?? submitted.page) + 1,
+                      pageSize: clientsQuery.data?.size || submitted.size,
+                      total: clientsQuery.data?.totalElements ?? 0,
+                      showTotal: (total) => `共 ${total} 条`,
+                      onChange: (page, size) => {
+                          setSearchParams(toClientSearchParams({...submitted, page: page - 1, size}))
+                      },
+                  }}
                   onRow={(row) => ({onClick: () => setDetailClient(row), style: {cursor: 'pointer'}})}
                   columns={[
                       {title: 'App ID', dataIndex: 'appId', ellipsis: true},

@@ -41,15 +41,16 @@ const client = {
     updatedAt: '2026-08-22T01:00:00Z',
 }
 
-const renderPage = () => {
+const renderPage = (initialEntry = '/clients') => {
     const queryClient = new QueryClient({defaultOptions: {queries: {retry: false}}})
-    return render(
+    const rendered = render(
         <QueryClientProvider client={queryClient}>
-            <MemoryRouter initialEntries={['/clients']}>
+            <MemoryRouter initialEntries={[initialEntry]}>
                 <ClientListPage/>
             </MemoryRouter>
         </QueryClientProvider>,
     )
+    return {queryClient, ...rendered}
 }
 
 beforeEach(() => {
@@ -60,6 +61,9 @@ beforeEach(() => {
         'idp:resource-server:grant',
     ]
     state.request.mockReset().mockImplementation((path: string, options?: RequestInit) => {
+        if (path === '/api/v1/identity/clients?page=0&size=20' && !options) {
+            return Promise.resolve({content: [client], page: 0, size: 20, totalElements: 1, totalPages: 1})
+        }
         if (path === '/api/v1/identity/clients' && !options) return Promise.resolve([client])
         if (path === '/api/v1/identity/clients' && options?.method === 'POST') {
             return Promise.resolve({
@@ -84,6 +88,9 @@ beforeEach(() => {
                 rotatedAt: '2026-08-22T02:00:00Z',
             })
         }
+        if (path === `/api/v1/identity/clients/${client.clientId}` && options?.method === 'PATCH') {
+            return Promise.resolve({...client, clientName: 'Order Service Updated', version: 4})
+        }
         return Promise.reject(new Error(`Unexpected request: ${path}`))
     })
 })
@@ -95,6 +102,34 @@ afterEach(() => {
 })
 
 describe('OAuth client secret administration', () => {
+    it('renders page metadata and opens a safe detail drawer', async () => {
+        renderPage('/clients?page=0&size=20')
+        await waitFor(() => expect(screen.getByText('Order Service')).toBeInTheDocument())
+        expect(screen.getByText('共 1 条')).toBeInTheDocument()
+        expect(state.request).toHaveBeenCalledWith('/api/v1/identity/clients?page=0&size=20')
+
+        fireEvent.click(screen.getByText('Order Service'))
+        expect(screen.getByRole('dialog')).toHaveTextContent('order-service-prod')
+        expect(screen.queryByText('raw-secret')).not.toBeInTheDocument()
+    })
+
+    it('invalidates the client list after an update', async () => {
+        const {queryClient} = renderPage()
+        const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
+        await waitFor(() => expect(screen.getByText('Order Service')).toBeInTheDocument())
+
+        fireEvent.click(screen.getByText('Order Service'))
+        fireEvent.click(screen.getByRole('button', {name: /编辑/}))
+        fireEvent.change(screen.getByLabelText('名称'), {target: {value: 'Order Service Updated'}})
+        fireEvent.click(screen.getByRole('button', {name: /确定|OK/}))
+
+        await waitFor(() => expect(state.request).toHaveBeenCalledWith(
+            `/api/v1/identity/clients/${client.clientId}`,
+            expect.objectContaining({method: 'PATCH'}),
+        ))
+        expect(invalidateQueries).toHaveBeenCalledWith(expect.objectContaining({queryKey: ['idp', 'clients']}))
+    })
+
     it('shows App ID and one-time create credentials without persisting the secret', async () => {
         renderPage()
         await waitFor(() => expect(screen.getByText('Order Service')).toBeInTheDocument())

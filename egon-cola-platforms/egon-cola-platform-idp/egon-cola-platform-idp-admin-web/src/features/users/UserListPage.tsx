@@ -2,9 +2,18 @@ import {Button, Card, Form, Input, message, Modal, Select, Space, Table, Tag, Ty
 import {EditOutlined, LockOutlined, PlusOutlined, ReloadOutlined, StopOutlined} from '@ant-design/icons'
 import {useState} from 'react'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
+import {useSearchParams} from 'react-router-dom'
 import {httpClient, useAuth} from '../../auth/AuthContext'
 import {PageState, usePermission} from '@egon-cola/admin-web-shared'
-import type {CreatedIdentityUserVO, IdentityUserVO, ResetPasswordVO} from '../../api/types'
+import {normalizePage} from '../../api/page'
+import type {
+  CreateIdentityUserDTO,
+  CreatedIdentityUserVO,
+  IdentityListFilter,
+  IdentityUserPageVO,
+  IdentityUserVO,
+  ResetPasswordVO,
+} from '../../api/types'
 
 const STATUS_COLORS: Record<string, string> = {
     ACTIVE: 'green',
@@ -13,23 +22,63 @@ const STATUS_COLORS: Record<string, string> = {
     PASSWORD_EXPIRED: 'orange',
 }
 
+const PAGE_SIZE = 20
+
+type UserFilterForm = Pick<IdentityListFilter, 'query' | 'status'>
+
+const readUserFilter = (searchParams: URLSearchParams): IdentityListFilter => {
+  const pageValue = Number.parseInt(searchParams.get('page') ?? '0', 10)
+  const sizeValue = Number.parseInt(searchParams.get('size') ?? String(PAGE_SIZE), 10)
+
+  return {
+    page: Number.isInteger(pageValue) && pageValue >= 0 ? pageValue : 0,
+    size: Number.isInteger(sizeValue) && sizeValue > 0 ? sizeValue : PAGE_SIZE,
+    query: searchParams.get('query')?.trim() || undefined,
+    status: searchParams.get('status') || undefined,
+  }
+}
+
+const buildUserQuery = (filter: IdentityListFilter, includePaging: boolean): string => {
+  const query = new URLSearchParams()
+  if (includePaging) {
+    query.set('page', String(filter.page))
+    query.set('size', String(filter.size))
+  }
+  if (filter.query) query.set('query', filter.query)
+  if (filter.status) query.set('status', filter.status)
+  return query.toString()
+}
+
+const toUserSearchParams = ({page, size, query, status}: IdentityListFilter): URLSearchParams => {
+  const searchParams = new URLSearchParams({page: String(page), size: String(size)})
+  if (query?.trim()) searchParams.set('query', query.trim())
+  if (status) searchParams.set('status', status)
+  return searchParams
+}
+
 export const UserListPage = () => {
   const auth = useAuth()
   const queryClient = useQueryClient()
   const { has } = usePermission(auth.bootstrap?.permissions ?? [])
+  const [searchParams, setSearchParams] = useSearchParams()
     const [createOpen, setCreateOpen] = useState(false)
     const [editUser, setEditUser] = useState<IdentityUserVO | null>(null)
+    const [filterForm] = Form.useForm<UserFilterForm>()
     const [createForm] = Form.useForm()
     const [editForm] = Form.useForm()
   const [messageApi, contextHolder] = message.useMessage()
+  const submitted = readUserFilter(searchParams)
+  const requestQuery = buildUserQuery(submitted, searchParams.has('page') || searchParams.has('size'))
 
   const usersQuery = useQuery({
-    queryKey: ['idp', 'users'],
-      queryFn: () => httpClient.request<IdentityUserVO[]>('/api/v1/identity/users'),
+    queryKey: ['idp', 'users', requestQuery],
+      queryFn: () => httpClient
+        .request<IdentityUserVO[] | IdentityUserPageVO>(`/api/v1/identity/users${requestQuery ? `?${requestQuery}` : ''}`)
+        .then(normalizePage),
   })
 
   const createMutation = useMutation({
-      mutationFn: (v: { username: string; displayName: string }) =>
+      mutationFn: (v: CreateIdentityUserDTO) =>
           httpClient.request<CreatedIdentityUserVO>('/api/v1/identity/users', {
         method: 'POST',
               body: JSON.stringify(v),
@@ -121,10 +170,45 @@ export const UserListPage = () => {
             </Space>
         }
       >
+          <Form<UserFilterForm>
+              form={filterForm}
+              layout="inline"
+              initialValues={{query: submitted.query, status: submitted.status}}
+              onFinish={(values) => {
+                  setSearchParams(toUserSearchParams({
+                      page: 0,
+                      size: PAGE_SIZE,
+                      query: values.query,
+                      status: values.status,
+                  }))
+              }}
+              style={{marginBottom: 16}}
+          >
+              <Form.Item name="query" label="用户">
+                  <Input allowClear placeholder="用户名/显示名"/>
+              </Form.Item>
+              <Form.Item name="status" label="状态">
+                  <Select
+                      allowClear
+                      placeholder="全部"
+                      options={Object.keys(STATUS_COLORS).map((status) => ({label: status, value: status}))}
+                      style={{width: 160}}
+                  />
+              </Form.Item>
+              <Form.Item>
+                  <Space>
+                      <Button type="primary" htmlType="submit">查询</Button>
+                      <Button onClick={() => {
+                          filterForm.resetFields()
+                          setSearchParams(toUserSearchParams({page: 0, size: PAGE_SIZE}))
+                      }}>重置</Button>
+                  </Space>
+              </Form.Item>
+          </Form>
           <PageState
               loading={usersQuery.isPending}
               error={usersQuery.error}
-              empty={usersQuery.data?.length === 0}
+              empty={usersQuery.data?.content.length === 0}
               emptyDescription="暂无用户"
               onRetry={() => {
                   void usersQuery.refetch()
@@ -132,7 +216,16 @@ export const UserListPage = () => {
           >
               <Table<IdentityUserVO>
             rowKey="subject"
-            dataSource={usersQuery.data ?? []}
+            dataSource={usersQuery.data?.content ?? []}
+            pagination={{
+                current: (usersQuery.data?.page ?? submitted.page) + 1,
+                pageSize: usersQuery.data?.size || submitted.size,
+                total: usersQuery.data?.totalElements ?? 0,
+                showTotal: (total) => `共 ${total} 条`,
+                onChange: (page, size) => {
+                    setSearchParams(toUserSearchParams({...submitted, page: page - 1, size}))
+                },
+            }}
             columns={[
               { title: '用户名', dataIndex: 'username' },
               { title: '显示名', dataIndex: 'displayName' },

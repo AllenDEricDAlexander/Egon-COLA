@@ -45,6 +45,22 @@ beforeEach(() => {
     'idp:signing-key:read', 'idp:audit:read',
   ]
   admin.request.mockReset().mockImplementation((path: string) => {
+    if (path === '/api/v1/identity/users?page=0&size=20') {
+      return Promise.resolve({
+        content: [{
+          subject: 'alice-sub',
+          username: 'alice',
+          displayName: 'Alice',
+          status: 'ACTIVE',
+          failedLoginCount: 0,
+          version: 1,
+        }],
+        page: 0,
+        size: 20,
+        totalElements: 1,
+        totalPages: 1,
+      })
+    }
     if (path === '/api/v1/identity/users') {
       return Promise.resolve([{
         subject: 'alice-sub',
@@ -52,6 +68,29 @@ beforeEach(() => {
         displayName: 'Alice',
         status: 'ACTIVE',
       }])
+    }
+    if (path === '/api/v1/identity/clients?page=0&size=20') {
+      return Promise.resolve({
+        content: [{
+          appId: 'idp-admin-web',
+          clientId: 'idp-admin-web',
+          clientName: 'IdP Admin Web',
+          clientType: 'PUBLIC',
+          status: 'ACTIVE',
+          pkceRequired: true,
+          accessTokenTtlSeconds: 900,
+          refreshTokenTtlSeconds: 604800,
+          redirectUris: ['http://127.0.0.1:18121/oauth/callback'],
+          resourceUris: ['https://api.egon.internal/local/permission/idp'],
+          version: 1,
+          createdAt: '2026-08-06T10:00:00Z',
+          updatedAt: '2026-08-06T10:00:00Z',
+        }],
+        page: 0,
+        size: 20,
+        totalElements: 1,
+        totalPages: 1,
+      })
     }
     if (path === '/api/v1/identity/clients') {
       return Promise.resolve([{
@@ -69,6 +108,9 @@ beforeEach(() => {
         createdAt: '2026-08-06T10:00:00Z',
         updatedAt: '2026-08-06T10:00:00Z',
       }])
+    }
+    if (path === '/api/v1/identity/clients/client-1/resources') {
+      return Promise.reject(Object.assign(new Error('Grant read endpoint is not available'), {status: 404}))
     }
     if (path === '/api/v1/identity/resource-servers') {
       return Promise.resolve([{
@@ -125,7 +167,10 @@ beforeEach(() => {
           reason: 'password',
           occurredAt: '2026-08-06T10:00:00Z',
         }],
+        page: 0,
+        size: 20,
         totalElements: 1,
+        totalPages: 1,
       })
     }
     return Promise.reject(new Error(`Unexpected request: ${path}`))
@@ -148,6 +193,15 @@ describe('IdP Admin application providers', () => {
 
     await waitFor(() => expect(screen.getByText(expectedText)).toBeInTheDocument())
     expect(admin.request).toHaveBeenCalledWith(requestPath)
+  })
+
+  it('restores an explicit paged identity route with the page wrapper', async () => {
+    window.history.replaceState({}, '', '/users?page=0&size=20')
+
+    render(<App />)
+
+    await waitFor(() => expect(screen.getByText('alice')).toBeInTheDocument())
+    expect(admin.request).toHaveBeenCalledWith('/api/v1/identity/users?page=0&size=20')
   })
 
   it('keeps Resource Server management free of retired Client JWK and Admission controls', async () => {
@@ -182,5 +236,6 @@ describe('IdP Admin application providers', () => {
     fireEvent.click(screen.getByRole('button', {name: '打开导航'}))
     fireEvent.click(screen.getByText('OAuth 与资源'))
     expect(screen.getByText('OAuth 客户端').closest('.ant-menu-item')).toHaveClass('ant-menu-item-selected')
+    expect(await screen.findByText(/Grant 读取接口待补齐/)).toBeInTheDocument()
   })
 })

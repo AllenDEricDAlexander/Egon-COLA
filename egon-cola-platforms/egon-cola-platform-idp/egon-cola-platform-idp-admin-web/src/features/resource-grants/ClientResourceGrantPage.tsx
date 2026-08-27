@@ -1,4 +1,5 @@
 import {
+    Alert,
     Button,
     Card,
     Descriptions,
@@ -6,6 +7,7 @@ import {
     Input,
     message,
     Modal,
+    Popconfirm,
     Result,
     Select,
     Space,
@@ -13,21 +15,56 @@ import {
     Tag,
     Typography,
 } from 'antd'
-import {ArrowLeftOutlined, LinkOutlined, ReloadOutlined,} from '@ant-design/icons'
-import {useState} from 'react'
+import {ArrowLeftOutlined, DeleteOutlined, LinkOutlined, ReloadOutlined} from '@ant-design/icons'
+import {useMemo, useState} from 'react'
 import {useNavigate, useParams} from 'react-router-dom'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {httpClient, useAuth} from '../../auth/AuthContext'
 import {PageState, usePermission} from '@egon-cola/admin-web-shared'
+import {normalizePage, type IdentityPage} from '../../api/page'
 import type {
+    BatchClientResourceGrantDTO,
     ClientResourceGrantVO,
+    DeleteClientResourceGrantDTO,
+    ResourceGrantType,
+    ResourceServerPageVO,
     ResourceServerVO,
-    UpsertClientResourceGrantDTO
+    ServiceTokenContext,
+    UpsertClientResourceGrantDTO,
 } from '../../api/types'
 
 const GRANT_TYPE_LABELS: Record<string, string> = {
     USER_DELEGATION: '用户委托 (USER_DELEGATION)',
     CLIENT_CREDENTIALS: '服务访问 (CLIENT_CREDENTIALS)',
+}
+
+type GrantFormValues = {
+    grantType: ResourceGrantType
+    scopeContext?: ServiceTokenContext
+    tenantId?: string
+    allowedScopes?: string
+    expectedGrantVersion?: number | string
+}
+
+type GrantReadResponse = ClientResourceGrantVO[] | IdentityPage<ClientResourceGrantVO>
+
+type GrantRow = {
+    resourceServer: ResourceServerVO
+    grant: ClientResourceGrantVO
+}
+
+const EMPTY_RESOURCE_SERVERS: readonly ResourceServerVO[] = []
+const EMPTY_GRANTS: readonly ClientResourceGrantVO[] = []
+
+const statusOf = (error: unknown): number | undefined => {
+    if (typeof error !== 'object' || error === null) return undefined
+    const status = (error as {status?: unknown}).status
+    return typeof status === 'number' ? status : undefined
+}
+
+const grantContext = (grant: ClientResourceGrantVO): string => {
+    if (grant.grantType === 'USER_DELEGATION') return '用户委托'
+    return grant.tenantId ? `TENANT：${grant.tenantId}` : 'PLATFORM'
 }
 
 export const ClientResourceGrantPage = () => {
@@ -38,28 +75,138 @@ export const ClientResourceGrantPage = () => {
     const {has} = usePermission(auth.bootstrap?.permissions ?? [])
     const [upsertOpen, setUpsertOpen] = useState(false)
     const [selectedRs, setSelectedRs] = useState<ResourceServerVO | null>(null)
-    const [form] = Form.useForm()
+    const [selectedResourceServerIds, setSelectedResourceServerIds] = useState<string[]>([])
+    const [form] = Form.useForm<GrantFormValues>()
     const [messageApi, contextHolder] = message.useMessage()
 
+    const encodedClientId = clientId ? encodeURIComponent(clientId) : ''
     const rsQuery = useQuery({
         queryKey: ['idp', 'resource-servers'],
-        queryFn: () => httpClient.request<ResourceServerVO[]>('/api/v1/identity/resource-servers'),
+        queryFn: () => httpClient
+            .request<ResourceServerVO[] | ResourceServerPageVO>('/api/v1/identity/resource-servers')
+            .then(normalizePage),
+    })
+    const grantQuery = useQuery({
+        queryKey: ['idp', 'grants', clientId],
+        enabled: Boolean(clientId),
+        retry: false,
+        queryFn: () => httpClient
+            .request<GrantReadResponse>(`/api/v1/identity/clients/${encodedClientId}/resources`)
+            .then(normalizePage),
     })
 
+    const resourceServers = rsQuery.data?.content ?? EMPTY_RESOURCE_SERVERS
+    const grants = grantQuery.data?.content ?? EMPTY_GRANTS
+    const grantsByResourceServerId = useMemo(
+        () => new Map(grants.map((grant) => [grant.resourceServerId, grant])),
+        [grants],
+    )
+    const selectedGrantRows = useMemo<GrantRow[]>(
+        () => resourceServers
+            .filter((resourceServer) => selectedResourceServerIds.includes(resourceServer.resourceServerId))
+            .map((resourceServer) => ({
+                resourceServer,
+                grant: grantsByResourceServerId.get(resourceServer.resourceServerId),
+            }))
+            .filter((row): row is GrantRow => Boolean(row.grant)),
+        [grantsByResourceServerId, resourceServers, selectedResourceServerIds],
+    )
+    const firstSelectedGrantRow = selectedGrantRows[0]
+    const batchSelectionCompatible = Boolean(
+        firstSelectedGrantRow
+        && selectedGrantRows.length === selectedResourceServerIds.length
+        && selectedGrantRows.every(({resourceServer, grant}) =>
+            resourceServer.bizCode === firstSelectedGrantRow.resourceServer.bizCode
+            && resourceServer.environment === firstSelectedGrantRow.resourceServer.environment
+            && grant.grantType === firstSelectedGrantRow.grant.grantType
+            && grant.tenantId === firstSelectedGrantRow.grant.tenantId),
+    )
+    const canManageGrant = has('idp:resource-server:grant')
+    const grantReadUnavailable = statusOf(grantQuery.error) === 404
+    const grantReadFailed = Boolean(grantQuery.error) && !grantReadUnavailable
+
+    const invalidateGrantQueries = async () => {
+        await Promise.all([
+            queryClient.invalidateQueries({queryKey: ['idp', 'resource-servers']}),
+            queryClient.invalidateQueries({queryKey: ['idp', 'grants', clientId]}),
+        ])
+    }
+
     const upsertMutation = useMutation({
-        mutationFn: ({rsId, data}: { rsId: string; data: UpsertClientResourceGrantDTO }) =>
+        mutationFn: ({rsId, data}: {rsId: string; data: UpsertClientResourceGrantDTO}) =>
             httpClient.request<ClientResourceGrantVO>(
-                `/api/v1/identity/clients/${encodeURIComponent(clientId!)}/resources/${encodeURIComponent(rsId)}`,
+                `/api/v1/identity/clients/${encodedClientId}/resources/${encodeURIComponent(rsId)}`,
                 {method: 'PUT', body: JSON.stringify(data)},
             ),
         onSuccess: async () => {
             setUpsertOpen(false)
             form.resetFields()
-            await queryClient.invalidateQueries({queryKey: ['idp', 'resource-servers']})
+            await invalidateGrantQueries()
             messageApi.success('Grant 已保存')
         },
         onError: (err) => {
-            messageApi.error(err instanceof Error ? err.message : '操作失败')
+            messageApi.error(err instanceof Error ? err.message : '保存失败')
+        },
+    })
+
+    const deleteMutation = useMutation({
+        mutationFn: ({resourceServer, grant}: GrantRow) => {
+            const data: DeleteClientResourceGrantDTO = {
+                grantType: grant.grantType,
+                tenantId: grant.tenantId,
+                expectedResourceVersion: resourceServer.version,
+                expectedGrantVersion: grant.version,
+            }
+            return httpClient.request<void>(
+                `/api/v1/identity/clients/${encodedClientId}/resources/${encodeURIComponent(resourceServer.resourceServerId)}`,
+                {method: 'DELETE', body: JSON.stringify(data)},
+            )
+        },
+        onSuccess: async (_result, input) => {
+            setSelectedResourceServerIds((current) => current.filter(
+                (resourceServerId) => resourceServerId !== input.resourceServer.resourceServerId,
+            ))
+            await invalidateGrantQueries()
+            messageApi.success('Grant 已删除')
+        },
+        onError: (err) => {
+            messageApi.error(err instanceof Error ? err.message : '删除失败')
+        },
+    })
+
+    const batchDeleteMutation = useMutation({
+        mutationFn: (rows: GrantRow[]) => {
+            const first = rows[0]
+            if (!first) throw new Error('请选择可删除的 Grant')
+            const data: BatchClientResourceGrantDTO = {
+                bizCode: first.resourceServer.bizCode,
+                environment: first.resourceServer.environment,
+                appCodes: rows.map(({resourceServer}) => resourceServer.appCode),
+                action: 'DELETE',
+                grantType: first.grant.grantType,
+                tenantId: first.grant.tenantId,
+                allowedScopes: [],
+                expectedResourceVersions: Object.fromEntries(rows.map(({resourceServer}) => [
+                    resourceServer.appCode,
+                    resourceServer.version,
+                ])),
+                expectedGrantVersions: Object.fromEntries(rows.map(({resourceServer, grant}) => [
+                    resourceServer.appCode,
+                    grant.version,
+                ])),
+            }
+            return httpClient.request<ClientResourceGrantVO[]>(
+                `/api/v1/identity/clients/${encodedClientId}/resource-grants/actions/batch`,
+                {method: 'POST', body: JSON.stringify(data)},
+            )
+        },
+        onSuccess: async () => {
+            setSelectedResourceServerIds([])
+            await invalidateGrantQueries()
+            messageApi.success('Grant 已批量删除')
+        },
+        onError: (err) => {
+            messageApi.error(err instanceof Error ? err.message : '批量删除失败')
         },
     })
 
@@ -68,15 +215,21 @@ export const ClientResourceGrantPage = () => {
                        extra={<Button onClick={() => navigate('/clients')}>返回客户端列表</Button>}/>
     }
 
-    const openUpsert = (rs: ResourceServerVO) => {
-        setSelectedRs(rs)
+    const openUpsert = (resourceServer: ResourceServerVO) => {
+        const existingGrant = grantsByResourceServerId.get(resourceServer.resourceServerId)
+        setSelectedRs(resourceServer)
         form.setFieldsValue({
-            grantType: 'USER_DELEGATION',
-            scopeContext: 'TENANT',
-            allowedScopes: '',
-            tenantId: '',
+            grantType: existingGrant?.grantType ?? 'USER_DELEGATION',
+            scopeContext: existingGrant?.tenantId ? 'TENANT' : 'PLATFORM',
+            allowedScopes: existingGrant?.allowedScopes.join(' ') ?? '',
+            tenantId: existingGrant?.tenantId ?? '',
+            expectedGrantVersion: existingGrant?.version,
         })
         setUpsertOpen(true)
+    }
+
+    const confirmDelete = (row: GrantRow) => {
+        deleteMutation.mutate(row)
     }
 
     return (
@@ -91,17 +244,69 @@ export const ClientResourceGrantPage = () => {
                 }
                 extra={
                     <Button icon={<ReloadOutlined/>} onClick={() => {
-                        void rsQuery.refetch()
+                        void Promise.all([rsQuery.refetch(), grantQuery.refetch()])
                     }}>刷新</Button>
                 }
             >
                 <Typography.Paragraph type="secondary" style={{marginBottom: 16}}>
-                    为当前 Client 向 Resource Server 建立授权委托（Grant）。SERVICE Grant 必须显式选择 TENANT 或 PLATFORM 上下文。
+                    为当前 Client 向 Resource Server 建立授权委托（Grant）。SERVICE Grant 的 TENANT/PLATFORM 通过 tenantId 是否有值表达。
                 </Typography.Paragraph>
+                {grantReadUnavailable && (
+                    <Alert
+                        type="warning"
+                        showIcon
+                        message="Grant 读取接口待补齐"
+                        description="当前后端已提供 Grant 保存、删除与批量变更接口；读取接口返回 404 时不将其误判为空授权。"
+                        style={{marginBottom: 16}}
+                    />
+                )}
+                {grantReadFailed && (
+                    <Alert
+                        type="error"
+                        showIcon
+                        message="Grant 读取失败"
+                        description={grantQuery.error instanceof Error ? grantQuery.error.message : '请稍后重试'}
+                        style={{marginBottom: 16}}
+                    />
+                )}
+                {grantQuery.isPending && (
+                    <Alert
+                        type="info"
+                        showIcon
+                        message="正在读取当前 Grant"
+                        style={{marginBottom: 16}}
+                    />
+                )}
+                {grantQuery.data && selectedResourceServerIds.length > 0 && (
+                    <Space wrap style={{marginBottom: 16}}>
+                        <Typography.Text type="secondary">已选 {selectedResourceServerIds.length} 个 Resource Server</Typography.Text>
+                        <Popconfirm
+                            title="确认批量删除 Grant？"
+                            description="仅删除已读取且属于同一业务域、环境和授权上下文的 Grant。"
+                            okText="确认批量删除"
+                            cancelText="取消"
+                            disabled={!batchSelectionCompatible}
+                            onConfirm={() => {
+                                if (batchSelectionCompatible) batchDeleteMutation.mutate(selectedGrantRows)
+                            }}
+                        >
+                            <Button
+                                danger
+                                disabled={!canManageGrant || !batchSelectionCompatible}
+                                loading={batchDeleteMutation.isPending}
+                            >
+                                批量删除 Grant
+                            </Button>
+                        </Popconfirm>
+                        {!batchSelectionCompatible && (
+                            <Typography.Text type="warning">请选择同一业务域、环境和授权上下文且已登记 Grant 的资源。</Typography.Text>
+                        )}
+                    </Space>
+                )}
                 <PageState
                     loading={rsQuery.isPending}
                     error={rsQuery.error}
-                    empty={rsQuery.data?.length === 0}
+                    empty={resourceServers.length === 0}
                     emptyDescription="暂无 Resource Server，请先创建"
                     onRetry={() => {
                         void rsQuery.refetch()
@@ -109,7 +314,11 @@ export const ClientResourceGrantPage = () => {
                 >
                     <Table<ResourceServerVO>
                         rowKey="resourceServerId"
-                        dataSource={rsQuery.data ?? []}
+                        dataSource={resourceServers}
+                        rowSelection={grantQuery.data ? {
+                            selectedRowKeys: selectedResourceServerIds,
+                            onChange: (keys) => setSelectedResourceServerIds(keys.map(String)),
+                        } : undefined}
                         columns={[
                             {title: 'Resource Server', dataIndex: 'displayName'},
                             {title: 'ID', dataIndex: 'resourceServerId', ellipsis: true},
@@ -119,53 +328,91 @@ export const ClientResourceGrantPage = () => {
                             {
                                 title: '状态',
                                 dataIndex: 'status',
-                                render: (v: string) => <Tag color={v === 'ACTIVE' ? 'green' : 'default'}>{v}</Tag>
+                                render: (v: string) => <Tag color={v === 'ACTIVE' ? 'green' : 'default'}>{v}</Tag>,
                             },
                             {
-                                title: '操作', width: 200,
-                                render: (_: unknown, row: ResourceServerVO) => (
-                                    <Space size="small">
-                                        {has('idp:resource-server:grant') && (
-                                            <Button size="small" icon={<LinkOutlined/>} onClick={() => openUpsert(row)}>新建/更新
-                                                Grant</Button>
-                                        )}
-                                    </Space>
-                                ),
+                                title: '当前 Grant',
+                                render: (_value: unknown, resourceServer: ResourceServerVO) => {
+                                    const grant = grantsByResourceServerId.get(resourceServer.resourceServerId)
+                                    if (grantReadUnavailable || grantReadFailed) return <Tag>读取不可用</Tag>
+                                    if (grantQuery.isPending) return <Tag>读取中</Tag>
+                                    if (!grant) return <Typography.Text type="secondary">未登记</Typography.Text>
+                                    return (
+                                        <Space direction="vertical" size={0}>
+                                            <Tag color={grant.status === 'ACTIVE' ? 'green' : 'default'}>{grant.status}</Tag>
+                                            <Typography.Text type="secondary">{grantContext(grant)}</Typography.Text>
+                                            <Typography.Text type="secondary">Scope：{grant.allowedScopes.join(', ') || '—'}</Typography.Text>
+                                        </Space>
+                                    )
+                                },
+                            },
+                            {
+                                title: '操作', width: 260,
+                                render: (_value: unknown, resourceServer: ResourceServerVO) => {
+                                    const grant = grantsByResourceServerId.get(resourceServer.resourceServerId)
+                                    const row = grant ? {resourceServer, grant} : null
+                                    return (
+                                        <Space size="small">
+                                            {canManageGrant && (
+                                                <Button size="small" icon={<LinkOutlined/>} onClick={() => openUpsert(resourceServer)}>
+                                                    新建/更新 Grant
+                                                </Button>
+                                            )}
+                                            {canManageGrant && row && grantQuery.data && (
+                                                <Popconfirm
+                                                    title="确认删除 Grant？"
+                                                    okText="确认删除"
+                                                    cancelText="取消"
+                                                    onConfirm={() => confirmDelete(row)}
+                                                >
+                                                    <Button
+                                                        danger
+                                                        size="small"
+                                                        icon={<DeleteOutlined/>}
+                                                        loading={deleteMutation.isPending}
+                                                    >
+                                                        删除 Grant
+                                                    </Button>
+                                                </Popconfirm>
+                                            )}
+                                        </Space>
+                                    )
+                                },
                             },
                         ]}
                     />
                 </PageState>
             </Card>
 
-            {/* Upsert Grant Modal */}
             <Modal
                 title={`${selectedRs ? `为 ${selectedRs.displayName} 配置 Grant` : ''}`}
                 open={upsertOpen}
                 width={520}
                 confirmLoading={upsertMutation.isPending}
                 onCancel={() => {
-                    setUpsertOpen(false);
+                    setUpsertOpen(false)
                     form.resetFields()
                 }}
                 onOk={() => {
-                    void form.validateFields().then((v) => {
-                        if (selectedRs) {
-                            const scopesStr: string = v.allowedScopes || ''
-                            const scopes = scopesStr ? scopesStr.split(/\s+/).filter(Boolean) : []
-                            upsertMutation.mutate({
-                                rsId: selectedRs.resourceServerId,
-                                data: {
-                                    grantType: v.grantType,
-                                    scopeContext: v.grantType === 'CLIENT_CREDENTIALS' ? v.scopeContext : undefined,
-                                    tenantId: v.grantType === 'CLIENT_CREDENTIALS' && v.scopeContext === 'TENANT'
-                                        ? v.tenantId || undefined
-                                        : undefined,
-                                    allowedScopes: v.grantType === 'CLIENT_CREDENTIALS' ? scopes : [],
-                                    expectedResourceVersion: selectedRs.version,
-                                    expectedGrantVersion: v.expectedGrantVersion || undefined,
-                                },
-                            })
+                    void form.validateFields().then((values) => {
+                        if (!selectedRs) return
+                        const scopesStr = values.allowedScopes || ''
+                        const scopes = scopesStr.split(/\s+/).filter(Boolean)
+                        const expectedGrantVersion = values.expectedGrantVersion === undefined
+                            || values.expectedGrantVersion === ''
+                            ? undefined
+                            : Number(values.expectedGrantVersion)
+                        const data: UpsertClientResourceGrantDTO = {
+                            grantType: values.grantType,
+                            tenantId: values.grantType === 'CLIENT_CREDENTIALS'
+                            && values.scopeContext === 'TENANT'
+                                ? values.tenantId?.trim() || undefined
+                                : undefined,
+                            allowedScopes: values.grantType === 'CLIENT_CREDENTIALS' ? scopes : [],
+                            expectedResourceVersion: selectedRs.version,
+                            ...(expectedGrantVersion === undefined ? {} : {expectedGrantVersion}),
                         }
+                        upsertMutation.mutate({rsId: selectedRs.resourceServerId, data})
                     })
                 }}
                 destroyOnClose
@@ -203,7 +450,7 @@ export const ClientResourceGrantPage = () => {
                             </Form.Item>
                             <Form.Item noStyle dependencies={['grantType']}>
                                 {({getFieldValue}) => getFieldValue('grantType') === 'CLIENT_CREDENTIALS' && (
-                                    <Form.Item name="allowedScopes" label="允许的 Scope（空格分隔）" rules={[{required: true}]}>
+                                    <Form.Item name="allowedScopes" label="允许的 Scope（空格分隔）">
                                         <Input placeholder="read write admin"/>
                                     </Form.Item>
                                 )}

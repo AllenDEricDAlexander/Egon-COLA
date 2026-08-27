@@ -1,4 +1,6 @@
 // ─── Auth Bootstrap ───────────────────────────────────────────────
+import type { IdentityPage } from './page'
+
 export interface AuthorizationBootstrap {
     readonly user: {
         readonly id: string
@@ -34,6 +36,8 @@ export interface IdentityUserVO {
   readonly lastLoginAt?: string
   readonly version: number
 }
+
+export type IdentityUserPageVO = IdentityPage<IdentityUserVO>
 
 export interface CreatedIdentityUserVO extends IdentityUserVO {
     readonly oneTimePassword: string
@@ -133,6 +137,8 @@ export interface OAuthClientVO {
     readonly updatedAt: string
 }
 
+export type OAuthClientPageVO = IdentityPage<OAuthClientVO>
+
 export interface CreateOAuthClientDTO {
     appId?: string
     clientId: string
@@ -198,6 +204,15 @@ export interface ResourceServerVO {
     readonly updatedAt: string
 }
 
+export type ResourceServerPageVO = IdentityPage<ResourceServerVO>
+
+export interface IdentityListFilter {
+    readonly page: number
+    readonly size: number
+    readonly query?: string
+    readonly status?: string
+}
+
 export interface CreateResourceServerDTO {
     resourceServerId: string
     resourceUri: string
@@ -230,7 +245,6 @@ export interface ClientResourceGrantVO {
     readonly clientId: string
     readonly resourceServerId: string
     readonly grantType: ResourceGrantType
-    readonly scopeContext?: ServiceTokenContext
     readonly tenantId?: string
     readonly allowedScopes: readonly string[]
     readonly status: string
@@ -239,7 +253,6 @@ export interface ClientResourceGrantVO {
 
 export interface UpsertClientResourceGrantDTO {
     grantType: ResourceGrantType
-    scopeContext?: ServiceTokenContext
     tenantId?: string
     allowedScopes: string[]
     expectedResourceVersion: number
@@ -248,7 +261,6 @@ export interface UpsertClientResourceGrantDTO {
 
 export interface DeleteClientResourceGrantDTO {
     grantType: ResourceGrantType
-    scopeContext?: ServiceTokenContext
     tenantId?: string
     expectedResourceVersion: number
     expectedGrantVersion: number
@@ -260,7 +272,6 @@ export interface BatchClientResourceGrantDTO {
     appCodes: string[]
     action: 'UPSERT' | 'DELETE'
     grantType: ResourceGrantType
-    scopeContext?: ServiceTokenContext
     tenantId?: string
     allowedScopes: string[]
     expectedResourceVersions: Record<string, number>
@@ -300,5 +311,19 @@ export interface AuditVO {
 
 export interface AuditPageVO {
     readonly content: readonly AuditVO[]
-  readonly totalElements: number
+    readonly page: number
+    readonly size: number
+    readonly totalElements: number
+    readonly totalPages: number
+}
+
+export interface AuditFilter {
+    readonly page: number
+    readonly size: number
+    readonly actorSub?: string
+    readonly eventType?: string
+    readonly result?: string
+    readonly from?: string
+    readonly to?: string
+    readonly traceId?: string
 }

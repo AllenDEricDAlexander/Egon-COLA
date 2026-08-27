@@ -1,4 +1,5 @@
 import {
+    Alert,
     Button,
     Card,
     Descriptions,
@@ -7,6 +8,7 @@ import {
     Input,
     message,
     Modal,
+    Select,
     Space,
     Table,
     Tag,
@@ -15,27 +17,77 @@ import {
 import {PlayCircleOutlined, PlusOutlined, ReloadOutlined, StopOutlined} from '@ant-design/icons'
 import {useState} from 'react'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
+import {useSearchParams} from 'react-router-dom'
 import {httpClient, useAuth} from '../../auth/AuthContext'
 import {PageState, usePermission} from '@egon-cola/admin-web-shared'
-import type {CreateResourceServerDTO, ResourceServerVO} from '../../api/types'
+import {normalizePage} from '../../api/page'
+import type {
+    BatchResourceServerActionDTO,
+    CreateResourceServerDTO,
+    IdentityListFilter,
+    ResourceServerPageVO,
+    ResourceServerVO,
+} from '../../api/types'
 
 const STATUS_COLORS: Record<string, string> = {
     ACTIVE: 'green',
     DISABLED: 'default',
 }
 
+const PAGE_SIZE = 20
+
+type ResourceServerFilterForm = Pick<IdentityListFilter, 'query' | 'status'>
+
+const readResourceServerFilter = (searchParams: URLSearchParams): IdentityListFilter => {
+    const pageValue = Number.parseInt(searchParams.get('page') ?? '0', 10)
+    const sizeValue = Number.parseInt(searchParams.get('size') ?? String(PAGE_SIZE), 10)
+
+    return {
+        page: Number.isInteger(pageValue) && pageValue >= 0 ? pageValue : 0,
+        size: Number.isInteger(sizeValue) && sizeValue > 0 ? sizeValue : PAGE_SIZE,
+        query: searchParams.get('query')?.trim() || undefined,
+        status: searchParams.get('status') || undefined,
+    }
+}
+
+const buildResourceServerQuery = (filter: IdentityListFilter, includePaging: boolean): string => {
+    const query = new URLSearchParams()
+    if (includePaging) {
+        query.set('page', String(filter.page))
+        query.set('size', String(filter.size))
+    }
+    if (filter.query) query.set('query', filter.query)
+    if (filter.status) query.set('status', filter.status)
+    return query.toString()
+}
+
+const toResourceServerSearchParams = ({page, size, query, status}: IdentityListFilter): URLSearchParams => {
+    const searchParams = new URLSearchParams({page: String(page), size: String(size)})
+    if (query?.trim()) searchParams.set('query', query.trim())
+    if (status) searchParams.set('status', status)
+    return searchParams
+}
+
 export const ResourceServerListPage = () => {
     const auth = useAuth()
     const queryClient = useQueryClient()
     const {has} = usePermission(auth.bootstrap?.permissions ?? [])
+    const [searchParams, setSearchParams] = useSearchParams()
     const [createOpen, setCreateOpen] = useState(false)
     const [detailRs, setDetailRs] = useState<ResourceServerVO | null>(null)
+    const [selectedRows, setSelectedRows] = useState<readonly ResourceServerVO[]>([])
+    const [statusError, setStatusError] = useState<string | null>(null)
     const [createForm] = Form.useForm()
+    const [filterForm] = Form.useForm<ResourceServerFilterForm>()
     const [messageApi, contextHolder] = message.useMessage()
+    const submitted = readResourceServerFilter(searchParams)
+    const requestQuery = buildResourceServerQuery(submitted, searchParams.has('page') || searchParams.has('size'))
 
     const rsQuery = useQuery({
-        queryKey: ['idp', 'resource-servers'],
-        queryFn: () => httpClient.request<ResourceServerVO[]>('/api/v1/identity/resource-servers'),
+        queryKey: ['idp', 'resource-servers', requestQuery],
+        queryFn: () => httpClient
+            .request<ResourceServerVO[] | ResourceServerPageVO>(`/api/v1/identity/resource-servers${requestQuery ? `?${requestQuery}` : ''}`)
+            .then(normalizePage),
     })
 
     const createMutation = useMutation({
@@ -62,11 +114,13 @@ export const ResourceServerListPage = () => {
                 {method: 'POST', body: JSON.stringify({expectedVersion: version})},
             ),
         onSuccess: async (result) => {
+            setStatusError(null)
             setDetailRs(result)
             await queryClient.invalidateQueries({queryKey: ['idp', 'resource-servers']})
             messageApi.success('已启用')
         },
         onError: (err) => {
+            setStatusError(err instanceof Error ? err.message : '启用失败')
             messageApi.error(err instanceof Error ? err.message : '操作失败')
         },
     })
@@ -78,12 +132,41 @@ export const ResourceServerListPage = () => {
                 {method: 'POST', body: JSON.stringify({expectedVersion: version})},
             ),
         onSuccess: async (result) => {
+            setStatusError(null)
             setDetailRs(result)
             await queryClient.invalidateQueries({queryKey: ['idp', 'resource-servers']})
             messageApi.success('已禁用')
         },
         onError: (err) => {
+            setStatusError(err instanceof Error ? err.message : '禁用失败')
             messageApi.error(err instanceof Error ? err.message : '操作失败')
+        },
+    })
+
+    const batchMutation = useMutation({
+        mutationFn: ({action, rows}: {action: BatchResourceServerActionDTO['action']; rows: readonly ResourceServerVO[]}) => {
+            const first = rows[0]
+            if (!first) throw new Error('请选择 Resource Server')
+            return httpClient.request('/api/v1/identity/resource-servers/actions/batch', {
+                method: 'POST',
+                body: JSON.stringify({
+                    bizCode: first.bizCode,
+                    environment: first.environment,
+                    appCodes: rows.map((row) => row.appCode),
+                    action,
+                    expectedVersions: Object.fromEntries(rows.map((row) => [row.appCode, row.version])),
+                } satisfies BatchResourceServerActionDTO),
+            })
+        },
+        onSuccess: async () => {
+            setSelectedRows([])
+            setStatusError(null)
+            await queryClient.invalidateQueries({queryKey: ['idp', 'resource-servers']})
+            messageApi.success('批量操作已提交')
+        },
+        onError: (err) => {
+            setStatusError(err instanceof Error ? err.message : '批量操作失败')
+            messageApi.error(err instanceof Error ? err.message : '批量操作失败')
         },
     })
 
@@ -101,16 +184,78 @@ export const ResourceServerListPage = () => {
                     </Space>
                 }
             >
+                <Form<ResourceServerFilterForm>
+                    form={filterForm}
+                    layout="inline"
+                    initialValues={{query: submitted.query, status: submitted.status}}
+                    onFinish={(values) => {
+                        setSearchParams(toResourceServerSearchParams({
+                            page: 0,
+                            size: PAGE_SIZE,
+                            query: values.query,
+                            status: values.status,
+                        }))
+                    }}
+                    style={{marginBottom: 16}}
+                >
+                    <Form.Item name="query" label="资源">
+                        <Input allowClear placeholder="ID/展示名/应用"/>
+                    </Form.Item>
+                    <Form.Item name="status" label="状态">
+                        <Select
+                            allowClear
+                            placeholder="全部"
+                            options={Object.keys(STATUS_COLORS).map((status) => ({label: status, value: status}))}
+                            style={{width: 160}}
+                        />
+                    </Form.Item>
+                    <Form.Item>
+                        <Space>
+                            <Button type="primary" htmlType="submit">查询</Button>
+                            <Button onClick={() => {
+                                filterForm.resetFields()
+                                setSearchParams(toResourceServerSearchParams({page: 0, size: PAGE_SIZE}))
+                            }}>重置</Button>
+                        </Space>
+                    </Form.Item>
+                </Form>
+                {has('idp:resource-server:status') && selectedRows.length > 0 && (
+                    <Space style={{marginBottom: 16}}>
+                        <Typography.Text>已选 {selectedRows.length} 个</Typography.Text>
+                        <Button
+                            loading={batchMutation.isPending}
+                            onClick={() => batchMutation.mutate({action: 'ENABLE', rows: selectedRows})}
+                        >批量启用</Button>
+                        <Button
+                            danger
+                            loading={batchMutation.isPending}
+                            onClick={() => batchMutation.mutate({action: 'DISABLE', rows: selectedRows})}
+                        >批量禁用</Button>
+                    </Space>
+                )}
                 <PageState
                     loading={rsQuery.isPending}
                     error={rsQuery.error}
-                    empty={rsQuery.data?.length === 0}
+                    empty={rsQuery.data?.content.length === 0}
                     emptyDescription="暂无 Resource Server"
                     onRetry={() => {void rsQuery.refetch()}}
                 >
                     <Table<ResourceServerVO>
                         rowKey="resourceServerId"
-                        dataSource={rsQuery.data ?? []}
+                        dataSource={rsQuery.data?.content ?? []}
+                        rowSelection={{
+                            selectedRowKeys: selectedRows.map((row) => row.resourceServerId),
+                            onChange: (_keys, rows) => setSelectedRows(rows),
+                        }}
+                        pagination={{
+                            current: (rsQuery.data?.page ?? submitted.page) + 1,
+                            pageSize: rsQuery.data?.size || submitted.size,
+                            total: rsQuery.data?.totalElements ?? 0,
+                            showTotal: (total) => `共 ${total} 条`,
+                            onChange: (page, size) => {
+                                setSearchParams(toResourceServerSearchParams({...submitted, page: page - 1, size}))
+                            },
+                        }}
                         onRow={(row) => ({onClick: () => setDetailRs(row), style: {cursor: 'pointer'}})}
                         columns={[
                             {title: 'ID', dataIndex: 'resourceServerId', ellipsis: true},
@@ -124,6 +269,16 @@ export const ResourceServerListPage = () => {
                                 render: (v: string) => <Tag color={STATUS_COLORS[v] ?? 'default'}>{v}</Tag>,
                             },
                             {title: '版本', dataIndex: 'version', width: 80},
+                            {
+                                title: '操作',
+                                width: 100,
+                                render: (_value: unknown, row: ResourceServerVO) => (
+                                    <Button size="small" onClick={() => {
+                                        setStatusError(null)
+                                        setDetailRs(row)
+                                    }}>查看详情</Button>
+                                ),
+                            },
                         ]}
                     />
                 </PageState>
@@ -157,23 +312,26 @@ export const ResourceServerListPage = () => {
                 }
             >
                 {detailRs && (
-                    <Descriptions column={1} bordered size="small">
-                        <Descriptions.Item label="ID">{detailRs.resourceServerId}</Descriptions.Item>
-                        <Descriptions.Item label="展示名">{detailRs.displayName}</Descriptions.Item>
-                        <Descriptions.Item label="Resource URI">{detailRs.resourceUri}</Descriptions.Item>
-                        <Descriptions.Item label="业务域">{detailRs.bizCode}</Descriptions.Item>
-                        <Descriptions.Item label="应用">{detailRs.appCode}</Descriptions.Item>
-                        <Descriptions.Item label="环境">{detailRs.environment}</Descriptions.Item>
-                        <Descriptions.Item label="管理 Client">{detailRs.managementClientId}</Descriptions.Item>
-                        <Descriptions.Item label="RBAC3 应用">{detailRs.rbacApplicationCode}</Descriptions.Item>
-                        <Descriptions.Item label="入口权限">{detailRs.entryPermissionCode}</Descriptions.Item>
-                        <Descriptions.Item label="状态">
-                            <Tag color={STATUS_COLORS[detailRs.status] ?? 'default'}>{detailRs.status}</Tag>
-                        </Descriptions.Item>
-                        <Descriptions.Item label="版本">{detailRs.version}</Descriptions.Item>
-                        <Descriptions.Item label="创建时间">{detailRs.createdAt}</Descriptions.Item>
-                        <Descriptions.Item label="更新时间">{detailRs.updatedAt}</Descriptions.Item>
-                    </Descriptions>
+                    <>
+                        {statusError && <Alert type="error" showIcon message={statusError} style={{marginBottom: 16}}/>}
+                        <Descriptions column={1} bordered size="small">
+                            <Descriptions.Item label="ID">{detailRs.resourceServerId}</Descriptions.Item>
+                            <Descriptions.Item label="展示名">{detailRs.displayName}</Descriptions.Item>
+                            <Descriptions.Item label="Resource URI">{detailRs.resourceUri}</Descriptions.Item>
+                            <Descriptions.Item label="业务域">{detailRs.bizCode}</Descriptions.Item>
+                            <Descriptions.Item label="应用">{detailRs.appCode}</Descriptions.Item>
+                            <Descriptions.Item label="环境">{detailRs.environment}</Descriptions.Item>
+                            <Descriptions.Item label="管理 Client">{detailRs.managementClientId}</Descriptions.Item>
+                            <Descriptions.Item label="RBAC3 应用">{detailRs.rbacApplicationCode}</Descriptions.Item>
+                            <Descriptions.Item label="入口权限">{detailRs.entryPermissionCode}</Descriptions.Item>
+                            <Descriptions.Item label="状态">
+                                <Tag color={STATUS_COLORS[detailRs.status] ?? 'default'}>{detailRs.status}</Tag>
+                            </Descriptions.Item>
+                            <Descriptions.Item label="版本">{detailRs.version}</Descriptions.Item>
+                            <Descriptions.Item label="创建时间">{detailRs.createdAt}</Descriptions.Item>
+                            <Descriptions.Item label="更新时间">{detailRs.updatedAt}</Descriptions.Item>
+                        </Descriptions>
+                    </>
                 )}
             </Drawer>
 
