@@ -24,6 +24,8 @@ export const zhCN = {
     'error.unknown': '未知错误',
     'page.crash': '页面出现错误',
     'page.crash.reload': '刷新页面',
+    'page.partial': '部分数据加载失败',
+    'page.permission': '无权访问',
     'layout.navigation': '主导航',
     'layout.openNavigation': '打开导航',
     'layout.userMenu': '用户菜单',

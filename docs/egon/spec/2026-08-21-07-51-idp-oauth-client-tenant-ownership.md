@@ -9,14 +9,14 @@
 | Complexity         | `Complex`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Complexity Drivers | `机器凭证从 private_key_jwt/JWK 迁移到 client_secret_basic、Spring Security OAuth2 Client 动态资源/租户隔离、IdP 与 RBAC3 跨库租户权威迁移、DDC Admission Ticket 删除但防伪约束保留、PLATFORM/TENANT SERVICE Token 兼容、Web 一次性 Secret 展示与两套 Flyway 发布门禁`                                                                                                                                                                                                                                                                                                             |
 | Created            | `2026-08-21 07:51 CST`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| Updated            | `2026-08-21 14:54 CST`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Updated            | `2026-08-21 22:04 CST`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Owner              | `Mario / Egon-COLA platform maintainers`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | Repository         | `Egon-COLA`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Scope              | `egon-cola-platform-idp 的 admin/core/starter/RPC/Admin Web；egon-cola-platform-rbac3 的 tenant/membership/authorization-state/Admin Web；egon-cola-platform-dynamic-config-center 的注册准入；消费 SERVICE Token 的平台 starter`                                                                                                                                                                                                                                                                                                            |
 | Change Surface     | `AppID/App Key/Secret Web 生命周期与数据库模型；OAuth Token Endpoint client_credentials；Spring OAuth2 Client facade；SERVICE Token PLATFORM/TENANT claim；DDC 注册/心跳凭证；IdP tenant/membership 主数据及 RPC；RBAC3 tenant master/member API 删除与 policy-version 拆分；Admin Web 页面、配置、迁移、测试和文档`                                                                                                                                                                                                                                                        |
 | Affected Chapters  | `§7, §8, §9, §10, §11, §12, §13, §14, §15, §16, §17, §18`                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Source Requirement | `2026-08-20/21 用户要求 OAuth2 迁移到 Spring Security OAuth2 Client；biz service 预申请 AppID/Key/Secret 并通过 idp-starter 接入；Web 配置并入库、不允许应用自注册；tenant 迁入 IdP；用户确认 1A、2A、以 DDC 定向 PLATFORM SERVICE Token 取代 Admission Ticket 的 3A；2026-08-21 再确认保留既有 OAuth Client 权限码、IdP membership 去除 RBAC 内部用户 ID、RBAC bootstrap 只接受外部 tenantId/identitySub 的 1A/2A/3A`                                                                                                                                                                                |
-| Baseline Revision  | `main@0b7b9b3a2a4bc71ae4bb3ce127270d00033e8b60；2026-08-21 14:05 CST dirty-worktree snapshot；自原基线以来仅有 RPC 治理文档/Plan 提交，无本规格相关代码漂移；本规格不吸收已存在的 GatewayContractVersions.java 删除、文件 0 及其他未跟踪 Spec/Plan`                                                                                                                                                                                                                                                                                                                            |
+| Baseline Revision  | `main@2bb9262400fae3ed60c88ac5032e4bbc6af65542；2026-08-21 22:04 CST source baseline；本次工作树变更仅为本 Spec/Plan 文档修复；相对旧基线 0b7b9b3a 的目标模块代码差异仅为 IdentityProfileDirectory 显式采用 RpcReferenceMode.GATEWAY，该变化保持既有 IdP→RBAC RPC 方向，不改变本规格的 OAuth2、tenant 或 DDC 语义`                                                                                                                                                                                                                                                        |
 | Amends             | `None`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Supersedes         | `[统一身份平台设计 §3.1(4)、§4.2 tenant 排除项、§5 IDP-04/05、§7.1 tenant 权威、§9.2、§15.1、§16.3、§18 tenant UI](../../superpowers/specs/2026-08-01-unified-identity-platform-design.md)`；`[OAuth2 Resource Server Admission 设计 §3 RS-01、§7、§10、§11.1、§12.1、§13、§14、§15.1/15.3、§17、§19.2](../../superpowers/specs/2026-08-10-oauth2-resource-server-admission-design.md)`；`[无状态 JWT 与 Session 移除设计中保留旧 SERVICE 凭证/Admission 及 RBAC3 tenant 权威的段落](../../superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md)` |
 | Depends On         | `[统一身份平台设计 §8.1、§9.1、§10.1、§11、§12–§13 的 USER Access Token、Identity User、Resource Server 与 PEP 基础模型](../../superpowers/specs/2026-08-01-unified-identity-platform-design.md)`；`[无状态 JWT 与 Session 移除设计 §6–§11、§13–§15 的 USER JWT、Gateway 链和无 Session 行为](../../superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md)`                                                                                                                                                                        |
@@ -65,7 +65,7 @@ RBAC3 消费 IdP 身份/租户事实，RBAC3 只保留授权事实。
 | `EVD-009`   | Inference from repository | Admission Ticket 由应用级私钥获取，`instanceId` 仍是注册请求自报值                                                                                                                                                   | 同一应用副本共享凭证，Ticket 不是 per-Pod workload identity                                                                        | 本次不保留重复 Ticket；未来 Pod 身份应另用 mTLS/SPIFFE/K8s identity                                                | 推论，不声称当前部署拓扑                    |
 | `EVD-010`   | Static repository         | `TenantMembershipPort.java`；`HttpTenantMembershipAdapter.java`；RBAC3 internal tenant membership controllers                                                                                        | IdP 当前调用 RBAC3 查询/解析 identity tenant membership                                                                       | 目标改为 IdP 本地 JPA membership，删除反向依赖                                                                   | 不证明所有外部消费者清单完整                  |
 | `EVD-011`   | Static repository         | RBAC3 `TenantPO.java`；`classpath:db` V1–V7；`JpaRoleRepository`、`JpaConstraintRepository`、`PostgresqlRoleImpactRepository`                                                                          | `rbac3_tenant` 同时承载 catalog/settings 与 RBAC policyVersion；多个 RBAC 表 FK 到它                                             | 不能简单整表搬走；policyVersion 要拆成 RBAC 自有状态                                                                | SQL 执行计划/真实数据未验证                |
-| `EVD-012`   | Static repository         | `IdentityDirectoryRpc.java`、IdP `IdentityDirectoryRpcProvider`、RBAC `IdentityProfileDirectory`                                                                                                     | 已有 IdP→RBAC Identity Directory RPC 方向                                                                                 | 扩展 membership 查询比保留 RBAC→IdP HTTP 或新增平行协议更小                                                         | Proto/兼容实现留给 Plan 精确落点          |
+| `EVD-012`   | Static repository         | `IdentityDirectoryRpc.java`、IdP `IdentityDirectoryRpcProvider`、RBAC `IdentityProfileDirectory`                                                                                                     | 已有 IdP→RBAC Identity Directory RPC 方向；当前 RBAC reference 已显式使用 `RpcReferenceMode.GATEWAY`                               | 扩展 membership 查询比保留 RBAC→IdP HTTP 或新增平行协议更小；新 consumer 沿用当前 Gateway reference 模式                             | 只证明 2026-08-21 源码/注解，不证明 live RPC topology |
 | `EVD-013`   | Static repository         | IdP migrations `V1`–`V4`；RBAC3 migrations `V1`–`V7`；各自 DataSource                                                                                                                                  | tenant 跨两个数据库，Flyway 不具备跨库事务/搬运能力                                                                                     | schema migration 与数据转移必须拆开并有校验门禁                                                                    | 未连接目标 PostgreSQL                |
 | `EVD-014`   | User decision             | 用户确认 `1A`、`2A`、随后确认修改 Spec                                                                                                                                                                         | `appId=业务应用身份`、`key=client_id`、`secret=client_secret`；IdP 拥有 tenant/membership                                        | 锁定关键公开合同与权威边界                                                                                       | 2026-08-21 当前决定                 |
 | `EVD-015`   | User decision             | 用户确认以 SERVICE Token 取代 Admission Ticket                                                                                                                                                            | DDC 直接验证定向 Token，保留准入防伪语义                                                                                             | 锁定 3A，不设计双 Token                                                                                    | 2026-08-21 当前决定                 |
@@ -121,7 +121,7 @@ claim/context、starter 获取/隔离、DDC 租约、防伪、tenant 数据/接�
 
 ### 3.3 Change Surface and Design Depth
 
-| Area/layer                                 | Disposition    | Exact repository evidence                                                      | Changed or preserved behavior/contract                         | Required Spec treatment         | Chapter(s)                                           |
+| Area/layer | Disposition | Exact repository evidence | Changed or preserved behavior/contract                         | Required Spec treatment         | Chapter(s)                                           |
 |--------------------------------------------|----------------|--------------------------------------------------------------------------------|----------------------------------------------------------------|---------------------------------|------------------------------------------------------|
 | IdP Client/Secret persistence and services | Affected       | `IdentityClientEntity`、`OAuthClientServiceImpl`、IdP V1–V4                      | 新增 AppID 和 Secret 哈希生命周期；删除 JWK                                | 完整组件、模型、表、迁移、安全、测试设计            | `§7, §8, §9, §10, §11, §13, §14, §15, §16, §17, §18` |
 | OAuth Token Endpoint and SERVICE claims    | Affected       | `OAuthTokenController`、`PrivateKeyJwtAuthenticator`、`ServiceAccessTokenClaims` | client_secret_basic；TENANT/PLATFORM；新 App/source claims        | 完整 HTTP/内部合同、状态/错误/兼容设计         | `§7, §8, §9, §10, §13, §14, §15, §16, §17, §18`      |
@@ -288,7 +288,7 @@ flowchart LR
 
 ### 7.0 Minimum-design baseline and element-necessity audit
 
-| Proposed element                   | Change | Requirements        | Existing/direct alternative                      | Concrete inadequacy of alternative                     | Added calls/state/coupling/failures/migration/operations | Verdict |
+| Proposed element | Change | Requirements | Existing/direct alternative                      | Concrete inadequacy of alternative                     | Added calls/state/coupling/failures/migration/operations | Verdict |
 |------------------------------------|--------|---------------------|--------------------------------------------------|--------------------------------------------------------|----------------------------------------------------------|---------|
 | `identity_client.app_id`           | Expand | `REQ-002`,`REQ-007` | 复用 client_id 同时表示业务身份                            | Key 轮换/环境命名会污染稳定业务身份，DDC source 绑定不清                   | 一列、唯一约束、claim 映射                                         | Add     |
 | `identity_client_secret`           | New    | `REQ-003`,`REQ-004` | 在 client 表放单一 hash                               | 无法保留 credential id、撤销历史和并发轮换 CAS                       | 一表、一事务、hash 成本                                           | Add     |
@@ -300,7 +300,7 @@ flowchart LR
 | 新 membership HTTP 服务               | Remove | `REQ-013`           | RBAC HTTP 调 IdP                                  | 仓库已有 IdP→RBAC Identity Directory RPC 方向                | 不新增网络协议；扩展现有 RPC                                         | Remove  |
 | per-Pod identity subsystem         | Remove | `REQ-010`           | 在 Token 中信任 instanceId                           | App Secret 不能证明 Pod；本需求未要求集群 attestation               | 若新增会引入 CA/sidecar/cluster ops                            | Remove  |
 
-| Path                                         | Network calls                                            | Client states                       | Server contracts/state              | Failure and TOCTOU points      | Additional user/business value |
+| Path | Network calls | Client states | Server contracts/state              | Failure and TOCTOU points      | Additional user/business value |
 |----------------------------------------------|----------------------------------------------------------|-------------------------------------|-------------------------------------|--------------------------------|--------------------------------|
 | Direct baseline：Spring Client Token 直接注册 DDC | Token miss 时 1 次 IdP + 1 次 DDC；cache hit 仅 DDC           | authorized-client cache + DDC lease | Token Endpoint、DDC verifier/lease   | Token expiry 与 lease；两处        | 标准 OAuth、最小准入闭环                |
 | 旧/拒绝方案：Token 后换 Admission Ticket             | Token miss 时 1 次 IdP Token + 1 次 Admission RPC + 1 次 DDC | Token cache + Ticket cache + lease  | 两个签发合同、两个 expiry                    | Token/Ticket/lease 三重过期和中间 RPC | 无独立 workload identity，未增加批准价值  |
@@ -650,7 +650,7 @@ master。
 
 ##### Necessity and interaction-cost decision
 
-| Concern                             | Decision                                                     |
+| Concern | Decision |
 |-------------------------------------|--------------------------------------------------------------|
 | Change classification               | 修改现有创建接口，不新建平行“App 注册”接口                                     |
 | Independent consumer goal           | 管理员一次创建 Client 并安全领取初始 Secret                                |
@@ -664,7 +664,7 @@ master。
 
 `POST /api/v1/identity/clients`
 
-| Concern             | Definition                                                              |
+| Concern | Definition |
 |---------------------|-------------------------------------------------------------------------|
 | Owner/authorization | IdP Admin；要求既有 `idp:oauth-client:create`，不得由 Client 自身 SERVICE Token 调用 |
 | Purpose/idempotency | 创建人工预配 OAuth Client；非幂等，唯一 appId/clientId 阻止重复                          |
@@ -672,7 +672,7 @@ master。
 
 ##### Request parameters
 
-| Name                     | Location  | Type     | Required        | Validation/source                               |
+| Name | Location | Type     | Required        | Validation/source                               |
 |--------------------------|-----------|----------|-----------------|-------------------------------------------------|
 | `appId`                  | JSON body | string   | Confidential 必填 | `^[a-z][a-z0-9-]{2,127}$`，trim 后全局唯一            |
 | `clientId`               | JSON body | string   | yes             | 现有 OAuth client_id 规则；产品标签 App Key              |
@@ -733,7 +733,7 @@ Confidential Client。用 controller contract、transaction rollback、unique co
 
 ##### Necessity and interaction-cost decision
 
-| Concern                             | Decision                                                  |
+| Concern | Decision |
 |-------------------------------------|-----------------------------------------------------------|
 | Change classification               | 新增独立命令接口，避免把 Secret 生命周期混入通用 PATCH                        |
 | Independent consumer goal           | 管理员在 Secret 泄露/到期时生成新值并立即撤销旧值                             |
@@ -747,7 +747,7 @@ Confidential Client。用 controller contract、transaction rollback、unique co
 
 `POST /api/v1/identity/clients/{clientId}/secret-rotations`
 
-| Concern             | Definition                                                 |
+| Concern | Definition |
 |---------------------|------------------------------------------------------------|
 | Owner/authorization | IdP Admin，要求既有 `idp:oauth-client:update` 和二次确认             |
 | Purpose/idempotency | 立即轮换 Confidential Secret；非幂等，用 expectedVersion 防重复点击       |
@@ -755,7 +755,7 @@ Confidential Client。用 controller contract、transaction rollback、unique co
 
 ##### Request parameters
 
-| Name              | Location  | Type    | Required | Validation/source                 |
+| Name | Location | Type    | Required | Validation/source                 |
 |-------------------|-----------|---------|----------|-----------------------------------|
 | `clientId`        | path      | string  | yes      | 已存在且 type=CONFIDENTIAL/status 可轮换 |
 | `expectedVersion` | JSON body | integer | yes      | 必须等于当前 Client version             |
@@ -806,7 +806,7 @@ expectedVersion 请求仅一个成功、任意中间异常旧 Secret 仍 active�
 
 ##### Necessity and interaction-cost decision
 
-| Concern                             | Decision                                                                           |
+| Concern | Decision |
 |-------------------------------------|------------------------------------------------------------------------------------|
 | Change classification               | 修改标准 Token Endpoint 的 client_credentials 分支                                        |
 | Independent consumer goal           | Spring OAuth2 Client 用 App Key/Secret 获取受限 SERVICE Token                           |
@@ -820,7 +820,7 @@ expectedVersion 请求仅一个成功、任意中间异常旧 Secret 仍 active�
 
 `POST /oauth2/token`
 
-| Concern        | Definition                                                                                       |
+| Concern | Definition |
 |----------------|--------------------------------------------------------------------------------------------------|
 | Protocol       | OAuth2 token endpoint；`application/x-www-form-urlencoded`；client_credentials only in this branch |
 | Authentication | 唯一允许 `Authorization: Basic base64(formEncode(clientId):formEncode(secret))`                      |
@@ -828,7 +828,7 @@ expectedVersion 请求仅一个成功、任意中间异常旧 Secret 仍 active�
 
 ##### Request parameters
 
-| Name            | Location | Type                   | Required                             | Validation/source                             |
+| Name | Location | Type                   | Required                             | Validation/source                             |
 |-----------------|----------|------------------------|--------------------------------------|-----------------------------------------------|
 | `Authorization` | header   | Basic credential       | yes                                  | 单一 header，active Confidential Client/Secret   |
 | `grant_type`    | form     | string                 | yes                                  | 必须 `client_credentials`                       |
@@ -884,7 +884,7 @@ AuthorizedClientManager 端到端合同测试验证。
 
 ##### Necessity and interaction-cost decision
 
-| Concern                             | Decision                                        |
+| Concern | Decision |
 |-------------------------------------|-------------------------------------------------|
 | Change classification               | 修改现有 discovery 响应，不新建配置接口                       |
 | Independent consumer goal           | 标准 client 自动发现 Token Endpoint 支持的认证方法           |
@@ -898,7 +898,7 @@ AuthorizedClientManager 端到端合同测试验证。
 
 `GET /.well-known/oauth-authorization-server`
 
-| Concern       | Definition                                       |
+| Concern | Definition |
 |---------------|--------------------------------------------------|
 | Owner/access  | IdP public metadata，无用户认证，不含 Secret/tenant 数据    |
 | Purpose/cache | 宣告 issuer/endpoints/grants/auth methods；可按现有策略缓存 |
@@ -955,7 +955,7 @@ HTTP 200：
 
 ##### Necessity and interaction-cost decision
 
-| Concern                             | Decision                                  |
+| Concern | Decision |
 |-------------------------------------|-------------------------------------------|
 | Change classification               | 新增 IdP tenant 查询接口，取代 RBAC tenant list    |
 | Independent consumer goal           | 管理员分页搜索身份租户并查看状态/version                  |
@@ -969,7 +969,7 @@ HTTP 200：
 
 `GET /api/v1/identity/tenants`
 
-| Concern       | Definition                                            |
+| Concern | Definition |
 |---------------|-------------------------------------------------------|
 | Authorization | `idp:tenant:read`；平台级管理请求，不使用目标 tenant 自授权            |
 | Purpose       | 查询 IdP-owned tenant catalog；不返回 members 或 RBAC policy |
@@ -977,7 +977,7 @@ HTTP 200：
 
 ##### Request parameters
 
-| Name     | Location | Type    | Required | Validation/source                         |
+| Name | Location | Type    | Required | Validation/source                         |
 |----------|----------|---------|----------|-------------------------------------------|
 | `page`   | query    | integer | no       | default 0，min 0                           |
 | `size`   | query    | integer | no       | default 20，1–100                          |
@@ -1037,7 +1037,7 @@ search、分页稳定性、空数据和 RBAC 旧 endpoint 404；真实 PostgreSQ
 
 ##### Necessity and interaction-cost decision
 
-| Concern                             | Decision                                                  |
+| Concern | Decision |
 |-------------------------------------|-----------------------------------------------------------|
 | Change classification               | 在 IdP 新增 tenant command，取代 RBAC create                    |
 | Independent consumer goal           | 管理员创建 identity tenant catalog entry                       |
@@ -1051,7 +1051,7 @@ search、分页稳定性、空数据和 RBAC 旧 endpoint 404；真实 PostgreSQ
 
 `POST /api/v1/identity/tenants`
 
-| Concern             | Definition                              |
+| Concern | Definition |
 |---------------------|-----------------------------------------|
 | Authorization       | `idp:tenant:manage`，记录 operator subject |
 | Purpose/idempotency | 创建 tenant；非幂等，以 tenantCode 唯一冲突防重复      |
@@ -1059,7 +1059,7 @@ search、分页稳定性、空数据和 RBAC 旧 endpoint 404；真实 PostgreSQ
 
 ##### Request parameters
 
-| Name         | Location  | Type   | Required | Validation/source                             |
+| Name | Location | Type   | Required | Validation/source                             |
 |--------------|-----------|--------|----------|-----------------------------------------------|
 | `tenantCode` | JSON body | string | yes      | `^[a-z][a-z0-9-]{2,63}$`，不可修改                 |
 | `tenantName` | JSON body | string | yes      | trim，1–200                                    |
@@ -1112,7 +1112,7 @@ tenant_id 重键。验证 unique race、initial status、settings limit、审计
 
 ##### Necessity and interaction-cost decision
 
-| Concern                             | Decision                                                      |
+| Concern | Decision |
 |-------------------------------------|---------------------------------------------------------------|
 | Change classification               | 新 IdP catalog lifecycle command，合并原 RBAC detail/status update |
 | Independent consumer goal           | 管理员修改 name/settings 或安全推进 tenant status                       |
@@ -1126,7 +1126,7 @@ tenant_id 重键。验证 unique race、initial status、settings limit、审计
 
 `PATCH /api/v1/identity/tenants/{tenantId}`
 
-| Concern             | Definition                                                  |
+| Concern | Definition |
 |---------------------|-------------------------------------------------------------|
 | Authorization       | `idp:tenant:manage`，平台操作                                    |
 | Purpose/idempotency | 乐观锁修改 catalog；相同 expectedVersion 只能成功一次                     |
@@ -1134,7 +1134,7 @@ tenant_id 重键。验证 unique race、initial status、settings limit、审计
 
 ##### Request parameters
 
-| Name              | Location  | Type    | Required | Validation/source       |
+| Name | Location | Type    | Required | Validation/source       |
 |-------------------|-----------|---------|----------|-------------------------|
 | `tenantId`        | path      | string  | yes      | existing tenant         |
 | `expectedVersion` | JSON body | integer | yes      | equals current version  |
@@ -1189,7 +1189,7 @@ version、membership/token gate 和旧 RBAC endpoint 404；关闭操作的业务
 
 ##### Necessity and interaction-cost decision
 
-| Concern                             | Decision                                              |
+| Concern | Decision |
 |-------------------------------------|-------------------------------------------------------|
 | Change classification               | 新增 IdP membership 查询，取代 RBAC internal/public 混合视图     |
 | Independent consumer goal           | 管理员查看一个 tenant 的 identity members/status              |
@@ -1203,7 +1203,7 @@ version、membership/token gate 和旧 RBAC endpoint 404；关闭操作的业务
 
 `GET /api/v1/identity/tenants/{tenantId}/members`
 
-| Concern       | Definition                                         |
+| Concern | Definition |
 |---------------|----------------------------------------------------|
 | Authorization | `idp:tenant:read`；仅 Admin Web，不是登录 resolve 接口      |
 | Purpose       | 分页呈现 membership 与最小 identity display fields        |
@@ -1211,7 +1211,7 @@ version、membership/token gate 和旧 RBAC endpoint 404；关闭操作的业务
 
 ##### Request parameters
 
-| Name       | Location | Type    | Required | Validation/source                        |
+| Name | Location | Type    | Required | Validation/source                        |
 |------------|----------|---------|----------|------------------------------------------|
 | `tenantId` | path     | string  | yes      | existing tenant                          |
 | `page`     | query    | integer | no       | default 0，min 0                          |
@@ -1270,7 +1270,7 @@ handling 和 query escaping；旧 RBAC membership endpoints 在切换后 404，�
 
 ##### Necessity and interaction-cost decision
 
-| Concern                             | Decision                                                |
+| Concern | Decision |
 |-------------------------------------|---------------------------------------------------------|
 | Change classification               | 新 IdP membership command，以 PUT 表达目标 identity 的唯一成员关系    |
 | Independent consumer goal           | 管理员添加 member 或切换 ACTIVE/DISABLED                        |
@@ -1284,7 +1284,7 @@ handling 和 query escaping；旧 RBAC membership endpoints 在切换后 404，�
 
 `PUT /api/v1/identity/tenants/{tenantId}/members/{identitySub}`
 
-| Concern             | Definition                                                      |
+| Concern | Definition |
 |---------------------|-----------------------------------------------------------------|
 | Authorization       | `idp:tenant:manage`，记录 operator                                 |
 | Purpose/idempotency | 唯一 `(tenant_id,identity_sub)`；create 或 versioned status replace |
@@ -1292,7 +1292,7 @@ handling 和 query escaping；旧 RBAC membership endpoints 在切换后 404，�
 
 ##### Request parameters
 
-| Name              | Location  | Type         | Required | Validation/source                                     |
+| Name | Location | Type         | Required | Validation/source                                     |
 |-------------------|-----------|--------------|----------|-------------------------------------------------------|
 | `tenantId`        | path      | string       | yes      | tenant exists/not CLOSED for activation               |
 | `identitySub`     | path      | string       | yes      | canonical existing identity_user subject              |
@@ -1345,7 +1345,7 @@ create/update/same-state/concurrent conflict、closed tenant、unknown identity�
 
 ##### Necessity and interaction-cost decision
 
-| Concern                             | Decision                                             |
+| Concern | Decision |
 |-------------------------------------|------------------------------------------------------|
 | Change classification               | 扩展既有 IdentityDirectoryRpc，不新增 membership HTTP client |
 | Independent consumer goal           | RBAC 写/鉴权前获得 IdP 权威 tenant/member 状态                 |
@@ -1362,7 +1362,7 @@ SERVICE 身份与专用最小 scope。它只返回身份/租户事实，不返�
 
 ##### Request parameters
 
-| Name           | Location       | Type   | Required | Validation/source                    |
+| Name | Location | Type   | Required | Validation/source                    |
 |----------------|----------------|--------|----------|--------------------------------------|
 | `tenant_id`    | protobuf field | string | yes      | canonical IdP tenant id，1–64         |
 | `identity_sub` | protobuf field | string | yes      | canonical identity user subject，1–64 |
@@ -1399,7 +1399,7 @@ HTTP 只有在所有 IdP consumer 已切本地后进行。验证 protobuf compat
 
 ##### Necessity and interaction-cost decision
 
-| Concern                             | Decision                                                                |
+| Concern | Decision |
 |-------------------------------------|-------------------------------------------------------------------------|
 | Change classification               | 新窄 Java facade，内部复用 Spring manager                                      |
 | Independent consumer goal           | biz code 用业务参数获得正确 SERVICE Token 而不理解 Spring attribute/cache 细节         |
@@ -1416,7 +1416,7 @@ HTTP 只有在所有 IdP consumer 已切本地后进行。验证 protobuf compat
 
 ##### Request parameters
 
-| Name             | Location      | Type        | Required                   | Validation/source                    |
+| Name | Location | Type        | Required                   | Validation/source                    |
 |------------------|---------------|-------------|----------------------------|--------------------------------------|
 | `resourceUri`    | request field | URI         | yes                        | exact configured/allowed audience    |
 | `tenantId`       | request field | string/null | TENANT yes / PLATFORM null | caller business context；不得 `*`/blank |
@@ -1454,7 +1454,7 @@ encoding、完整授权键并发隔离、renewal、timeout、no-stale fallback �
 
 ##### Necessity and interaction-cost decision
 
-| Concern                             | Decision                                                                     |
+| Concern | Decision |
 |-------------------------------------|------------------------------------------------------------------------------|
 | Change classification               | 用 OAuth registrationToken verifier 替换 Admission Ticket verifier              |
 | Independent consumer goal           | DDC 在创建/续约 lease 前证明调用应用获显式平台授权                                              |
@@ -1471,7 +1471,7 @@ encoding、完整授权键并发隔离、renewal、timeout、no-stale fallback �
 
 ##### Request parameters
 
-| Name                | Location           | Type       | Required       | Validation/source                                 |
+| Name | Location | Type       | Required       | Validation/source                                 |
 |---------------------|--------------------|------------|----------------|---------------------------------------------------|
 | `registrationToken` | request credential | Bearer JWT | yes            | length bound、IdP signature/issuer/aud/exp/nbf     |
 | `biz`               | registration model | string     | yes            | equals authoritative source biz                   |
@@ -1623,7 +1623,7 @@ migrated，避免把本次机器凭证改造扩大到浏览器应用。
 
 ##### Complete column design
 
-| Column                      | Native type  | Null/default   | Meaning/validation               | Change             |
+| Column | Native type | Null/default   | Meaning/validation               | Change             |
 |-----------------------------|--------------|----------------|----------------------------------|--------------------|
 | `client_id`                 | VARCHAR(128) | PK non-null    | OAuth client_id / App Key        | existing           |
 | `app_id`                    | VARCHAR(128) | nullable       | Confidential stable app identity | new                |
@@ -1644,7 +1644,7 @@ migrated，避免把本次机器凭证改造扩大到浏览器应用。
 
 ##### Index inventory and per-index justification
 
-| Index                                    | Type/unique    | Columns/predicate                         | Justification                              |
+| Index | Type/unique | Columns/predicate                         | Justification                              |
 |------------------------------------------|----------------|-------------------------------------------|--------------------------------------------|
 | `identity_client_pkey`                   | unique btree   | `client_id`                               | Basic auth/管理主查                            |
 | `uq_identity_client_confidential_app_id` | unique partial | `app_id WHERE client_type='CONFIDENTIAL'` | 一业务 AppID 一机器 Client                       |
@@ -1652,7 +1652,7 @@ migrated，避免把本次机器凭证改造扩大到浏览器应用。
 
 ##### Access patterns and SQL shape
 
-| Operation          | Caller        | Predicate/order                   | Expected rows/locking     |
+| Operation | Caller | Predicate/order                   | Expected rows/locking     |
 |--------------------|---------------|-----------------------------------|---------------------------|
 | Basic authenticate | Token service | `client_id=? AND status='ACTIVE'` | 0/1，随后 Secret lookup      |
 | Client create      | Admin service | insert unique ids                 | 1，transaction with Secret |
@@ -1678,7 +1678,7 @@ REVOKED，历史记录不复活，用 credential id 支持 Token 与安全审计
 
 ##### Complete column design
 
-| Column                    | Native type  | Null/default | Meaning/validation      | Change |
+| Column | Native type | Null/default | Meaning/validation      | Change |
 |---------------------------|--------------|--------------|-------------------------|--------|
 | `id`                      | VARCHAR(64)  | PK non-null  | credential id           | new    |
 | `client_id`               | VARCHAR(128) | non-null     | FK identity_client      | new    |
@@ -1696,7 +1696,7 @@ PK `id`；FK `client_id` restrict delete；check status/version、ACTIVE 时 rev
 
 ##### Index inventory and per-index justification
 
-| Index                                | Type/unique    | Columns/predicate                 | Justification                          |
+| Index | Type/unique | Columns/predicate                 | Justification                          |
 |--------------------------------------|----------------|-----------------------------------|----------------------------------------|
 | `identity_client_secret_pkey`        | unique btree   | `id`                              | Token credential status lookup         |
 | `uq_identity_client_active_secret`   | unique partial | `client_id WHERE status='ACTIVE'` | 保证恰至多一 active credential               |
@@ -1704,7 +1704,7 @@ PK `id`；FK `client_id` restrict delete；check status/version、ACTIVE 时 rev
 
 ##### Access patterns and SQL shape
 
-| Operation                | Caller         | Predicate/order                                | Expected rows/locking             |
+| Operation | Caller | Predicate/order                                | Expected rows/locking             |
 |--------------------------|----------------|------------------------------------------------|-----------------------------------|
 | Basic auth               | Token service  | `client_id=? AND status='ACTIVE'`              | exactly 1 for active Confidential |
 | rotate                   | Secret service | active row `FOR UPDATE`                        | 1；revoke + insert                 |
@@ -1730,7 +1730,7 @@ authenticator/repository/UI/API/Admission consumer 必须在同一维护发布�
 
 ##### Complete column design
 
-| Column                                       | Native type                | Null/default | Meaning/validation             | Change          |
+| Column | Native type | Null/default | Meaning/validation             | Change          |
 |----------------------------------------------|----------------------------|--------------|--------------------------------|-----------------|
 | `id`                                         | VARCHAR(64)                | PK           | legacy credential id           | drop with table |
 | `client_id`                                  | VARCHAR(128)               | FK           | legacy Client owner            | drop with table |
@@ -1745,14 +1745,14 @@ clientId/kid/status 作为审计与 consumer migration 证据；不能把 public
 
 ##### Index inventory and per-index justification
 
-| Index                      | Type/unique    | Columns/predicate | Justification                       |
+| Index | Type/unique | Columns/predicate | Justification                       |
 |----------------------------|----------------|-------------------|-------------------------------------|
 | `identity_client_jwk_pkey` | removed unique | `id`              | target has no lookup                |
 | existing client/kid unique | removed unique | `client_id,kid`   | target Basic auth uses Secret table |
 
 ##### Access patterns and SQL shape
 
-| Operation                    | Caller             | Predicate/order                  | Expected rows/locking    |
+| Operation | Caller | Predicate/order                  | Expected rows/locking    |
 |------------------------------|--------------------|----------------------------------|--------------------------|
 | pre-cutover inventory export | migration operator | select client_id/kid/status only | read-only snapshot       |
 | target authentication        | none               | none                             | zero access；table absent |
@@ -1776,7 +1776,7 @@ Client JWK 删除而变成 Secret 存储，也不允许 DDC 自动创建资源�
 
 ##### Complete column design
 
-| Column                                          | Native type           | Null/default    | Meaning/validation                     | Change   |
+| Column | Native type | Null/default    | Meaning/validation                     | Change   |
 |-------------------------------------------------|-----------------------|-----------------|----------------------------------------|----------|
 | `id`                                            | VARCHAR(64)           | PK              | row id                                 | existing |
 | `resource_server_id`,`resource_uri`             | VARCHAR(128/2048)     | unique non-null | stable target/audience                 | existing |
@@ -1794,14 +1794,14 @@ Client JWK 删除而变成 Secret 存储，也不允许 DDC 自动创建资源�
 
 ##### Index inventory and per-index justification
 
-| Index                         | Type/unique  | Columns/predicate                         | Justification                           |
+| Index | Type/unique | Columns/predicate                         | Justification                           |
 |-------------------------------|--------------|-------------------------------------------|-----------------------------------------|
 | existing unique indexes       | unique btree | resource ids/URI/source/management client | audience/source/owner lookup            |
 | `idx_identity_resource_scope` | btree        | `biz_code,app_code,environment,status`    | DDC source binding current-state lookup |
 
 ##### Access patterns and SQL shape
 
-| Operation             | Caller        | Predicate/order                             | Expected rows/locking |
+| Operation | Caller | Predicate/order                             | Expected rows/locking |
 |-----------------------|---------------|---------------------------------------------|-----------------------|
 | Token Grant lookup    | Token service | resource_uri or resource_server_id + status | 0/1                   |
 | DDC source validation | verifier      | biz/app/env + status/version                | 0/1                   |
@@ -1826,7 +1826,7 @@ IdP tenant；USER_DELEGATION 语义保持。调用方不能通过请求提升 co
 
 ##### Complete column design
 
-| Column                                       | Native type           | Null/default | Meaning/validation                     | Change                  |
+| Column | Native type | Null/default | Meaning/validation                     | Change                  |
 |----------------------------------------------|-----------------------|--------------|----------------------------------------|-------------------------|
 | `id`                                         | VARCHAR(64)           | PK           | grant id                               | existing                |
 | `client_id`                                  | VARCHAR(128)          | FK non-null  | authorized Client                      | existing                |
@@ -1845,7 +1845,7 @@ FK、non-empty scopes；PLATFORM 要求 context PLATFORM、tenant null、non-emp
 
 ##### Index inventory and per-index justification
 
-| Index                                | Type/unique    | Columns/predicate                                | Justification                       |
+| Index | Type/unique | Columns/predicate                                | Justification                       |
 |--------------------------------------|----------------|--------------------------------------------------|-------------------------------------|
 | `uq_identity_user_resource_grant`    | unique partial | `client_id,resource_server_id` USER              | preserve USER delegation uniqueness |
 | `uq_identity_tenant_service_grant`   | unique partial | `client_id,resource_server_id,tenant_id` TENANT  | 一 tenant resource grant             |
@@ -1854,7 +1854,7 @@ FK、non-empty scopes；PLATFORM 要求 context PLATFORM、tenant null、non-emp
 
 ##### Access patterns and SQL shape
 
-| Operation                | Caller        | Predicate/order                                   | Expected rows/locking |
+| Operation | Caller | Predicate/order                                   | Expected rows/locking |
 |--------------------------|---------------|---------------------------------------------------|-----------------------|
 | Token authorize TENANT   | Token service | client/resource/type/context/tenant/status        | 0/1                   |
 | Token authorize PLATFORM | Token service | client/resource/type/context/status + tenant null | 0/1                   |
@@ -1882,7 +1882,7 @@ IdP tenant catalog 单一权威，保存稳定 ID、code/name、身份侧 status
 
 ##### Complete column design
 
-| Column                    | Native type  | Null/default | Meaning/validation                      | Change |
+| Column | Native type | Null/default | Meaning/validation                      | Change |
 |---------------------------|--------------|--------------|-----------------------------------------|--------|
 | `id`                      | VARCHAR(64)  | PK non-null  | canonical decimal-string tenant id      | new    |
 | `tenant_code`             | VARCHAR(64)  | non-null     | immutable business code                 | new    |
@@ -1900,7 +1900,7 @@ PK id；case-insensitive unique lower(tenant_code)；checks status/version/json 
 
 ##### Index inventory and per-index justification
 
-| Index                                | Type/unique       | Columns/predicate           | Justification                           |
+| Index | Type/unique | Columns/predicate           | Justification                           |
 |--------------------------------------|-------------------|-----------------------------|-----------------------------------------|
 | `identity_tenant_pkey`               | unique btree      | `id`                        | login/token/RPC point lookup            |
 | `uq_identity_tenant_code_lower`      | unique expression | `lower(tenant_code)`        | code case-insensitive uniqueness/search |
@@ -1908,7 +1908,7 @@ PK id；case-insensitive unique lower(tenant_code)；checks status/version/json 
 
 ##### Access patterns and SQL shape
 
-| Operation            | Caller            | Predicate/order                      | Expected rows/locking        |
+| Operation | Caller | Predicate/order                      | Expected rows/locking        |
 |----------------------|-------------------|--------------------------------------|------------------------------|
 | tenant create/update | Admin service     | id/code/version                      | insert or 0/1 optimistic row |
 | login/token gate     | IdP core          | `id=? AND status='ACTIVE'`           | 0/1                          |
@@ -1935,7 +1935,7 @@ role/permission，也不因禁用物理删除，从而支持恢复、审计和�
 
 ##### Complete column design
 
-| Column                    | Native type  | Null/default | Meaning/validation       | Change |
+| Column | Native type | Null/default | Meaning/validation       | Change |
 |---------------------------|--------------|--------------|--------------------------|--------|
 | `id`                      | VARCHAR(64)  | PK non-null  | membership row id        | new    |
 | `tenant_id`               | VARCHAR(64)  | FK non-null  | identity_tenant          | new    |
@@ -1952,7 +1952,7 @@ tenant 与 identity_user ACTIVE，这一跨表规则在 service/queries 中校�
 
 ##### Index inventory and per-index justification
 
-| Index                                | Type/unique  | Columns/predicate               | Justification                |
+| Index | Type/unique | Columns/predicate               | Justification                |
 |--------------------------------------|--------------|---------------------------------|------------------------------|
 | `identity_tenant_membership_pkey`    | unique btree | `id`                            | detail/audit lookup          |
 | `uq_identity_tenant_member`          | unique btree | `tenant_id,identity_sub`        | one canonical relationship   |
@@ -1961,7 +1961,7 @@ tenant 与 identity_user ACTIVE，这一跨表规则在 service/queries 中校�
 
 ##### Access patterns and SQL shape
 
-| Operation         | Caller        | Predicate/order                      | Expected rows/locking   |
+| Operation | Caller | Predicate/order                      | Expected rows/locking   |
 |-------------------|---------------|--------------------------------------|-------------------------|
 | login tenant list | IdP core      | subject + ACTIVE joins active tenant | bounded set             |
 | point membership  | RPC/Token     | tenant+subject unique                | 0/1 consistent snapshot |
@@ -1988,7 +1988,7 @@ code/name/status/settings/membership；只有 IdP 已验证的 tenant 才能创�
 
 ##### Complete column design
 
-| Column                    | Native type  | Null/default | Meaning/validation               | Change |
+| Column | Native type | Null/default | Meaning/validation               | Change |
 |---------------------------|--------------|--------------|----------------------------------|--------|
 | `tenant_id`               | BIGINT       | PK non-null  | external IdP decimal tenant id   | new    |
 | `policy_version`          | BIGINT       | default 0    | RBAC policy cache version >=0    | new    |
@@ -2004,14 +2004,14 @@ user、directory snapshot、service principal、tenant application、management 
 
 ##### Index inventory and per-index justification
 
-| Index                                   | Type/unique  | Columns/predicate | Justification                                    |
+| Index | Type/unique | Columns/predicate | Justification                                    |
 |-----------------------------------------|--------------|-------------------|--------------------------------------------------|
 | `rbac3_tenant_authorization_state_pkey` | unique btree | `tenant_id`       | FK target、policy version lock/read               |
 | no secondary index                      | none         | none              | table point-lookup only；额外 updated index 无当前查询价值 |
 
 ##### Access patterns and SQL shape
 
-| Operation       | Caller                         | Predicate/order                                              | Expected rows/locking   |
+| Operation | Caller | Predicate/order                                              | Expected rows/locking   |
 |-----------------|--------------------------------|--------------------------------------------------------------|-------------------------|
 | ensure state    | RBAC subject/admin service     | insert tenant_id after RPC validation on conflict do nothing | 0/1                     |
 | policy mutation | role/constraint repository     | tenant_id `FOR UPDATE` then increment                        | exactly 1               |
@@ -2037,7 +2037,7 @@ authorization state、所有本地 FK 重指后删除，以消除双权威。
 
 ##### Complete column design
 
-| Column                                              | Native type        | Null/default | Meaning/validation                            | Change                    |
+| Column | Native type | Null/default | Meaning/validation                            | Change                    |
 |-----------------------------------------------------|--------------------|--------------|-----------------------------------------------|---------------------------|
 | `id`                                                | BIGINT             | PK           | preserved as external tenant id               | copied then table drop    |
 | `code`,`name`,`status`,`settings`                   | VARCHAR/JSONB      | non-null     | catalog facts move to IdP                     | exported then table drop  |
@@ -2052,7 +2052,7 @@ ID 的 `rbac3_tenant_authorization_state` 作为新 local target；catalog uniqu
 
 ##### Index inventory and per-index justification
 
-| Index                        | Type/unique    | Columns/predicate | Justification                        |
+| Index | Type/unique | Columns/predicate | Justification                        |
 |------------------------------|----------------|-------------------|--------------------------------------|
 | `rbac3_tenant_pkey`          | removed unique | `id`              | replaced by auth-state PK            |
 | `uk_rbac3_tenant_code_lower` | removed unique | `lower(code)`     | moved to IdP catalog                 |
@@ -2061,7 +2061,7 @@ ID 的 `rbac3_tenant_authorization_state` 作为新 local target；catalog uniqu
 
 ##### Access patterns and SQL shape
 
-| Operation                  | Caller                | Predicate/order                         | Expected rows/locking  |
+| Operation | Caller | Predicate/order                         | Expected rows/locking  |
 |----------------------------|-----------------------|-----------------------------------------|------------------------|
 | pre-V8 export              | migration operator    | all catalog/audit columns ordered by id | full snapshot/checksum |
 | pre-V8 policy copy         | V8                    | insert-select by id                     | exact row count        |
@@ -2556,5 +2556,5 @@ effective design，不能同时实现被替换的 private_key_jwt/Ticket/RBAC te
 
 **PASS — Ready for user review**
 
-所有主要安全、权威和迁移决定已由用户确认或在本规格中解析；当前 Status 为 `Review`，等待用户审阅接受后才能使用
-`egon-coding-writing-plan` 生成逐文件实施 Plan。四个小假设与 live migration rehearsal 是 Plan/实施验证项，不阻塞本规格评审。
+所有主要安全、权威和迁移决定已由用户确认或在本规格中解析；当前 Status 为 `Review`，关联的逐文件实施 Plan 已生成并完成结构修复，仍需与本次
+修订一并复核后再进入执行。四个小假设与 live migration rehearsal 是 Plan/实施验证项，不阻塞本规格评审。

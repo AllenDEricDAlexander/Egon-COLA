@@ -26,6 +26,8 @@ export const enUS: typeof zhCN = {
     'error.unknown': 'Unknown Error',
     'page.crash': 'Something went wrong',
     'page.crash.reload': 'Reload Page',
+    'page.partial': 'Some data failed to load',
+    'page.permission': 'Access Denied',
     'layout.navigation': 'Main Navigation',
     'layout.openNavigation': 'Open Navigation',
     'layout.userMenu': 'User Menu',

@@ -19,6 +19,7 @@ export {
 export { initI18n, I18nProvider, useT, changeLanguage, currentLanguage, type I18nInitOptions } from './i18n'
 
 // Components
+export { PageHeader, type PageHeaderProps } from './components/PageHeader'
 export { PageState, type PageStateProps } from './components/PageState'
 export { AppErrorBoundary, type AppErrorBoundaryProps } from './components/AppErrorBoundary'
 export { PageTemplate, type PageTemplateProps, type BreadcrumbItem } from './components/PageTemplate'

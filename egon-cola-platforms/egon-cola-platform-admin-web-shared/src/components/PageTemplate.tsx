@@ -1,5 +1,6 @@
-import { Breadcrumb, Card, Typography } from 'antd'
+import { Card } from 'antd'
 import type { ReactNode } from 'react'
+import { PageHeader } from './PageHeader'
 import { PageState, type PageStateProps } from './PageState'
 
 export interface BreadcrumbItem {
@@ -25,23 +26,8 @@ export const PageTemplate = ({
   children,
 }: PageTemplateProps) => (
   <div>
-    {breadcrumbs && breadcrumbs.length > 0 && (
-      <Breadcrumb
-        style={{ marginBottom: 16 }}
-        items={breadcrumbs.map((item) => ({
-          title: item.path ? <a href={item.path}>{item.title}</a> : item.title,
-        }))}
-      />
-    )}
-    <Card
-      title={(
-        <div>
-          <Typography.Title level={4} style={{ margin: 0 }}>{title}</Typography.Title>
-          {subtitle && <Typography.Text type="secondary">{subtitle}</Typography.Text>}
-        </div>
-      )}
-      extra={extra}
-    >
+    <PageHeader title={title} subtitle={subtitle} breadcrumbs={breadcrumbs} extra={extra} />
+    <Card>
       <PageState {...pageState}>{children}</PageState>
     </Card>
   </div>
