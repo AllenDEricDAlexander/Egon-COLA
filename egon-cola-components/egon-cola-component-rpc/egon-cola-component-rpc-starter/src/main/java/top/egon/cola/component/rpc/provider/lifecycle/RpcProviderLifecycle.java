@@ -205,6 +205,12 @@ public class RpcProviderLifecycle implements SmartLifecycle {
         if (properties.getPort() < 0 || properties.getPort() > 65535) {
             throw startFailed("RPC Provider port is invalid", null);
         }
+        if (properties.getMaxInboundMessageSize() < 1024) {
+            throw startFailed(
+                    "RPC Provider max inbound message size is invalid",
+                    null
+            );
+        }
         if (properties.getRegistrationMode() == null) {
             throw startFailed(
                     "RPC Provider registration mode is required",

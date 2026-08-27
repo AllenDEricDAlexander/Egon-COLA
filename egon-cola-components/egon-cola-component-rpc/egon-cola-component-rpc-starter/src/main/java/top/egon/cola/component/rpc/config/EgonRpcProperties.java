@@ -76,6 +76,8 @@ public class EgonRpcProperties {
 
         private boolean registrationFailFast = true;
 
+        private int maxInboundMessageSize = 4 * 1024 * 1024;
+
         private RpcProviderRegistrationMode registrationMode =
                 RpcProviderRegistrationMode.REQUIRED;
 
@@ -133,6 +135,14 @@ public class EgonRpcProperties {
 
         public void setRegistrationFailFast(boolean registrationFailFast) {
             this.registrationFailFast = registrationFailFast;
+        }
+
+        public int getMaxInboundMessageSize() {
+            return maxInboundMessageSize;
+        }
+
+        public void setMaxInboundMessageSize(int maxInboundMessageSize) {
+            this.maxInboundMessageSize = maxInboundMessageSize;
         }
 
         public RpcProviderRegistrationMode getRegistrationMode() {

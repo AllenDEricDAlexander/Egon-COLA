@@ -13,15 +13,34 @@ import java.util.List;
 
 public class RpcProviderServerFactory {
 
+    private static final int DEFAULT_MAX_INBOUND_MESSAGE_SIZE = 4 * 1024 * 1024;
+
     private final RpcTransportSecurity transportSecurity;
 
+    private final int maxInboundMessageSize;
+
     public RpcProviderServerFactory() {
-        this(RpcTransportSecurity.developmentPlaintextConfig());
+        this(
+                RpcTransportSecurity.developmentPlaintextConfig(),
+                DEFAULT_MAX_INBOUND_MESSAGE_SIZE
+        );
     }
 
     public RpcProviderServerFactory(
             RpcTransportSecurity transportSecurity) {
+        this(transportSecurity, DEFAULT_MAX_INBOUND_MESSAGE_SIZE);
+    }
+
+    public RpcProviderServerFactory(
+            RpcTransportSecurity transportSecurity,
+            int maxInboundMessageSize) {
         this.transportSecurity = transportSecurity;
+        if (maxInboundMessageSize < 1024) {
+            throw new IllegalArgumentException(
+                    "maxInboundMessageSize must be at least 1024"
+            );
+        }
+        this.maxInboundMessageSize = maxInboundMessageSize;
     }
 
     public Server create(String bindAddress,
@@ -30,7 +49,7 @@ public class RpcProviderServerFactory {
                          List<ServerInterceptor> interceptors) {
         NettyServerBuilder builder = NettyServerBuilder.forAddress(
                 new InetSocketAddress(bindAddress, port)
-        );
+        ).maxInboundMessageSize(maxInboundMessageSize);
         if (transportSecurity.enabled()) {
             builder.sslContext(transportSecurity.serverContext());
         }

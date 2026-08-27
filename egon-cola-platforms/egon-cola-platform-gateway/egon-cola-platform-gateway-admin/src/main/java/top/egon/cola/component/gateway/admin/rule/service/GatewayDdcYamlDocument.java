@@ -23,7 +23,7 @@ import java.util.Optional;
  */
 public final class GatewayDdcYamlDocument {
 
-    private static final int MAX_YAML_CODE_POINTS = 4 * 1024 * 1024;
+    private static final int MAX_YAML_CODE_POINTS = 32 * 1024 * 1024;
 
     /**
      * 中文说明：表示 资源NAME 这一固定值；它属于 {@code GatewayDdcYamlDocument} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。

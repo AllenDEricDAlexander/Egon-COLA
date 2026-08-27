@@ -168,7 +168,10 @@ public class EgonRpcAutoConfig {
                         availability,
                         exceptionMappers.orderedStream().toList()
                 ),
-                new RpcProviderServerFactory(transportSecurity(properties)),
+                new RpcProviderServerFactory(
+                        transportSecurity(properties),
+                        properties.getProvider().getMaxInboundMessageSize()
+                ),
                 leaseManager,
                 availability,
                 interceptors,

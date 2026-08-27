@@ -22,6 +22,18 @@ class EgonRpcPropertiesTest {
     }
 
     @Test
+    void providerInboundMessageSizeUsesTheGrpcDefaultAndIsConfigurable() {
+        EgonRpcProperties.Provider provider =
+                new EgonRpcProperties().getProvider();
+
+        assertThat(provider.getMaxInboundMessageSize())
+                .isEqualTo(4 * 1024 * 1024);
+        provider.setMaxInboundMessageSize(32 * 1024 * 1024);
+        assertThat(provider.getMaxInboundMessageSize())
+                .isEqualTo(32 * 1024 * 1024);
+    }
+
+    @Test
     void rpcIdentityUsesRpcOwnedDefaults() {
         EgonRpcProperties.Identity identity =
                 new EgonRpcProperties().getIdentity();

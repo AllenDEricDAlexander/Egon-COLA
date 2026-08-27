@@ -685,6 +685,15 @@ assert_contains "${identity_script}" \
   'write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false' \
   'direct Gateway Engine startup must recover when DDC is still starting'
 assert_contains "${identity_script}" \
+  'write_env "${file}" DDC_MAX_CONFIG_BYTES 33554432' \
+  'local Gateway rule documents must fit the complete chunked catalog'
+assert_contains "${identity_script}" \
+  'EGON_COLA_COMPONENT_DDC_RPC_MAX_INBOUND_MESSAGE_SIZE' \
+  'local DDC RPC clients must accept the complete Gateway rule document'
+assert_contains "${identity_script}" \
+  'EGON_COLA_COMPONENT_RPC_PROVIDER_MAX_INBOUND_MESSAGE_SIZE' \
+  'local DDC RPC providers must accept the complete Gateway rule document'
+assert_contains "${identity_script}" \
   'write_env "${file}" EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST false' \
   'direct DDC client startup must reconcile when DDC is still starting'
 assert_contains "${identity_script}" 'wait_ddc_rpc' \
