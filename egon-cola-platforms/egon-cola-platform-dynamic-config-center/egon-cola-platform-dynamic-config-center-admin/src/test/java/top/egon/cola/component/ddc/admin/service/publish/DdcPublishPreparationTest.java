@@ -276,6 +276,9 @@ class DdcPublishPreparationTest {
 
             assertThat(result.get(1, TimeUnit.SECONDS).getStatus())
                     .isEqualTo("SUCCESS");
+            assertThat(resourceRegistry.owner(new DdcConfigResourceKey(
+                    "shared-admin-ack", "dev", "default", "application.yml"
+            ))).isEmpty();
         }
     }
 

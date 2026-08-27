@@ -881,6 +881,8 @@ write_service_env_files() {
   write_env "${file}" EGON_COLA_COMPONENT_ID_MACHINE_ID 35
   write_env "${file}" DDC_ENABLED true
   write_env "${file}" DDC_MAX_CONFIG_BYTES 33554432
+  write_env "${file}" EGON_COLA_COMPONENT_DDC_RPC_MAX_INBOUND_MESSAGE_SIZE \
+    33554432
   write_env "${file}" DDC_BIZ_CODE identity
   write_env "${file}" DDC_APP_CODE gateway-engine-default
   write_env "${file}" DDC_ENV local

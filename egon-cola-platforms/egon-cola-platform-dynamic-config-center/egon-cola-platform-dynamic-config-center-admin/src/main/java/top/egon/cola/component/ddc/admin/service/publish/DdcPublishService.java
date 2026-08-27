@@ -195,6 +195,7 @@ public class DdcPublishService {
             }
             if (stateTransitions.isTerminal(dispatched)) {
                 waiterRegistry.remove(request.getChangeId(), waiter);
+                stateTransitions.releaseIfTerminal(dispatched);
                 return DdcPublishResultVO.from(dispatched);
             }
         }
@@ -241,6 +242,7 @@ public class DdcPublishService {
         }
         if (stateTransitions.isTerminal(dispatched)) {
             waiterRegistry.remove(changeId, waiter);
+            stateTransitions.releaseIfTerminal(dispatched);
             return DdcPublishResultVO.from(dispatched);
         }
         return await(changeId, waiter);
@@ -285,6 +287,7 @@ public class DdcPublishService {
 
     private DdcPublishResultVO awaitIfActive(DdcPublishTaskEntity task) {
         if (stateTransitions.isTerminal(task)) {
+            stateTransitions.releaseIfTerminal(task);
             return DdcPublishResultVO.from(task);
         }
         DdcConfigResourceKey key = resourceKey(task);
@@ -310,6 +313,7 @@ public class DdcPublishService {
                 DdcPublishTaskEntity task = requiredTask(changeId);
                 if (stateTransitions.isTerminal(task)) {
                     waiterRegistry.remove(changeId, waiter);
+                    stateTransitions.releaseIfTerminal(task);
                     return DdcPublishResultVO.from(task);
                 }
                 Instant deadline = deadline(task);
