@@ -1653,7 +1653,9 @@ reconcile_platform_mcp_draft() {
         continue
       fi
       policy_revision="$(jq -er '.revision' <<<"${policy}")"
-      revision="$(draft_revision "${group_id}")"
+      revision="$(gateway_api GET \
+        "/api/v1/gateway/admin/gateway-groups/${group_id}/draft" \
+        | jq -er '.revision')"
       response="$(gateway_api DELETE \
         "/api/v1/gateway/admin/mcp/task-policies/${policy_id}" \
         "$(jq -cn --arg group "${group_id}" --argjson expected "${policy_revision}" \
@@ -1672,7 +1674,9 @@ reconcile_platform_mcp_draft() {
       ' <<<"${binding}" >/dev/null 2>&1; echo $?)"
       [[ "${binding_valid}" == "0" ]] && continue
       binding_revision="$(jq -er '.revision' <<<"${binding}")"
-      revision="$(draft_revision "${group_id}")"
+      revision="$(gateway_api GET \
+        "/api/v1/gateway/admin/gateway-groups/${group_id}/draft" \
+        | jq -er '.revision')"
       response="$(gateway_api DELETE \
         "/api/v1/gateway/admin/mcp/app-bindings/${binding_id}" \
         "$(jq -cn --arg group "${group_id}" --argjson expected "${binding_revision}" \
