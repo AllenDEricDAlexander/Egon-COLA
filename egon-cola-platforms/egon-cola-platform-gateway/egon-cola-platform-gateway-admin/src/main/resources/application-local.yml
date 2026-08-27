@@ -8,6 +8,7 @@ gateway:
   admin:
     openapi:
       enabled: ${GATEWAY_ADMIN_OPENAPI_ENABLED:false}
+      allow-development-http: ${GATEWAY_ADMIN_OPENAPI_ALLOW_DEVELOPMENT_HTTP:false}
       reconcile-delay: ${GATEWAY_ADMIN_OPENAPI_RECONCILE_DELAY:PT30S}
       batch-size: ${GATEWAY_ADMIN_OPENAPI_BATCH_SIZE:50}
       maximum-instance-attempts: ${GATEWAY_ADMIN_OPENAPI_MAX_INSTANCE_ATTEMPTS:3}

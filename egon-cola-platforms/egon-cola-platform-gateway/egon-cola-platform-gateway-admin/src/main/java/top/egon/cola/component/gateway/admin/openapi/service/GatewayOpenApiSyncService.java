@@ -313,7 +313,9 @@ public class GatewayOpenApiSyncService {
                         application.getEnv(),
                         application.getApplicationCode(),
                         "HTTP_PROVIDER",
-                        "https",
+                        properties.isAllowDevelopmentHttp()
+                                ? null
+                                : "https",
                         null,
                         null,
                         null
@@ -978,7 +980,8 @@ public class GatewayOpenApiSyncService {
                         snapshot,
                         instance,
                         manifest,
-                        group
+                        group,
+                        properties.isAllowDevelopmentHttp()
                 ));
             } catch (RuntimeException invalid) {
                 log.warn(

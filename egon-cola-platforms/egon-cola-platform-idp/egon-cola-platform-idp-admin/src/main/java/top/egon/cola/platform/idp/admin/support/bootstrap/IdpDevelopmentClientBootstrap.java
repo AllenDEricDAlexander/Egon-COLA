@@ -218,6 +218,11 @@ public class IdpDevelopmentClientBootstrap
             "gateway:releases:write"
     );
 
+    /** Gateway Admin 读取 Provider OpenAPI 文档所需的 PLATFORM Scope。 */
+    private static final Set<String> GATEWAY_OPENAPI_SERVICE_SCOPES = Set.of(
+            "gateway.openapi.read"
+    );
+
     /** MCP Task Worker 的 Source Client；source Client used by the MCP task worker. */
     private static final String MCP_TASK_SERVICE_CLIENT =
             "gateway-engine-service";
@@ -342,6 +347,7 @@ public class IdpDevelopmentClientBootstrap
         ));
         RESOURCES.forEach(this::reconcileResourceAndGrant);
         reconcileRbac3ServiceGrants();
+        reconcileGatewayOpenApiServiceGrant();
         reconcileDdcPlatformServiceGrants();
         reconcileGatewayRefreshStatusGrant();
         reconcileGatewayAdminServiceGrants();
@@ -716,6 +722,54 @@ public class IdpDevelopmentClientBootstrap
             grants.save(grant);
             projections.projectServiceGrant(grant);
         });
+    }
+
+    /**
+     * 给 Gateway Admin 注册读取本地 Provider OpenAPI 文档的 PLATFORM 授权。
+     *
+     * <p>OpenAPI documents are fetched with a PLATFORM Service Token because
+     * the provider document is application metadata, not a tenant operation.</p>
+     */
+    private void reconcileGatewayOpenApiServiceGrant() {
+        String target = "permission-rbac3-local";
+        String allowedScopes = GATEWAY_OPENAPI_SERVICE_SCOPES.stream()
+                .sorted()
+                .map(scope -> "\"" + scope + "\"")
+                .collect(Collectors.joining(",", "[", "]"));
+        Optional<IdentityClientResourceGrantEntity> existing =
+                grants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
+                        "gateway-admin-service",
+                        target,
+                        IdentityClientResourceGrantEntity.GrantType
+                                .CLIENT_CREDENTIALS,
+                        null
+                );
+        IdentityClientResourceGrantEntity grant = existing.orElseGet(() ->
+                IdentityClientResourceGrantEntity.platformClientCredentials(
+                        "dev-gateway-openapi-platform-grant",
+                        "gateway-admin-service",
+                        target,
+                        allowedScopes,
+                        Instant.now()
+                ));
+        if (existing.isPresent()
+                && allowedScopes.equals(grant.getAllowedScopes())
+                && grant.getStatus()
+                == IdentityClientResourceGrantEntity.Status.ACTIVE) {
+            return;
+        }
+        if (existing.isPresent()) {
+            grant.update(
+                    IdentityClientResourceGrantEntity.GrantType
+                            .CLIENT_CREDENTIALS,
+                    null,
+                    allowedScopes,
+                    grant.getVersion(),
+                    Instant.now()
+            );
+        }
+        grants.save(grant);
+        projections.projectServiceGrant(grant);
     }
 
     /** 给本地服务登记 DDC PLATFORM 注册授权。 */

@@ -729,6 +729,13 @@ write_service_env_files() {
   write_env "${file}" GATEWAY_ADMIN_SECRETS_MASTER_KEY_BASE64 "$(<"${secret_dir}/gateway-master-key.base64")"
   write_env "${file}" GATEWAY_MCP_ARTIFACT_ROOT "${runtime_dir}/mcp-artifacts"
   write_env "${file}" GATEWAY_ADMIN_DDC_ENABLED true
+  # Local OpenAPI ingestion is explicitly restricted to the detected provider
+  # host. Production keeps the HTTPS-only default from application.yml.
+  write_env "${file}" GATEWAY_ADMIN_OPENAPI_ENABLED true
+  write_env "${file}" GATEWAY_ADMIN_OPENAPI_ALLOW_DEVELOPMENT_HTTP true
+  write_env "${file}" GATEWAY_ADMIN_OPENAPI_ALLOWED_CIDR \
+    "${advertised_host}/32"
+  write_env "${file}" GATEWAY_ADMIN_OPENAPI_RECONCILE_DELAY PT1S
   write_env "${file}" DDC_MAX_CONFIG_BYTES 4194304
   write_env "${file}" EGON_COLA_COMPONENT_DDC_RPC_DEFAULT_TIMEOUT 60s
   write_env "${file}" GATEWAY_ADMIN_RULE_CHUNK_RETENTION 1s
@@ -1584,6 +1591,23 @@ wait_gateway_catalog() {
   done
 }
 
+wait_gateway_openapi_sync_for_app() {
+  local biz_code="$1" app_code="$2" response
+  for ((attempt = 1; attempt <= 60; attempt++)); do
+    response="$(gateway_api GET \
+      "/api/v1/gateway/admin/openapi/sync-states?bizCode=${biz_code}&namespace=default&env=local&appCode=${app_code}" \
+      || true)"
+    if jq -e '
+        length > 0
+        and all(.[]; .status == "VALID" and .definitionSetId != null)
+      ' <<<"${response}" >/dev/null 2>&1; then
+      return
+    fi
+    sleep 1
+  done
+  fail "${biz_code}/${app_code} Gateway OpenAPI sync did not become valid: ${response}"
+}
+
 gateway_catalog_operations() {
   local app_code app_id catalog part_file combined_file
   combined_file="${runtime_dir}/gateway-catalog-operations.jsonl"
@@ -1955,7 +1979,11 @@ command_start() {
   initialize_gateway_control_plane
 
   if [[ "${startup_mode}" == "platforms" ]]; then
-    echo "Unified identity platform backends are running without Gateway HTTP catalog reporting."
+    stage "waiting for RBAC3 OpenAPI group ingestion"
+    wait_gateway_openapi_sync_for_app permission rbac3
+    stage "publishing the current local Gateway HTTP catalog"
+    publish_gateway_routes
+    echo "Unified identity platform backends are running with Gateway OpenAPI catalog routes."
     echo "Start the Admin Web and Portal applications with scripts/unified-platform/start-local-stack.sh."
     return
   fi

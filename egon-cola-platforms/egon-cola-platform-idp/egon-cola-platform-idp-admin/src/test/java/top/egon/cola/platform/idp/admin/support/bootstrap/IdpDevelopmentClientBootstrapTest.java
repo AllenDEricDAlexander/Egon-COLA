@@ -148,6 +148,16 @@ class IdpDevelopmentClientBootstrapTest {
                         && grant.getTenantId() == null
                         && grant.getAllowedScopes().contains(
                         "idp:refresh-token:validate")));
+        verify(grants).save(argThat(grant ->
+                grant.getClientId().equals("gateway-admin-service")
+                        && grant.getResourceServerId().equals(
+                        "permission-rbac3-local")
+                        && grant.getGrantContext()
+                        == top.egon.cola.platform.idp.contract
+                        .ServiceTokenContext.PLATFORM
+                        && grant.getTenantId() == null
+                        && grant.getAllowedScopes().contains(
+                        "gateway.openapi.read")));
         verify(grants, atLeastOnce()).save(any(
                 IdentityClientResourceGrantEntity.class
         ));

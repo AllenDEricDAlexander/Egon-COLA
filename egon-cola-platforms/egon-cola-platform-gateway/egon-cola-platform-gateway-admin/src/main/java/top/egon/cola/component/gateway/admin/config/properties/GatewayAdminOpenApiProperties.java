@@ -60,6 +60,9 @@ public class GatewayAdminOpenApiProperties {
     @NotBlank
     private String requiredScope = "gateway.openapi.read";
 
+    /** Explicit local-only escape hatch; production remains HTTPS-only. */
+    private boolean allowDevelopmentHttp;
+
     /**
      * Validates bounded scheduler and security settings after property
      * binding. Disabled OpenAPI sync may leave the CIDR list empty; an
@@ -262,6 +265,14 @@ public class GatewayAdminOpenApiProperties {
 
     public void setRequiredScope(String requiredScope) {
         this.requiredScope = requiredScope;
+    }
+
+    public boolean isAllowDevelopmentHttp() {
+        return allowDevelopmentHttp;
+    }
+
+    public void setAllowDevelopmentHttp(boolean allowDevelopmentHttp) {
+        this.allowDevelopmentHttp = allowDevelopmentHttp;
     }
 
     private static List<String> normalizeCidrs(List<String> values) {

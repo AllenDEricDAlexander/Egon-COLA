@@ -188,11 +188,25 @@ public class GatewayProviderOpenApiClient {
                 "{group}",
                 candidate.openapiGroup()
         );
+        String scheme = candidate.secure()
+                ? "https"
+                : candidate.developmentPlaintext()
+                ? "http"
+                : null;
+        if (scheme == null) {
+            throw new GatewayOpenApiFetchException(
+                    "GATEWAY_OPENAPI_TARGET_FORBIDDEN",
+                    false,
+                    "provider target must use HTTPS"
+            );
+        }
         try {
             URI target = URI.create(
-                    "https://" + host + ":" + candidate.port() + path
+                    scheme + "://" + host + ":" + candidate.port() + path
             );
-            if (!"https".equalsIgnoreCase(target.getScheme())
+            if (!("https".equalsIgnoreCase(target.getScheme())
+                    || (candidate.developmentPlaintext()
+                    && "http".equalsIgnoreCase(target.getScheme())))
                     || target.getRawQuery() != null
                     || target.getRawFragment() != null
                     || target.getUserInfo() != null) {

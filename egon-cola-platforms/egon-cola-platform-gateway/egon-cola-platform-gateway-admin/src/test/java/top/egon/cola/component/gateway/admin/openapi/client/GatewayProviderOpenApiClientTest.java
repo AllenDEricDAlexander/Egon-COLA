@@ -286,6 +286,69 @@ class GatewayProviderOpenApiClientTest {
     }
 
     @Test
+    void developmentHttpCandidateRequiresAnExplicitOptIn() {
+        DdcManagementServiceKey service = new DdcManagementServiceKey(
+                "trade",
+                "TEST",
+                "orders",
+                "orders-service-id",
+                "HTTP_PROVIDER",
+                "orders-service",
+                "default",
+                "1.0.0",
+                "http"
+        );
+        DdcManagementServiceSnapshot snapshot =
+                new DdcManagementServiceSnapshot(
+                        service,
+                        7,
+                        NOW,
+                        List.of(new DdcManagementServiceInstance(
+                                "instance-1",
+                                "lease-1",
+                                "provider.internal",
+                                8080,
+                                false,
+                                java.util.Map.of(),
+                                "ONLINE",
+                                NOW.minusSeconds(30),
+                                NOW,
+                                NOW.plusSeconds(60)
+                        ))
+                );
+        GatewayOpenApiGroupManifestDTO manifest =
+                new GatewayOpenApiGroupManifestDTO(
+                        List.of("orders"),
+                        GatewayOpenApiGroupManifestDTO.PATH_TEMPLATE,
+                        "https://provider.example/resource",
+                        "1.0.0",
+                        "build-1"
+                );
+
+        assertThatThrownBy(() -> GatewayOpenApiSyncCandidateDTO.from(
+                "app-1",
+                snapshot,
+                snapshot.instances().getFirst(),
+                manifest,
+                "orders"
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("not an HTTP provider");
+
+        GatewayOpenApiSyncCandidateDTO candidate =
+                GatewayOpenApiSyncCandidateDTO.from(
+                        "app-1",
+                        snapshot,
+                        snapshot.instances().getFirst(),
+                        manifest,
+                        "orders",
+                        true
+                );
+
+        assertThat(candidate.secure()).isFalse();
+        assertThat(candidate.developmentPlaintext()).isTrue();
+    }
+
+    @Test
     void candidateRejectsAnInstanceOutsideTheDdcSnapshot() {
         DdcManagementServiceKey service = new DdcManagementServiceKey(
                 "trade",

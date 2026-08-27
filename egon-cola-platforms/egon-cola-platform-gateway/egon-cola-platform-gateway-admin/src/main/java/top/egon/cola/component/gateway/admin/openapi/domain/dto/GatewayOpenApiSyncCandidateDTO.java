@@ -73,7 +73,8 @@ public record GatewayOpenApiSyncCandidateDTO(
         @NotNull(groups = {Default.class, GatewayOpenApiIngestionGroup.class})
         Instant observedAt,
         @NotNull(groups = {Default.class, GatewayOpenApiIngestionGroup.class})
-        Instant expiresAt
+        Instant expiresAt,
+        boolean developmentPlaintext
 ) {
 
     /**
@@ -112,9 +113,14 @@ public record GatewayOpenApiSyncCandidateDTO(
                     "port must be between 1 and 65535"
             );
         }
-        if (!secure) {
+        if (!secure && !developmentPlaintext) {
             throw new IllegalArgumentException(
                     "OpenAPI provider target must use HTTPS"
+            );
+        }
+        if (secure && developmentPlaintext) {
+            throw new IllegalArgumentException(
+                    "developmentPlaintext requires an insecure target"
             );
         }
         pathTemplate = required(pathTemplate, "pathTemplate", 512);
@@ -136,6 +142,47 @@ public record GatewayOpenApiSyncCandidateDTO(
         }
     }
 
+    /** Compatibility constructor for the strict HTTPS candidate contract. */
+    public GatewayOpenApiSyncCandidateDTO(
+            String applicationId,
+            String bizCode,
+            String applicationCode,
+            String buildId,
+            String artifactVersion,
+            String openapiGroup,
+            String providerServiceName,
+            String providerGroup,
+            String providerVersion,
+            String instanceId,
+            String host,
+            int port,
+            boolean secure,
+            String pathTemplate,
+            URI resourceUri,
+            Instant observedAt,
+            Instant expiresAt) {
+        this(
+                applicationId,
+                bizCode,
+                applicationCode,
+                buildId,
+                artifactVersion,
+                openapiGroup,
+                providerServiceName,
+                providerGroup,
+                providerVersion,
+                instanceId,
+                host,
+                port,
+                secure,
+                pathTemplate,
+                resourceUri,
+                observedAt,
+                expiresAt,
+                false
+        );
+    }
+
     /**
      * Builds a candidate only from a coherent DDC service snapshot, instance
      * and published group manifest.
@@ -153,6 +200,36 @@ public record GatewayOpenApiSyncCandidateDTO(
             DdcManagementServiceInstance instance,
             GatewayOpenApiGroupManifestDTO manifest,
             String group) {
+        return from(
+                applicationId,
+                snapshot,
+                instance,
+                manifest,
+                group,
+                false
+        );
+    }
+
+    /**
+     * Builds a candidate with an explicit local-development HTTP exception.
+     * The exception is only materialized when the caller has already enabled
+     * the local plaintext policy; the default overload remains HTTPS-only.
+     *
+     * @param applicationId resolved physical Gateway application id
+     * @param snapshot DDC service snapshot
+     * @param instance healthy candidate instance
+     * @param manifest validated published group manifest
+     * @param group group selected from the manifest
+     * @param allowDevelopmentHttp explicit local plaintext policy
+     * @return trusted normalized candidate
+     */
+    public static GatewayOpenApiSyncCandidateDTO from(
+            String applicationId,
+            DdcManagementServiceSnapshot snapshot,
+            DdcManagementServiceInstance instance,
+            GatewayOpenApiGroupManifestDTO manifest,
+            String group,
+            boolean allowDevelopmentHttp) {
         Objects.requireNonNull(snapshot, "snapshot");
         Objects.requireNonNull(instance, "instance");
         Objects.requireNonNull(manifest, "manifest");
@@ -166,8 +243,13 @@ public record GatewayOpenApiSyncCandidateDTO(
                 snapshot.serviceKey(),
                 "snapshot.serviceKey"
         );
+        boolean secureHttp = "https".equalsIgnoreCase(service.protocol())
+                && instance.secure();
+        boolean developmentHttp = allowDevelopmentHttp
+                && "http".equalsIgnoreCase(service.protocol())
+                && !instance.secure();
         if (!"HTTP_PROVIDER".equals(service.serviceKind())
-                || !"https".equalsIgnoreCase(service.protocol())) {
+                || (!secureHttp && !developmentHttp)) {
             throw new IllegalArgumentException(
                     "DDC service is not an HTTP provider"
             );
@@ -205,7 +287,8 @@ public record GatewayOpenApiSyncCandidateDTO(
                 manifest.pathTemplate(),
                 URI.create(manifest.resourceUri()),
                 observedAt,
-                instance.expireAt()
+                instance.expireAt(),
+                developmentHttp
         );
     }
 
