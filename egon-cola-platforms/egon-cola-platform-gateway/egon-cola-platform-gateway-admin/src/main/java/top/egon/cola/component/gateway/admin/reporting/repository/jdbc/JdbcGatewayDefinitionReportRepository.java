@@ -451,9 +451,20 @@ public class JdbcGatewayDefinitionReportRepository
         if (!existing.isEmpty()) {
             GatewayDefinitionGroupRow row = existing.getFirst();
             if (!sourceType.name().equals(row.sourceType())) {
-                throw new IllegalStateException(
-                        "GATEWAY_ADMIN_DEFINITION_SOURCE_CONFLICT: "
-                                + group.code()
+                if (!canMigrateLegacySource(sourceType, row.sourceType())) {
+                    throw new IllegalStateException(
+                            "GATEWAY_ADMIN_DEFINITION_SOURCE_CONFLICT: "
+                                    + group.code()
+                    );
+                }
+                jdbc.update("""
+                        UPDATE gateway_interface_group
+                           SET source_type = ?, updated_at = ?
+                         WHERE id = ?
+                        """,
+                        sourceType.name(),
+                        timestamp(now),
+                        row.id()
                 );
             }
             jdbc.update("""
@@ -579,16 +590,39 @@ public class JdbcGatewayDefinitionReportRepository
         }
         GatewayDefinitionOperationRow row = existing.getFirst();
         if (!sourceType.name().equals(row.sourceType())) {
-            throw new IllegalStateException(
-                    "GATEWAY_ADMIN_DEFINITION_SOURCE_CONFLICT: "
-                            + operation.operationKey()
+            if (!canMigrateLegacyHttpSource(
+                    sourceType,
+                    row.sourceType(),
+                    operation.protocol()
+            )) {
+                throw new IllegalStateException(
+                        "GATEWAY_ADMIN_DEFINITION_SOURCE_CONFLICT: "
+                                + operation.operationKey()
+                );
+            }
+            jdbc.update("""
+                    UPDATE gateway_operation
+                       SET source_type = ?, interface_group_id = ?,
+                           updated_at = ?
+                     WHERE id = ?
+                    """,
+                    sourceType.name(),
+                    groupId,
+                    timestamp(now),
+                    row.id()
             );
         }
         if (!groupId.equals(row.interfaceGroupId())) {
-            throw new IllegalStateException(
-                    "GATEWAY_ADMIN_RPC_DESCRIPTOR_GROUP_CONFLICT: "
-                            + operation.operationKey()
-            );
+            if (!canMigrateLegacyHttpSource(
+                    sourceType,
+                    row.sourceType(),
+                    operation.protocol()
+            )) {
+                throw new IllegalStateException(
+                        "GATEWAY_ADMIN_RPC_DESCRIPTOR_GROUP_CONFLICT: "
+                                + operation.operationKey()
+                );
+            }
         }
         if (definitionSha.equals(row.definitionSha256())) {
             linkDefinitionSet(
@@ -621,6 +655,42 @@ public class JdbcGatewayDefinitionReportRepository
         pointPending(row.id(), definitionId, operation, now);
         stored.updated++;
         stored.refs.add(ref(operation, row.id(), "UPDATED"));
+    }
+
+    /**
+     * Allows a current OpenAPI group to take ownership of a historical group
+     * row whose source value predates the current source enum.
+     */
+    private boolean canMigrateLegacySource(
+            GatewayDefinitionSourceTypeEnum target,
+            String existingSourceType) {
+        return target == GatewayDefinitionSourceTypeEnum.OPENAPI31
+                && isUnknownSource(existingSourceType);
+    }
+
+    /**
+     * Restricts historical operation migration to the HTTP/OpenAPI boundary.
+     * Modern source types remain mutually exclusive and fail closed.
+     */
+    private boolean canMigrateLegacyHttpSource(
+            GatewayDefinitionSourceTypeEnum target,
+            String existingSourceType,
+            String protocol) {
+        return "HTTP".equals(protocol)
+                && canMigrateLegacySource(target, existingSourceType);
+    }
+
+    /** Returns whether a stored source value predates the current enum. */
+    private boolean isUnknownSource(String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        try {
+            GatewayDefinitionSourceTypeEnum.valueOf(value);
+            return false;
+        } catch (IllegalArgumentException ignored) {
+            return true;
+        }
     }
 
     /**
