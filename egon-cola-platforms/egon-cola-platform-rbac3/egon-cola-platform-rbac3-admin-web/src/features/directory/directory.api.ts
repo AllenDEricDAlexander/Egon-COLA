@@ -24,12 +24,41 @@ export interface DirectorySyncView {
   readonly affectedUserCount: number
 }
 
+export interface OrganizationView {
+  readonly orgUnitId: string
+  readonly snapshotId: string | null
+  readonly type: string
+  readonly code: string
+  readonly name: string
+  readonly parentId: string | null
+  readonly path: string
+  readonly depth: number
+  readonly status: string
+}
+
+export interface PositionView {
+  readonly positionId: string
+  readonly snapshotId: string | null
+  readonly code: string
+  readonly name: string
+  readonly orgUnitId: string
+  readonly status: string
+}
+
 export const directoryApi = (client: FeatureApiClient) => ({
   user: (userId: string) => client.request<UserDirectoryView>(
-    `/api/rbac3/v1/directory/users/${encodeURIComponent(userId)}`,
+    `/api/rbac3/v1/iam/users/${encodeURIComponent(userId)}`,
+  ),
+  organizations: (parentId?: string) => client.request<readonly OrganizationView[]>(
+    '/api/rbac3/v1/iam/organizations',
+    {query: {parentId}},
+  ),
+  positions: (orgUnitId?: string) => client.request<readonly PositionView[]>(
+    '/api/rbac3/v1/iam/positions',
+    {query: {orgUnitId}},
   ),
   submitSnapshot: (command: DirectorySnapshotCommand) => client.request<DirectorySyncView>(
-    '/api/rbac3/v1/directory/snapshots',
+    '/api/rbac3/v1/internal/directory-snapshots',
     { method: 'POST', body: command },
   ),
 })

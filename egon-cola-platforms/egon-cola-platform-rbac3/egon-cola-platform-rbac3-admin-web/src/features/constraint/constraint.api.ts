@@ -43,8 +43,8 @@ export interface OperationSodRuleView {
 }
 
 export const constraintApi = (client: FeatureApiClient) => ({
-  sodSets: () => client.request<readonly SodSetView[]>('/api/rbac3/v1/sod-sets'),
-  dataRules: () => client.request<readonly DataRuleView[]>('/api/rbac3/v1/data-rules'),
-  fieldRules: () => client.request<readonly FieldRuleView[]>('/api/rbac3/v1/field-rules'),
-  operationSodRules: () => client.request<readonly OperationSodRuleView[]>('/api/rbac3/v1/operation-sod-rules'),
+  sodSets: () => client.request<readonly SodSetView[]>('/api/rbac3/v1/iam/policies/sod-sets'),
+  dataRules: () => client.request<readonly DataRuleView[]>('/api/rbac3/v1/iam/policies/data-rules'),
+  fieldRules: () => client.request<readonly FieldRuleView[]>('/api/rbac3/v1/iam/policies/field-rules'),
+  operationSodRules: () => client.request<readonly OperationSodRuleView[]>('/api/rbac3/v1/iam/policies/operation-sod-rules'),
 })

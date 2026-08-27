@@ -8,6 +8,8 @@ import { FieldDefinitionPage } from './application/FieldDefinitionPage'
 import { RoleGraphPage } from './role/RoleGraphPage'
 import { RoleResourceGrantPage } from './role/RoleResourceGrantPage'
 import { ConstraintPage } from './constraint/ConstraintPage'
+import { OrganizationPage } from './directory/OrganizationPage'
+import { PositionPage } from './directory/PositionPage'
 
 const RoleResourceRoute = () => {
   const { roleId } = useParams()
@@ -17,8 +19,8 @@ const RoleResourceRoute = () => {
 export const governanceRouteDescriptors: readonly FeatureRouteDescriptor[] = [
   { key: 'overview', path: '/iam/overview', title: '治理概览', permission: 'system:runtime:read', componentKey: 'rbac3-overview', component: OverviewPage, navigationOrder: 10 },
   { key: 'directory-users', path: '/iam/users', title: '用户目录', permission: 'system:user:read', componentKey: 'rbac3-users', component: UserDirectoryPage, navigationOrder: 30 },
-  { key: 'directory-organizations', path: '/iam/organizations', title: '组织', permission: 'system:organization:read', componentKey: 'rbac3-organizations', component: UserDirectoryPage, navigationOrder: 31 },
-  { key: 'directory-positions', path: '/iam/positions', title: '岗位', permission: 'system:position:read', componentKey: 'rbac3-positions', component: UserDirectoryPage, navigationOrder: 32 },
+  { key: 'directory-organizations', path: '/iam/organizations', title: '组织', permission: 'system:organization:read', componentKey: 'rbac3-organizations', component: OrganizationPage, navigationOrder: 31 },
+  { key: 'directory-positions', path: '/iam/positions', title: '岗位', permission: 'system:position:read', componentKey: 'rbac3-positions', component: PositionPage, navigationOrder: 32 },
   { key: 'tenant-applications', path: '/iam/tenant-applications', title: '租户应用', permission: 'system:application:read', componentKey: 'rbac3-tenant-applications', component: ApplicationListPage, navigationOrder: 40 },
   { key: 'resources', path: '/iam/resources', title: '资源目录', permission: 'system:resource:read', componentKey: 'rbac3-resources', component: ResourceCatalogPage, navigationOrder: 41 },
   { key: 'fields', path: '/iam/fields', title: '字段定义', permission: 'system:field-definition:read', componentKey: 'rbac3-fields', component: FieldDefinitionPage, navigationOrder: 42 },

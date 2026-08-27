@@ -26,6 +26,18 @@ const about = (permissions: readonly string[], resourceCodes?: readonly string[]
 const wrapper = (permissions: readonly string[], path: string, resourceCodes?: readonly string[]) => ({ children }: { readonly children: React.ReactNode }) => {
     const sdk = {getAbout: async () => about(permissions, resourceCodes)} as unknown as Rbac3Client
   const feature: FeatureApiClient = { request: async <T,>(requestPath: string) => {
+    if (requestPath === '/api/rbac3/v1/iam/organizations') {
+      return [{
+        orgUnitId: '1001', snapshotId: null, type: 'DEPARTMENT', code: 'hq', name: '总部',
+        parentId: null, path: 'hq', depth: 0, status: 'ACTIVE',
+      }] as T
+    }
+    if (requestPath === '/api/rbac3/v1/iam/positions') {
+      return [{
+        positionId: '2001', snapshotId: null, code: 'ops-admin', name: '运营主管',
+        orgUnitId: '1001', status: 'ACTIVE',
+      }] as T
+    }
     if (requestPath.endsWith('/resources')) {
       return {
         roleId: '301', applicationId: '71', roleVersion: 1,
@@ -41,6 +53,17 @@ const wrapper = (permissions: readonly string[], path: string, resourceCodes?: r
 }
 
 describe('application router', () => {
+  it('maps organization and position routes to their own page responsibilities', async () => {
+    render(<ApplicationRouter />, {wrapper: wrapper(['system:organization:read'], '/iam/organizations')})
+    await waitFor(() => expect(screen.getByText('总部')).toBeInTheDocument())
+    expect(screen.queryByLabelText('用户 ID')).not.toBeInTheDocument()
+    cleanup()
+
+    render(<ApplicationRouter />, {wrapper: wrapper(['system:position:read'], '/iam/positions')})
+    await waitFor(() => expect(screen.getByText('运营主管')).toBeInTheDocument())
+    expect(screen.queryByLabelText('用户 ID')).not.toBeInTheDocument()
+  })
+
   it('blocks a manually entered route whose permission is absent', async () => {
     render(<ApplicationRouter />, { wrapper: wrapper([], '/iam/policies') })
     await waitFor(() => expect(screen.getByText('无权访问此页面')).toBeInTheDocument())

@@ -2,10 +2,11 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {type Rbac3Client, Rbac3Provider} from '@egon-cola/rbac3-react-sdk'
 import {render, screen, waitFor} from '@testing-library/react'
 import type {PropsWithChildren} from 'react'
-import {describe, expect, it} from 'vitest'
+import {describe, expect, it, vi} from 'vitest'
 import {type FeatureApiClient, FeatureApiProvider} from '../shared/FeatureApi'
 import {RoleGraphPage} from './RoleGraphPage'
 import {RoleResourceGrantPage} from './RoleResourceGrantPage'
+import {roleApi} from './role.api'
 
 const wrapper = ({ children }: PropsWithChildren) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -47,6 +48,17 @@ const wrapper = ({ children }: PropsWithChildren) => {
 }
 
 describe('role pages', () => {
+  it('uses the IAM controller paths for role list and impact analysis', async () => {
+    const request = vi.fn().mockResolvedValue([])
+    const api = roleApi({request})
+
+    await api.roles('71')
+    await api.impact('2')
+
+    expect(request).toHaveBeenNthCalledWith(1, '/api/rbac3/v1/iam/roles', {query: {applicationId: '71'}})
+    expect(request).toHaveBeenNthCalledWith(2, '/api/rbac3/v1/iam/roles/2/impact-analysis')
+  })
+
   it('distinguishes root child disabled and ambiguous roles', async () => {
     render(<RoleGraphPage applicationId="71" />, { wrapper })
     await waitFor(() => expect(screen.getByText('根角色')).toBeInTheDocument())

@@ -2,10 +2,11 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {type Rbac3Client, Rbac3Provider} from '@egon-cola/rbac3-react-sdk'
 import {render, screen, waitFor} from '@testing-library/react'
 import type {PropsWithChildren} from 'react'
-import {describe, expect, it} from 'vitest'
+import {describe, expect, it, vi} from 'vitest'
 import {type FeatureApiClient, FeatureApiProvider} from '../shared/FeatureApi'
 import {OrgPositionSnapshotPage} from './OrgPositionSnapshotPage'
 import {UserDirectoryPage} from './UserDirectoryPage'
+import {directoryApi} from './directory.api'
 
 const wrapper = ({ children }: PropsWithChildren) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -35,6 +36,27 @@ const wrapper = ({ children }: PropsWithChildren) => {
 }
 
 describe('directory pages', () => {
+  it('maps organization and position reads to their IAM controller paths', async () => {
+    const request = vi.fn().mockResolvedValue([])
+    const api = directoryApi({request})
+
+    await api.organizations('1001')
+    await api.positions('1001')
+    await api.user('9007199254740999')
+    await api.submitSnapshot({
+      providerCode: 'directory-provider',
+      snapshotVersion: 1,
+      checksum: 'checksum-1',
+      generatedAt: '2026-08-27T01:00:00Z',
+      payload: {organizations: [], positions: [], users: []},
+    })
+
+    expect(request).toHaveBeenNthCalledWith(1, '/api/rbac3/v1/iam/organizations', {query: {parentId: '1001'}})
+    expect(request).toHaveBeenNthCalledWith(2, '/api/rbac3/v1/iam/positions', {query: {orgUnitId: '1001'}})
+    expect(request).toHaveBeenNthCalledWith(3, '/api/rbac3/v1/iam/users/9007199254740999')
+    expect(request).toHaveBeenNthCalledWith(4, '/api/rbac3/v1/internal/directory-snapshots', expect.objectContaining({method: 'POST'}))
+  })
+
   it('keeps user ids as strings and shows the source snapshot version', async () => {
     render(<UserDirectoryPage initialUserId="9007199254740999" />, { wrapper })
 

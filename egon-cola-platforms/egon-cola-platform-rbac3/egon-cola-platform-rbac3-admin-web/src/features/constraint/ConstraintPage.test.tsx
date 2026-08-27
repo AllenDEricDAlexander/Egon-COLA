@@ -2,9 +2,10 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {type Rbac3Client, Rbac3Provider} from '@egon-cola/rbac3-react-sdk'
 import {render, screen, waitFor} from '@testing-library/react'
 import type {PropsWithChildren} from 'react'
-import {describe, expect, it} from 'vitest'
+import {describe, expect, it, vi} from 'vitest'
 import {type FeatureApiClient, FeatureApiProvider} from '../shared/FeatureApi'
 import {ConstraintPage, validateDsdRoleSelection} from './ConstraintPage'
+import {constraintApi} from './constraint.api'
 
 const wrapper = ({ children }: PropsWithChildren) => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -29,6 +30,21 @@ const wrapper = ({ children }: PropsWithChildren) => {
 }
 
 describe('constraint page', () => {
+  it('uses the IAM policies controller root for every policy collection', async () => {
+    const request = vi.fn().mockResolvedValue([])
+    const api = constraintApi({request})
+
+    await api.sodSets()
+    await api.dataRules()
+    await api.fieldRules()
+    await api.operationSodRules()
+
+    expect(request).toHaveBeenNthCalledWith(1, '/api/rbac3/v1/iam/policies/sod-sets')
+    expect(request).toHaveBeenNthCalledWith(2, '/api/rbac3/v1/iam/policies/data-rules')
+    expect(request).toHaveBeenNthCalledWith(3, '/api/rbac3/v1/iam/policies/field-rules')
+    expect(request).toHaveBeenNthCalledWith(4, '/api/rbac3/v1/iam/policies/operation-sod-rules')
+  })
+
   it('renders DSD as an activation-time constraint', async () => {
     render(<ConstraintPage />, { wrapper })
     await waitFor(() => expect(screen.getByText('cashier-maker-checker')).toBeInTheDocument())

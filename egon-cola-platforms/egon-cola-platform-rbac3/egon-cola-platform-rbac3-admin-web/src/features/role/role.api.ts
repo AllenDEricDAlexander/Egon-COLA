@@ -69,11 +69,11 @@ export interface ReplaceRoleResourcesCommand {
 
 export const roleApi = (client: FeatureApiClient) => ({
   roles: (applicationId?: string) => client.request<readonly RoleView[]>(
-    '/api/rbac3/v1/roles',
+    '/api/rbac3/v1/iam/roles',
     { query: { applicationId } },
   ),
   impact: (roleId: string) => client.request<RoleImpactView>(
-    `/api/rbac3/v1/roles/${encodeURIComponent(roleId)}/impact-analysis`,
+    `/api/rbac3/v1/iam/roles/${encodeURIComponent(roleId)}/impact-analysis`,
   ),
   resources: (roleId: string) => client.request<RoleResourceGrantTreeView>(
     `/api/rbac3/v1/iam/roles/${encodeURIComponent(roleId)}/resources`,
