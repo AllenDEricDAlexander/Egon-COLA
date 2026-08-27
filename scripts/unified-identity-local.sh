@@ -19,6 +19,7 @@ mock_url="${UNIFIED_IDENTITY_MOCK_URL:-http://127.0.0.1:18160}"
 gateway_url="${UNIFIED_IDENTITY_GATEWAY_URL:-http://127.0.0.1:18180}"
 advertised_host="${UNIFIED_IDENTITY_ADVERTISED_HOST:-127.0.0.1}"
 declared_hosts="127.0.0.1"
+startup_mode="${UNIFIED_IDENTITY_START_MODE:-platforms}"
 
 postgres_host="${UNIFIED_IDENTITY_POSTGRES_HOST:-127.0.0.1}"
 postgres_port="${UNIFIED_IDENTITY_POSTGRES_PORT:-5432}"
@@ -1499,17 +1500,9 @@ configure_gateway_reporter() {
 
 ensure_gateway_reporting_application() {
   local biz_code="$1" app_code="$2" display_name="$3"
-  local applications application app_id credential access_file secret_file
-  applications="$(gateway_api GET "/api/v1/gateway/admin/applications?bizCode=${biz_code}&namespace=default&env=local&appCode=${app_code}")"
-  app_id="$(jq -r --arg app "${app_code}" \
-    '.[] | select(.applicationCode == $app) | .id' <<<"${applications}" | head -1)"
-  if [[ -z "${app_id}" ]]; then
-    application="$(gateway_api POST /api/v1/gateway/admin/applications \
-      "$(jq -cn --arg biz "${biz_code}" --arg app "${app_code}" \
-        --arg display "${display_name}" \
-        '{bizCode:$biz,applicationCode:$app,displayName:$display,env:"local",namespace:"default",description:"Host-local unified identity Gateway catalog provider"}')")"
-    app_id="$(jq -er '.id' <<<"${application}")"
-  fi
+  local app_id credential access_file secret_file
+  ensure_gateway_application "${biz_code}" "${app_code}" "${display_name}"
+  app_id="$(<"$(gateway_application_id_file "${app_code}")")"
   access_file="$(gateway_report_access_key_file "${app_code}")"
   secret_file="$(gateway_report_secret_file "${app_code}")"
   if [[ ! -s "${access_file}" || ! -s "${secret_file}" ]]; then
@@ -1523,13 +1516,38 @@ ensure_gateway_reporting_application() {
   configure_gateway_reporter "${app_code}"
 }
 
+ensure_gateway_application() {
+  local biz_code="$1" app_code="$2" display_name="$3"
+  local applications application app_id
+  applications="$(gateway_api GET "/api/v1/gateway/admin/applications?bizCode=${biz_code}&namespace=default&env=local&appCode=${app_code}")"
+  app_id="$(jq -r --arg app "${app_code}" \
+    '.[] | select(.applicationCode == $app) | .id' <<<"${applications}" | head -1)"
+  if [[ -z "${app_id}" ]]; then
+    application="$(gateway_api POST /api/v1/gateway/admin/applications \
+      "$(jq -cn --arg biz "${biz_code}" --arg app "${app_code}" \
+        --arg display "${display_name}" \
+        '{bizCode:$biz,applicationCode:$app,displayName:$display,env:"local",namespace:"default",description:"Host-local unified identity Gateway catalog provider"}')")"
+    app_id="$(jq -er '.id' <<<"${application}")"
+  fi
+  printf '%s' "${app_id}" >"$(gateway_application_id_file "${app_code}")"
+  chmod 600 "$(gateway_application_id_file "${app_code}")"
+}
+
 initialize_gateway_control_plane() {
   local groups group group_id
-  ensure_gateway_reporting_application permission idp "IdP Identity Admin"
-  ensure_gateway_reporting_application permission rbac3 "RBAC3 Permission Admin"
-  ensure_gateway_reporting_application platform gateway-admin "Gateway Admin"
-  ensure_gateway_reporting_application platform ddc "Dynamic Config Center Admin"
-  ensure_gateway_reporting_application identity mock-backend "Unified Identity Mock Backend"
+  if [[ "${startup_mode}" == "full" ]]; then
+    ensure_gateway_reporting_application permission idp "IdP Identity Admin"
+    ensure_gateway_reporting_application permission rbac3 "RBAC3 Permission Admin"
+    ensure_gateway_reporting_application platform gateway-admin "Gateway Admin"
+    ensure_gateway_reporting_application platform ddc "Dynamic Config Center Admin"
+    ensure_gateway_reporting_application identity mock-backend "Unified Identity Mock Backend"
+  else
+    ensure_gateway_application permission idp "IdP Identity Admin"
+    ensure_gateway_application permission rbac3 "RBAC3 Permission Admin"
+    ensure_gateway_application platform gateway-admin "Gateway Admin"
+    ensure_gateway_application platform ddc "Dynamic Config Center Admin"
+    ensure_gateway_application identity mock-backend "Unified Identity Mock Backend"
+  fi
 
   groups="$(gateway_api GET '/api/v1/gateway/admin/gateway-groups?env=local&namespace=default')"
   group_id="$(jq -r '.[] | select(.gatewayGroupCode == "default") | .id' <<<"${groups}" | head -1)"
@@ -1820,6 +1838,10 @@ wait_gateway_route() {
 
 command_start() {
   command_prepare
+  case "${startup_mode}" in
+    platforms|full) ;;
+    *) fail "unsupported UNIFIED_IDENTITY_START_MODE: ${startup_mode} (use platforms or full)" ;;
+  esac
   local idp_argument subject tenant_b_id rbac3_access_token ddc_access_token
   stage "starting DDC"
   start_process ddc "${env_dir}/ddc.env" "${ddc_jar}"
@@ -1931,6 +1953,12 @@ command_start() {
   start_process gateway-admin "${env_dir}/gateway-admin.env" "${gateway_admin_jar}"
   wait_http gateway-admin "${gateway_admin_url}/actuator/health/readiness"
   initialize_gateway_control_plane
+
+  if [[ "${startup_mode}" == "platforms" ]]; then
+    echo "Unified identity platform backends are running without Gateway HTTP catalog reporting."
+    echo "Start the Admin Web and Portal applications with scripts/unified-platform/start-local-stack.sh."
+    return
+  fi
 
   stage "restarting providers with real Gateway catalog reporting"
   # Gateway Admin is the reporting control plane, so it first remains available with its own

@@ -8,6 +8,7 @@ source "${script_dir}/lib/common.sh"
 legacy_script="${unified_platform_repo_root}/scripts/unified-identity-local.sh"
 release_fixture="${script_dir}/fixtures/unified-platform-release.json"
 gateway_web_dir="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web"
+portal_web_dir="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-admin-portal"
 idp_web_dir="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web"
 rbac3_root_dir="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-rbac3"
 rbac3_web_dir="${rbac3_root_dir}/egon-cola-platform-rbac3-admin-web"
@@ -721,7 +722,12 @@ wait_mcp_endpoint() {
 
 start_admin_web() {
   local name="$1" web_dir="$2" vite="$3" web_url="$4"
-  local web_label="$5" proxy_name="$6" proxy_url="$7" port
+  local web_label="$5" proxy_name="$6" proxy_url="$7" port api_origin
+  if [[ $# -ge 8 ]]; then
+    api_origin="$8"
+  else
+    api_origin="${GATEWAY_BASE_URL}"
+  fi
   if unified_platform_process_running "${name}"; then
     return
   fi
@@ -732,7 +738,7 @@ start_admin_web() {
   (
     cd "${web_dir}"
     export "${proxy_name}=${proxy_url}"
-    export VITE_GATEWAY_ORIGIN="${GATEWAY_BASE_URL}"
+    export VITE_GATEWAY_ORIGIN="${api_origin}"
     export VITE_DEFAULT_TENANT_ID="${default_tenant_id}"
     exec nohup "${vite}" \
       --config "${web_dir}/vite.config.ts" \
@@ -743,9 +749,117 @@ start_admin_web() {
   unified_platform_wait_http "${name}" "${web_url}/"
 }
 
-unified_platform_stage "preparing and starting IdP, RBAC3, DDC, Gateway A and mock backend"
+write_portal_manifest() {
+  local public_dir="${unified_platform_runtime_dir}/portal-public"
+  local manifest_dir="${public_dir}/portal-manifest"
+  mkdir -p "${manifest_dir}"
+  chmod 700 "${public_dir}" "${manifest_dir}"
+  jq -n \
+    --arg idp "${IDP_ADMIN_WEB_URL}" \
+    --arg rbac3 "${RBAC3_ADMIN_WEB_URL}" \
+    --arg gateway "${GATEWAY_ADMIN_WEB_URL}" \
+    --arg ddc "${DDC_ADMIN_WEB_URL}" \
+    '{
+      idp: {
+        key: "idp",
+        displayName: "身份与安全",
+        url: ($idp + "/"),
+        standaloneUrl: ($idp + "/overview"),
+        version: "5.3.2",
+        contractVersion: "platform-1",
+        compatibleHostRange: ">=5.3.2 <6.0.0",
+        requiredCapabilities: []
+      },
+      rbac3: {
+        key: "rbac3",
+        displayName: "权限治理",
+        url: ($rbac3 + "/"),
+        standaloneUrl: ($rbac3 + "/roles"),
+        version: "5.3.2",
+        contractVersion: "platform-1",
+        compatibleHostRange: ">=5.3.2 <6.0.0",
+        requiredCapabilities: []
+      },
+      gateway: {
+        key: "gateway",
+        displayName: "API 网关",
+        url: ($gateway + "/"),
+        standaloneUrl: ($gateway + "/dashboard"),
+        version: "5.3.2",
+        contractVersion: "platform-1",
+        compatibleHostRange: ">=5.3.2 <6.0.0",
+        requiredCapabilities: []
+      },
+      ddc: {
+        key: "ddc",
+        displayName: "配置中心",
+        url: ($ddc + "/"),
+        standaloneUrl: ($ddc + "/registry"),
+        version: "5.3.2",
+        contractVersion: "platform-1",
+        compatibleHostRange: ">=5.3.2 <6.0.0",
+        requiredCapabilities: []
+      }
+    }' >"${manifest_dir}/local.json"
+  chmod 600 "${manifest_dir}/local.json"
+}
+
+start_portal_web() {
+  local vite="${portal_web_dir}/node_modules/.bin/vite"
+  if unified_platform_process_running portal-web; then
+    return
+  fi
+  [[ -x "${vite}" ]] \
+    || unified_platform_fail \
+      "portal-web dependencies are missing; run npm install in ${portal_web_dir}"
+  (
+    cd "${portal_web_dir}"
+    export PORTAL_PUBLIC_DIR="${unified_platform_runtime_dir}/portal-public"
+    export VITE_PORTAL_ALLOW_LOCAL_CHILD_ORIGINS=true
+    export VITE_IDP_ADMIN_WEB_URL="${IDP_ADMIN_WEB_URL}"
+    export VITE_RBAC3_ADMIN_WEB_URL="${RBAC3_ADMIN_WEB_URL}"
+    export VITE_GATEWAY_ADMIN_WEB_URL="${GATEWAY_ADMIN_WEB_URL}"
+    export VITE_DDC_ADMIN_WEB_URL="${DDC_ADMIN_WEB_URL}"
+    export VITE_DEFAULT_TENANT_ID="${default_tenant_id}"
+    exec nohup "${vite}" \
+      --config "${portal_web_dir}/vite.config.ts" \
+      --host 127.0.0.1 --port "${PLATFORM_PORTAL_URL##*:}" --strictPort
+  ) >"${unified_platform_log_dir}/portal-web.log" 2>&1 </dev/null &
+  printf '%s' "$!" >"${unified_platform_pid_dir}/portal-web.pid"
+  chmod 600 "${unified_platform_pid_dir}/portal-web.pid"
+  unified_platform_wait_http portal-web "${PLATFORM_PORTAL_URL}/"
+}
+
+unified_platform_stage "preparing and starting IdP, RBAC3, DDC and Gateway Admin"
+export UNIFIED_IDENTITY_START_MODE="${UNIFIED_PLATFORM_START_MODE:-platforms}"
 "${legacy_script}" start
 prepare_admin_web_login_environments
+
+printf '%s' "${UNIFIED_IDENTITY_START_MODE}" \
+  >"${unified_platform_runtime_dir}/startup-mode"
+chmod 600 "${unified_platform_runtime_dir}/startup-mode"
+
+if [[ "${UNIFIED_IDENTITY_START_MODE}" != "full" ]]; then
+  write_portal_manifest
+  unified_platform_stage "starting four Admin Web applications with direct platform proxies"
+  start_admin_web idp-admin-web "${idp_web_dir}" \
+    "${idp_web_dir}/node_modules/.bin/vite" "${IDP_ADMIN_WEB_URL}" \
+    idp-admin-web IDP_ADMIN_PROXY "${IDP_BASE_URL}" ""
+  start_admin_web rbac3-admin-web "${rbac3_web_dir}" \
+    "${rbac3_root_dir}/node_modules/.bin/vite" "${RBAC3_ADMIN_WEB_URL}" \
+    rbac3-admin-web RBAC3_ADMIN_PROXY "${RBAC3_BASE_URL}" ""
+  start_admin_web gateway-admin-web "${gateway_web_dir}" \
+    "${gateway_web_dir}/node_modules/.bin/vite" "${GATEWAY_ADMIN_WEB_URL}" \
+    gateway-admin-web GATEWAY_ADMIN_PROXY "${GATEWAY_ADMIN_BASE_URL}" ""
+  start_admin_web ddc-admin-web "${ddc_web_dir}" \
+    "${ddc_web_dir}/node_modules/.bin/vite" "${DDC_ADMIN_WEB_URL}" \
+    ddc-admin-web DDC_ADMIN_PROXY "${DDC_BASE_URL}" ""
+  start_portal_web
+  printf 'Unified platform local stack is running in %s.\n' \
+    "${unified_platform_runtime_dir}"
+  "${script_dir}/status-local-stack.sh"
+  exit 0
+fi
 
 package_mcp_fixtures
 write_extra_service_env_files

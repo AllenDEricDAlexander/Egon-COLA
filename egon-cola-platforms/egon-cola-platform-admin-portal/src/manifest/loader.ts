@@ -70,6 +70,10 @@ const manifestUrl = (environment: string): string => `/portal-manifest/${encodeU
 
 const portalOrigin = (): string => globalThis.location?.origin ?? 'http://portal.local'
 
+const localChildOriginsEnabled = (): boolean => (
+  import.meta.env.VITE_PORTAL_ALLOW_LOCAL_CHILD_ORIGINS === 'true'
+)
+
 const isAllowedUrl = (value: string): boolean => {
   if (!value.trim() || value.includes('\\')) {
     return false
@@ -78,7 +82,13 @@ const isAllowedUrl = (value: string): boolean => {
   try {
     const origin = new URL(portalOrigin())
     const parsed = new URL(value, portalOrigin())
-    return parsed.origin === origin.origin && parsed.protocol === origin.protocol
+    if (parsed.origin === origin.origin && parsed.protocol === origin.protocol) {
+      return true
+    }
+    return localChildOriginsEnabled()
+      && parsed.protocol === origin.protocol
+      && parsed.hostname === origin.hostname
+      && (parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost')
   } catch {
     return false
   }
@@ -91,7 +101,13 @@ const readManifest = (value: unknown, platformKey: PlatformKey): PlatformManifes
     throw invalid('Manifest must be a JSON object')
   }
 
-  const candidate = value as Record<string, unknown>
+  const root = value as Record<string, unknown>
+  const candidate = typeof root.key === 'string'
+    ? root
+    : root[platformKey] as Record<string, unknown> | undefined
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+    throw invalid('Manifest does not contain the requested platform')
+  }
   const requiredStrings = [
     'key',
     'displayName',

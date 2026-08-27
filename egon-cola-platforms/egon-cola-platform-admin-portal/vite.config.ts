@@ -4,6 +4,7 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   plugins: [react()],
+  publicDir: process.env.PORTAL_PUBLIC_DIR ?? 'public',
   resolve: {
     alias: {
       '@ant-design/icons': resolvePath(import.meta.dirname, 'node_modules/@ant-design/icons'),

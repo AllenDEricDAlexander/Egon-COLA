@@ -41,6 +41,10 @@ ensure_frontend_dependencies \
   "${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web" \
   "${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/node_modules/.bin/vite" \
   'DDC Admin Web'
+ensure_frontend_dependencies \
+  "${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-admin-portal" \
+  "${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-admin-portal/node_modules/.bin/vite" \
+  'Platform Admin Portal'
 
 cleanup_required=true
 cleanup() {

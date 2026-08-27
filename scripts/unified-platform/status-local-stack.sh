@@ -32,6 +32,7 @@ print_status idp-admin-web "${IDP_ADMIN_WEB_URL}/"
 print_status rbac3-admin-web "${RBAC3_ADMIN_WEB_URL}/"
 print_status gateway-admin-web "${GATEWAY_ADMIN_WEB_URL}/"
 print_status ddc-admin-web "${DDC_ADMIN_WEB_URL}/"
+print_status portal-web "${PLATFORM_PORTAL_URL}/"
 
 printf 'Runtime: %s\n' "${unified_platform_runtime_dir}"
 printf 'Logs:    %s\n' "${unified_platform_log_dir}"

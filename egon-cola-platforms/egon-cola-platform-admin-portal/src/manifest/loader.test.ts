@@ -20,6 +20,7 @@ const jsonResponse = (body: unknown, status = 200): Response => new Response(
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
 })
 
 describe('loadManifest', () => {
@@ -37,6 +38,26 @@ describe('loadManifest', () => {
       signal: expect.any(AbortSignal),
     })
     expect(new Headers(fetchMock.mock.calls[0][1].headers).has('Authorization')).toBe(false)
+  })
+
+  it('selects a platform entry and allows explicit local child origins', async () => {
+    vi.stubEnv('VITE_PORTAL_ALLOW_LOCAL_CHILD_ORIGINS', 'true')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({
+      idp: manifest(),
+      gateway: manifest({
+        key: 'gateway',
+        url: 'http://localhost:18141/',
+        standaloneUrl: 'http://localhost:18141/dashboard',
+        requiredCapabilities: ['gateway:read'],
+      }),
+    })))
+
+    await expect(loadManifest('gateway', 'local', new AbortController().signal))
+      .resolves.toMatchObject({
+        key: 'gateway',
+        url: 'http://localhost:18141/',
+        standaloneUrl: 'http://localhost:18141/dashboard',
+      })
   })
 
   it('rejects invalid manifests before a child can mount', async () => {

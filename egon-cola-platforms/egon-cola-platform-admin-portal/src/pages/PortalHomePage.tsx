@@ -24,11 +24,42 @@ export interface PortalPlatformItem {
   readonly standaloneUrl: string
 }
 
+const configuredStandaloneUrl = (
+  environmentKey: string,
+  path: string,
+  fallback: string,
+): string => {
+  const configuredOrigin = import.meta.env[environmentKey]
+  return configuredOrigin
+    ? `${configuredOrigin.replace(/\/$/, '')}${path}`
+    : fallback
+}
+
 export const PORTAL_PLATFORM_ITEMS: readonly PortalPlatformItem[] = [
-  { key: 'idp', label: '身份与安全', path: '/platform/idp/overview', standaloneUrl: '/idp/overview' },
-  { key: 'rbac3', label: '权限治理', path: '/platform/rbac3/roles', standaloneUrl: '/rbac3/roles' },
-  { key: 'gateway', label: 'API 网关', path: '/platform/gateway/dashboard', standaloneUrl: '/gateway/dashboard' },
-  { key: 'ddc', label: '配置中心', path: '/platform/ddc/registry', standaloneUrl: '/ddc/registry' },
+  {
+    key: 'idp',
+    label: '身份与安全',
+    path: '/platform/idp/overview',
+    standaloneUrl: configuredStandaloneUrl('VITE_IDP_ADMIN_WEB_URL', '/overview', '/idp/overview'),
+  },
+  {
+    key: 'rbac3',
+    label: '权限治理',
+    path: '/platform/rbac3/roles',
+    standaloneUrl: configuredStandaloneUrl('VITE_RBAC3_ADMIN_WEB_URL', '/roles', '/rbac3/roles'),
+  },
+  {
+    key: 'gateway',
+    label: 'API 网关',
+    path: '/platform/gateway/dashboard',
+    standaloneUrl: configuredStandaloneUrl('VITE_GATEWAY_ADMIN_WEB_URL', '/dashboard', '/gateway/dashboard'),
+  },
+  {
+    key: 'ddc',
+    label: '配置中心',
+    path: '/platform/ddc/registry',
+    standaloneUrl: configuredStandaloneUrl('VITE_DDC_ADMIN_WEB_URL', '/registry', '/ddc/registry'),
+  },
 ]
 
 export interface PortalHomePageProps {

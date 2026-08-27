@@ -8,6 +8,7 @@ source "${script_dir}/lib/common.sh"
 export UNIFIED_IDENTITY_RUNTIME_DIR="${unified_platform_runtime_dir}"
 
 for name in \
+  portal-web \
   idp-admin-web \
   rbac3-admin-web \
   gateway-admin-web \
