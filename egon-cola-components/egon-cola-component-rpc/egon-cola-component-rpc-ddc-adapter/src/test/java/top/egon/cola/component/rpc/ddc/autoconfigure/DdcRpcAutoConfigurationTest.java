@@ -3,6 +3,7 @@ package top.egon.cola.component.rpc.ddc.autoconfigure;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +19,7 @@ import top.egon.cola.component.rpc.context.identity.RpcProcessIdentityProvider;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
 import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistry;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterAutoConfiguration;
 import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,6 +32,15 @@ class DdcRpcAutoConfigurationTest {
             .withBean(IdpServiceOAuth2Client.class, () -> mock(
                     IdpServiceOAuth2Client.class
             ));
+
+    @Test
+    void runsAfterIdpServiceClientAutoConfiguration() {
+        AutoConfiguration configuration = DdcRpcAutoConfiguration.class
+                .getAnnotation(AutoConfiguration.class);
+        assertThat(configuration).isNotNull();
+        assertThat(configuration.after())
+                .contains(IdpStarterAutoConfiguration.class);
+    }
 
     @Test
     void disabledRuntimeAndRegistryCreateNoDirectClientAndRequireNoTarget() {

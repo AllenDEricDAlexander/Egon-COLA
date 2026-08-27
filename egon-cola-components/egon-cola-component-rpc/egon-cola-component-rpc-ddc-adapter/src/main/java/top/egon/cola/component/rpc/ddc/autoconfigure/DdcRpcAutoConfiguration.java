@@ -30,6 +30,7 @@ import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
 import top.egon.cola.component.rpc.ddc.client.registry.RpcDdcServiceRegistryClient;
 import top.egon.cola.component.rpc.ddc.registry.*;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistry;
+import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterAutoConfiguration;
 import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
 import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
 
@@ -40,7 +41,10 @@ import java.net.InetAddress;
  * / Supplies Direct RPC Port adapters before the business DDC auto-configurations.
  */
 @AutoConfiguration(
-        after = DdcRedisAutoConfiguration.class,
+        after = {
+                DdcRedisAutoConfiguration.class,
+                IdpStarterAutoConfiguration.class
+        },
         before = {
                 DdcAutoConfiguration.class,
                 DdcRegistryAutoConfiguration.class,
