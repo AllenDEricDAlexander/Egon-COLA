@@ -1628,6 +1628,62 @@ gateway_catalog_operations() {
   jq -s 'map(.[]) | unique_by(.id)' "${combined_file}"
 }
 
+reconcile_platform_mcp_draft() {
+  local group_id="$1" servers server_id managed_tools valid_tools
+  local task_policies policy_id policy_name policy_revision response revision
+  local app_bindings binding_id binding_revision binding_valid
+  servers="$(gateway_api GET \
+    "/api/v1/gateway/admin/mcp/servers?gatewayGroupId=${group_id}")"
+  while IFS= read -r server_id; do
+    [[ -n "${server_id}" ]] || continue
+    managed_tools="$(gateway_api GET \
+      "/api/v1/gateway/admin/mcp/groups/${group_id}/managed-tools?serverId=${server_id}")"
+    valid_tools="$(jq -c '[.[] | select(.enabled == true) | .name] | unique' \
+      <<<"${managed_tools}")"
+
+    task_policies="$(gateway_api GET \
+      "/api/v1/gateway/admin/mcp/servers/${server_id}/task-policies?gatewayGroupId=${group_id}")"
+    while IFS= read -r policy; do
+      policy_id="$(jq -er '.id' <<<"${policy}")"
+      policy_name="$(jq -er '.name' <<<"${policy}")"
+      if jq -e --arg name "${policy_name}" \
+          --argjson tools "${valid_tools}" \
+          '$tools | index($name) != null' <<<"null" \
+          >/dev/null 2>&1; then
+        continue
+      fi
+      policy_revision="$(jq -er '.revision' <<<"${policy}")"
+      revision="$(draft_revision "${group_id}")"
+      response="$(gateway_api DELETE \
+        "/api/v1/gateway/admin/mcp/task-policies/${policy_id}" \
+        "$(jq -cn --arg group "${group_id}" --argjson expected "${policy_revision}" \
+          --argjson draft "${revision}" \
+          '{gatewayGroupId:$group,expectedRevision:$expected,expectedDraftRevision:$draft,changeReason:"Remove platform-mode MCP task policy without a valid Tool"}')" \
+        "unified-platform-remove-mcp-task-${policy_id}")"
+      jq -e '.resourceId != null' <<<"${response}" >/dev/null
+    done < <(jq -c '.[]' <<<"${task_policies}")
+
+    app_bindings="$(gateway_api GET \
+      "/api/v1/gateway/admin/mcp/servers/${server_id}/app-bindings?gatewayGroupId=${group_id}")"
+    while IFS= read -r binding; do
+      binding_id="$(jq -er '.id' <<<"${binding}")"
+      binding_valid="$(jq -e --argjson tools "${valid_tools}" '
+        ((.content.allowedTools // []) - $tools | length) == 0
+      ' <<<"${binding}" >/dev/null 2>&1; echo $?)"
+      [[ "${binding_valid}" == "0" ]] && continue
+      binding_revision="$(jq -er '.revision' <<<"${binding}")"
+      revision="$(draft_revision "${group_id}")"
+      response="$(gateway_api DELETE \
+        "/api/v1/gateway/admin/mcp/app-bindings/${binding_id}" \
+        "$(jq -cn --arg group "${group_id}" --argjson expected "${binding_revision}" \
+          --argjson draft "${revision}" \
+          '{gatewayGroupId:$group,expectedRevision:$expected,expectedDraftRevision:$draft,changeReason:"Remove platform-mode MCP app binding with invalid Tool references"}')" \
+        "unified-platform-remove-mcp-app-${binding_id}")"
+      jq -e '.resourceId != null' <<<"${response}" >/dev/null
+    done < <(jq -c '.[]' <<<"${app_bindings}")
+  done < <(jq -r '.[].id' <<<"${servers}")
+}
+
 route_id_for_operation() {
   printf '%s' "$1" | openssl dgst -sha256 -r \
     | awk '{print "unified-" substr($1, 1, 32)}'
@@ -1983,6 +2039,8 @@ command_start() {
   if [[ "${startup_mode}" == "platforms" ]]; then
     stage "waiting for RBAC3 OpenAPI group ingestion"
     wait_gateway_openapi_sync_for_app permission rbac3
+    stage "reconciling orphaned local MCP draft capabilities"
+    reconcile_platform_mcp_draft "$(<"${runtime_dir}/gateway-group.id")"
     stage "publishing the current local Gateway HTTP catalog"
     publish_gateway_routes
     echo "Unified identity platform backends are running with Gateway OpenAPI catalog routes."
