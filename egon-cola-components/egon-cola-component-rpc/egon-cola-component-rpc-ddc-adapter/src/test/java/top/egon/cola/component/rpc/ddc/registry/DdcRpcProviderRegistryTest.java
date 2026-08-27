@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
+import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.ddc.model.lease.*;
 import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
 import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
@@ -18,6 +19,7 @@ import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
 import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
 import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
 
+import java.net.URI;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -183,6 +185,40 @@ class DdcRpcProviderRegistryTest {
                 .containsExactlyEntriesOf(Map.of("region", "cn-east-1"));
         assertThat(captured.leaseSeconds()).isEqualTo(45);
         assertThat(captured.heartbeatIntervalSeconds()).isEqualTo(15);
+    }
+
+    @Test
+    void usesDdcRegistrationResourceAsServiceTokenAudience() {
+        DdcServiceRegistryClient client = mock(DdcServiceRegistryClient.class);
+        Instant now = Instant.parse("2026-08-09T00:00:00Z");
+        when(client.register(any())).thenReturn(new DdcLeaseSession(
+                "instance-1", "lease-1", DdcLeaseRole.RPC_PROVIDER,
+                30, 10, now, now.plusSeconds(30)));
+        IdpServiceOAuth2Client serviceClient = serviceClient(
+                new AtomicInteger(), "service-token");
+        DdcProperties ddcProperties = new DdcProperties();
+        ddcProperties.setRegistrationResourceUri(
+                URI.create("https://api.example/ddc-registration"));
+        DdcRpcProviderRegistry registry = new DdcRpcProviderRegistry(
+                client,
+                "biz",
+                "app",
+                ddcProperties.getRegistrationResourceUri(),
+                serviceClient,
+                idpProperties());
+
+        registry.register(new RpcProviderRegistration(
+                new RpcServiceIdentity("OrderService", "default", "1.0.0"),
+                new RpcProcessIdentity(
+                        "orders", "test", "127.0.0.1", 1, "instance-1"),
+                "127.0.0.1", 19090, false,
+                Map.of(), 30, 10));
+
+        ArgumentCaptor<IdpServiceTokenRequest> captor =
+                ArgumentCaptor.forClass(IdpServiceTokenRequest.class);
+        verify(serviceClient).authorize(captor.capture());
+        assertThat(captor.getValue().audience())
+                .isEqualTo(URI.create("https://api.example/ddc-registration"));
     }
 
     private IdpStarterProperties idpProperties() {

@@ -32,6 +32,10 @@ public final class DdcRpcProviderRegistry implements RpcProviderRegistry {
     private final DdcServiceRegistryClient client;
     private final String bizCode;
     private final String appCode;
+
+    /** PLATFORM Resource URI accepted by DDC for service registration. */
+    private final URI registrationResourceUri;
+
     /** IdP OAuth2 Client facade used for RPC Provider registration and heartbeats. */
     private final IdpServiceOAuth2Client serviceClient;
 
@@ -58,9 +62,41 @@ public final class DdcRpcProviderRegistry implements RpcProviderRegistry {
             String appCode,
             IdpServiceOAuth2Client serviceClient,
             IdpStarterProperties idpProperties) {
+        this(
+                client,
+                bizCode,
+                appCode,
+                idpProperties.getResourceUri(),
+                serviceClient,
+                idpProperties
+        );
+    }
+
+    /**
+     * Creates a registry bridge with the DDC registration Resource URI.
+     * / Creates a registry bridge with the DDC registration Resource URI.
+     *
+     * @param client DDC service-registry client / DDC service-registry client
+     * @param bizCode business-domain code / business-domain code
+     * @param appCode application code / application code
+     * @param registrationResourceUri DDC registration Resource URI / DDC registration Resource URI
+     * @param serviceClient IdP OAuth2 Client facade / IdP OAuth2 Client facade
+     * @param idpProperties IdP client settings / IdP client settings
+     */
+    public DdcRpcProviderRegistry(
+            DdcServiceRegistryClient client,
+            String bizCode,
+            String appCode,
+            URI registrationResourceUri,
+            IdpServiceOAuth2Client serviceClient,
+            IdpStarterProperties idpProperties) {
         this.client = Objects.requireNonNull(client, "client");
         this.bizCode = bizCode;
         this.appCode = appCode;
+        this.registrationResourceUri = Objects.requireNonNull(
+                registrationResourceUri,
+                "egon.cola.component.ddc.registration-resource-uri"
+        );
         this.serviceClient = Objects.requireNonNull(
                 serviceClient,
                 "serviceClient"
@@ -166,14 +202,10 @@ public final class DdcRpcProviderRegistry implements RpcProviderRegistry {
         IdpStarterProperties.ServiceClient client =
                 idpProperties.getServiceClient();
         client.validate();
-        URI audience = Objects.requireNonNull(
-                idpProperties.getResourceUri(),
-                "egon.cola.platform.idp.resource-uri"
-        );
         return serviceClient.authorize(new IdpServiceTokenRequest(
                 client.getRegistrationId(),
                 client.getAppId(),
-                audience,
+                registrationResourceUri,
                 ServiceTokenContext.PLATFORM,
                 null,
                 Set.of("ddc:registration:write")

@@ -29,6 +29,9 @@ class DdcRpcAutoConfigurationTest {
 
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(DdcRpcAutoConfiguration.class))
+            .withPropertyValues(
+                    "egon.cola.component.ddc.registration-resource-uri=https://api.example/ddc"
+            )
             .withBean(IdpServiceOAuth2Client.class, () -> mock(
                     IdpServiceOAuth2Client.class
             ));
@@ -117,6 +120,7 @@ class DdcRpcAutoConfigurationTest {
                         "egon.cola.component.ddc.enabled=true",
                         "egon.cola.component.ddc.redis.enabled=false",
                         "egon.cola.component.ddc.registry.enabled=true",
+                        "egon.cola.component.ddc.registration-resource-uri=https://api.example/ddc",
                         "egon.cola.component.ddc.rpc.target=localhost:65535",
                         "egon.cola.component.ddc.rpc.auth.runtime.access-key=runtime-ak",
                         "egon.cola.component.ddc.rpc.auth.runtime.secret-key=runtime-sk",

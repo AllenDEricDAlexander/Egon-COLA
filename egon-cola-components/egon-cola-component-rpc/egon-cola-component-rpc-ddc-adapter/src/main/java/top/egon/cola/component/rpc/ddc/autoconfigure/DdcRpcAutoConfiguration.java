@@ -202,6 +202,7 @@ public class DdcRpcAutoConfiguration {
                 client,
                 properties.getBizCode(),
                 properties.getAppCode(),
+                properties.getRegistrationResourceUri(),
                 serviceClient,
                 idpProperties);
     }
