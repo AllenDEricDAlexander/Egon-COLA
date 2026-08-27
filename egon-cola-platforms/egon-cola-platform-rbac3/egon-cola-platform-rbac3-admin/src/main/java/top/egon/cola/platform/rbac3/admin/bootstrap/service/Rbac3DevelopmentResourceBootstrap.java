@@ -14,6 +14,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.po.RoleResourceGrantPO;
 import top.egon.cola.platform.rbac3.admin.bootstrap.domain.Rbac3DevelopmentTopology;
 import top.egon.cola.platform.rbac3.admin.bootstrap.domain.vo.ApplicationDefinitionVO;
 
@@ -31,16 +32,12 @@ import java.util.Objects;
  *
  * <p>The CI registration endpoint intentionally records pending mechanical facts and never
  * confirms an actual permission mapping. A local stack has no release pipeline or operator
- * review step, so this runner provides that explicit development-only confirmation before the
- * local administrator bootstrap creates role-resource grants.</p>
+ * review step, so this runner provides that explicit development-only confirmation and grants
+ * every active local resource to the built-in administrator roles before role activation.</p>
  */
 @Component
 @Profile("local")
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@ConditionalOnProperty(
-        prefix = "egon.rbac3.development-bootstrap",
-        name = "enabled",
-        havingValue = "true")
 @ConditionalOnProperty(
         prefix = "egon.rbac3.development-bootstrap",
         name = "auto-activate-local-admin-roles",
@@ -140,6 +137,8 @@ public class Rbac3DevelopmentResourceBootstrap implements ApplicationRunner {
         for (DesiredField field : catalog.fields()) {
             ensureField(rbac3ApplicationId, field, now);
         }
+        entityManager.flush();
+        ensureLocalAdminResourceGrants(now);
         entityManager.flush();
     }
 
@@ -454,6 +453,69 @@ public class Rbac3DevelopmentResourceBootstrap implements ApplicationRunner {
                 .setParameter("now", now)
                 .setParameter("actor", ACTOR)
                 .executeUpdate();
+    }
+
+    private void ensureLocalAdminResourceGrants(Instant now) {
+        Map<Long, List<Long>> resourceIdsByApplication = new HashMap<>();
+        for (Object value : entityManager.createNativeQuery("""
+                        select id, application_id
+                          from rbac3_resource
+                         where status = 'ACTIVE'
+                         order by application_id, id
+                        """).getResultList()) {
+            Object[] row = (Object[]) value;
+            long resourceId = ((Number) row[0]).longValue();
+            long applicationId = ((Number) row[1]).longValue();
+            resourceIdsByApplication
+                    .computeIfAbsent(applicationId, ignored -> new ArrayList<>())
+                    .add(resourceId);
+        }
+
+        for (Object value : entityManager.createNativeQuery("""
+                        select id, tenant_id, application_id
+                          from rbac3_role
+                         where status = 'ACTIVE'
+                           and role_code like '%_LOCAL_ADMIN'
+                         order by application_id, tenant_id, id
+                        """).getResultList()) {
+            Object[] row = (Object[]) value;
+            long roleId = ((Number) row[0]).longValue();
+            long tenantId = ((Number) row[1]).longValue();
+            long applicationId = ((Number) row[2]).longValue();
+            for (long resourceId : resourceIdsByApplication.getOrDefault(
+                    applicationId, List.of())) {
+                if (hasActiveGrant(tenantId, roleId, resourceId, now)) {
+                    continue;
+                }
+                entityManager.persist(new RoleResourceGrantPO(
+                        idGenerator.nextLongId(), tenantId, applicationId,
+                        roleId, resourceId, now, null, ACTOR, now));
+            }
+        }
+    }
+
+    private boolean hasActiveGrant(
+            long tenantId,
+            long roleId,
+            long resourceId,
+            Instant now) {
+        return !entityManager.createNativeQuery("""
+                        select 1
+                          from rbac3_role_resource_grant
+                         where tenant_id = :tenantId
+                           and role_id = :roleId
+                           and resource_id = :resourceId
+                           and status = 'ACTIVE'
+                           and valid_from <= :now
+                           and (valid_to is null or valid_to > :now)
+                         limit 1
+                        """)
+                .setParameter("tenantId", tenantId)
+                .setParameter("roleId", roleId)
+                .setParameter("resourceId", resourceId)
+                .setParameter("now", now)
+                .getResultList()
+                .isEmpty();
     }
 
     private long resourceId(long applicationId, String type, String code) {

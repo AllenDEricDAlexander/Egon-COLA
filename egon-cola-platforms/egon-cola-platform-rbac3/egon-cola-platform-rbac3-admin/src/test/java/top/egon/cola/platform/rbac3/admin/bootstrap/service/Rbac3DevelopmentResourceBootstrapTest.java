@@ -3,6 +3,7 @@ package top.egon.cola.platform.rbac3.admin.bootstrap.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
@@ -37,5 +38,14 @@ class Rbac3DevelopmentResourceBootstrapTest {
             }
         }
         assertThat(resourceKeys).contains("MENU:iam", "ROUTE:iam.users");
+    }
+
+    @Test
+    void resourceBootstrapIsIndependentFromTopologyBootstrap() {
+        ConditionalOnProperty[] conditions = Rbac3DevelopmentResourceBootstrap.class
+                .getAnnotationsByType(ConditionalOnProperty.class);
+        assertThat(conditions).hasSize(1);
+        assertThat(conditions[0].name())
+                .containsExactly("auto-activate-local-admin-roles");
     }
 }

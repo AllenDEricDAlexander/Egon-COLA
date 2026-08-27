@@ -683,7 +683,7 @@ write_service_env_files() {
   write_env "${file}" RBAC3_RUNTIME_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
   write_env "${file}" RBAC3_AUDIT_CURSOR_SECRET_FILE "${secret_dir}/rbac3-audit.secret"
   write_env "${file}" RBAC3_SNOWFLAKE_MACHINE_ID 33
-  write_env "${file}" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED true
+  write_env "${file}" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED false
   write_env "${file}" RBAC3_DEVELOPMENT_AUTO_ACTIVATE_LOCAL_ADMIN_ROLES true
   write_env "${file}" RBAC3_DEVELOPMENT_TENANT_IDS "${service_tenant_id}"
   write_env "${file}" SPRING_FLYWAY_ENABLED true
@@ -1235,6 +1235,21 @@ user_access_token_for_tenant() {
   printf '%s' "${token}"
 }
 
+clear_local_rbac3_snapshots() {
+  local password pattern key tenant
+  password="$(<"${secret_dir}/redis.password")"
+  for tenant in "${service_tenant_id}" "${tenant_b_id}"; do
+    [[ "${tenant}" =~ ^[1-9][0-9]*$ ]] || continue
+    pattern="rbac3:{${tenant}}:snapshot:*"
+    while IFS= read -r key; do
+      [[ -n "${key}" ]] || continue
+      REDISCLI_AUTH="${password}" redis-cli -h "${redis_host}" \
+        -p "${redis_port}" -n 8 UNLINK "${key}" >/dev/null
+    done < <(REDISCLI_AUTH="${password}" redis-cli -h "${redis_host}" \
+      -p "${redis_port}" -n 8 --scan --pattern "${pattern}")
+  done
+}
+
 command_issue_user_token() {
   local tenant="${UNIFIED_IDENTITY_TENANT:-}"
   local output="${UNIFIED_IDENTITY_ACCESS_TOKEN_FILE:-}" token
@@ -1418,6 +1433,30 @@ wait_ddc_provider_registration() {
     sleep 1
   done
   fail "${biz_code}/${app_code} did not register an online DDC HTTP Provider lease"
+}
+
+wait_ddc_rpc_provider_registration() {
+  local biz_code="$1" app_code="$2" service_name="$3" group="$4" version="$5" response
+  for ((attempt = 1; attempt <= 30; attempt++)); do
+    response="$(ddc_api GET \
+      "/api/v1/ddc/registry/services?bizCode=${biz_code}&namespaceCode=default&env=local&appCode=${app_code}&serviceKind=RPC_PROVIDER&protocol=grpc&serviceName=${service_name}&group=${group}&version=${version}")"
+    if jq -e --arg app "${app_code}" --arg service "${service_name}" \
+        --arg group "${group}" --arg version "${version}" '
+        .data.services[]
+        | select(
+            .appCode == $app
+            and .serviceKind == "RPC_PROVIDER"
+            and .protocol == "grpc"
+            and .serviceName == $service
+            and .group == $group
+            and .version == $version
+          )
+      ' <<<"${response}" >/dev/null; then
+      return
+    fi
+    sleep 1
+  done
+  fail "${biz_code}/${app_code}/${service_name} did not register an online DDC RPC Provider lease"
 }
 
 gateway_application_id_file() {
@@ -1834,6 +1873,8 @@ command_start() {
   wait_http idp "${idp_url}/actuator/health/readiness"
   refresh_service_tokens
 
+  stage "clearing stale local RBAC3 authorization snapshots"
+  clear_local_rbac3_snapshots
   stage "establishing the default-tenant USER cookie"
   idp_bootstrap_login default
   stage "loading the default-tenant USER Access Token from its Gateway cookie"
@@ -1843,27 +1884,24 @@ command_start() {
   initialize_ddc_topology "${ddc_access_token}"
   stage "reconciling SQL-seeded RBAC3 applications with DDC catalog IDs"
   reconcile_local_rbac3_ddc_catalog
-  stage "initializing local RBAC3 resource catalog and admin grants"
-  stop_process rbac3
-  start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}" \
-    --egon.cola.component.ddc.enabled=true \
-    --egon.cola.component.ddc.registry.enabled=false \
-    --egon.cola.component.ddc.registry.http.enabled=false
-  wait_http rbac3 "${rbac3_url}/actuator/health/readiness"
   stage "activating non-mock roles"
   activate_roles "${rbac3_access_token}" false
 
   stage "restarting IdP and RBAC3 with admitted DDC publication"
   stop_process rbac3
   stop_process idp
-  start_process idp "${env_dir}/idp.env" "${idp_jar}"
-  wait_http idp "${idp_url}/actuator/health/readiness"
-  refresh_service_tokens
   write_env "${env_dir}/ddc.env" DDC_SELF_REGISTRATION_ENABLED true
   stop_process ddc
   start_process ddc "${env_dir}/ddc.env" "${ddc_jar}"
   wait_http ddc "${ddc_url}/actuator/health/readiness"
   wait_ddc_rpc
+  write_env "${env_dir}/rbac3.env" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED true
+  start_process idp "${env_dir}/idp.env" "${idp_jar}"
+  wait_http idp "${idp_url}/actuator/health/readiness"
+  refresh_service_tokens
+  stage "waiting for IdP identity RPC publication"
+  wait_ddc_rpc_provider_registration permission idp IdentityDirectoryService idp 1.0.0
+  stage "starting RBAC3 topology bootstrap after IdP RPC publication"
   start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}"
   wait_http rbac3 "${rbac3_url}/actuator/health/readiness"
 

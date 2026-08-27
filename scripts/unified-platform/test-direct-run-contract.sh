@@ -617,6 +617,36 @@ grep -Fq \
   || fail 'provider registration wait must query the exact IdP service key'
 unset -f ddc_api sleep wait_ddc_provider_registration
 
+function_file="${temporary_dir}/wait-ddc-rpc-provider-registration.sh"
+extract_function wait_ddc_rpc_provider_registration "${function_file}"
+# shellcheck disable=SC1090
+source "${function_file}"
+ddc_rpc_registry_queries="${temporary_dir}/ddc-rpc-registry-queries.txt"
+ddc_api() {
+  local method="$1" path="$2" attempt
+  [[ "${method}" == "GET" ]] \
+    || fail 'RPC provider registration wait must only read DDC state'
+  printf '%s\n' "${path}" >>"${ddc_rpc_registry_queries}"
+  attempt="$(wc -l <"${ddc_rpc_registry_queries}" | tr -d ' ')"
+  if [[ "${attempt}" -eq 1 ]]; then
+    printf '%s' '{"success":true,"data":{"services":[]}}'
+  else
+    printf '%s' \
+      '{"success":true,"data":{"services":[{"appCode":"idp","serviceKind":"RPC_PROVIDER","protocol":"grpc","serviceName":"IdentityDirectoryService","group":"idp","version":"1.0.0"}]}}'
+  fi
+}
+sleep() {
+  :
+}
+wait_ddc_rpc_provider_registration permission idp IdentityDirectoryService idp 1.0.0
+[[ "$(wc -l <"${ddc_rpc_registry_queries}" | tr -d ' ')" -eq 2 ]] \
+  || fail 'RPC provider registration wait must poll until the lease is online'
+grep -Fq \
+  'registry/services?bizCode=permission&namespaceCode=default&env=local&appCode=idp&serviceKind=RPC_PROVIDER&protocol=grpc&serviceName=IdentityDirectoryService&group=idp&version=1.0.0' \
+  "${ddc_rpc_registry_queries}" \
+  || fail 'RPC provider registration wait must query the exact IdP RPC service key'
+unset -f ddc_api sleep wait_ddc_rpc_provider_registration
+
 # shellcheck source=lib/common.sh
 source "${repo_root}/scripts/unified-platform/lib/common.sh"
 declare -F unified_platform_write_frontend_login_env >/dev/null \
@@ -660,14 +690,19 @@ assert_contains "${identity_script}" \
   'starting Gateway Engine after DDC control plane is ready' \
   'Gateway Engine must start after the final DDC provider restart'
 assert_contains "${identity_script}" \
-  'write_env "${file}" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED true' \
-  'local RBAC3 startup must enable the development resource bootstrap'
+  'write_env "${file}" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED false' \
+  'the first RBAC3 startup must defer topology bootstrap until DDC publication'
 assert_contains "${identity_script}" \
   '--egon.rbac3.development-bootstrap.enabled=false' \
-  'the first RBAC3 bootstrap phase must defer resource activation until DDC reconciliation'
+  'the first RBAC3 bootstrap phase must defer topology activation until DDC publication'
 assert_contains "${identity_script}" \
-  'initializing local RBAC3 resource catalog and admin grants' \
-  'local startup must initialize resources before activating administrator roles'
+  'write_env "${env_dir}/rbac3.env" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED true' \
+  'the final RBAC3 startup must enable topology bootstrap after DDC publication'
+assert_contains "${identity_script}" \
+  'wait_ddc_rpc_provider_registration permission idp IdentityDirectoryService idp 1.0.0' \
+  'RBAC3 topology bootstrap must wait for the IdP RPC provider publication'
+assert_contains "${identity_script}" 'clear_local_rbac3_snapshots' \
+  'local startup must discard stale derived RBAC3 snapshots before rebuilding them'
 assert_contains "${identity_script}" \
   'write_env "${file}" RBAC3_DEVELOPMENT_AUTO_ACTIVATE_LOCAL_ADMIN_ROLES true' \
   'local RBAC3 startup must activate the generated local administrator roles'
