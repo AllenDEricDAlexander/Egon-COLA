@@ -38,6 +38,38 @@ public interface GatewayReleasePublicationRepository {
     List<GatewayReleasePublicationPO> findAttempt(String releaseId, int attemptNo);
 
     /**
+     * 读取发布阶段元数据而不加载历史完整文档。
+     * / Reads publication metadata without loading historical full documents.
+     *
+     * @param releaseId 发布Id / release id
+     * @param attemptNo attempt编号 / attempt number
+     * @return 发布阶段元数据 / publication metadata
+     */
+    default List<GatewayReleasePublicationPO> findAttemptMetadata(
+            String releaseId,
+            int attemptNo) {
+        return findAttempt(releaseId, attemptNo);
+    }
+
+    /**
+     * 读取一个发布阶段的完整内容。
+     * / Reads the full content for one publication phase.
+     *
+     * @param releaseId 发布Id / release id
+     * @param attemptNo attempt编号 / attempt number
+     * @param phaseOrder 阶段序号 / phase order
+     * @return 匹配的发布阶段 / matching publication phase
+     */
+    default Optional<GatewayReleasePublicationPO> findOperation(
+            String releaseId,
+            int attemptNo,
+            int phaseOrder) {
+        return findAttempt(releaseId, attemptNo).stream()
+                .filter(operation -> operation.phaseOrder() == phaseOrder)
+                .findFirst();
+    }
+
+    /**
      * 中文说明：执行 nextIncomplete 操作；该方法是 {@code GatewayReleasePublicationRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
      * English summary: Executes the next incomplete operation; this method is the invocation entry point on {@code GatewayReleasePublicationRepository} and performs the corresponding runtime, management, or protocol work.
      *

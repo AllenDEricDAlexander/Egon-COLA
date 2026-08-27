@@ -210,7 +210,7 @@ public final class GatewayReleasePublicationCoordinator {
         for (top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO original
                 : operations) {
             top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO operation =
-                    current(releaseId, attemptNo, original.changeId());
+                    current(releaseId, attemptNo, original.phaseOrder());
             if (operation.status() == SUCCESS) {
                 successfulPhases++;
                 continue;
@@ -235,11 +235,17 @@ public final class GatewayReleasePublicationCoordinator {
             successfulPhases++;
         }
         top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO activation =
-                journal.findAttempt(releaseId, attemptNo).getLast();
+                journal.findAttemptMetadata(releaseId, attemptNo).getLast();
         DdcManagementPublishResult result = latestResult != null
                 && activation.changeId().equals(latestResult.changeId())
                 ? latestResult
-                : publishedResult(activation);
+                : publishedResult(journal.findOperation(
+                        releaseId,
+                        attemptNo,
+                        activation.phaseOrder()
+                ).orElseThrow(() -> new IllegalStateException(
+                        "publication activation disappeared"
+                )));
         return new GatewayPublicationOutcomeVO(
                 SUCCESS,
                 activation.changeId(),
@@ -462,7 +468,7 @@ public final class GatewayReleasePublicationCoordinator {
         return current(
                 operation.releaseId(),
                 operation.attemptNo(),
-                operation.changeId()
+                operation.phaseOrder()
         );
     }
 
@@ -611,7 +617,7 @@ public final class GatewayReleasePublicationCoordinator {
             int attemptNo,
             CompiledGatewayRelease compiled) {
         List<top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO> existing =
-                journal.findAttempt(releaseId, attemptNo);
+                journal.findAttemptMetadata(releaseId, attemptNo);
         List<GatewayReleaseArtifactVO> artifacts = artifacts(compiled);
         if (!existing.isEmpty()) {
             validateExisting(existing, artifacts);
@@ -711,16 +717,14 @@ public final class GatewayReleasePublicationCoordinator {
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleasePublicationCoordinator.current(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @param releaseId 参数 发布Id；parameter release id。
      * @param attemptNo 参数 attemptNo；parameter attempt no。
-     * @param changeId 参数 changeId；parameter change id。
+     * @param phaseOrder 参数 阶段序号；parameter phase order。
      * @return 返回 current 的处理结果；returns the result of the operation.
      */
     private top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO current(
             String releaseId,
             int attemptNo,
-            String changeId) {
-        return journal.findAttempt(releaseId, attemptNo).stream()
-                .filter(operation -> operation.changeId().equals(changeId))
-                .findFirst()
+            int phaseOrder) {
+        return journal.findOperation(releaseId, attemptNo, phaseOrder)
                 .orElseThrow(() -> new IllegalStateException(
                         "publication operation disappeared"
                 ));

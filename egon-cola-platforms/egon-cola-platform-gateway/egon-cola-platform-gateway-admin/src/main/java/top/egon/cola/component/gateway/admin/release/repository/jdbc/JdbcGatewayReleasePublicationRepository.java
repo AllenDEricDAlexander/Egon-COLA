@@ -186,6 +186,47 @@ public class JdbcGatewayReleasePublicationRepository
     }
 
     /**
+     * 只读取发布状态和校验元数据，避免批量物化每个阶段的完整 YAML 文档。
+     * / Reads publication state and checksum metadata without materializing
+     * every phase's full YAML document.
+     */
+    @Override
+    public List<GatewayReleasePublicationPO> findAttemptMetadata(
+            String releaseId,
+            int attemptNo) {
+        return jdbc.query("""
+                SELECT release_id, attempt_no, phase_order, phase_type,
+                       config_key, NULL AS content_value, content_sha256,
+                       expected_version, change_id, ddc_target_version,
+                       ddc_status, error_code, error_message,
+                       created_at, updated_at
+                  FROM gateway_release_publication
+                 WHERE release_id = ? AND attempt_no = ?
+                 ORDER BY phase_order
+                """, (result, row) -> publication(result),
+                releaseId, attemptNo);
+    }
+
+    /** Reads one full publication phase by its stable phase order. */
+    @Override
+    public Optional<GatewayReleasePublicationPO> findOperation(
+            String releaseId,
+            int attemptNo,
+            int phaseOrder) {
+        return jdbc.query("""
+                SELECT release_id, attempt_no, phase_order, phase_type,
+                       config_key, content_value, content_sha256,
+                       expected_version, change_id, ddc_target_version,
+                       ddc_status, error_code, error_message,
+                       created_at, updated_at
+                  FROM gateway_release_publication
+                 WHERE release_id = ? AND attempt_no = ?
+                   AND phase_order = ?
+                """, (result, row) -> publication(result),
+                releaseId, attemptNo, phaseOrder).stream().findFirst();
+    }
+
+    /**
      * 中文说明：执行 nextIncomplete 操作；该方法是 {@code JdbcGatewayReleasePublicationRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
      * English summary: Executes the next incomplete operation; this method is the invocation entry point on {@code JdbcGatewayReleasePublicationRepository} and performs the corresponding runtime, management, or protocol work.
      *

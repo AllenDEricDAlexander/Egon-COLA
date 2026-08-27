@@ -62,6 +62,26 @@ class JdbcGatewayReleasePublicationStoreTest {
     }
 
     @Test
+    void readsAttemptMetadataWithoutSelectingFullContent() {
+        JdbcTemplate jdbc = mock(JdbcTemplate.class);
+        when(jdbc.query(
+                contains("NULL AS content_value"),
+                any(org.springframework.jdbc.core.RowMapper.class),
+                any(Object[].class)
+        )).thenReturn(List.of());
+        JdbcGatewayReleasePublicationRepository store =
+                new JdbcGatewayReleasePublicationRepository(jdbc);
+
+        assertThat(store.findAttemptMetadata("release-1", 1)).isEmpty();
+
+        verify(jdbc).query(
+                contains("NULL AS content_value"),
+                any(org.springframework.jdbc.core.RowMapper.class),
+                any(Object[].class)
+        );
+    }
+
+    @Test
     void resolvesBeforeSubmittingAndKeepsChangeIdStable() {
         JdbcTemplate jdbc = mock(JdbcTemplate.class);
         when(jdbc.update(
