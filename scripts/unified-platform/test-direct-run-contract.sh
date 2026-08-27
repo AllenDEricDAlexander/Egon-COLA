@@ -177,6 +177,9 @@ assert_contains "${platform_start_script}" \
   'wait_gateway_engine_provider_catalog' \
   'local MCP release must wait for both Gateway Engine DDC registrations'
 assert_contains "${platform_start_script}" \
+  'publish-gateway-routes' \
+  'platform startup must publish the prepared Gateway routes after Engine startup'
+assert_contains "${platform_start_script}" \
   'gateway-admin-control-plane.service.jwt' \
   'Gateway control-plane automation must use the dedicated IdP SERVICE token'
 assert_contains "${identity_script}" \
@@ -801,6 +804,10 @@ assert_not_contains "${start_script}" 'test-live-frontend-login.sh' \
   'stack startup must not execute frontend login regression tests'
 assert_contains "${identity_script}" 'publish_gateway_routes true' \
   'deferred startup must prepare HTTP routes before the unified MCP release'
+assert_contains "${identity_script}" 'publish-gateway-routes' \
+  'platform startup must expose a post-Engine Gateway route release command'
+assert_contains "${identity_script}" 'wait_gateway_engine_provider_registration' \
+  'platform Gateway route release must wait for an online Engine provider lease'
 assert_contains "${identity_script}" \
   'MOCK_BACKEND_BUILD_ID "$(local_build_id "${mock_jar}")"' \
   'mock backend reports must use a content-derived local build ID'

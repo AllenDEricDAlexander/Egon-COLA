@@ -846,6 +846,8 @@ if [[ "${UNIFIED_IDENTITY_START_MODE}" != "full" ]]; then
     "${unified_platform_env_dir}/gateway-engine.env" "${gateway_engine_jar}"
   unified_platform_wait_http gateway-engine \
     "${GATEWAY_ENGINE_A_BASE_URL}/actuator/health/readiness"
+  unified_platform_stage "publishing the prepared local Gateway HTTP catalog"
+  "${legacy_script}" publish-gateway-routes
   unified_platform_stage "starting four Admin Web applications through Gateway"
   start_admin_web idp-admin-web "${idp_web_dir}" \
     "${idp_web_dir}/node_modules/.bin/vite" "${IDP_ADMIN_WEB_URL}" \

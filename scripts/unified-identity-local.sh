@@ -58,6 +58,7 @@ Usage: ./scripts/unified-identity-local.sh <command>
 Commands:
   prepare  Check host dependencies, create named databases/secrets, and package jars
   start    Start and bootstrap DDC, IdP, RBAC3, Gateway, and the mock backend
+  publish-gateway-routes  Publish the prepared local Gateway routes after Engine startup
   sync-local-credentials  Refresh local SERVICE credentials and USER cookie snapshots
   issue-user-token  Issue one local USER Access Token from explicit inputs
   verify   Execute the host-local unified identity acceptance checks
@@ -1591,6 +1592,23 @@ wait_gateway_catalog() {
   done
 }
 
+wait_gateway_engine_provider_registration() {
+  local response
+  for ((attempt = 1; attempt <= 60; attempt++)); do
+    response="$(gateway_api GET \
+      '/api/v1/gateway/admin/providers/instances?bizCode=identity&appCode=gateway-engine-default&env=local&namespace=default' \
+      || true)"
+    if jq -e '
+        .value[]?
+        | select(.status == "ONLINE" and .instanceId == "gateway-engine-local-1")
+      ' <<<"${response}" >/dev/null 2>&1; then
+      return
+    fi
+    sleep 1
+  done
+  fail "Gateway Engine did not publish an online DDC provider registration: ${response}"
+}
+
 wait_gateway_openapi_sync_for_app() {
   local biz_code="$1" app_code="$2" response build_id
   build_id="$(local_build_id "${rbac3_jar}")"
@@ -2045,10 +2063,10 @@ command_start() {
     wait_gateway_openapi_sync_for_app permission rbac3
     stage "reconciling orphaned local MCP draft capabilities"
     reconcile_platform_mcp_draft "$(<"${runtime_dir}/gateway-group.id")"
-    stage "publishing the current local Gateway HTTP catalog"
-    publish_gateway_routes
-    echo "Unified identity platform backends are running with Gateway OpenAPI catalog routes."
-    echo "Start the Admin Web and Portal applications with scripts/unified-platform/start-local-stack.sh."
+    stage "preparing the current local Gateway HTTP catalog draft"
+    publish_gateway_routes true
+    echo "Unified identity platform backends are running with a prepared Gateway OpenAPI catalog draft."
+    echo "Start the Gateway Engine, publish the draft, and start the Admin Web and Portal applications with scripts/unified-platform/start-local-stack.sh."
     return
   fi
 
@@ -2261,6 +2279,29 @@ command_status() {
   done
 }
 
+command_publish_gateway_routes() {
+  local command
+  for command in curl jq openssl; do
+    require_command "${command}"
+  done
+  initialize_directories
+  process_running gateway-admin \
+    || fail "gateway-admin is not running; run start first"
+  process_running gateway-engine \
+    || fail "gateway-engine is not running; start the platform stack first"
+  [[ -s "${secret_dir}/gateway-admin-control-plane.service.jwt" ]] \
+    || fail "Gateway control-plane SERVICE token is unavailable"
+  [[ -s "${runtime_dir}/gateway-group.id" ]] \
+    || fail "local Gateway group is unavailable; run start first"
+  wait_http gateway-engine http://127.0.0.1:18182/actuator/health/readiness
+  stage "waiting for Gateway Engine DDC provider registration"
+  wait_gateway_engine_provider_registration
+  stage "publishing the prepared local Gateway HTTP catalog"
+  publish_gateway_routes
+  wait_gateway_route
+  echo "Unified identity Gateway HTTP catalog release is active."
+}
+
 stop_process() {
   local name="$1" file="${pid_dir}/$1.pid" pid
   [[ -s "${file}" ]] || return 0
@@ -2289,6 +2330,7 @@ case "${1:---help}" in
   --help|-h|help) usage ;;
   prepare) command_prepare ;;
   start) command_start ;;
+  publish-gateway-routes) command_publish_gateway_routes ;;
   sync-local-credentials) command_refresh_tokens ;;
   issue-user-token) command_issue_user_token ;;
   verify) command_verify ;;
