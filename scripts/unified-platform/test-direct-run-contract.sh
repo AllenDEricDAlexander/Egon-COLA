@@ -632,17 +632,17 @@ ddc_api() {
     printf '%s' '{"success":true,"data":{"services":[]}}'
   else
     printf '%s' \
-      '{"success":true,"data":{"services":[{"appCode":"idp","serviceKind":"RPC_PROVIDER","protocol":"grpc","serviceName":"IdentityDirectoryService","group":"idp","version":"1.0.0"}]}}'
+      '{"success":true,"data":{"services":[{"appCode":"idp","serviceKind":"RPC_PROVIDER","protocol":"grpc","serviceName":"egon.idp.v1.IdentityDirectoryService","group":"idp","version":"1.0.0"}]}}'
   fi
 }
 sleep() {
   :
 }
-wait_ddc_rpc_provider_registration permission idp IdentityDirectoryService idp 1.0.0
+wait_ddc_rpc_provider_registration permission idp egon.idp.v1.IdentityDirectoryService idp 1.0.0
 [[ "$(wc -l <"${ddc_rpc_registry_queries}" | tr -d ' ')" -eq 2 ]] \
   || fail 'RPC provider registration wait must poll until the lease is online'
 grep -Fq \
-  'registry/services?bizCode=permission&namespaceCode=default&env=local&appCode=idp&serviceKind=RPC_PROVIDER&protocol=grpc&serviceName=IdentityDirectoryService&group=idp&version=1.0.0' \
+  'registry/services?bizCode=permission&namespaceCode=default&env=local&appCode=idp&serviceKind=RPC_PROVIDER&protocol=grpc&serviceName=egon.idp.v1.IdentityDirectoryService&group=idp&version=1.0.0' \
   "${ddc_rpc_registry_queries}" \
   || fail 'RPC provider registration wait must query the exact IdP RPC service key'
 unset -f ddc_api sleep wait_ddc_rpc_provider_registration
@@ -699,7 +699,7 @@ assert_contains "${identity_script}" \
   'write_env "${env_dir}/rbac3.env" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED true' \
   'the final RBAC3 startup must enable topology bootstrap after DDC publication'
 assert_contains "${identity_script}" \
-  'wait_ddc_rpc_provider_registration permission idp IdentityDirectoryService idp 1.0.0' \
+  'wait_ddc_rpc_provider_registration permission idp egon.idp.v1.IdentityDirectoryService idp 1.0.0' \
   'RBAC3 topology bootstrap must wait for the IdP RPC provider publication'
 assert_contains "${identity_script}" \
   'stage "starting RBAC3 topology bootstrap after IdP RPC publication"' \
