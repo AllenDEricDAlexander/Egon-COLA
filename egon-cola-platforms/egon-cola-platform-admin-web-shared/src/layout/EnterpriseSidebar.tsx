@@ -124,8 +124,8 @@ export const resolveNavigationSelection = (
     : {selectedKey: undefined, ancestorKeys: []}
 }
 
-const matchesPath = (candidate: string, pathname: string): boolean => {
-  if (!candidate.startsWith('/')) return false
+const matchesPath = (candidate: unknown, pathname: string): boolean => {
+  if (typeof candidate !== 'string' || !candidate.startsWith('/')) return false
   if (candidate === '/') return pathname === '/'
   return pathname === candidate || pathname.startsWith(candidate.endsWith('/') ? candidate : `${candidate}/`)
 }

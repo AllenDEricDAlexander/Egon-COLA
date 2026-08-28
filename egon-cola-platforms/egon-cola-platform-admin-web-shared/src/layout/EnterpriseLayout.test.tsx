@@ -164,4 +164,27 @@ describe('EnterpriseLayout', () => {
     )
     expect(screen.getByText('接口目录').closest('.ant-menu-item')).toHaveClass('ant-menu-item-selected')
   })
+
+  it('ignores malformed parent paths without breaking valid child selection', () => {
+    const malformedConfig: EnterpriseLayoutConfig = {
+      platformName: 'Malformed Navigation Admin',
+      navigation: [{
+        key: 'parent',
+        label: '父级',
+        path: undefined,
+        activePathPrefixes: [undefined as unknown as string],
+        children: [{key: 'child', label: '子级', path: '/child'}],
+      }],
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/child/detail']}>
+        <EnterpriseLayout config={malformedConfig}>
+          <div>子页面</div>
+        </EnterpriseLayout>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('子级').closest('.ant-menu-item')).toHaveClass('ant-menu-item-selected')
+  })
 })
