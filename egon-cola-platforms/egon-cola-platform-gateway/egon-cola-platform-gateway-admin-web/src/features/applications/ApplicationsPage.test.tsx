@@ -15,6 +15,7 @@ const scope = {
 
 const mocks = vi.hoisted(() => ({
   applications: vi.fn(),
+  application: vi.fn(),
   openapiSyncStates: vi.fn(),
   createApplication: vi.fn(),
 }))
@@ -22,6 +23,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../api/gatewayApi', () => ({
   gatewayApi: {
     applications: mocks.applications,
+    application: mocks.application,
     openapiSyncStates: mocks.openapiSyncStates,
     createApplication: mocks.createApplication,
     updateApplication: vi.fn(),
@@ -92,6 +94,14 @@ const renderPage = () => {
 
 beforeEach(() => {
   mocks.applications.mockReset().mockResolvedValue([])
+  mocks.application.mockReset().mockResolvedValue({
+    id: 'application-order',
+    applicationCode: 'order',
+    displayName: 'Order Gateway',
+    ...scope,
+    ddcMatched: true,
+    revision: 0,
+  })
   mocks.openapiSyncStates.mockReset().mockResolvedValue([])
   mocks.createApplication.mockReset().mockResolvedValue({
     id: 'application-order',
@@ -172,6 +182,24 @@ describe('ApplicationsPage DDC identity', () => {
 })
 
 describe('ApplicationsPage OpenAPI aggregation', () => {
+  it('opens application details through the detail query', async () => {
+    mocks.applications.mockResolvedValue([{
+      id: 'application-order',
+      applicationCode: 'order',
+      displayName: 'Order Gateway',
+      ...scope,
+      ddcMatched: true,
+      revision: 0,
+    }])
+    renderPage()
+
+    await screen.findByText('Order Gateway')
+    fireEvent.click(screen.getByRole('button', { name: /详.*情/ }))
+
+    expect(await screen.findByText('application-order')).toBeInTheDocument()
+    expect(mocks.application).toHaveBeenCalledWith('application-order', expect.anything())
+  })
+
   it('shows the newest build worst status and expandable Group details', async () => {
     mocks.applications.mockResolvedValue([{
       id: 'application-order',

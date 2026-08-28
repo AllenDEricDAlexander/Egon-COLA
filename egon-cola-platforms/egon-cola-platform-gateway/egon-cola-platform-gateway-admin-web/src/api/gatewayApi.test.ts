@@ -107,6 +107,24 @@ describe('gateway API response adapters', () => {
     expect(fetchMock.mock.calls[2][0]).toBe('/api/v1/gateway/admin/applications')
   })
 
+  it('loads an application detail through the Gateway application controller path', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
+      id: 'application-1',
+      bizCode: 'retail',
+      applicationCode: 'orders',
+      displayName: 'Orders',
+      env: 'test',
+      namespace: 'gateway',
+      ddcMatched: true,
+      revision: 4,
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await gatewayApi.application('application-1')
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/gateway/admin/applications/application-1')
+  })
+
   it('loads MCP operation options from the selected application catalog only', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
       businessDomains: [{

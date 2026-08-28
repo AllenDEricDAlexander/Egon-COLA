@@ -70,6 +70,11 @@ const ApplicationsPage = lazy(() =>
     default: module.ApplicationsPage,
   })),
 )
+const OpenApiSyncPage = lazy(() =>
+  import('../features/openapi/OpenApiSyncPage').then((module) => ({
+    default: module.OpenApiSyncPage,
+  })),
+)
 const McpServersPage = lazy(() =>
   import('../features/mcp/McpServersPage').then((module) => ({
     default: module.McpServersPage,
@@ -106,6 +111,7 @@ const router = createBrowserRouter([
         path: 'applications',
         element: <RequireCapability capability="gateway:read"><ApplicationsPage /></RequireCapability>,
       },
+      { path: 'openapi-sync', element: <OpenApiSyncPage /> },
       { path: 'gateway-groups/:groupId/overview', element: <GatewayGroupDetailPage /> },
       { path: 'gateway-groups/:groupId/draft/routes', element: <DraftPage /> },
       { path: 'gateway-groups/:groupId/draft/policies', element: <DraftPage /> },

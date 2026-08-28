@@ -204,6 +204,8 @@ export const gatewayApi = {
   },
   applications: (filters: Partial<Scope> = {}, signal?: AbortSignal) =>
     apiRequest<Application[]>(withQuery(`${admin}/applications`, filters), { signal }),
+  application: (applicationId: string, signal?: AbortSignal) =>
+    apiRequest<Application>(`${admin}/applications/${encodeURIComponent(applicationId)}`, { signal }),
   createApplication: (
     application: {
       bizCode: string

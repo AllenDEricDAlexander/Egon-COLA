@@ -3,6 +3,8 @@ import {
   Alert,
   Button,
   Card,
+  Descriptions,
+  Drawer,
   Form,
   Input,
   Modal,
@@ -86,6 +88,7 @@ export const ApplicationsPage = () => {
   const [form] = Form.useForm()
   const [editing, setEditing] = useState<Application>()
   const [application, setApplication] = useState<Application>()
+  const [detailApplicationId, setDetailApplicationId] = useState<string>()
   const [issued, setIssued] = useState<IssuedCredential>()
   const applications = useQuery({
     queryKey: ['applications', filters],
@@ -108,6 +111,11 @@ export const ApplicationsPage = () => {
     queryKey: ['credentials', application?.id],
     queryFn: ({ signal }) => gatewayApi.credentials(application!.id, signal),
     enabled: Boolean(application),
+  })
+  const applicationDetail = useQuery({
+    queryKey: ['application-detail', detailApplicationId],
+    queryFn: ({ signal }) => gatewayApi.application(detailApplicationId!, signal),
+    enabled: Boolean(detailApplicationId),
   })
   const save = useMutation({
     mutationFn: (values: any) => editing?.id
@@ -293,6 +301,7 @@ export const ApplicationsPage = () => {
             title: '操作',
             render: (_, row) => (
               <Space>
+                <Button onClick={() => setDetailApplicationId(row.id)}>详情</Button>
                 <Button onClick={() => setApplication(row)}>Credential</Button>
                 <Button
                   disabled={!canWrite}
@@ -356,6 +365,28 @@ export const ApplicationsPage = () => {
           <Form.Item name="description" label="描述"><Input.TextArea /></Form.Item>
         </Form>
       </Modal>
+      <Drawer
+        title={applicationDetail.data ? `Application 详情 · ${applicationDetail.data.displayName}` : 'Application 详情'}
+        open={Boolean(detailApplicationId)}
+        onClose={() => setDetailApplicationId(undefined)}
+        size="large"
+      >
+        {applicationDetail.isLoading ? <LoadingBlock />
+          : applicationDetail.error ? <QueryFailure error={applicationDetail.error} retry={() => void applicationDetail.refetch()} />
+            : applicationDetail.data ? (
+              <Descriptions bordered column={1} size="small">
+                <Descriptions.Item label="Application ID">{applicationDetail.data.id}</Descriptions.Item>
+                <Descriptions.Item label="业务编码">{applicationDetail.data.bizCode}</Descriptions.Item>
+                <Descriptions.Item label="应用编码">{applicationDetail.data.applicationCode}</Descriptions.Item>
+                <Descriptions.Item label="名称">{applicationDetail.data.displayName}</Descriptions.Item>
+                <Descriptions.Item label="环境">{applicationDetail.data.env}</Descriptions.Item>
+                <Descriptions.Item label="命名空间">{applicationDetail.data.namespace}</Descriptions.Item>
+                <Descriptions.Item label="DDC 匹配">{applicationDetail.data.ddcMatched ? '已匹配' : '未匹配'}</Descriptions.Item>
+                <Descriptions.Item label="Revision">{applicationDetail.data.revision}</Descriptions.Item>
+                <Descriptions.Item label="描述">{applicationDetail.data.description ?? '—'}</Descriptions.Item>
+              </Descriptions>
+            ) : <Typography.Text type="secondary">暂无 Application 详情</Typography.Text>}
+      </Drawer>
       <Modal
         width={900}
         title={`Credential · ${application?.displayName ?? ''}`}

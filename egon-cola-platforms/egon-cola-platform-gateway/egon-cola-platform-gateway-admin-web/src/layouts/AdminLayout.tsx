@@ -47,6 +47,7 @@ const navigation: readonly GatewayNavItem[] = [
     children: [
       {key: '/gateway-groups', path: '/gateway-groups', icon: <DeploymentUnitOutlined />, label: 'Gateway Group', capability: 'gateway:read'},
       {key: '/applications', path: '/applications', icon: <KeyOutlined />, label: 'Application / Credential', capability: 'gateway:read'},
+      {key: '/openapi-sync', path: '/openapi-sync', icon: <ApiOutlined />, label: 'OpenAPI 同步', capability: 'gateway:read'},
       {key: '/interface-catalog', path: '/interface-catalog', activePathPrefixes: ['/operations'], icon: <AppstoreOutlined />, label: '接口目录', capability: 'gateway:read'},
       {key: '/providers', path: '/providers', icon: <ApiOutlined />, label: 'Provider', capability: 'gateway:read'},
     ],
