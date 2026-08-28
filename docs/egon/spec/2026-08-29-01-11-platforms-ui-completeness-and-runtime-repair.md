@@ -21,7 +21,7 @@
 | Supersedes | [平台 Web 运行修复与 Controller 覆盖前序规格](2026-08-28-11-06-platforms-web-runtime-repair-and-controller-coverage.md) §2.3、§3.1、§3.3、§4、§7、§12、§14、§16、§18、§20（仅取代运行时与 UI 完整性结论，其他范围继续由前序规格约束） |
 | Depends On | [平台 Web 企业级微前端规格](2026-08-27-08-09-platforms-web-enterprise-microfrontend.md) §5、§7、§12；[DDC Admin 分页设计](../../superpowers/specs/2026-08-10-ddc-admin-pagination-ui-modernization-design.md) §1-§10 |
 | Related Specs | [平台 Web 运行修复与 Controller 覆盖前序规格](2026-08-28-11-06-platforms-web-runtime-repair-and-controller-coverage.md) |
-| Related Plans | [平台 Web 运行修复前序计划](../plan/2026-08-28-11-06-platforms-web-runtime-repair-and-controller-coverage.md) |
+| Related Plans | [平台 Web 运行修复前序计划](../plan/2026-08-28-11-06-platforms-web-runtime-repair-and-controller-coverage.md)、[本轮 UI 完整性与运行时修复计划](../plan/2026-08-29-01-35-platforms-ui-completeness-runtime-repair.md) |
 
 ## 1. Summary
 
