@@ -84,6 +84,21 @@ public class DdcAdminSecurityConfiguration {
                                 DdcAdminCapability.ALL.authority()
                         )
                         .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/v1/ddc/configs/page",
+                                "/api/v1/ddc/configs/*/versions/page",
+                                "/api/v1/ddc/apps/page",
+                                "/api/v1/ddc/bizs/page",
+                                "/api/v1/ddc/envs/page",
+                                "/api/v1/ddc/namespaces/page",
+                                "/api/v1/ddc/namespace-env-app-bindings/page",
+                                "/api/v1/ddc/instances/page",
+                                "/api/v1/ddc/publish-tasks/page"
+                        ).hasAnyAuthority(
+                                DdcAdminCapability.READ.authority(),
+                                DdcAdminCapability.ALL.authority()
+                        )
+                        .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/v1/ddc/configs",
                                 "/api/v1/ddc/configs/*/rollback",

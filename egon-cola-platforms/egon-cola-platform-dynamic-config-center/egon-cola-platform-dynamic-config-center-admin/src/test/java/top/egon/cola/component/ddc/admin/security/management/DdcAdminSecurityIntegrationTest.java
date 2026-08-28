@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.TestPropertySource;
@@ -55,7 +56,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         DdcCacheController.class,
         DdcAdminSecurityIntegrationTest.HealthInfoController.class,
         DdcAdminSecurityIntegrationTest.RegistryInfoController.class,
-        DdcAdminSecurityIntegrationTest.BindingInfoController.class
+        DdcAdminSecurityIntegrationTest.BindingInfoController.class,
+        DdcAdminSecurityIntegrationTest.PagedInfoController.class
 })
 @Import(DdcAdminSecurityConfiguration.class)
 @TestPropertySource(properties = {
@@ -141,6 +143,26 @@ class DdcAdminSecurityIntegrationTest {
         mockMvc.perform(post("/api/v1/ddc/namespace-env-app-bindings")
                         .with(authority("CAP_DDC_WRITE")))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void protectsPagedManagementReadsWithReadCapability()
+            throws Exception {
+        when(configService.page(any(), any())).thenReturn(Page.empty());
+        when(publishTaskQueryService.page(any(), any())).thenReturn(Page.empty());
+
+        mockMvc.perform(get("/api/v1/ddc/configs/page")
+                        .with(authority("CAP_DDC_READ")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/ddc/publish-tasks/page")
+                        .with(authority("CAP_DDC_READ")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/ddc/apps/page")
+                        .with(authority("CAP_DDC_READ")))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/ddc/apps/page")
+                        .with(authority("CAP_DDC_WRITE")))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -340,6 +362,22 @@ class DdcAdminSecurityIntegrationTest {
         @PostMapping
         Map<String, String> createBinding() {
             return Map.of("status", "created");
+        }
+    }
+
+    @RestController
+    static class PagedInfoController {
+
+        @GetMapping({
+                "/api/v1/ddc/apps/page",
+                "/api/v1/ddc/bizs/page",
+                "/api/v1/ddc/envs/page",
+                "/api/v1/ddc/namespaces/page",
+                "/api/v1/ddc/namespace-env-app-bindings/page",
+                "/api/v1/ddc/instances/page"
+        })
+        Map<String, Object> page() {
+            return Map.of("records", List.of());
         }
     }
 }

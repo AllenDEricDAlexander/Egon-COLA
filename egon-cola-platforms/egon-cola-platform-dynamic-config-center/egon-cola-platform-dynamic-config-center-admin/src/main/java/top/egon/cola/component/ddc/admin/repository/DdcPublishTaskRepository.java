@@ -31,11 +31,11 @@ public interface DdcPublishTaskRepository extends JpaRepository<DdcPublishTaskEn
 
     @Query("""
             select task from DdcPublishTaskEntity task
-             where (:bizCode is null or task.bizCode = :bizCode)
-               and (:env is null or task.env = :env)
-               and (:appCode is null or task.appCode = :appCode)
-               and (:status is null or task.status = :status)
-               and (:changeId is null
+             where (coalesce(:bizCode, '') = '' or task.bizCode = :bizCode)
+               and (coalesce(:env, '') = '' or task.env = :env)
+               and (coalesce(:appCode, '') = '' or task.appCode = :appCode)
+               and (coalesce(:status, '') = '' or task.status = :status)
+               and (coalesce(:changeId, '') = ''
                     or lower(task.changeId) like lower(concat('%', :changeId, '%')))
             """)
     Page<DdcPublishTaskEntity> search(

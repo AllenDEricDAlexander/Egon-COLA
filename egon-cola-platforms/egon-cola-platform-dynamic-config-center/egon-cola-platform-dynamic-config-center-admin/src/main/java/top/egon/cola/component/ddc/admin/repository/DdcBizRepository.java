@@ -23,7 +23,7 @@ public interface DdcBizRepository extends JpaRepository<DdcBizEntity, String> {
 
     @Query("""
             select biz from DdcBizEntity biz
-             where (:keyword is null
+             where (coalesce(:keyword, '') = ''
                     or lower(biz.bizCode) like lower(concat('%', :keyword, '%'))
                     or lower(biz.bizName) like lower(concat('%', :keyword, '%')))
             """)

@@ -34,11 +34,11 @@ public interface DdcAppRepository extends JpaRepository<DdcAppEntity, String> {
 
     @Query("""
             select app from DdcAppEntity app
-             where (:bizCode is null or app.bizCode = :bizCode)
-               and (:keyword is null
+             where (coalesce(:bizCode, '') = '' or app.bizCode = :bizCode)
+               and (coalesce(:keyword, '') = ''
                     or lower(app.appCode) like lower(concat('%', :keyword, '%'))
                     or lower(app.appName) like lower(concat('%', :keyword, '%')))
-               and (:namespaceCode is null or :env is null or exists (
+               and (coalesce(:namespaceCode, '') = '' or coalesce(:env, '') = '' or exists (
                     select binding.id
                       from DdcNamespaceEnvAppBindingEntity binding,
                            DdcNamespaceEntity namespace

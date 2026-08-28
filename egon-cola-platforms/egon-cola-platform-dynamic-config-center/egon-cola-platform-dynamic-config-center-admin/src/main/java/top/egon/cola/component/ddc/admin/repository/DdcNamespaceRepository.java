@@ -33,8 +33,8 @@ public interface DdcNamespaceRepository extends JpaRepository<DdcNamespaceEntity
 
     @Query("""
             select namespace from DdcNamespaceEntity namespace
-             where (:bizCode is null or namespace.bizCode = :bizCode)
-               and (:keyword is null
+             where (coalesce(:bizCode, '') = '' or namespace.bizCode = :bizCode)
+               and (coalesce(:keyword, '') = ''
                     or lower(namespace.namespaceCode) like lower(concat('%', :keyword, '%'))
                     or lower(namespace.namespace) like lower(concat('%', :keyword, '%')))
             """)

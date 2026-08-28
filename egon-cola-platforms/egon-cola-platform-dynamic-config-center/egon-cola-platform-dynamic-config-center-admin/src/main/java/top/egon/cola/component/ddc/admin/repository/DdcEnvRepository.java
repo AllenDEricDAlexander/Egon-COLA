@@ -25,10 +25,10 @@ public interface DdcEnvRepository extends JpaRepository<DdcEnvEntity, String> {
 
     @Query("""
             select env from DdcEnvEntity env
-             where (:keyword is null
+             where (coalesce(:keyword, '') = ''
                     or lower(env.envCode) like lower(concat('%', :keyword, '%'))
                     or lower(coalesce(env.description, '')) like lower(concat('%', :keyword, '%')))
-               and (:bizCode is null or :namespaceCode is null or exists (
+               and (coalesce(:bizCode, '') = '' or coalesce(:namespaceCode, '') = '' or exists (
                     select binding.id
                       from DdcNamespaceEnvAppBindingEntity binding,
                            DdcNamespaceEntity namespace

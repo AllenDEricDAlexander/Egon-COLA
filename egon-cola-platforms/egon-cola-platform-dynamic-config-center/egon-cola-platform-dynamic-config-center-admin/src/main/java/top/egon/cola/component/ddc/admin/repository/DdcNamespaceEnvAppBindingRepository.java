@@ -79,10 +79,10 @@ public interface DdcNamespaceEnvAppBindingRepository
               from DdcNamespaceEnvAppBindingEntity binding
               join DdcNamespaceEntity namespace on namespace.id = binding.namespaceId
               join DdcAppEntity app on app.id = binding.appId
-             where (:bizCode is null or namespace.bizCode = :bizCode)
-               and (:namespaceCode is null or namespace.namespaceCode = :namespaceCode)
-               and (:env is null or binding.envCode = :env)
-               and (:appCode is null or app.appCode = :appCode)
+             where (coalesce(:bizCode, '') = '' or namespace.bizCode = :bizCode)
+               and (coalesce(:namespaceCode, '') = '' or namespace.namespaceCode = :namespaceCode)
+               and (coalesce(:env, '') = '' or binding.envCode = :env)
+               and (coalesce(:appCode, '') = '' or app.appCode = :appCode)
              order by namespace.bizCode, namespace.namespaceCode,
                       binding.envCode, app.appCode, binding.id
             """,
@@ -91,10 +91,10 @@ public interface DdcNamespaceEnvAppBindingRepository
               from DdcNamespaceEnvAppBindingEntity binding
               join DdcNamespaceEntity namespace on namespace.id = binding.namespaceId
               join DdcAppEntity app on app.id = binding.appId
-             where (:bizCode is null or namespace.bizCode = :bizCode)
-               and (:namespaceCode is null or namespace.namespaceCode = :namespaceCode)
-               and (:env is null or binding.envCode = :env)
-               and (:appCode is null or app.appCode = :appCode)
+             where (coalesce(:bizCode, '') = '' or namespace.bizCode = :bizCode)
+               and (coalesce(:namespaceCode, '') = '' or namespace.namespaceCode = :namespaceCode)
+               and (coalesce(:env, '') = '' or binding.envCode = :env)
+               and (coalesce(:appCode, '') = '' or app.appCode = :appCode)
             """)
     Page<DdcNamespaceEnvAppBindingVO> search(
             @Param("bizCode") String bizCode,
