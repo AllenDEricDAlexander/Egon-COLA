@@ -54,9 +54,26 @@ describe('role pages', () => {
 
     await api.roles('71')
     await api.impact('2')
+    await api.create({
+      applicationId: '71', roleCode: 'AUDITOR', roleName: '审计员', roleType: 'BUSINESS',
+      riskLevel: 'LOW', privileged: false, landingRouteId: null, landingPriority: 0,
+      maximumAssignmentDays: null,
+    })
+    await api.update('2', {
+      roleName: '子角色', status: 'ACTIVE', landingRouteId: null, landingPriority: 0,
+      maximumAssignmentDays: null, expectedRoleVersion: 2,
+    })
+    await api.addInheritance('1', { applicationId: '71', juniorRoleId: '2', expectedRoleVersion: 1 })
+    await api.removeInheritance('1', '2', { applicationId: '71', expectedRoleVersion: 2 })
 
     expect(request).toHaveBeenNthCalledWith(1, '/api/rbac3/v1/iam/roles', {query: {applicationId: '71'}})
     expect(request).toHaveBeenNthCalledWith(2, '/api/rbac3/v1/iam/roles/2/impact-analysis')
+    expect(request).toHaveBeenNthCalledWith(3, '/api/rbac3/v1/iam/roles', expect.objectContaining({method: 'POST'}))
+    expect(request).toHaveBeenNthCalledWith(4, '/api/rbac3/v1/iam/roles/2', expect.objectContaining({method: 'PUT'}))
+    expect(request).toHaveBeenNthCalledWith(5, '/api/rbac3/v1/iam/roles/1/inheritances', expect.objectContaining({method: 'POST'}))
+    expect(request).toHaveBeenNthCalledWith(6, '/api/rbac3/v1/iam/roles/1/inheritances/2', {
+      method: 'DELETE', query: {applicationId: '71', expectedRoleVersion: 2},
+    })
   })
 
   it('distinguishes root child disabled and ambiguous roles', async () => {
