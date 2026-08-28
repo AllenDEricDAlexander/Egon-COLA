@@ -6,6 +6,7 @@ import {
   DatabaseOutlined,
   DeploymentUnitOutlined,
   FileTextOutlined,
+  LinkOutlined,
   LogoutOutlined,
   PartitionOutlined,
 } from '@ant-design/icons'
@@ -39,6 +40,7 @@ const navigation: readonly EnterpriseNavigationItem[] = [
     { key: 'envs', label: '环境', path: '/envs', icon: <CloudOutlined /> },
     { key: 'apps', label: '应用', path: '/apps', icon: <AppstoreOutlined /> },
     { key: 'namespaces', label: '命名空间', path: '/namespaces', icon: <ApartmentOutlined /> },
+    { key: 'bindings', label: '作用域绑定', path: '/bindings', icon: <LinkOutlined /> },
   ] },
 ]
 

@@ -236,3 +236,11 @@ export type DdcNamespaceEnvAppBinding = {
   appName: string
   enabled: boolean
 }
+
+export type DdcNamespaceEnvAppBindingRequest = {
+  bizCode: string
+  namespaceCode: string
+  env: string
+  appCode: string
+  enabled: boolean
+}
