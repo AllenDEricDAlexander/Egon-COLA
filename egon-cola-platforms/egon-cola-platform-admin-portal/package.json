@@ -20,7 +20,7 @@
     "react-dom": "^19.2.8",
     "react-i18next": "^15.0.0",
     "react-router-dom": "^7.18.1",
-    "wujie-react": "2.1.0"
+    "wujie": "2.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
