@@ -23,22 +23,10 @@ gateway_group_file="${unified_platform_runtime_dir}/gateway-group.id"
 default_tenant_id=
 
 resolve_local_advertised_host() {
-  local candidate="${UNIFIED_PLATFORM_ADVERTISED_HOST:-}" interface_name
-  if [[ -z "${candidate}" ]] && command -v route >/dev/null 2>&1 \
-      && command -v ipconfig >/dev/null 2>&1; then
-    interface_name="$(route -n get default 2>/dev/null \
-      | awk '/interface:/{print $2; exit}')"
-    if [[ -n "${interface_name}" ]]; then
-      candidate="$(ipconfig getifaddr "${interface_name}" 2>/dev/null || true)"
-    fi
-  fi
-  if [[ -z "${candidate}" ]] && command -v hostname >/dev/null 2>&1; then
-    candidate="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
-  fi
-  [[ -n "${candidate}" && "${candidate}" != "127.0.0.1" \
-      && "${candidate}" != "localhost" ]] \
+  local candidate="${UNIFIED_PLATFORM_ADVERTISED_HOST:-127.0.0.1}"
+  [[ -n "${candidate}" && "${candidate}" != *[[:space:]/\\]* ]] \
     || unified_platform_fail \
-      "a non-loopback provider host is required; set UNIFIED_PLATFORM_ADVERTISED_HOST"
+      "invalid advertised host; set UNIFIED_PLATFORM_ADVERTISED_HOST to a host or IPv4 address"
   printf '%s' "${candidate}"
 }
 

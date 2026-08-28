@@ -19,6 +19,9 @@ mock_url="${UNIFIED_IDENTITY_MOCK_URL:-http://127.0.0.1:18160}"
 gateway_url="${UNIFIED_IDENTITY_GATEWAY_URL:-http://127.0.0.1:18180}"
 advertised_host="${UNIFIED_IDENTITY_ADVERTISED_HOST:-127.0.0.1}"
 declared_hosts="127.0.0.1"
+if [[ "${advertised_host}" != "127.0.0.1" && "${advertised_host}" != "localhost" ]]; then
+  declared_hosts+=",${advertised_host}"
+fi
 startup_mode="${UNIFIED_IDENTITY_START_MODE:-platforms}"
 
 postgres_host="${UNIFIED_IDENTITY_POSTGRES_HOST:-127.0.0.1}"
