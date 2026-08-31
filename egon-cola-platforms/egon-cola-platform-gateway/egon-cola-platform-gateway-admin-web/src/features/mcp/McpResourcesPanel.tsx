@@ -21,6 +21,7 @@ import { QueryFailure } from '../../components/QueryState'
 import { GatewayScopeFilter } from '../../components/GatewayScopeFilter'
 import { readScopeSearchParams, writeScopeSearchParams } from '../../hooks/scopeSearchParams'
 import { parseStringList, validateResourceTemplate, validateResourceUri } from './mcpValidation'
+import { McpCapabilityValidationButton } from './McpCapabilityValidationButton'
 import { useMcpCapabilityCollection } from './useMcpCapabilityCollection'
 
 type ResourceForm = {
@@ -190,6 +191,11 @@ export const McpResourcesPanel = ({ serverId, gatewayGroupId, draftRevision }: {
             {
               title: '操作',
               render: (_, row) => <Space>
+                <McpCapabilityValidationButton
+                  plural={isTemplate ? 'resource-templates' : 'resources'}
+                  capabilityId={row.id}
+                  gatewayGroupId={gatewayGroupId}
+                />
                 <Button
                   disabled={!canWrite}
                   onClick={() => openEditor(isTemplate ? 'template' : 'resource', row)}

@@ -47,7 +47,6 @@ import type {
     RuntimeConsistency,
     Scope,
     TraceSummary,
-    TraceDetail,
     ValidationReport,
 } from './types'
 
@@ -505,11 +504,6 @@ export const gatewayApi = {
       withFilters(`${admin}/observability/traces`, scope, filters),
       { signal },
     ),
-  traceDetail: (traceId: string, signal?: AbortSignal) =>
-    apiRequest<TraceDetail>(
-      `${admin}/observability/traces/${encodeURIComponent(traceId)}`,
-      { signal },
-    ),
   audits: (
     scope: Pick<Scope, 'env' | 'namespace'>,
     filters: URLSearchParams,
@@ -690,7 +684,7 @@ export const gatewayApi = {
     capabilityId: string,
     gatewayGroupId: string,
   ) => apiRequest<McpValidationReport>(
-    `${admin}/mcp/${plural}/${capabilityId}/validate?${new URLSearchParams({ gatewayGroupId })}`,
+    `${admin}/mcp/${plural}/${encodeURIComponent(capabilityId)}/validate?${new URLSearchParams({ gatewayGroupId })}`,
     { method: 'POST' },
   ),
   inspectMcpProtocol: (

@@ -20,6 +20,7 @@ import { QueryFailure } from '../../components/QueryState'
 import { GatewayScopeFilter } from '../../components/GatewayScopeFilter'
 import { readScopeSearchParams, writeScopeSearchParams } from '../../hooks/scopeSearchParams'
 import { parseStringList, renderPromptTemplate } from './mcpValidation'
+import { McpCapabilityValidationButton } from './McpCapabilityValidationButton'
 import { useMcpCapabilityCollection } from './useMcpCapabilityCollection'
 
 type PromptForm = {
@@ -181,6 +182,7 @@ export const McpPromptsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
           {
             title: '操作',
             render: (_, row) => <Space>
+              <McpCapabilityValidationButton plural="prompts" capabilityId={row.id} gatewayGroupId={gatewayGroupId} />
               <Button disabled={!canWrite} onClick={() => openEditor(row)}>编辑</Button>
               <Popconfirm title="确认删除 Prompt？" onConfirm={() => collection.remove.mutate(row)}>
                 <Button danger disabled={!canWrite}>删除</Button>

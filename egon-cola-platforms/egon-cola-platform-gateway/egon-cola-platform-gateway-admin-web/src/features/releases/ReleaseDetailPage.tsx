@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Alert, Button, Card, Descriptions, Input, Modal, Space, Table, Tabs, Typography, message } from 'antd'
+import { Alert, Button, Card, Descriptions, Drawer, Input, Modal, Space, Table, Tabs, Typography, message } from 'antd'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { gatewayApi } from '../../api/gatewayApi'
@@ -18,6 +18,7 @@ export const ReleaseDetailPage = () => {
   const canRollback = useCapability('gateway:releases:write')
   const [visible, setVisible] = useState(document.visibilityState === 'visible')
   const [rollbackOpen, setRollbackOpen] = useState(false)
+  const [diffOpen, setDiffOpen] = useState(false)
   const [reason, setReason] = useState('')
   const [actionError, setActionError] = useState<string>()
   useEffect(() => {
@@ -36,6 +37,12 @@ export const ReleaseDetailPage = () => {
     queryKey: ['draft', groupId],
     queryFn: ({ signal }) => gatewayApi.draft(groupId, signal),
     enabled: rollbackOpen,
+  })
+  const diff = useQuery({
+    queryKey: ['release-diff', releaseId],
+    queryFn: ({ signal }) => gatewayApi.releaseDiff(releaseId, signal),
+    enabled: diffOpen && Boolean(releaseId),
+    retry: false,
   })
   const retry = useMutation({
     mutationFn: () => gatewayApi.retryRelease(releaseId, createLogicalTrace()),
@@ -81,7 +88,7 @@ export const ReleaseDetailPage = () => {
         <Alert
           type="error"
           showIcon
-          message={recoveryMessage}
+          title={recoveryMessage}
           description="请核对 Target ACK、结构化 Diff 和审计记录；确认后可使用原 Release 内容和原 Target 重试。"
           action={canPublish ? (
             <Button size="small" disabled={retry.isPending} onClick={() => retry.mutate()}>
@@ -99,6 +106,9 @@ export const ReleaseDetailPage = () => {
           <Descriptions.Item label="变更原因">{release.data.changeReason}</Descriptions.Item>
         </Descriptions>
         <Space wrap>
+          <Button onClick={() => setDiffOpen(true)}>
+            查看 Release Diff
+          </Button>
           <Button disabled={!canPublish || retry.isPending} loading={retry.isPending} onClick={() => retry.mutate()}>
             使用原 Release 内容和原 Target 重试
           </Button>
@@ -109,7 +119,7 @@ export const ReleaseDetailPage = () => {
             创建回滚 Release
           </Button>
         </Space>
-        {actionError && <Alert className="section-row" type="warning" showIcon message={actionError} />}
+        {actionError && <Alert className="section-row" type="warning" showIcon title={actionError} />}
       </Card>
       <Tabs
         items={(release.data.attempts ?? []).map((attempt: ReleaseAttempt) => ({
@@ -146,6 +156,17 @@ export const ReleaseDetailPage = () => {
         <JsonPanel title="MCP Unified Release Diff" value={release.data.structuredDiff.mcp} />
       )}
       <JsonPanel title="Structured Diff" value={release.data.structuredDiff} />
+      <Drawer
+        title="Release Diff"
+        open={diffOpen}
+        onClose={() => setDiffOpen(false)}
+        size="large"
+      >
+        {diff.isLoading ? <LoadingBlock />
+          : diff.error ? <QueryFailure error={diff.error} retry={() => void diff.refetch()} />
+            : diff.data ? <JsonPanel title="Structured Release Diff" value={diff.data} />
+              : <Typography.Text type="secondary">暂无 Release Diff</Typography.Text>}
+      </Drawer>
       <Modal
         title="创建回滚 Release"
         open={rollbackOpen}
@@ -154,7 +175,7 @@ export const ReleaseDetailPage = () => {
         okButtonProps={{ danger: true, disabled: !reason.trim() || !draft.data }}
         confirmLoading={rollback.isPending}
       >
-        <Alert type="warning" showIcon message="回滚不会修改历史 Release，而会基于目标内容创建新的 Release。" />
+        <Alert type="warning" showIcon title="回滚不会修改历史 Release，而会基于目标内容创建新的 Release。" />
         <Input.TextArea className="section-row" rows={4} placeholder="必填变更原因" value={reason} onChange={(event) => setReason(event.target.value)} />
       </Modal>
     </section>

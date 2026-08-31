@@ -1,12 +1,20 @@
 import {Card, Col, Descriptions, Row, Space, Tag, Typography} from 'antd'
 import {ClockCircleOutlined, SafetyOutlined, TeamOutlined, UserOutlined} from '@ant-design/icons'
-import {useAuth} from '../../auth/AuthContext'
-import {usePermission} from '@egon-cola/admin-web-shared'
+import {useQuery} from '@tanstack/react-query'
+import {PageState, usePermission} from '@egon-cola/admin-web-shared'
+import {httpClient, useAuth} from '../../auth/AuthContext'
+import type {IdentityProfileView} from '../../api/types'
 
 export const OverviewPage = () => {
   const auth = useAuth()
     const {has} = usePermission(auth.bootstrap?.permissions ?? [])
     const b = auth.bootstrap
+    const profile = useQuery({
+        queryKey: ['idp', 'identity-profile'],
+        queryFn: () => httpClient.request<IdentityProfileView>('/api/v1/identity/me'),
+        enabled: Boolean(b),
+        retry: false,
+    })
     if (!b) return null
     const activeRoleIds = b.activeRoleContexts.flatMap((context) => context.effectiveRoleIds)
 
@@ -21,6 +29,26 @@ export const OverviewPage = () => {
 
   return (
       <Row gutter={[16, 16]}>
+          <Col xs={24}>
+              <Card title="当前统一身份">
+                  <PageState
+                      loading={profile.isPending}
+                      error={profile.error}
+                      empty={!profile.data}
+                      emptyDescription="当前统一身份不可用"
+                      onRetry={() => {void profile.refetch()}}
+                  >
+                      {profile.data && (
+                          <Descriptions column={2} bordered size="small">
+                              <Descriptions.Item label="主体">{profile.data.subject}</Descriptions.Item>
+                              <Descriptions.Item label="租户">{profile.data.tenantId}</Descriptions.Item>
+                              <Descriptions.Item label="签发时间">{profile.data.issuedAt ?? '-'}</Descriptions.Item>
+                              <Descriptions.Item label="过期时间">{profile.data.expiresAt ?? '-'}</Descriptions.Item>
+                          </Descriptions>
+                      )}
+                  </PageState>
+              </Card>
+          </Col>
           <Col xs={24} lg={14}>
               <Card title={<><UserOutlined/> 当前授权上下文</>}>
                   <Descriptions column={2} bordered size="small">

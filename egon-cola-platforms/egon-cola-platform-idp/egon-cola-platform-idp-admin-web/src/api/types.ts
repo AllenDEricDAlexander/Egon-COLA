@@ -25,6 +25,13 @@ export interface AuthorizationBootstrap {
   readonly policyVersion: number
 }
 
+export interface IdentityProfileView {
+    readonly subject: string
+    readonly tenantId: string
+    readonly issuedAt?: string
+    readonly expiresAt?: string
+}
+
 // ─── Identity Users ──────────────────────────────────────────────
 export interface IdentityUserVO {
   readonly subject: string

@@ -255,7 +255,7 @@ export const ClientResourceGrantPage = () => {
                     <Alert
                         type="warning"
                         showIcon
-                        message="Grant 读取接口待补齐"
+                        title="Grant 读取接口待补齐"
                         description="当前后端已提供 Grant 保存、删除与批量变更接口；读取接口返回 404 时不将其误判为空授权。"
                         style={{marginBottom: 16}}
                     />
@@ -264,7 +264,7 @@ export const ClientResourceGrantPage = () => {
                     <Alert
                         type="error"
                         showIcon
-                        message="Grant 读取失败"
+                        title="Grant 读取失败"
                         description={grantQuery.error instanceof Error ? grantQuery.error.message : '请稍后重试'}
                         style={{marginBottom: 16}}
                     />
@@ -273,7 +273,7 @@ export const ClientResourceGrantPage = () => {
                     <Alert
                         type="info"
                         showIcon
-                        message="正在读取当前 Grant"
+                        title="正在读取当前 Grant"
                         style={{marginBottom: 16}}
                     />
                 )}
@@ -338,7 +338,7 @@ export const ClientResourceGrantPage = () => {
                                     if (grantQuery.isPending) return <Tag>读取中</Tag>
                                     if (!grant) return <Typography.Text type="secondary">未登记</Typography.Text>
                                     return (
-                                        <Space direction="vertical" size={0}>
+                                        <Space orientation="vertical" size={0}>
                                             <Tag color={grant.status === 'ACTIVE' ? 'green' : 'default'}>{grant.status}</Tag>
                                             <Typography.Text type="secondary">{grantContext(grant)}</Typography.Text>
                                             <Typography.Text type="secondary">Scope：{grant.allowedScopes.join(', ') || '—'}</Typography.Text>
@@ -415,7 +415,7 @@ export const ClientResourceGrantPage = () => {
                         upsertMutation.mutate({rsId: selectedRs.resourceServerId, data})
                     })
                 }}
-                destroyOnClose
+                destroyOnHidden
             >
                 {selectedRs && (
                     <>

@@ -23,6 +23,7 @@ import type { McpAppArtifact, McpCapabilityDraft } from '../../api/types'
 import { useCapability } from '../../app/capabilities'
 import { QueryFailure } from '../../components/QueryState'
 import { parseStringList, validateResourceUri } from './mcpValidation'
+import { McpCapabilityValidationButton } from './McpCapabilityValidationButton'
 import { useMcpCapabilityCollection } from './useMcpCapabilityCollection'
 
 type ArtifactForm = {
@@ -236,6 +237,7 @@ export const McpAppsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
                   {
                     title: '操作',
                     render: (_, row) => <Space>
+                      <McpCapabilityValidationButton plural="app-bindings" capabilityId={row.id} gatewayGroupId={gatewayGroupId} />
                       <Button disabled={!canWrite} onClick={() => openBinding(row)}>编辑</Button>
                       <Popconfirm title="确认删除 App Binding？" onConfirm={() => bindings.remove.mutate(row)}>
                         <Button danger disabled={!canWrite}>删除</Button>

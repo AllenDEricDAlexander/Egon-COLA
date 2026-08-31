@@ -10,7 +10,6 @@ import { TracesPage } from './TracesPage'
 vi.mock('../../api/gatewayApi', () => ({
   gatewayApi: {
     traces: vi.fn(),
-    traceDetail: vi.fn(),
     scopes: vi.fn().mockResolvedValue([]),
   },
 }))
@@ -65,7 +64,6 @@ beforeEach(() => {
   vi.mocked(gatewayApi.traces)
     .mockResolvedValueOnce(emptyPage)
     .mockResolvedValue(pageWithNewTrace)
-  vi.mocked(gatewayApi.traceDetail).mockReset()
 })
 
 afterEach(() => {
@@ -131,17 +129,8 @@ it('serializes submitted filters and resets the server page to one', async () =>
   expect(filters.get('page')).toBe('1')
 })
 
-it('opens a safe trace detail and never renders sensitive fields', async () => {
+it('keeps traces summary-only when the backend has no detail mapping', async () => {
   vi.mocked(gatewayApi.traces).mockReset().mockResolvedValue(pageWithNewTrace)
-  vi.mocked(gatewayApi.traceDetail).mockResolvedValue({
-    traceId: pageWithNewTrace.items[0].traceId,
-    attempts: [{ attemptId: 'attempt-1', status: 'SUCCESS', durationMs: 12 }],
-    redactedAttributes: {
-      provider: 'orders',
-      Authorization: 'raw-authorization',
-      rawBody: 'raw-body',
-    },
-  })
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MemoryRouter initialEntries={['/observability/traces?env=local&namespace=default']}>
@@ -153,40 +142,7 @@ it('opens a safe trace detail and never renders sensitive fields', async () => {
   await act(async () => {
     await vi.waitFor(() => expect(screen.getByText(pageWithNewTrace.items[0].traceId)).toBeInTheDocument())
   })
-  fireEvent.click(screen.getByRole('button', { name: '查看详情' }))
-
-  await act(async () => {
-    await vi.waitFor(() => expect(gatewayApi.traceDetail).toHaveBeenCalledWith(
-      pageWithNewTrace.items[0].traceId,
-      expect.anything(),
-    ))
-    await vi.waitFor(() => expect(screen.getByText(/"provider": "orders"/)).toBeInTheDocument())
-  })
-  expect(screen.queryByText('raw-authorization')).not.toBeInTheDocument()
-  expect(screen.queryByText('raw-body')).not.toBeInTheDocument()
-})
-
-it('shows an explicit unavailable state when trace detail is not implemented', async () => {
-  vi.mocked(gatewayApi.traces).mockReset().mockResolvedValue(pageWithNewTrace)
-  vi.mocked(gatewayApi.traceDetail).mockRejectedValue(
-    new GatewayApiError(404, 'NOT_FOUND', 'trace detail not found'),
-  )
-  render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <MemoryRouter initialEntries={['/observability/traces?env=local&namespace=default']}>
-        <TracesPage />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  )
-
-  await act(async () => {
-    await vi.waitFor(() => expect(screen.getByText(pageWithNewTrace.items[0].traceId)).toBeInTheDocument())
-  })
-  fireEvent.click(screen.getByRole('button', { name: '查看详情' }))
-
-  await act(async () => {
-    await vi.waitFor(() => expect(screen.getByText('Trace 详情接口待补齐')).toBeInTheDocument())
-  })
+  expect(screen.queryByRole('button', {name: '查看详情'})).not.toBeInTheDocument()
 })
 
 it('keeps existing rows visible when a background refresh fails', async () => {

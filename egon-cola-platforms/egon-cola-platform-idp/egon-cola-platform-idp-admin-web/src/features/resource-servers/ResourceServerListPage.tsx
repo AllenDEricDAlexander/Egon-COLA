@@ -313,7 +313,7 @@ export const ResourceServerListPage = () => {
             >
                 {detailRs && (
                     <>
-                        {statusError && <Alert type="error" showIcon message={statusError} style={{marginBottom: 16}}/>}
+                        {statusError && <Alert type="error" showIcon title={statusError} style={{marginBottom: 16}}/>}
                         <Descriptions column={1} bordered size="small">
                             <Descriptions.Item label="ID">{detailRs.resourceServerId}</Descriptions.Item>
                             <Descriptions.Item label="展示名">{detailRs.displayName}</Descriptions.Item>
@@ -359,7 +359,7 @@ export const ResourceServerListPage = () => {
                         })
                     })
                 }}
-                destroyOnClose
+                destroyOnHidden
             >
                 <Form form={createForm} layout="vertical" preserve={false}>
                     <Typography.Title level={5}>基本信息</Typography.Title>

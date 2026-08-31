@@ -479,7 +479,7 @@ export const ClientListPage = () => {
                     })
                 })
             }}
-            destroyOnClose
+            destroyOnHidden
         >
             <Form form={createForm} layout="vertical" preserve={false}>
                 <Form.Item name="clientId" label="Client ID" rules={[{required: true}]}>
@@ -532,11 +532,11 @@ export const ClientListPage = () => {
                 onCancel={clearOneTimeCredentials}
                 destroyOnHidden
             >
-                <Space direction="vertical" size="middle" style={{display: 'flex'}}>
+                <Space orientation="vertical" size="middle" style={{display: 'flex'}}>
                     <Alert
                         type="warning"
                         showIcon
-                        message="Secret 仅显示一次"
+                        title="Secret 仅显示一次"
                         description="请立即复制并保存。关闭此窗口后 IdP 不会再次返回 Secret 明文。"
                     />
                     <Descriptions column={1} bordered size="small">
@@ -573,7 +573,7 @@ export const ClientListPage = () => {
             onOk={() => {
                 if (detailClient) rotateMutation.mutate(detailClient)
             }}
-            destroyOnClose
+            destroyOnHidden
         >
             <Typography.Paragraph>
                 当前版本为 <Typography.Text code>{detailClient?.version}</Typography.Text>。确认后旧 Secret 会立即失效，
@@ -603,7 +603,7 @@ export const ClientListPage = () => {
                   }
               })
           }}
-          destroyOnClose
+          destroyOnHidden
       >
           <Form form={editForm} layout="vertical" preserve={false}>
               <Form.Item name="clientName" label="名称" rules={[{required: true}]}>
@@ -641,7 +641,7 @@ export const ClientListPage = () => {
                     }
                 })
             }}
-            destroyOnClose
+          destroyOnHidden
         >
             <Form form={uriForm} layout="vertical" preserve={false}>
                 <Form.Item name="value" label={addUriType === 'redirect' ? '回调地址' : 'Resource URI'}

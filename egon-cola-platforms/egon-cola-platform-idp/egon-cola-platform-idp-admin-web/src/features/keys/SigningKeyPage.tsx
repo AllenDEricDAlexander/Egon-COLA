@@ -159,7 +159,7 @@ export const SigningKeyPage = () => {
               onOk={() => {
                   void form.validateFields().then((v) => publishMutation.mutate(v))
               }}
-              destroyOnClose
+              destroyOnHidden
           >
               <Form form={form} layout="vertical" preserve={false}>
                   <Form.Item name="kid" label="KID" rules={[{required: true}]}>

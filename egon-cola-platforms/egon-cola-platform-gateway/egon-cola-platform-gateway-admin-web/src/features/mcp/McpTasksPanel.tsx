@@ -19,6 +19,7 @@ import { gatewayApi } from '../../api/gatewayApi'
 import type { McpCapabilityDraft, McpTask } from '../../api/types'
 import { useCapability } from '../../app/capabilities'
 import { QueryFailure } from '../../components/QueryState'
+import { McpCapabilityValidationButton } from './McpCapabilityValidationButton'
 import { useMcpCapabilityCollection } from './useMcpCapabilityCollection'
 
 type TaskPolicyForm = {
@@ -153,6 +154,7 @@ export const McpTasksPanel = ({ serverId, gatewayGroupId, draftRevision }: {
                   {
                     title: '操作',
                     render: (_, row) => <Space>
+                      <McpCapabilityValidationButton plural="task-policies" capabilityId={row.id} gatewayGroupId={gatewayGroupId} />
                       <Button disabled={!canWrite} onClick={() => openEditor(row)}>编辑</Button>
                       <Popconfirm title="确认删除 Task Policy？" onConfirm={() => collection.remove.mutate(row)}>
                         <Button danger disabled={!canWrite}>删除</Button>

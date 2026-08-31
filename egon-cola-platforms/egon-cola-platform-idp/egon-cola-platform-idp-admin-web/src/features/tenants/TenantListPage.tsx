@@ -339,7 +339,7 @@ export const TenantListPage = () => {
                 confirmLoading={createMutation.isPending}
                 onCancel={() => setCreateOpen(false)}
                 onOk={() => {void submitCreate()}}
-                destroyOnClose
+                destroyOnHidden
             >
                 <Form form={createForm} layout="vertical" preserve={false}>
                     <Form.Item name="tenantCode" label="租户编码" rules={[{required: true, pattern: /^[a-z][a-z0-9-]{2,63}$/}]}>
@@ -360,7 +360,7 @@ export const TenantListPage = () => {
                 confirmLoading={updateMutation.isPending}
                 onCancel={() => setEditOpen(false)}
                 onOk={() => {void submitUpdate()}}
-                destroyOnClose
+                destroyOnHidden
             >
                 <Form form={editForm} layout="vertical" preserve={false}>
                     <Form.Item name="tenantName" label="租户名称" rules={[{required: true, max: 200}]}>
@@ -390,7 +390,7 @@ export const TenantListPage = () => {
                     memberForm.resetFields()
                 }}
                 onOk={() => {void submitMember()}}
-                destroyOnClose
+                destroyOnHidden
             >
                 <Form form={memberForm} layout="vertical" preserve={false}>
                     <Form.Item name="identitySub" label="Identity Sub" rules={[{required: true}]}>

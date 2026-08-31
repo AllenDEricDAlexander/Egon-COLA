@@ -7,6 +7,7 @@ import { ReleaseDetailPage } from './ReleaseDetailPage'
 
 const mocks = vi.hoisted(() => ({
   release: vi.fn(),
+  releaseDiff: vi.fn(),
   draft: vi.fn(),
   retryRelease: vi.fn(),
   rollback: vi.fn(),
@@ -15,6 +16,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../api/gatewayApi', () => ({
   gatewayApi: {
     release: mocks.release,
+    releaseDiff: mocks.releaseDiff,
     draft: mocks.draft,
     retryRelease: mocks.retryRelease,
     rollback: mocks.rollback,
@@ -69,6 +71,7 @@ const renderPage = () => {
 
 beforeEach(() => {
   mocks.release.mockReset().mockResolvedValue(baseRelease)
+  mocks.releaseDiff.mockReset().mockResolvedValue({routes: {changed: 1}})
   mocks.draft.mockReset().mockResolvedValue({ revision: 4 })
   mocks.retryRelease.mockReset().mockResolvedValue(baseRelease)
   mocks.rollback.mockReset().mockResolvedValue({ ...baseRelease, id: 'release-rollback-1' })
@@ -95,6 +98,16 @@ afterEach(() => {
 })
 
 describe('ReleaseDetailPage evidence state', () => {
+  it('opens structured release diff through the existing API', async () => {
+    renderPage()
+
+    await screen.findByText('Release release-1')
+    fireEvent.click(screen.getByRole('button', {name: '查看 Release Diff'}))
+
+    await waitFor(() => expect(mocks.releaseDiff).toHaveBeenCalledWith('release-1', expect.anything()))
+    expect(await screen.findByText('Release Diff')).toBeInTheDocument()
+  })
+
   it('does not render a partially applied release as successful', async () => {
     mocks.release.mockResolvedValue({ ...baseRelease, partialApplied: true })
 

@@ -429,18 +429,16 @@ describe('gateway API response adapters', () => {
     expect(new Headers((fetchMock.mock.calls[0][1] as RequestInit).headers).has('Idempotency-Key')).toBe(true)
   })
 
-  it('loads release diff and keeps the trace detail candidate as a real 404', async () => {
+  it('loads the supported release diff endpoint', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse({routes: {changed: 1}}))
-      .mockResolvedValueOnce(new Response(JSON.stringify({code: 'TRACE_DETAIL_NOT_AVAILABLE'}), {
-        status: 404,
-        headers: {'Content-Type': 'application/json'},
-      }))
+      .mockResolvedValueOnce(jsonResponse({valid: true, findings: []}))
     vi.stubGlobal('fetch', fetchMock)
 
     await expect(gatewayApi.releaseDiff('release-1')).resolves.toEqual({routes: {changed: 1}})
-    await expect(gatewayApi.traceDetail('trace-1')).rejects.toMatchObject({status: 404})
+    await expect(gatewayApi.validateMcpCapability('prompts', 'prompt-1', 'group-1')).resolves.toEqual({valid: true, findings: []})
     expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/gateway/admin/releases/release-1/diff')
-    expect(fetchMock.mock.calls[1][0]).toBe('/api/v1/gateway/admin/observability/traces/trace-1')
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/v1/gateway/admin/mcp/prompts/prompt-1/validate?gatewayGroupId=group-1')
+    expect((fetchMock.mock.calls[1][1] as RequestInit).method).toBe('POST')
   })
 })
