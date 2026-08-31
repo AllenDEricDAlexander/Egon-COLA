@@ -27,8 +27,31 @@ export interface ManagementPolicyView {
 }
 export type SaveManagementPolicyCommand = Omit<ManagementPolicyView, 'policyId' | 'status' | 'version'>
 
+export interface ManagementCapabilityView {
+  readonly policyIds: readonly string[]
+  readonly operations: readonly string[]
+  readonly activationRootRoleIds: readonly string[]
+}
+
+export interface ManageableUserView {
+  readonly userId: string
+  readonly username: string
+  readonly displayName: string
+}
+
+export interface ManageableRoleView {
+  readonly roleId: string
+  readonly roleCode: string
+  readonly roleName: string
+  readonly riskLevel: string
+  readonly privileged: boolean
+}
+
 export const managementPolicyApi = (client: FeatureApiClient) => ({
   list: () => client.request<readonly ManagementPolicyView[]>('/api/rbac3/v1/management-policies'),
+  get: (policyId: string) => client.request<ManagementPolicyView>(
+    `/api/rbac3/v1/management-policies/${encodeURIComponent(policyId)}`,
+  ),
   create: (command: SaveManagementPolicyCommand, idempotencyKey: string) => client.request<ManagementPolicyView>(
     '/api/rbac3/v1/management-policies',
     { method: 'POST', body: command, headers: { 'Idempotency-Key': idempotencyKey } },
@@ -41,4 +64,11 @@ export const managementPolicyApi = (client: FeatureApiClient) => ({
     `/api/rbac3/v1/management-policies/${encodeURIComponent(policy.policyId)}/disable`,
     { method: 'POST', headers: { 'If-Match': String(policy.version), 'Idempotency-Key': idempotencyKey } },
   ),
+  capabilities: () => client.request<ManagementCapabilityView>('/api/rbac3/v1/management-capabilities/me'),
+  manageableUsers: (query?: string) => query?.trim()
+    ? client.request<readonly ManageableUserView[]>('/api/rbac3/v1/manageable-users', {query: {query: query.trim()}})
+    : client.request<readonly ManageableUserView[]>('/api/rbac3/v1/manageable-users'),
+  manageableRoles: (query?: string) => query?.trim()
+    ? client.request<readonly ManageableRoleView[]>('/api/rbac3/v1/manageable-roles', {query: {query: query.trim()}})
+    : client.request<readonly ManageableRoleView[]>('/api/rbac3/v1/manageable-roles'),
 })

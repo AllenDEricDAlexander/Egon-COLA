@@ -11,6 +11,7 @@ import { ConstraintPage } from './constraint/ConstraintPage'
 import { OrganizationPage } from './directory/OrganizationPage'
 import { PositionPage } from './directory/PositionPage'
 import { PermissionCatalogPage } from './permission/PermissionCatalogPage'
+import { BusinessCatalogPage } from './business/BusinessCatalogPage'
 
 const RoleResourceRoute = () => {
   const { roleId } = useParams()
@@ -26,6 +27,7 @@ export const governanceRouteDescriptors: readonly FeatureRouteDescriptor[] = [
   { key: 'resources', path: '/iam/resources', title: '资源目录', permission: 'system:resource:read', componentKey: 'rbac3-resources', component: ResourceCatalogPage, navigationOrder: 41 },
   { key: 'fields', path: '/iam/fields', title: '字段定义', permission: 'system:field-definition:read', componentKey: 'rbac3-fields', component: FieldDefinitionPage, navigationOrder: 42 },
   { key: 'permissions', path: '/iam/permissions', title: '权限', permission: 'system:permission:read', componentKey: 'rbac3-permissions', component: PermissionCatalogPage, navigationOrder: 43 },
+  { key: 'business-catalog', path: '/iam/businesses', title: '业务目录', permission: 'system:business:read', componentKey: 'rbac3-business-catalog', component: BusinessCatalogPage, navigationOrder: 44 },
   { key: 'roles', path: '/iam/roles', title: '角色图谱', permission: 'system:role:read', componentKey: 'rbac3-role-graph', component: RoleGraphPage, navigationOrder: 50 },
   { key: 'role-resources', path: '/iam/roles/:roleId/resources', title: '角色资源', permission: 'system:role-resource:read', componentKey: 'rbac3-role-resources', component: RoleResourceRoute, navigationOrder: 51, hideFromNav: true },
   { key: 'constraints', path: '/iam/policies', title: '授权约束', permission: 'system:authorization-constraint:read', componentKey: 'rbac3-constraints', component: ConstraintPage, navigationOrder: 60 },

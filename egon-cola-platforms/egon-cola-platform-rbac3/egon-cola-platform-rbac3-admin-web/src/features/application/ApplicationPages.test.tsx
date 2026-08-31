@@ -2,10 +2,11 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {type Rbac3Client, Rbac3Provider} from '@egon-cola/rbac3-react-sdk'
 import {render, screen, waitFor} from '@testing-library/react'
 import type {PropsWithChildren} from 'react'
-import {describe, expect, it} from 'vitest'
+import {describe, expect, it, vi} from 'vitest'
 import {type FeatureApiClient, FeatureApiProvider} from '../shared/FeatureApi'
 import {ApplicationListPage} from './ApplicationListPage'
 import {FieldDefinitionPage} from './FieldDefinitionPage'
+import {applicationApi} from './application.api'
 import {ResourceCatalogPage} from './ResourceCatalogPage'
 
 const wrapper = ({ children }: PropsWithChildren) => {
@@ -69,5 +70,12 @@ describe('application pages', () => {
     render(<ResourceCatalogPage applicationId="71" />, { wrapper })
     await waitFor(() => expect(screen.getByText('订单列表')).toBeInTheDocument())
     expect(screen.getByRole('button', { name: /映射/ })).toBeInTheDocument()
+  })
+
+  it('maps tenant application detail to the existing IAM controller', async () => {
+    const request = vi.fn().mockResolvedValue({})
+    await applicationApi({request}).application('71')
+
+    expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/tenant-applications/71')
   })
 })

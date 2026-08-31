@@ -38,11 +38,43 @@ describe('constraint page', () => {
     await api.dataRules()
     await api.fieldRules()
     await api.operationSodRules()
+    await api.createSod({
+      setCode: 'maker-checker', constraintType: 'SSD', applicationId: '71', maximumActiveRoles: 1,
+      memberRoleIds: ['1', '2'], validFrom: '2026-08-29T00:00:00Z', validTo: null, expectedVersion: 0,
+    })
+    await api.updateSod('9', {
+      setCode: 'maker-checker', constraintType: 'DSD', applicationId: '71', maximumActiveRoles: 1,
+      memberRoleIds: ['1', '2'], validFrom: '2026-08-29T00:00:00Z', validTo: null, expectedVersion: 3,
+    })
+    await api.savePrerequisites('2', {groupCode: 'approval', matchMode: 'ALL', prerequisiteRoleIds: ['1'], expectedRoleVersion: 4})
+    await api.saveCardinality('2', {scopeType: 'ORG', maximumActive: 2, validFrom: '2026-08-29T00:00:00Z', validTo: null, expectedVersion: 5})
+    await api.createDataRule({
+      applicationId: '71', roleId: '2', permissionId: '91', scopeType: 'ORG', directorySnapshotVersion: null,
+      references: [{referenceType: 'ORG', referenceId: '1001'}], validFrom: '2026-08-29T00:00:00Z', validTo: null, expectedVersion: 0,
+    })
+    await api.updateDataRule('11', {
+      applicationId: '71', roleId: '2', permissionId: '91', scopeType: 'ORG', directorySnapshotVersion: null,
+      references: [{referenceType: 'ORG', referenceId: '1001'}], validFrom: '2026-08-29T00:00:00Z', validTo: null, expectedVersion: 2,
+    })
+    await api.createFieldRule({applicationId: '71', roleId: '2', permissionId: '91', fieldDefinitionId: '81', accessLevel: 'READ', validFrom: '2026-08-29T00:00:00Z', validTo: null, expectedVersion: 0})
+    await api.updateFieldRule('12', {applicationId: '71', roleId: '2', permissionId: '91', fieldDefinitionId: '81', accessLevel: 'WRITE', validFrom: '2026-08-29T00:00:00Z', validTo: null, expectedVersion: 2})
+    await api.createOperationSodRule({applicationCode: 'orders', businessResource: 'invoice', priorActionCode: 'CREATE', forbiddenLaterActionCode: 'APPROVE', lookbackFrom: null, validFrom: '2026-08-29T00:00:00Z', validTo: null, expectedVersion: 0})
+    await api.updateOperationSodRule('13', {applicationCode: 'orders', businessResource: 'invoice', priorActionCode: 'CREATE', forbiddenLaterActionCode: 'APPROVE', lookbackFrom: null, validFrom: '2026-08-29T00:00:00Z', validTo: null, expectedVersion: 2})
 
     expect(request).toHaveBeenNthCalledWith(1, '/api/rbac3/v1/iam/policies/sod-sets')
     expect(request).toHaveBeenNthCalledWith(2, '/api/rbac3/v1/iam/policies/data-rules')
     expect(request).toHaveBeenNthCalledWith(3, '/api/rbac3/v1/iam/policies/field-rules')
     expect(request).toHaveBeenNthCalledWith(4, '/api/rbac3/v1/iam/policies/operation-sod-rules')
+    expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/policies/sod-sets', expect.objectContaining({method: 'POST'}))
+    expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/policies/sod-sets/9', expect.objectContaining({method: 'PUT'}))
+    expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/policies/roles/2/prerequisite-groups', expect.objectContaining({method: 'POST'}))
+    expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/policies/roles/2/cardinality', expect.objectContaining({method: 'PUT'}))
+    expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/policies/data-rules', expect.objectContaining({method: 'POST'}))
+    expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/policies/data-rules/11', expect.objectContaining({method: 'PUT'}))
+    expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/policies/field-rules', expect.objectContaining({method: 'POST'}))
+    expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/policies/field-rules/12', expect.objectContaining({method: 'PUT'}))
+    expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/policies/operation-sod-rules', expect.objectContaining({method: 'POST'}))
+    expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/policies/operation-sod-rules/13', expect.objectContaining({method: 'PUT'}))
   })
 
   it('renders DSD as an activation-time constraint', async () => {

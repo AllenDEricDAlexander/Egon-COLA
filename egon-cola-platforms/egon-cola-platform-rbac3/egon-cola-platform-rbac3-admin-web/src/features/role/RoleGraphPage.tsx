@@ -1,6 +1,7 @@
 import {useMutation, useQueries, useQuery, useQueryClient} from '@tanstack/react-query'
 import {Alert, Button, Card, Descriptions, Drawer, Form, Input, InputNumber, Modal, Select, Space, Tag, Typography} from 'antd'
 import {useState} from 'react'
+import {Link} from 'react-router-dom'
 import {PermissionGuard, useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
 import {PageState} from '@egon-cola/admin-web-shared'
 import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
@@ -244,7 +245,7 @@ export const RoleGraphPage = ({applicationId}: RoleGraphPageProps) => {
             || (impact?.conflicts.length ?? 0) > 0
           return (
             <Card key={role.roleId} size="small" style={{marginBottom: 12}}>
-              <Space direction="vertical" size="small" style={{width: '100%'}}>
+              <Space orientation="vertical" size="small" style={{width: '100%'}}>
                 <Space wrap>
                   <Typography.Text strong>{role.roleName}</Typography.Text>
                   <Typography.Text code>{role.roleCode}</Typography.Text>
@@ -264,6 +265,11 @@ export const RoleGraphPage = ({applicationId}: RoleGraphPageProps) => {
                   </PermissionGuard>
                   <PermissionGuard permission="system:role-inheritance:manage">
                     <Button size="small" onClick={() => openInheritance(role)}>继承管理</Button>
+                  </PermissionGuard>
+                  <PermissionGuard permission="system:role-resource:read">
+                    <Link to={`/iam/roles/${encodeURIComponent(role.roleId)}/resources`}>
+                      <Button size="small">资源授权</Button>
+                    </Link>
                   </PermissionGuard>
                 </Space>
               </Space>
@@ -356,7 +362,7 @@ export const RoleGraphPage = ({applicationId}: RoleGraphPageProps) => {
         open={impactRole !== null}
         title={impactRole ? `影响分析：${impactRole.roleName}` : ''}
         onClose={() => setImpactRole(null)}
-        width={560}
+        size="large"
       >
         {impactRole && (() => {
           const impact = impactByRole.get(impactRole.roleId)

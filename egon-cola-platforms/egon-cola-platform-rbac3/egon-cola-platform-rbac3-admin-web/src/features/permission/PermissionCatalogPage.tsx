@@ -2,7 +2,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {PermissionGuard, useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
 import {PageState} from '@egon-cola/admin-web-shared'
 import {Alert, Button, Card, Descriptions, Drawer, Form, Input, Modal, Select, Space, Table, Tag} from 'antd'
-import {useEffect, useState} from 'react'
+import {useState} from 'react'
 import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
 import {applicationApi, type PermissionView, type TenantApplicationView} from '../application/application.api'
 
@@ -35,21 +35,21 @@ export const PermissionCatalogPage = () => {
     enabled: status === 'READY',
   })
 
-  useEffect(() => {
-    if (!applicationId && applications.data?.[0]) {
-      setApplicationId(applications.data[0].applicationId)
-    }
-  }, [applicationId, applications.data])
-
+  const resolvedApplicationId = applicationId || applications.data?.[0]?.applicationId || ''
   const permissions = useQuery({
-    queryKey: ['rbac3', 'permissions', tenant, applicationId],
-    queryFn: () => api.permissions(applicationId),
-    enabled: status === 'READY' && applicationId.length > 0,
+    queryKey: ['rbac3', 'permissions', tenant, resolvedApplicationId],
+    queryFn: () => api.permissions(resolvedApplicationId),
+    enabled: status === 'READY' && resolvedApplicationId.length > 0,
   })
-  const queryKey = ['rbac3', 'permissions', tenant, applicationId]
+  const permissionDetail = useQuery({
+    queryKey: ['rbac3', 'permission', tenant, selectedPermission?.id ?? 'none'],
+    queryFn: () => api.permission(selectedPermission!.id),
+    enabled: status === 'READY' && selectedPermission !== null,
+  })
+  const queryKey = ['rbac3', 'permissions', tenant, resolvedApplicationId]
   const create = useMutation({
     mutationFn: (values: PermissionFormValues) => api.createPermission({
-      applicationId,
+      applicationId: resolvedApplicationId,
       permissionCode: values.permissionCode.trim(),
       permissionName: values.permissionName.trim(),
       riskLevel: values.riskLevel,
@@ -85,7 +85,7 @@ export const PermissionCatalogPage = () => {
       title="权限目录"
       extra={(
         <PermissionGuard permission="system:permission:manage">
-          <Button type="primary" disabled={!applicationId} onClick={() => setPermissionModalOpen(true)}>新建权限</Button>
+          <Button type="primary" disabled={!resolvedApplicationId} onClick={() => setPermissionModalOpen(true)}>新建权限</Button>
         </PermissionGuard>
       )}
     >
@@ -94,7 +94,7 @@ export const PermissionCatalogPage = () => {
           aria-label="应用"
           placeholder="选择应用"
           style={{minWidth: 260}}
-          value={applicationId || undefined}
+          value={resolvedApplicationId || undefined}
           loading={applications.isPending}
           options={(applications.data ?? []).map((application: TenantApplicationView) => ({
             value: application.applicationId,
@@ -108,14 +108,14 @@ export const PermissionCatalogPage = () => {
           type="error"
           showIcon
           closable
-          message={mutationError instanceof Error ? mutationError.message : String(mutationError)}
+          title={mutationError instanceof Error ? mutationError.message : String(mutationError)}
           style={{marginBottom: 16}}
         />
       )}
       <PageState
         loading={applications.isPending || permissions.isPending}
         error={applications.error ?? permissions.error}
-        empty={Boolean(applicationId) && permissions.data?.length === 0}
+        empty={Boolean(resolvedApplicationId) && permissions.data?.length === 0}
         emptyDescription="当前应用暂无权限字符"
         onRetry={() => { void permissions.refetch() }}
       >
@@ -153,21 +153,29 @@ export const PermissionCatalogPage = () => {
         title={selectedPermission ? `权限：${selectedPermission.permissionCode}` : ''}
         open={selectedPermission !== null}
         onClose={() => setSelectedPermission(null)}
-        width={520}
+        size="large"
       >
-        {selectedPermission && (
-          <Descriptions bordered column={1} size="small">
-            <Descriptions.Item label="权限 ID">{selectedPermission.id}</Descriptions.Item>
-            <Descriptions.Item label="权限字符">{selectedPermission.permissionCode}</Descriptions.Item>
-            <Descriptions.Item label="名称">{selectedPermission.permissionName}</Descriptions.Item>
-            <Descriptions.Item label="风险等级">{selectedPermission.riskLevel}</Descriptions.Item>
-            <Descriptions.Item label="来源">{selectedPermission.sourceType}</Descriptions.Item>
-            <Descriptions.Item label="构建版本">{selectedPermission.sourceBuildId ?? '-'}</Descriptions.Item>
-            <Descriptions.Item label="校验和">{selectedPermission.sourceChecksum ?? '-'}</Descriptions.Item>
-            <Descriptions.Item label="状态">{selectedPermission.status}</Descriptions.Item>
-            <Descriptions.Item label="版本">{selectedPermission.version}</Descriptions.Item>
-          </Descriptions>
-        )}
+        <PageState
+          loading={permissionDetail.isPending}
+          error={permissionDetail.error}
+          empty={!permissionDetail.data}
+          emptyDescription="权限详情不存在"
+          onRetry={() => { void permissionDetail.refetch() }}
+        >
+          {permissionDetail.data && (
+            <Descriptions bordered column={1} size="small">
+              <Descriptions.Item label="权限 ID">{permissionDetail.data.id}</Descriptions.Item>
+              <Descriptions.Item label="权限字符">{permissionDetail.data.permissionCode}</Descriptions.Item>
+              <Descriptions.Item label="名称">{permissionDetail.data.permissionName}</Descriptions.Item>
+              <Descriptions.Item label="风险等级">{permissionDetail.data.riskLevel}</Descriptions.Item>
+              <Descriptions.Item label="来源">{permissionDetail.data.sourceType}</Descriptions.Item>
+              <Descriptions.Item label="构建版本">{permissionDetail.data.sourceBuildId ?? '-'}</Descriptions.Item>
+              <Descriptions.Item label="校验和">{permissionDetail.data.sourceChecksum ?? '-'}</Descriptions.Item>
+              <Descriptions.Item label="状态">{permissionDetail.data.status}</Descriptions.Item>
+              <Descriptions.Item label="版本">{permissionDetail.data.version}</Descriptions.Item>
+            </Descriptions>
+          )}
+        </PageState>
       </Drawer>
 
       <Modal

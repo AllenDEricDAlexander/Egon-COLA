@@ -2,9 +2,10 @@ import {type Rbac3Client, Rbac3Provider} from '@egon-cola/rbac3-react-sdk'
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {render, screen, waitFor} from '@testing-library/react'
 import type {PropsWithChildren} from 'react'
-import {describe, expect, it} from 'vitest'
+import {describe, expect, it, vi} from 'vitest'
 import {type FeatureApiClient, FeatureApiProvider} from '../shared/FeatureApi'
 import {ManagementPolicyPage} from './ManagementPolicyPage'
+import {managementPolicyApi} from './managementPolicy.api'
 
 const wrapper = ({ children }: PropsWithChildren) => {
   const sdk = {
@@ -39,5 +40,20 @@ describe('management policy page', () => {
     expect(screen.getByText('ORG:2')).toBeInTheDocument()
     expect(screen.getByText('3')).toBeInTheDocument()
     expect(screen.getByText('ASSIGN, REVOKE')).toBeInTheDocument()
+  })
+
+  it('maps policy detail and capability target reads to their controller paths', async () => {
+    const request = vi.fn().mockResolvedValue({})
+    const api = managementPolicyApi({request})
+
+    await api.get('101')
+    await api.capabilities()
+    await api.manageableUsers()
+    await api.manageableRoles()
+
+    expect(request).toHaveBeenNthCalledWith(1, '/api/rbac3/v1/management-policies/101')
+    expect(request).toHaveBeenNthCalledWith(2, '/api/rbac3/v1/management-capabilities/me')
+    expect(request).toHaveBeenNthCalledWith(3, '/api/rbac3/v1/manageable-users')
+    expect(request).toHaveBeenNthCalledWith(4, '/api/rbac3/v1/manageable-roles')
   })
 })

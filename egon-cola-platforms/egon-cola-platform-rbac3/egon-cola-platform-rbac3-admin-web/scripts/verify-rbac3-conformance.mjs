@@ -58,11 +58,11 @@ const assertSharedVersion = async () => {
     const lockText = await readFile(lockPath, 'utf8')
     const lock = JSON.parse(lockText)
     const entry = lock.packages?.['node_modules/@egon-cola/admin-web-shared']
-    if (entry?.version !== '0.2.0'
+    if (!/^0\.2\.\d+$/.test(entry?.version ?? '')
       || entry.resolved?.includes('0.1.4')
       || entry.resolved?.startsWith('file:')
       || entry.resolved?.startsWith('link:')) {
-      throw new Error(`shared lock does not resolve 0.2.0 (${lockPath})`)
+      throw new Error(`shared lock does not resolve a published 0.2.x version (${lockPath})`)
     }
   }
 }

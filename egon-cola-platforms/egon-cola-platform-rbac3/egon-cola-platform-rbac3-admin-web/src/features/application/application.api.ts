@@ -71,6 +71,9 @@ export interface ResourcePermissionMappingView {
 
 export const applicationApi = (client: FeatureApiClient) => ({
   tenantApplications: () => client.request<readonly TenantApplicationView[]>('/api/rbac3/v1/iam/tenant-applications'),
+  application: (applicationId: string) => client.request<TenantApplicationView>(
+    `/api/rbac3/v1/iam/tenant-applications/${encodeURIComponent(applicationId)}`,
+  ),
   admitTenantApplication: (ddcApplicationId: string, displayPriority: number) => client.request<TenantApplicationView>(
     '/api/rbac3/v1/iam/tenant-applications',
     { method: 'POST', body: { ddcApplicationId, displayPriority } },
@@ -117,6 +120,9 @@ export const applicationApi = (client: FeatureApiClient) => ({
   permissions: (applicationId: string, assignable = false) => client.request<readonly PermissionView[]>(
     '/api/rbac3/v1/iam/permissions',
     { query: { applicationId, assignable } },
+  ),
+  permission: (id: string) => client.request<PermissionView>(
+    `/api/rbac3/v1/iam/permissions/${encodeURIComponent(id)}`,
   ),
   createPermission: (command: { applicationId: string; permissionCode: string; permissionName: string; riskLevel: string; description?: string }) => client.request<PermissionView>(
     '/api/rbac3/v1/iam/permissions',

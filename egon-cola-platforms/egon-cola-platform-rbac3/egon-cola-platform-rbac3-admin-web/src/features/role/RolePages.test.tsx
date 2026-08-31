@@ -2,6 +2,7 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {type Rbac3Client, Rbac3Provider} from '@egon-cola/rbac3-react-sdk'
 import {render, screen, waitFor} from '@testing-library/react'
 import type {PropsWithChildren} from 'react'
+import {MemoryRouter} from 'react-router-dom'
 import {describe, expect, it, vi} from 'vitest'
 import {type FeatureApiClient, FeatureApiProvider} from '../shared/FeatureApi'
 import {RoleGraphPage} from './RoleGraphPage'
@@ -13,7 +14,7 @@ const wrapper = ({ children }: PropsWithChildren) => {
   const sdk = {
     getAbout: async () => ({
         user: {id: '7', tenantId: '42', identitySub: 'role-test', status: 'ACTIVE'},
-      permissions: ['system:role:read'],
+      permissions: ['system:role:read', 'system:role-resource:read'],
         fieldPolicies: {}, activeRoleContexts: [], apps: [], menus: [], routes: [], actions: [],
         defaultApplicationCode: null, defaultRoute: null, authVersion: 1, policyVersion: 1,
     }),
@@ -41,7 +42,9 @@ const wrapper = ({ children }: PropsWithChildren) => {
   return (
     <QueryClientProvider client={queryClient}>
         <Rbac3Provider client={sdk}>
-        <FeatureApiProvider client={api}>{children}</FeatureApiProvider>
+        <FeatureApiProvider client={api}>
+          <MemoryRouter initialEntries={['/iam/roles']}>{children}</MemoryRouter>
+        </FeatureApiProvider>
       </Rbac3Provider>
     </QueryClientProvider>
   )
@@ -90,5 +93,13 @@ describe('role pages', () => {
     await waitFor(() => expect(screen.getByText('用户管理')).toBeInTheDocument())
     expect(screen.getByText(/用户列表/)).toBeInTheDocument()
     expect(screen.queryByText(/system:|permissionId/i)).not.toBeInTheDocument()
+  })
+
+  it('exposes resource authorization from every role card', async () => {
+    render(<RoleGraphPage applicationId="71" />, {wrapper})
+
+    await waitFor(() => expect(screen.getByText('根角色')).toBeInTheDocument())
+    expect(screen.getAllByRole('link', {name: '资源授权'}).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('link', {name: '资源授权'})[0]).toHaveAttribute('href', '/iam/roles/1/resources')
   })
 })
