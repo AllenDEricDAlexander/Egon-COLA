@@ -215,7 +215,8 @@ public class OrganizationFacade {
                 value.getSnapshotId() == null ? null : value.getSnapshotId().toString(),
                 value.getUnitType().name(), value.getCode(), value.getName(),
                 value.getParentId() == null ? null : value.getParentId().toString(),
-                value.getPath(), value.getDepth(), value.getStatus().name());
+                value.getPath(), value.getDepth(), value.getStatus().name(),
+                value.getExternalId(), value.getValidFrom(), value.getValidTo(), value.getVersion());
     }
 
     private static String required(String value, String fieldName) {

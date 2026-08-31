@@ -143,7 +143,8 @@ public class PositionFacade {
                 value.getId().toString(),
                 value.getSnapshotId() == null ? null : value.getSnapshotId().toString(),
                 value.getCode(), value.getName(), value.getOrgUnitId().toString(),
-                value.getStatus().name());
+                value.getStatus().name(), value.getExternalId(), value.getValidFrom(),
+                value.getValidTo(), value.getVersion());
     }
 
     private static String required(String value, String fieldName) {

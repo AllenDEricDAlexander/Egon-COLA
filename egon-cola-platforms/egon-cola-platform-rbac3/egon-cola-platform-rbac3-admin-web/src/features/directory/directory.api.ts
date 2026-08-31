@@ -137,6 +137,10 @@ export interface OrganizationView {
   readonly path: string
   readonly depth: number
   readonly status: string
+  readonly externalId: string | null
+  readonly validFrom: string
+  readonly validTo: string | null
+  readonly version: number
 }
 
 export interface PositionView {
@@ -146,7 +150,29 @@ export interface PositionView {
   readonly name: string
   readonly orgUnitId: string
   readonly status: string
+  readonly externalId: string | null
+  readonly validFrom: string
+  readonly validTo: string | null
+  readonly version: number
 }
+
+const normalizeId = (value: string | number): string | number => (
+  typeof value === 'string' ? value.trim() : value
+)
+
+const normalizeOrganizationAssignment = (command: OrganizationAssignmentCommand): OrganizationAssignmentCommand => ({
+  orgUnitId: normalizeId(command.orgUnitId),
+  validFrom: command.validFrom,
+  validTo: command.validTo || null,
+  reason: command.reason.trim(),
+  ticketNo: command.ticketNo.trim(),
+})
+
+const normalizePositionAssignment = (command: PositionAssignmentCommand): PositionAssignmentCommand => ({
+  ...normalizeOrganizationAssignment(command),
+  positionId: normalizeId(command.positionId),
+  primaryAssignment: command.primaryAssignment,
+})
 
 export const directoryApi = (client: FeatureApiClient) => ({
   users: (filters: UserDirectoryFilter = {}) => client.request<DirectoryPage<UserDirectoryView>>(
@@ -216,7 +242,7 @@ export const directoryApi = (client: FeatureApiClient) => ({
   ),
   assignOrganization: (userId: string, command: OrganizationAssignmentCommand) => client.request<UserOrganizationAssignmentView>(
     `/api/rbac3/v1/iam/users/${encodeURIComponent(userId)}/organizations`,
-    { method: 'POST', body: command },
+    { method: 'POST', body: normalizeOrganizationAssignment(command) },
   ),
   revokeOrganization: (userId: string, assignmentId: string, expectedVersion: number) => client.request<null>(
     `/api/rbac3/v1/iam/users/${encodeURIComponent(userId)}/organizations/${encodeURIComponent(assignmentId)}`,
@@ -227,7 +253,7 @@ export const directoryApi = (client: FeatureApiClient) => ({
   ),
   assignPosition: (userId: string, command: PositionAssignmentCommand) => client.request<UserPositionAssignmentView>(
     `/api/rbac3/v1/iam/users/${encodeURIComponent(userId)}/positions`,
-    { method: 'POST', body: command },
+    { method: 'POST', body: normalizePositionAssignment(command) },
   ),
   revokePosition: (userId: string, assignmentId: string, expectedVersion: number) => client.request<null>(
     `/api/rbac3/v1/iam/users/${encodeURIComponent(userId)}/positions/${encodeURIComponent(assignmentId)}`,

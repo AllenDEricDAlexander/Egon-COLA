@@ -212,14 +212,16 @@ public class JpaDirectoryQueryRepository implements DirectoryQueryRepository {
                 unit.getId().toString(), stringId(unit.getSnapshotId()),
                 unit.getUnitType().name(), unit.getCode(), unit.getName(),
                 stringId(unit.getParentId()), unit.getPath(), unit.getDepth(),
-                unit.getStatus().name());
+                unit.getStatus().name(), unit.getExternalId(), unit.getValidFrom(),
+                unit.getValidTo(), unit.getVersion());
     }
 
     private PositionVO positionView(PositionPO position) {
         return new PositionVO(
                 position.getId().toString(), stringId(position.getSnapshotId()),
                 position.getCode(), position.getName(), position.getOrgUnitId().toString(),
-                position.getStatus().name());
+                position.getStatus().name(), position.getExternalId(), position.getValidFrom(),
+                position.getValidTo(), position.getVersion());
     }
 
     private static <E extends Enum<E>> E nullableEnum(

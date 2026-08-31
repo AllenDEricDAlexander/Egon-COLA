@@ -2,9 +2,10 @@ import {type Rbac3Client, Rbac3Provider} from '@egon-cola/rbac3-react-sdk'
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {render, screen, waitFor} from '@testing-library/react'
 import type {PropsWithChildren} from 'react'
-import {describe, expect, it} from 'vitest'
+import {describe, expect, it, vi} from 'vitest'
 import {type FeatureApiClient, FeatureApiProvider} from '../shared/FeatureApi'
 import {AssignmentListPage} from './AssignmentListPage'
+import {assignmentApi} from './assignment.api'
 
 describe('assignment pages', () => {
   it('renders assignment eligibility states and idempotent guarded actions', async () => {
@@ -29,6 +30,38 @@ describe('assignment pages', () => {
     render(<AssignmentListPage userId="42" />, { wrapper: wrapper(request, []) })
     await waitFor(() => expect(screen.getByText('81')).toBeInTheDocument())
     expect(screen.queryByRole('button', { name: '新增任职资格' })).not.toBeInTheDocument()
+  })
+
+  it('keeps the role assignment workbench on the existing IAM controller contract', async () => {
+    const request = vi.fn().mockResolvedValue([])
+    const api = assignmentApi({request})
+
+    await api.list('9007199254740999')
+    await api.create('9007199254740999', {
+      roleId: '81',
+      validFrom: '2026-08-29T00:00:00Z',
+      validTo: null,
+      assignmentType: 'DIRECT',
+      reason: 'manual',
+      ticketNo: 'IAM-1',
+      expectedUserAuthVersion: 3,
+    }, 'idempotency-1')
+    await api.change('9007199254740999', '9001', 'revoke', {
+      reason: 'manual revoke',
+      ticketNo: 'IAM-2',
+      expectedAssignmentVersion: 1,
+      expectedUserAuthVersion: 4,
+    }, 'idempotency-2')
+
+    expect(request).toHaveBeenNthCalledWith(1, '/api/rbac3/v1/users/9007199254740999/role-assignments')
+    expect(request).toHaveBeenNthCalledWith(2, '/api/rbac3/v1/users/9007199254740999/role-assignments', expect.objectContaining({
+      method: 'POST',
+      headers: {'Idempotency-Key': 'idempotency-1'},
+    }))
+    expect(request).toHaveBeenNthCalledWith(3, '/api/rbac3/v1/users/9007199254740999/role-assignments/9001/revoke', expect.objectContaining({
+      method: 'POST',
+      headers: {'Idempotency-Key': 'idempotency-2'},
+    }))
   })
 })
 

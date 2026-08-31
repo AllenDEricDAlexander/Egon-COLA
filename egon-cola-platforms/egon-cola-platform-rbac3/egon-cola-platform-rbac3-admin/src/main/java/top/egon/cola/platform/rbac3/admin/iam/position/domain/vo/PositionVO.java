@@ -82,6 +82,10 @@ import java.util.Map;
              * 含义与用法：读取、传递或更新 `status` 时应保持 `PositionVO` 的生命周期、不可变性和线程安全约束。
              * Meaning and usage: when reading, passing, or updating `status`, preserve `PositionVO`'s lifecycle, immutability, and thread-safety constraints.
              */
-            String status
+            String status,
+            String externalId,
+            Instant validFrom,
+            Instant validTo,
+            long version
     ) {
     }

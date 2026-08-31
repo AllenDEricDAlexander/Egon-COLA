@@ -1,7 +1,7 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {PermissionGuard, useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
 import {PageState} from '@egon-cola/admin-web-shared'
-import {Button, Card, Descriptions, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag, Typography} from 'antd'
+import {Button, Card, Descriptions, Form, Input, Modal, Popconfirm, Select, Space, Table, Tag} from 'antd'
 import {useState} from 'react'
 import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
 import {
@@ -10,6 +10,7 @@ import {
   type UserDirectoryFilter,
   type UserDirectoryView,
 } from './directory.api'
+import {UserRelationsPanel} from './UserRelationsPanel'
 
 export interface UserDirectoryPageProps {
   readonly initialUserId?: string
@@ -106,6 +107,10 @@ export const UserDirectoryPage = ({initialUserId = ''}: UserDirectoryPageProps) 
     onSuccess: async () => {
       setUserId('')
       setDraftUserId('')
+      await Promise.all([
+        queryClient.invalidateQueries({queryKey: ['rbac3', 'user-organization-assignments']}),
+        queryClient.invalidateQueries({queryKey: ['rbac3', 'user-position-assignments']}),
+      ])
       await refreshUsers()
     },
   })
@@ -135,7 +140,7 @@ export const UserDirectoryPage = ({initialUserId = ''}: UserDirectoryPageProps) 
   const mutationError = saveUser.error ?? changeStatus.error ?? deleteUser.error
 
   return (
-    <Space direction="vertical" size="middle" style={{width: '100%'}}>
+    <Space orientation="vertical" size="middle" style={{width: '100%'}}>
       <Card
         title="用户目录"
         extra={(
@@ -162,15 +167,18 @@ export const UserDirectoryPage = ({initialUserId = ''}: UserDirectoryPageProps) 
             onRetry={() => { void detail.refetch() }}
           >
             {displayUser && (
-              <Descriptions bordered column={2} style={{marginTop: 16}}>
-                <Descriptions.Item label="User ID">{displayUser.userId}</Descriptions.Item>
-                <Descriptions.Item label="身份标识">{displayUser.identitySub ?? displayUser.username ?? '-'}</Descriptions.Item>
-                <Descriptions.Item label="用户名">{displayUser.username ?? '-'}</Descriptions.Item>
-                <Descriptions.Item label="显示名">{displayUser.displayName ?? displayUser.identitySub ?? '-'}</Descriptions.Item>
-                <Descriptions.Item label="状态"><Tag>{displayUser.status}</Tag></Descriptions.Item>
-                <Descriptions.Item label="Auth Version">{displayUser.authVersion}</Descriptions.Item>
-                <Descriptions.Item label="目录快照版本">{displayUser.directorySnapshotVersion ?? '-'}</Descriptions.Item>
-              </Descriptions>
+              <>
+                <Descriptions bordered column={2} style={{marginTop: 16}}>
+                  <Descriptions.Item label="User ID">{displayUser.userId}</Descriptions.Item>
+                  <Descriptions.Item label="身份标识">{displayUser.identitySub ?? displayUser.username ?? '-'}</Descriptions.Item>
+                  <Descriptions.Item label="用户名">{displayUser.username ?? '-'}</Descriptions.Item>
+                  <Descriptions.Item label="显示名">{displayUser.displayName ?? displayUser.identitySub ?? '-'}</Descriptions.Item>
+                  <Descriptions.Item label="状态"><Tag>{displayUser.status}</Tag></Descriptions.Item>
+                  <Descriptions.Item label="Auth Version">{displayUser.authVersion}</Descriptions.Item>
+                  <Descriptions.Item label="目录快照版本">{displayUser.directorySnapshotVersion ?? '-'}</Descriptions.Item>
+                </Descriptions>
+                <UserRelationsPanel userId={displayUser.userId} authVersion={displayUser.authVersion} />
+              </>
             )}
           </PageState>
         )}
