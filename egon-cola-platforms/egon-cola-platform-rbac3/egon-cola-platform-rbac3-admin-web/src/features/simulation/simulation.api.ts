@@ -31,11 +31,33 @@ export interface AuthorizationSimulationCommand {
   readonly at: string
 }
 
+export interface RoleChangeImpactView {
+  readonly impact: {
+    readonly roleId: string
+    readonly activationRoots: readonly string[]
+    readonly roleFamily: readonly string[]
+    readonly effectiveFamilyRisk: string
+    readonly permissionCount: number
+    readonly conflicts: readonly string[]
+  }
+  readonly policyVersion: number
+  readonly evidenceChecksum: string
+  readonly expiresAt: string
+}
+
 export const simulationApi = (client: FeatureApiClient) => ({
   simulate: (command: AuthorizationSimulationCommand) => {
     const requestId = crypto.randomUUID()
     return client.request<AuthorizationSimulationView>('/api/rbac3/v1/simulations/authorization', {
       method: 'POST', body: command, headers: { 'X-Request-Id': requestId, 'X-Trace-Id': requestId },
+    })
+  },
+  roleChangeImpact: (roleId: string) => {
+    const requestId = crypto.randomUUID()
+    return client.request<RoleChangeImpactView>('/api/rbac3/v1/simulations/role-change-impact', {
+      method: 'POST',
+      body: { roleId: roleId.trim(), at: new Date().toISOString() },
+      headers: { 'X-Request-Id': requestId, 'X-Trace-Id': requestId },
     })
   },
 })

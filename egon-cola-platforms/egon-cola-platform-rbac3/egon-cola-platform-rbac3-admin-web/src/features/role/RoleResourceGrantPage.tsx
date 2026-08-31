@@ -2,7 +2,7 @@ import {PermissionGuard, useRbac3Authorization} from '@egon-cola/rbac3-react-sdk
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {Alert, Button, Card, Space, Tag, Tree, Typography} from 'antd'
 import type {DataNode, TreeProps} from 'antd/es/tree'
-import {useEffect, useMemo, useState} from 'react'
+import {useMemo, useState} from 'react'
 import {PageState} from '@egon-cola/admin-web-shared'
 import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
 import {roleApi, type RoleResourceGrantNode} from './role.api'
@@ -24,10 +24,6 @@ export const RoleResourceGrantPage = ({roleId}: RoleResourceGrantPageProps) => {
   })
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [dirty, setDirty] = useState(false)
-
-  useEffect(() => {
-    if (!dirty && resources.data) setSelected(new Set(resources.data.directResourceIds))
-  }, [dirty, resources.data])
 
   const mutation = useMutation({
     mutationFn: () => api.replaceResources(roleId, {
@@ -88,7 +84,7 @@ export const RoleResourceGrantPage = ({roleId}: RoleResourceGrantPageProps) => {
               checkable
               selectable={false}
               defaultExpandAll
-              checkedKeys={[...selected]}
+              checkedKeys={dirty ? [...selected] : [...(resources.data?.directResourceIds ?? [])]}
               treeData={dataNodes}
               onCheck={onCheck}
             />

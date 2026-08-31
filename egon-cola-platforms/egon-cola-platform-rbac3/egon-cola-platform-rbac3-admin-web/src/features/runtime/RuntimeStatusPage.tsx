@@ -1,6 +1,6 @@
 import {useRbac3Authorization} from '@egon-cola/rbac3-react-sdk'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
-import {Alert, Card, Space} from 'antd'
+import {Alert, Button, Card, Descriptions, Space, Tag} from 'antd'
 import {useState} from 'react'
 import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
 import {PageState} from '@egon-cola/admin-web-shared'
@@ -14,8 +14,13 @@ export const RuntimeStatusPage = () => {
   const api = runtimeApi(useFeatureApi())
   const queryClient = useQueryClient()
   const [mutationStatus, setMutationStatus] = useState<string>()
-    const enabled = authorizationStatus === 'READY'
+  const enabled = authorizationStatus === 'READY'
   const status = useQuery({ queryKey: ['rbac3', 'runtime-status'], queryFn: api.status, enabled })
+  const gatewayDdcStatus = useQuery({
+    queryKey: ['rbac3', 'runtime-gateway-ddc-status'],
+    queryFn: api.gatewayDdcStatus,
+    enabled,
+  })
   const mutationKey = ['rbac3', 'runtime-mutations', effectiveTenantId ?? 'none', mutationStatus ?? 'all']
   const mutations = useQuery({ queryKey: mutationKey, queryFn: () => api.mutations(mutationStatus), enabled })
   const retry = useMutation({
@@ -28,12 +33,40 @@ export const RuntimeStatusPage = () => {
   })
   return (
     <Card title="RBAC3 运行状态">
-      <Alert type="info" showIcon message="DDC Config Client、Definition、HTTP Provider Lease、Gateway Release 与运维状态是独立事实；任一缺失都不能由其他绿色状态替代。" />
+      <Alert type="info" showIcon title="DDC Config Client、Definition、HTTP Provider Lease、Gateway Release 与运维状态是独立事实；任一缺失都不能由其他绿色状态替代。" />
       <PageState loading={status.isPending || mutations.isPending} error={status.error ?? mutations.error ?? retry.error} empty={!status.data}>
         {status.data && (
           <Space orientation="vertical" size="large" style={{ width: '100%', marginTop: 16 }}>
             <ControlPlaneStatusCards status={status.data} />
             <MutationRecoveryPanel mutations={mutations.data?.items ?? []} status={mutationStatus} retrying={retry.isPending} onStatusChange={setMutationStatus} onRetry={retry.mutate} />
+            <Card
+              size="small"
+              title="Gateway / DDC 聚合状态"
+              extra={<Button loading={gatewayDdcStatus.isFetching} onClick={() => { void gatewayDdcStatus.refetch() }}>刷新聚合状态</Button>}
+            >
+              <PageState
+                loading={gatewayDdcStatus.isPending}
+                error={gatewayDdcStatus.error}
+                empty={!gatewayDdcStatus.data}
+                emptyDescription="尚未返回 Gateway / DDC 聚合状态"
+                onRetry={() => { void gatewayDdcStatus.refetch() }}
+              >
+                {gatewayDdcStatus.data && (
+                  <Descriptions bordered size="small" column={3}>
+                    <Descriptions.Item label="Definition">
+                      <Tag>{gatewayDdcStatus.data.definition.status}</Tag>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Provider Lease">
+                      <Tag>{gatewayDdcStatus.data.providerLease.state}</Tag>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Gateway Release">
+                      <Tag>{gatewayDdcStatus.data.gatewayRelease.status}</Tag>
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Checked At" span={3}>{gatewayDdcStatus.data.checkedAt}</Descriptions.Item>
+                  </Descriptions>
+                )}
+              </PageState>
+            </Card>
           </Space>
         )}
       </PageState>

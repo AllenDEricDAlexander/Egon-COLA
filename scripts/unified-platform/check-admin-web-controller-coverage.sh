@@ -46,6 +46,11 @@ assert_contains "$platform_root/egon-cola-platform-gateway/egon-cola-platform-ga
 assert_contains "$platform_root/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/openapi/OpenApiSyncPage.tsx" 'openapiSnapshotDocument'
 assert_contains "$root/scripts/unified-platform/start-local-stack.sh" 'UNIFIED_PLATFORM_ADVERTISED_HOST:-127.0.0.1'
 
+if ! python3 "$root/scripts/unified-platform/controller_ui_coverage.py" --repo-root "$root" --format text; then
+  printf '%s\n' 'ASSERTION FAILED: external Controller/UI coverage has unexplained management methods' >&2
+  exit 1
+fi
+
 printf '%s\n' 'Covered key repairs: Portal Wujie Core mount, shared path guard, DDC page authorization, DDC binding route, RBAC3 permission route, Gateway OpenAPI synchronization route.'
 printf '%s\n' 'Intentional exclusions: protocol endpoints (/oauth2, /me, metadata, token), internal/RPC controllers, database/Redis/engine direct access, and active Gateway release publication.'
 printf '%s\n' 'Evidence boundary: this is a static source inventory; it does not prove a running process has reloaded the new Web build or that an active Gateway release contains draft changes.'

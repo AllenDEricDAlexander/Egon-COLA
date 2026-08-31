@@ -44,15 +44,22 @@ const wrapper = ({ children }: PropsWithChildren) => {
 describe('runtime status page', () => {
   it('keeps definition lease release and recovery subsystems independent', async () => {
     render(<RuntimeStatusPage />, { wrapper })
-    await waitFor(() => expect(screen.getByText('ACCEPTED')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getAllByText('ACCEPTED').length).toBeGreaterThanOrEqual(1))
     expect(screen.getByText('DDC Config Client')).toBeInTheDocument()
     expect(screen.getByText('READY')).toBeInTheDocument()
     expect(screen.getByText(/af0130b1190e/)).toBeInTheDocument()
-    expect(screen.getByText('RECOVERING')).toBeInTheDocument()
-    expect(screen.getByText('MISSING')).toBeInTheDocument()
+    expect(screen.getAllByText('RECOVERING').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('MISSING').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('LAGGING')).toBeInTheDocument()
     expect(screen.getByText('STALE')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '重试 701' })).toBeInTheDocument()
     expect(document.body.textContent).not.toMatch(/config-client-lease-secret-value|invalid-secret-like-value|internal storage locator|database statement|endpoint secret/i)
   }, 10_000)
+
+  it('renders the cross-platform Gateway and DDC status projection', async () => {
+    render(<RuntimeStatusPage />, { wrapper })
+    await waitFor(() => expect(screen.getByText('Gateway / DDC 聚合状态')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: '刷新聚合状态' })).toBeInTheDocument()
+    expect(screen.getAllByText('MISSING').length).toBeGreaterThanOrEqual(1)
+  })
 })

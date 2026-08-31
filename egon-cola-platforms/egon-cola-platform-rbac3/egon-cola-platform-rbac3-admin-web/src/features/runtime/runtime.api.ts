@@ -34,6 +34,7 @@ export interface MutationPage { readonly items: readonly MutationView[]; readonl
 
 export const runtimeApi = (client: FeatureApiClient) => ({
   status: () => client.request<ControlPlaneRuntimeStatus>('/api/rbac3/v1/runtime/status'),
+  gatewayDdcStatus: () => client.request<ControlPlaneRuntimeStatus>('/api/rbac3/v1/runtime/gateway-ddc-status'),
   mutations: (status?: string, cursor?: string) => client.request<MutationPage>('/api/rbac3/v1/runtime/mutations', { query: { status, cursor, limit: 50 } }),
   retryMutation: (mutationId: string) => client.request<{ readonly mutationId: string; readonly status: string }>(
     `/api/rbac3/v1/runtime/mutations/${encodeURIComponent(mutationId)}/retry`,
