@@ -2,7 +2,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import { AdminThemeProvider, I18nProvider, initI18n } from '@egon-cola/admin-web-shared'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { startApp } from 'wujie'
 import { ChildRoutePage } from './ChildRoutePage'
 
 const manifest = (overrides: Record<string, unknown> = {}) => ({
@@ -21,13 +22,13 @@ const response = (body: unknown, status = 200): Response => new Response(
   { status, headers: { 'Content-Type': 'application/json' } },
 )
 
-const renderRoute = () => {
+const renderRoute = (initialPath = '/platform/gateway/dashboard') => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
       <AdminThemeProvider>
         <I18nProvider>
-          <MemoryRouter initialEntries={['/platform/gateway/dashboard']}>
+          <MemoryRouter initialEntries={[initialPath]}>
             <Routes>
               <Route path="/platform/:platformKey/*" element={<ChildRoutePage />} />
             </Routes>
@@ -46,7 +47,26 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
+beforeEach(() => {
+  const testWindow = window as unknown as Record<string, unknown>
+  delete testWindow.__WUJIE_TEST_EVENTS
+  delete testWindow.__WUJIE_TEST_TRIGGER_LOAD_ERROR
+})
+
 describe('ChildRoutePage', () => {
+  it('passes the Portal deep-link suffix to the selected child', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(manifest({
+      url: '/children/gateway/',
+    }))))
+
+    renderRoute('/platform/gateway/dashboard')
+
+    await screen.findByTestId('wujie-host-gateway')
+    expect(vi.mocked(startApp)).toHaveBeenCalledWith(expect.objectContaining({
+      url: expect.stringMatching(/\/dashboard$/),
+    }))
+  })
+
   it('does not mount an incompatible child and offers its standalone entry', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(manifest({ compatibleHostRange: '>=9.0.0' }))))
 

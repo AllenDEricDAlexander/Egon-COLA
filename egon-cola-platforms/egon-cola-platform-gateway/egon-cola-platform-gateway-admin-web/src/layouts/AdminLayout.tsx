@@ -82,8 +82,6 @@ export const AdminLayout = () => {
   const canReadMcp = useCapability('gateway:mcp:read')
 
   const embedded = (window as WujieRuntimeWindow).$wujie?.props?.embedded === true
-  if (embedded) return <Outlet />
-
   const items: EnterpriseNavigationItem[] = filterNavigation(navigation, canRead, canReadMcp)
 
   const config: EnterpriseLayoutConfig = {
@@ -113,9 +111,12 @@ export const AdminLayout = () => {
       : undefined,
     footer: { version },
   }
+  const layoutConfig: EnterpriseLayoutConfig = embedded
+    ? {...config, hideHeader: true, hideFooter: true}
+    : config
 
   return (
-    <EnterpriseLayout config={config}>
+    <EnterpriseLayout config={layoutConfig}>
       <Outlet />
     </EnterpriseLayout>
   )

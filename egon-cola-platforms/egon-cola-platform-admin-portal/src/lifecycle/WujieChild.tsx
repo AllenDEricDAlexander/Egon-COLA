@@ -15,6 +15,46 @@ export interface WujieChildProps {
   readonly onState: (event: LifecycleEvent) => void
 }
 
+const childRouteSuffix = (platformKey: ChildManifest['key'], routeIntent?: string): string => {
+  const prefix = `/platform/${platformKey}`
+  if (!routeIntent || (routeIntent !== prefix && !routeIntent.startsWith(`${prefix}/`))) {
+    return ''
+  }
+
+  try {
+    const decoded = decodeURIComponent(routeIntent.slice(prefix.length))
+    const segments = decoded.split('/')
+    if (segments.some((segment) => segment === '..')) {
+      return ''
+    }
+    return segments.filter((segment) => segment && segment !== '.').join('/')
+  } catch {
+    return ''
+  }
+}
+
+export const resolveChildUrl = (
+  manifestUrl: string,
+  platformKey: ChildManifest['key'],
+  routeIntent?: string,
+): string => {
+  const baseUrl = new URL(manifestUrl, globalThis.location?.href ?? 'http://portal.local/')
+  const routeSuffix = childRouteSuffix(platformKey, routeIntent)
+  if (!routeSuffix) {
+    baseUrl.search = ''
+    baseUrl.hash = ''
+    return baseUrl.toString()
+  }
+
+  const basePath = baseUrl.pathname.endsWith('/')
+    ? baseUrl.pathname
+    : baseUrl.pathname.slice(0, baseUrl.pathname.lastIndexOf('/') + 1)
+  baseUrl.pathname = `${basePath}${routeSuffix}`
+  baseUrl.search = ''
+  baseUrl.hash = ''
+  return baseUrl.toString()
+}
+
 interface ChildErrorBoundaryProps extends PropsWithChildren {
   readonly onCrash: () => void
 }
@@ -85,9 +125,10 @@ export const WujieChild = ({ manifest, context, onState }: WujieChildProps) => {
     onState({ type: 'LOAD' })
     void startApp({
       name: manifest.key,
-      url: manifest.url,
+      url: resolveChildUrl(manifest.url, manifest.key, context.routeIntent),
       el: host,
-      sync: true,
+      attrs: {src: 'about:blank'},
+      sync: false,
       fiber: false,
       // Vite development HTML contains HMR modules that are safer in Wujie's
       // supported degrade iframe; production keeps the normal sandbox path.
@@ -142,11 +183,15 @@ export const WujieChild = ({ manifest, context, onState }: WujieChildProps) => {
     }
     // The host must not remount when the parent reducer records LOAD/MOUNTED.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [manifest.key, manifest.url, manifest.version])
+  }, [context.routeIntent, manifest.key, manifest.url, manifest.version])
 
   return (
     <ChildErrorBoundary onCrash={() => onState({ type: 'CHILD_CRASHED', message: 'Child render failed' })}>
-      <div ref={hostRef} data-testid={`wujie-host-${manifest.key}`} style={{ width: '100%', minHeight: 420 }} />
+      <div
+        ref={hostRef}
+        data-testid={`wujie-host-${manifest.key}`}
+        style={{width: '100%', height: 'calc(100vh - 160px)', minHeight: 640, overflow: 'hidden'}}
+      />
     </ChildErrorBoundary>
   )
 }

@@ -54,20 +54,24 @@ export const EnterpriseLayout = ({config, children}: EnterpriseLayoutProps) => {
       >
         {children}
       </Layout.Content>
-      <EnterpriseFooter platformName={config.platformName} {...config.footer}/>
+      {config.hideFooter !== true && (
+        <EnterpriseFooter platformName={config.platformName} {...config.footer}/>
+      )}
     </Layout>
   )
 
   return (
     <Layout style={{minHeight: '100vh'}}>
-      <EnterpriseHeader
-        platformName={config.platformName}
-        logo={config.logo}
-        user={config.user}
-        actions={config.actions}
-        mobileNavigationVisible={!full && navigation.length > 0}
-        onOpenNavigation={() => setDrawerOpen(true)}
-      />
+      {config.hideHeader !== true && (
+        <EnterpriseHeader
+          platformName={config.platformName}
+          logo={config.logo}
+          user={config.user}
+          actions={config.actions}
+          mobileNavigationVisible={!full && navigation.length > 0}
+          onOpenNavigation={() => setDrawerOpen(true)}
+        />
+      )}
       <Layout hasSider={full && navigation.length > 0}>
         {navigation.length > 0 && (
           <EnterpriseSidebar

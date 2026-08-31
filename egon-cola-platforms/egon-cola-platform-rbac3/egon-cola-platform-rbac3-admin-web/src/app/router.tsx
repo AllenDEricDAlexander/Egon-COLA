@@ -45,5 +45,8 @@ const AdminLayout = ({ children, embedded = false }: PropsWithChildren<{ readonl
     },
     footer: { version },
   }
-  return embedded ? <>{children}</> : <EnterpriseLayout config={config}>{children}</EnterpriseLayout>
+  const layoutConfig: EnterpriseLayoutConfig = embedded
+    ? {...config, hideHeader: true, hideFooter: true}
+    : config
+  return <EnterpriseLayout config={layoutConfig}>{children}</EnterpriseLayout>
 }

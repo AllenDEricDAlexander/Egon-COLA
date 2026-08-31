@@ -708,6 +708,18 @@ wait_mcp_endpoint() {
   unified_platform_fail "${name} did not activate the unified MCP release"
 }
 
+preflight_gateway_login_route() {
+  local status
+  status="$(curl --max-time 5 -sS -o /dev/null -w '%{http_code}' \
+    -H "Origin: ${PLATFORM_PORTAL_URL}" \
+    "${GATEWAY_BASE_URL}/oauth2/login/csrf" 2>/dev/null || true)"
+  [[ "${status}" == "200" ]] \
+    || unified_platform_fail \
+      "Gateway Engine login route is ${status:-timeout} at ${GATEWAY_BASE_URL}; restart the stack and publish the current release"
+  printf 'Gateway public origin: %s; advertised host: %s\n' \
+    "${GATEWAY_BASE_URL}" "${local_advertised_host}"
+}
+
 start_admin_web() {
   local name="$1" web_dir="$2" vite="$3" web_url="$4"
   local web_label="$5" proxy_name="$6" proxy_url="$7" port api_origin
@@ -840,6 +852,7 @@ if [[ "${UNIFIED_IDENTITY_START_MODE}" != "full" ]]; then
     unified_platform_stage "publishing the prepared local Gateway HTTP catalog"
     "${legacy_script}" publish-gateway-routes
   fi
+  preflight_gateway_login_route
   unified_platform_stage "starting four Admin Web applications through Gateway"
   start_admin_web idp-admin-web "${idp_web_dir}" \
     "${idp_web_dir}/node_modules/.bin/vite" "${IDP_ADMIN_WEB_URL}" \
@@ -898,6 +911,7 @@ unified_platform_stage "publishing one unified HTTP and MCP release"
 publish_mcp_release "${group_id}" "${server_id}"
 wait_mcp_endpoint gateway-engine-a "${GATEWAY_BASE_URL}"
 wait_mcp_endpoint gateway-engine-b "${GATEWAY_ENGINE_B_PUBLIC_URL}"
+preflight_gateway_login_route
 
 unified_platform_stage "starting four Admin Web applications"
 start_admin_web idp-admin-web "${idp_web_dir}" \

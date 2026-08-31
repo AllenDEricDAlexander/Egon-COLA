@@ -2,7 +2,7 @@ import {type Rbac3AboutView, type Rbac3Client, Rbac3Provider} from '@egon-cola/r
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/react'
 import {MemoryRouter} from 'react-router-dom'
-import {describe, expect, it} from 'vitest'
+import {describe, expect, it, vi} from 'vitest'
 import {type FeatureApiClient, FeatureApiProvider} from '../features/shared/FeatureApi'
 import {ApplicationRouter} from './router'
 import {applicationRouteDescriptors, localResourceRegistry, resolveApplicationLanding} from './navigation'
@@ -53,6 +53,40 @@ const wrapper = (permissions: readonly string[], path: string, resourceCodes?: r
 }
 
 describe('application router', () => {
+  it('keeps IAM navigation inside the embedded RBAC3 child', async () => {
+    const originalMatchMedia = window.matchMedia
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: query.includes('min-width'),
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    })
+    try {
+      render(<ApplicationRouter embedded />, {
+        wrapper: wrapper(['system:runtime:read', 'system:user:read', 'system:role:read'], '/iam/overview'),
+      })
+      await waitFor(() => expect(screen.getByText('IAM')).toBeInTheDocument())
+      fireEvent.click(screen.getByText('目录'))
+      expect(screen.getByText('用户')).toBeInTheDocument()
+      expect(screen.getByText('IAM')).toBeInTheDocument()
+      expect(screen.queryByText('RBAC3 权限平台')).not.toBeInTheDocument()
+    } finally {
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: originalMatchMedia,
+      })
+    }
+  })
+
   it('maps organization and position routes to their own page responsibilities', async () => {
     render(<ApplicationRouter />, {wrapper: wrapper(['system:organization:read'], '/iam/organizations')})
     await waitFor(() => expect(screen.getByText('总部')).toBeInTheDocument())

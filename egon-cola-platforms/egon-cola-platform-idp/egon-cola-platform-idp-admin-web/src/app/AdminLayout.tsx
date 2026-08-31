@@ -98,10 +98,12 @@ export const AdminLayout = ({ children, embedded = false }: PropsWithChildren<{ 
         footer: { version },
     }
 
-    if (embedded) return <>{children}</>
+    const layoutConfig: EnterpriseLayoutConfig = embedded
+        ? {...config, hideHeader: true, hideFooter: true}
+        : config
 
     return (
-        <EnterpriseLayout config={config}>
+        <EnterpriseLayout config={layoutConfig}>
             <Breadcrumb items={breadcrumbItems} style={{ marginBottom: 16 }} />
             {children}
         </EnterpriseLayout>

@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { startApp } from 'wujie'
 import type { ChildContext } from '../bridge/context'
 import type { ChildManifest } from '../manifest/types'
@@ -27,6 +27,12 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
+beforeEach(() => {
+  const testWindow = window as unknown as Record<string, unknown>
+  delete testWindow.__WUJIE_TEST_EVENTS
+  delete testWindow.__WUJIE_TEST_TRIGGER_LOAD_ERROR
+})
+
 describe('WujieChild', () => {
   it('mounts the child in a concrete host and reports MOUNTED', async () => {
     const onState = vi.fn()
@@ -40,11 +46,17 @@ describe('WujieChild', () => {
     expect(screen.getByTestId('wujie-host-idp')).toBeInTheDocument()
     expect(vi.mocked(startApp)).toHaveBeenCalledWith(expect.objectContaining({
       name: 'idp',
-      url: '/children/idp/',
+      url: expect.stringMatching(/\/overview$/),
       el: screen.getByTestId('wujie-host-idp'),
+      attrs: {src: 'about:blank'},
       fiber: false,
-      sync: true,
+      sync: false,
     }))
+    expect(screen.getByTestId('wujie-host-idp')).toHaveStyle({
+      height: 'calc(100vh - 160px)',
+      minHeight: '640px',
+      overflow: 'hidden',
+    })
   })
 
   it('turns a Core mount rejection into a recoverable mount failure', async () => {

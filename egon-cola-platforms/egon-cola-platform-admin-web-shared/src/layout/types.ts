@@ -63,4 +63,8 @@ export interface EnterpriseLayoutConfig extends EnterpriseHeaderConfig {
   readonly footer?: EnterpriseFooterConfig
   /** 内容区自定义样式，会覆盖默认 padding。 */
   readonly contentStyle?: CSSProperties
+  /** Embedded child shell can hide the host-owned header without losing its domain navigation. */
+  readonly hideHeader?: boolean
+  /** Embedded child shell can hide the host-owned footer without changing content geometry. */
+  readonly hideFooter?: boolean
 }

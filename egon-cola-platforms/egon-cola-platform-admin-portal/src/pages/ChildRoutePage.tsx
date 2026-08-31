@@ -95,7 +95,7 @@ export const ChildRoutePage = () => {
   if (!platformKey || !item) {
     content = <Result status="404" title="平台不存在" subTitle="请从左侧平台菜单进入有效的子应用。" />
   } else if (manifestQuery.isPending) {
-    content = <Spin tip="加载子应用清单" />
+    content = <Spin description="加载子应用清单" />
   } else if (manifestQuery.error) {
     content = (
       <MountFailure
@@ -120,7 +120,7 @@ export const ChildRoutePage = () => {
       hostVersion: PORTAL_HOST_VERSION,
     })
     content = (
-      <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+      <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
         {isFailure && (
           <MountFailure
             message={lifecycle.status === 'CRASHED' ? '子应用运行异常' : '子应用加载失败'}

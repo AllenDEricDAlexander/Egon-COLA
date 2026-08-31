@@ -9,7 +9,9 @@ export { ApiError, classifyApiError, type ErrorClassification } from './api/erro
 // Auth
 export {
     createGatewayAuthClient,
+    GatewayAuthError,
     type GatewayAuthClient,
+    type GatewayAuthErrorCode,
     type GatewayAuthClientOptions,
     type GatewayLoginRequest,
     type GatewayLoginResult,

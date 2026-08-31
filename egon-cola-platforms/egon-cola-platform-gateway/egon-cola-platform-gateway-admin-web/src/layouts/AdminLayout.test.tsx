@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   mcp: true,
 }))
 
+type WujieTestWindow = Window & { $wujie?: { props?: { embedded?: boolean } } }
+
 vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({
       authorization: {user: {identitySub: 'Admin'}},
@@ -20,18 +22,21 @@ vi.mock('../app/capabilities', () => ({
   useCapability: (capability: string) => capability === 'gateway:mcp:read' ? mocks.mcp : true,
 }))
 
-const renderLayout = (path = '/dashboard') => render(
-  <QueryClientProvider client={new QueryClient()}>
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route path="/" element={<AdminLayout />}>
-          <Route path="dashboard" element={<div>Dashboard</div>} />
-          <Route path="*" element={<div>Detail</div>} />
-        </Route>
-      </Routes>
-    </MemoryRouter>
-  </QueryClientProvider>,
-)
+const renderLayout = (path = '/dashboard', embedded = false) => {
+  ;(window as WujieTestWindow).$wujie = embedded ? {props: {embedded: true}} : undefined
+  return render(
+    <QueryClientProvider client={new QueryClient()}>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/" element={<AdminLayout />}>
+            <Route path="dashboard" element={<div>Dashboard</div>} />
+            <Route path="*" element={<div>Detail</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  )
+}
 
 beforeEach(() => {
   mocks.logout.mockReset().mockResolvedValue(undefined)
@@ -48,10 +53,18 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  delete (window as WujieTestWindow).$wujie
   vi.unstubAllGlobals()
 })
 
 describe('AdminLayout', () => {
+  it('keeps Gateway navigation in embedded mode', () => {
+    renderLayout('/dashboard', true)
+
+    expect(screen.getByText('网关治理')).toBeInTheDocument()
+    expect(screen.queryByText('Gateway Admin')).not.toBeInTheDocument()
+  })
+
   it('keeps the shared shell while removing global scope selectors', () => {
     renderLayout()
     expect(screen.getByText('Gateway Admin')).toBeInTheDocument()

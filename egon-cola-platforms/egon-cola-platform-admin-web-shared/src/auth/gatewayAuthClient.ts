@@ -15,6 +15,32 @@ export interface GatewayLoginResult {
     readonly mustChangePassword: boolean
 }
 
+export type GatewayAuthErrorCode =
+    | 'NETWORK_OR_TIMEOUT'
+    | 'HTTP_ERROR'
+    | 'CSRF_FAILED'
+    | 'INVALID_RESPONSE'
+    | 'INVALID_INPUT'
+
+export class GatewayAuthError extends Error {
+    readonly code: GatewayAuthErrorCode
+    readonly path: string
+    readonly status?: number
+
+    constructor(
+        code: GatewayAuthErrorCode,
+        path: string,
+        message: string,
+        status?: number,
+    ) {
+        super(message)
+        this.name = 'GatewayAuthError'
+        this.code = code
+        this.path = path
+        this.status = status
+    }
+}
+
 /**
  * Browser authentication transport for the public Gateway identity routes.
  * USER access and refresh tokens stay in HttpOnly cookies; this client never
@@ -41,35 +67,86 @@ export const createGatewayAuthClient = (
     const request = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
         const headers = new Headers(init.headers)
         headers.set('Accept', 'application/json')
-        const response = await fetcher(`${baseUrl}${path}`, {
-            ...init,
-            credentials: 'include',
-            headers,
-        })
+        let response: Response
+        try {
+            response = await fetcher(`${baseUrl}${path}`, {
+                ...init,
+                credentials: 'include',
+                headers,
+            })
+        } catch {
+            throw new GatewayAuthError(
+                'NETWORK_OR_TIMEOUT',
+                path,
+                'Gateway authentication service is unreachable',
+            )
+        }
         if (!response.ok) {
-            const body = await response.json().catch(() => ({})) as {
-                error?: string
-                error_description?: string
-                message?: string
-            }
-            throw new Error(
-                body.error_description ?? body.message ?? body.error ?? `Gateway authentication failed (${response.status})`,
+            throw new GatewayAuthError(
+                'HTTP_ERROR',
+                path,
+                `Gateway authentication request failed (${response.status})`,
+                response.status,
             )
         }
         if (response.status === 204) return undefined as T
-        const payload = await response.json() as unknown
+        let payload: unknown
+        try {
+            payload = await response.json() as unknown
+        } catch {
+            throw new GatewayAuthError(
+                'INVALID_RESPONSE',
+                path,
+                'Gateway authentication response is invalid',
+                response.status,
+            )
+        }
         if (isEnvelope(payload)) return payload.data as T
         return payload as T
     }
 
     const csrf = async (): Promise<string> => {
-        const response = await fetcher(`${baseUrl}/oauth2/login/csrf`, {
-            credentials: 'include',
-            headers: {Accept: 'application/json'},
-        })
-        if (!response.ok) throw new Error('Unable to establish a login security transaction')
-        const body = await response.json().catch(() => ({})) as { token?: string }
-        if (!body.token) throw new Error('Gateway login CSRF response is invalid')
+        const path = '/oauth2/login/csrf'
+        let response: Response
+        try {
+            response = await fetcher(`${baseUrl}${path}`, {
+                credentials: 'include',
+                headers: {Accept: 'application/json'},
+            })
+        } catch {
+            throw new GatewayAuthError(
+                'NETWORK_OR_TIMEOUT',
+                path,
+                'Gateway authentication service is unreachable',
+            )
+        }
+        if (!response.ok) {
+            throw new GatewayAuthError(
+                'CSRF_FAILED',
+                path,
+                `Gateway login security challenge failed (${response.status})`,
+                response.status,
+            )
+        }
+        let body: { token?: string }
+        try {
+            body = await response.json() as { token?: string }
+        } catch {
+            throw new GatewayAuthError(
+                'INVALID_RESPONSE',
+                path,
+                'Gateway login CSRF response is invalid',
+                response.status,
+            )
+        }
+        if (!body.token) {
+            throw new GatewayAuthError(
+                'CSRF_FAILED',
+                path,
+                'Gateway login CSRF response is invalid',
+                response.status,
+            )
+        }
         return body.token
     }
 
@@ -121,6 +198,8 @@ const normalizeBaseUrl = (value: string): string => {
 
 const required = (value: string, name: string): string => {
     const normalized = value.trim()
-    if (!normalized) throw new Error(`${name} is required`)
+    if (!normalized) {
+        throw new GatewayAuthError('INVALID_INPUT', '/oauth2/login', `${name} is required`)
+    }
     return normalized
 }

@@ -6,6 +6,8 @@ import AdminLayout from './AdminLayout'
 
 const logout = vi.fn()
 
+type WujieTestWindow = Window & { $wujie?: { props?: { embedded?: boolean } } }
+
 vi.mock('../auth/AuthContext', () => ({
   useAuth: () => ({
     token: 'token',
@@ -32,18 +34,21 @@ const setViewport = (width: number) => {
   })
 }
 
-const renderLayout = (path = '/registry') => render(
-  <AntdApp>
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route path="/" element={<AdminLayout />}>
-          <Route path="registry" element={<div>注册页内容</div>} />
-          <Route path="instances" element={<div>实例页内容</div>} />
-        </Route>
-      </Routes>
-    </MemoryRouter>
-  </AntdApp>,
-)
+const renderLayout = (path = '/registry', embedded = false) => {
+  ;(window as WujieTestWindow).$wujie = embedded ? {props: {embedded: true}} : undefined
+  return render(
+    <AntdApp>
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route path="/" element={<AdminLayout />}>
+            <Route path="registry" element={<div>注册页内容</div>} />
+            <Route path="instances" element={<div>实例页内容</div>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>
+    </AntdApp>,
+  )
+}
 
 beforeEach(() => {
   logout.mockClear()
@@ -51,9 +56,19 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  delete (window as WujieTestWindow).$wujie
 })
 
 describe('AdminLayout', () => {
+  it('keeps DDC runtime and metadata navigation when embedded', () => {
+    setViewport(1280)
+    renderLayout('/registry', true)
+
+    expect(screen.getByText('运行状态')).toBeInTheDocument()
+    expect(screen.getByText('元数据管理')).toBeInTheDocument()
+    expect(screen.queryByText('DDC Admin')).not.toBeInTheDocument()
+  })
+
   it('renders the unified Banner and grouped left navigation on desktop', () => {
     setViewport(1280)
     renderLayout()

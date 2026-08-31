@@ -180,6 +180,39 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('IdP Admin application providers', () => {
+  it('renders the IDP domain navigation when embedded', async () => {
+    const originalMatchMedia = window.matchMedia
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: (query: string) => ({
+        matches: query.includes('min-width'),
+        media: query,
+        onchange: null,
+        addListener: () => undefined,
+        removeListener: () => undefined,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+        dispatchEvent: () => false,
+      }),
+    })
+    try {
+      window.history.replaceState({}, '', '/overview')
+      render(<App embedded />)
+
+      await waitFor(() => expect(screen.getByText('当前授权上下文')).toBeInTheDocument())
+      await waitFor(() => expect(screen.getByRole('navigation', {name: '主菜单'})).toBeInTheDocument())
+      expect(screen.getByText('身份目录')).toBeInTheDocument()
+      expect(screen.queryByText('统一身份平台')).not.toBeInTheDocument()
+    } finally {
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        writable: true,
+        value: originalMatchMedia,
+      })
+    }
+  })
+
   it.each([
     ['/users', '/api/v1/identity/users', 'alice'],
     ['/clients', '/api/v1/identity/clients', 'IdP Admin Web'],

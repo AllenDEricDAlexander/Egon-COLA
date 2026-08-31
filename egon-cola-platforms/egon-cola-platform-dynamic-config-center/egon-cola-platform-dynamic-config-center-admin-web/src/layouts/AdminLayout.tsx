@@ -48,8 +48,6 @@ export default function AdminLayout() {
   const { identity, logout } = useAuth()
   const embedded = (window as WujieRuntimeWindow).$wujie?.props?.embedded === true
 
-  if (embedded) return <Outlet />
-
   const config: EnterpriseLayoutConfig = {
     platformName: 'DDC Admin',
     navigation,
@@ -69,9 +67,12 @@ export default function AdminLayout() {
     },
     footer: { version },
   }
+  const layoutConfig: EnterpriseLayoutConfig = embedded
+    ? {...config, hideHeader: true, hideFooter: true}
+    : config
 
   return (
-    <EnterpriseLayout config={config}>
+    <EnterpriseLayout config={layoutConfig}>
       <Outlet />
     </EnterpriseLayout>
   )

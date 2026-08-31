@@ -43,13 +43,13 @@ const setViewport = (wide: boolean) => {
   }))
 }
 
-const renderLayout = (initialPath = '/registry') => render(
+const renderLayoutWith = (layoutConfig: EnterpriseLayoutConfig, initialPath = '/registry') => render(
   <MemoryRouter initialEntries={[initialPath]}>
     <Routes>
       <Route
         path="/"
         element={(
-          <EnterpriseLayout config={config}>
+          <EnterpriseLayout config={layoutConfig}>
             <Outlet />
           </EnterpriseLayout>
         )}
@@ -61,6 +61,8 @@ const renderLayout = (initialPath = '/registry') => render(
     </Routes>
   </MemoryRouter>,
 )
+
+const renderLayout = (initialPath = '/registry') => renderLayoutWith(config, initialPath)
 
 beforeAll(async () => {
   await initI18n({ lng: 'zh-CN', resources: { 'zh-CN': {} } })
@@ -89,6 +91,15 @@ describe('EnterpriseLayout', () => {
     expect(screen.getByText('版本 v5.3.2')).toBeInTheDocument()
     expect(screen.getByText(`© ${new Date().getFullYear()} Egon COLA · DDC Admin`))
       .toBeInTheDocument()
+  })
+
+  it('keeps the domain menu while hiding duplicate embedded shell regions', () => {
+    renderLayoutWith({...config, hideHeader: true, hideFooter: true})
+
+    expect(screen.queryByText('DDC Admin')).not.toBeInTheDocument()
+    expect(screen.queryByText(/版本 v5\.3\.2/)).not.toBeInTheDocument()
+    expect(screen.getByRole('navigation', {name: '主菜单'})).toBeInTheDocument()
+    expect(screen.getByText('服务注册')).toBeInTheDocument()
   })
 
   it('highlights the navigation item matching the current route', () => {
