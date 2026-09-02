@@ -288,4 +288,26 @@ assert !livingText.contains("grade_id` 路由")
 assert !livingText.contains("JpaRepository")
 assert !livingText.contains("UuidV7")
 
+def sourceBoundaryFiles = []
+projectDir.eachFileRecurse { candidate ->
+    def candidatePath = projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
+    if (candidate.isFile() && !candidatePath.startsWith('target/')) {
+        sourceBoundaryFiles << candidate
+    }
+}
+assert sourceBoundaryFiles.every { candidate ->
+    def candidatePath = projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
+    !candidatePath.contains('.generated')
+}
+[
+    'top.egon.internal.archetype.source',
+    'egon-cola-source-web-open',
+    '0.1.0-SNAPSHOT'
+].each { forbiddenToken ->
+    sourceBoundaryFiles.each { candidate ->
+        assert !candidate.getText('UTF-8').contains(forbiddenToken):
+                "Generated project leaked source sentinel ${forbiddenToken} in ${candidate}"
+    }
+}
+
 println "Web Open archetype verifier: Common MyBatis-Plus/Long/tenant contract passed"
