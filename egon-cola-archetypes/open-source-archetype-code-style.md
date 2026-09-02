@@ -1,8 +1,26 @@
 # Open-source Archetype Code Style
 
-This guide is for contributors extending the `-open` templates and for teams
-reviewing a generated project. It is a maintenance guide, not a replacement for
-the approved family specification or the generated project's product README.
+This guide is for contributors maintaining the normal `-open` source projects
+and for teams reviewing a generated project. It is a maintenance guide, not a
+replacement for the approved family specification or the generated project's
+product README.
+
+## Two-stage ownership
+
+Edit the normal Maven projects under `egon-cola-archetypes/source-projects`
+(`egon-cola-source-*`), where Java, resources, tests and module POMs use the
+standard `src/main` and `src/test` layout. The package modules consume the
+ignored `.generated` output produced by:
+
+```bash
+./scripts/generate_archetypes.sh generate
+./scripts/generate_archetypes.sh check
+```
+
+Do not edit or recreate business files under a package module's
+`src/main/resources/archetype-resources`; that directory is a derived release
+input. The package module keeps only curated `META-INF` descriptors and the
+legacy migration archive explicitly protected by its family contract.
 
 ## Package and module ownership
 

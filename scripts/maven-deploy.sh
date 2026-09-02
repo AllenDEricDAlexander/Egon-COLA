@@ -4,6 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MVNW="${ROOT_DIR}/mvnw"
+GENERATOR="${ROOT_DIR}/scripts/generate_archetypes.sh"
 
 usage() {
   cat <<'USAGE'
@@ -18,14 +19,16 @@ Targets:
   list                              Print the supported targets and exit
 
 Options:
-  --dry-run                         Run release verification only (default)
+  --dry-run                         Run the mandatory preflight only (default)
   --publish                         Run the Maven deploy lifecycle
-  --skip-tests                      Add -DskipTests to the Maven command
+  --skip-tests                      Add -DskipTests only to the final deploy after preflight
   -h, --help                        Show this help
 
-The script never generates or starts a business application and never executes
-database SQL. A real publish is opt-in through --publish and uses the existing
-root or archetypes Maven reactor so parent/dependency order stays explicit.
+The script always runs the source install, archetype generation/check, full
+archetype integration tests, and a no-signature release-shape preflight before
+the optional final deploy. It never starts a business application or executes
+database SQL. A real publish is opt-in through --publish; Central production
+publishing is documented for the all target only.
 USAGE
 }
 
@@ -87,6 +90,11 @@ if [[ ! -x "${MVNW}" ]]; then
   exit 1
 fi
 
+if [[ ! -x "${GENERATOR}" ]]; then
+  echo "Archetype generator is not executable: ${GENERATOR}" >&2
+  exit 1
+fi
+
 project_args=()
 case "${target}" in
   all)
@@ -102,23 +110,38 @@ esac
 
 cd "${ROOT_DIR}"
 
-maven_args=(-B -ntp -Prelease -DtrimStackTrace=false)
-if [[ "${skip_tests}" == true ]]; then
-  maven_args+=(-DskipTests)
-fi
+run_preflight() {
+  echo "Running mandatory source-to-archetype preflight..."
+  "${MVNW}" -B -ntp -N install
+  "${MVNW}" -B -ntp -N -f egon-cola-archetypes/pom.xml install
+  "${MVNW}" -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
+  "${GENERATOR}" generate
+  "${GENERATOR}" check
+  if [[ -n "$(git ls-files -- egon-cola-archetypes/.generated)" ]]; then
+    echo "Generated archetype workspace must remain ignored and untracked." >&2
+    exit 1
+  fi
+  "${MVNW}" -B -ntp -f egon-cola-archetypes/pom.xml clean integration-test
+  "${MVNW}" -B -ntp -Prelease -Dgpg.skip=true clean verify
+}
+
+echo "Maven target: ${target}"
+echo "Maven mode: ${mode}"
+run_preflight
 
 if [[ "${mode}" == deploy ]]; then
-  version="$("${MVNW}" "${project_args[@]}" -q help:evaluate -Dexpression=project.version -DforceStdout)"
+  version="$("${MVNW}" -f pom.xml -q -N help:evaluate -Dexpression=project.version -DforceStdout)"
   if [[ -z "${version}" || "${version}" == *-SNAPSHOT ]]; then
     echo "Maven Central publish requires a non-SNAPSHOT project version; resolved '${version}'." >&2
     exit 1
   fi
+  maven_args=(-B -ntp -Prelease -DtrimStackTrace=false)
+  if [[ "${skip_tests}" == true ]]; then
+    maven_args+=(-DskipTests)
+  fi
   lifecycle=(clean deploy)
+  echo "Maven command: ./mvnw ${project_args[*]} ${maven_args[*]} ${lifecycle[*]}"
+  "${MVNW}" "${project_args[@]}" "${maven_args[@]}" "${lifecycle[@]}"
 else
-  lifecycle=(clean verify)
+  echo "Preflight completed; no Maven deploy was requested."
 fi
-
-echo "Maven target: ${target}"
-echo "Maven mode: ${mode}"
-echo "Maven command: ./mvnw ${project_args[*]} ${maven_args[*]} ${lifecycle[*]}"
-"${MVNW}" "${project_args[@]}" "${maven_args[@]}" "${lifecycle[@]}"

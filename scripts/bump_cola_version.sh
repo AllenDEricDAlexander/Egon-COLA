@@ -38,35 +38,39 @@ escape_sed_pattern() {
 
 find_project_poms() {
     find "$PROJECT_ROOT" \
-        -type d \( -name .git -o -name .worktrees -o -name target \) -prune -o \
+        -type d \( -name .git -o -name .worktrees -o -name target -o -name '.generated*' \) -prune -o \
         -type f -name pom.xml -print0
 }
 
-find_archetype_template_poms() {
-    local archetypes_dir="$PROJECT_ROOT/egon-cola-archetypes"
+find_archetype_source_poms() {
+    local source_projects_dir="$PROJECT_ROOT/egon-cola-archetypes/source-projects"
 
-    [[ -d "$archetypes_dir" ]] || return 0
+    [[ -d "$source_projects_dir" ]] || return 0
 
-    find "$archetypes_dir" \
-        -type d -name target -prune -o \
-        -type f -path '*/src/main/resources/archetype-resources/*' -name pom.xml -print0
+    find "$source_projects_dir" \
+        -type d \( -name .git -o -name .worktrees -o -name target -o -name '.generated*' \) -prune -o \
+        -type f -name pom.xml -print0
 }
 
-verify_archetype_pom_versions() {
+verify_archetype_source_pom_versions() {
     local expected_version="$1"
     local pom_file
     local version_tag
     local actual_version
+    local found_count=0
 
     while IFS= read -r -d '' pom_file; do
         while IFS= read -r version_tag; do
             [[ -n "$version_tag" ]] || continue
+            found_count=$((found_count + 1))
             actual_version="${version_tag#<egon-cola.version>}"
             actual_version="${actual_version%</egon-cola.version>}"
             [[ "$actual_version" == "$expected_version" ]] || \
                 die "$pom_file uses egon-cola.version $actual_version; expected $expected_version"
         done < <(grep -Eo '<egon-cola\.version>[^<]*</egon-cola\.version>' "$pom_file" || true)
-    done < <(find_archetype_template_poms)
+    done < <(find_archetype_source_poms)
+
+    ((found_count > 0)) || die 'no archetype source POMs declare egon-cola.version'
 }
 
 backup_versioned_files() {
@@ -129,7 +133,7 @@ cleanup_on_exit() {
     exit "$status"
 }
 
-update_archetype_pom_versions() {
+update_archetype_source_pom_versions() {
     local current_version="$1"
     local new_version="$2"
     local current_tag="<egon-cola.version>$current_version</egon-cola.version>"
@@ -151,9 +155,9 @@ update_archetype_pom_versions() {
         sed "s|$escaped_current_tag|$new_tag|g" "$pom_file" > "$temp_file"
         cp "$temp_file" "$pom_file"
         updated_count=$((updated_count + 1))
-    done < <(find_archetype_template_poms)
+    done < <(find_archetype_source_poms)
 
-    printf 'Updated %d archetype template POM(s).\n' "$updated_count"
+    printf 'Updated %d archetype source POM(s).\n' "$updated_count"
 }
 
 find_readme_files() {
@@ -265,7 +269,7 @@ readonly CURRENT_VERSION
 [[ -n "$CURRENT_VERSION" && "$CURRENT_VERSION" != *$'\n'* ]] || \
     die 'could not determine the current project version'
 
-verify_archetype_pom_versions "$CURRENT_VERSION"
+verify_archetype_source_pom_versions "$CURRENT_VERSION"
 verify_ddc_readme_versions "$CURRENT_VERSION"
 
 if [[ "$CURRENT_VERSION" == "$NEW_VERSION" ]]; then
@@ -290,8 +294,8 @@ printf 'Updating Egon-COLA from %s to %s...\n' "$CURRENT_VERSION" "$NEW_VERSION"
     -DprocessAllModules=true \
     -DnewVersion="$NEW_VERSION"
 
-update_archetype_pom_versions "$CURRENT_VERSION" "$NEW_VERSION"
-verify_archetype_pom_versions "$NEW_VERSION"
+update_archetype_source_pom_versions "$CURRENT_VERSION" "$NEW_VERSION"
+verify_archetype_source_pom_versions "$NEW_VERSION"
 update_readme_archetype_versions "$NEW_VERSION"
 verify_readme_archetype_versions "$NEW_VERSION"
 update_ddc_readme_versions "$CURRENT_VERSION" "$NEW_VERSION"

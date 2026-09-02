@@ -71,7 +71,14 @@ jobs:
               chmod +x ./mvnw
               java -version
               ./mvnw -version
-              ./mvnw -B -ntp clean install
+              ./mvnw -B -ntp -N install
+              ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml install
+              ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
+              ./scripts/generate_archetypes.sh generate
+              ./scripts/generate_archetypes.sh check
+              test -z "$(git ls-files -- egon-cola-archetypes/.generated)"
+              ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean integration-test
+              ./mvnw -B -ntp -Prelease -Dgpg.skip=true clean verify
             '
 
       - name: Verify bytecode component and release shape with a clean scan
@@ -163,14 +170,24 @@ jobs:
         run: |
           set -euo pipefail
 
-          ARCHETYPES=(
-            "egon-cola-archetype-light:light"
-            "egon-cola-archetype-service:service"
-            "egon-cola-archetype-web:web"
-            "egon-cola-archetype-light-open:light-open"
-            "egon-cola-archetype-service-open:service-open"
-            "egon-cola-archetype-web-open:web-open"
+          mapfile -t MANIFESTS < <(
+            find egon-cola-archetypes -type f \
+              -path '*/src/main/archetype/archetype.properties' \
+              -print | sort
           )
+          EXPECTED_MANIFESTS=0
+          while IFS= read -r PACKAGE_POM; do
+            if grep -Fq '<packaging>maven-archetype</packaging>' "${PACKAGE_POM}"; then
+              EXPECTED_MANIFESTS=$((EXPECTED_MANIFESTS + 1))
+            fi
+          done < <(
+            find egon-cola-archetypes -mindepth 2 -maxdepth 2 -type f \
+              -name pom.xml -print | sort
+          )
+          if [[ "${#MANIFESTS[@]}" -eq 0 || "${#MANIFESTS[@]}" -ne "${EXPECTED_MANIFESTS}" ]]; then
+            echo "Manifest/package count mismatch: manifests=${#MANIFESTS[@]}, packages=${EXPECTED_MANIFESTS}." >&2
+            exit 1
+          fi
 
           ROCKY_HOME="${RUNNER_TEMP}/rocky-home"
           HOST_WORK_DIR="${RUNNER_TEMP}/egon-cola-archetype-it"
@@ -198,11 +215,19 @@ jobs:
               bash -lc "${command}"
           }
 
-          for item in "${ARCHETYPES[@]}"; do
-            IFS=":" read -r ARCHETYPE_ARTIFACT_ID SHORT_NAME <<< "${item}"
+          for manifest in "${MANIFESTS[@]}"; do
+            TARGET_ARTIFACT_ID="$(sed -n 's/^targetArtifactId=//p' "${manifest}" | tr -d '\r')"
+            [[ "${TARGET_ARTIFACT_ID}" =~ ^egon-cola-archetype-[A-Za-z0-9-]+$ ]] || {
+              echo "Invalid targetArtifactId in ${manifest}: ${TARGET_ARTIFACT_ID}" >&2
+              exit 1
+            }
+            ARCHETYPE_ARTIFACT_ID="${TARGET_ARTIFACT_ID}"
+            SHORT_NAME="${TARGET_ARTIFACT_ID#egon-cola-archetype-}"
+            test -f "egon-cola-archetypes/${ARCHETYPE_ARTIFACT_ID}/pom.xml"
 
             APP_NAME="ci-${SHORT_NAME}-demo-java-${JAVA_VERSION}"
-            PACKAGE_NAME="top.egon.cola.ci.${SHORT_NAME}"
+            PACKAGE_SUFFIX="${SHORT_NAME//-/.}"
+            PACKAGE_NAME="top.egon.cola.ci.${PACKAGE_SUFFIX}"
 
             echo "Generating ${APP_NAME} by ${ARCHETYPE_ARTIFACT_ID}:${PROJECT_VERSION}"
 

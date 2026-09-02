@@ -72,10 +72,18 @@ jobs:
               chmod +x ./mvnw
               java -version
               ./mvnw -version
+              ./mvnw -B -ntp -N install
+              ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml install
+              ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
+              ./scripts/generate_archetypes.sh generate
+              ./scripts/generate_archetypes.sh check
+              test -z "$(git ls-files -- egon-cola-archetypes/.generated)"
+              ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean integration-test
               ./mvnw -B -ntp \
                 -DtrimStackTrace=false \
                 -Dgpg.skip=true \
-                clean install
+                -Prelease \
+                clean verify
             '
 
       - name: Verify bytecode component and release shape with a clean scan

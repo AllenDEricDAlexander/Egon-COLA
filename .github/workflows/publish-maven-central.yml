@@ -176,11 +176,36 @@ jobs:
 
           echo "PROJECT_VERSION=${VERSION}" >> "${GITHUB_ENV}"
 
-      - name: Verify before publish
+      - name: Run source-to-archetype preflight
+        run: |
+          set -euo pipefail
+
+          ./mvnw -B -ntp -N install
+          ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml install
+          ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
+          ./scripts/generate_archetypes.sh generate
+          ./scripts/generate_archetypes.sh check
+          test -z "$(git ls-files -- egon-cola-archetypes/.generated)"
+          ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean integration-test
+
+      - name: Verify release shape (dry run)
         if: ${{ inputs.dry_run == true }}
+        run: |
+          set -euo pipefail
+
+          MVN_ARGS=(
+            -B
+            -ntp
+            -Prelease
+            -DtrimStackTrace=false
+            -Dgpg.skip=true
+          )
+
+          ./mvnw -f pom.xml "${MVN_ARGS[@]}" clean verify
+
+      - name: Build and inspect signed release artifacts before deploy
+        if: ${{ inputs.dry_run == false }}
         env:
-          CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
-          CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           set -euo pipefail
@@ -197,7 +222,43 @@ jobs:
             MVN_ARGS+=("-DskipTests")
           fi
 
-          ./mvnw ${{ steps.target.outputs.maven_project_args }} "${MVN_ARGS[@]}" clean verify
+          ./mvnw -f pom.xml "${MVN_ARGS[@]}" clean verify
+
+          mapfile -t MANIFESTS < <(
+            find egon-cola-archetypes -type f \
+              -path '*/src/main/archetype/archetype.properties' \
+              -print | sort
+          )
+          EXPECTED_MANIFESTS=0
+          while IFS= read -r PACKAGE_POM; do
+            if grep -Fq '<packaging>maven-archetype</packaging>' "${PACKAGE_POM}"; then
+              EXPECTED_MANIFESTS=$((EXPECTED_MANIFESTS + 1))
+            fi
+          done < <(
+            find egon-cola-archetypes -mindepth 2 -maxdepth 2 -type f \
+              -name pom.xml -print | sort
+          )
+          if [[ "${#MANIFESTS[@]}" -eq 0 || "${#MANIFESTS[@]}" -ne "${EXPECTED_MANIFESTS}" ]]; then
+            echo "Manifest/package count mismatch: manifests=${#MANIFESTS[@]}, packages=${EXPECTED_MANIFESTS}." >&2
+            exit 1
+          fi
+
+          for manifest in "${MANIFESTS[@]}"; do
+            TARGET_ARTIFACT_ID="$(sed -n 's/^targetArtifactId=//p' "${manifest}" | tr -d '\r')"
+            MODULE_DIR="egon-cola-archetypes/${TARGET_ARTIFACT_ID}"
+            test -f "${MODULE_DIR}/pom.xml"
+            grep -Fq "<artifactId>${TARGET_ARTIFACT_ID}</artifactId>" "${MODULE_DIR}/pom.xml"
+            for classifier in jar sources.jar javadoc.jar; do
+              case "${classifier}" in
+                jar) artifact="${MODULE_DIR}/target/${TARGET_ARTIFACT_ID}-${PROJECT_VERSION}.jar" ;;
+                sources.jar) artifact="${MODULE_DIR}/target/${TARGET_ARTIFACT_ID}-${PROJECT_VERSION}-sources.jar" ;;
+                javadoc.jar) artifact="${MODULE_DIR}/target/${TARGET_ARTIFACT_ID}-${PROJECT_VERSION}-javadoc.jar" ;;
+              esac
+              test -s "${artifact}"
+              test -s "${artifact}.asc"
+            done
+          done
+          echo "Verified signed main/sources/javadoc artifacts for ${#MANIFESTS[@]} archetypes."
 
       - name: Publish to Maven Central
         if: ${{ inputs.dry_run == false }}

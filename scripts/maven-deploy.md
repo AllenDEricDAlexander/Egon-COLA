@@ -23,6 +23,7 @@ Egon-COLA
 │   └── egon-cola-platform-*          # 企业级基础设施平台
 └── egon-cola-archetypes
     ├── egon-cola-archetypes-parent   # Archetypes Parent POM
+    │   └── source-projects            # 可编辑的正常 Maven 源码（不发布）
     ├── egon-cola-archetype-light
     ├── egon-cola-archetype-service
     └── egon-cola-archetype-web
@@ -33,10 +34,11 @@ Egon-COLA
 ```mermaid
 flowchart TD
     A[修改版本号] --> B[本地构建验证]
-    B --> C[Release Profile 验证]
-    C --> D[Deploy 生命周期 Dry Run]
-    D --> E[从根 Reactor 统一发布全部模块]
-    E --> F[创建 Git Tag / Release Note]
+    B --> C[正常源码 clean install]
+    C --> D[generate + check]
+    D --> E[Archetype IT + release shape]
+    E --> F[从根 Reactor 统一发布全部模块]
+    F --> G[创建 Git Tag / Release Note]
 ```
 
 DDC 归属 Platforms，但 RPC 组件消费 DDC Starter，Gateway 又消费 RPC。这个依赖图在
@@ -72,10 +74,13 @@ DDC 归属 Platforms，但 RPC 组件消费 DDC Starter，Gateway 又消费 RPC�
 ./scripts/bump_cola_version.sh 5.x.y
 ```
 
-脚本会执行两件事：
+脚本会按两阶段所有权执行版本更新：
 
 1. 使用 `versions-maven-plugin` 修改 Reactor 中所有 Maven 模块版本。
-2. 同步更新 `README.md` 里的 archetype 使用示例版本。
+2. 动态发现 `egon-cola-archetypes/source-projects` 下声明 `<egon-cola.version>` 的正常源码根 POM 并同步更新。
+3. 同步更新 `README.md` 里的 archetype 使用示例版本。
+
+源码工程自身的 `0.1.0-SNAPSHOT` 坐标是生成器内部哨兵，不会被 bump；`.generated`、锁目录和临时派生物也不会被编辑。
 
 修改后建议检查：
 
@@ -165,42 +170,40 @@ gpg --armor --export-secret-keys <KEY_ID>
 
 ## 6. 本地验证
 
-### 6.1 基础验证
+### 6.1 两阶段完整预检
 
-只做基础 Maven 校验，不触发真实发布：
+`maven-deploy.sh` 的默认 dry-run 会执行以下不可跳过的顺序，不会上传 Central：
 
 ```bash
-./mvnw -B -ntp -DskipTests validate
+./mvnw -B -ntp -N install
+./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml install
+./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
+./scripts/generate_archetypes.sh generate
+./scripts/generate_archetypes.sh check
+./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean integration-test
+./mvnw -B -ntp -Prelease -Dgpg.skip=true clean verify
 ```
+
+也可以直接调用同一入口：
+
+```bash
+./scripts/maven-deploy.sh --dry-run
+```
+
+`--skip-tests` 不会跳过上述预检；它只在预检完成后、且确实选择 `--publish` 时传给最后一次 deploy。
 
 ### 6.2 Release Profile 验证
 
-验证根 Reactor 的完整发布构建：
+验证六个 Archetype 的 main/sources/javadoc 形态但跳过本地 GPG：
 
 ```bash
-./mvnw -B -ntp -Prelease -DskipTests verify
-```
-
-如果只是想验证 `release` profile 的 sources / javadocs 绑定，但本地暂时没有 GPG 环境，可以临时跳过签名：
-
-```bash
-./mvnw -B -ntp -Prelease -DskipTests -Dgpg.skip=true verify
+./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -Dgpg.skip=true clean verify
 ```
 
 注意：`-Dgpg.skip=true` 只能用于本地验证，不能用于真实发布。真实发布必须生成 `.asc` 签名文件。
 
-### 6.3 Deploy 生命周期 Dry Run
-
-验证 `deploy` 生命周期是否能跑通，但不上传到 Central：
-
-```bash
-./mvnw -B -ntp -Prelease -DskipTests -DskipPublishing=true clean deploy
-```
-
 根 Reactor 会在一个拓扑中验证全部 Parent POM 和子模块。不要先对同一版本运行
 parent-only 或局部 deploy，否则后续全量发布会重复发布不可覆盖的 Release 坐标。
-
-Dry Run 通过后，再进入真实发布。
 
 ---
 
@@ -209,8 +212,11 @@ Dry Run 通过后，再进入真实发布。
 同一版本没有执行过任何 parent-only 或局部发布后，从根 Reactor 一次性发布：
 
 ```bash
-./mvnw -B -ntp -f ./pom.xml -Prelease clean deploy
+./scripts/maven-deploy.sh all --publish
 ```
+
+该命令会先完整执行 source → generate/check → Archetype IT → release-shape 预检，随后只执行一次根 Reactor `clean deploy`。
+真实发布不能传 `-Dgpg.skip=true`；Central Portal 返回 `UNKNOWN` 时必须先按 deployment id 查询状态，不能盲目重放 deploy。
 
 发布后可以验证 BOM、DDC 平台和 Archetype 是否可解析：
 
@@ -266,7 +272,7 @@ GitHub Repository → Actions → Publish Maven Central → Run workflow
 工作流不再暴露 parent-only、Components-only 或 Platforms-only 目标，避免跨 Reactor
 依赖和 Maven Central Release 坐标不可覆盖共同造成半发布状态。
 
-`skip_tests=true` 可以用于手动发布加速，但正式 Release 前必须至少跑过一次完整 CI。发布不是许愿池，测试该还的债迟早会来敲门。
+`skip_tests=true` 只影响 mandatory preflight 成功后的最后一次 deploy；不会跳过 source install、生成器、Archetype IT、release-shape 或签名附件检查。正式 Release 前仍应保留一次完整 CI 证据。
 
 ---
 
@@ -319,6 +325,8 @@ git push origin v5.x.y
 | `repository element was not specified`                | 没有启用 `-Prelease`，或 release profile 未加载             | 确认命令包含 `-Prelease`，并使用 Central Publishing Plugin                       |
 | `Missing Signature`                                   | GPG 私钥不可用、Passphrase 错误、签名被跳过                      | 检查 `GPG_PRIVATE_KEY`、`GPG_PASSPHRASE`，不要在 deploy 中使用 `-Dgpg.skip=true` |
 | `Missing Sources/Javadocs`                            | `-Prelease` 未生效                                    | 使用 `-Prelease verify` 检查 `target` 下是否生成 sources / javadocs             |
+| `Generated archetype resources are missing`            | 未执行 source install/generate，或 `.generated` 不完整 | 执行 `./scripts/maven-deploy.sh --dry-run`，不要手工补写 package resources       |
+| Central Deployment 状态为 `UNKNOWN`                   | Portal 查询超时或网络中断                              | 保存 deployment id，先在 Portal 查询最终状态；不要自动重放 `deploy`             |
 | `gpg: signing failed: Inappropriate ioctl for device` | GPG 需要交互式 pinentry                                 | 确认 POM 中已配置 `--pinentry-mode loopback`                                 |
 | Javadoc 构建失败                                          | Java 21 doclint 或注释问题                              | 当前 POM 已关闭 doclint；仍失败时检查具体类注释或非法字符                                    |
 | JUnit Platform 发现测试失败                                 | JUnit Jupiter 与 JUnit Platform 版本不一致               | 保持 JUnit Jupiter 与 Spring Boot BOM 对齐                                  |
@@ -335,7 +343,7 @@ git push origin v5.x.y
 | 真实发布时使用 `-Dgpg.skip=true`        | Maven Central Release 必须有签名                 |
 | 同一版本重复发布                         | Release 版本不可覆盖                              |
 | 未验证 Parent POM 就直接发布子模块          | 子模块可能无法解析父 POM                              |
-| 首次发布直接使用 `all`                   | 失败时不好定位，容易把问题扩大                             |
+| 绕过预检直接发布或发布非 `all` 目标          | 可能产生未验证的半套 Central 坐标                           |
 | 把 Token / GPG 私钥写进文档             | 这是事故，不是配置                                   |
 
 ---
@@ -348,19 +356,13 @@ git push origin v5.x.y
 # 1. 修改版本
 ./scripts/bump_cola_version.sh 5.x.y
 
-# 2. 基础验证
-./mvnw -B -ntp validate
+# 2. 两阶段完整预检（不发布）
+./scripts/maven-deploy.sh --dry-run
 
-# 3. 根 Reactor Release Profile 验证
-./mvnw -B -ntp -Prelease -DskipTests verify
+# 3. 从根 Reactor 一次性发布（仅在确认版本、凭据和预检证据后）
+./scripts/maven-deploy.sh all --publish
 
-# 4. 根 Reactor Dry Run
-./mvnw -B -ntp -Prelease -DskipTests -DskipPublishing=true clean deploy
-
-# 5. 从根 Reactor 一次性发布
-./mvnw -B -ntp -Prelease -DskipTests clean deploy
-
-# 6. 打 Tag
+# 4. 打 Tag
 git tag -a v5.x.y -m "Release v5.x.y"
 git push origin v5.x.y
 ```
