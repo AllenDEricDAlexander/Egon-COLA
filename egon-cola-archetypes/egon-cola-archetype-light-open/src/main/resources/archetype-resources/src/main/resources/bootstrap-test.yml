@@ -1,9 +1,0 @@
-spring:
-  cloud:
-    discovery:
-      enabled: false
-    nacos:
-      config:
-        enabled: false
-      discovery:
-        enabled: false

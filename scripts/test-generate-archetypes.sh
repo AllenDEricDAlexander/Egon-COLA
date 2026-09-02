@@ -80,12 +80,17 @@ fi
 
 source_dir="$(cd "$(dirname "$source_pom")" && pwd -P)"
 mkdir -p "$output_directory/src/main/resources/archetype-resources/src/main/java"
+mkdir -p "$output_directory/src/main/resources/archetype-resources/src/main/resources"
 mkdir -p "$source_dir/target"
 printf 'maven-build-state-%s\n' "$counter" >"$source_dir/target/generated-by-fake-maven.txt"
 printf '<groupId>${groupId}</groupId>\n<artifactId>${artifactId}</artifactId>\n' \
   >"$output_directory/src/main/resources/archetype-resources/pom.xml"
 printf 'package ${package};\n' \
   >"$output_directory/src/main/resources/archetype-resources/src/main/java/Example.java"
+printf 'value=${APP_VALUE:default}\n' \
+  >"$output_directory/src/main/resources/archetype-resources/src/main/resources/application.yml"
+printf '## Fixture heading\n' \
+  >"$output_directory/src/main/resources/archetype-resources/README.md"
 printf 'source=%s\n' "$source_dir" \
   >"$output_directory/src/main/resources/archetype-resources/source.txt"
 EOF
@@ -191,6 +196,10 @@ test_atomic_failure_and_cleanup() {
 test_determinism_and_check() {
   rm -f "$FAKE_COUNTER_FILE"
   run_fixture_generator generate
+  assert_file_contains "$fixture_archetypes/.generated/package-b/archetype-resources/src/main/resources/application.yml" \
+    '${symbol_dollar}{APP_VALUE:default}' 'Velocity dollar escaping'
+  assert_file_contains "$fixture_archetypes/.generated/package-b/archetype-resources/README.md" \
+    '${symbol_pound}${symbol_pound} Fixture heading' 'Velocity pound escaping'
   first_hash="$(shasum -a 256 "$fixture_archetypes/.generated/package-b/archetype-resources/source.txt" | awk '{print $1}')"
   current_manifest="$(shasum -a 256 "$fixture_archetypes/.generated/package-b/generation-manifest.sha256" | awk '{print $1}')"
   run_fixture_generator check

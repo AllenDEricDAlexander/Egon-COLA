@@ -259,6 +259,114 @@ normalize_text_tree() {
   done < <(find "$1" -type f -print | LC_ALL=C sort)
 }
 
+escape_velocity_file() {
+  local file="$1" resources="$2" relative temp
+  relative="${file#"$resources"/}"
+  case "$relative" in
+    __gitignore__|.gitattributes|mvnw|mvnw.cmd|Jenkinsfile|.mvn/wrapper/maven-wrapper.properties|deploy/container/README.md|deploy/compose/*)
+      return 0
+      ;;
+  esac
+  LC_ALL=C grep -Iq . "$file" || return 0
+  temp="${file}.velocity.tmp.$$"
+  awk '
+    function allowed_token(token) {
+      return token == "artifactId" || token == "groupId" || token == "version" ||
+             token == "package" || token == "packageInPathFormat" ||
+             token == "rootArtifactId" || token == "symbol_pound" ||
+             token == "symbol_dollar" || token == "symbol_escape"
+    }
+    function escape_dollar(line, out, i, j, depth, token, ch, len) {
+      out = ""
+      i = 1
+      len = length(line)
+      while (i <= len) {
+        ch = substr(line, i, 1)
+        if (ch != "$") {
+          out = out ch
+          i++
+          continue
+        }
+        if (i < len && substr(line, i + 1, 1) == "{") {
+          j = i + 2
+          depth = 1
+          while (j <= len && depth > 0) {
+            ch = substr(line, j, 1)
+            if (ch == "{") {
+              depth++
+            } else if (ch == "}") {
+              depth--
+            }
+            j++
+          }
+          if (depth == 0) {
+            token = substr(line, i + 2, (j - 1) - (i + 2))
+            if (allowed_token(token)) {
+              out = out substr(line, i, j - i)
+              i = j
+              continue
+            }
+          }
+        }
+        out = out "${symbol_dollar}"
+        need_dollar = 1
+        i++
+      }
+      return out
+    }
+    function escape_pound(line, out, i, len, ch) {
+      out = ""
+      i = 1
+      len = length(line)
+      while (i <= len) {
+        ch = substr(line, i, 1)
+        if (ch == "#" && i < len && substr(line, i + 1, 1) == "#") {
+          out = out "${symbol_pound}${symbol_pound}"
+          need_pound = 1
+          i += 2
+        } else {
+          out = out ch
+          i++
+        }
+      }
+      return out
+    }
+    {
+      lines[++count] = $0
+      if ($0 ~ /^#set[[:space:]]*\(/) {
+        if ($0 ~ /symbol_dollar/) {
+          has_dollar = 1
+        }
+        if ($0 ~ /symbol_pound/) {
+          has_pound = 1
+        }
+        next
+      }
+      lines[count] = escape_dollar(lines[count])
+      lines[count] = escape_pound(lines[count])
+    }
+    END {
+      if (need_pound && !has_pound) {
+        print "#set( $symbol_pound = '\''#'\'' )"
+      }
+      if (need_dollar && !has_dollar) {
+        print "#set( $symbol_dollar = '\''$'\'' )"
+      }
+      for (i = 1; i <= count; i++) {
+        print lines[i]
+      }
+    }
+  ' "$file" >"$temp"
+  mv -- "$temp" "$file"
+}
+
+escape_velocity_tree() {
+  local resources="$1" file
+  while IFS= read -r file; do
+    escape_velocity_file "$file" "$resources"
+  done < <(find "$resources" -type f -print | LC_ALL=C sort)
+}
+
 normalize_first_root_artifact() {
   local file="$1" temp="$1.tmp.$$"
   awk -v replacement='${rootArtifactId}-parent' '
@@ -352,6 +460,7 @@ normalize_generated_product() {
   normalize_text_tree "$resources"
   overlay_source_poms "$resources"
   normalize_text_tree "$resources"
+  escape_velocity_tree "$resources"
   validate_no_source_sentinels "$resources"
   validate_topology "$resources"
 }
