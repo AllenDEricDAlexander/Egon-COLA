@@ -1,0 +1,4 @@
+/**
+ * Implements the domain course services with Common MyBatis-Plus primitives.
+ */
+package top.egon.cola.archetype.source.service.infrastructure.course.service.impl;

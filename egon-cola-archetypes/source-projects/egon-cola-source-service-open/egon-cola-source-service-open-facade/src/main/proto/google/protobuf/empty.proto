@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package google.protobuf;
+
+option java_multiple_files = true;
+option java_package = "top.egon.cola.archetype.source.serviceopen.facade.shared.v1";
+
+message Empty {
+}

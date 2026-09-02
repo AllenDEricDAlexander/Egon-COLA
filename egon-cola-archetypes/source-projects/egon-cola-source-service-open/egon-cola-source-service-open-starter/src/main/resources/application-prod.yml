@@ -1,0 +1,15 @@
+spring:
+app:
+  integrations:
+    organization:
+      enabled: ${ORGANIZATION_FACADE_ENABLED:true}
+      group: ${ORGANIZATION_FACADE_GROUP:student-management-organization}
+      version: ${ORGANIZATION_FACADE_SERVICE_VERSION:1.0.0}
+    rabbitmq:
+      enabled: ${RABBITMQ_ENABLED:true}
+      listener-auto-startup: ${RABBITMQ_LISTENER_AUTO_STARTUP:true}
+
+management:
+  endpoint:
+    health:
+      show-details: never

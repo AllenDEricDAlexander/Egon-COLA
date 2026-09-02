@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package egon.organization.v1;
+
+import "google/protobuf/empty.proto";
+
+option java_multiple_files = true;
+option java_package = "top.egon.cola.archetype.source.serviceopen.facade.organization.v1";
+
+service UserService {
+  rpc CreateUser(CreateUserRequest) returns (User);
+  rpc GetUser(GetUserRequest) returns (User);
+}
+
+service RoleService {
+  rpc AssignRole(AssignRoleRequest) returns (google.protobuf.Empty);
+}
+
+service PermissionService {
+  rpc GrantPermission(GrantPermissionRequest) returns (google.protobuf.Empty);
+  rpc GetPermissionTree(GetPermissionTreeRequest) returns (PermissionTree);
+}
+
+message CreateUserRequest {
+  string name = 1;
+  string email = 2;
+}
+
+message GetUserRequest {
+  int64 user_id = 1;
+}
+
+message AssignRoleRequest {
+  int64 user_id = 1;
+  string role_code = 2;
+}
+
+message GrantPermissionRequest {
+  string role_code = 1;
+  string permission_code = 2;
+}
+
+message GetPermissionTreeRequest {
+  int64 user_id = 1;
+}
+
+message User {
+  int64 id = 1;
+  string name = 2;
+  string email = 3;
+  string status = 4;
+  repeated string role_codes = 5;
+}
+
+message PermissionTree {
+  int64 user_id = 1;
+  repeated string permission_codes = 2;
+}

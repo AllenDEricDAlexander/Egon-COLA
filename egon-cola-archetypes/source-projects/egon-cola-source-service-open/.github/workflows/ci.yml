@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      # `verify` runs the architecture-governance plugin, which is bound to that phase.
+      - run: SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean verify
+      - run: SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp -DskipTests package
+      - run: >-
+          docker build
+          --build-arg CONTAINER_ENGINE=docker
+          --file deploy/container/Dockerfile
+          --tag egon-cola-source-service-open:ci
+          .

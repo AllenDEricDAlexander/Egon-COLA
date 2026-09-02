@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.archetype.source.service.infrastructure.exam.repo.dao.ScoreDAO">
+    <resultMap id="ScoreResultMap" type="top.egon.cola.archetype.source.service.infrastructure.exam.repo.po.ScorePO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user_id" property="updateUserId"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="exam_id" property="examId"/>
+        <result column="course_id" property="courseId"/>
+        <result column="student_id" property="studentId"/>
+        <result column="points" property="points"/>
+        <result column="status" property="status"/>
+    </resultMap>
+    <select id="selectByExamIdAndId" resultMap="ScoreResultMap">
+        SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, is_deleted,
+               exam_id, course_id, student_id, points, status
+        FROM evaluation_score
+        WHERE exam_id = #{examId} AND id = #{id} AND is_deleted = FALSE
+    </select>
+    <select id="countByExamIdAndStudentId" resultType="long">
+        SELECT COUNT(*) FROM evaluation_score
+        WHERE exam_id = #{examId} AND student_id = #{studentId} AND is_deleted = FALSE
+    </select>
+    <select id="selectPageByExamId" resultMap="ScoreResultMap">
+        SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, is_deleted,
+               exam_id, course_id, student_id, points, status
+        FROM evaluation_score
+        WHERE exam_id = #{examId} AND is_deleted = FALSE
+        ORDER BY create_time DESC, id ASC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+    <select id="countByExamId" resultType="long">
+        SELECT COUNT(*) FROM evaluation_score
+        WHERE exam_id = #{examId} AND is_deleted = FALSE
+    </select>
+</mapper>

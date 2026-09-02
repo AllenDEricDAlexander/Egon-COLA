@@ -1,0 +1,94 @@
+databaseName: ${app.sharding.database-name:${EVALUATION_SHARDING_DATABASE_NAME:evaluation}}
+
+rules:
+  - !SHARDING
+    tables:
+      evaluation_course:
+        actualDataNodes: master_data.evaluation_course
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      evaluation_course_schedule:
+        actualDataNodes: shard_$->{0..1}.evaluation_course_schedule_$->{0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_database_bucket
+        tableStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_table_bucket
+        auditStrategy:
+          auditorNames:
+            - sharding_key_required_auditor
+          allowHintDisable: false
+      evaluation_exam:
+        actualDataNodes: shard_$->{0..1}.evaluation_exam_$->{0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_database_bucket
+        tableStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_table_bucket
+        auditStrategy:
+          auditorNames:
+            - sharding_key_required_auditor
+          allowHintDisable: false
+      evaluation_exam_paper:
+        actualDataNodes: shard_$->{0..1}.evaluation_exam_paper_$->{0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_database_bucket
+        tableStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_table_bucket
+        auditStrategy:
+          auditorNames:
+            - sharding_key_required_auditor
+          allowHintDisable: false
+      evaluation_score:
+        actualDataNodes: shard_$->{0..1}.evaluation_score_$->{0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_database_bucket
+        tableStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_table_bucket
+        auditStrategy:
+          auditorNames:
+            - sharding_key_required_auditor
+          allowHintDisable: false
+    bindingTables:
+      - evaluation_exam,evaluation_exam_paper,evaluation_score
+    shardingAlgorithms:
+      tenant_long_database_bucket:
+        type: CLASS_BASED
+        props:
+          strategy: STANDARD
+          algorithmClassName: top.egon.cola.archetype.source.service.infrastructure.config.datasource.LongTenantShardingAlgorithm
+          target: database
+          node-count: ${app.sharding.routing.node-count}
+          node-map: ${app.sharding.routing.node-map}
+      tenant_long_table_bucket:
+        type: CLASS_BASED
+        props:
+          strategy: STANDARD
+          algorithmClassName: top.egon.cola.archetype.source.service.infrastructure.config.datasource.LongTenantShardingAlgorithm
+          target: table
+          node-count: ${app.sharding.routing.node-count}
+          node-map: ${app.sharding.routing.node-map}
+
+
+    auditors:
+      sharding_key_required_auditor:
+        type: DML_SHARDING_CONDITIONS
+
+props:
+  sql-show: ${SHARDING_SQL_SHOW:false}

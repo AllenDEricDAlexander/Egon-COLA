@@ -1,0 +1,16 @@
+spring:
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+    validate-migration-naming: true
+    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:false}
+    validate-on-migrate: true
+    clean-disabled: true
+app:
+  integrations:
+    organization:
+      enabled: ${ORGANIZATION_FACADE_ENABLED:true}
+      group: ${ORGANIZATION_FACADE_GROUP:student-management-organization}
+      version: ${ORGANIZATION_FACADE_SERVICE_VERSION:1.0.0}
+    rabbitmq:
+      enabled: ${RABBITMQ_ENABLED:true}
+      listener-auto-startup: ${RABBITMQ_LISTENER_AUTO_STARTUP:true}
