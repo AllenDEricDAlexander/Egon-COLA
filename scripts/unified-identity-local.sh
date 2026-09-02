@@ -587,6 +587,8 @@ write_service_env_files() {
   write_env "${file}" IDP_AUTHORIZATION_REDIS_DATABASE 8
   write_env "${file}" IDP_ADVERTISED_PORT 18120
   write_env "${file}" IDP_OAUTH_LOGIN_URI http://127.0.0.1:18121/login
+  write_env "${file}" IDP_OAUTH_ALLOWED_ORIGINS \
+    http://127.0.0.1:18121,http://127.0.0.1:18125,http://127.0.0.1:18131,http://127.0.0.1:18141,http://127.0.0.1:18152
   write_env "${file}" IDP_REFRESH_COOKIE_SECURE false
   write_env "${file}" IDP_SIGNING_KEY_KID idp-local
   write_env "${file}" IDP_SIGNING_PRIVATE_KEY_FILE "${secret_dir}/idp-private.pem"
