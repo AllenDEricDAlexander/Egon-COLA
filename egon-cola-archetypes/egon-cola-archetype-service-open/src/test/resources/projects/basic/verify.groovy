@@ -242,3 +242,26 @@ javaFiles.each { candidate ->
 assert file("README.md").text.contains("MyBatis-Plus")
 assert file("README.md").text.contains("Proto")
 assert file("README.md").text.contains("Springdoc")
+
+def sourceBoundaryFiles = []
+projectDir.eachFileRecurse { candidate ->
+    def candidatePath = projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
+    if (candidate.isFile() && !candidatePath.startsWith('target/')) {
+        sourceBoundaryFiles << candidate
+    }
+}
+assert sourceBoundaryFiles.every { candidate ->
+    def relativePath = projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
+    !relativePath.contains('.generated')
+}
+[
+    'top.egon.internal.archetype.source',
+    'egon-cola-source-service-open',
+    '0.1.0-SNAPSHOT'
+].each { forbiddenToken ->
+    sourceBoundaryFiles.each { candidate ->
+        assert !candidate.getText('UTF-8').contains(forbiddenToken):
+                "Generated project leaked source sentinel ${forbiddenToken} in ${candidate}"
+    }
+}
+true

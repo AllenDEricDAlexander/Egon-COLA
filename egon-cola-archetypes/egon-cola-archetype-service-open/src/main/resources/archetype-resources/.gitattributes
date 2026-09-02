@@ -1,7 +1,0 @@
-* text=auto
-*.java text eol=lf
-*.xml text eol=lf
-*.yml text eol=lf
-*.yaml text eol=lf
-mvnw text eol=lf
-mvnw.cmd text eol=crlf

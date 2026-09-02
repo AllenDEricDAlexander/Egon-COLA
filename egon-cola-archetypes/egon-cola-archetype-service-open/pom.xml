@@ -11,6 +11,10 @@
     <packaging>maven-archetype</packaging>
     <name>egon-cola-archetype-service-open</name>
     <description>egon-cola-archetype-service-open</description>
+
+    <properties>
+        <archetype.preflight.skip>false</archetype.preflight.skip>
+    </properties>
     <url>https://github.com/AllenDEricDAlexander/Egon-COLA</url>
 
     <licenses>
@@ -64,4 +68,31 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>${project.basedir}/../.generated/${project.artifactId}</directory>
+                <filtering>false</filtering>
+                <includes>
+                    <include>archetype-resources/**</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>${project.basedir}/src/main/resources</directory>
+                <filtering>false</filtering>
+                <includes>
+                    <include>META-INF/**</include>
+                </includes>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <artifactId>maven-enforcer-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>
