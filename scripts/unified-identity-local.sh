@@ -863,7 +863,7 @@ write_service_env_files() {
     https://api.egon.internal/local/permission/idp
   write_env "${file}" IDP_REFRESH_STATUS_SCOPES idp:refresh-token:validate
   write_env "${file}" IDP_GATEWAY_TRUSTED_ORIGINS \
-    http://127.0.0.1:18121,http://127.0.0.1:18131,http://127.0.0.1:18141,http://127.0.0.1:18152
+    http://127.0.0.1:18121,http://127.0.0.1:18125,http://127.0.0.1:18131,http://127.0.0.1:18141,http://127.0.0.1:18152
   write_env "${file}" GATEWAY_RBAC3_SCOPE_ENABLED true
   write_env "${file}" GATEWAY_RBAC3_SCOPE_REDIS_ADDRESS \
     "redis://${redis_host}:${redis_port}"
