@@ -1,0 +1,45 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: false
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+
+dubbo:
+  protocol:
+    name: dubbo
+    port: ${DUBBO_PROTOCOL_PORT:50051}
+
+organization:
+  integrations:
+    evaluation:
+      enabled: ${EVALUATION_FACADE_ENABLED:true}
+      course-group: ${EVALUATION_COURSE_FACADE_GROUP:course}
+      exam-group: ${EVALUATION_EXAM_FACADE_GROUP:exam}
+      score-group: ${EVALUATION_SCORE_FACADE_GROUP:score}
+      version: ${EVALUATION_FACADE_SERVICE_VERSION:1.0.0}
+    redis:
+      enabled: ${ORGANIZATION_REDIS_ENABLED:true}
+    rabbit:
+      enabled: ${ORGANIZATION_RABBIT_ENABLED:true}
+  cache:
+    user-ttl: ${ORGANIZATION_USER_CACHE_TTL:PT10M}
+    grade-ttl: ${ORGANIZATION_GRADE_CACHE_TTL:PT30M}
+    school-class-ttl: ${ORGANIZATION_SCHOOL_CLASS_CACHE_TTL:PT10M}
+  command:
+    idempotency-ttl: ${ORGANIZATION_IDEMPOTENCY_TTL:PT24H}
+
+management:
+  endpoint:
+    health:
+      show-details: never

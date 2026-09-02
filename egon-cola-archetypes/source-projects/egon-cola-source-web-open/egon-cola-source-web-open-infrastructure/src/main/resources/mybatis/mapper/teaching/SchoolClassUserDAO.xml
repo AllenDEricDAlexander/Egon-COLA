@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.archetype.source.webopen.infrastructure.teaching.repo.dao.SchoolClassUserDAO">
+    <resultMap id="SchoolClassUserResultMap" type="top.egon.cola.archetype.source.webopen.infrastructure.teaching.repo.po.SchoolClassUserPO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user_id" property="updateUserId"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="grade_id" property="gradeId"/>
+        <result column="user_id" property="userId"/>
+        <result column="school_class_id" property="schoolClassId"/>
+    </resultMap>
+    <select id="selectByGradeIdAndSchoolClassId" resultMap="SchoolClassUserResultMap">
+        SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, is_deleted,
+               grade_id, user_id, school_class_id FROM school_class_users
+        WHERE grade_id = #{gradeId} AND school_class_id = #{schoolClassId}
+        ORDER BY user_id ASC, id ASC
+    </select>
+    <select id="countByGradeIdAndSchoolClassIdAndUserId" resultType="long">
+        SELECT COUNT(*) FROM school_class_users
+        WHERE grade_id = #{gradeId} AND school_class_id = #{schoolClassId} AND user_id = #{userId}
+    </select>
+</mapper>

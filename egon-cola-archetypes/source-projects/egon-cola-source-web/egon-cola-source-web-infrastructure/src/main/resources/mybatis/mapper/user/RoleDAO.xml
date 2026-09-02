@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.archetype.source.web.infrastructure.user.repo.dao.RoleDAO">
+    <resultMap id="RoleResultMap" type="top.egon.cola.archetype.source.web.infrastructure.user.repo.po.RolePO">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="create_user_id" property="createUserId"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_user_id" property="updateUserId"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="code" property="code"/>
+        <result column="name" property="name"/>
+        <result column="status" property="status"/>
+    </resultMap>
+    <select id="selectByCode" resultMap="RoleResultMap">
+        SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, is_deleted,
+               code, name, status
+        FROM roles WHERE code = #{code}
+    </select>
+</mapper>

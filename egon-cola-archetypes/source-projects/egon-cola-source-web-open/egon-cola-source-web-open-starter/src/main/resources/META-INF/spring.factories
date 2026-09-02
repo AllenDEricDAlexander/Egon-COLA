@@ -1,0 +1,2 @@
+org.springframework.boot.env.EnvironmentPostProcessor=\
+top.egon.cola.archetype.source.webopen.starter.config.encryption.ConfigDecryptEnvironmentPostProcessor

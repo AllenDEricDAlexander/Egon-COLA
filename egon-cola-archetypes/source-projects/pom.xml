@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>top.egon.internal</groupId>
+    <artifactId>egon-cola-archetype-source-projects</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>egon-cola-archetype-source-projects</name>
+    <description>Internal reactor for validating normal source projects before archetype packaging</description>
+
+    <modules>
+        <module>../../egon-cola-components</module>
+        <module>../../egon-cola-platforms</module>
+        <module>../egon-cola-organization-facade</module>
+        <module>../egon-cola-evaluation-facade</module>
+        <module>egon-cola-source-light</module>
+        <module>egon-cola-source-service</module>
+        <module>egon-cola-source-web</module>
+        <module>egon-cola-source-light-open</module>
+        <module>egon-cola-source-service-open</module>
+        <module>egon-cola-source-web-open</module>
+    </modules>
+</project>

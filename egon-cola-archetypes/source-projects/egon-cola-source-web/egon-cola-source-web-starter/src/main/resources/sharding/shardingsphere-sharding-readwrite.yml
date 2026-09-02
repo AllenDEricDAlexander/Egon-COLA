@@ -1,0 +1,118 @@
+databaseName: ${app.sharding.database-name:${ORGANIZATION_SHARDING_DATABASE_NAME:organization}}
+
+rules:
+  - !READWRITE_SPLITTING
+    dataSourceGroups:
+      master_data:
+        writeDataSourceName: master_data_primary
+        readDataSourceNames:
+          - master_data_replica_0
+        transactionalReadQueryStrategy: PRIMARY
+        loadBalancerName: round_robin
+      shard_0:
+        writeDataSourceName: shard_0_primary
+        readDataSourceNames:
+          - shard_0_replica_0
+        transactionalReadQueryStrategy: PRIMARY
+        loadBalancerName: round_robin
+      shard_1:
+        writeDataSourceName: shard_1_primary
+        readDataSourceNames:
+          - shard_1_replica_0
+        transactionalReadQueryStrategy: PRIMARY
+        loadBalancerName: round_robin
+    loadBalancers:
+      round_robin:
+        type: ROUND_ROBIN
+
+  - !SHARDING
+    tables:
+      users:
+        actualDataNodes: master_data.users
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      roles:
+        actualDataNodes: master_data.roles
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      permissions:
+        actualDataNodes: master_data.permissions
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      user_roles:
+        actualDataNodes: master_data.user_roles
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      role_permissions:
+        actualDataNodes: master_data.role_permissions
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      grades:
+        actualDataNodes: master_data.grades
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      school_classes:
+        actualDataNodes: shard_$->{0..1}.school_classes_$->{0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_database_bucket
+        tableStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_table_bucket
+        auditStrategy:
+          auditorNames:
+            - sharding_key_required_auditor
+          allowHintDisable: false
+      school_class_users:
+        actualDataNodes: shard_$->{0..1}.school_class_users_$->{0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_database_bucket
+        tableStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_table_bucket
+        auditStrategy:
+          auditorNames:
+            - sharding_key_required_auditor
+          allowHintDisable: false
+    bindingTables:
+      - school_classes,school_class_users
+    shardingAlgorithms:
+      tenant_long_database_bucket:
+        type: CLASS_BASED
+        props:
+          strategy: STANDARD
+          algorithmClassName: top.egon.cola.archetype.source.web.infrastructure.config.datasource.LongTenantShardingAlgorithm
+          target: database
+          node-count: ${app.sharding.routing.node-count}
+          node-map: ${app.sharding.routing.node-map}
+      tenant_long_table_bucket:
+        type: CLASS_BASED
+        props:
+          strategy: STANDARD
+          algorithmClassName: top.egon.cola.archetype.source.web.infrastructure.config.datasource.LongTenantShardingAlgorithm
+          target: table
+          node-count: ${app.sharding.routing.node-count}
+          node-map: ${app.sharding.routing.node-map}
+    auditors:
+      sharding_key_required_auditor:
+        type: DML_SHARDING_CONDITIONS
+
+props:
+  sql-show: ${SHARDING_SQL_SHOW:false}
