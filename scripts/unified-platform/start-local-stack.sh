@@ -129,6 +129,59 @@ gateway_api() {
   printf '%s' "${response}"
 }
 
+gateway_report_master_key_fingerprint_file() {
+  printf '%s/.gateway-report-%s.master-key.sha256' \
+    "${unified_platform_secret_dir}" "$1"
+}
+
+gateway_master_key_fingerprint() {
+  openssl dgst -sha256 -r \
+    "${unified_platform_secret_dir}/gateway-master-key.base64" \
+    | awk '{print $1}'
+}
+
+gateway_reporting_credential_is_active() {
+  local application_id="$1" access_file="$2" access_key credentials
+  [[ -s "${access_file}" ]] || return 1
+  access_key="$(<"${access_file}")"
+  credentials="$(gateway_api GET \
+    "/api/v1/gateway/admin/applications/${application_id}/credentials")"
+  jq -e --arg access_key "${access_key}" \
+    'any(.[]; .accessKey == $access_key and .status == "ACTIVE")' \
+    <<<"${credentials}" >/dev/null
+}
+
+enable_gateway_release_reconciliation() {
+  unified_platform_stage "enabling Gateway release recovery after Engine startup"
+  unified_platform_write_env \
+    "${unified_platform_env_dir}/gateway-admin.env" \
+    GATEWAY_ADMIN_RELEASE_RECONCILE_ENABLED true
+  unified_platform_write_property \
+    "${unified_platform_env_dir}/gateway-admin.properties" \
+    gateway.admin.release-reconcile-enabled true
+  unified_platform_stop_process gateway-admin
+  unified_platform_start_jar gateway-admin \
+    "${unified_platform_env_dir}/gateway-admin.env" \
+    "${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/target/egon-cola-platform-gateway-admin-exec.jar"
+  unified_platform_wait_http gateway-admin \
+    "${GATEWAY_ADMIN_BASE_URL}/actuator/health/readiness"
+}
+
+wait_gateway_release_reconciliation() {
+  local group_id="$1" releases
+  for ((attempt = 1; attempt <= 60; attempt++)); do
+    releases="$(gateway_api GET \
+      "/api/v1/gateway/admin/gateway-groups/${group_id}/releases")"
+    if ! jq -e 'any(.[]; .status == "PUBLISHING")' \
+        <<<"${releases}" >/dev/null 2>&1; then
+      return
+    fi
+    sleep 1
+  done
+  unified_platform_fail \
+    "Gateway release recovery did not clear the existing PUBLISHING release"
+}
+
 issue_mcp_user_token() {
   UNIFIED_IDENTITY_TENANT=tenant-b \
   UNIFIED_IDENTITY_ACCESS_TOKEN_FILE="${mcp_user_token_file}" \
@@ -309,6 +362,7 @@ write_extra_service_env_files() {
 
 initialize_mcp_provider_application() {
   local applications application_id application credential access_file secret_file
+  local marker_file fingerprint
   applications="$(gateway_api GET \
     '/api/v1/gateway/admin/applications?bizCode=identity&namespace=default&env=local&appCode=gateway-test-mcp-provider')"
   application_id="$(jq -r '.[0].id // empty' <<<"${applications}")"
@@ -319,16 +373,22 @@ initialize_mcp_provider_application() {
   fi
   access_file="${unified_platform_secret_dir}/mcp-provider-report.access-key"
   secret_file="${unified_platform_secret_dir}/mcp-provider-report.secret"
-  if [[ ! -s "${access_file}" || ! -s "${secret_file}" ]]; then
+  marker_file="$(gateway_report_master_key_fingerprint_file mcp-provider)"
+  fingerprint="$(gateway_master_key_fingerprint)"
+  if [[ ! -s "${access_file}" || ! -s "${secret_file}" \
+      || ! -s "${marker_file}" \
+      || "$(<"${marker_file}")" != "${fingerprint}" ]] \
+      || ! gateway_reporting_credential_is_active "${application_id}" "${access_file}"; then
     credential="$(gateway_api POST \
       "/api/v1/gateway/admin/applications/${application_id}/credentials" '{}')"
     jq -er '.accessKey' <<<"${credential}" >"${access_file}"
     jq -er '.secret' <<<"${credential}" >"${secret_file}"
+    printf '%s' "${fingerprint}" >"${marker_file}"
   fi
   printf '%s' "${application_id}" \
     >"${unified_platform_runtime_dir}/mcp-provider-application.id"
   chmod 600 \
-    "${access_file}" "${secret_file}" \
+    "${access_file}" "${secret_file}" "${marker_file}" \
     "${unified_platform_runtime_dir}/mcp-provider-application.id"
   unified_platform_write_env "${unified_platform_env_dir}/mcp-provider.env" \
     GATEWAY_REPORT_ACCESS_KEY \
@@ -849,6 +909,8 @@ if [[ "${UNIFIED_IDENTITY_START_MODE}" != "full" ]]; then
   if [[ "${UNIFIED_PLATFORM_SKIP_GATEWAY_RELEASE:-false}" == "true" ]]; then
     unified_platform_stage "reusing the existing local Gateway HTTP release"
   else
+    enable_gateway_release_reconciliation
+    wait_gateway_release_reconciliation "$(<"${gateway_group_file}")"
     unified_platform_stage "publishing the prepared local Gateway HTTP catalog"
     "${legacy_script}" publish-gateway-routes
   fi
@@ -908,6 +970,7 @@ server_id="$(<"${unified_platform_runtime_dir}/mcp-server.id")"
   ensure_capabilities "${group_id}" "${server_id}"
 
 unified_platform_stage "publishing one unified HTTP and MCP release"
+wait_gateway_release_reconciliation "${group_id}"
 publish_mcp_release "${group_id}" "${server_id}"
 wait_mcp_endpoint gateway-engine-a "${GATEWAY_BASE_URL}"
 wait_mcp_endpoint gateway-engine-b "${GATEWAY_ENGINE_B_PUBLIC_URL}"
@@ -926,6 +989,7 @@ start_admin_web gateway-admin-web "${gateway_web_dir}" \
 start_admin_web ddc-admin-web "${ddc_web_dir}" \
   "${ddc_web_dir}/node_modules/.bin/vite" "${DDC_ADMIN_WEB_URL}" \
   ddc-admin-web DDC_ADMIN_PROXY "${GATEWAY_BASE_URL}"
+start_portal_web
 
 printf 'Unified platform local stack is running in %s.\n' \
   "${unified_platform_runtime_dir}"

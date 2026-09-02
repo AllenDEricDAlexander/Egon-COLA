@@ -1510,6 +1510,26 @@ gateway_report_secret_file() {
   printf '%s/gateway-report-%s.secret' "${secret_dir}" "$1"
 }
 
+gateway_report_master_key_fingerprint_file() {
+  printf '%s/.gateway-report-%s.master-key.sha256' "${secret_dir}" "$1"
+}
+
+gateway_master_key_fingerprint() {
+  openssl dgst -sha256 -r "${secret_dir}/gateway-master-key.base64" \
+    | awk '{print $1}'
+}
+
+gateway_reporting_credential_is_active() {
+  local app_id="$1" access_file="$2" access_key credentials
+  [[ -s "${access_file}" ]] || return 1
+  access_key="$(<"${access_file}")"
+  credentials="$(gateway_api GET \
+    "/api/v1/gateway/admin/applications/${app_id}/credentials")"
+  jq -e --arg access_key "${access_key}" \
+    'any(.[]; .accessKey == $access_key and .status == "ACTIVE")' \
+    <<<"${credentials}" >/dev/null
+}
+
 configure_gateway_reporter() {
   local app_code="$1" access_file secret_file env_file enabled_key
   access_file="$(gateway_report_access_key_file "${app_code}")"
@@ -1529,16 +1549,22 @@ configure_gateway_reporter() {
 
 ensure_gateway_reporting_application() {
   local biz_code="$1" app_code="$2" display_name="$3"
-  local app_id credential access_file secret_file
+  local app_id credential access_file secret_file fingerprint marker_file
   ensure_gateway_application "${biz_code}" "${app_code}" "${display_name}"
   app_id="$(<"$(gateway_application_id_file "${app_code}")")"
   access_file="$(gateway_report_access_key_file "${app_code}")"
   secret_file="$(gateway_report_secret_file "${app_code}")"
-  if [[ ! -s "${access_file}" || ! -s "${secret_file}" ]]; then
+  marker_file="$(gateway_report_master_key_fingerprint_file "${app_code}")"
+  fingerprint="$(gateway_master_key_fingerprint)"
+  if [[ ! -s "${access_file}" || ! -s "${secret_file}" \
+      || ! -s "${marker_file}" \
+      || "$(<"${marker_file}")" != "${fingerprint}" ]] \
+      || ! gateway_reporting_credential_is_active "${app_id}" "${access_file}"; then
     credential="$(gateway_api POST "/api/v1/gateway/admin/applications/${app_id}/credentials" '{}')"
     jq -er '.accessKey' <<<"${credential}" >"${access_file}"
     jq -er '.secret' <<<"${credential}" >"${secret_file}"
-    chmod 600 "${access_file}" "${secret_file}"
+    printf '%s' "${fingerprint}" >"${marker_file}"
+    chmod 600 "${access_file}" "${secret_file}" "${marker_file}"
   fi
   printf '%s' "${app_id}" >"$(gateway_application_id_file "${app_code}")"
   chmod 600 "$(gateway_application_id_file "${app_code}")"

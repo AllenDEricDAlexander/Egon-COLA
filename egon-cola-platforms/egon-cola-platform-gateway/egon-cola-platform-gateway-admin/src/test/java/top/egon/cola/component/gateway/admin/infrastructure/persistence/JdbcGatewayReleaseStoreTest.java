@@ -40,5 +40,9 @@ class JdbcGatewayReleaseStoreTest {
                 contains("SELECT MAX(candidate.attempt_no)"),
                 any(RowMapper.class)
         );
+        verify(jdbc).query(
+                contains("r.status = 'PUBLISHING'"),
+                any(RowMapper.class)
+        );
     }
 }

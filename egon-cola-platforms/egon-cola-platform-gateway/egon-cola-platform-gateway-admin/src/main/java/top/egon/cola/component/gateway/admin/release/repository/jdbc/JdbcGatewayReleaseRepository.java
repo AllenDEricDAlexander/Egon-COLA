@@ -282,7 +282,7 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
 
     /**
      * 中文说明：执行 recoverable 操作；该方法是 {@code JdbcGatewayReleaseRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the recoverable operation; this method is the invocation entry point on {@code JdbcGatewayReleaseRepository} and performs the corresponding runtime, management, or protocol work.
+     * English summary: Executes the recoverable operation; this method returns only in-flight publishing releases for automatic recovery, while terminal states remain explicitly retryable through the management API.
      *
      * 用法 / Usage: 调用方式 / Usage: {@code JdbcGatewayReleaseRepository.recoverable(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @return 返回 recoverable 的处理结果；returns the result of the operation.
@@ -296,9 +296,7 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
                   FROM gateway_release r
                   JOIN gateway_release_publication p
                     ON p.release_id = r.id
-                 WHERE r.status IN (
-                       'PUBLISHING', 'FAILED', 'TIMEOUT', 'UNKNOWN'
-                 )
+                 WHERE r.status = 'PUBLISHING'
                    AND p.attempt_no = (
                        SELECT MAX(candidate.attempt_no)
                          FROM gateway_release_publication candidate
