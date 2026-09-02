@@ -73,6 +73,8 @@
         <maven.source.plugin.version>3.4.0</maven.source.plugin.version>
         <maven.javadoc.plugin.version>3.12.0</maven.javadoc.plugin.version>
         <maven.gpg.plugin.version>3.2.8</maven.gpg.plugin.version>
+        <maven.archetype.version>3.4.1</maven.archetype.version>
+        <archetype.preflight.skip>true</archetype.preflight.skip>
         <archetype.groovy.version>4.0.28</archetype.groovy.version>
         <spring.boot.version>3.5.16</spring.boot.version>
     </properties>
@@ -109,7 +111,7 @@
             <extension>
                 <groupId>org.apache.maven.archetype</groupId>
                 <artifactId>archetype-packaging</artifactId>
-                <version>3.2.1</version>
+                <version>${maven.archetype.version}</version>
             </extension>
         </extensions>
         <plugins>
@@ -125,7 +127,7 @@
             <plugins>
                 <plugin>
                     <artifactId>maven-archetype-plugin</artifactId>
-                    <version>3.4.1</version>
+                    <version>${maven.archetype.version}</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-resources-plugin</artifactId>
@@ -150,6 +152,26 @@
                 <plugin>
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>3.5.0</version>
+                    <executions>
+                        <execution>
+                            <id>attach-archetype-javadoc</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                            <configuration>
+                                <classifier>javadoc</classifier>
+                                <classesDirectory>${project.basedir}/src/main/javadoc</classesDirectory>
+                                <includes>
+                                    <include>README.md</include>
+                                </includes>
+                                <skipIfEmpty>false</skipIfEmpty>
+                                <archive>
+                                    <addMavenDescriptor>false</addMavenDescriptor>
+                                </archive>
+                            </configuration>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <artifactId>maven-surefire-plugin</artifactId>
@@ -166,6 +188,29 @@
                 <plugin>
                     <artifactId>maven-enforcer-plugin</artifactId>
                     <version>3.6.3</version>
+                    <executions>
+                        <execution>
+                            <id>require-generated-archetype-resources</id>
+                            <phase>validate</phase>
+                            <goals>
+                                <goal>enforce</goal>
+                            </goals>
+                            <configuration>
+                                <skip>${archetype.preflight.skip}</skip>
+                                <rules>
+                                    <requireFilesExist>
+                                        <message>Generated archetype resources are missing; run ./scripts/generate_archetypes.sh generate first.</message>
+                                        <files>
+                                            <file>${project.parent.basedir}/.generated/${project.artifactId}/archetype-resources/pom.xml</file>
+                                            <file>${project.parent.basedir}/.generated/${project.artifactId}/generation-manifest.sha256</file>
+                                            <file>${project.basedir}/src/main/javadoc/README.md</file>
+                                        </files>
+                                    </requireFilesExist>
+                                </rules>
+                                <fail>true</fail>
+                            </configuration>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.sonatype.central</groupId>

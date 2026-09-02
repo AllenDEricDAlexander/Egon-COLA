@@ -166,3 +166,26 @@ def reportFiles = filesUnder("target") { it.path.replace('\\', '/').contains('/s
 assert file("README.md").text.contains("Dynamic Thread Pool")
 assert file("README.md").text.contains("MyBatis-Plus")
 assert file("README.md").text.contains("manual")
+
+def sourceBoundaryFiles = []
+projectDir.eachFileRecurse { candidate ->
+    def candidatePath = projectDir.toPath().relativize(candidate.toPath()).toString().replace('\\', '/')
+    if (candidate.isFile() && !candidatePath.startsWith('target/')) {
+        sourceBoundaryFiles << candidate
+    }
+}
+assert sourceBoundaryFiles.every { candidate ->
+    def relativePath = projectDir.toPath().relativize(candidate.toPath()).toString().replace('\\', '/')
+    !relativePath.contains('.generated')
+}
+[
+        'top.egon.internal.archetype.source',
+        'egon-cola-source-light-open',
+        '0.1.0-SNAPSHOT'
+].each { forbiddenToken ->
+    sourceBoundaryFiles.each { candidate ->
+        assert !candidate.getText('UTF-8').contains(forbiddenToken):
+                "Generated project leaked source sentinel ${forbiddenToken} in ${candidate}"
+    }
+}
+true

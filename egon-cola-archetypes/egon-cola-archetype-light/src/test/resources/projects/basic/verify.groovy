@@ -1294,4 +1294,27 @@ new File(generatedProjectDir, "src").eachFileRecurse { file ->
 assert allFiles.every { !it.name.contains("Charge") }
 assert !new File(generatedProjectDir, "img.png").exists()
 assert !new File(generatedProjectDir, "img_1.png").exists()
+
+def sourceBoundaryFiles = []
+generatedProjectDir.eachFileRecurse { candidate ->
+    def candidatePath = generatedProjectDir.toPath().relativize(candidate.toPath()).toString().replace('\\', '/')
+    if (candidate.isFile() && !candidatePath.startsWith('target/')) {
+        sourceBoundaryFiles << candidate
+    }
+}
+assert sourceBoundaryFiles.every { candidate ->
+    def relativePath = generatedProjectDir.toPath().relativize(candidate.toPath()).toString().replace('\\', '/')
+    !relativePath.contains('.generated')
+}
+[
+    'top.egon.internal.archetype.source',
+    'egon-cola-source-light',
+    '0.1.0-SNAPSHOT'
+].each { forbiddenToken ->
+    sourceBoundaryFiles.each { candidate ->
+        assert !candidate.getText('UTF-8').contains(forbiddenToken):
+                "Generated project leaked source sentinel ${forbiddenToken} in ${candidate}"
+    }
+}
+true
 true
