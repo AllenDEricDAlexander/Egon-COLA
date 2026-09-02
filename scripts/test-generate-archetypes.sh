@@ -80,6 +80,8 @@ fi
 
 source_dir="$(cd "$(dirname "$source_pom")" && pwd -P)"
 mkdir -p "$output_directory/src/main/resources/archetype-resources/src/main/java"
+mkdir -p "$source_dir/target"
+printf 'maven-build-state-%s\n' "$counter" >"$source_dir/target/generated-by-fake-maven.txt"
 printf '<groupId>${groupId}</groupId>\n<artifactId>${artifactId}</artifactId>\n' \
   >"$output_directory/src/main/resources/archetype-resources/pom.xml"
 printf 'package ${package};\n' \

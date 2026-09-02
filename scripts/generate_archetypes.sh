@@ -97,6 +97,22 @@ hash_tree() {
   done < <(find "$tree" -type f -print | LC_ALL=C sort)
 }
 
+hash_source_tree() {
+  local tree="$1" file relative mode
+  [[ -d "$tree" ]] || die "hash input does not exist: $tree"
+  while IFS= read -r file; do
+    relative="${file#"$tree"/}"
+    mode="$(file_mode "$file")"
+    printf '%s  %s  %s\n' "$(hash_file "$file")" "$mode" "$relative"
+  done < <(
+    find "$tree" -type f \
+      ! -path '*/target/*' \
+      ! -path '*/.git/*' \
+      ! -path '*/.idea/*' \
+      -print | LC_ALL=C sort
+  )
+}
+
 read_module_names() {
   sed -n 's/^[[:space:]]*<module>\([^<]*\)<\/module>[[:space:]]*$/\1/p' \
     "$ARCHETYPES_ROOT/pom.xml"
@@ -354,7 +370,7 @@ write_source_snapshot() {
   for manifest in "${MANIFESTS[@]}"; do
     parse_manifest "$manifest"
     printf 'manifest=%s\n' "${manifest#"$PROJECT_ROOT"/}" >>"$snapshot"
-    hash_tree "$CURRENT_SOURCE_DIR" >>"$snapshot"
+    hash_source_tree "$CURRENT_SOURCE_DIR" >>"$snapshot"
   done
   LC_ALL=C sort -o "$snapshot" "$snapshot"
 }
