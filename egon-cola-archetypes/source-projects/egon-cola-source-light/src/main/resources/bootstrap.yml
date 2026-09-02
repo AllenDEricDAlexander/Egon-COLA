@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: ${APP_NAME:egon-cola-source-light}
+  profiles:
+    default: dev
+  cloud:
+    discovery:
+      enabled: ${DISCOVERY_ENABLED:false}
+    nacos:
+      username: ${NACOS_USERNAME:}
+      password: ${NACOS_PASSWORD:}
+      config:
+        enabled: ${NACOS_CONFIG_ENABLED:false}
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:dev}
+        group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
+        file-extension: yaml
+        refresh-enabled: ${NACOS_CONFIG_REFRESH_ENABLED:false}
+      discovery:
+        enabled: ${NACOS_DISCOVERY_ENABLED:false}
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:dev}
+        group: ${NACOS_DISCOVERY_GROUP:DEFAULT_GROUP}
+
+dubbo:
+  application:
+    name: ${spring.application.name}
+  registry:
+    address: ${DUBBO_REGISTRY_ADDRESS:N/A}

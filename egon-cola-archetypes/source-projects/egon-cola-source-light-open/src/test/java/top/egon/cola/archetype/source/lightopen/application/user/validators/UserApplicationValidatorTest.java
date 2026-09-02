@@ -1,0 +1,55 @@
+package top.egon.cola.archetype.source.lightopen.application.user.validators;
+
+import top.egon.cola.archetype.source.lightopen.application.user.command.CreateUserCommand;
+import top.egon.cola.archetype.source.lightopen.application.user.manage.UserUseCaseException;
+import top.egon.cola.archetype.source.lightopen.domain.user.client.UserCachePort;
+import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+class UserApplicationValidatorTest {
+    private final UserCachePort userCacheService = mock(UserCachePort.class);
+    private final UserApplicationValidator validator = new UserApplicationValidator(userCacheService);
+
+    @Test
+    void rejects_missing_operator_context() {
+        CreateUserCommand command = new CreateUserCommand(
+                "ext-1", "Mario", "mario@example.com", " ", "request-1");
+
+        UserUseCaseException error = assertThrows(UserUseCaseException.class, () -> validator.validate(command));
+
+        assertEquals("MISSING_OPERATOR", error.getCode());
+    }
+
+    @Test
+    void rejects_duplicate_request() {
+        CreateUserCommand command = command();
+        when(userCacheService.claimIdempotency("request-1", Duration.ofMinutes(5))).thenReturn(false);
+
+        UserUseCaseException error = assertThrows(UserUseCaseException.class, () -> validator.validate(command));
+
+        assertEquals("DUPLICATE_REQUEST", error.getCode());
+    }
+
+    @Test
+    void claims_valid_request_key() {
+        CreateUserCommand command = command();
+        when(userCacheService.claimIdempotency("request-1", Duration.ofMinutes(5))).thenReturn(true);
+
+        assertDoesNotThrow(() -> validator.validate(command));
+
+        verify(userCacheService).claimIdempotency("request-1", Duration.ofMinutes(5));
+    }
+
+    private CreateUserCommand command() {
+        return new CreateUserCommand(
+                "ext-1", "Mario", "mario@example.com", "operator-1", "request-1");
+    }
+}

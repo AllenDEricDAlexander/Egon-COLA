@@ -1,0 +1,18 @@
+spring:
+  cloud:
+    discovery:
+      enabled: ${DISCOVERY_ENABLED:true}
+    nacos:
+      username: ${NACOS_USERNAME:}
+      password: ${NACOS_PASSWORD:ENC(v1:replace-with-base64-iv:replace-with-base64-ciphertext:replace-with-base64-tag)}
+      config:
+        enabled: ${NACOS_CONFIG_ENABLED:true}
+        server-addr: ${NACOS_SERVER_ADDR}
+        namespace: ${NACOS_NAMESPACE:dev}
+        group: ${NACOS_CONFIG_GROUP:DEV_GROUP}
+        refresh-enabled: ${NACOS_CONFIG_REFRESH_ENABLED:true}
+      discovery:
+        enabled: ${NACOS_DISCOVERY_ENABLED:true}
+        server-addr: ${NACOS_SERVER_ADDR}
+        namespace: ${NACOS_NAMESPACE:dev}
+        group: ${NACOS_DISCOVERY_GROUP:DEV_GROUP}

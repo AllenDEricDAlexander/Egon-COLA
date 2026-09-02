@@ -1,0 +1,56 @@
+spring:
+  sql:
+    init:
+      mode: never
+
+egon:
+  cola:
+    component:
+      id:
+        machine-id: 0
+      dtp:
+        enabled: false
+        report:
+          enabled: false
+
+management:
+  health:
+    rabbit:
+      enabled: false
+    redis:
+      enabled: false
+
+app:
+  datasource:
+    mode: ${APP_DATASOURCE_MODE:SHARDING}
+  sharding:
+    database-name: PUBLIC
+    physical-data-sources:
+      - name: master_data
+        logical-name: master_data
+        role: PRIMARY
+        driver-class-name: org.h2.Driver
+        jdbc-url: ${LIGHT_SHARDING_MASTER_DATA_URL:jdbc:h2:mem:egon-cola-source-light-open-test-master-data;MODE=PostgreSQL;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
+        username: ${LIGHT_SHARDING_USERNAME:sa}
+        password: "${LIGHT_SHARDING_PASSWORD:}"
+      - name: shard_0
+        logical-name: shard_0
+        role: PRIMARY
+        driver-class-name: org.h2.Driver
+        jdbc-url: ${LIGHT_SHARDING_SHARD_0_URL:jdbc:h2:mem:egon-cola-source-light-open-test-shard-0;MODE=PostgreSQL;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
+        username: ${LIGHT_SHARDING_USERNAME:sa}
+        password: "${LIGHT_SHARDING_PASSWORD:}"
+      - name: shard_1
+        logical-name: shard_1
+        role: PRIMARY
+        driver-class-name: org.h2.Driver
+        jdbc-url: ${LIGHT_SHARDING_SHARD_1_URL:jdbc:h2:mem:egon-cola-source-light-open-test-shard-1;MODE=PostgreSQL;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
+        username: ${LIGHT_SHARDING_USERNAME:sa}
+        password: "${LIGHT_SHARDING_PASSWORD:}"
+  integrations:
+    rabbitmq:
+      enabled: false
+    redis:
+      enabled: false
+    external-http:
+      enabled: false

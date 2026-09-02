@@ -1,0 +1,94 @@
+databaseName: ${app.sharding.database-name:${LIGHT_SHARDING_DATABASE_NAME:student_management}}
+
+rules:
+  - !SHARDING
+    tables:
+      light_users:
+        actualDataNodes: master_data.light_users
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      light_roles:
+        actualDataNodes: master_data.light_roles
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      light_permissions:
+        actualDataNodes: master_data.light_permissions
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      light_user_roles:
+        actualDataNodes: master_data.light_user_roles
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      light_role_permissions:
+        actualDataNodes: master_data.light_role_permissions
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      light_courses:
+        actualDataNodes: master_data.light_courses
+        databaseStrategy:
+          none:
+        tableStrategy:
+          none:
+      light_school_classes:
+        actualDataNodes: shard_$->{0..1}.light_school_classes_$->{0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_database_bucket
+        tableStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_table_bucket
+        auditStrategy:
+          auditorNames:
+            - sharding_key_required_auditor
+          allowHintDisable: false
+      light_class_course_schedules:
+        actualDataNodes: shard_$->{0..1}.light_class_course_schedules_$->{0..1}
+        databaseStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_database_bucket
+        tableStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_long_table_bucket
+        auditStrategy:
+          auditorNames:
+            - sharding_key_required_auditor
+          allowHintDisable: false
+    bindingTables:
+      - light_school_classes,light_class_course_schedules
+    shardingAlgorithms:
+      tenant_long_database_bucket:
+        type: CLASS_BASED
+        props:
+          strategy: STANDARD
+          algorithmClassName: top.egon.cola.archetype.source.lightopen.infrastructure.config.datasource.LongTenantShardingAlgorithm
+          target: database
+          node-count: ${app.sharding.routing.node-count}
+          node-map: ${app.sharding.routing.node-map}
+      tenant_long_table_bucket:
+        type: CLASS_BASED
+        props:
+          strategy: STANDARD
+          algorithmClassName: top.egon.cola.archetype.source.lightopen.infrastructure.config.datasource.LongTenantShardingAlgorithm
+          target: table
+          node-count: ${app.sharding.routing.node-count}
+          node-map: ${app.sharding.routing.node-map}
+    auditors:
+      sharding_key_required_auditor:
+        type: DML_SHARDING_CONDITIONS
+
+props:
+  sql-show: ${SHARDING_SQL_SHOW:false}

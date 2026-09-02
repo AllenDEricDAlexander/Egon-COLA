@@ -1,0 +1,22 @@
+spring:
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:false}
+    validate-on-migrate: true
+    validate-migration-naming: true
+    clean-disabled: true
+management:
+  endpoint:
+    health:
+      show-details: never
+
+app:
+  integrations:
+    rabbitmq:
+      enabled: ${RABBITMQ_ENABLED:true}
+    redis:
+      enabled: ${REDIS_ENABLED:true}
+    external-http:
+      enabled: ${EXTERNAL_HTTP_ENABLED:true}
+      user-base-url: ${USER_SERVICE_BASE_URL:http://localhost:18081}
+      teaching-base-url: ${TEACHING_SERVICE_BASE_URL:http://localhost:18082}

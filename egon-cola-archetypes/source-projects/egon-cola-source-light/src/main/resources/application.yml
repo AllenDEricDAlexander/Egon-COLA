@@ -1,0 +1,167 @@
+spring:
+  profiles:
+    default: dev
+  config:
+    import:
+      - classpath:datasource/sharding.yml
+      - classpath:datasource/sharding-readwrite.yml
+      - optional:file:./config/application-secrets.yml
+      - optional:configtree:/run/secrets/
+  threads:
+    virtual:
+      enabled: ${SPRING_THREADS_VIRTUAL_ENABLED:true}
+  lifecycle:
+    timeout-per-shutdown-phase: ${SHUTDOWN_TIMEOUT:30s}
+  task:
+    execution:
+      thread-name-prefix: ${ASYNC_THREAD_NAME_PREFIX:egon-async-}
+      shutdown:
+        await-termination: true
+        await-termination-period: ${ASYNC_AWAIT_TERMINATION:30s}
+      pool:
+        core-size: ${ASYNC_CORE_SIZE:8}
+        max-size: ${ASYNC_MAX_SIZE:32}
+        queue-capacity: ${ASYNC_QUEUE_CAPACITY:500}
+    scheduling:
+      shutdown:
+        await-termination: true
+        await-termination-period: ${SCHEDULING_AWAIT_TERMINATION:30s}
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: ${APP_TIME_ZONE:Asia/Shanghai}
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+      fail-on-empty-beans: false
+    deserialization:
+      fail-on-unknown-properties: false
+  rabbitmq:
+    listener:
+      simple:
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1s
+          multiplier: 2
+          max-interval: 10s
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: ${TOMCAT_THREADS_MAX:200}
+      min-spare: ${TOMCAT_THREADS_MIN_SPARE:20}
+    accept-count: ${TOMCAT_ACCEPT_COUNT:100}
+    max-connections: ${TOMCAT_MAX_CONNECTIONS:8192}
+    connection-timeout: ${TOMCAT_CONNECTION_TIMEOUT:20s}
+    keep-alive-timeout: ${TOMCAT_KEEP_ALIVE_TIMEOUT:20s}
+    max-keep-alive-requests: ${TOMCAT_MAX_KEEP_ALIVE_REQUESTS:100}
+    max-http-form-post-size: ${TOMCAT_MAX_HTTP_FORM_POST_SIZE:2MB}
+    max-swallow-size: ${TOMCAT_MAX_SWALLOW_SIZE:2MB}
+    processor-cache: ${TOMCAT_PROCESSOR_CACHE:200}
+    mbeanregistry:
+      enabled: ${TOMCAT_MBEAN_REGISTRY_ENABLED:true}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE:health,info,metrics,prometheus}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: ${MANAGEMENT_HEALTH_SHOW_DETAILS:never}
+  health:
+    readinessstate:
+      enabled: true
+    livenessstate:
+      enabled: true
+
+dubbo:
+  application:
+    name: ${spring.application.name}
+  registry:
+    address: ${DUBBO_REGISTRY_ADDRESS:N/A}
+  protocol:
+    name: tri
+    port: ${DUBBO_PORT:50051}
+  provider:
+    timeout: 3000
+    retries: 0
+
+logging:
+  file:
+    path: ${LOG_HOME:./logs}
+  group:
+    web-stack: org.springframework.web,org.springframework.http,org.apache.catalina,org.apache.coyote
+    persistence: org.mybatis,org.mybatis.spring,com.baomidou.mybatisplus,org.springframework.jdbc,org.hibernate.SQL
+    rpc: org.apache.dubbo,io.grpc
+    messaging: org.springframework.kafka,org.springframework.amqp
+  level:
+    root: info
+    web-stack: info
+    persistence: warn
+    rpc: info
+    messaging: info
+    top.egon.internal.archetype.source: info
+  logback:
+    rollingpolicy:
+      max-file-size: ${LOG_MAX_FILE_SIZE:100MB}
+      max-history: ${LOG_MAX_HISTORY:30}
+      total-size-cap: ${LOG_TOTAL_SIZE_CAP:10GB}
+      clean-history-on-start: ${LOG_CLEAN_HISTORY_ON_START:false}
+
+app:
+  datasource:
+    mode: ${APP_DATASOURCE_MODE:SHARDING}
+  logging:
+    instance-name: ${INSTANCE_ID:${HOSTNAME:local}}
+    error-total-size-cap: ${LOG_ERROR_TOTAL_SIZE_CAP:2GB}
+    async:
+      queue-size: ${LOG_ASYNC_QUEUE_SIZE:8192}
+      discarding-threshold: ${LOG_ASYNC_DISCARDING_THRESHOLD:0}
+      never-block: ${LOG_ASYNC_NEVER_BLOCK:false}
+      max-flush-time: ${LOG_ASYNC_MAX_FLUSH_TIME:5000}
+  integrations:
+    rabbitmq:
+      enabled: false
+      exchange: ${spring.application.name}.domain
+    redis:
+      enabled: false
+      ttl: 10m
+    external-http:
+      enabled: false
+      user-base-url: http://localhost:18081
+      teaching-base-url: http://localhost:18082
+
+mybatis-plus:
+  mapper-locations: classpath*:/mybatis/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
+egon:
+  cola:
+    component:
+      mybatis-plus:
+        enabled: true
+        tenant-id:
+          mdc-key: tenantId
+          ignored-tables: []
+        audit:
+          user-id-mdc-key: userId
+        pagination:
+          enabled: true
+          max-page-size: 500
+          overflow: false
+        batch:
+          default-size: 1000
+          max-chunk-size: 1000
+          max-collection-size: 10000
+        block-attack:
+          enabled: true
+        optimistic-locker:
+          enabled: true
+        meta-fill:
+          enabled: true

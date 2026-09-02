@@ -1,0 +1,221 @@
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
+    parameters {
+        choice(name: 'CONTAINER_ENGINE', choices: ['docker', 'podman', 'nerdctl'],
+                description: 'Container command used to build, log in, and push')
+        string(name: 'CONTAINERD_NAMESPACE', defaultValue: 'default', trim: true,
+                description: 'nerdctl/containerd namespace; ignored by Docker and Podman')
+        string(name: 'REGISTRY', defaultValue: '', trim: true,
+                description: 'Registry host without http:// or https://')
+        string(name: 'REGISTRY_NAMESPACE', defaultValue: '', trim: true,
+                description: 'Registry project or namespace')
+        string(name: 'REGISTRY_CREDENTIALS_ID', defaultValue: '', trim: true,
+                description: 'Jenkins username/password credentials ID')
+        string(name: 'IMAGE_NAME', defaultValue: '', trim: true,
+                description: 'Blank uses the Maven root artifactId')
+        string(name: 'IMAGE_TAG', defaultValue: '', trim: true,
+                description: 'Blank creates version-build-shortCommit')
+        booleanParam(name: 'PUBLISH_IMAGE', defaultValue: false,
+                description: 'Log in and push the immutable image tag')
+        booleanParam(name: 'PUBLISH_LATEST', defaultValue: false,
+                description: 'Also publish latest on main/master, never on change requests')
+    }
+
+    environment {
+        SPRING_PROFILES_ACTIVE = 'test'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                script {
+                    env.GIT_COMMIT_FULL = sh(
+                            returnStdout: true,
+                            script: 'git rev-parse HEAD').trim()
+                    env.GIT_COMMIT_SHORT = sh(
+                            returnStdout: true,
+                            script: 'git rev-parse --short=8 HEAD').trim()
+                    env.PROJECT_VERSION = sh(
+                            returnStdout: true,
+                            script: "bash ./mvnw -q -DforceStdout help:evaluate -Dexpression=project.version | tail -n 1").trim()
+                    env.PROJECT_ARTIFACT_ID = sh(
+                            returnStdout: true,
+                            script: "bash ./mvnw -q -DforceStdout help:evaluate -Dexpression=project.artifactId | tail -n 1").trim()
+
+                    def imageName = params.IMAGE_NAME.trim() ?: env.PROJECT_ARTIFACT_ID
+                    if (!(imageName ==~ /[a-z0-9]+(?:[._-][a-z0-9]+)*/)) {
+                        error("Invalid IMAGE_NAME: ${imageName}")
+                    }
+
+                    def rawTag = params.IMAGE_TAG.trim() ?:
+                            "${env.PROJECT_VERSION}-${env.BUILD_NUMBER}-${env.GIT_COMMIT_SHORT}"
+                    def normalizedTag = rawTag.toLowerCase(Locale.ROOT)
+                            .replaceAll(/[^a-z0-9_.-]/, '-')
+                            .replaceAll(/^[.-]+/, '')
+                            .take(128)
+                    if (!normalizedTag) {
+                        error('Resolved image tag is empty')
+                    }
+
+                    def registry = params.REGISTRY.trim().replaceAll('/+$', '')
+                    def namespace = params.REGISTRY_NAMESPACE.trim()
+                            .replaceAll('^/+', '')
+                            .replaceAll('/+$', '')
+                    if (namespace && !(namespace ==~ /[a-z0-9]+(?:[._\/-][a-z0-9]+)*/)) {
+                        error("Invalid REGISTRY_NAMESPACE: ${namespace}")
+                    }
+                    env.RESOLVED_IMAGE_NAME = imageName
+                    env.RESOLVED_IMAGE_TAG = normalizedTag
+                    env.IMAGE_REPOSITORY = registry && namespace ?
+                            "${registry}/${namespace}/${imageName}" : imageName
+                    env.FULL_IMAGE = "${env.IMAGE_REPOSITORY}:${normalizedTag}"
+                }
+            }
+        }
+
+        stage('Preflight') {
+            steps {
+                sh '''
+                    set -eu
+                    test -x ./mvnw
+
+                    java_major="$(java -XshowSettings:properties -version 2>&1 |
+                      awk -F= '/java.specification.version/ {gsub(/[[:space:]]/, "", $2); print $2; exit}')"
+                    test "$java_major" = "21" || {
+                      echo "JDK 21 is required; found ${java_major:-unknown}" >&2
+                      exit 1
+                    }
+
+                    command -v "$CONTAINER_ENGINE" >/dev/null 2>&1
+                    case "$CONTAINER_ENGINE" in
+                      docker)
+                        docker info >/dev/null
+                        ;;
+                      podman)
+                        podman info >/dev/null
+                        ;;
+                      nerdctl)
+                        nerdctl --namespace "$CONTAINERD_NAMESPACE" info >/dev/null
+                        nerdctl --namespace "$CONTAINERD_NAMESPACE" build --help >/dev/null
+                        ;;
+                      *)
+                        echo "Unsupported CONTAINER_ENGINE=$CONTAINER_ENGINE" >&2
+                        exit 64
+                        ;;
+                    esac
+                '''
+            }
+        }
+
+        stage('Test') {
+            steps {
+                sh 'SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp clean verify'
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                sh '''
+                    set -eu
+                    engine() {
+                      if [ "$CONTAINER_ENGINE" = "nerdctl" ]; then
+                        nerdctl --namespace "$CONTAINERD_NAMESPACE" "$@"
+                      else
+                        "$CONTAINER_ENGINE" "$@"
+                      fi
+                    }
+
+                    engine build \
+                      --build-arg "CONTAINER_ENGINE=${CONTAINER_ENGINE}" \
+                      --file deploy/container/Dockerfile \
+                      --tag "$FULL_IMAGE" \
+                      .
+                '''
+            }
+        }
+
+        stage('Publish Image') {
+            when {
+                expression { params.PUBLISH_IMAGE }
+            }
+            steps {
+                script {
+                    if (!params.REGISTRY.trim()) {
+                        error('REGISTRY is required when PUBLISH_IMAGE=true')
+                    }
+                    if (params.REGISTRY.contains('://')) {
+                        error('REGISTRY must not include a URL scheme')
+                    }
+                    if (!params.REGISTRY_NAMESPACE.trim()) {
+                        error('REGISTRY_NAMESPACE is required when PUBLISH_IMAGE=true')
+                    }
+                    if (!params.REGISTRY_CREDENTIALS_ID.trim()) {
+                        error('REGISTRY_CREDENTIALS_ID is required when PUBLISH_IMAGE=true')
+                    }
+
+                    withCredentials([usernamePassword(
+                            credentialsId: params.REGISTRY_CREDENTIALS_ID,
+                            usernameVariable: 'REGISTRY_USERNAME',
+                            passwordVariable: 'REGISTRY_PASSWORD')]) {
+                        sh '''
+                            set +x
+                            set -eu
+                            engine() {
+                              if [ "$CONTAINER_ENGINE" = "nerdctl" ]; then
+                                nerdctl --namespace "$CONTAINERD_NAMESPACE" "$@"
+                              else
+                                "$CONTAINER_ENGINE" "$@"
+                              fi
+                            }
+
+                            printf '%s' "$REGISTRY_PASSWORD" |
+                              engine login "$REGISTRY" \
+                                --username "$REGISTRY_USERNAME" \
+                                --password-stdin
+                            engine push "$FULL_IMAGE"
+
+                            if [ "$PUBLISH_LATEST" = "true" ] &&
+                               [ -z "${CHANGE_ID:-}" ] &&
+                               { [ "${BRANCH_NAME:-}" = "main" ] ||
+                                 [ "${BRANCH_NAME:-}" = "master" ]; }; then
+                              latest_image="${IMAGE_REPOSITORY}:latest"
+                              engine tag "$FULL_IMAGE" "$latest_image"
+                              engine push "$latest_image"
+                            fi
+                        '''
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            junit testResults: '**/target/surefire-reports/*.xml', allowEmptyResults: true
+            script {
+                if (params.PUBLISH_IMAGE && params.REGISTRY.trim()) {
+                    sh returnStatus: true, script: '''
+                        set +x
+                        if command -v "$CONTAINER_ENGINE" >/dev/null 2>&1; then
+                          if [ "$CONTAINER_ENGINE" = "nerdctl" ]; then
+                            nerdctl --namespace "$CONTAINERD_NAMESPACE" logout "$REGISTRY"
+                          else
+                            "$CONTAINER_ENGINE" logout "$REGISTRY"
+                          fi
+                        fi
+                    '''
+                }
+            }
+        }
+        success {
+            echo "Built immutable image ${env.FULL_IMAGE}"
+        }
+    }
+}

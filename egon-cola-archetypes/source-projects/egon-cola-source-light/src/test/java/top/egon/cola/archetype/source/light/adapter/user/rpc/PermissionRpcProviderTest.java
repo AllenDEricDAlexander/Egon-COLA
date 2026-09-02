@@ -1,0 +1,24 @@
+package top.egon.cola.archetype.source.light.adapter.user.rpc;
+
+import top.egon.cola.archetype.source.light.facade.user.PermissionFacade;
+import top.egon.cola.archetype.source.light.facade.user.dto.PermissionDetailDTO;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+class PermissionRpcProviderTest {
+    @Test
+    void delegates_permission_query_to_facade() {
+        PermissionFacade facade = mock(PermissionFacade.class);
+        List<PermissionDetailDTO> expected = List.of(
+                new PermissionDetailDTO("course:read", "Read courses", List.of()));
+        when(facade.getUserPermissions(1001L)).thenReturn(expected);
+
+        assertThat(new PermissionRpcProvider(facade).getUserPermissions(1001L))
+                .isSameAs(expected);
+    }
+}
