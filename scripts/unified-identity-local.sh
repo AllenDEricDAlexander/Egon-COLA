@@ -388,6 +388,12 @@ java_property_key() {
     EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_DATABASE)
       printf 'egon.cola.component.ddc.admin.redis.database'
       ;;
+    EGON_COLA_COMPONENT_DDC_ENABLED)
+      printf 'egon.cola.component.ddc.enabled'
+      ;;
+    EGON_COLA_COMPONENT_DDC_REDIS_ENABLED)
+      printf 'egon.cola.component.ddc.redis.enabled'
+      ;;
     EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST)
       printf 'egon.cola.component.ddc.consistency.fail-fast'
       ;;
@@ -532,8 +538,8 @@ write_service_env_files() {
   write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_PORT "${redis_port}"
   write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_PASSWORD "${redis_password}"
   write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_DATABASE 10
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_ENABLED true
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_REDIS_ENABLED true
+  write_env "${file}" EGON_COLA_COMPONENT_DDC_ENABLED false
+  write_env "${file}" EGON_COLA_COMPONENT_DDC_REDIS_ENABLED false
   write_env "${file}" DDC_AUTHORIZATION_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
   write_env "${file}" DDC_AUTHORIZATION_REDIS_DATABASE 8
   write_env "${file}" DDC_ADMIN_JWT_ISSUER "${idp_url}"
@@ -2073,6 +2079,8 @@ command_start() {
   stop_process rbac3
   stop_process idp
   write_env "${env_dir}/ddc.env" DDC_SELF_REGISTRATION_ENABLED true
+  write_env "${env_dir}/ddc.env" EGON_COLA_COMPONENT_DDC_ENABLED true
+  write_env "${env_dir}/ddc.env" EGON_COLA_COMPONENT_DDC_REDIS_ENABLED true
   stop_process ddc
   start_process ddc "${env_dir}/ddc.env" "${ddc_jar}"
   wait_http ddc "${ddc_url}/actuator/health/readiness"
