@@ -2078,6 +2078,16 @@ command_start() {
   stage "restarting IdP and RBAC3 with admitted DDC publication"
   stop_process rbac3
   stop_process idp
+  # DDC's runtime registration needs an online IdP. Restore IdP first without
+  # requiring RBAC3 publication, then enable DDC RPC and complete the chain.
+  write_env "${env_dir}/idp.env" IDP_RPC_PROVIDER_REGISTRATION_MODE DISABLED
+  start_process idp "${env_dir}/idp.env" "${idp_jar}" \
+    --egon.cola.component.ddc.enabled=false \
+    --egon.cola.component.ddc.registry.enabled=false \
+    --egon.cola.component.ddc.registry.http.enabled=false
+  wait_http idp "${idp_url}/actuator/health/readiness"
+  refresh_service_tokens
+
   write_env "${env_dir}/ddc.env" DDC_SELF_REGISTRATION_ENABLED true
   write_env "${env_dir}/ddc.env" EGON_COLA_COMPONENT_DDC_ENABLED true
   write_env "${env_dir}/ddc.env" EGON_COLA_COMPONENT_DDC_REDIS_ENABLED true
@@ -2089,6 +2099,7 @@ command_start() {
   write_env "${env_dir}/rbac3.env" RBAC3_RPC_ENABLED true
   write_env "${env_dir}/rbac3.env" RBAC3_RPC_CONSUMER_ENABLED true
   write_env "${env_dir}/idp.env" IDP_RPC_PROVIDER_REGISTRATION_MODE REQUIRED
+  stop_process idp
   start_process idp "${env_dir}/idp.env" "${idp_jar}"
   wait_http idp "${idp_url}/actuator/health/readiness"
   refresh_service_tokens
