@@ -29,7 +29,7 @@
         <dubbo.version>3.3.6</dubbo.version>
         <spring-cloud.version>2025.0.3</spring-cloud.version>
         <spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>
-        <springdoc.version>2.8.13</springdoc.version>
+        <springdoc.version>2.8.17</springdoc.version>
         <shardingsphere.version>5.5.3</shardingsphere.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
         <exec.maven.plugin.version>3.5.0</exec.maven.plugin.version>
@@ -55,9 +55,9 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>3.5.16</version>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-bom</artifactId>
+                <version>${springdoc.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -128,16 +128,6 @@
                 <groupId>top.egon.internal.archetype.source</groupId>
                 <artifactId>egon-cola-source-web-starter</artifactId>
                 <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springdoc</groupId>
-                <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
-                <version>${springdoc.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springdoc</groupId>
-                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-                <version>${springdoc.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.linpeilie</groupId>

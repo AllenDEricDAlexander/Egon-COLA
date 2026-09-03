@@ -54,13 +54,6 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>3.5.16</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
                 <groupId>top.egon</groupId>
                 <artifactId>egon-cola-components-bom</artifactId>
                 <version>${egon-cola.version}</version>
