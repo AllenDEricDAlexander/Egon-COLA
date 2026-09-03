@@ -532,6 +532,7 @@ write_service_env_files() {
   write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_PORT "${redis_port}"
   write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_PASSWORD "${redis_password}"
   write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_DATABASE 10
+  write_env "${file}" EGON_COLA_COMPONENT_DDC_ENABLED true
   write_env "${file}" EGON_COLA_COMPONENT_DDC_REDIS_ENABLED true
   write_env "${file}" DDC_AUTHORIZATION_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
   write_env "${file}" DDC_AUTHORIZATION_REDIS_DATABASE 8
