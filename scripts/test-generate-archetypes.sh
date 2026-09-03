@@ -409,18 +409,63 @@ test_generation_mode() {
   "$GENERATOR" check >/dev/null 2>&1 || fail 'real generation check is not ready yet'
 }
 
-test_package_mode() {
-  local family="$1" module
-  [[ "$family" =~ ^(light|service|web)$ ]] || fail "unsupported package family: ${family}"
-  while IFS= read -r module; do
-    [[ -n "$module" ]] || continue
-    assert_file_contains "$module/pom.xml" '.generated/${project.artifactId}' \
-      "${module} generated resource wiring"
-    [[ -f "$module/src/main/javadoc/README.md" ]] || fail "missing javadoc README in ${module}"
-    assert_file_contains "$module/src/test/resources/projects/basic/verify.groovy" \
-      'top.egon.internal.archetype.source' "${module} sentinel verifier"
-  done < <(find "$REPO_ROOT/egon-cola-archetypes" -maxdepth 1 -type d \
-    -name "egon-cola-archetype-${family}*" -print | sort)
+legacy_v_paths() {
+  cat <<'EOF'
+egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/sharding/master-data/V20260726_001__init_light_master_data_schema.sql
+egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/sharding/master-data/V20260825_001__migrate_light_master_data_to_egon_model.sql
+egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/sharding/shard/V20260726_002__init_light_sharded_schema.sql
+egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/sharding/shard/V20260825_002__migrate_light_sharded_to_tenant_model.sql
+egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260726_001__init_evaluation_master_data_schema.sql
+egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260825_001__migrate_evaluation_master_data_to_egon_model.sql
+egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/shard/V20260726_002__init_evaluation_sharded_schema.sql
+egon-cola-archetypes/egon-cola-archetype-service/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/shard/V20260825_002__migrate_evaluation_sharded_to_tenant_model.sql
+egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260726_001__init_organization_master_data_schema.sql
+egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/master-data/V20260825_003__migrate_organization_master_data_to_egon_model.sql
+egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/shard/V20260726_002__init_organization_sharded_schema.sql
+egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/shard/V20260825_004__migrate_organization_sharded_to_tenant_model.sql
+EOF
+}
+
+assert_module_list() {
+  local file="$1" expected="$2" actual
+  actual="$(awk '/<profiles>/{exit} /<module>/{sub(/^[[:space:]]*<module>/, ""); sub(/<\/module>[[:space:]]*$/, ""); print}' "$file")"
+  assert_equal "$expected" "$actual" "${file} module list"
+}
+
+assert_legacy_v_archive() {
+  local path expected actual
+  while IFS= read -r path; do
+    [[ -n "$path" ]] || continue
+    [[ -f "$REPO_ROOT/$path" ]] || fail "legacy V archive is missing: ${path}"
+    expected="$(git -C "$REPO_ROOT" show "HEAD:${path}" | shasum -a 256 | awk '{print $1}')"
+    actual="$(shasum -a 256 "$REPO_ROOT/$path" | awk '{print $1}')"
+    assert_equal "$expected" "$actual" "legacy V archive hash ${path}"
+  done < <(legacy_v_paths)
+}
+
+assert_no_duplicate_business_template() {
+  local actual expected
+  expected="$(legacy_v_paths)"
+  actual="$(for family in light service web; do
+    git -C "$REPO_ROOT" ls-files "egon-cola-archetypes/egon-cola-archetype-${family}"
+  done | LC_ALL=C sort)"
+  assert_equal "$expected" "$actual" 'legacy tracked archive allowlist'
+  for family in light-open service-open web-open; do
+    [[ -z "$(git -C "$REPO_ROOT" ls-files "egon-cola-archetypes/egon-cola-archetype-${family}")" ]] \
+      || fail "${family} legacy module still has tracked files"
+  done
+}
+
+test_reactor_cutover_mode() {
+  local archetypes_pom="$REPO_ROOT/egon-cola-archetypes/pom.xml"
+  [[ -f "$archetypes_pom" ]] || fail "missing archetypes parent: ${archetypes_pom}"
+  assert_module_list "$archetypes_pom" $'egon-cola-organization-facade\negon-cola-evaluation-facade'
+  assert_file_contains "$archetypes_pom" '<id>generated-archetypes</id>' 'generated profile id'
+  assert_file_contains "$archetypes_pom" '<module>.generated</module>' 'generated profile module'
+  assert_file_not_contains "$archetypes_pom" '<activeByDefault>true</activeByDefault>' \
+    'generated profile must not be active by default'
+  assert_legacy_v_archive
+  assert_no_duplicate_business_template
 }
 
 test_release_wiring_mode() {
@@ -454,8 +499,8 @@ main() {
       test_generation_mode
       ;;
     package)
-      [[ $# -eq 2 ]] || fail 'package mode requires light, service or web'
-      test_package_mode "$2"
+      [[ $# -eq 2 && "$2" == reactor ]] || fail 'package mode requires reactor'
+      test_reactor_cutover_mode
       ;;
     release)
       test_release_wiring_mode

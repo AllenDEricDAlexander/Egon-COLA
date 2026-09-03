@@ -55,12 +55,6 @@
     <modules>
         <module>egon-cola-organization-facade</module>
         <module>egon-cola-evaluation-facade</module>
-        <module>egon-cola-archetype-light</module>
-        <module>egon-cola-archetype-service</module>
-        <module>egon-cola-archetype-web</module>
-        <module>egon-cola-archetype-light-open</module>
-        <module>egon-cola-archetype-service-open</module>
-        <module>egon-cola-archetype-web-open</module>
     </modules>
 
     <properties>
@@ -233,6 +227,12 @@
     </distributionManagement>
 
     <profiles>
+        <profile>
+            <id>generated-archetypes</id>
+            <modules>
+                <module>.generated</module>
+            </modules>
+        </profile>
         <profile>
             <id>release</id>
             <build>
