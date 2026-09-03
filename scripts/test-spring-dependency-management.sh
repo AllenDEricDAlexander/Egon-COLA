@@ -55,6 +55,12 @@ assert_springdoc_dependencies_are_managed() {
   [[ -z "$local_managed_dependencies" ]] || fail "Springdoc starter must not be locally overridden: ${file}"
 }
 
+assert_dubbo_bom_does_not_override_boot() {
+  local file="$1"
+  assert_not_contains "$file" '<artifactId>dubbo-bom</artifactId>' 'Dubbo BOM must not override Boot-managed ecosystem'
+  assert_contains "$file" '<dubbo.version>3.3.6</dubbo.version>' 'Dubbo version property'
+}
+
 ROOT_POM="${REPO_ROOT}/pom.xml"
 assert_contains "$ROOT_POM" '<spring.boot.version>3.5.16</spring.boot.version>' 'root Spring Boot property'
 assert_count "$ROOT_POM" '<artifactId>spring-boot-dependencies</artifactId>' 1 'root Boot BOM ownership'
@@ -84,6 +90,14 @@ for springdoc_pom in \
   "${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-web/pom.xml" \
   "${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-web-open/pom.xml"; do
   assert_springdoc_dependencies_are_managed "$springdoc_pom"
+done
+
+for dubbo_pom in \
+  "${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-service/pom.xml" \
+  "${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-service-open/pom.xml" \
+  "${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-web/pom.xml" \
+  "${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-web-open/pom.xml"; do
+  assert_dubbo_bom_does_not_override_boot "$dubbo_pom"
 done
 
 assert_contains "$ROOT_POM" '<flyway.version>11.15.0</flyway.version>' 'Flyway exception ledger'

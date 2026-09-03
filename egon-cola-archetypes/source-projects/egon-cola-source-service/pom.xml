@@ -75,13 +75,6 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>org.apache.dubbo</groupId>
-                <artifactId>dubbo-bom</artifactId>
-                <version>${dubbo.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
                 <groupId>${evaluation-facade.group-id}</groupId>
                 <artifactId>${evaluation-facade.artifact-id}</artifactId>
                 <version>${evaluation-facade.version}</version>

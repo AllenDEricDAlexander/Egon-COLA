@@ -83,13 +83,6 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                <groupId>org.apache.dubbo</groupId>
-                <artifactId>dubbo-bom</artifactId>
-                <version>${dubbo.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
                 <groupId>${organization-facade.group-id}</groupId>
                 <artifactId>${organization-facade.artifact-id}</artifactId>
                 <version>${organization-facade.version}</version>
