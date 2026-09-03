@@ -1,6 +1,6 @@
 # Per-interface Contract Design
 
-Read this reference whenever Chapter 9 contains an HTTP, RPC, event/message, CLI, scheduled-job, or internal-service contract. An inventory is only the index; every inventory item must have a complete detailed subsection.
+Read this reference whenever Chapter 9 contains an HTTP, RPC, event/message, CLI, scheduled-job, or internal-service contract. An inventory is only the index; every inventory item must have a complete detailed subsection. When an external REST or GraphQL API is affected, also read `references/api-rest-cqrs-graphql-openapi.md` completely and apply its stricter protocol, CQRS, springdoc/OpenAPI 3, GraphQL, security, generated-contract, and blocking-gate rules.
 
 ## Contents
 
@@ -14,14 +14,24 @@ Read this reference whenever Chapter 9 contains an HTTP, RPC, event/message, CLI
 - [Depth and consistency gate](#depth-and-consistency-gate)
 - [Contract review failures](#contract-review-failures)
 
+## External API specialization
+
+For an affected external API, this reference provides the common atomic-contract structure while `references/api-rest-cqrs-graphql-openapi.md` is authoritative for API style and documentation details.
+
+- Use one `API-*` ID per independently callable REST Method + URL or per GraphQL root-field operation contract. A GraphQL inventory identity includes the transport plus exact field, for example `POST /graphql :: Query.order`; `/graphql` alone is not an operation inventory.
+- Classify every API as `REST Query`, `REST Command`, `GraphQL Query`, `GraphQL Mutation`, or `GraphQL Subscription`. CQRS classification is mandatory; physical read/write-store separation is not.
+- A REST detail adds `API style and CQRS semantics` plus `Documentation contract` covering springdoc/OpenAPI 3 annotations and generated OAS verification.
+- A GraphQL detail adds the same headings but uses SDL, named operation documents, Spring resolver mappings, coercion/errors, batching/cost, and schema verification. Swagger annotations do not document GraphQL fields.
+- Chapter 9.4 must close every `API-GATE-*` row from the API reference before the Spec can pass.
+
 ## Contract inventory
 
 Assign stable IDs such as `API-001`, `RPC-001`, `EVENT-001`, `JOB-001`, or `INTERNAL-001`.
 
 One ID represents one atomic protocol operation: one HTTP Method + URL, one RPC service method, one event/topic schema contract, one job, or one internal method. Do not group a CRUD family, several URLs, or collection/detail/status operations into one row; shared rules may be referenced after each operation remains independently specified.
 
-| ID | Change/necessity verdict | Name/purpose | Kind | Consumer | Owner | Method + URL / symbol / topic | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ID | Change/necessity verdict | Name/purpose | Kind | API style/CQRS role | Consumer | Owner | Method + URL / GraphQL field / symbol / topic | Operation ID/schema source | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 The inventory and detailed subsections must be bijective: no inventory item may lack details, and no detailed contract may be absent from the inventory.
 
@@ -45,6 +55,8 @@ For every interface record `Existing/Modify/New/Remove` and an `Add/Keep/Merge/R
 ## Required per-interface subsection
 
 Use one subsection per contract ID and keep the following structure.
+
+For every external `API-*`, insert **API style and CQRS semantics** immediately after the necessity subsection and **Documentation contract** immediately before compatibility. Each must use the canonical tables in `assets/spec-template.md`. Non-HTTP contracts keep the common seven headings and do not receive decorative API sections.
 
 ### 0. Necessity and interaction-cost decision
 
@@ -170,9 +182,9 @@ This example demonstrates required depth only. Its route, wrapper, fields, value
 
 ### Inventory row
 
-| ID | Change/necessity verdict | Name/purpose | Kind | Consumer | Owner | Method + URL | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `API-021` | New/Add: direct create is the independent command; no parameter-preflight endpoint | Create order | HTTP | Order creation page | Order web module | `POST /api/v1/orders` | Headers + `CreateOrderRequest` | `ApiResponse<OrderResponse>` | Bearer principal; tenant from verified context | Stable HTTP + business codes | `Idempotency-Key`; v1 additive compatibility | `REQ-007`, `REQ-008` |
+| ID | Change/necessity verdict | Name/purpose | Kind | API style/CQRS role | Consumer | Owner | Method + URL / GraphQL field / symbol / topic | Operation ID/schema source | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `API-021` | New/Add: direct create is the independent command; no parameter-preflight endpoint | Create order | HTTP | REST Command | Order creation page | Order web module | `POST /api/v1/orders` | `createOrder`; Controller annotations and generated OAS | Headers + `CreateOrderCommand` | `ApiResponse<OrderResponse>` | Bearer principal; tenant from verified context | Stable HTTP + business codes | `Idempotency-Key`; v1 additive compatibility | `REQ-007`, `REQ-008` |
 
 ### API-021 — Create order
 
@@ -187,6 +199,17 @@ This example demonstrates required depth only. Its route, wrapper, fields, value
 | Caller use of result | Navigates to the created order and invalidates list cache; result is not forwarded to another command |
 | Round trips and failure points | One command RTT; same-key retry handles unknown outcome; authoritative references/prices are revalidated in the command |
 | Verdict | `Add` for `REQ-007`; any separate “get create parameters” endpoint is `Remove` |
+
+#### API style and CQRS semantics
+
+| Concern | Decision/evidence |
+| --- | --- |
+| Protocol style | `REST Command` |
+| CQRS role | Task-based create Command; it is not a Query and owns the state change |
+| Resource/task semantics | `POST /api/v1/orders` creates one subordinate order resource |
+| Read/write and side effects | Reads authoritative references, writes order/idempotency state, and emits only the explicitly designed event |
+| Consistency and idempotency | One documented transaction; same key and normalized payload return the same outcome |
+| Why this style | The existing REST consumer needs one direct create operation; no extra CQRS infrastructure or GraphQL facade is required |
 
 #### Identity and purpose
 
@@ -306,6 +329,21 @@ Illustrative validation-error payload:
 6. Duplicate same-payload requests return the stored outcome; different-payload key reuse conflicts; failures roll back or enter the explicitly documented unknown/reconciliation state.
 7. The frontend disables duplicate clicks while pending, navigates to the returned order detail on success, invalidates list cache, preserves form data on retryable failure, maps field errors, and never polls unless the contract explicitly returns an asynchronous state.
 
+#### Documentation contract
+
+| Concern | Decision/evidence |
+| --- | --- |
+| Documentation authority | Code-first Spring mapping, Command/Response types, Bean Validation, Jackson, and OpenAPI 3 annotations |
+| REST OpenAPI operation / GraphQL SDL operation | Explicit `createOrder` operationId for `POST /api/v1/orders` |
+| Annotation/mapping ownership | Existing Controller owns mapping, `@Operation`, `@ApiResponses`, and `@SecurityRequirement`; no annotation-only interface |
+| Generated schema elements | Request header/body, `201`, validation/auth/permission/conflict/failure responses, headers, wrapper schemas, and bearer security |
+| Compatibility and drift proof | Generate/parse OAS and assert the operation, schemas, security, constraints, and codes through the repository's focused contract test |
+
+| Target | Required annotation/configuration | Exact values/source | Generated OAS effect | Verification |
+| --- | --- | --- | --- | --- |
+| `OrderController#createOrder` | `@Operation`, `@ApiResponses`, `@SecurityRequirement`, Spring mapping/validation | Values from this verified contract; operationId `createOrder` | One POST operation with complete outcomes and bearer security | Generated OAS assertions |
+| `CreateOrderCommand` and response/error types | Bean Validation, Jackson, and selective `@Schema` | Field tables and wire examples above | Concrete request/wrapper/component schemas | Serialization, validation, and schema assertions |
+
 #### Compatibility and verification
 
 - Consumers: name every frontend client, external client, fixture, mock, and API document found in the repository.
@@ -371,6 +409,7 @@ For every non-HTTP item, still use a stable detailed-subsection shape: identity/
 Before accepting one contract detail, verify all of the following:
 
 - its seven required headings exist in order and contain repository-specific content;
+- an external API also has the two API-specific headings, exact REST/GraphQL and CQRS classification, protocol-specific documentation artifacts, generated-contract proof, and all nine blocking API gates;
 - its necessity/interaction section proves `Add/Keep` against a direct alternative and rejects unchanged fetch-then-forward parameters;
 - HTTP identity contains exactly one method and one verified application route;
 - every request value has a location, type/format, required/null/default behavior, exact validation, meaning, example, and source;
@@ -394,3 +433,4 @@ Return `REVISE` when any applies:
 - response JSON is replaced by a class name, contains `...`, or omits comments on fields;
 - frontend-visible logic, state change, side effect, retry, or error handling is unclear;
 - interface fields disagree with POJOs, database types/nullability, frontend usage, or tests.
+- an external REST API lacks OpenAPI 3 annotation/generated-OAS design, a GraphQL API lacks SDL/root-field/resolver/schema-test design, or any `API-GATE-*` item is absent or inconsistent.

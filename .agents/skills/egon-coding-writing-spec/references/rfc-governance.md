@@ -7,7 +7,7 @@
 - The abstract is concise, stable, and specific enough to avoid collisions.
 - Never reuse a path for a different design and never overwrite a predecessor. If a collision occurs, choose a more specific abstract.
 - Header `Document`, `Created`, and `Updated` values must agree with the file and actual history.
-- New Specs use `Template Version: 6` plus `Complexity`, `Complexity Drivers`, `Change Surface`, `Affected Chapters`, the literal-rule compliance matrix, and the complete blocking Manual Check catalog. Version 2 through Version 5 Specs remain valid under their original contracts; older historical Specs remain usable when their design is authoritative. Do not rewrite a predecessor only to upgrade its template.
+- New Specs use `Template Version: 7` plus `Complexity`, `Complexity Drivers`, `Change Surface`, `Affected Chapters`, the literal-rule compliance matrix, the complete blocking Manual Check catalog, and the API governance/gates when an external API is affected. Version 2 through Version 6 Specs remain valid under their original contracts; older historical Specs remain usable when their design is authoritative. Do not rewrite a predecessor only to upgrade its template.
 
 ## Status lifecycle
 

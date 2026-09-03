@@ -1,6 +1,6 @@
 ---
 name: egon-coding-writing-spec
-description: 当编码任务在实施 Plan 前需要基于仓库编写 RFC 风格 Spec 时使用，包括局部变更、Java/Spring/Egon-COLA 编码规范、阻断型 Manual Check、传统分层与准确 egon-cola-archetype COLA 架构选择、需求/用例、详细契约或数据库设计。
+description: 当编码任务在实施 Plan 前需要基于仓库编写 RFC 风格 Spec 时使用，包括局部变更、Java/Spring/Egon-COLA 编码规范、阻断型 Manual Check、传统分层与准确 egon-cola-archetype COLA 架构选择、需求/用例、REST/CQRS/GraphQL 与 springdoc/OpenAPI 3 详细契约或数据库设计。
 ---
 
 # EGON 编码 Spec 编写
@@ -24,7 +24,7 @@ Spec 定义的是**必须构建什么，以及该设计为什么自洽**。它�
   - `ABSTRACT` 替换为简洁的小写 ASCII kebab-case 摘要，通常为 3–8 个单词。
   - 示例：`docs/egon/spec/2026-08-15-14-30-account-lockout-design.md`。
   - 同一分钟且摘要相同时不得覆盖旧文档，应使用更具体的摘要。
-- 必须以 `assets/spec-template.md` 中的 Template Version 6 为模板，保留所有编号章节，但按 `references/change-surface-and-proportional-depth.zh-CN.md` 分配深度：只完整设计 `Affected` 区域，`Context-only` 和 `Unchanged` 保持简洁，只有 `Not applicable` 才写有证据的 `N/A`。校验器继续按原契约接受既有 Version 2 至 Version 5 Spec。
+- 必须以 `assets/spec-template.md` 中的 Template Version 7 为模板，保留所有编号章节，但按 `references/change-surface-and-proportional-depth.zh-CN.md` 分配深度：只完整设计 `Affected` 区域，`Context-only` 和 `Unchanged` 保持简洁，只有 `Not applicable` 才写有证据的 `N/A`。校验器继续按原契约接受既有 Version 2 至 Version 6 Spec。
 
 ## 资源完整性预检
 
@@ -74,7 +74,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 15. Java 分包设计前必须把当前项目准确分类为一种允许形态：`references/three-layer-architecture.zh-CN.md` 定义的传统结构，或准确选中的 `egon-cola-archetypes/egon-cola-archetype-{light,service,web}` 家族契约（包括明确选中的 Open 变体）。保持该形态及其 Verifier/依赖方向，禁止发明、混搭或重命名层/模块。项目不符合任一形态或证据冲突时，必须作为重大阻断询问用户。
 16. 必须使用 `references/complex-scenario-analysis.zh-CN.md` 把 Spec 分类为 `Simple` 或 `Complex`。Complex Spec 在选择架构前必须完成证据图谱、场景矩阵、所有权/一致性分析、质量约束和“证据到决策”结论链；Simple Spec 不得为了形式套用重型分析。
 17. 第 7 章必须分为系统架构设计、概要设计和详细设计，但只描述受影响协作和证明边界所需的上下文。Complex Spec 必须包含架构 Mermaid Flowchart、独立的关键业务/控制 Flowchart，以及覆盖主要参与者/重要失败的 Mermaid 泳道图/Sequence Diagram；聚焦 Simple Spec 不得增加装饰性的全系统图。
-18. HTTP/RPC/事件/Job/内部 Service 契约为 `Affected` 时才读取 `references/interface-contract-design.zh-CN.md`。一个原子 Method + URL 或协议操作分配一个接口 ID，禁止合并 CRUD 接口族；清单和完整详情只覆盖发生变化的契约。已有接口只是 `Context-only` 或 `Unchanged` 时，只引用准确当前符号/路由和保持不变量，不复写完整入参/出参。
+18. HTTP/RPC/事件/Job/内部 Service 契约为 `Affected` 时才读取 `references/interface-contract-design.zh-CN.md`。外部 REST 或 GraphQL API 为 `Affected` 时，还必须完整读取 `references/api-rest-cqrs-graphql-openapi.zh-CN.md`。一个原子 REST Method + URL、GraphQL Root Field Operation Contract 或其他协议操作分配一个接口 ID，禁止合并 CRUD 接口族，也禁止只把 `/graphql` 当成 Operation。清单和完整详情只覆盖发生变化的契约。每个外部 API 必须分类 REST/GraphQL 风格与 Query/Command/Subscription 角色，设计 OpenAPI 3 或 GraphQL Schema 文档，并关闭全部 `API-GATE-*`。已有接口只是 `Context-only` 或 `Unchanged` 时，只引用准确当前符号/路由和保持不变量，不复写完整入参/出参、注解或 SDL。
 19. Schema、数据语义、约束、索引、Migration、事务/锁行为或权威持久化所有权为 `Affected` 时才读取 `references/database-design.zh-CN.md`，且只清单和展开这些受影响数据库元素。DAO 查询单独变化时，可记录准确 SQL/访问路径和相关已有索引证据，不复写完整不变表或 ER 关系。
 20. 每份 Spec 都必须读取 `references/requirements-use-case-analysis.zh-CN.md`。需求分析必须识别真实参与者和稳定 `UC-*` 用例，写清触发、前置条件、主要结果、分支/失败、后置条件和追踪。可使用完整表格或 Mermaid `flowchart`；复杂或多参与者行为优先使用带系统边界的 Mermaid 视图。不能把 Controller 方法或架构调用链当作用例。
 21. 关系型数据模型、表、Key、约束或关系为 `Affected` 时，必须增加 Mermaid `erDiagram`，覆盖所有受影响清单表、直接相关邻表、真实基数、关系标签和重要 PK/FK/UK 字段，并映射准确物理表。DAO-only 查询或映射变更不得重画不变 ER 模型。
@@ -95,6 +95,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 | 所有 Spec | `references/ambiguity-policy.md`、`references/rfc-governance.md`、`references/complex-scenario-analysis.zh-CN.md`、`references/requirements-use-case-analysis.zh-CN.md`、`references/change-surface-and-proportional-depth.zh-CN.md`、`references/minimal-design-and-interface-necessity.zh-CN.md`、`references/review-checklist.md` 和 `assets/spec-template.md` |
 | 所有 Java 设计 | `references/user-mandated-java-rules.zh-CN.md` 和 `references/java-spring-egon-coding-standards.zh-CN.md`；传统形态还读取 `references/three-layer-architecture.zh-CN.md` 和 `references/pojo-modeling.zh-CN.md`，COLA 形态读取仓库中准确选中的 Archetype Tree/Verifier |
 | 任意 `Affected` HTTP/RPC/事件/Job/内部 Service 契约 | `references/interface-contract-design.zh-CN.md` |
+| 任意 `Affected` 外部 REST 或 GraphQL API | `references/interface-contract-design.zh-CN.md` 和 `references/api-rest-cqrs-graphql-openapi.zh-CN.md` |
 | 任意 `Affected` Schema/数据/约束/索引/Migration/事务/锁/持久化所有权表面 | `references/database-design.zh-CN.md` |
 
 Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec 中，不能压缩成摘要：
@@ -111,6 +112,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 - 每份 Spec 必须使用完整表格或 Mermaid 用例视图表达有证据的参与者和稳定 `UC-*` 目标，并写清条件、结果、后置条件和向后追踪；
 - 每个拟议元素必须相对现有/复用直接方案给出 `Add/Keep/Merge/Remove` 必要性结论；不能新增只用于查询调用方原样转发值或目标端可派生值的接口；
 - 每个受影响接口清单项必须包含全部逐接口子章节、真实协议身份、完整参数规则、成功与错误结果、有序调用方逻辑和验证；
+- 每个受影响外部 API 还必须包含协议/CQRS 决策、REST 资源/HTTP 语义或完整 GraphQL SDL/Operation/Resolver 语义、文档归属、安全/暴露、准确生成契约校验，以及九行已关闭 `API-GATE-*`；
 - 每个受影响数据库清单项必须包含全部逐表子章节、完整受影响字段表、绑定真实访问路径的逐索引论证、Migration/历史数据处理和一致性/恢复规则；
 - 每张受影响关系模型清单表必须出现在 Mermaid `erDiagram` 中，物理名称映射、关系与 Key 语义必须和详细设计一致；
 - `Affected` 区域只有在引用准确权威实现/契约并证明无需新决策时，才能用 `N/A`、“沿用现有”、“框架处理”、类名或链接代替细节；`Context-only`、`Unchanged` 和 `Not applicable` 必须使用各自的简洁写法。
@@ -132,7 +134,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 | 字段 | 必需含义 |
 | --- | --- |
 | Document | 当前文件名，使用仓库相对链接或代码值 |
-| Template Version | 当前模板固定为 `6`；既有 Version 2 至 Version 5 文档继续按原规则有效 |
+| Template Version | 当前模板固定为 `7`；既有 Version 2 至 Version 6 文档继续按原规则有效 |
 | Status | `Draft`、`Review`、`Accepted`、`Implemented`、`Superseded` 或 `Rejected` |
 | Type | `Feature`、`Refactor`、`Bugfix`、`Architecture` 或清晰定义的其他编码类型 |
 | Complexity | `Simple` 或 `Complex` |
@@ -188,7 +190,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
    - 明确考虑 Strategy、Template Method、Factory、Adapter、Facade、State、Observer、Command、Specification 等合适模式。
    - 受影响业务逻辑被判定为 Complex 后，必须选择并完整设计实际模式，禁止直接分支；Simple 逻辑保持直接实现，避免为了规则制造仪式性类。
    - Java 工作必须执行 `references/user-mandated-java-rules.zh-CN.md` 和 `references/java-spring-egon-coding-standards.zh-CN.md`，先确认唯一允许架构并建立复用账本，再设计依赖或抽象。传统形态还读取 `references/three-layer-architecture.zh-CN.md` 和 `references/pojo-modeling.zh-CN.md`；COLA 形态检查准确 Archetype Tree、模块依赖、示例和生成 Verifier。
-   - 接口或数据库表面为 `Affected` 时才读取 `references/interface-contract-design.zh-CN.md` 和 `references/database-design.zh-CN.md`；否则只简洁引用权威当前契约/持久化证据和保持不变量。
+   - 接口或数据库表面为 `Affected` 时才读取 `references/interface-contract-design.zh-CN.md` 和 `references/database-design.zh-CN.md`；外部 REST/GraphQL API 受影响时，还要读取 `references/api-rest-cqrs-graphql-openapi.zh-CN.md`，并设计协议/CQRS、文档、生成契约和 API 阻断门禁；否则只简洁引用权威当前契约/持久化证据和保持不变量。
    - 关系型模型受影响时，先根据已有表所有权、Key 和基数推导 Mermaid `erDiagram`，再定案逐表详情；查询单独变化时不能重画不变关系。
 7. **编写 Spec**
    - 复制 `assets/spec-template.md`，保留所有编号章节，并按变更面处置类型填写。`Context-only`、`Unchanged` 或 `Not applicable` 区域应删除可选深度子章节，不能为了形式填满。
@@ -216,7 +218,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 6. **项目技术上下文**——只记录约束受影响工作或证明停止边界的当前语言/框架/构建/模块/持久化/前端/测试事实。
 7. **架构设计**——先完成最小设计/元素必要性审核，再保留系统架构、概要设计和详细设计三个层次。只完整定义受影响边界、协作、数据/控制流、事务、失败和可观测性；周边不变架构只引用证据来证明停止边界。Complex Spec 使用三种必需图示；聚焦 Simple Spec 对无信息增量图示写有证据的省略说明。
 8. **分包结构与代码文件树**——展示准确受影响文件，以及定位它们所需的少量父级/上下文路径，写清操作、符号、职责和需求映射。DAO-only 任务不能输出完整 Controller/Service/DAO 树；`service.impl` 只有在范围内时才强调嵌套于 `service`。
-9. **接口定义**——只对新增、删除或实质变化的 HTTP/RPC/事件/内部契约做完整清单和逐项展开。不变边界只引用准确已有路由/符号、消费者和保持的入参/出参/错误不变量，不能复写完整 JSON。每个受影响 HTTP 契约仍须提供准确 Method/URL、完整入参规则、逐字段注释的成功/错误 `jsonc`、逻辑、兼容和测试。
+9. **接口定义**——只对新增、删除或实质变化的 HTTP/RPC/事件/内部契约做完整清单和逐项展开。不变边界只引用准确已有路由/符号、消费者和保持的入参/出参/错误/文档不变量，不能复写完整 JSON、注解或 SDL。每个受影响外部 API 都必须包含必要性结论；REST/GraphQL 与 Query/Command/Subscription 分类；准确 Operation 身份；完整入参规则和逐字段注释的成功/错误 `jsonc`；逻辑、安全、兼容、测试和消费者行为。REST 还必须包含资源/Method/Status/Header 语义、springdoc/OpenAPI 3 注解归属、显式 `operationId`、完整 Response/Security/Schema 和生成 OAS 校验。GraphQL 还必须包含完整受影响 SDL、具名 Operation/Variable/Selection、Resolver Mapping、Null/Partial Error、Batching/N+1/Cost、Field Security 和 Schema/`GraphQlTester` 校验。九行 `API-GATE-*` 全部是阻断项。
 10. **POJO 与数据模型设计**——只完整设计受影响/新增类型、字段、映射、生命周期或复用决策。不变模型只引用准确类型和保持不变量，不能盘点无关 PO/DTO/BO/Entity/VO。变化的关系型模型必须与 ER 图一致。
 11. **数据库设计**——只完整清单和展开受影响 Schema/数据/约束/索引/事务元素。关系型模型或关系变化时才绘制 Mermaid `erDiagram`。DAO 查询单独变化且 Schema 不变时，只记录准确查询/访问路径、相关字段/索引证据和保持 Schema 不变量，不复写整表或 ER 模型。
 12. **前端页面设计**——只有前端行为受影响时才完整设计路由、组件、流程、映射和状态。已有但不受影响的前端写一条有证据的 `Unchanged`；仓库不存在前端才是 `N/A`。
@@ -252,6 +254,11 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 | 只列包名，不列文件树与职责 | 增加精确目标路径、操作、符号、职责和 `REQ-*` 映射 |
 | 接口、实体、schema、UI 和测试不一致 | 通过字段/状态/需求追踪修复 |
 | 只有接口清单，没有逐个展开 | 每个 ID 增加独立详情，写清路由/符号、入参规则、成功/错误载荷、逻辑、消费者、兼容与测试 |
+| REST/GraphQL/CQRS 只作为标签出现 | 对每个 API Operation 分类，证明协议与最小 CQRS 级别，并定义读写、副作用和幂等语义 |
+| 照搬指定 Swagger 参考仓库中的 Springfox 配置 | 只吸收 Legacy 思想；使用项目兼容的 springdoc Starter 和 `io.swagger.v3.oas.annotations.*`，否则记录 Legacy 兼容阻断 |
+| 只列 OpenAPI 注解，不说明生成文档行为 | 定义注解归属以及准确 `operationId`、Parameter、Request Body、Status、Header、Schema、Security、Exposure 和生成 OAS 断言 |
+| GraphQL 只写 `POST /graphql` 或使用 Swagger 注解说明 | 每个 Root Field 单独定义 SDL、具名 Operation、Variable/Selection、Resolver、Null/Error、Batching/Cost、Field Security 和 Schema Test |
+| 简单 CRUD 因 CQRS 新增 Bus/Read Store/Event Sourcing | 回到 L0/L1；加入物理分离前必须证明当前扩展性、一致性、历史或安全需求 |
 | 因另一个请求需要参数而新增接口 | 先判断参数所有权；在目标后端派生、复用当前路由/上下文/本地数据，或接受稳定业务 Key。只有已证明独立选择/发现/协商用例时才保留查询 |
 | 因模板章节多就选择更大的设计 | 执行支配规则；同样满足需求时选择契约、状态、依赖、调用和失败点更少的直接方案 |
 | 用响应类名或省略 JSON 代替响应结构 | 展示真实完整 `jsonc` 传输结构，每个字段添加行尾含义注释 |
@@ -278,4 +285,4 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 
 ## Skill 维护
 
-修改本 skill 时，先运行逐字规则保留测试（`scripts/test_user_mandated_java_rules.py`）、资源完整性测试（`scripts/test_validate_skill_resources.py`）、变更面测试（`scripts/test_validate_spec_scope.py`）、Manual Check 测试（`scripts/test_validate_manual_checks.py`）和预检（`scripts/validate_skill_resources.py`），再用 `references/acceptance-scenarios.md` 进行场景复核，并执行适用输出校验器。必须保持 `SKILL.md` 和所有 `*.zh-CN.md` 审核镜像与英文运行契约同步。逐字源区块发生变化、内置资源缺失、路径歧义/越界或本地 Markdown 链接失效时，本次修改都不能算完成。
+修改本 skill 时，先运行逐字规则保留测试（`scripts/test_user_mandated_java_rules.py`）、资源完整性测试（`scripts/test_validate_skill_resources.py`）、变更面测试（`scripts/test_validate_spec_scope.py`）、Manual Check 测试（`scripts/test_validate_manual_checks.py`）、API 契约测试（`scripts/test_validate_api_contracts.py`）和预检（`scripts/validate_skill_resources.py`），再用 `references/acceptance-scenarios.md` 进行场景复核，并执行适用输出校验器。必须保持 `SKILL.md` 和所有 `*.zh-CN.md` 审核镜像与英文运行契约同步。逐字源区块发生变化、内置资源缺失、路径歧义/越界或本地 Markdown 链接失效时，本次修改都不能算完成。

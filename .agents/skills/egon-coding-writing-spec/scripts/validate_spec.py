@@ -16,8 +16,8 @@ DATE_TIME_RE = re.compile(r"^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2}) \S+$")
 VALID_STATUSES = {"Draft", "Review", "Accepted", "Implemented", "Superseded", "Rejected"}
 VALID_COMPLEXITIES = {"Simple", "Complex"}
 CHANGE_SURFACE_DISPOSITIONS = {"Affected", "Context-only", "Unchanged", "Not applicable"}
-CURRENT_TEMPLATE_VERSION = 6
-SUPPORTED_TEMPLATE_VERSIONS = {2, 3, 4, 5, 6}
+CURRENT_TEMPLATE_VERSION = 7
+SUPPORTED_TEMPLATE_VERSIONS = {2, 3, 4, 5, 6, 7}
 MANUAL_CHECK_IDS = (
     "MC-ARCH-001",
     "MC-REUSE-001",
@@ -37,6 +37,14 @@ MANUAL_CHECK_IDS = (
     "MC-TEST-001",
     "MC-BLOCKER-001",
 )
+API_GATE_IDS = tuple(f"API-GATE-{number:03d}" for number in range(1, 10))
+API_STYLES = {
+    "REST Query",
+    "REST Command",
+    "GraphQL Query",
+    "GraphQL Mutation",
+    "GraphQL Subscription",
+}
 REQUIRED_FIELDS = [
     "Document",
     "Status",
@@ -122,6 +130,17 @@ REQUIRED_CONTRACT_SUBHEADINGS_V2 = [
 REQUIRED_CONTRACT_SUBHEADINGS_V3 = [
     "##### Necessity and interaction-cost decision",
     *REQUIRED_CONTRACT_SUBHEADINGS_V2,
+]
+REQUIRED_API_CONTRACT_SUBHEADINGS_V7 = [
+    "##### Necessity and interaction-cost decision",
+    "##### API style and CQRS semantics",
+    "##### Identity and purpose",
+    "##### Request parameters",
+    "##### Success response",
+    "##### Error responses",
+    "##### Interface logic for frontend and consumers",
+    "##### Documentation contract",
+    "##### Compatibility and verification",
 ]
 REQUIRED_TABLE_SUBHEADINGS = [
     "##### Purpose, ownership, and lifecycle",
@@ -393,6 +412,267 @@ def markdown_inventory_names(text: str, header: str) -> set[str]:
     return names
 
 
+def concrete_api_gate_value(value: str) -> bool:
+    """Return whether an API-gate evidence/finding cell contains a real review statement."""
+    normalized = clean(value).lower()
+    return bool(normalized) and normalized not in {
+        "none",
+        "n/a",
+        "unknown",
+        "tbd",
+        "todo",
+        "pass",
+    } and "<" not in normalized
+
+
+def validate_api_contracts_v7(interfaces: str, pass_verdict: bool = True) -> list[str]:
+    """Validate Template Version 7 external API governance and blocking gates."""
+    errors: list[str] = []
+    inventory_heading = "### 9.1 Interface Inventory"
+    detail_heading = "### 9.2 Per-interface Detailed Contracts"
+    inventory_body = heading_body(interfaces, inventory_heading)
+    inventory_rows = markdown_table_rows(inventory_body, "ID")
+    api_rows: dict[str, list[str]] = {}
+    for row_number, row in enumerate(inventory_rows, start=1):
+        if not row:
+            continue
+        contract_id = clean(row[0])
+        if not re.fullmatch(r"API-\d{3}", contract_id):
+            continue
+        if len(row) < 15:
+            errors.append(
+                f"Template Version 7 API inventory row {row_number} requires fifteen columns; "
+                f"found {len(row)}"
+            )
+            continue
+        api_rows[contract_id] = [clean(cell) for cell in row[:15]]
+
+    if not api_rows:
+        return errors
+
+    required_global_headings = [
+        "### 9.0 API protocol and documentation governance",
+        inventory_heading,
+        detail_heading,
+        "### 9.3 OpenAPI 3 and springdoc annotation plan",
+        "### 9.4 API contract generation and blocking gate",
+    ]
+    errors.extend(validate_ordered_subheadings("Chapter 9 external API design", interfaces, required_global_headings))
+
+    expected_inventory_header = (
+        "| ID | Change/necessity verdict | Name/purpose | Kind | API style/CQRS role | "
+        "Consumer | Owner | Method + URL / GraphQL field / symbol / topic | "
+        "Operation ID/schema source | Input | Output | Auth/tenant | Error model | "
+        "Idempotency/version | Requirements |"
+    )
+    if expected_inventory_header not in inventory_body:
+        errors.append("Template Version 7 external API inventory requires the canonical fifteen-column table")
+
+    rest_ids: set[str] = set()
+    graphql_ids: set[str] = set()
+    for contract_id, row in api_rows.items():
+        style = row[4]
+        identity = row[7]
+        documentation_source = row[8]
+        if style not in API_STYLES:
+            errors.append(
+                f"{contract_id} API style/CQRS role must be one of: "
+                + ", ".join(sorted(API_STYLES))
+            )
+        elif style.startswith("REST "):
+            rest_ids.add(contract_id)
+        else:
+            graphql_ids.add(contract_id)
+            expected_root = style.removeprefix("GraphQL ")
+            if not re.search(rf"\b{re.escape(expected_root)}\.[A-Za-z_][A-Za-z0-9_]*\b", identity):
+                errors.append(
+                    f"{contract_id} GraphQL inventory identity must include exact "
+                    f"{expected_root}.field in addition to the transport route"
+                )
+        if not documentation_source or documentation_source.lower() in {"none", "n/a", "unknown"}:
+            errors.append(f"{contract_id} requires an operationId or GraphQL schema/operation source")
+
+    governance = heading_body(interfaces, "### 9.0 API protocol and documentation governance")
+    if "| Concern | Decision/evidence |" not in governance:
+        errors.append("External API governance requires the canonical concern/decision table")
+    governance_rows = markdown_table_rows(governance, "Concern")
+    governance_by_name = {clean(row[0]): clean(row[1]) for row in governance_rows if len(row) >= 2}
+    governance_concerns = [
+        "Protocol selection",
+        "CQRS application level",
+        "REST source of truth",
+        "GraphQL source of truth",
+        "Springdoc/OpenAPI compatibility",
+        "Legacy Swagger/Springfox status",
+        "Security and documentation exposure",
+        "Contract publication and drift gate",
+    ]
+    for concern in governance_concerns:
+        value = governance_by_name.get(concern, "")
+        if not concrete_api_gate_value(value):
+            errors.append(f"External API governance lacks a concrete decision/evidence row: {concern}")
+
+    detail_body = heading_body(interfaces, detail_heading)
+    detail_matches = list(CONTRACT_DETAIL_HEADING_RE.finditer(detail_body))
+    detail_contracts: dict[str, str] = {}
+    for index, match in enumerate(detail_matches):
+        contract_id = match.group("id")
+        end = detail_matches[index + 1].start() if index + 1 < len(detail_matches) else len(detail_body)
+        detail_contracts[contract_id] = detail_body[match.start():end]
+
+    style_rows = [
+        "Protocol style",
+        "CQRS role",
+        "Resource/task semantics",
+        "Read/write and side effects",
+        "Consistency and idempotency",
+        "Why this style",
+    ]
+    documentation_rows = [
+        "Documentation authority",
+        "REST OpenAPI operation / GraphQL SDL operation",
+        "Annotation/mapping ownership",
+        "Generated schema elements",
+        "Compatibility and drift proof",
+    ]
+    for contract_id, inventory_row in api_rows.items():
+        contract_text = detail_contracts.get(contract_id, "")
+        if not contract_text:
+            continue
+        style_body = heading_body(contract_text, "##### API style and CQRS semantics")
+        if "| Concern | Decision/evidence |" not in style_body:
+            errors.append(f"{contract_id} API style/CQRS subsection lacks the canonical table")
+        style_decisions = {
+            clean(row[0]): clean(row[1])
+            for row in markdown_table_rows(style_body, "Concern")
+            if len(row) >= 2
+        }
+        for row_name in style_rows:
+            if not concrete_api_gate_value(style_decisions.get(row_name, "")):
+                errors.append(f"{contract_id} API style/CQRS subsection lacks decision row: {row_name}")
+        if inventory_row[4] not in style_body:
+            errors.append(
+                f"{contract_id} detail API style/CQRS decision does not match inventory: {inventory_row[4]}"
+            )
+
+        documentation = heading_body(contract_text, "##### Documentation contract")
+        if "| Concern | Decision/evidence |" not in documentation:
+            errors.append(f"{contract_id} documentation subsection lacks the canonical table")
+        documentation_decisions = {
+            clean(row[0]): clean(row[1])
+            for row in markdown_table_rows(documentation, "Concern")
+            if len(row) >= 2
+        }
+        for row_name in documentation_rows:
+            if not concrete_api_gate_value(documentation_decisions.get(row_name, "")):
+                errors.append(f"{contract_id} documentation subsection lacks decision row: {row_name}")
+
+        if contract_id in rest_ids:
+            if "operationId" not in documentation:
+                errors.append(f"{contract_id} REST documentation contract lacks an explicit operationId")
+            if "@Operation" not in documentation and "Contract-first" not in documentation:
+                errors.append(
+                    f"{contract_id} REST documentation contract must define OpenAPI 3 annotations "
+                    "or an evidence-backed Contract-first authority"
+                )
+            if "Generated OAS effect" not in documentation:
+                errors.append(f"{contract_id} REST documentation contract lacks generated OAS effects")
+        if contract_id in graphql_ids:
+            identity = heading_body(contract_text, "##### Identity and purpose")
+            request = heading_body(contract_text, "##### Request parameters")
+            expected_root = inventory_row[4].removeprefix("GraphQL ")
+            if not re.search(rf"\b{re.escape(expected_root)}\.[A-Za-z_][A-Za-z0-9_]*\b", identity):
+                errors.append(f"{contract_id} GraphQL identity lacks its exact {expected_root}.field")
+            if "```graphql" not in request:
+                errors.append(f"{contract_id} GraphQL request contract lacks SDL/operation GraphQL content")
+            for required_term in ("SDL", "Consumer operation", "Spring mapping"):
+                if required_term not in documentation:
+                    errors.append(
+                        f"{contract_id} GraphQL documentation contract lacks required artifact/mapping: "
+                        f"{required_term}"
+                    )
+
+    openapi_plan = heading_body(interfaces, "### 9.3 OpenAPI 3 and springdoc annotation plan")
+    openapi_header = (
+        "| Target | Required annotation/configuration | Exact values/source | "
+        "Generated OAS effect | Verification |"
+    )
+    if openapi_header not in openapi_plan:
+        errors.append("Chapter 9.3 requires the canonical OpenAPI/springdoc plan table")
+    if rest_ids and "@Operation" not in openapi_plan and "Contract-first" not in openapi_plan:
+        errors.append("REST API design requires operation-level OpenAPI annotations or Contract-first evidence")
+    if not rest_ids and graphql_ids and not ("N/A" in openapi_plan and "SDL" in openapi_plan):
+        errors.append("GraphQL-only design must mark OpenAPI annotations N/A with SDL evidence")
+
+    gate_body = heading_body(interfaces, "### 9.4 API contract generation and blocking gate")
+    expected_gate_header = (
+        "| Gate ID | Applicability | Status | Evidence | Finding | Required action/exception |"
+    )
+    if expected_gate_header not in gate_body:
+        errors.append("Chapter 9.4 requires the canonical six-column API blocking-gate table")
+    gate_rows = markdown_table_rows(gate_body, "Gate ID")
+    gates: dict[str, list[str]] = {}
+    for row_number, row in enumerate(gate_rows, start=1):
+        if len(row) < 6:
+            errors.append(f"API gate row {row_number} requires six columns; found {len(row)}")
+            continue
+        gate_id, applicability, gate_status, evidence, finding, action = [
+            clean(cell) for cell in row[:6]
+        ]
+        if gate_id in gates:
+            errors.append(f"Duplicate API gate ID: {gate_id}")
+            continue
+        gates[gate_id] = [applicability, gate_status, evidence, finding, action]
+
+    expected_gates = set(API_GATE_IDS)
+    for gate_id in sorted(expected_gates - set(gates)):
+        errors.append(f"Missing blocking API gate ID: {gate_id}")
+    for gate_id in sorted(set(gates) - expected_gates):
+        errors.append(f"Unknown blocking API gate ID: {gate_id}")
+
+    for gate_id in API_GATE_IDS:
+        row = gates.get(gate_id)
+        if not row:
+            continue
+        applicability, gate_status, evidence, finding, _ = row
+        if applicability == "Applicable" and gate_status not in {"PASS", "FAIL", "BLOCKED"}:
+            errors.append(
+                f"{gate_id} applicable API gate must be PASS, FAIL, or BLOCKED: {gate_status}"
+            )
+        elif applicability == "Not applicable" and gate_status != "N/A":
+            errors.append(f"{gate_id} not-applicable API gate must be N/A: {gate_status}")
+        elif applicability not in {"Applicable", "Not applicable"}:
+            errors.append(
+                f"{gate_id} Applicability must be Applicable or Not applicable: {applicability}"
+            )
+        for label, value in (("evidence", evidence), ("finding", finding)):
+            if not concrete_api_gate_value(value):
+                errors.append(f"{gate_id} requires concrete {label}")
+        if pass_verdict and gate_status not in {"PASS", "N/A"}:
+            errors.append(
+                f"PASS verdict requires {gate_id} to be PASS or evidence-backed N/A: {gate_status}"
+            )
+
+    protocol_gate_expectations = {
+        "API-GATE-003": bool(rest_ids),
+        "API-GATE-004": bool(graphql_ids),
+        "API-GATE-007": bool(rest_ids),
+    }
+    for gate_id, applicable in protocol_gate_expectations.items():
+        row = gates.get(gate_id)
+        if not row:
+            continue
+        expected_applicability = "Applicable" if applicable else "Not applicable"
+        expected_statuses = {"PASS", "FAIL", "BLOCKED"} if applicable else {"N/A"}
+        if row[0] != expected_applicability or row[1] not in expected_statuses:
+            errors.append(
+                f"{gate_id} protocol applicability must be {expected_applicability} / "
+                f"{','.join(sorted(expected_statuses))} "
+                f"for the API inventory; found {row[0]} / {row[1]}"
+            )
+    return errors
+
+
 def validate_v2_content(
     text: str,
     fields: dict[str, str],
@@ -544,6 +824,13 @@ def validate_v2_content(
         if template_version < 4 or 9 in affected_chapters
         else ""
     )
+    if template_version >= 7 and interfaces:
+        errors.extend(
+            validate_api_contracts_v7(
+                interfaces,
+                pass_verdict="PASS — Ready for user review" in text,
+            )
+        )
     detail_start = interfaces.find("### 9.2 Per-interface Detailed Contracts")
     inventory_text = interfaces[:detail_start] if detail_start >= 0 else interfaces
     detail_text = interfaces[detail_start:] if detail_start >= 0 else ""
@@ -576,11 +863,14 @@ def validate_v2_content(
         contract_id = match.group("id")
         end = detail_matches[index + 1].start() if index + 1 < len(detail_matches) else len(detail_text)
         contract_text = detail_text[match.start():end]
-        required_contract_subheadings = (
-            REQUIRED_CONTRACT_SUBHEADINGS_V3
-            if template_version >= 3
-            else REQUIRED_CONTRACT_SUBHEADINGS_V2
-        )
+        if template_version >= 7 and contract_id.startswith("API-"):
+            required_contract_subheadings = REQUIRED_API_CONTRACT_SUBHEADINGS_V7
+        else:
+            required_contract_subheadings = (
+                REQUIRED_CONTRACT_SUBHEADINGS_V3
+                if template_version >= 3
+                else REQUIRED_CONTRACT_SUBHEADINGS_V2
+            )
         errors.extend(validate_ordered_subheadings(contract_id, contract_text, required_contract_subheadings))
         for heading in required_contract_subheadings:
             body = heading_body(contract_text, heading)

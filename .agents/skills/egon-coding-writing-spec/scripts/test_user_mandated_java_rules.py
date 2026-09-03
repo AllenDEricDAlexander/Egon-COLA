@@ -52,7 +52,7 @@ class UserMandatedJavaRulesTest(unittest.TestCase):
 
     def test_current_template_preserves_every_literal_rule_row(self) -> None:
         text = (self.root / "assets/spec-template.md").read_text(encoding="utf-8")
-        self.assertIn("| Template Version | `6` |", text)
+        self.assertIn("| Template Version | `7` |", text)
         start = text.index("### 6.2 User-mandated Java rule compliance")
         end = text.index("\n## 7. Architecture Design", start)
         rows = re.findall(r"(?m)^\| Rule (\d+) \|", text[start:end])

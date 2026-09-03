@@ -1,6 +1,6 @@
 # 逐接口契约设计
 
-> 本文件是 `references/interface-contract-design.md` 的全中文审核镜像。第 9 章存在 HTTP、RPC、事件/消息、CLI、定时任务或内部 Service 契约时必须读取。接口清单只是索引，清单中的每一项都必须有完整展开章节。
+> 本文件是 `references/interface-contract-design.md` 的全中文审核镜像。第 9 章存在 HTTP、RPC、事件/消息、CLI、定时任务或内部 Service 契约时必须读取。接口清单只是索引，清单中的每一项都必须有完整展开章节。外部 REST 或 GraphQL API 被影响时，还必须完整读取 `references/api-rest-cqrs-graphql-openapi.zh-CN.md`，并执行其中更严格的协议、CQRS、springdoc/OpenAPI 3、GraphQL、安全、生成契约和阻断门禁规则。
 
 ## 目录
 
@@ -14,14 +14,24 @@
 - [深度与一致性门禁](#深度与一致性门禁)
 - [契约复核失败条件](#契约复核失败条件)
 
+## 外部 API 专项规则
+
+外部 API 受影响时，本参考提供原子契约通用结构，`references/api-rest-cqrs-graphql-openapi.zh-CN.md` 则是 API 风格与文档细节的权威规范。
+
+- 每个可独立调用 REST Method + URL 或 GraphQL Root Field Operation Contract 使用一个 `API-*` ID。GraphQL 清单身份必须包含传输与准确 Field，例如 `POST /graphql :: Query.order`；只有 `/graphql` 不能算 Operation 清单。
+- 每个 API 必须分类为 `REST Query`、`REST Command`、`GraphQL Query`、`GraphQL Mutation` 或 `GraphQL Subscription`。必须做 CQRS 语义分类，但不强制拆分读写存储。
+- REST 详情增加“API 风格与 CQRS 语义”和“文档契约”，覆盖 springdoc/OpenAPI 3 注解与生成 OAS 校验。
+- GraphQL 详情使用相同标题，但内容为 SDL、具名 Operation Document、Spring Resolver Mapping、Coercion/Error、Batching/Cost 和 Schema 校验。Swagger 注解不能记录 GraphQL Field。
+- Spec 通过前，第 9.4 节必须关闭 API 参考中的全部 `API-GATE-*` 行。
+
 ## 接口清单
 
 使用稳定 ID，例如 `API-001`、`RPC-001`、`EVENT-001`、`JOB-001`、`INTERNAL-001`。
 
 一个 ID 只代表一个原子协议操作：一个 HTTP Method + URL、一个 RPC Service Method、一个事件/Topic Schema 契约、一个 Job 或一个内部方法。不得把整组 CRUD、多个 URL、集合/详情/状态操作合并在一行；共同规则可以复用引用，但每个操作仍要独立定义。
 
-| ID | 变更/必要性结论 | 名称/用途 | 类型 | 消费者 | 所有者 | Method + URL / 符号 / Topic | 入参 | 出参 | 鉴权/租户 | 错误模型 | 幂等/版本 | 需求 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ID | 变更/必要性结论 | 名称/用途 | 类型 | API 风格/CQRS 角色 | 消费者 | 所有者 | Method + URL / GraphQL Field / Symbol / Topic | Operation ID/Schema 来源 | 入参 | 出参 | 鉴权/租户 | 错误模型 | 幂等/版本 | 需求 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
 清单和详细章节必须一一对应：清单项不能缺少详情，详细契约也不能游离在清单之外。
 
@@ -45,6 +55,8 @@
 ## 每个接口必需结构
 
 每个契约 ID 使用一个独立小节，并保持以下结构。
+
+每个外部 `API-*` 都必须在必要性小节后立即插入“API 风格与 CQRS 语义”，并在兼容性之前插入“文档契约”；两者必须使用 `assets/spec-template.md` 中的规范表格。非 HTTP 契约保留通用七个标题，不增加装饰性 API 章节。
 
 ### 0. 必要性与交互成本决策
 
@@ -170,9 +182,9 @@ Path、Query、Header、Cookie、Multipart 和 Body 分开描述。每个参数�
 
 ### 清单行
 
-| ID | 变更/必要性结论 | 名称/用途 | 类型 | 消费者 | 所有者 | Method + URL | 入参 | 出参 | 鉴权/租户 | 错误模型 | 幂等/版本 | 需求 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `API-021` | New/Add：直接创建是独立 Command；不新增参数预查询 | 创建订单 | HTTP | 订单创建页 | Order Web 模块 | `POST /api/v1/orders` | Header + `CreateOrderRequest` | `ApiResponse<OrderResponse>` | Bearer Principal；租户来自已验证上下文 | 稳定 HTTP + 业务码 | `Idempotency-Key`；v1 加法兼容 | `REQ-007`、`REQ-008` |
+| ID | 变更/必要性结论 | 名称/用途 | 类型 | API 风格/CQRS 角色 | 消费者 | 所有者 | Method + URL / GraphQL Field / Symbol / Topic | Operation ID/Schema 来源 | 入参 | 出参 | 鉴权/租户 | 错误模型 | 幂等/版本 | 需求 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `API-021` | New/Add：直接创建是独立 Command；不新增参数预查询 | 创建订单 | HTTP | REST Command | 订单创建页 | Order Web 模块 | `POST /api/v1/orders` | `createOrder`；Controller 注解和生成 OAS | Header + `CreateOrderCommand` | `ApiResponse<OrderResponse>` | Bearer Principal；租户来自已验证上下文 | 稳定 HTTP + 业务码 | `Idempotency-Key`；v1 加法兼容 | `REQ-007`、`REQ-008` |
 
 ### API-021 — 创建订单
 
@@ -187,6 +199,17 @@ Path、Query、Header、Cookie、Multipart 和 Body 分开描述。每个参数�
 | 调用方使用结果 | 跳转新订单并失效列表缓存，不把结果转发给另一个 Command |
 | 往返与失败点 | 一个 Command RTT；同 Key 重试处理未知结果；Command 内重校验引用/价格 |
 | 结论 | `REQ-007` 使用 `Add`；任何“获取创建参数”接口均为 `Remove` |
+
+#### API 风格与 CQRS 语义
+
+| 关注点 | 决策/证据 |
+| --- | --- |
+| 协议风格 | `REST Command` |
+| CQRS 角色 | 任务型创建 Command；不是 Query，并拥有状态变化 |
+| 资源/任务语义 | `POST /api/v1/orders` 创建一个从属订单资源 |
+| 读写与副作用 | 读取权威引用，写订单/幂等状态，只发布已经明确设计的事件 |
+| 一致性与幂等 | 一个已定义事务；同 Key 与相同标准化 Payload 返回相同结果 |
+| 选择该风格的原因 | 已有 REST 消费者只需要一个直接创建操作；不需要额外 CQRS 基础设施或 GraphQL Facade |
 
 #### 身份与用途
 
@@ -306,6 +329,21 @@ HTTP `201 Created`。仓库产生响应 Header 时必须写出。完整示例传
 6. 同载荷重复请求返回已保存结果；不同载荷复用 Key 返回冲突；失败回滚或进入明确的未知/对账状态。
 7. 前端 Pending 时禁止重复点击，成功后跳转详情并失效列表缓存；可重试失败保留表单，映射字段错误；除非契约明确返回异步状态，否则不得轮询。
 
+#### 文档契约
+
+| 关注点 | 决策/证据 |
+| --- | --- |
+| 文档权威来源 | Code-first Spring Mapping、Command/Response Type、Bean Validation、Jackson 和 OpenAPI 3 Annotation |
+| REST OpenAPI Operation / GraphQL SDL Operation | `POST /api/v1/orders` 使用显式 `createOrder` operationId |
+| 注解/Mapping 归属 | 已有 Controller 持有 Mapping、`@Operation`、`@ApiResponses` 和 `@SecurityRequirement`；不新增纯注解接口 |
+| 生成 Schema 元素 | Request Header/Body、`201`、Validation/Auth/Permission/Conflict/Failure Response、Header、Wrapper Schema 和 Bearer Security |
+| 兼容与漂移证明 | 生成/解析 OAS，并通过仓库聚焦契约测试断言 Operation、Schema、Security、Constraint 和 Code |
+
+| 目标 | 必需注解/配置 | 精确值/来源 | 生成 OAS 效果 | 校验 |
+| --- | --- | --- | --- | --- |
+| `OrderController#createOrder` | `@Operation`、`@ApiResponses`、`@SecurityRequirement`、Spring Mapping/Validation | 来自当前已核实契约；operationId 为 `createOrder` | 一个具有完整结果和 Bearer Security 的 POST Operation | 生成 OAS 断言 |
+| `CreateOrderCommand` 与 Response/Error Type | Bean Validation、Jackson 和按需 `@Schema` | 上述字段表与 Wire Example | 具体 Request/Wrapper/Component Schema | Serialization、Validation 和 Schema 断言 |
+
 #### 兼容与验证
 
 - 消费者：列出仓库中找到的所有前端 Client、外部 Client、Fixture、Mock 和 API 文档。
@@ -371,6 +409,7 @@ HTTP `201 Created`。仓库产生响应 Header 时必须写出。完整示例传
 接受一个接口详情前，逐项确认：
 
 - 七个必需标题按顺序存在，并包含仓库特定内容；
+- 外部 API 还必须具有两个 API 专项标题、准确 REST/GraphQL 与 CQRS 分类、协议专项文档产物、生成契约证明和全部九项阻断型 API 门禁；
 - 必要性/交互小节相对直接方案证明 `Add/Keep`，并拒绝不变的“先查再转发”参数；
 - HTTP 身份只包含一个 Method 和一个经验证应用路由；
 - 每个入参都包含位置、类型/格式、必填/可空/默认、准确校验、含义、示例和来源；
@@ -394,3 +433,4 @@ HTTP `201 Created`。仓库产生响应 Header 时必须写出。完整示例传
 - 用类名代替响应 JSON、JSON 中使用 `...`，或字段缺少注释；
 - 前端可见逻辑、状态变化、副作用、重试或错误处理不清楚；
 - 接口字段与 POJO、数据库类型/可空性、前端用途或测试不一致。
+- 外部 REST API 缺少 OpenAPI 3 注解/生成 OAS 设计、GraphQL API 缺少 SDL/Root Field/Resolver/Schema Test 设计，或任意 `API-GATE-*` 缺失/不一致。

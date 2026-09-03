@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Document | `YYYY-MM-DD-HH-MM-abstract.md` |
-| Template Version | `6` |
+| Template Version | `7` |
 | Status | `Draft` |
 | Type | `Feature / Refactor / Bugfix / Architecture` |
 | Complexity | `Simple / Complex` |
@@ -369,15 +369,31 @@ Explain moves or deletions, generated-file handling, registration/wiring ownersh
 
 ## 9. Interface Definitions
 
-When §9 is `Affected`, read `references/interface-contract-design.md`, inventory every changed HTTP/RPC/event/message/CLI/scheduled-job/internal Service operation, and expand each contract completely. When §9 is `Context-only` or `Unchanged`, remove §§9.1–9.2 and write only the exact existing route/symbol, consumers, preserved request/response/error invariant, stopping reason, and focused regression evidence. Do not reproduce full JSON for an unchanged boundary.
+When §9 is `Affected`, read `references/interface-contract-design.md`, inventory every changed HTTP/RPC/event/message/CLI/scheduled-job/internal Service operation, and expand each contract completely. If any external REST or GraphQL API is affected, also read `references/api-rest-cqrs-graphql-openapi.md` completely and retain §§9.0–9.4. When §9 is `Context-only` or `Unchanged`, remove §§9.0–9.4 and write only the exact existing route/symbol, consumers, preserved request/response/error/documentation invariant, stopping reason, and focused regression evidence. Do not reproduce full JSON, OpenAPI annotations, or GraphQL SDL for an unchanged boundary.
+
+### 9.0 API protocol and documentation governance
+
+Required when an external API is affected. Use repository and accepted-Spec evidence; do not choose REST, GraphQL, CQRS depth, springdoc, or documentation exposure from generic preference.
+
+| Concern | Decision/evidence |
+| --- | --- |
+| Protocol selection | `<REST, GraphQL, or justified coexistence; named consumers/use cases and why the direct existing protocol is insufficient>` |
+| CQRS application level | `<L0/L1/L2/L3 from the API reference; Query/Command/Subscription ownership; why this is the smallest sufficient level>` |
+| REST source of truth | `<Code-first mappings/types/validation/Jackson/annotations, Contract-first document, or N/A with evidence>` |
+| GraphQL source of truth | `<SDL paths, resolver and consumer operation paths, or N/A with evidence>` |
+| Springdoc/OpenAPI compatibility | `<Spring Boot generation, MVC/WebFlux, managed starter/version source, OAS 3.0/3.1 compatibility, or N/A>` |
+| Legacy Swagger/Springfox status | `<absent, compatibility-only boundary, or separately approved migration; exact dependency/config evidence>` |
+| Security and documentation exposure | `<scheme names, permissions/tenant, docs/UI/introspection environment and access policy>` |
+| Contract publication and drift gate | `<generated OpenAPI/schema/operation artifact, owner, exact test/validation/diff path>` |
 
 ### 9.1 Interface Inventory
 
-Required only when §9 is `Affected`. Use one ID per atomic HTTP Method + URL or protocol operation. Split collection/detail/create/update/delete/status endpoints into separate IDs even when they share models or rules.
+Required only when §9 is `Affected`. Use one ID per atomic REST Method + URL, GraphQL root-field operation contract, or other protocol operation. Split collection/detail/create/update/delete/status endpoints into separate IDs even when they share models or rules. A GraphQL row must identify both the transport and exact `Query.field`, `Mutation.field`, or `Subscription.field`; `/graphql` alone is not an operation.
 
-| ID | Change/necessity verdict | Name/purpose | Kind | Consumer | Owner | Method + URL / symbol / topic | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `API-001` | Existing/Keep or New/Add after necessity audit | `<purpose>` | HTTP | `<frontend/page>` | `<module>` | `POST /exact/path` | `<Request>` | `<actual wrapper>` | `<rules>` | `<model>` | `<rules>` | `REQ-001` |
+| ID | Change/necessity verdict | Name/purpose | Kind | API style/CQRS role | Consumer | Owner | Method + URL / GraphQL field / symbol / topic | Operation ID/schema source | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `API-001` | Existing/Keep or New/Add after necessity audit | `<purpose>` | HTTP | REST Query / REST Command | `<frontend/page>` | `<module>` | `POST /exact/path` | `<explicit lowerCamelCase operationId>` | `<Command/Query/Request>` | `<actual wrapper>` | `<rules>` | `<model>` | `<rules>` | `REQ-001` |
+| `API-002` | Existing/Keep or New/Add after necessity audit | `<purpose>` | GraphQL | GraphQL Query / GraphQL Mutation / GraphQL Subscription | `<frontend/page>` | `<module>` | `POST /graphql :: Query.exactField` | `<SDL path + field + named operation document>` | `<variables/input>` | `<selection/payload>` | `<rules>` | `<GraphQL errors/extensions>` | `<rules>` | `REQ-002` |
 
 ### 9.2 Per-interface Detailed Contracts
 
@@ -399,13 +415,26 @@ Repeat §9.2.x for every inventory ID. Inventory and detail items must be one-to
 
 Default to `Merge`, `Reuse`, or `Remove` when this interface only returns values copied unchanged into another request or values the target backend can safely derive. A separate selector/discovery contract requires an independent user-visible choice, shared dynamic catalog, or protocol-negotiation use case plus command-time revalidation.
 
+##### API style and CQRS semantics
+
+Required for every external `API-*`; omit for a non-HTTP protocol contract.
+
+| Concern | Decision/evidence |
+| --- | --- |
+| Protocol style | `REST Query / REST Command / GraphQL Query / GraphQL Mutation / GraphQL Subscription` |
+| CQRS role | `<Query is read-only; Command task/change; Subscription stream; exact owner>` |
+| Resource/task semantics | `<REST resource URI and method semantics, or GraphQL field/task semantics>` |
+| Read/write and side effects | `<authoritative reads, writes, events/audit; prove a Query has no business mutation>` |
+| Consistency and idempotency | `<transaction, concurrency, duplicate, retry, stale-read and eventual-consistency behavior>` |
+| Why this style | `<consumer/use-case evidence and why the simpler existing protocol/level is insufficient>` |
+
 ##### Identity and purpose
 
 | Concern | Definition |
 | --- | --- |
 | Purpose/owner/consumer | `<business purpose, module, frontend page or caller>` |
-| Protocol and endpoint | `HTTP POST /verified/application/path` |
-| Content type/version | `application/json; <version>` |
+| Protocol and endpoint | `HTTP POST /verified/application/path` or `HTTP POST /graphql :: Query.field` |
+| Content type/version | `application/json; <version>` or verified GraphQL request/response media types |
 | Auth/permission/tenant | `<exact sources and rules>` |
 | Timeout/retry/rate limit | `<rules>` |
 | Idempotency/concurrency | `<key, duplicate and concurrent behavior>` |
@@ -425,6 +454,17 @@ If a Request Body exists, show its complete nested documentation shape. Every fi
   "field": "value", // Required. Exact meaning, validation rule, and relevant default/null semantics.
   "nested": { // Required/optional. Meaning of the nested object.
     "child": 1 // Required. Exact child-field meaning and allowed range.
+  }
+}
+```
+
+For GraphQL, also include the complete affected SDL fragment, named consumer operation document, and variable rules. Expand every affected referenced input/output type; do not treat the generic `/graphql` JSON envelope as the business schema.
+
+```graphql
+mutation ExactCommand($input: ExactCommandInput!) {
+  exactCommand(input: $input) {
+    resultId
+    status
   }
 }
 ```
@@ -472,9 +512,65 @@ State the HTTP/protocol status and response headers, then show the actual reposi
 6. `<duplicate/concurrency/timeout/failure/rollback behavior>`
 7. `<frontend loading, confirmation, refresh/navigation, cache, retry, error, or polling behavior>`
 
+For GraphQL Query/nested fields, explicitly cover selection/fetch ownership, pagination, batching/DataLoader, N+1 prevention, null/partial-data behavior, depth/complexity/cost limits, and field authorization. For Mutation, cover the same command-time validation, transaction, idempotency, state, side-effect, and retry semantics expected of a REST Command.
+
+##### Documentation contract
+
+Required for every external `API-*`.
+
+| Concern | Decision/evidence |
+| --- | --- |
+| Documentation authority | `<REST Code-first/Contract-first or GraphQL SDL; exact path/symbol>` |
+| REST OpenAPI operation / GraphQL SDL operation | `<operationId and Method + URL, or type.field and named operation>` |
+| Annotation/mapping ownership | `<Controller/existing API interface and OpenAPI annotations, or Spring GraphQL resolver mappings>` |
+| Generated schema elements | `<parameters/requestBody/responses/security/schemas, or SDL/input/output/null/error contract>` |
+| Compatibility and drift proof | `<generation/schema check, diff/contract tests, owner and exact feasible command/path>` |
+
+For REST, add the per-target annotation plan. Use only `io.swagger.v3.oas.annotations.*`; do not add Springfox/Swagger 2 annotations.
+
+| Target | Required annotation/configuration | Exact values/source | Generated OAS effect | Verification |
+| --- | --- | --- | --- | --- |
+| `<Controller#method>` | `@Operation`, `@ApiResponses`, `@SecurityRequirement` as applicable | `<summary/description/operationId/status/scheme from contract>` | `<exact path operation>` | `<generated document assertion>` |
+| `<Request/Response field>` | `@Schema` only for missing/non-obvious wire semantics; Bean Validation/Jackson remain runtime authority | `<description/example/format/enum/access>` | `<component schema>` | `<schema/serialization/validation assertion>` |
+
+For GraphQL, replace the annotation table with this artifact/mapping table. Swagger annotations are `N/A` for GraphQL field documentation.
+
+| GraphQL artifact | Exact path/symbol | Contract content | Spring mapping | Verification |
+| --- | --- | --- | --- | --- |
+| SDL | `<src/main/resources/graphql/**.graphqls>` | `<type.field, inputs, outputs, nullability, enums/scalars>` | `<@QueryMapping/@MutationMapping/@SchemaMapping/@BatchMapping>` | `<schema and resolver test>` |
+| Consumer operation | `<src/test/resources/graphql-test/**.graphql or frontend path>` | `<named operation, variables, selection>` | `<GraphQlTester/consumer>` | `<response/error/partial-data test>` |
+
 ##### Compatibility and verification
 
-Name consumers, version/deprecation behavior, compatibility constraints, contract/validation/permission/error tests, and frontend fixtures/mocks. For non-HTTP contracts, replace URL/JSON-specific fields with the exact RPC/event/job/CLI protocol details while preserving the same design depth.
+Name consumers, version/deprecation behavior, compatibility constraints, contract/validation/permission/error tests, generated OpenAPI or GraphQL schema/operation checks, and frontend fixtures/mocks. For non-HTTP contracts, replace URL/JSON-specific fields with the exact RPC/event/job/CLI protocol details while preserving the same design depth.
+
+### 9.3 OpenAPI 3 and springdoc annotation plan
+
+Required when an external API is affected. For every affected REST target, state annotation/configuration ownership and the exact generated OAS effect. For a GraphQL-only change, keep one evidence-backed `N/A` row explaining why SDL and operation documents—not Swagger annotations—are authoritative.
+
+| Target | Required annotation/configuration | Exact values/source | Generated OAS effect | Verification |
+| --- | --- | --- | --- | --- |
+| `<OpenAPI metadata/security config>` | `@OpenAPIDefinition`, `@SecurityScheme`, `GroupedOpenApi`, properties, or N/A | `<verified repository values>` | `<info/tags/securitySchemes/groups/docs paths>` | `<config/document/security check>` |
+| `<API-001 Controller#method or functional route>` | `@Operation`, `@Parameter`, OpenAPI `@RequestBody`, `@ApiResponse`, `@Content`, `@Schema`, `@ArraySchema`, `@SecurityRequirement`, `@Hidden`; springdoc `@ParameterObject`/`@RouterOperation` only as applicable | `<exact contract values>` | `<path/operation/components/security>` | `<generated OAS assertions>` |
+| `<GraphQL-only>` | `N/A — SDL and named operation documents are authoritative` | `<SDL/resolver/consumer evidence>` | `N/A` | `<schema/GraphQlTester checks>` |
+
+State the Spring Boot/springdoc compatibility source, managed starter, OAS version, MVC/WebFlux choice, legacy Springfox boundary, document/UI exposure per environment, Security path rules, proxy/gateway behavior, and any aggregation failure/collision semantics. Do not hardcode a dependency version without current project evidence.
+
+### 9.4 API contract generation and blocking gate
+
+Required when an external API is affected. Execute every row manually against the repository-backed design. `PASS` means the Spec contains an exact coherent decision and feasible proof; it does not claim unexecuted implementation/runtime validation. `N/A` requires concrete evidence that the named protocol is absent. Any other status blocks the final PASS verdict and must be reflected in Chapter 20.
+
+| Gate ID | Applicability | Status | Evidence | Finding | Required action/exception |
+| --- | --- | --- | --- | --- | --- |
+| `API-GATE-001` | Applicable | PASS / FAIL / BLOCKED | `<necessity and atomic inventory evidence>` | `<independent goal; no fetch-then-forward>` | `None / exact action` |
+| `API-GATE-002` | Applicable | PASS / FAIL / BLOCKED | `<protocol/CQRS table and repository evidence>` | `<smallest sufficient style and CQRS level>` | `None / exact action` |
+| `API-GATE-003` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<all affected REST details or absence evidence>` | `<resource/method/status/header/idempotency/pagination/compatibility result>` | `None / exact action` |
+| `API-GATE-004` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<all affected GraphQL details or absence evidence>` | `<SDL/operation/null/resolver/batching/cost/security/error result>` | `None / exact action` |
+| `API-GATE-005` | Applicable | PASS / FAIL / BLOCKED | `<validation/Jackson/coercion/schema/examples evidence>` | `<wire and runtime constraint consistency>` | `None / exact action` |
+| `API-GATE-006` | Applicable | PASS / FAIL / BLOCKED | `<security/tenant/errors/exposure evidence>` | `<access, disclosure, rate/cost and docs policy>` | `None / exact action` |
+| `API-GATE-007` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<springdoc/annotation/legacy evidence or no REST evidence>` | `<OpenAPI generation ownership and compatibility>` | `None / exact action` |
+| `API-GATE-008` | Applicable | PASS / FAIL / BLOCKED | `<exact generated-contract/schema/test/diff path or commands>` | `<feasible drift and contract proof>` | `None / exact action` |
+| `API-GATE-009` | Applicable | PASS / FAIL / BLOCKED | `<traceability and cross-chapter comparison>` | `<field/outcome consistency>` | `None / exact action` |
 
 ## 10. POJO and Data Model Design
 
@@ -747,7 +843,7 @@ Confirm architecture, file tree, interfaces, fields, POJO/entity state, schema, 
 
 For a Complex Spec, confirm the evidence map, scenario matrix, architecture/high-level/detailed sections, Mermaid architecture/flow/swimlane diagrams, and conclusion chains cover the same critical paths and failure semantics.
 
-Confirm every interface inventory ID has one detailed contract with complete request rules, full commented success/error payloads, frontend logic, and field consistency. Confirm every database inventory table and index is expanded and tied to real models, queries, migrations, and tests.
+Confirm every interface inventory ID has one detailed contract with complete request rules, full commented success/error payloads, frontend logic, and field consistency. For affected external APIs, confirm the protocol/CQRS role, REST semantics or GraphQL SDL/operation/resolver semantics, OpenAPI/springdoc or schema documentation, security/exposure, generated-contract verification, and all `API-GATE-*` rows. Confirm every database inventory table and index is expanded and tied to real models, queries, migrations, and tests.
 
 Confirm every proposed element has a necessity verdict, the direct/no-new-element baseline was evaluated first, and no fetch-then-forward interface exists solely to return parameters for another request. Confirm each retained selector/discovery operation has independent consumer value and command-time stale-selection revalidation.
 
@@ -761,27 +857,27 @@ Confirm all predecessor links and exact sections, amendment/supersession scope, 
 
 ### 20.5 Blocking Manual Check
 
-Read `references/user-mandated-java-rules.md` and `references/java-spring-egon-coding-standards.md`, then execute every row individually. `PASS` means the design and repository evidence prove the literal rule without weakening it. `N/A` requires concrete evidence that the rule is not applicable. Any other status or missing evidence blocks the final PASS verdict.
+Read `references/user-mandated-java-rules.md` and `references/java-spring-egon-coding-standards.md`, plus `references/api-rest-cqrs-graphql-openapi.md` when an external API is affected, then execute every row individually. `PASS` means the design and repository evidence prove the literal rule without weakening it. `N/A` requires concrete evidence that the rule is not applicable. Any other status or missing evidence blocks the final PASS verdict. When APIs are affected, relevant rows must cite the Chapter 9 `API-GATE-*` results rather than merely saying “Swagger/GraphQL checked.”
 
 | Check ID | Applicability | Status | Evidence | Finding | Required action/exception |
 | --- | --- | --- | --- | --- | --- |
 | `MC-ARCH-001` | Applicable | PASS / FAIL / BLOCKED | `<tree/archetype/verifier evidence>` | `<selected allowed profile>` | `None / action` |
-| `MC-REUSE-001` | Applicable | PASS / FAIL / BLOCKED | `<reuse ledger and paths>` | `<Spring/Egon/module capabilities inspected>` | `None / action` |
-| `MC-DEP-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<dependency/gap evidence>` | `<reuse or justified addition>` | `None / action` |
+| `MC-REUSE-001` | Applicable | PASS / FAIL / BLOCKED | `<reuse ledger and paths, including springdoc/Spring GraphQL/API infrastructure when affected>` | `<Spring/Egon/module capabilities inspected>` | `None / action` |
+| `MC-DEP-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<dependency/gap/version compatibility evidence; no Springfox/springdoc duplication>` | `<reuse or justified addition>` | `None / action` |
 | `MC-NAME-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<affected type inventory>` | `<semantic suffix result>` | `None / action` |
-| `MC-VALID-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<boundary/group/normalization design>` | `<validation result>` | `None / action` |
+| `MC-VALID-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<REST/GraphQL/layer boundary, group, normalization and error design>` | `<validation result>` | `None / action` |
 | `MC-MODEL-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<record/class/Lombok table>` | `<construction result>` | `None / action` |
 | `MC-CONVERT-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<converter/BaseConverter evidence>` | `<mapping result>` | `None / action` |
 | `MC-LOG-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<business class design>` | `<Slf4j/logging result>` | `None / action` |
 | `MC-BEAN-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<Bean names/Qualifier/lombok.config>` | `<injection result>` | `None / action` |
 | `MC-UTIL-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<utility/dependency evidence>` | `<approved utility result>` | `None / action` |
-| `MC-JSON-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<contract/Jackson evidence>` | `<JSON result>` | `None / action` |
+| `MC-JSON-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<contract/Jackson/OpenAPI/GraphQL wire evidence>` | `<JSON/schema result>` | `None / action` |
 | `MC-TIME-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<time fields/mapping evidence>` | `<java.time result>` | `None / action` |
-| `MC-CONFIG-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<all-profile key comparison>` | `<configuration parity result>` | `None / action` |
+| `MC-CONFIG-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<all-profile key comparison, including docs/GraphQL exposure when affected>` | `<configuration parity result>` | `None / action` |
 | `MC-PATTERN-001` | Applicable / Not applicable | PASS / N/A / FAIL / BLOCKED | `<complexity classification/pattern evidence>` | `<mandatory Complex pattern or Simple direct result>` | `None / action` |
 | `MC-SCOPE-001` | Applicable | PASS / FAIL / BLOCKED | `<change surface and touched-code evidence>` | `<scope compliance>` | `None / action` |
-| `MC-TEST-001` | Applicable | PASS / FAIL / BLOCKED | `<test design and gates>` | `<standards proof>` | `None / action` |
-| `MC-BLOCKER-001` | Applicable | PASS / FAIL / BLOCKED | `<all blocker/manual rows>` | `<no unresolved item>` | `None / action` |
+| `MC-TEST-001` | Applicable | PASS / FAIL / BLOCKED | `<test design and gates, including generated OpenAPI/GraphQL schema/operation checks when affected>` | `<standards proof>` | `None / action` |
+| `MC-BLOCKER-001` | Applicable | PASS / FAIL / BLOCKED | `<all blocker/manual/API-GATE rows>` | `<no unresolved item>` | `None / action` |
 
 ### 20.6 Final verdict
 

@@ -52,6 +52,25 @@
 - [ ] Static/source evidence is not presented as live-runtime proof.
 - [ ] No unrelated refactor, new dependency, or architecture layer was smuggled into scope.
 
+## REST, CQRS, GraphQL, springdoc, and OpenAPI review
+
+- [ ] Every affected external operation has one atomic `API-*` inventory row and detail; a GraphQL row identifies `Query.field`, `Mutation.field`, or `Subscription.field`, not only `/graphql`.
+- [ ] Every API is classified as REST/GraphQL and Query/Command/Subscription, with the smallest sufficient CQRS level and repository/use-case evidence.
+- [ ] Queries have no durable business mutation; Commands express a business task/change and define validation, transaction, idempotency, concurrency, side effects, and retry; subscriptions define stream lifecycle.
+- [ ] CQRS does not introduce a bus, read store, event sourcing, handler layer, or package structure without a present requirement and full consistency/operations design.
+- [ ] REST URIs are resource-oriented; method safety/idempotency, statuses, response bodies, headers, async behavior, conditional requests, pagination/filter/sort, and compatibility agree with RFC 9110 and repository policy.
+- [ ] Request fields trace to their true owners; tenant/actor/server-derived values are not caller controlled, and no preflight API exists only to feed a Command.
+- [ ] Runtime Bean Validation/groups/normalization, Jackson, Java types, complete commented wire examples, and generated schemas describe the same fields and constraints.
+- [ ] The current response/error infrastructure is reused; RFC 9457/Spring `ProblemDetail` is considered for new REST contracts without an established envelope, and no parallel Swagger-only wrapper exists.
+- [ ] Every REST operation has explicit stable `operationId`, tags, summary/description, parameters/request body, all material success/error responses, headers, schemas, security, and deprecation behavior as applicable.
+- [ ] Only `io.swagger.v3.oas.annotations.*` is designed for new code; Springfox/Swagger 2 annotations and configuration are absent or explicitly bounded as legacy compatibility.
+- [ ] The selected springdoc starter/version source matches the actual Spring Boot generation and MVC/WebFlux stack; dependency/configuration, document/UI exposure, Security paths, profiles, gateway/proxy, and aggregation behavior are evidenced.
+- [ ] Annotation ownership follows an existing Controller or real API/Facade boundary; no annotation-only interface, fake documentation endpoint, wrapper subclass, or customizer is added without a proven generator gap and drift test.
+- [ ] Every affected GraphQL field has complete SDL, named consumer operation, variables and selection, nullability, enums/scalars, resolver mapping, coercion/errors/partial data, authorization, pagination/batching/N+1/cost, and compatibility.
+- [ ] REST and GraphQL adapters share one business behavior and cannot diverge in validation, permission, transaction, state, event, or idempotency semantics.
+- [ ] Exact feasible OpenAPI generation/parse/assert/diff and GraphQL schema/`GraphQlTester` checks are defined without presenting planned runtime checks as executed evidence.
+- [ ] `API-GATE-001` through `API-GATE-009` each appear once with `PASS` or evidence-backed protocol-absence `N/A`; failures or blockers are reflected in Chapter 20 and prohibit final PASS.
+
 ## Java, Spring, Egon-COLA, and Manual Check gate
 
 - [ ] The exact source block from `references/user-mandated-java-rules.md` remains present in both Skill entrypoints and was treated as mandatory rather than summarized guidance.
