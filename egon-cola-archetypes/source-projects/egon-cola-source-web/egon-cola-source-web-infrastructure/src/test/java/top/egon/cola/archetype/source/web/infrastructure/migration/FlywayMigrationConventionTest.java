@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -20,15 +21,25 @@ class FlywayMigrationConventionTest {
 
     private static final Pattern VERSIONED_MIGRATION = Pattern.compile(
             "^V(\\d{8})_(\\d{3})__[a-z0-9]+(?:_[a-z0-9]+)*\\.sql$");
+    private static final Pattern BASELINE_MIGRATION = Pattern.compile(
+            "^B(\\d{8})_(\\d{3})__[a-z0-9]+(?:_[a-z0-9]+)*\\.sql$");
 
     @Test
-    void shouldUseGlobalDailySequenceAndCompleteHeaderComments() throws Exception {
+    void shouldKeepVersionedHistoryAndDeclareOneBaselinePerRole() throws Exception {
         List<Path> migrations = migrationFiles();
         Set<String> dailySequences = new HashSet<>();
+        Map<String, Set<String>> versionedByRole = Map.of(
+                "master-data", new HashSet<>(),
+                "shard", new HashSet<>());
+        Map<String, Set<String>> baselinesByRole = Map.of(
+                "master-data", new HashSet<>(),
+                "shard", new HashSet<>());
 
         assertThat(migrations)
                 .extracting(path -> path.getFileName().toString())
                 .containsExactlyInAnyOrder(
+                        "B20260825_003__baseline_organization_master_data_schema.sql",
+                        "B20260825_004__baseline_organization_sharded_schema.sql",
                         "V20260726_001__init_organization_master_data_schema.sql",
                         "V20260726_002__init_organization_sharded_schema.sql",
                         "V20260825_003__migrate_organization_master_data_to_egon_model.sql",
@@ -36,12 +47,21 @@ class FlywayMigrationConventionTest {
         for (Path migration : migrations) {
             String fileName = migration.getFileName().toString();
             Matcher matcher = VERSIONED_MIGRATION.matcher(fileName);
-            assertThat(matcher.matches())
-                    .as("Flyway 文件名必须采用 VyyyyMMdd_NNN__description.sql：%s", fileName)
+            boolean versioned = matcher.matches();
+            Matcher baselineMatcher = BASELINE_MIGRATION.matcher(fileName);
+            boolean baseline = baselineMatcher.matches();
+            assertThat(versioned || baseline)
+                    .as("Flyway 文件名必须采用 V/ByyyyMMdd_NNN__description.sql：%s", fileName)
                     .isTrue();
-            assertThat(dailySequences.add(matcher.group(1) + "_" + matcher.group(2)))
+
+            String role = migrationRole(migration);
+            String version = versioned
+                    ? matcher.group(1) + "_" + matcher.group(2)
+                    : baselineMatcher.group(1) + "_" + baselineMatcher.group(2);
+            assertThat(dailySequences.add((versioned ? "V" : "B") + version))
                     .as("同一 archetype 的日期加序列号必须全局唯一：%s", fileName)
                     .isTrue();
+            (versioned ? versionedByRole : baselinesByRole).get(role).add(version);
 
             String sql = Files.readString(migration, StandardCharsets.UTF_8);
             String header = leadingCommentHeader(sql);
@@ -55,13 +75,43 @@ class FlywayMigrationConventionTest {
                     .doesNotContainIgnoringCase("TODO", "TBD")
                     .doesNotContain("待补充");
             assertThat(fileName)
-                    .doesNotStartWith("V1__")
-                    .doesNotStartWith("V2__");
+                .doesNotStartWith("V1__")
+                .doesNotStartWith("V2__");
         }
+
+        assertThat(baselinesByRole.get("master-data"))
+                .as("master-data 必须只有一个累计 baseline")
+                .containsExactly("20260825_003");
+        assertThat(baselinesByRole.get("shard"))
+                .as("shard 必须只有一个累计 baseline")
+                .containsExactly("20260825_004");
+        baselinesByRole.forEach((role, baselines) -> {
+            assertThat(baselines)
+                    .as("每个 role 必须恰好一个 baseline：%s", role)
+                    .hasSize(1);
+            assertThat(versionedByRole.get(role))
+                    .as("每个 role 必须保留 V 历史：%s", role)
+                    .contains("20260726_" + (role.equals("master-data") ? "001" : "002"),
+                            "20260825_" + (role.equals("master-data") ? "003" : "004"));
+            assertThat(baselines.iterator().next())
+                    .as("baseline 必须等于该 role 最高 V 版本：%s", role)
+                    .isEqualTo(versionedByRole.get(role).stream().max(String::compareTo).orElseThrow());
+        });
 
         assertThat(migrations)
                 .noneMatch(path -> path.toString().contains("/migration/default/"))
                 .noneMatch(path -> path.toString().contains("/sharding/single/"));
+    }
+
+    private static String migrationRole(Path migration) {
+        String normalizedPath = migration.toString().replace('\\', '/');
+        if (normalizedPath.contains("/master-data/")) {
+            return "master-data";
+        }
+        if (normalizedPath.contains("/shard/")) {
+            return "shard";
+        }
+        throw new IllegalArgumentException("未识别的 Web migration role: " + migration);
     }
 
     private static List<Path> migrationFiles() throws Exception {

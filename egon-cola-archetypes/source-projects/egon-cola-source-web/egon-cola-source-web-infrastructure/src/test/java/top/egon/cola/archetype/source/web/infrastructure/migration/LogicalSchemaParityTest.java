@@ -3,6 +3,9 @@ package top.egon.cola.archetype.source.web.infrastructure.migration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -11,11 +14,43 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
+import java.util.stream.Stream;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class LogicalSchemaParityTest {
+
+    private static final String MASTER_DATA_LOCATION =
+            "classpath:db/migration/sharding/master-data";
+    private static final String SHARD_LOCATION = "classpath:db/migration/sharding/shard";
+
+    @Test
+    void shouldMatchVersionedHistorySchema(@TempDir Path temp) throws Exception {
+        String baselineMasterDataUrl = h2Url("organization-history-baseline-master-data");
+        String baselineShardUrl = h2Url("organization-history-baseline-shard");
+        migrate(baselineMasterDataUrl, MASTER_DATA_LOCATION);
+        migrate(baselineShardUrl, SHARD_LOCATION);
+
+        Path versionedMasterDataLocation = copyVersionedMigrationsToTempLocation(temp, "master-data");
+        Path versionedShardLocation = copyVersionedMigrationsToTempLocation(temp, "shard");
+        String versionedMasterDataUrl = h2Url("organization-history-versioned-master-data");
+        String versionedShardUrl = h2Url("organization-history-versioned-shard");
+        migrate(versionedMasterDataUrl, filesystemLocation(versionedMasterDataLocation));
+        migrate(versionedShardUrl, filesystemLocation(versionedShardLocation));
+
+        assertThat(logicalSchema(baselineMasterDataUrl))
+                .as("master-data B schema 必须等价于 V-only schema")
+                .isEqualTo(logicalSchema(versionedMasterDataUrl));
+        assertThat(logicalSchema(baselineShardUrl))
+                .as("shard B schema 必须等价于 V-only schema")
+                .isEqualTo(logicalSchema(versionedShardUrl));
+
+        migrate(versionedMasterDataUrl, MASTER_DATA_LOCATION);
+        migrate(versionedShardUrl, SHARD_LOCATION);
+    }
 
     @Test
     void shouldBuildOneCompleteLogicalSchemaFromMasterDataAndShards() throws Exception {
@@ -79,6 +114,31 @@ class LogicalSchemaParityTest {
         String url = h2Url(database);
         migrate(url, location);
         return logicalSchema(url);
+    }
+
+    private static Path copyVersionedMigrationsToTempLocation(Path temp, String role)
+            throws Exception {
+        Path source = Path.of(Objects.requireNonNull(
+                LogicalSchemaParityTest.class.getClassLoader()
+                        .getResource("db/migration/sharding/" + role),
+                "migration resource for " + role).toURI());
+        Path target = temp.resolve(role);
+        Files.createDirectories(target);
+        try (Stream<Path> paths = Files.list(source)) {
+            for (Path migration : paths
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().startsWith("V"))
+                    .filter(path -> path.getFileName().toString().endsWith(".sql"))
+                    .toList()) {
+                Files.copy(migration, target.resolve(migration.getFileName()),
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+        }
+        return target;
+    }
+
+    private static String filesystemLocation(Path path) {
+        return "filesystem:" + path.toAbsolutePath();
     }
 
     private static void migrate(String url, String location) {
