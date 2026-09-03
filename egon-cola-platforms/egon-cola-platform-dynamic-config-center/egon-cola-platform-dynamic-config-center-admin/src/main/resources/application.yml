@@ -31,6 +31,7 @@ spring:
     import:
       - classpath:META-INF/egon-cola-ddc.properties
       - optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/ddc.properties
+      - optional:ddc:application.yml
   flyway:
     locations: classpath:db/postgresql
 
