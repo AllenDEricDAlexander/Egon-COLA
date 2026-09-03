@@ -6,10 +6,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd -P)"
 ARCHETYPES_ROOT="${PROJECT_ROOT}/egon-cola-archetypes"
 SOURCE_ROOT="${ARCHETYPES_ROOT}/source-projects"
+DEFINITIONS_ROOT="${ARCHETYPES_ROOT}/definitions"
 MAVEN_WRAPPER="${PROJECT_ROOT}/mvnw"
 GENERATED_ROOT="${ARCHETYPES_ROOT}/.generated"
 LOCK_DIR="${ARCHETYPES_ROOT}/.generated.lock"
-readonly SCRIPT_DIR PROJECT_ROOT ARCHETYPES_ROOT SOURCE_ROOT MAVEN_WRAPPER GENERATED_ROOT LOCK_DIR
+readonly SCRIPT_DIR PROJECT_ROOT ARCHETYPES_ROOT SOURCE_ROOT DEFINITIONS_ROOT MAVEN_WRAPPER GENERATED_ROOT LOCK_DIR
 
 STAGING_ROOT=''
 BACKUP_ROOT=''
@@ -17,6 +18,10 @@ BACKUP_MOVED=false
 LOCK_HELD=false
 MANIFESTS=()
 MODULE_SUFFIXES=()
+TARGET_ARTIFACT_IDS=()
+ROOT_VERSION=''
+CURRENT_DEFINITION_ROOT=''
+CURRENT_PACKAGING_POM=''
 
 usage() {
   printf 'Usage: %s <generate|check>\n' "${0##*/}"
@@ -97,6 +102,21 @@ hash_tree() {
   done < <(find "$tree" -type f -print | LC_ALL=C sort)
 }
 
+hash_product_tree() {
+  local tree="$1" file relative mode
+  [[ -d "$tree" ]] || die "hash input does not exist: $tree"
+  while IFS= read -r file; do
+    relative="${file#"$tree"/}"
+    [[ "$relative" != generation-manifest.sha256 ]] || continue
+    mode="$(file_mode "$file")"
+    printf '%s  %s  %s\n' "$(hash_file "$file")" "$mode" "$relative"
+  done < <(
+    find "$tree" -type f \
+      ! -path '*/target/*' \
+      -print | LC_ALL=C sort
+  )
+}
+
 hash_source_tree() {
   local tree="$1" file relative mode
   [[ -d "$tree" ]] || die "hash input does not exist: $tree"
@@ -113,33 +133,32 @@ hash_source_tree() {
   )
 }
 
-read_module_names() {
-  sed -n 's/^[[:space:]]*<module>\([^<]*\)<\/module>[[:space:]]*$/\1/p' \
-    "$ARCHETYPES_ROOT/pom.xml"
-}
-
-archetype_module_count() {
-  local module count=0
-  while IFS= read -r module; do
-    [[ -n "$module" ]] || continue
-    if [[ -f "$ARCHETYPES_ROOT/$module/pom.xml" ]] \
-      && grep -Fq '<packaging>maven-archetype</packaging>' "$ARCHETYPES_ROOT/$module/pom.xml"; then
-      count=$((count + 1))
-    fi
-  done < <(read_module_names)
-  printf '%s' "$count"
-}
-
 discover_manifests() {
   MANIFESTS=()
-  while IFS= read -r manifest; do
-    [[ -n "$manifest" ]] && MANIFESTS+=("$manifest")
-  done < <(find "$ARCHETYPES_ROOT" -type f -path '*/src/main/archetype/archetype.properties' -print | LC_ALL=C sort)
+  TARGET_ARTIFACT_IDS=()
+  [[ -d "$DEFINITIONS_ROOT" ]] || die "definitions root is missing: $DEFINITIONS_ROOT"
+  while IFS= read -r definition; do
+    [[ -n "$definition" ]] || continue
+    manifest="$definition/archetype.properties"
+    [[ -f "$manifest" ]] || die "archetype.properties is missing: $definition"
+    [[ -f "$definition/packaging-pom.xml" ]] \
+      || die "packaging-pom.xml is missing: $definition"
+    MANIFESTS+=("$manifest")
+  done < <(find "$DEFINITIONS_ROOT" -mindepth 1 -maxdepth 1 -type d \
+    -name 'egon-cola-archetype-*' -print | LC_ALL=C sort)
   ((${#MANIFESTS[@]} > 0)) || die 'no archetype manifests found'
-  local expected_count
-  expected_count="$(archetype_module_count)"
-  [[ "${#MANIFESTS[@]}" -eq "$expected_count" ]] \
-    || die "manifest count ${#MANIFESTS[@]} does not match maven-archetype module count ${expected_count}"
+  local manifest target
+  for manifest in "${MANIFESTS[@]}"; do
+    parse_manifest "$manifest"
+    target="$MF_TARGET_ARTIFACT_ID"
+    if ((${#TARGET_ARTIFACT_IDS[@]} > 0)); then
+      for existing_target in "${TARGET_ARTIFACT_IDS[@]}"; do
+        [[ "$existing_target" != "$target" ]] \
+          || die "duplicate targetArtifactId ${target} across definitions"
+      done
+    fi
+    TARGET_ARTIFACT_IDS+=("$target")
+  done
 }
 
 parse_manifest() {
@@ -197,8 +216,9 @@ parse_manifest() {
   [[ "$MF_SOURCE_PROJECT" != /* ]] || die "absolute sourceProject in $manifest"
   [[ "$MF_SOURCE_PROJECT" != *'|'* && "$MF_SOURCE_PROJECT" != *$'\n'* ]] || die "invalid sourceProject in $manifest"
 
-  local package_root source_candidate source_dir package_pom
-  package_root="$(cd "$(dirname "$manifest")/../../.." && pwd -P)"
+  local package_root source_candidate source_dir package_pom definition_root source_pom
+  definition_root="$(cd "$(dirname "$manifest")" && pwd -P)"
+  package_root="$ARCHETYPES_ROOT"
   source_candidate="$package_root/$MF_SOURCE_PROJECT"
   [[ -d "$source_candidate" ]] || die "sourceProject does not exist: $MF_SOURCE_PROJECT ($manifest)"
   source_dir="$(cd "$source_candidate" && pwd -P)"
@@ -207,9 +227,13 @@ parse_manifest() {
     *) die "sourceProject escapes source-projects: $MF_SOURCE_PROJECT ($manifest)" ;;
   esac
   [[ -f "$source_dir/pom.xml" ]] || die "source POM is missing: $source_dir/pom.xml"
-  package_pom="$package_root/pom.xml"
+  grep -Fq "<artifactId>${MF_SOURCE_ARTIFACT_ID}</artifactId>" "$source_dir/pom.xml" \
+    || die "sourceArtifactId ${MF_SOURCE_ARTIFACT_ID} does not match source POM $source_dir/pom.xml"
+  package_pom="$definition_root/packaging-pom.xml"
   grep -Fq "<artifactId>${MF_TARGET_ARTIFACT_ID}</artifactId>" "$package_pom" \
-    || die "targetArtifactId ${MF_TARGET_ARTIFACT_ID} does not match package POM $package_pom"
+    || die "targetArtifactId ${MF_TARGET_ARTIFACT_ID} does not match packaging POM $package_pom"
+  grep -Fq '<packaging>maven-archetype</packaging>' "$package_pom" \
+    || die "packaging POM is not a maven-archetype: $package_pom"
 
   MODULE_SUFFIXES=()
   if [[ "$MF_EXPECTED_TOPOLOGY" != root ]]; then
@@ -218,12 +242,16 @@ parse_manifest() {
     ((${#MODULE_SUFFIXES[@]} > 0)) || die "expectedTopology is empty in $manifest"
     for suffix in "${MODULE_SUFFIXES[@]}"; do
       [[ "$suffix" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*$ ]] || die "invalid module suffix $suffix in $manifest"
+      source_pom="$source_dir/${MF_SOURCE_ARTIFACT_ID}-${suffix}/pom.xml"
+      [[ -f "$source_pom" ]] || die "source module POM missing: $source_pom"
     done
   fi
 
   CURRENT_MANIFEST="$manifest"
   CURRENT_PACKAGE_ROOT="$package_root"
   CURRENT_SOURCE_DIR="$source_dir"
+  CURRENT_DEFINITION_ROOT="$definition_root"
+  CURRENT_PACKAGING_POM="$package_pom"
 }
 
 normalize_text_file() {
@@ -465,6 +493,105 @@ normalize_generated_product() {
   validate_topology "$resources"
 }
 
+copy_curated_assets() {
+  local product_root="$1" definition="$CURRENT_DEFINITION_ROOT" asset
+  for asset in \
+    "$definition/src/main/resources/META-INF/maven/archetype-metadata.xml" \
+    "$definition/src/main/resources/META-INF/archetype-post-generate.groovy" \
+    "$definition/src/main/javadoc/README.md" \
+    "$definition/src/test/resources/projects/basic/archetype.properties" \
+    "$definition/src/test/resources/projects/basic/goal.txt" \
+    "$definition/src/test/resources/projects/basic/verify.groovy"; do
+    [[ -f "$asset" ]] || die "curated file is missing: $asset"
+  done
+  [[ -d "$definition/architecture-docs" ]] || die "curated architecture-docs is missing: $definition"
+  find "$definition/architecture-docs" -type f -print -quit | grep -q . \
+    || die "curated architecture-docs is empty: $definition"
+  if grep -R -Fq -- "$PROJECT_ROOT" "$definition/src/main/javadoc" "$definition/architecture-docs"; then
+    die "curated documentation contains a local absolute path: $definition"
+  fi
+
+  mkdir -p "$product_root/src/main/resources/META-INF/maven" \
+    "$product_root/src/main/javadoc" \
+    "$product_root/src/test/resources/projects/basic" \
+    "$product_root/architecture-docs"
+  cp -p "$definition/src/main/resources/META-INF/maven/archetype-metadata.xml" \
+    "$product_root/src/main/resources/META-INF/maven/archetype-metadata.xml"
+  cp -p "$definition/src/main/resources/META-INF/archetype-post-generate.groovy" \
+    "$product_root/src/main/resources/META-INF/archetype-post-generate.groovy"
+  cp -p "$definition/src/main/javadoc/README.md" "$product_root/src/main/javadoc/README.md"
+  for asset in archetype.properties goal.txt verify.groovy; do
+    cp -p "$definition/src/test/resources/projects/basic/$asset" \
+      "$product_root/src/test/resources/projects/basic/$asset"
+  done
+  while IFS= read -r asset; do
+    cp -p "$asset" "$product_root/architecture-docs/$(basename "$asset")"
+  done < <(find "$definition/architecture-docs" -type f -print | LC_ALL=C sort)
+}
+
+compose_child_module() {
+  local product_root="$1" temp
+  [[ -f "$CURRENT_PACKAGING_POM" ]] || die "packaging POM is missing: $CURRENT_PACKAGING_POM"
+  cp -p "$CURRENT_PACKAGING_POM" "$product_root/pom.xml"
+  temp="$product_root/pom.xml.tmp.$$"
+  sed "s|@rootVersion@|$(escape_sed_replacement "$ROOT_VERSION")|g" \
+    "$product_root/pom.xml" >"$temp"
+  mv -- "$temp" "$product_root/pom.xml"
+  grep -Fq '<packaging>maven-archetype</packaging>' "$product_root/pom.xml" \
+    || die "generated child is not a maven-archetype: $product_root/pom.xml"
+  grep -Fq '@rootVersion@' "$product_root/pom.xml" \
+    && die "rootVersion token remains in generated child: $product_root/pom.xml"
+  copy_curated_assets "$product_root"
+}
+
+resolve_root_version() {
+  local evaluated
+  evaluated="$($MAVEN_WRAPPER -q -N help:evaluate -Dexpression=project.version -DforceStdout 2>/dev/null \
+    | tail -n 1 | tr -d '\r')"
+  [[ -n "$evaluated" && "$evaluated" != *'${'* && "$evaluated" =~ ^[A-Za-z0-9][A-Za-z0-9._+-]*$ ]] \
+    || die "unable to resolve a concrete archetypes parent version"
+  ROOT_VERSION="$evaluated"
+}
+
+write_generated_aggregator() {
+  local target
+  cat >"$STAGING_ROOT/pom.xml" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-archetypes-parent</artifactId>
+        <version>${ROOT_VERSION}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <artifactId>egon-cola-generated-archetypes-reactor</artifactId>
+    <packaging>pom</packaging>
+    <name>egon-cola-generated-archetypes-reactor</name>
+    <description>Generated Maven Archetype publishing reactor</description>
+    <properties>
+        <archetype.preflight.skip>true</archetype.preflight.skip>
+    </properties>
+    <modules>
+EOF
+  while IFS= read -r target; do
+    [[ -n "$target" ]] || continue
+    printf '        <module>%s</module>\n' "$target" >>"$STAGING_ROOT/pom.xml"
+  done < <(printf '%s\n' "${TARGET_ARTIFACT_IDS[@]}" | LC_ALL=C sort)
+  cat >>"$STAGING_ROOT/pom.xml" <<'EOF'
+    </modules>
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <configuration><skip>true</skip></configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+EOF
+}
+
 acquire_lock() {
   if ! mkdir "$LOCK_DIR" 2>/dev/null; then
     die "generation lock is held: $LOCK_DIR"
@@ -522,9 +649,11 @@ generate_one() {
   normalize_generated_product "$plugin_output"
   mv -- "$resources" "$product_root/archetype-resources"
   rm -rf -- "$plugin_output" "$plugin_properties" "$plugin_log"
+  compose_child_module "$product_root"
   manifest_hash="$product_root/generation-manifest.sha256"
   {
     printf 'generator=maven-archetype-plugin:3.4.1:create-from-project\n'
+    printf 'rootVersion=%s\n' "$ROOT_VERSION"
     printf 'sourceProject=%s\n' "${MF_SOURCE_PROJECT}"
     printf 'sourceGroupId=%s\n' "${MF_SOURCE_GROUP_ID}"
     printf 'sourceArtifactId=%s\n' "${MF_SOURCE_ARTIFACT_ID}"
@@ -532,11 +661,11 @@ generate_one() {
     printf 'sourcePackage=%s\n' "${MF_SOURCE_PACKAGE}"
     printf 'targetArtifactId=%s\n' "${MF_TARGET_ARTIFACT_ID}"
     printf 'expectedTopology=%s\n' "${MF_EXPECTED_TOPOLOGY}"
-    printf '[resources]\n'
-    hash_tree "$product_root/archetype-resources"
+    printf '[product]\n'
+    hash_product_tree "$product_root"
   } >"$manifest_hash"
   printf 'generated %s (%s files)\n' "$MF_TARGET_ARTIFACT_ID" \
-    "$(find "$product_root/archetype-resources" -type f | wc -l | tr -d ' ')"
+    "$(find "$product_root" -type f ! -name generation-manifest.sha256 | wc -l | tr -d ' ')"
 }
 
 generate_all() {
@@ -547,13 +676,35 @@ generate_all() {
 }
 
 validate_generated_set() {
-  local manifest product_dir
+  local manifest product_dir expected_modules actual_modules
+  [[ -f "$STAGING_ROOT/pom.xml" ]] || die 'generated aggregator POM is missing'
   for manifest in "${MANIFESTS[@]}"; do
     parse_manifest "$manifest"
     product_dir="$STAGING_ROOT/$MF_TARGET_ARTIFACT_ID"
     [[ -d "$product_dir/archetype-resources" ]] || die "staged target missing: $MF_TARGET_ARTIFACT_ID"
     [[ -s "$product_dir/generation-manifest.sha256" ]] || die "generation manifest missing: $MF_TARGET_ARTIFACT_ID"
+    [[ -f "$product_dir/pom.xml" ]] || die "generated child POM missing: $MF_TARGET_ARTIFACT_ID"
+    grep -Fq '<packaging>maven-archetype</packaging>' "$product_dir/pom.xml" \
+      || die "generated child packaging is invalid: $MF_TARGET_ARTIFACT_ID"
+    grep -Fq "<artifactId>${MF_TARGET_ARTIFACT_ID}</artifactId>" "$product_dir/pom.xml" \
+      || die "generated child artifactId is invalid: $MF_TARGET_ARTIFACT_ID"
+    grep -Fq '@rootVersion@' "$product_dir/pom.xml" \
+      && die "generated child contains unresolved rootVersion token: $MF_TARGET_ARTIFACT_ID"
+    for curated in \
+      "$product_dir/src/main/resources/META-INF/maven/archetype-metadata.xml" \
+      "$product_dir/src/main/resources/META-INF/archetype-post-generate.groovy" \
+      "$product_dir/src/main/javadoc/README.md" \
+      "$product_dir/src/test/resources/projects/basic/archetype.properties" \
+      "$product_dir/src/test/resources/projects/basic/goal.txt" \
+      "$product_dir/src/test/resources/projects/basic/verify.groovy"; do
+      [[ -f "$curated" ]] || die "generated curated file is missing: $curated"
+    done
+    [[ -d "$product_dir/architecture-docs" ]] || die "generated architecture-docs is missing: $MF_TARGET_ARTIFACT_ID"
   done
+  expected_modules="$(printf '%s\n' "${TARGET_ARTIFACT_IDS[@]}" | LC_ALL=C sort)"
+  actual_modules="$(sed -n 's/^[[:space:]]*<module>\([^<]*\)<\/module>[[:space:]]*$/\1/p' "$STAGING_ROOT/pom.xml")"
+  [[ "$expected_modules" == "$actual_modules" ]] \
+    || die 'generated aggregator module set does not match definitions'
 }
 
 swap_staging_into_place() {
@@ -575,13 +726,19 @@ swap_staging_into_place() {
 }
 
 compare_generated_set() {
-  local manifest product
+  local manifest product staging_hash generated_hash
   [[ -d "$GENERATED_ROOT" ]] || die 'generated workspace is missing; run generate first'
+  cmp -s "$STAGING_ROOT/pom.xml" "$GENERATED_ROOT/pom.xml" \
+    || die 'generated aggregator is not deterministic'
   for manifest in "${MANIFESTS[@]}"; do
     parse_manifest "$manifest"
     product="$MF_TARGET_ARTIFACT_ID"
-    diff -ruN "$STAGING_ROOT/$product/archetype-resources" "$GENERATED_ROOT/$product/archetype-resources" \
-      >/dev/null || die "generated resources are not deterministic for ${product}"
+    staging_hash="$STAGING_ROOT/${product}.product.hash"
+    generated_hash="$STAGING_ROOT/${product}.generated.hash"
+    hash_product_tree "$STAGING_ROOT/$product" >"$staging_hash"
+    hash_product_tree "$GENERATED_ROOT/$product" >"$generated_hash"
+    cmp -s "$staging_hash" "$generated_hash" \
+      || die "generated resources are not deterministic for ${product}"
     cmp -s "$STAGING_ROOT/$product/generation-manifest.sha256" "$GENERATED_ROOT/$product/generation-manifest.sha256" \
       || die "generated provenance differs for ${product}"
   done
@@ -590,10 +747,12 @@ compare_generated_set() {
 run_pipeline() {
   local mode="$1"
   discover_manifests
+  resolve_root_version
   acquire_lock
   STAGING_ROOT="$(mktemp -d "${ARCHETYPES_ROOT}/.generated.staging.XXXXXX")"
   write_source_snapshot "$STAGING_ROOT/source.snapshot.before"
   generate_all
+  write_generated_aggregator
   validate_generated_set
   assert_source_snapshot_unchanged "$STAGING_ROOT/source.snapshot.before"
   if [[ "$mode" == generate ]]; then
