@@ -1985,16 +1985,22 @@ publish_gateway_routes() {
 }
 
 wait_gateway_route() {
-  local status
+  local status route
+  if [[ "${startup_mode}" == "platforms" ]]; then
+    route="${gateway_url}/oauth2/login/csrf"
+  else
+    route="${gateway_url}/api/mock/read"
+  fi
   for ((attempt = 1; attempt <= 30; attempt++)); do
     status="$(curl -sS -o /dev/null -w '%{http_code}' \
-      "${gateway_url}/api/mock/read")"
-    if [[ "${status}" == "401" ]]; then
+      "${route}")"
+    if [[ "${startup_mode}" == "platforms" && "${status}" == "200" \
+        || "${startup_mode}" != "platforms" && "${status}" == "401" ]]; then
       return
     fi
     sleep 1
   done
-  fail "Gateway Engine did not load the unified identity routes"
+  fail "Gateway Engine did not load the ${startup_mode} routes at ${route}"
 }
 
 command_start() {
