@@ -23,10 +23,18 @@ Egon-COLA
 │   └── egon-cola-platform-*          # 企业级基础设施平台
 └── egon-cola-archetypes
     ├── egon-cola-archetypes-parent   # Archetypes Parent POM
-    │   └── source-projects            # 可编辑的正常 Maven 源码（不发布）
-    ├── egon-cola-archetype-light
-    ├── egon-cola-archetype-service
-    └── egon-cola-archetype-web
+    ├── source-projects                # 可编辑的正常 Maven 源码（不发布）
+    │   ├── egon-cola-source-light
+    │   ├── egon-cola-source-light-open
+    │   ├── egon-cola-source-service
+    │   ├── egon-cola-source-service-open
+    │   ├── egon-cola-source-web
+    │   └── egon-cola-source-web-open
+    ├── definitions                     # Archetype 打包合同（不单独作为 Maven module）
+    │   └── egon-cola-archetype-{light,light-open,service,service-open,web,web-open}
+    ├── .generated                      # 忽略的完整发布 Reactor（由脚本生成）
+    ├── egon-cola-evaluation-facade
+    └── egon-cola-organization-facade
 ```
 
 推荐发布顺序：
@@ -36,7 +44,7 @@ flowchart TD
     A[修改版本号] --> B[本地构建验证]
     B --> C[正常源码 clean install]
     C --> D[generate + check]
-    D --> E[Archetype IT + release shape]
+    D --> E[-Pgenerated-archetypes IT + release shape]
     E --> F[从根 Reactor 统一发布全部模块]
     F --> G[创建 Git Tag / Release Note]
 ```
@@ -44,6 +52,13 @@ flowchart TD
 DDC 归属 Platforms，但 RPC 组件消费 DDC Starter，Gateway 又消费 RPC。这个依赖图在
 根 Reactor 内可以由 Maven 正确排序，却不能拆成独立的 Components 和 Platforms 新版本
 发布批次。因此 Maven Central 发布只允许使用根 Reactor 的 `all` 目标。
+
+Archetype 采用两阶段所有权：维护者只在 `source-projects` 的标准 `src/main/java`、
+`src/main/resources` 和 `src/test` 目录中开发；`definitions` 只保存 manifest、
+`packaging-pom.xml`、META-INF、IT、javadoc 和架构文档等打包合同。运行
+`scripts/generate_archetypes.sh generate` 时，固定使用
+`maven-archetype-plugin:3.4.1:create-from-project` 把正常源码转换为完整的
+`.generated` Reactor。`.generated` 是派生目录，不能手工修改，也不会提交到 Git。
 
 ---
 
@@ -90,6 +105,22 @@ git diff
 ```
 
 如果只改了部分模块，也不要在公开发布版本里让同一批模块版本混乱。Egon-COLA 当前更适合保持统一版本号，后面如果要做“部分模块独立版本”，再单独设计版本策略。
+
+---
+
+### 3.1 源码依赖与 Flyway 约定
+
+六个 `source-projects` 都是可直接导入 IDE 的正常 Maven 工程，并统一继承
+Spring Boot `3.5.16` Parent。根工程、Components、Platforms 和 Archetypes 的
+共享版本来自根 POM 导入的 `spring-boot-dependencies` BOM；Light/Web 的四个源码根
+再按需导入 `springdoc-openapi-bom`，Service 不引入 Springdoc。修改依赖时只调整
+这些既定的 Parent/BOM 归属，不在生成目录里补版本。
+
+非 Open 的 Light、Service、Web 源码各自按 Flyway 物理 role 提供一个累计 baseline：
+一个 `master-data`、一个 `shard`。baseline 直接声明该 role 的最终 schema，历史
+`V*.sql` 仅作为不可变归档，不得修改、移动或删除；Open 源码不使用 Flyway，继续
+生成手工 SQL runbook。生成器会把这些正常源码内容带入 `.generated`，发布者不应在
+`.generated` 中编辑迁移或业务代码。
 
 ---
 
@@ -179,9 +210,11 @@ gpg --armor --export-secret-keys <KEY_ID>
 ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml install
 ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
 ./scripts/generate_archetypes.sh generate
-./scripts/generate_archetypes.sh check
-./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean integration-test
-./mvnw -B -ntp -Prelease -Dgpg.skip=true clean verify
+./scripts/check_archetypes.sh
+./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
+  -Pgenerated-archetypes clean install
+./mvnw -B -ntp -Pgenerated-archetypes -Prelease \
+  -Dgpg.skip=true clean verify
 ```
 
 也可以直接调用同一入口：
@@ -197,7 +230,8 @@ gpg --armor --export-secret-keys <KEY_ID>
 验证六个 Archetype 的 main/sources/javadoc 形态但跳过本地 GPG：
 
 ```bash
-./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Prelease -Dgpg.skip=true clean verify
+./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
+  -Pgenerated-archetypes -Prelease -Dgpg.skip=true clean verify
 ```
 
 注意：`-Dgpg.skip=true` 只能用于本地验证，不能用于真实发布。真实发布必须生成 `.asc` 签名文件。

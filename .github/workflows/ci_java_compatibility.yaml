@@ -75,10 +75,13 @@ jobs:
               ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml install
               ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
               ./scripts/generate_archetypes.sh generate
-              ./scripts/generate_archetypes.sh check
+              ./scripts/check_archetypes.sh
               test -z "$(git ls-files -- egon-cola-archetypes/.generated)"
-              ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean integration-test
-              ./mvnw -B -ntp -Prelease -Dgpg.skip=true clean verify
+              ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
+                -Pgenerated-archetypes \
+                clean install
+              ./mvnw -B -ntp -Pgenerated-archetypes -Prelease \
+                -Dgpg.skip=true clean verify
             '
 
       - name: Verify bytecode component and release shape with a clean scan
@@ -171,8 +174,8 @@ jobs:
           set -euo pipefail
 
           mapfile -t MANIFESTS < <(
-            find egon-cola-archetypes -type f \
-              -path '*/src/main/archetype/archetype.properties' \
+            find egon-cola-archetypes/definitions -mindepth 2 -maxdepth 2 \
+              -type f -name archetype.properties \
               -print | sort
           )
           EXPECTED_MANIFESTS=0
@@ -181,8 +184,8 @@ jobs:
               EXPECTED_MANIFESTS=$((EXPECTED_MANIFESTS + 1))
             fi
           done < <(
-            find egon-cola-archetypes -mindepth 2 -maxdepth 2 -type f \
-              -name pom.xml -print | sort
+            find egon-cola-archetypes/.generated -mindepth 2 -maxdepth 2 \
+              -type f -name pom.xml -print | sort
           )
           if [[ "${#MANIFESTS[@]}" -eq 0 || "${#MANIFESTS[@]}" -ne "${EXPECTED_MANIFESTS}" ]]; then
             echo "Manifest/package count mismatch: manifests=${#MANIFESTS[@]}, packages=${EXPECTED_MANIFESTS}." >&2
@@ -223,7 +226,7 @@ jobs:
             }
             ARCHETYPE_ARTIFACT_ID="${TARGET_ARTIFACT_ID}"
             SHORT_NAME="${TARGET_ARTIFACT_ID#egon-cola-archetype-}"
-            test -f "egon-cola-archetypes/${ARCHETYPE_ARTIFACT_ID}/pom.xml"
+            test -f "egon-cola-archetypes/.generated/${ARCHETYPE_ARTIFACT_ID}/pom.xml"
 
             APP_NAME="ci-${SHORT_NAME}-demo-java-${JAVA_VERSION}"
             PACKAGE_SUFFIX="${SHORT_NAME//-/.}"
@@ -291,7 +294,8 @@ jobs:
             "${ROCKY_IMAGE}" \
             bash -lc '
               set -euo pipefail
-              ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean verify
+              ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
+                -Pgenerated-archetypes clean verify
             '
 
       - name: Remove self-installed Maven artifacts

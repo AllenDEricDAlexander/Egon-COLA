@@ -184,9 +184,10 @@ jobs:
           ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml install
           ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
           ./scripts/generate_archetypes.sh generate
-          ./scripts/generate_archetypes.sh check
+          ./scripts/check_archetypes.sh
           test -z "$(git ls-files -- egon-cola-archetypes/.generated)"
-          ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean integration-test
+          ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
+            -Pgenerated-archetypes clean install
 
       - name: Verify release shape (dry run)
         if: ${{ inputs.dry_run == true }}
@@ -196,6 +197,7 @@ jobs:
           MVN_ARGS=(
             -B
             -ntp
+            -Pgenerated-archetypes
             -Prelease
             -DtrimStackTrace=false
             -Dgpg.skip=true
@@ -213,6 +215,7 @@ jobs:
           MVN_ARGS=(
             -B
             -ntp
+            -Pgenerated-archetypes
             -Prelease
             -DtrimStackTrace=false
             "-Dgpg.passphrase=${GPG_PASSPHRASE}"
@@ -225,8 +228,8 @@ jobs:
           ./mvnw -f pom.xml "${MVN_ARGS[@]}" clean verify
 
           mapfile -t MANIFESTS < <(
-            find egon-cola-archetypes -type f \
-              -path '*/src/main/archetype/archetype.properties' \
+            find egon-cola-archetypes/definitions -mindepth 2 -maxdepth 2 \
+              -type f -name archetype.properties \
               -print | sort
           )
           EXPECTED_MANIFESTS=0
@@ -235,8 +238,8 @@ jobs:
               EXPECTED_MANIFESTS=$((EXPECTED_MANIFESTS + 1))
             fi
           done < <(
-            find egon-cola-archetypes -mindepth 2 -maxdepth 2 -type f \
-              -name pom.xml -print | sort
+            find egon-cola-archetypes/.generated -mindepth 2 -maxdepth 2 \
+              -type f -name pom.xml -print | sort
           )
           if [[ "${#MANIFESTS[@]}" -eq 0 || "${#MANIFESTS[@]}" -ne "${EXPECTED_MANIFESTS}" ]]; then
             echo "Manifest/package count mismatch: manifests=${#MANIFESTS[@]}, packages=${EXPECTED_MANIFESTS}." >&2
@@ -245,7 +248,7 @@ jobs:
 
           for manifest in "${MANIFESTS[@]}"; do
             TARGET_ARTIFACT_ID="$(sed -n 's/^targetArtifactId=//p' "${manifest}" | tr -d '\r')"
-            MODULE_DIR="egon-cola-archetypes/${TARGET_ARTIFACT_ID}"
+            MODULE_DIR="egon-cola-archetypes/.generated/${TARGET_ARTIFACT_ID}"
             test -f "${MODULE_DIR}/pom.xml"
             grep -Fq "<artifactId>${TARGET_ARTIFACT_ID}</artifactId>" "${MODULE_DIR}/pom.xml"
             for classifier in jar sources.jar javadoc.jar; do
@@ -272,6 +275,7 @@ jobs:
           MVN_ARGS=(
             -B
             -ntp
+            -Pgenerated-archetypes
             -Prelease
             -DtrimStackTrace=false
             "-Dgpg.passphrase=${GPG_PASSPHRASE}"

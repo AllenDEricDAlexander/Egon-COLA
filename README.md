@@ -78,18 +78,25 @@ Run a focused RPC contract verification when iterating on the RPC component:
   -am test
 ```
 
-Verify all three archetypes and their generated projects:
+Build and verify the editable source projects, then generate the complete Archetype reactor:
 
 ```bash
-./mvnw -B -ntp \
-  -pl egon-cola-archetypes/egon-cola-archetype-light,egon-cola-archetypes/egon-cola-archetype-service,egon-cola-archetypes/egon-cola-archetype-web \
-  -am clean integration-test
+./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
+./scripts/generate_archetypes.sh generate
+./scripts/check_archetypes.sh
+./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
+  -Pgenerated-archetypes clean install
 ```
 
-Verify the complete original and Open archetype reactor, including generated-project contracts:
+The default Archetypes reactor contains only the two facade modules. The generated children
+are included explicitly with `-Pgenerated-archetypes`, so a fresh checkout does not require
+the ignored `.generated` directory until the second stage is requested.
+
+Verify the generated-project contracts:
 
 ```bash
-./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean verify
+./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
+  -Pgenerated-archetypes clean verify
 ```
 
 For a complete host-local identity, DDC, Gateway, RBAC3, RPC, and MCP topology, use the [unified identity and MCP local runbook](docs/operations/unified-identity-mcp-local-runbook.md).
@@ -184,6 +191,11 @@ Egon-COLA publishes two parallel archetype families. The original artifact IDs r
 
 The Open family uses Spring Boot 3.5.16, Spring Cloud 2025.0.3, Spring Cloud Alibaba 2025.0.0.0, Nacos 3.0.3, MyBatis-Plus 3.5.17, ShardingSphere 5.5.3, the Common ID generator, and Dynamic Thread Pool. Service and Web additionally use Dubbo 3.3.6 plus gRPC/Protobuf 1.73.0; Light intentionally has no RPC or Gateway dependency. Light and Web use Springdoc where HTTP APIs exist. The family forbids Spring Data JPA, Flyway/Liquibase, and an embedded Gateway. IDs are `Long` internally, `int64` in Proto, and decimal strings at HTTP/GraphQL boundaries. Database DDL is supplied as manual SQL under each generated project's runbook.
 
+Maintainers edit the matching normal project under `egon-cola-archetypes/source-projects`,
+not a generated directory. `definitions` owns only the six packaging contracts. Run
+`scripts/generate_archetypes.sh generate` followed by `scripts/check_archetypes.sh` before
+building with `-Pgenerated-archetypes`.
+
 Example:
 
 ```bash
@@ -245,12 +257,15 @@ Egon-COLA/
 ├── .mvn/wrapper/                    # Maven Wrapper configuration
 ├── docs/                            # Operations runbooks and project documents
 ├── egon-cola-archetypes/            # Maven Archetypes and generated-project fixtures
-│   ├── egon-cola-archetype-light/
-│   ├── egon-cola-archetype-service/
-│   ├── egon-cola-archetype-web/
-│   ├── egon-cola-archetype-light-open/
-│   ├── egon-cola-archetype-service-open/
-│   ├── egon-cola-archetype-web-open/
+│   ├── source-projects/              # Editable normal Maven source projects
+│   │   ├── egon-cola-source-light/
+│   │   ├── egon-cola-source-light-open/
+│   │   ├── egon-cola-source-service/
+│   │   ├── egon-cola-source-service-open/
+│   │   ├── egon-cola-source-web/
+│   │   └── egon-cola-source-web-open/
+│   ├── definitions/                  # Packaging manifests and curated contracts
+│   ├── .generated/                   # Ignored generated publishing reactor
 │   ├── egon-cola-evaluation-facade/
 │   └── egon-cola-organization-facade/
 ├── egon-cola-components/             # Reusable components, starters, BOM, and tests
@@ -283,8 +298,8 @@ Components are normally consumed as Maven dependencies. The DDC, Gateway, IDP, a
 For Maven Central publication, the root reactor should be verified and deployed as one dependency-aware graph:
 
 ```bash
-./mvnw -B -ntp -Prelease -DskipTests verify
-./mvnw -B -ntp -Prelease -DskipTests clean deploy
+./scripts/maven-deploy.sh --dry-run
+./scripts/maven-deploy.sh all --publish
 ```
 
 Use [scripts/maven-deploy.md](scripts/maven-deploy.md) for release prerequisites and credential setup. For local platform deployment, start only the platform modules and external services required by the chosen topology; the root build does not start them automatically.
@@ -294,7 +309,6 @@ The repository also provides a safe target-listing and verification wrapper:
 ```bash
 scripts/maven-deploy.sh list
 scripts/maven-deploy.sh archetypes --dry-run
-scripts/maven-deploy.sh egon-cola-archetype-web-open --dry-run
 ```
 
 `--publish` is required for a real Maven deploy. The wrapper publishes only Maven reactors; it never starts generated applications or executes database SQL.

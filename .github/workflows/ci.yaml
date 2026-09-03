@@ -76,12 +76,24 @@ jobs:
               ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml install
               ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
               ./scripts/generate_archetypes.sh generate
-              ./scripts/generate_archetypes.sh check
+              ./scripts/check_archetypes.sh
               test -z "$(git ls-files -- egon-cola-archetypes/.generated)"
-              ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean integration-test
+              mapfile -t MANIFESTS < <(
+                find egon-cola-archetypes/definitions -mindepth 2 -maxdepth 2 \
+                  -type f -name archetype.properties -print | sort
+              )
+              test "${#MANIFESTS[@]}" -eq 6
+              for manifest in "${MANIFESTS[@]}"; do
+                TARGET_ARTIFACT_ID="$(sed -n 's/^targetArtifactId=//p' "${manifest}" | tr -d '\r')"
+                test -f "egon-cola-archetypes/.generated/${TARGET_ARTIFACT_ID}/pom.xml"
+              done
+              ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
+                -Pgenerated-archetypes \
+                clean install
               ./mvnw -B -ntp \
                 -DtrimStackTrace=false \
                 -Dgpg.skip=true \
+                -Pgenerated-archetypes \
                 -Prelease \
                 clean verify
             '

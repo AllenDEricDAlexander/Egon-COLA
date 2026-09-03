@@ -5,6 +5,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MVNW="${ROOT_DIR}/mvnw"
 GENERATOR="${ROOT_DIR}/scripts/generate_archetypes.sh"
+CHECK_WRAPPER="${ROOT_DIR}/scripts/check_archetypes.sh"
 
 usage() {
   cat <<'USAGE'
@@ -12,10 +13,7 @@ Usage: scripts/maven-deploy.sh [target] [options]
 
 Targets:
   all                               Publish the complete root reactor (default)
-  archetypes                        Verify/deploy the complete archetypes reactor
-  egon-cola-archetype-light-open    Verify/deploy the Light Open archetype
-  egon-cola-archetype-service-open  Verify/deploy the Service Open archetype
-  egon-cola-archetype-web-open      Verify/deploy the Web Open archetype
+  archetypes                        Verify the complete generated archetypes reactor
   list                              Print the supported targets and exit
 
 Options:
@@ -35,10 +33,7 @@ USAGE
 list_targets() {
   printf '%s\n' \
     all \
-    archetypes \
-    egon-cola-archetype-light-open \
-    egon-cola-archetype-service-open \
-    egon-cola-archetype-web-open
+    archetypes
 }
 
 target="all"
@@ -69,7 +64,7 @@ for argument in "$@"; do
       list_targets
       exit 0
       ;;
-    all|archetypes|egon-cola-archetype-light-open|egon-cola-archetype-service-open|egon-cola-archetype-web-open)
+    all|archetypes)
       if [[ "${target_set}" == true ]]; then
         echo "Only one Maven publish target may be selected." >&2
         exit 2
@@ -95,16 +90,18 @@ if [[ ! -x "${GENERATOR}" ]]; then
   exit 1
 fi
 
+if [[ ! -x "${CHECK_WRAPPER}" ]]; then
+  echo "Archetype check wrapper is not executable: ${CHECK_WRAPPER}" >&2
+  exit 1
+fi
+
 project_args=()
 case "${target}" in
   all)
     project_args=(-f pom.xml)
     ;;
   archetypes)
-    project_args=(-f egon-cola-archetypes/pom.xml)
-    ;;
-  egon-cola-archetype-light-open|egon-cola-archetype-service-open|egon-cola-archetype-web-open)
-    project_args=(-f egon-cola-archetypes/pom.xml -pl ":${target}" -am)
+    project_args=(-f egon-cola-archetypes/pom.xml -Pgenerated-archetypes)
     ;;
 esac
 
@@ -116,17 +113,52 @@ run_preflight() {
   "${MVNW}" -B -ntp -N -f egon-cola-archetypes/pom.xml install
   "${MVNW}" -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
   "${GENERATOR}" generate
-  "${GENERATOR}" check
+  "${CHECK_WRAPPER}"
   if [[ -n "$(git ls-files -- egon-cola-archetypes/.generated)" ]]; then
     echo "Generated archetype workspace must remain ignored and untracked." >&2
     exit 1
   fi
-  "${MVNW}" -B -ntp -f egon-cola-archetypes/pom.xml clean integration-test
-  "${MVNW}" -B -ntp -Prelease -Dgpg.skip=true clean verify
+  "${MVNW}" -B -ntp -f egon-cola-archetypes/pom.xml \
+    -Pgenerated-archetypes clean install
+  "${MVNW}" -B -ntp -Pgenerated-archetypes -Prelease \
+    -Dgpg.skip=true clean verify
+  assert_generated_release_shape
+}
+
+definition_manifests() {
+  find egon-cola-archetypes/definitions -mindepth 2 -maxdepth 2 \
+    -type f -name archetype.properties -print | LC_ALL=C sort
+}
+
+assert_generated_release_shape() {
+  local manifest target module_dir artifact_count=0
+  while IFS= read -r manifest; do
+    [[ -n "${manifest}" ]] || continue
+    target="$(sed -n 's/^targetArtifactId=//p' "${manifest}" | tr -d '\r')"
+    [[ "${target}" =~ ^egon-cola-archetype-[A-Za-z0-9-]+$ ]] \
+      || { echo "Invalid generated target in ${manifest}: ${target}" >&2; exit 1; }
+    module_dir="egon-cola-archetypes/.generated/${target}"
+    test -f "${module_dir}/pom.xml"
+    grep -Fq "<artifactId>${target}</artifactId>" "${module_dir}/pom.xml"
+    test "$(find "${module_dir}/target" -maxdepth 1 -type f \
+      -name "${target}-*.jar" ! -name '*-sources.jar' ! -name '*-javadoc.jar' | wc -l | tr -d ' ')" -eq 1
+    test "$(find "${module_dir}/target" -maxdepth 1 -type f \
+      -name "${target}-*-sources.jar" | wc -l | tr -d ' ')" -eq 1
+    test "$(find "${module_dir}/target" -maxdepth 1 -type f \
+      -name "${target}-*-javadoc.jar" | wc -l | tr -d ' ')" -eq 1
+    artifact_count=$((artifact_count + 1))
+  done < <(definition_manifests)
+  [[ "${artifact_count}" -eq 6 ]] \
+    || { echo "Expected six generated archetype artifacts, found ${artifact_count}." >&2; exit 1; }
 }
 
 echo "Maven target: ${target}"
 echo "Maven mode: ${mode}"
+if [[ "${mode}" == deploy && "${target}" != all ]]; then
+  echo "The --publish option only supports the all target; use archetypes for dry-run verification." >&2
+  exit 2
+fi
+
 run_preflight
 
 if [[ "${mode}" == deploy ]]; then
@@ -135,7 +167,7 @@ if [[ "${mode}" == deploy ]]; then
     echo "Maven Central publish requires a non-SNAPSHOT project version; resolved '${version}'." >&2
     exit 1
   fi
-  maven_args=(-B -ntp -Prelease -DtrimStackTrace=false)
+  maven_args=(-B -ntp -Pgenerated-archetypes -Prelease -DtrimStackTrace=false)
   if [[ "${skip_tests}" == true ]]; then
     maven_args+=(-DskipTests)
   fi
