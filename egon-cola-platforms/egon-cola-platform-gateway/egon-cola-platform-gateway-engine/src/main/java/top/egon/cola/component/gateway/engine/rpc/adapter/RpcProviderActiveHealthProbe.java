@@ -1,7 +1,7 @@
 package top.egon.cola.component.gateway.engine.rpc.adapter;
 
-import top.egon.cola.component.gateway.engine.common.provider.domain.ActiveHealthProbePolicy;
-import top.egon.cola.component.gateway.engine.common.provider.service.ProviderActiveHealthProbe;
+import top.egon.cola.component.gateway.runtime.provider.domain.ActiveHealthProbePolicy;
+import top.egon.cola.component.gateway.runtime.provider.service.ProviderActiveHealthProbe;
 
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;

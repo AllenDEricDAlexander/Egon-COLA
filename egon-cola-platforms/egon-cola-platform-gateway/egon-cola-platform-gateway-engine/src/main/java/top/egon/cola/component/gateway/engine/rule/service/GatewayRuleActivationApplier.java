@@ -14,8 +14,8 @@ import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivation;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivationMode;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleSnapshot;
 import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
-import top.egon.cola.component.gateway.engine.common.provider.service.ProviderDirectory;
-import top.egon.cola.component.gateway.engine.common.observability.domain.GatewayTelemetry;
+import top.egon.cola.component.gateway.runtime.provider.service.ProviderDirectory;
+import top.egon.cola.component.gateway.runtime.observability.domain.GatewayTelemetry;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;

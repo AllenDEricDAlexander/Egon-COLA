@@ -2,11 +2,11 @@ package top.egon.cola.component.gateway.engine.http.proxy.service;
 
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.core.transport.EffectiveGatewayTransportPolicy;
-import top.egon.cola.component.gateway.engine.common.traffic.service.GatewayAttemptExecutor;
-import top.egon.cola.component.gateway.engine.common.traffic.domain.GatewayRetryPolicy;
-import top.egon.cola.component.gateway.engine.common.transport.service.GatewayCommitGuard;
-import top.egon.cola.component.gateway.engine.common.transport.service.GatewayRetryGate;
-import top.egon.cola.component.gateway.engine.common.transport.service.GatewayTransportTimeouts;
+import top.egon.cola.component.gateway.runtime.traffic.service.GatewayAttemptExecutor;
+import top.egon.cola.component.gateway.runtime.traffic.domain.GatewayRetryPolicy;
+import top.egon.cola.component.gateway.runtime.transport.service.GatewayCommitGuard;
+import top.egon.cola.component.gateway.runtime.transport.service.GatewayRetryGate;
+import top.egon.cola.component.gateway.runtime.transport.service.GatewayTransportTimeouts;
 
 import java.time.Duration;
 import java.util.Objects;

@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.http.service;
 
-import top.egon.cola.component.gateway.engine.common.observability.service.GatewayCallCompletionListener;
+import top.egon.cola.component.gateway.runtime.observability.service.GatewayCallCompletionListener;
 import top.egon.cola.component.gateway.engine.http.domain.GatewayInboundHttpRequest;
 import top.egon.cola.component.gateway.engine.http.service.GatewayOutboundHttpResponse;
 import top.egon.cola.component.gateway.engine.http.security.GatewayHttpSecurityProcessor;

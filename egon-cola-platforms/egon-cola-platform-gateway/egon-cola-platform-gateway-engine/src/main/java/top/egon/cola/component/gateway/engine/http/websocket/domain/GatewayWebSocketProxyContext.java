@@ -5,7 +5,7 @@ import top.egon.cola.component.gateway.engine.http.websocket.service.GatewayWebS
 import top.egon.cola.component.gateway.contract.rule.GatewayTransportProtocol;
 import top.egon.cola.component.gateway.core.provider.ProviderInstance;
 import top.egon.cola.component.gateway.core.transport.EffectiveGatewayTransportPolicy;
-import top.egon.cola.component.gateway.engine.common.transport.service.GatewayCommitGuard;
+import top.egon.cola.component.gateway.runtime.transport.service.GatewayCommitGuard;
 
 import java.util.LinkedHashMap;
 import java.util.List;

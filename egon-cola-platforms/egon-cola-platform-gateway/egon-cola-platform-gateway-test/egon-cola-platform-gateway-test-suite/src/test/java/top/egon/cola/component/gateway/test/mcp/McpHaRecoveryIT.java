@@ -19,7 +19,7 @@ import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
 import top.egon.cola.component.gateway.core.provider.ProviderServiceRegistry;
 import top.egon.cola.component.gateway.core.provider.ProviderServiceSnapshot;
 import top.egon.cola.component.gateway.core.provider.ProviderSubscription;
-import top.egon.cola.component.gateway.engine.common.provider.service.ProviderDirectory;
+import top.egon.cola.component.gateway.runtime.provider.service.ProviderDirectory;
 import top.egon.cola.component.gateway.engine.mcp.service.McpEngineHttpHandler;
 import top.egon.cola.component.gateway.engine.mcp.service.McpTaskWorker;
 import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;

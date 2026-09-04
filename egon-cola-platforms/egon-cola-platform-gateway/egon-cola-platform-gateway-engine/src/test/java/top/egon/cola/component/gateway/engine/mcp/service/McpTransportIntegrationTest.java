@@ -13,7 +13,7 @@ import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeServer;
 import top.egon.cola.component.gateway.engine.http.service.GatewayCompositeHttpDataPlaneHandler;
 import top.egon.cola.component.gateway.engine.http.domain.GatewayHttpEngineProperties;
 import top.egon.cola.component.gateway.engine.http.service.GatewayHttpServer;
-import top.egon.cola.component.gateway.engine.common.security.domain.GatewayTransportSecurity;
+import top.egon.cola.component.gateway.runtime.security.domain.GatewayTransportSecurity;
 import top.egon.cola.component.gateway.engine.mcp.adapter.SharedMcpTransportStore;
 import top.egon.cola.component.gateway.mcp.rule.service.McpRuleCompiler;
 import top.egon.cola.component.gateway.mcp.server.service.McpMethodDispatcher;

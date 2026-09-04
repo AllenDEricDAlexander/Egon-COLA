@@ -13,7 +13,7 @@ import top.egon.cola.component.gateway.contract.rule.GatewayRuleSnapshot;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeOperation;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimePolicy;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeRoute;
-import top.egon.cola.component.gateway.engine.common.traffic.domain.TrafficPolicyType;
+import top.egon.cola.component.gateway.runtime.traffic.domain.TrafficPolicyType;
 
 import java.time.Duration;
 import java.time.Instant;

@@ -2,7 +2,7 @@ package top.egon.cola.component.gateway.engine;
 
 import top.egon.cola.component.gateway.engine.bootstrap.config.GatewayEngineConfiguration;
 import top.egon.cola.component.gateway.engine.common.config.GatewayEngineRuntimeProperties;
-import top.egon.cola.component.gateway.engine.common.observability.service.GatewayCallCompletionListener;
+import top.egon.cola.component.gateway.runtime.observability.service.GatewayCallCompletionListener;
 
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RedissonClient;
@@ -19,8 +19,8 @@ import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.env.MapPropertySource;
 import top.egon.cola.component.gateway.engine.http.domain.GatewayHttpEngineProperties;
-import top.egon.cola.component.gateway.engine.common.traffic.service.RedisTokenBucketExecutor;
-import top.egon.cola.component.gateway.engine.common.traffic.adapter.RedissonRedisTokenBucketExecutor;
+import top.egon.cola.component.gateway.runtime.traffic.service.RedisTokenBucketExecutor;
+import top.egon.cola.component.gateway.runtime.traffic.adapter.RedissonRedisTokenBucketExecutor;
 
 import java.lang.reflect.Proxy;
 import java.time.Duration;
@@ -237,7 +237,7 @@ class GatewayEngineConfigurationTest {
                     .orElseThrow();
             var parameter = Arrays.stream(method.getParameters())
                     .filter(candidate -> candidate.getType().equals(
-                            top.egon.cola.component.gateway.engine.common
+                            top.egon.cola.component.gateway.runtime
                                     .observability.service
                                     .GatewayCallCompletionListener.class
                     ))

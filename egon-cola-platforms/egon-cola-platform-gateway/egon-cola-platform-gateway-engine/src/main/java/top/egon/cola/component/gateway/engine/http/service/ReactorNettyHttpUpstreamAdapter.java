@@ -18,7 +18,7 @@ import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.ConnectionProvider;
 import top.egon.cola.component.gateway.engine.http.common.buffer.GatewayDataBufferOwnership;
 import top.egon.cola.component.gateway.engine.http.common.buffer.GatewayDataBufferPipeline;
-import top.egon.cola.component.gateway.engine.common.transport.service.GatewayTransportTimeouts;
+import top.egon.cola.component.gateway.runtime.transport.service.GatewayTransportTimeouts;
 
 import java.time.Duration;
 import java.util.ArrayList;

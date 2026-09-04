@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.http.websocket.adapter;
 
-import top.egon.cola.component.gateway.engine.common.transport.service.GatewayCommitPoint;
+import top.egon.cola.component.gateway.runtime.transport.service.GatewayCommitPoint;
 import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketCloseStatus;
 import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketFrame;
 import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketFrameType;
@@ -32,7 +32,7 @@ import top.egon.cola.component.gateway.core.provider.ProviderProtocolType;
 import top.egon.cola.component.gateway.core.provider.ProviderRegistryState;
 import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
 import top.egon.cola.component.gateway.core.transport.EffectiveGatewayTransportPolicy;
-import top.egon.cola.component.gateway.engine.common.transport.service.GatewayCommitGuard;
+import top.egon.cola.component.gateway.runtime.transport.service.GatewayCommitGuard;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -285,7 +285,7 @@ class ReactorNettyWebSocketUpstreamAdapterTest {
                     );
             assertEquals(401, rejected.httpStatus());
             assertEquals(
-                            top.egon.cola.component.gateway.engine.common.transport.service
+                            top.egon.cola.component.gateway.runtime.transport.service
                             .GatewayCommitPoint.NEW,
                     context.commitGuard().current()
             );

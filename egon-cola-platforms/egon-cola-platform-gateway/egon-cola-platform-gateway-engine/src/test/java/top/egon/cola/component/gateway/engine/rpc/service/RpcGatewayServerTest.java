@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.rpc.service;
 
-import top.egon.cola.component.gateway.engine.common.security.domain.GatewaySecurityException;
+import top.egon.cola.component.gateway.runtime.security.domain.GatewaySecurityException;
 import top.egon.cola.component.gateway.engine.rpc.adapter.RpcProviderChannelCache;
 import top.egon.cola.component.gateway.engine.rpc.domain.RawByteMarshaller;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcMethodIndex;
@@ -27,17 +27,17 @@ import top.egon.cola.component.gateway.core.provider.ProviderInstance;
 import top.egon.cola.component.gateway.core.provider.ProviderProtocolType;
 import top.egon.cola.component.gateway.core.provider.ProviderRegistryState;
 import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
-import top.egon.cola.component.gateway.engine.common.provider.domain.ProviderSelectionHandle;
+import top.egon.cola.component.gateway.runtime.provider.domain.ProviderSelectionHandle;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleContent;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleSnapshot;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimePolicy;
 import top.egon.cola.component.gateway.core.route.GatewayResponseMode;
 import top.egon.cola.component.gateway.core.route.HttpRouteCompiler;
-import top.egon.cola.component.gateway.engine.common.provider.domain.ProviderCallOutcome;
+import top.egon.cola.component.gateway.runtime.provider.domain.ProviderCallOutcome;
 import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
 import top.egon.cola.component.gateway.engine.rule.service.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.engine.rule.service.GatewayTrafficPolicyCompiler;
-import top.egon.cola.component.gateway.engine.common.traffic.domain.RuntimeTrafficPolicy;
+import top.egon.cola.component.gateway.runtime.traffic.domain.RuntimeTrafficPolicy;
 import top.egon.cola.component.rpc.context.invocation.RpcFailureStage;
 import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 
@@ -445,7 +445,7 @@ class RpcGatewayServerTest {
                 1024,
                 (route, metadata, traceId, deadline) ->
                         reactor.core.publisher.Mono.error(
-                                top.egon.cola.component.gateway.engine.common.security.domain
+                                top.egon.cola.component.gateway.runtime.security.domain
                                         .GatewaySecurityException
                                         .authorizationDenied()
                         )

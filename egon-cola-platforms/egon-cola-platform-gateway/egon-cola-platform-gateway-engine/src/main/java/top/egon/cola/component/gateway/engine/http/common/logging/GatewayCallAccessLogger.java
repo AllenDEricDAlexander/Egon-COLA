@@ -3,7 +3,7 @@ package top.egon.cola.component.gateway.engine.http.common.logging;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.egon.cola.component.gateway.contract.observability.GatewayCallEventV1;
-import top.egon.cola.component.gateway.engine.common.observability.service.GatewayCallCompletionListener;
+import top.egon.cola.component.gateway.runtime.observability.service.GatewayCallCompletionListener;
 
 import java.util.Base64;
 

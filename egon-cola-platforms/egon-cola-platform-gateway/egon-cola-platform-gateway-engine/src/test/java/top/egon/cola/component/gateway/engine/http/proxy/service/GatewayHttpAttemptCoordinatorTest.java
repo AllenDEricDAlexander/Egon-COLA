@@ -7,8 +7,8 @@ import top.egon.cola.component.gateway.contract.rule.GatewayRouteProfile;
 import top.egon.cola.component.gateway.contract.rule.GatewayTransportProtocol;
 import top.egon.cola.component.gateway.contract.rule.GatewayTransportResponseMode;
 import top.egon.cola.component.gateway.core.transport.EffectiveGatewayTransportPolicy;
-import top.egon.cola.component.gateway.engine.common.traffic.domain.GatewayRetryPolicy;
-import top.egon.cola.component.gateway.engine.common.transport.service.GatewayCommitGuard;
+import top.egon.cola.component.gateway.runtime.traffic.domain.GatewayRetryPolicy;
+import top.egon.cola.component.gateway.runtime.transport.service.GatewayCommitGuard;
 
 import java.io.IOException;
 import java.time.Duration;

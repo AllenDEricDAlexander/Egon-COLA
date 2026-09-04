@@ -34,7 +34,7 @@ import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
 import top.egon.cola.component.gateway.core.route.GatewayResponseMode;
 import top.egon.cola.component.gateway.core.security.GatewayCredential;
 import top.egon.cola.component.gateway.core.security.TrustedIdentity;
-import top.egon.cola.component.gateway.engine.common.provider.domain.ProviderSelectionHandle;
+import top.egon.cola.component.gateway.runtime.provider.domain.ProviderSelectionHandle;
 import top.egon.cola.component.gateway.engine.rule.service.GatewayTrafficGovernance;
 import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 

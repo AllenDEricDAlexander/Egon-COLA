@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.rule.service;
 
-import top.egon.cola.component.gateway.engine.common.traffic.service.GatewayTrafficContext;
+import top.egon.cola.component.gateway.runtime.traffic.service.GatewayTrafficContext;
 
 import top.egon.cola.component.gateway.engine.rule.adapter.json.GatewayRuleJsonCodec;
 

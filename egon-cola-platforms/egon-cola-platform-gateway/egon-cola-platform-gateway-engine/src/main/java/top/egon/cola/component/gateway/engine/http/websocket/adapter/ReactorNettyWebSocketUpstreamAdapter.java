@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.http.websocket.adapter;
 
-import top.egon.cola.component.gateway.engine.common.transport.service.GatewayTransportTimeoutException;
+import top.egon.cola.component.gateway.runtime.transport.service.GatewayTransportTimeoutException;
 
 import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayPreparedWebSocketSession;
 import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketCloseStatus;
@@ -40,7 +40,7 @@ import reactor.netty.http.client.WebsocketClientSpec;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 import top.egon.cola.component.gateway.core.provider.ProviderInstance;
-import top.egon.cola.component.gateway.engine.common.transport.service.GatewayTransportTimeouts;
+import top.egon.cola.component.gateway.runtime.transport.service.GatewayTransportTimeouts;
 
 import java.net.URI;
 import java.time.Duration;

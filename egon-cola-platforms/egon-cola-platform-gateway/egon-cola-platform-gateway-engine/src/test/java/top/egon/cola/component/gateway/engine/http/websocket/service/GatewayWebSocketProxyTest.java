@@ -22,8 +22,8 @@ import top.egon.cola.component.gateway.core.provider.ProviderProtocolType;
 import top.egon.cola.component.gateway.core.provider.ProviderRegistryState;
 import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
 import top.egon.cola.component.gateway.core.transport.EffectiveGatewayTransportPolicy;
-import top.egon.cola.component.gateway.engine.common.transport.service.GatewayCommitGuard;
-import top.egon.cola.component.gateway.engine.common.transport.service.GatewayCommitPoint;
+import top.egon.cola.component.gateway.runtime.transport.service.GatewayCommitGuard;
+import top.egon.cola.component.gateway.runtime.transport.service.GatewayCommitPoint;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;

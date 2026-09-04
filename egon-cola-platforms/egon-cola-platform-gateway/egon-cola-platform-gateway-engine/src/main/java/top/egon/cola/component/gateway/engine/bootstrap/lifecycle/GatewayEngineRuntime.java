@@ -3,7 +3,7 @@ package top.egon.cola.component.gateway.engine.bootstrap.lifecycle;
 import top.egon.cola.component.gateway.engine.common.config.GatewayEngineRuntimeProperties;
 
 import org.springframework.context.SmartLifecycle;
-import top.egon.cola.component.gateway.engine.common.provider.service.ProviderDirectory;
+import top.egon.cola.component.gateway.runtime.provider.service.ProviderDirectory;
 import top.egon.cola.component.gateway.engine.http.service.GatewayHttpServer;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewayServer;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewaySlotRuntime;

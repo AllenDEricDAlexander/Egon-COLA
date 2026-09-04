@@ -22,7 +22,7 @@ import top.egon.cola.component.gateway.core.transport.GatewayTransportDefaults;
 import top.egon.cola.component.gateway.core.transport.GatewayTransportSafetyLimits;
 import top.egon.cola.component.gateway.engine.bootstrap.config.GatewayEngineConfiguration;
 import top.egon.cola.component.gateway.engine.common.config.GatewayEngineRuntimeProperties;
-import top.egon.cola.component.gateway.engine.common.security.service.GatewaySecurityCapabilityRegistry;
+import top.egon.cola.component.gateway.runtime.security.service.GatewaySecurityCapabilityRegistry;
 
 import java.time.Duration;
 import java.time.Instant;

@@ -29,8 +29,8 @@ import top.egon.cola.component.gateway.core.security.GatewayCredentialExtractor;
 import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
 import top.egon.cola.component.gateway.core.security.SecurityFailureMode;
 import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
-import top.egon.cola.component.gateway.engine.common.security.service.GatewaySecurityCapabilityRegistry;
-import top.egon.cola.component.gateway.engine.common.security.service.GatewaySecurityChain;
+import top.egon.cola.component.gateway.runtime.security.service.GatewaySecurityCapabilityRegistry;
+import top.egon.cola.component.gateway.runtime.security.service.GatewaySecurityChain;
 import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 
 import java.time.Duration;

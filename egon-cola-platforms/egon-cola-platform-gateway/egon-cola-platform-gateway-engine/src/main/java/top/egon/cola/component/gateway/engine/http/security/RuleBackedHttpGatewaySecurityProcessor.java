@@ -23,8 +23,8 @@ import top.egon.cola.component.gateway.core.route.HttpRouteMatch;
 import top.egon.cola.component.gateway.core.security.GatewayAuthContext;
 import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
 import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
-import top.egon.cola.component.gateway.engine.common.security.service.GatewaySecurityChain;
-import top.egon.cola.component.gateway.engine.common.security.service.TrustedClientAddressResolver;
+import top.egon.cola.component.gateway.runtime.security.service.GatewaySecurityChain;
+import top.egon.cola.component.gateway.runtime.security.service.TrustedClientAddressResolver;
 
 import java.time.Instant;
 import java.util.Comparator;

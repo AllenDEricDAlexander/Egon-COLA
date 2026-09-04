@@ -5,7 +5,7 @@ import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.netty.shaded.io.netty.handler.ssl.ClientAuth;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
-import top.egon.cola.component.gateway.engine.common.security.domain.GatewayTransportSecurity;
+import top.egon.cola.component.gateway.runtime.security.domain.GatewayTransportSecurity;
 
 import javax.net.ssl.SSLException;
 import java.io.IOException;

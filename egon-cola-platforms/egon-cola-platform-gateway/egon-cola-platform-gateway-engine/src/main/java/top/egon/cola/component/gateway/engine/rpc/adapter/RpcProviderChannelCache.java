@@ -6,7 +6,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.GrpcSslContexts;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import top.egon.cola.component.gateway.core.provider.ProviderInstance;
-import top.egon.cola.component.gateway.engine.common.security.domain.GatewayTransportSecurity;
+import top.egon.cola.component.gateway.runtime.security.domain.GatewayTransportSecurity;
 
 import javax.net.ssl.SSLException;
 import java.time.Duration;

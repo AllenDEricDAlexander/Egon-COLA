@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.http.domain;
 
-import top.egon.cola.component.gateway.engine.common.security.domain.GatewayTransportSecurity;
+import top.egon.cola.component.gateway.runtime.security.domain.GatewayTransportSecurity;
 
 import java.time.Duration;
 import java.util.Objects;

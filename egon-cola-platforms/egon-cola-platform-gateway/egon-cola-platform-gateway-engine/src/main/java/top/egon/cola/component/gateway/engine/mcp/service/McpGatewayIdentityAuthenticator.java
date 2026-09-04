@@ -20,7 +20,7 @@ import top.egon.cola.component.gateway.core.security.CredentialForwardingMode;
 import top.egon.cola.component.gateway.core.security.GatewayAuthContext;
 import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
 import top.egon.cola.component.gateway.core.security.SecurityFailureMode;
-import top.egon.cola.component.gateway.engine.common.security.service.GatewaySecurityChain;
+import top.egon.cola.component.gateway.runtime.security.service.GatewaySecurityChain;
 import top.egon.cola.component.gateway.mcp.common.transport.McpHttpRequest;
 
 import java.time.Clock;

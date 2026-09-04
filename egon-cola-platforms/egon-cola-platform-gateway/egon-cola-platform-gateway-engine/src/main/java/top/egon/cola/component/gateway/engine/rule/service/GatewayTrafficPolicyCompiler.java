@@ -2,10 +2,10 @@ package top.egon.cola.component.gateway.engine.rule.service;
 
 import top.egon.cola.component.gateway.engine.rule.service.GatewayPolicyKeyCompiler;
 
-import top.egon.cola.component.gateway.engine.common.traffic.domain.RateLimitFailureMode;
-import top.egon.cola.component.gateway.engine.common.traffic.domain.RuntimeTrafficPolicy;
-import top.egon.cola.component.gateway.engine.common.traffic.domain.TrafficPolicyScope;
-import top.egon.cola.component.gateway.engine.common.traffic.domain.TrafficPolicyType;
+import top.egon.cola.component.gateway.runtime.traffic.domain.RateLimitFailureMode;
+import top.egon.cola.component.gateway.runtime.traffic.domain.RuntimeTrafficPolicy;
+import top.egon.cola.component.gateway.runtime.traffic.domain.TrafficPolicyScope;
+import top.egon.cola.component.gateway.runtime.traffic.domain.TrafficPolicyType;
 
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimePolicy;
 

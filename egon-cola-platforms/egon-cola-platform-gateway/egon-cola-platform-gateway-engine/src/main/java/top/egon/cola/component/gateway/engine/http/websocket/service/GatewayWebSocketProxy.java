@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.http.websocket.service;
 
-import top.egon.cola.component.gateway.engine.common.transport.service.GatewayWebSocketIdleTimeoutException;
+import top.egon.cola.component.gateway.runtime.transport.service.GatewayWebSocketIdleTimeoutException;
 
 import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayPreparedWebSocketSession;
 import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketCloseStatus;
@@ -13,7 +13,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
-import top.egon.cola.component.gateway.engine.common.transport.service.GatewayCommitPoint;
+import top.egon.cola.component.gateway.runtime.transport.service.GatewayCommitPoint;
 
 import java.time.Duration;
 import java.util.Objects;

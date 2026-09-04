@@ -19,7 +19,7 @@ import reactor.netty.http.server.HttpServerResponse;
 import reactor.netty.http.server.WebsocketServerSpec;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 import top.egon.cola.component.gateway.engine.http.common.buffer.GatewayDataBufferOwnership;
-import top.egon.cola.component.gateway.engine.common.security.domain.GatewayTransportSecurity;
+import top.egon.cola.component.gateway.runtime.security.domain.GatewayTransportSecurity;
 import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayPreparedWebSocketSession;
 import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketHandshakeResult;
 import top.egon.cola.component.gateway.engine.http.websocket.adapter.ReactorNettyWebSocketPeer;

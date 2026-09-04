@@ -46,20 +46,6 @@ class GatewayEnginePackageBoundaryTest {
                 "bootstrap/config",
                 "bootstrap/lifecycle",
                 "common/config",
-                "common/provider/domain",
-                "common/provider/service",
-                "common/provider/adapter",
-                "common/security/domain",
-                "common/security/service",
-                "common/security/adapter",
-                "common/traffic/domain",
-                "common/traffic/service",
-                "common/traffic/adapter",
-                "common/transport/domain",
-                "common/transport/service",
-                "common/observability/domain",
-                "common/observability/service",
-                "common/observability/adapter",
                 "http/domain",
                 "http/service",
                 "http/adapter",
@@ -112,7 +98,13 @@ class GatewayEnginePackageBoundaryTest {
                 "transport",
                 "observability"
         )) {
-            assertNoDirectJavaFiles("common/" + commonRoot);
+            Path sharedRoot = SOURCE_ROOT.resolve("common/" + commonRoot);
+            if (Files.isDirectory(sharedRoot)) {
+                try (Stream<Path> files = Files.walk(sharedRoot)) {
+                    assertTrue(files.noneMatch(path -> path.toString().endsWith(".java")),
+                            () -> "shared runtime source remains in " + sharedRoot);
+                }
+            }
         }
 
         for (String oldPackage : List.of(

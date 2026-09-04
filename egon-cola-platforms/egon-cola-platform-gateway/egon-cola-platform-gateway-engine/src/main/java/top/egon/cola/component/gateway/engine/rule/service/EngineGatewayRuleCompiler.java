@@ -2,7 +2,7 @@ package top.egon.cola.component.gateway.engine.rule.service;
 
 import top.egon.cola.component.gateway.engine.rpc.service.RpcMethodIndex;
 
-import top.egon.cola.component.gateway.engine.common.provider.domain.RuntimeProviderPolicy;
+import top.egon.cola.component.gateway.runtime.provider.domain.RuntimeProviderPolicy;
 import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
 
 import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
@@ -23,13 +23,13 @@ import top.egon.cola.component.gateway.core.transport.GatewayTransportPolicyOver
 import top.egon.cola.component.gateway.core.transport.GatewayTransportSafetyLimits;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcMethodIndexCompiler;
 import top.egon.cola.component.gateway.engine.rpc.domain.RuntimeRpcRoute;
-import top.egon.cola.component.gateway.engine.common.provider.service.GatewayProviderPolicyCompiler;
+import top.egon.cola.component.gateway.runtime.provider.service.GatewayProviderPolicyCompiler;
 import top.egon.cola.component.gateway.engine.http.cors.GatewayCorsPolicyCompiler;
-import top.egon.cola.component.gateway.engine.common.security.service.GatewaySecurityCapabilityRegistry;
-import top.egon.cola.component.gateway.engine.common.security.service.GatewaySecurityPolicyCompiler;
+import top.egon.cola.component.gateway.runtime.security.service.GatewaySecurityCapabilityRegistry;
+import top.egon.cola.component.gateway.runtime.security.service.GatewaySecurityPolicyCompiler;
 import top.egon.cola.component.gateway.engine.rule.service.GatewayTrafficPolicyCompiler;
-import top.egon.cola.component.gateway.engine.common.traffic.domain.RuntimeTrafficPolicy;
-import top.egon.cola.component.gateway.engine.common.traffic.domain.TrafficPolicyType;
+import top.egon.cola.component.gateway.runtime.traffic.domain.RuntimeTrafficPolicy;
+import top.egon.cola.component.gateway.runtime.traffic.domain.TrafficPolicyType;
 import top.egon.cola.component.gateway.mcp.rule.domain.CompiledMcpRules;
 import top.egon.cola.component.gateway.mcp.rule.service.McpRuleCompiler;
 

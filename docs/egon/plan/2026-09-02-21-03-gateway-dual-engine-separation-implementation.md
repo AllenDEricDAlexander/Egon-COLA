@@ -301,6 +301,8 @@ After the concrete Step 2 conflict was reported, the user directed: “继续，
 
 New and materially changed business services, Bean assembly and boundary models remain subject to the full standards. Necessary local normalization, wiring and regression fixes are now allowed within the owning Step; document exact changed paths and behavior evidence before committing. No general skill changes, unrelated cleanup, public wire changes or database migrations are authorized by this decision. Architecture, sequential commits and runtime acceptance remain unchanged.
 
+Step 2 validation refinement: the original reactor-wide `*Provider*Test` selector also executes the unrelated `RpcProviderAccessGuardComponentTest`, which currently fails because its test classpath lacks a Jakarta Validation provider before Gateway is reached. Use the package-qualified Gateway selector below, plus all moved runtime tests and Engine boundary tests. Record the original failure separately for the later full-platform verification; it is not a passed regression. This isolates the intended Step gate without disabling any Gateway test or weakening fail-closed security behavior.
+
 ## 7. Ordered File-by-file Implementation Steps
 
 ### Step 1 — Publish the two-role Engine contract
@@ -480,7 +482,7 @@ leave GatewayEngineRuntimeProperties and API-cross-feature component tests in ga
 - After this file: Step 2 has a compilable shared base and no Engine behavior change.
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine -am '-Dtest=GatewayRuntimePackageBoundaryTest,*Provider*Test,*Traffic*Test,*Security*Test' -Dsurefire.failIfNoSpecifiedTests=false test`
+- Verification command: `./mvnw -q -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine -am '-Dtest=%regex[top/egon/cola/component/gateway/.*(Provider|Traffic|Security).*Test.class],GatewayRuntimePackageBoundaryTest,GatewayEnginePackageBoundaryTest' -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: exit 0; runtime boundary and moved common tests pass; API Engine compiles with no duplicate class.
 - Failure returns to: File 3 for incomplete compile closure/imports; File 2/4 for dependency resolution or cycles.
 - Completion criteria: runtime-core is non-executable, owns only shared common capabilities, and API Engine depends on it.

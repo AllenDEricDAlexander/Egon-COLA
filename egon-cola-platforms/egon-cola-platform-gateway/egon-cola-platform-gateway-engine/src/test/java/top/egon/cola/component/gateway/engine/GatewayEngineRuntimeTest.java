@@ -4,7 +4,7 @@ import top.egon.cola.component.gateway.engine.bootstrap.lifecycle.GatewayEngineR
 import top.egon.cola.component.gateway.engine.common.config.GatewayEngineRuntimeProperties;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.gateway.engine.common.provider.service.ProviderDirectory;
+import top.egon.cola.component.gateway.runtime.provider.service.ProviderDirectory;
 import top.egon.cola.component.gateway.engine.http.service.GatewayHttpServer;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewayServer;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewaySlotRuntime;
