@@ -51,8 +51,8 @@ public class AgentFlowAutoConfiguration {
     @Bean(name = "agentFlowProperties")
     @ConditionalOnMissingBean(name = "agentFlowProperties")
     public AgentFlowProperties agentFlowProperties(org.springframework.core.env.Environment environment) {
-        return Binder.get(environment).bindOrCreate(
-                "egon.cola.component.agent-flow",
+            return Binder.get(environment).bindOrCreate(
+                    "egon.cola.component.agent-flow",
                 Bindable.of(AgentFlowProperties.class),
                 new NoUnboundElementsBindHandler(BindHandler.DEFAULT));
     }
