@@ -22,5 +22,6 @@
         <module>egon-cola-source-light-open</module>
         <module>egon-cola-source-service-open</module>
         <module>egon-cola-source-web-open</module>
+        <module>egon-cola-source-agent</module>
     </modules>
 </project>

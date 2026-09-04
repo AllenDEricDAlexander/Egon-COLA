@@ -1,0 +1,102 @@
+package top.egon.cola.archetype.source.agent.architecture;
+
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/** Verifies the Agent source reactor keeps the exact Web six-module boundary. */
+class AgentArchitectureTest {
+
+    private static final Path SOURCE_ROOT = Path.of("..").toAbsolutePath().normalize();
+    private static final List<String> MODULES = List.of(
+            "egon-cola-source-agent-common",
+            "egon-cola-source-agent-domain",
+            "egon-cola-source-agent-application",
+            "egon-cola-source-agent-infrastructure",
+            "egon-cola-source-agent-adapter",
+            "egon-cola-source-agent-starter");
+
+    @Test
+    void uses_exact_web_non_open_modules() throws IOException {
+        String rootPom = read(SOURCE_ROOT.resolve("pom.xml"));
+        assertEquals(6, MODULES.stream().filter(module -> rootPom.contains("<module>" + module + "</module>"))
+                .count());
+        assertTrue(rootPom.indexOf("<module>" + MODULES.getFirst() + "</module>")
+                < rootPom.indexOf("<module>" + MODULES.getLast() + "</module>"));
+        assertFalse(rootPom.contains("facade"));
+    }
+
+    @Test
+    void preserves_domain_first_dependencies() throws IOException {
+        assertDirectInternalDependency("egon-cola-source-agent-domain/pom.xml", "egon-cola-source-agent-common");
+        assertDirectInternalDependency("egon-cola-source-agent-application/pom.xml", "egon-cola-source-agent-domain");
+        assertDirectInternalDependency("egon-cola-source-agent-infrastructure/pom.xml", "egon-cola-source-agent-domain");
+        assertDirectInternalDependency("egon-cola-source-agent-adapter/pom.xml", "egon-cola-source-agent-application");
+        assertDirectInternalDependency("egon-cola-source-agent-starter/pom.xml", "egon-cola-source-agent-adapter");
+        assertDirectInternalDependency("egon-cola-source-agent-starter/pom.xml", "egon-cola-source-agent-infrastructure");
+        assertFalse(read(SOURCE_ROOT.resolve("egon-cola-source-agent-adapter/pom.xml"))
+                .contains("egon-cola-source-agent-infrastructure"));
+    }
+
+    @Test
+    void keeps_agent_technology_in_infrastructure_and_starter() throws IOException {
+        String domain = readJavaSources(SOURCE_ROOT.resolve("egon-cola-source-agent-domain/src/main/java"));
+        String application = readJavaSources(SOURCE_ROOT.resolve("egon-cola-source-agent-application/src/main/java"));
+        for (String forbidden : List.of("com.google.adk", "io.reactivex", "org.springframework.ai",
+                "org.springframework.web", "org.springframework.http", "io.modelcontextprotocol")) {
+            assertFalse(domain.contains(forbidden), forbidden);
+            assertFalse(application.contains(forbidden), forbidden);
+        }
+    }
+
+    @Test
+    void has_no_forbidden_integrations_or_source_web_business() throws IOException {
+        try (Stream<Path> files = Files.walk(SOURCE_ROOT)) {
+            files.filter(Files::isRegularFile)
+                    .filter(path -> !path.toString().contains("/src/test/"))
+                    .filter(path -> !path.toString().contains("/target/"))
+                    .filter(path -> path.toString().endsWith(".xml") || path.toString().endsWith(".java"))
+                    .forEach(path -> {
+                        String content = read(path);
+                        for (String forbidden : List.of("spring-boot-starter-jdbc", "spring-boot-starter-data-redis",
+                                "spring-boot-starter-amqp", "spring-boot-starter-graphql", "dubbo-spring-boot-starter",
+                                "flyway", "mybatis", "shardingsphere", "egon-cola-source-web")) {
+                            assertFalse(content.toLowerCase().contains(forbidden), path + " contains " + forbidden);
+                        }
+                    });
+        }
+    }
+
+    private static void assertDirectInternalDependency(String pom, String artifactId) throws IOException {
+        assertTrue(read(SOURCE_ROOT.resolve(pom)).contains("<artifactId>" + artifactId + "</artifactId>"),
+                pom + " missing " + artifactId);
+    }
+
+    private static String readJavaSources(Path root) throws IOException {
+        if (!Files.isDirectory(root)) {
+            return "";
+        }
+        try (Stream<Path> files = Files.walk(root)) {
+            return files.filter(path -> path.toString().endsWith(".java"))
+                    .map(AgentArchitectureTest::read)
+                    .reduce("", String::concat);
+        }
+    }
+
+    private static String read(Path path) {
+        try {
+            return Files.readString(path, StandardCharsets.UTF_8);
+        } catch (IOException failure) {
+            throw new IllegalStateException("cannot read " + path, failure);
+        }
+    }
+}
