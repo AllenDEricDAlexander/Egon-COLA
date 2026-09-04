@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import top.egon.cola.archetype.source.agent.adapter.config.DeepResearchApiProperties;
@@ -30,6 +31,7 @@ public class ResearchApiKeyFilter extends OncePerRequestFilter {
 
     private final DeepResearchApiProperties properties;
     private final ObjectMapper objectMapper;
+    @Qualifier("agentClock")
     private final Clock clock;
 
     @Override

@@ -3,6 +3,7 @@ package top.egon.cola.archetype.source.agent.adapter.handler;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -32,6 +33,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class DeepResearchGlobalExceptionHandler {
 
+    @Qualifier("agentClock")
     private final Clock clock;
 
     @ExceptionHandler(DeepResearchApplicationException.class)

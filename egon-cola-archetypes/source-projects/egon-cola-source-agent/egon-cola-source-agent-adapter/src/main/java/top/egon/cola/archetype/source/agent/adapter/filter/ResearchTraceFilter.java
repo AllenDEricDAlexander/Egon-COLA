@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResponse;
@@ -28,6 +29,7 @@ public class ResearchTraceFilter extends OncePerRequestFilter {
     public static final String TRACE_HEADER = "X-Trace-Id";
     public static final String TRACE_ATTRIBUTE = "research.traceId";
 
+    @Qualifier("agentClock")
     private final Clock clock;
     private final ObjectMapper objectMapper;
 
