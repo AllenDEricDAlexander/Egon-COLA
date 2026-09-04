@@ -702,6 +702,29 @@ egon-cola-component-common/
 └── egon-cola-component-common-test/
 ```
 
+### 8.1 Agent Flow 扁平 starter 例外
+
+`egon-cola-component-agent-flow-starter` 是一个经过批准的 flat component profile 例外。它不拆分 DDD 风格的 `domain`、`application`、`infrastructure` 或 `adapter` 包，也不增加 admin、test 子模块；配置、编译、Registry、Session 执行和自动配置都收敛在单一 starter 中：
+
+```text
+egon-cola-component-agent-flow-starter/
+├── README.md / README.zh-CN.md
+├── pom.xml
+└── src/
+    ├── main/java/top/egon/cola/component/agentflow/
+    │   ├── api/            # AgentFlowService、Command、Result、DescriptorDTO
+    │   ├── autoconfigure/  # strict Properties 与 AutoConfiguration
+    │   ├── config/         # 配置 record、Validation Group、图校验
+    │   ├── exception/      # 配置、Session、执行和生命周期异常
+    │   ├── execution/      # tuple guard 与同步/流式执行
+    │   ├── runtime/        # ADK/Spring AI 编译和 immutable Registry
+    │   └── workflow/       # Sequential / Parallel / Loop Strategy
+    └── main/resources/META-INF/spring/
+        └── org.springframework.boot.autoconfigure.AutoConfiguration.imports
+```
+
+该 starter 的输入是宿主具名 `ChatModel` 与组件配置，输出是内部 Java `AgentFlowService` 和 ADK `Event`/`Flowable<Event>`。它只提供本地能力边界：不提供 provider、HTTP、MCP、database、UI、凭据管理、持久化 Session 或远程恢复。宿主负责 provider 连接和认证上下文；Agent Flow 采用 Google ADK 0.7.0、Spring AI 1.1.8，在 Java 21 / Spring Boot 3.5.16 线上验证。
+
 ---
 
 ## 9. 有 admin 组件结构示例

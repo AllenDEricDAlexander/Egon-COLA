@@ -7,7 +7,7 @@
 `egon-cola-components-bom` is the Maven BOM for the Egon COLA component ecosystem. It provides no runtime code. Its only responsibility is to manage versions consistently for components under `egon-cola-components` that business applications can consume directly, avoiding repeated version declarations on every component dependency.
 
 The BOM exports stable consumption entry points: common core and utility modules,
-business component starters, and the bytecode component's public API, bridge, runtime,
+business component starters, the flat Agent Flow starter, and the bytecode component's public API, bridge, runtime,
 Agent, and starter. Platform, admin, test, and
 aggregator POM modules are not exported as business dependency entry points.
 
@@ -15,7 +15,7 @@ aggregator POM modules are not exported as business dependency entry points.
 
 ### Unified Version Management
 
-After a business application imports the BOM through `dependencyManagement`, subsequent component dependencies do not need their own `<version>`. All component versions follow the BOM's `project.version`, currently `5.3.2`.
+After a business application imports the BOM through `dependencyManagement`, subsequent component dependencies do not need their own `<version>`. All component versions follow the BOM's `project.version`, currently `5.3.3`.
 
 ### Exported Dependencies
 
@@ -29,6 +29,7 @@ After a business application imports the BOM through `dependencyManagement`, sub
 | `egon-cola-component-common-data-desensitize-spring-boot-starter` | Jackson response and Logback message desensitization through shared strategies |
 | `egon-cola-component-dynamic-thread-pool-starter` | Business-side dynamic thread-pool starter |
 | `egon-cola-component-rule-engine-starter` | Rule engine starter |
+| `egon-cola-component-agent-flow-starter` | Flat Spring AI + Google ADK Agent Flow starter with in-memory sessions and streaming execution |
 | `egon-cola-component-access-guard-starter` | Method access governance starter |
 | `egon-cola-component-method-extension-starter` | Method extension starter |
 | `egon-cola-component-transactional-outbox-starter` | PostgreSQL/JDBC transactional outbox starter |
@@ -93,6 +94,10 @@ After a business application imports the BOM through `dependencyManagement`, sub
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-agent-flow-starter</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-access-guard-starter</artifactId>
     </dependency>
     <dependency>
@@ -139,6 +144,7 @@ Child modules declare only the artifact:
 2. Stable common contracts are exported through `common-core`; trace core is exported through `common-trace`, and Spring applications use the dedicated Trace Starter.
 3. Regular business components export only their starter, keeping the Spring Boot auto-configuration entry point explicit. The bytecode component manages its public API, bridge, runtime, Agent, and starter boundaries separately.
 4. Every managed version follows the BOM's own version, reducing version drift when components are combined.
+5. Agent Flow is a flat starter entry point; its host-owned ChatModel/provider, MCP, HTTP, and database boundaries are not exported as BOM dependencies.
 
 ### Implementation Details
 
@@ -152,6 +158,7 @@ Child modules declare only the artifact:
 - A business application cannot depend only on the BOM. The BOM must be imported in `dependencyManagement`.
 - Admin modules must be built and deployed as standalone Spring Boot applications, not consumed as business dependencies through the BOM.
 - When adding a component, export its starter instead of its aggregator POM or test module. Export additional modules only when they have an explicit, independent consumption boundary.
+- Agent Flow remains default-off and process-local (`in-memory`); its README documents the `executeStream` cancellation, timeout, and `close` contract. Provider credentials and runtime recovery stay with the host application.
 - When common gains a submodule, decide whether it is a stable business runtime entry point before adding it to the BOM.
 
 ## Validation Command

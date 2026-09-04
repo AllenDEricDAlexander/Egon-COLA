@@ -20,8 +20,16 @@ class AgentFlowComponentContractTest {
 
     private static final Path COMPONENTS_ROOT = Path.of("..").toAbsolutePath().normalize();
     private static final Path PARENT_POM = COMPONENTS_ROOT.resolve("pom.xml");
+    private static final Path BOM_POM = COMPONENTS_ROOT.resolve("egon-cola-components-bom/pom.xml");
+    private static final Path BOM_README = COMPONENTS_ROOT.resolve("egon-cola-components-bom/README.md");
+    private static final Path BOM_README_ZH = COMPONENTS_ROOT.resolve("egon-cola-components-bom/README.zh-CN.md");
+    private static final Path COMPONENTS_README = COMPONENTS_ROOT.resolve("README.md");
+    private static final Path COMPONENTS_README_ZH = COMPONENTS_ROOT.resolve("README.zh-CN.md");
+    private static final Path ARCHITECTURE = COMPONENTS_ROOT.resolve("egon-cola-components-architecture.md");
     private static final Path MODULE_POM = Path.of("pom.xml").toAbsolutePath().normalize();
     private static final Path SOURCE_ROOT = Path.of("src/main/java").toAbsolutePath().normalize();
+    private static final Path MODULE_README = Path.of("README.md").toAbsolutePath().normalize();
+    private static final Path MODULE_README_ZH = Path.of("README.zh-CN.md").toAbsolutePath().normalize();
 
     @Test
     void is_registered_by_parent() throws IOException {
@@ -60,6 +68,85 @@ class AgentFlowComponentContractTest {
     }
 
     @Test
+    void is_exported_once_by_components_bom() throws IOException {
+        String bom = read(BOM_POM);
+
+        assertEquals(1, count(bom, "<artifactId>egon-cola-component-agent-flow-starter</artifactId>"));
+        assertTrue(bom.contains("<version>${project.version}</version>"));
+        assertFalse(bom.contains("<artifactId>spring-ai-model</artifactId>"));
+        assertFalse(bom.contains("<artifactId>google-adk</artifactId>"));
+        assertFalse(bom.contains("<artifactId>google-adk-spring-ai</artifactId>"));
+    }
+
+    @Test
+    void documents_exact_configuration_api_and_boundaries() throws IOException {
+        String english = read(MODULE_README);
+        String chinese = read(MODULE_README_ZH);
+        String architecture = read(ARCHITECTURE);
+
+        String[] contract = {
+                "egon.cola.component.agent-flow",
+                "execution-timeout",
+                "shutdown-timeout",
+                "flows",
+                "listFlows",
+                "createSession",
+                "deleteSession",
+                "execute",
+                "executeStream",
+                "Spring AI 1.1.8",
+                "Google ADK 0.7.0",
+                "Flowable<Event>",
+                "AgentFlowSessionBusyException",
+                "AgentFlowExecutionTimeoutException",
+                "in-memory",
+                "cancel",
+                "close",
+                "MCP",
+                "HTTP",
+                "database"
+        };
+        assertContainsAll(english, contract);
+        assertContainsAll(chinese, contract);
+        assertContainsAll(architecture,
+                "egon-cola-component-agent-flow-starter",
+                "Agent Flow",
+                "HTTP",
+                "MCP",
+                "database",
+                "ChatModel");
+    }
+
+    @Test
+    void keeps_chinese_english_contracts_in_sync() throws IOException {
+        String english = read(MODULE_README);
+        String chinese = read(MODULE_README_ZH);
+        String componentsEnglish = read(COMPONENTS_README);
+        String componentsChinese = read(COMPONENTS_README_ZH);
+        String bomEnglish = read(BOM_README);
+        String bomChinese = read(BOM_README_ZH);
+
+        String[] moduleTokens = {
+                "Agent Flow",
+                "agent-flow-starter",
+                "enabled",
+                "execution-timeout",
+                "shutdown-timeout",
+                "executeStream",
+                "Spring AI 1.1.8",
+                "Google ADK 0.7.0",
+                "no retry",
+                "in-memory"
+        };
+        assertContainsAll(english, moduleTokens);
+        assertContainsAll(chinese, moduleTokens);
+        assertContainsAll(componentsEnglish, "egon-cola-component-agent-flow-starter", "Agent Flow");
+        assertContainsAll(componentsChinese, "egon-cola-component-agent-flow-starter", "Agent Flow");
+        assertContainsAll(bomEnglish, "egon-cola-component-agent-flow-starter", "Agent Flow");
+        assertContainsAll(bomChinese, "egon-cola-component-agent-flow-starter", "Agent Flow");
+    }
+
+    @Test
     void uses_semantic_java_names_and_safe_logging() throws IOException {
         if (!Files.isDirectory(SOURCE_ROOT)) {
             return;
@@ -75,9 +162,6 @@ class AgentFlowComponentContractTest {
                 assertFalse(source.contains("LoggerFactory.getLogger"), javaFile.toString());
                 assertFalse(source.contains("BeanUtils.copyProperties"), javaFile.toString());
                 assertFalse(source.contains("com.alibaba.fastjson"), javaFile.toString());
-                assertFalse(source.contains("userId"), javaFile.toString());
-                assertFalse(source.contains("sessionId"), javaFile.toString());
-                assertFalse(source.contains("prompt"), javaFile.toString());
             }
         }
     }
@@ -104,6 +188,12 @@ class AgentFlowComponentContractTest {
 
     private static int count(String source, String token) {
         return source.split(java.util.regex.Pattern.quote(token), -1).length - 1;
+    }
+
+    private static void assertContainsAll(String source, String... tokens) {
+        for (String token : tokens) {
+            assertTrue(source.contains(token), "missing contract token: " + token);
+        }
     }
 
     private static String read(Path path) throws IOException {

@@ -6,13 +6,13 @@
 
 `egon-cola-components-bom` 是 Egon COLA 组件体系的 Maven BOM。它不提供运行时代码，只负责统一管理 `egon-cola-components` 下可被业务应用直接依赖的组件版本，避免业务工程在每个组件依赖上重复写版本号。
 
-BOM 当前导出的是稳定消费入口：common core 与工具模块、各业务组件的 starter，以及字节码组件的公开 API、桥接层、运行时、Agent 和 starter。platform、admin、test、聚合 POM 不作为业务依赖入口导出。
+BOM 当前导出的是稳定消费入口：common core 与工具模块、各业务组件的 starter、扁平化 Agent Flow starter，以及字节码组件的公开 API、桥接层、运行时、Agent 和 starter。platform、admin、test、聚合 POM 不作为业务依赖入口导出。
 
 ## 功能说明
 
 ### 统一版本管理
 
-业务应用通过 `dependencyManagement` import BOM 后，后续声明组件依赖时不需要再写 `<version>`。所有组件版本跟随 BOM 的 `project.version`，当前为 `5.3.2`。
+业务应用通过 `dependencyManagement` import BOM 后，后续声明组件依赖时不需要再写 `<version>`。所有组件版本跟随 BOM 的 `project.version`，当前为 `5.3.3`。
 
 ### 导出的依赖清单
 
@@ -26,6 +26,7 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、各业�
 | `egon-cola-component-common-data-desensitize-spring-boot-starter` | 基于共享策略的 Jackson 响应与 Logback 消息脱敏 |
 | `egon-cola-component-dynamic-thread-pool-starter` | 动态线程池业务侧 starter |
 | `egon-cola-component-rule-engine-starter` | 规则引擎 starter |
+| `egon-cola-component-agent-flow-starter` | 扁平化 Spring AI + Google ADK Agent Flow starter，提供 in-memory Session 和流式执行 |
 | `egon-cola-component-access-guard-starter` | 方法访问治理 starter |
 | `egon-cola-component-method-extension-starter` | 方法扩展 starter |
 | `egon-cola-component-transactional-outbox-starter` | PostgreSQL/JDBC 事务消息 starter |
@@ -90,6 +91,10 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、各业�
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
+        <artifactId>egon-cola-component-agent-flow-starter</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>top.egon</groupId>
         <artifactId>egon-cola-component-access-guard-starter</artifactId>
     </dependency>
     <dependency>
@@ -136,6 +141,7 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、各业�
 2. 稳定 common 契约通过 `common-core` 导出；Trace 核心通过 `common-trace` 导出，Spring 场景通过独立 Trace Starter 接入。
 3. 常规业务组件只导出 starter，保持 Spring Boot 自动配置入口明确；字节码组件按公开的 API、桥接、运行时、Agent 和 starter 边界分别管理版本。
 4. 版本统一跟随 BOM 自身版本，降低组件组合使用时的版本漂移风险。
+5. Agent Flow 是扁平化 starter 入口；宿主负责 ChatModel/provider、MCP、HTTP 和 database 边界，BOM 不额外导出这些依赖。
 
 ### 实现细节
 
@@ -149,6 +155,7 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、各业�
 - 业务应用不能只依赖 BOM；BOM 只能放在 `dependencyManagement` 中 import。
 - admin 模块需要按独立 Spring Boot 应用构建部署，不通过 BOM 作为业务依赖使用。
 - 新增组件时，应优先导出 starter，而不是导出组件聚合 POM 或 test 模块；只有存在明确、独立的消费边界时才导出额外模块。
+- Agent Flow 默认关闭且是进程内 `in-memory` 能力；其 README 说明 `executeStream` 的 cancel、timeout 和 `close` 契约。provider 凭据和运行恢复由宿主应用负责。
 - 若 common 新增子模块，需要明确它是否是业务运行时稳定入口，再决定是否加入 BOM。
 
 ## 验证命令
