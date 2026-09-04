@@ -1,0 +1,33 @@
+# Deep Research Agent Archetype Architecture
+
+This archetype is the Agent-specific application of the Egon-COLA Web six-module
+profile. The generated project has one business capability, Deep Research, and no
+database, Flyway migration, cache, message broker, RPC, GraphQL, UI, status, history,
+resume, or durable recovery surface.
+
+```text
+common <- domain <- application <- adapter <- starter
+                         ^             ^
+                         |             |
+                    infrastructure --+
+```
+
+The `domain` module owns research records, events, ports, and service contracts.
+`application` owns the `DeepResearchManage` facade, validation, process-local capacity
+bulkhead, deadline, and terminal cleanup. `infrastructure` adapts the domain gateway to
+the shared Agent Flow component and creates one configured MCP SSE tool set. `adapter`
+owns the API-key and trace filters, JSON boundary, error contract, and the only
+`POST /api/v1/deep-research/runs` SSE command. `starter` owns Spring Boot, Spring AI
+model configuration, OpenAPI metadata, and the fixed flow graph.
+
+The request cannot choose a provider, model, tool, prompt, or flow. Each accepted
+request gets one isolated Agent Flow session and a process-local run. Events are
+ordered by `runId:sequence`; `research.completed` or `research.failed` is the single
+public terminal event. A disconnected client cancels the run and releases the session,
+subscription, and capacity lease. Model and MCP output is untrusted; report Markdown
+must be sanitized before rendering.
+
+The normal source project is the business truth. This definition is only the Maven
+packaging contract, and `.generated` is an ignored derived reactor. Generated projects
+must be verified offline with fake model/tool dependencies and must not receive
+credentials or provider-specific endpoints from the archetype.
