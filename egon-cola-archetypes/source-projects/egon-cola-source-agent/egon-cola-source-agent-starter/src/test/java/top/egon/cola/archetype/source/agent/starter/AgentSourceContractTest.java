@@ -17,10 +17,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AgentSourceContractTest {
 
     private static final Path SOURCE = Path.of(".").toAbsolutePath().normalize().getParent();
+    private static final String ROOT_ARTIFACT_ID = artifactId(SOURCE.resolve("pom.xml"));
     private static final List<String> MODULES = List.of(
-            "egon-cola-source-agent-common", "egon-cola-source-agent-domain",
-            "egon-cola-source-agent-application", "egon-cola-source-agent-infrastructure",
-            "egon-cola-source-agent-adapter", "egon-cola-source-agent-starter");
+            ROOT_ARTIFACT_ID + "-common", ROOT_ARTIFACT_ID + "-domain",
+            ROOT_ARTIFACT_ID + "-application", ROOT_ARTIFACT_ID + "-infrastructure",
+            ROOT_ARTIFACT_ID + "-adapter", ROOT_ARTIFACT_ID + "-starter");
     private static final Set<String> PROFILE_KEYS = Set.of(
             "max-concurrent-runs", "max-duration", "max-sources", "heartbeat-interval",
             "base-url", "api-key", "model-name", "enabled", "base-uri",
@@ -90,5 +91,16 @@ class AgentSourceContractTest {
                 .filter(key -> !key.startsWith("-") && !key.startsWith("${"))
                 .filter(PROFILE_KEYS::contains)
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
+    private static String artifactId(Path pom) {
+        try {
+            String content = Files.readString(pom);
+            String start = "<artifactId>";
+            int begin = content.indexOf(start, content.indexOf("</parent>")) + start.length();
+            return content.substring(begin, content.indexOf("</artifactId>", begin));
+        } catch (IOException failure) {
+            throw new IllegalStateException("cannot read root artifactId from " + pom, failure);
+        }
     }
 }

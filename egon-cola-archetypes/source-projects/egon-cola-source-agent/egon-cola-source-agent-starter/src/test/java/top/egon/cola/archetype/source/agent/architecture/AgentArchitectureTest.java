@@ -17,13 +17,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AgentArchitectureTest {
 
     private static final Path SOURCE_ROOT = Path.of("..").toAbsolutePath().normalize();
+    private static final String ROOT_ARTIFACT_ID = artifactId(SOURCE_ROOT.resolve("pom.xml"));
     private static final List<String> MODULES = List.of(
-            "egon-cola-source-agent-common",
-            "egon-cola-source-agent-domain",
-            "egon-cola-source-agent-application",
-            "egon-cola-source-agent-infrastructure",
-            "egon-cola-source-agent-adapter",
-            "egon-cola-source-agent-starter");
+            ROOT_ARTIFACT_ID + "-common",
+            ROOT_ARTIFACT_ID + "-domain",
+            ROOT_ARTIFACT_ID + "-application",
+            ROOT_ARTIFACT_ID + "-infrastructure",
+            ROOT_ARTIFACT_ID + "-adapter",
+            ROOT_ARTIFACT_ID + "-starter");
 
     @Test
     void uses_exact_web_non_open_modules() throws IOException {
@@ -37,20 +38,19 @@ class AgentArchitectureTest {
 
     @Test
     void preserves_domain_first_dependencies() throws IOException {
-        assertDirectInternalDependency("egon-cola-source-agent-domain/pom.xml", "egon-cola-source-agent-common");
-        assertDirectInternalDependency("egon-cola-source-agent-application/pom.xml", "egon-cola-source-agent-domain");
-        assertDirectInternalDependency("egon-cola-source-agent-infrastructure/pom.xml", "egon-cola-source-agent-domain");
-        assertDirectInternalDependency("egon-cola-source-agent-adapter/pom.xml", "egon-cola-source-agent-application");
-        assertDirectInternalDependency("egon-cola-source-agent-starter/pom.xml", "egon-cola-source-agent-adapter");
-        assertDirectInternalDependency("egon-cola-source-agent-starter/pom.xml", "egon-cola-source-agent-infrastructure");
-        assertFalse(read(SOURCE_ROOT.resolve("egon-cola-source-agent-adapter/pom.xml"))
-                .contains("egon-cola-source-agent-infrastructure"));
+        assertDirectInternalDependency(modulePom("domain"), moduleName("common"));
+        assertDirectInternalDependency(modulePom("application"), moduleName("domain"));
+        assertDirectInternalDependency(modulePom("infrastructure"), moduleName("domain"));
+        assertDirectInternalDependency(modulePom("adapter"), moduleName("application"));
+        assertDirectInternalDependency(modulePom("starter"), moduleName("adapter"));
+        assertDirectInternalDependency(modulePom("starter"), moduleName("infrastructure"));
+        assertFalse(read(modulePom("adapter")).contains(moduleName("infrastructure")));
     }
 
     @Test
     void keeps_agent_technology_in_infrastructure_and_starter() throws IOException {
-        String domain = readJavaSources(SOURCE_ROOT.resolve("egon-cola-source-agent-domain/src/main/java"));
-        String application = readJavaSources(SOURCE_ROOT.resolve("egon-cola-source-agent-application/src/main/java"));
+        String domain = readJavaSources(SOURCE_ROOT.resolve(moduleName("domain") + "/src/main/java"));
+        String application = readJavaSources(SOURCE_ROOT.resolve(moduleName("application") + "/src/main/java"));
         for (String forbidden : List.of("com.google.adk", "io.reactivex", "org.springframework.ai",
                 "org.springframework.web", "org.springframework.http", "io.modelcontextprotocol")) {
             assertFalse(domain.contains(forbidden), forbidden);
@@ -76,9 +76,28 @@ class AgentArchitectureTest {
         }
     }
 
-    private static void assertDirectInternalDependency(String pom, String artifactId) throws IOException {
-        assertTrue(read(SOURCE_ROOT.resolve(pom)).contains("<artifactId>" + artifactId + "</artifactId>"),
+    private static void assertDirectInternalDependency(Path pom, String artifactId) throws IOException {
+        assertTrue(read(pom).contains("<artifactId>" + artifactId + "</artifactId>"),
                 pom + " missing " + artifactId);
+    }
+
+    private static String moduleName(String suffix) {
+        return ROOT_ARTIFACT_ID + "-" + suffix;
+    }
+
+    private static Path modulePom(String suffix) {
+        return SOURCE_ROOT.resolve(moduleName(suffix) + "/pom.xml");
+    }
+
+    private static String artifactId(Path pom) {
+        try {
+            String content = Files.readString(pom, StandardCharsets.UTF_8);
+            String start = "<artifactId>";
+            int begin = content.indexOf(start, content.indexOf("</parent>")) + start.length();
+            return content.substring(begin, content.indexOf("</artifactId>", begin));
+        } catch (IOException failure) {
+            throw new IllegalStateException("cannot read root artifactId from " + pom, failure);
+        }
     }
 
     private static String readJavaSources(Path root) throws IOException {
