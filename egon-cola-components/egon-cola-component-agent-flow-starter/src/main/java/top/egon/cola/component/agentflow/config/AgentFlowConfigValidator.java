@@ -2,6 +2,7 @@ package top.egon.cola.component.agentflow.config;
 
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.agentflow.autoconfigure.AgentFlowProperties;
 import top.egon.cola.component.agentflow.exception.AgentFlowConfigurationException;
@@ -20,6 +21,7 @@ import java.util.regex.Pattern;
 
 /** Validates field constraints and the single-root Agent Flow graph before ADK construction. */
 @RequiredArgsConstructor
+@Slf4j
 public class AgentFlowConfigValidator {
 
     private static final Pattern ADK_NAME_PATTERN =
@@ -33,6 +35,8 @@ public class AgentFlowConfigValidator {
     private final ValidationUtils validationUtils;
 
     public AgentFlowProperties validate(AgentFlowProperties properties) {
+        log.debug("Validating Agent Flow configuration enabled={} flowCount={}",
+                properties != null && properties.enabled(), properties == null ? 0 : properties.flows().size());
         try {
             validationUtils.validate(properties);
         } catch (ConstraintViolationException failure) {
