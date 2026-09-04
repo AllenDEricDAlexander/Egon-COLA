@@ -24,3 +24,7 @@ spring.ai.openai:
   base-url: ${DEEP_RESEARCH_MODEL_BASE_URL}
   api-key: ${DEEP_RESEARCH_MODEL_API_KEY}
   chat.options.model: ${DEEP_RESEARCH_MODEL_NAME}
+
+springdoc:
+  api-docs.enabled: false
+  swagger-ui.enabled: false

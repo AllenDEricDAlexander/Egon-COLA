@@ -24,3 +24,7 @@ spring.ai.openai:
   base-url: http://test.invalid
   api-key: test-model-key
   chat.options.model: test-model
+
+springdoc:
+  api-docs.enabled: true
+  swagger-ui.enabled: true
