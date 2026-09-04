@@ -1,0 +1,42 @@
+egon:
+  cola:
+    component:
+      agent-flow:
+        enabled: true
+        execution-timeout: ${DEEP_RESEARCH_MAX_DURATION:PT5M}
+        shutdown-timeout: PT10S
+        flows:
+          deep-research:
+            chat-model-bean-name: deepResearchChatModel
+            model-name: ${DEEP_RESEARCH_MODEL_NAME:deep-research-model}
+            root-agent-name: deep-research
+            agents:
+              - name: Planner
+                description: Plans bounded evidence-backed research.
+                instruction: Create a concise research plan and identify the evidence needed for the topic.
+                output-key: research_plan
+              - name: EvidenceResearcher
+                description: Collects supporting evidence through the configured search tool.
+                instruction: Use the configured search tool to collect supporting evidence and cite sources.
+                output-key: evidence_findings
+              - name: CounterpointResearcher
+                description: Tests the plan against contrary evidence.
+                instruction: Use the configured search tool to find counterpoints, limitations and conflicting evidence.
+                output-key: counterpoint_findings
+              - name: FreshnessResearcher
+                description: Checks evidence freshness and dates.
+                instruction: Use the configured search tool to check recency, dates and changes in the evidence.
+                output-key: freshness_findings
+              - name: Writer
+                description: Synthesizes a source-grounded final report.
+                instruction: Write the final report using research_plan, evidence_findings, counterpoint_findings and freshness_findings. Return Markdown with source citations.
+                output-key: final_report
+            workflows:
+              - type: SEQUENTIAL
+                name: deep-research
+                description: Planner, parallel researchers and Writer in order.
+                sub-agent-names: [Planner, ParallelResearch, Writer]
+              - type: PARALLEL
+                name: ParallelResearch
+                description: Independent evidence, counterpoint and freshness research.
+                sub-agent-names: [EvidenceResearcher, CounterpointResearcher, FreshnessResearcher]

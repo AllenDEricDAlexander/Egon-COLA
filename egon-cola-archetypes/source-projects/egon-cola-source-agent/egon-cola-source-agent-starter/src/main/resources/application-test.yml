@@ -1,0 +1,26 @@
+agent:
+  deep-research:
+    runtime:
+      max-concurrent-runs: 4
+      max-duration: PT5M
+      max-sources: 20
+      heartbeat-interval: PT15S
+    model:
+      base-url: http://test.invalid
+      api-key: test-model-key
+      model-name: test-model
+    security:
+      api-key: test-research-key
+    docs:
+      enabled: true
+    search:
+      mcp:
+        base-uri: http://test.invalid
+        sse-endpoint: /sse
+        api-key: test-mcp-key
+        request-timeout: PT15S
+
+spring.ai.openai:
+  base-url: http://test.invalid
+  api-key: test-model-key
+  chat.options.model: test-model

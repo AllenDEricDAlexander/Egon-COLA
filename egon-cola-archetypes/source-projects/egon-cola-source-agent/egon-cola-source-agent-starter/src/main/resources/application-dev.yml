@@ -1,0 +1,26 @@
+agent:
+  deep-research:
+    runtime:
+      max-concurrent-runs: ${DEEP_RESEARCH_MAX_CONCURRENT_RUNS:4}
+      max-duration: ${DEEP_RESEARCH_MAX_DURATION:PT5M}
+      max-sources: ${DEEP_RESEARCH_MAX_SOURCES:20}
+      heartbeat-interval: ${DEEP_RESEARCH_HEARTBEAT_INTERVAL:PT15S}
+    model:
+      base-url: ${DEEP_RESEARCH_MODEL_BASE_URL}
+      api-key: ${DEEP_RESEARCH_MODEL_API_KEY}
+      model-name: ${DEEP_RESEARCH_MODEL_NAME}
+    security:
+      api-key: ${DEEP_RESEARCH_API_KEY}
+    docs:
+      enabled: true
+    search:
+      mcp:
+        base-uri: ${DEEP_RESEARCH_MCP_BASE_URI}
+        sse-endpoint: ${DEEP_RESEARCH_MCP_SSE_ENDPOINT}
+        api-key: ${DEEP_RESEARCH_MCP_API_KEY}
+        request-timeout: ${DEEP_RESEARCH_MCP_REQUEST_TIMEOUT:PT15S}
+
+spring.ai.openai:
+  base-url: ${DEEP_RESEARCH_MODEL_BASE_URL}
+  api-key: ${DEEP_RESEARCH_MODEL_API_KEY}
+  chat.options.model: ${DEEP_RESEARCH_MODEL_NAME}
