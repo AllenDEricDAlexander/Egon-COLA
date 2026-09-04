@@ -1,7 +1,7 @@
 package top.egon.cola.component.gateway.engine.http.service;
 
 import top.egon.cola.component.gateway.runtime.observability.service.GatewayCallCompletionListener;
-import top.egon.cola.component.gateway.engine.rule.service.GatewayTrafficPolicyCompiler;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayTrafficPolicyCompiler;
 import top.egon.cola.component.gateway.engine.http.domain.GatewayInboundHttpRequest;
 import top.egon.cola.component.gateway.engine.http.service.GatewayOutboundHttpResponse;
 import top.egon.cola.component.gateway.engine.http.security.GatewayHttpSecurityProcessor;
@@ -40,7 +40,7 @@ import top.egon.cola.component.gateway.runtime.observability.service
         .GatewayCallCompletionListener;
 import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcMethodIndex;
-import top.egon.cola.component.gateway.engine.rule.service.GatewayTrafficGovernance;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.runtime.traffic.domain.RuntimeTrafficPolicy;
 
 import java.net.InetSocketAddress;

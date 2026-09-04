@@ -19,10 +19,10 @@ import top.egon.cola.component.gateway.core.provider.ProviderSubscription;
 import top.egon.cola.component.gateway.runtime.provider.service.ProviderDirectory;
 import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
 import top.egon.cola.component.gateway.engine.rule.service.EngineGatewayRuleCompiler;
-import top.egon.cola.component.gateway.engine.rule.service.GatewayRuleActivationApplier;
-import top.egon.cola.component.gateway.engine.rule.repository.GatewayRuleChunkStore;
-import top.egon.cola.component.gateway.engine.rule.adapter.json.GatewayRuleJsonCodec;
-import top.egon.cola.component.gateway.engine.rule.repository.GatewayRuleLkgRepository;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleActivationApplier;
+import top.egon.cola.component.gateway.runtime.rule.repository.GatewayRuleChunkStore;
+import top.egon.cola.component.gateway.runtime.rule.adapter.json.GatewayRuleJsonCodec;
+import top.egon.cola.component.gateway.runtime.rule.repository.GatewayRuleLkgRepository;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -44,7 +44,7 @@ class McpLkgRecoveryIT {
 
     @Test
     void failedReleaseKeepsActiveMcpAndRestartRestoresSameLkg() {
-        GatewayRuleActivationApplier running = applier();
+        GatewayRuleActivationApplier<CompiledGatewayRules> running = applier();
         TestRelease valid = release("release-1", validMcp());
         running.apply(
                 GatewayRuleActivationApplier.ACTIVE_CONFIG_KEY,
@@ -64,7 +64,7 @@ class McpLkgRecoveryIT {
         assertEquals("release-1", running.active().snapshot().releaseId());
         assertTrue(running.active().mcpRules().server("developer").isPresent());
 
-        GatewayRuleActivationApplier restarted = applier();
+        GatewayRuleActivationApplier<CompiledGatewayRules> restarted = applier();
         assertTrue(restarted.restoreLkg());
         assertEquals("release-1", restarted.active().snapshot().releaseId());
         assertTrue(restarted.active().mcpRules()
@@ -73,9 +73,9 @@ class McpLkgRecoveryIT {
         assertTrue(restarted.status().degraded());
     }
 
-    private GatewayRuleActivationApplier applier() {
+    private GatewayRuleActivationApplier<CompiledGatewayRules> applier() {
         Clock clock = Clock.systemUTC();
-        return new GatewayRuleActivationApplier(
+        return new GatewayRuleActivationApplier<>(
                 new GatewayRuleJsonCodec(),
                 new EngineGatewayRuleCompiler(),
                 new GatewayRuleChunkStore(),

@@ -34,6 +34,7 @@ class EngineGatewayRulePolicyPartitionTest {
                 "SECURITY",
                 "GLOBAL",
                 Map.of(
+                        "routeSecurityType", "PUBLIC_PROTOCOL",
                         "authenticationMode", "NONE",
                         "failureMode", "FAIL_CLOSED"
                 )

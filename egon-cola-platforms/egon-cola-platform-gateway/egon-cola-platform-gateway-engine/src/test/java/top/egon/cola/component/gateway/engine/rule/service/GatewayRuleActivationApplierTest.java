@@ -1,9 +1,13 @@
 package top.egon.cola.component.gateway.engine.rule.service;
 
-import top.egon.cola.component.gateway.engine.rule.adapter.json.GatewayRuleJsonCodec;
-import top.egon.cola.component.gateway.engine.rule.domain.GatewayRuleApplyStage;
-import top.egon.cola.component.gateway.engine.rule.repository.GatewayRuleChunkStore;
-import top.egon.cola.component.gateway.engine.rule.repository.GatewayRuleLkgRepository;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleActivationApplier;
+
+import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
+
+import top.egon.cola.component.gateway.runtime.rule.adapter.json.GatewayRuleJsonCodec;
+import top.egon.cola.component.gateway.runtime.rule.domain.GatewayRuleApplyStage;
+import top.egon.cola.component.gateway.runtime.rule.repository.GatewayRuleChunkStore;
+import top.egon.cola.component.gateway.runtime.rule.repository.GatewayRuleLkgRepository;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -54,7 +58,7 @@ class GatewayRuleActivationApplierTest {
     @Test
     void inlineApplyPersistsBeforeActivationAndInvalidNextRuleKeepsOld() {
         TestRelease release = release("release-1", "{}");
-        GatewayRuleActivationApplier applier = applier();
+        GatewayRuleActivationApplier<CompiledGatewayRules> applier = applier();
 
         assertEquals(100, applier.priority());
 
@@ -104,7 +108,7 @@ class GatewayRuleActivationApplierTest {
                 "x".repeat(INLINE_LIMIT_BYTES + 10)
         );
         GatewayRuleChunkStore chunks = new GatewayRuleChunkStore();
-        GatewayRuleActivationApplier applier = applier(chunks);
+        GatewayRuleActivationApplier<CompiledGatewayRules> applier = applier(chunks);
         release.activation().chunks().reversed().forEach(reference ->
                 chunks.apply(
                         reference.configKey(),
@@ -120,7 +124,7 @@ class GatewayRuleActivationApplierTest {
 
         assertEquals("release-large", applier.active().snapshot().releaseId());
         assertEquals(0, chunks.size());
-        GatewayRuleActivationApplier restored = applier(
+        GatewayRuleActivationApplier<CompiledGatewayRules> restored = applier(
                 new GatewayRuleChunkStore()
         );
         assertTrue(restored.restoreLkg());
@@ -145,8 +149,8 @@ class GatewayRuleActivationApplierTest {
         Path invalidDataDirectory = dataDirectory.resolve("not-a-directory");
         Files.writeString(invalidDataDirectory, "blocked");
         Clock clock = Clock.systemUTC();
-        GatewayRuleActivationApplier applier =
-                new GatewayRuleActivationApplier(
+        GatewayRuleActivationApplier<CompiledGatewayRules> applier =
+                new GatewayRuleActivationApplier<>(
                         new GatewayRuleJsonCodec(),
                         new EngineGatewayRuleCompiler(),
                         chunks,
@@ -166,18 +170,18 @@ class GatewayRuleActivationApplierTest {
         assertTrue(chunks.size() > 0);
     }
 
-    private GatewayRuleActivationApplier applier() {
+    private GatewayRuleActivationApplier<CompiledGatewayRules> applier() {
         return applier(new GatewayRuleChunkStore());
     }
 
-    private GatewayRuleActivationApplier applier(
+    private GatewayRuleActivationApplier<CompiledGatewayRules> applier(
             GatewayRuleChunkStore chunks) {
         Clock clock = Clock.systemUTC();
         ProviderDirectory providers = new ProviderDirectory(
                 new EmptyRegistry(),
                 clock
         );
-        return new GatewayRuleActivationApplier(
+        return new GatewayRuleActivationApplier<>(
                 new GatewayRuleJsonCodec(),
                 new EngineGatewayRuleCompiler(),
                 chunks,

@@ -2,6 +2,10 @@ package top.egon.cola.component.gateway.engine;
 
 import top.egon.cola.component.gateway.engine.bootstrap.config.GatewayEngineConfiguration;
 import top.egon.cola.component.gateway.engine.common.config.GatewayEngineRuntimeProperties;
+import top.egon.cola.component.gateway.engine.rule.service.EngineGatewayRuleCompiler;
+import top.egon.cola.component.gateway.core.transport.GatewayTransportDefaults;
+import top.egon.cola.component.gateway.core.transport.GatewayTransportSafetyLimits;
+import top.egon.cola.component.gateway.runtime.security.service.GatewaySecurityPolicyCompiler;
 import top.egon.cola.component.gateway.runtime.observability.service.GatewayCallCompletionListener;
 
 import org.junit.jupiter.api.Test;
@@ -38,6 +42,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GatewayEngineConfigurationTest {
 
     private static final long MIB = 1024L * 1024L;
+
+    @Test
+    void compilerStrategyHasStableBeanNamesAndQualifiedConstruction() throws Exception {
+        var factory = GatewayEngineConfiguration.class.getMethod("gatewayRuleCompilerStrategy",
+                GatewaySecurityPolicyCompiler.class, GatewayTransportDefaults.class,
+                GatewayTransportSafetyLimits.class);
+        assertEquals(List.of("gatewayRuleCompilerStrategy", "engineGatewayRuleCompiler"),
+                Arrays.asList(factory.getAnnotation(Bean.class).name()));
+        var constructor = EngineGatewayRuleCompiler.class.getConstructor(
+                GatewaySecurityPolicyCompiler.class, GatewayTransportDefaults.class,
+                GatewayTransportSafetyLimits.class);
+        List<String> qualifiers = List.of("gatewaySecurityPolicyCompiler",
+                "gatewayTransportDefaults", "gatewayTransportSafetyLimits");
+        assertEquals(qualifiers, Arrays.stream(factory.getParameters())
+                .map(parameter -> parameter.getAnnotation(Qualifier.class).value()).toList());
+        assertEquals(qualifiers, Arrays.stream(constructor.getParameters())
+                .map(parameter -> parameter.getAnnotation(Qualifier.class).value()).toList());
+    }
 
     @Test
     void configuresEngineDdcIdentityAsInfraLocalGe() {

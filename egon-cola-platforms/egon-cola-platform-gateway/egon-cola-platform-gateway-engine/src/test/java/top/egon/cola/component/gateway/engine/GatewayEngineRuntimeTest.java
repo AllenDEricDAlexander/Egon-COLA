@@ -1,5 +1,7 @@
 package top.egon.cola.component.gateway.engine;
 
+import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
+
 import top.egon.cola.component.gateway.engine.bootstrap.lifecycle.GatewayEngineRuntime;
 import top.egon.cola.component.gateway.engine.common.config.GatewayEngineRuntimeProperties;
 
@@ -8,7 +10,7 @@ import top.egon.cola.component.gateway.runtime.provider.service.ProviderDirector
 import top.egon.cola.component.gateway.engine.http.service.GatewayHttpServer;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewayServer;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewaySlotRuntime;
-import top.egon.cola.component.gateway.engine.rule.service.GatewayRuleActivationApplier;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleActivationApplier;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +32,7 @@ class GatewayEngineRuntimeTest {
         GatewayHttpServer httpServer = mock(GatewayHttpServer.class);
         RpcGatewayServer rpcServer = mock(RpcGatewayServer.class);
         RpcGatewaySlotRuntime rpcSlot = mock(RpcGatewaySlotRuntime.class);
-        GatewayRuleActivationApplier activation = mock(
+        GatewayRuleActivationApplier<CompiledGatewayRules> activation = mock(
                 GatewayRuleActivationApplier.class
         );
         ProviderDirectory providerDirectory = mock(ProviderDirectory.class);

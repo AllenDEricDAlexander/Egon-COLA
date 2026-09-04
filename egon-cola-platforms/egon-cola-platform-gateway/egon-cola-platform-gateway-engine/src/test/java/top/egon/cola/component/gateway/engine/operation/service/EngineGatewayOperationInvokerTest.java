@@ -16,7 +16,7 @@ import top.egon.cola.component.gateway.core.provider.ProviderInstance;
 import top.egon.cola.component.gateway.core.provider.ProviderRegistryState;
 import top.egon.cola.component.gateway.runtime.provider.domain.ProviderSelectionHandle;
 import top.egon.cola.component.gateway.engine.rule.service.EngineGatewayRuleCompiler;
-import top.egon.cola.component.gateway.engine.rule.service.GatewayTrafficGovernance;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayTrafficGovernance;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;

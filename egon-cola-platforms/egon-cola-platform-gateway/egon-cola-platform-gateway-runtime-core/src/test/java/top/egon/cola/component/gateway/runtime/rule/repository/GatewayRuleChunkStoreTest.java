@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.engine.rule.repository;
+package top.egon.cola.component.gateway.runtime.rule.repository;
 
 import org.junit.jupiter.api.Test;
 

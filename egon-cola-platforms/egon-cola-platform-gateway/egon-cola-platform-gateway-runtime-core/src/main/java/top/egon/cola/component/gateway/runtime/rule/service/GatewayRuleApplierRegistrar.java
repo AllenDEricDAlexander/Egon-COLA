@@ -1,6 +1,6 @@
-package top.egon.cola.component.gateway.engine.rule.service;
+package top.egon.cola.component.gateway.runtime.rule.service;
 
-import top.egon.cola.component.gateway.engine.rule.repository.GatewayRuleChunkStore;
+import top.egon.cola.component.gateway.runtime.rule.repository.GatewayRuleChunkStore;
 
 import top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry;
 
@@ -34,7 +34,7 @@ public final class GatewayRuleApplierRegistrar {
      */
     public static void register(
             DdcConfigApplierRegistry registry,
-            GatewayRuleActivationApplier activation,
+            GatewayRuleActivationApplier<?> activation,
             GatewayRuleChunkStore chunks) {
         Objects.requireNonNull(registry, "registry").registerExact(
                 GatewayRuleActivationApplier.ACTIVE_CONFIG_KEY,

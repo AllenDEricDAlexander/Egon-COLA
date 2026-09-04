@@ -4,7 +4,7 @@ import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeRemoteProvider;
 import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
-import top.egon.cola.component.gateway.engine.rule.service.GatewayRuleActivationApplier;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleActivationApplier;
 import top.egon.cola.component.gateway.mcp.remote.service.McpRemoteClientPool;
 import top.egon.cola.component.gateway.mcp.rule.domain.CompiledMcpRules;
 
@@ -29,7 +29,7 @@ public final class McpRuntimeHealthIndicator implements HealthIndicator {
      *
      * 用法 / Usage: 该字段通过 {@code McpRuntimeHealthIndicator} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpRuntimeHealthIndicator}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private final GatewayRuleActivationApplier activation;
+    private final GatewayRuleActivationApplier<CompiledGatewayRules> activation;
 
     /**
      * 中文说明：保存 会话存储Available 对应的状态、依赖或配置值；字段类型为 {@code boolean}，由 {@code McpRuntimeHealthIndicator} 在其生命周期内读取或更新。
@@ -75,7 +75,7 @@ public final class McpRuntimeHealthIndicator implements HealthIndicator {
      * @param remoteClients 参数 远程Clients；parameter remote clients。
      */
     public McpRuntimeHealthIndicator(
-            GatewayRuleActivationApplier activation,
+            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
             boolean sessionStoreAvailable,
             boolean taskStoreAvailable,
             Path artifactRoot,

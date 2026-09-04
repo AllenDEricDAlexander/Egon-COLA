@@ -5,4 +5,4 @@
  *
  * 用法 / Usage: 由模块配置、应用服务或运行时适配器按需注入或调用； / Use the package through the module configuration, application services, or runtime adapters as required.
  */
-package top.egon.cola.component.gateway.engine.rule.service;
+package top.egon.cola.component.gateway.runtime.rule.service;

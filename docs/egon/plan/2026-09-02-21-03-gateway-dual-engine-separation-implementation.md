@@ -303,6 +303,8 @@ New and materially changed business services, Bean assembly and boundary models 
 
 Step 2 validation refinement: the original reactor-wide `*Provider*Test` selector also executes the unrelated `RpcProviderAccessGuardComponentTest`, which currently fails because its test classpath lacks a Jakarta Validation provider before Gateway is reached. Use the package-qualified Gateway selector below, plus all moved runtime tests and Engine boundary tests. Record the original failure separately for the later full-platform verification; it is not a passed regression. This isolates the intended Step gate without disabling any Gateway test or weakening fail-closed security behavior.
 
+Step 3 compile-closure refinement: update the two existing suite consumers `test/mcp/McpHaRecoveryIT.java` and `test/live/GatewayRuleWireCompatibilityTest.java` in the same Step (imports/generic type arguments only). The runtime-core and Engine POMs may declare the already-managed provided Lombok dependency required by affected business classes; compiler annotation processing is already configured in the platform parent. These changes close the current source/annotation dependencies without a new library version or public protocol change.
+
 ## 7. Ordered File-by-file Implementation Steps
 
 ### Step 1 — Publish the two-role Engine contract

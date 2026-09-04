@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.engine.rule.domain;
+package top.egon.cola.component.gateway.runtime.rule.domain;
 
 /**
  * 中文说明：{@code GatewayRuleApplyStage} 是枚举类型，位于当前 Gateway 模块的相关包中，负责网关规则ApplyStage相关的职责与边界。

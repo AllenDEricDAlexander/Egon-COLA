@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.engine.rule.adapter.json;
+package top.egon.cola.component.gateway.runtime.rule.adapter.json;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;

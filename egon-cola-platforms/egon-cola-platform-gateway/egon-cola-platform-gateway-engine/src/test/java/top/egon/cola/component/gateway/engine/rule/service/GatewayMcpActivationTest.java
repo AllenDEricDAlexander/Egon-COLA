@@ -1,9 +1,11 @@
 package top.egon.cola.component.gateway.engine.rule.service;
 
-import top.egon.cola.component.gateway.engine.rule.adapter.json.GatewayRuleJsonCodec;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleActivationApplier;
+
+import top.egon.cola.component.gateway.runtime.rule.adapter.json.GatewayRuleJsonCodec;
 import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
-import top.egon.cola.component.gateway.engine.rule.repository.GatewayRuleChunkStore;
-import top.egon.cola.component.gateway.engine.rule.repository.GatewayRuleLkgRepository;
+import top.egon.cola.component.gateway.runtime.rule.repository.GatewayRuleChunkStore;
+import top.egon.cola.component.gateway.runtime.rule.repository.GatewayRuleLkgRepository;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -42,7 +44,7 @@ class GatewayMcpActivationTest {
 
     @Test
     void invalidMcpContentLeavesPreviousHttpAndMcpReleaseActive() {
-        GatewayRuleActivationApplier applier = applier();
+        GatewayRuleActivationApplier<CompiledGatewayRules> applier = applier();
         TestRelease valid = release("release-1", validMcp());
         applier.apply(
                 GatewayRuleActivationApplier.ACTIVE_CONFIG_KEY,
@@ -62,9 +64,9 @@ class GatewayMcpActivationTest {
         assertSame(before, applier.active());
     }
 
-    private GatewayRuleActivationApplier applier() {
+    private GatewayRuleActivationApplier<CompiledGatewayRules> applier() {
         Clock clock = Clock.systemUTC();
-        return new GatewayRuleActivationApplier(
+        return new GatewayRuleActivationApplier<>(
                 new GatewayRuleJsonCodec(),
                 new EngineGatewayRuleCompiler(),
                 new GatewayRuleChunkStore(),

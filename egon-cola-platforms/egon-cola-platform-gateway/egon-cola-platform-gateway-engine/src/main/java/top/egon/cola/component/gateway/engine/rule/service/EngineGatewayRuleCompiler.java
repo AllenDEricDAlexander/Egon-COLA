@@ -27,11 +27,17 @@ import top.egon.cola.component.gateway.runtime.provider.service.GatewayProviderP
 import top.egon.cola.component.gateway.engine.http.cors.GatewayCorsPolicyCompiler;
 import top.egon.cola.component.gateway.runtime.security.service.GatewaySecurityCapabilityRegistry;
 import top.egon.cola.component.gateway.runtime.security.service.GatewaySecurityPolicyCompiler;
-import top.egon.cola.component.gateway.engine.rule.service.GatewayTrafficPolicyCompiler;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayTrafficPolicyCompiler;
 import top.egon.cola.component.gateway.runtime.traffic.domain.RuntimeTrafficPolicy;
 import top.egon.cola.component.gateway.runtime.traffic.domain.TrafficPolicyType;
 import top.egon.cola.component.gateway.mcp.rule.domain.CompiledMcpRules;
 import top.egon.cola.component.gateway.mcp.rule.service.McpRuleCompiler;
+
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleCompilerStrategy;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -51,7 +57,9 @@ import java.util.function.Function;
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
-public final class EngineGatewayRuleCompiler {
+@Slf4j
+@RequiredArgsConstructor
+public final class EngineGatewayRuleCompiler implements GatewayRuleCompilerStrategy<CompiledGatewayRules> {
 
     /**
      * 中文说明：保存 httpCompiler 对应的状态、依赖或配置值；字段类型为 {@code HttpRouteCompiler}，由 {@code EngineGatewayRuleCompiler} 在其生命周期内读取或更新。
@@ -103,6 +111,8 @@ public final class EngineGatewayRuleCompiler {
      *
      * 用法 / Usage: 该字段通过 {@code EngineGatewayRuleCompiler} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code EngineGatewayRuleCompiler}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @NonNull
+    @Qualifier("gatewaySecurityPolicyCompiler")
     private final GatewaySecurityPolicyCompiler securityPolicyCompiler;
 
     /**
@@ -120,6 +130,8 @@ public final class EngineGatewayRuleCompiler {
      *
      * 用法 / Usage: 该字段通过 {@code EngineGatewayRuleCompiler} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code EngineGatewayRuleCompiler}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @NonNull
+    @Qualifier("gatewayTransportDefaults")
     private final GatewayTransportDefaults transportDefaults;
 
     /**
@@ -128,6 +140,8 @@ public final class EngineGatewayRuleCompiler {
      *
      * 用法 / Usage: 该字段通过 {@code EngineGatewayRuleCompiler} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code EngineGatewayRuleCompiler}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @NonNull
+    @Qualifier("gatewayTransportSafetyLimits")
     private final GatewayTransportSafetyLimits transportSafetyLimits;
 
     /**
@@ -181,16 +195,10 @@ public final class EngineGatewayRuleCompiler {
             GatewaySecurityCapabilityRegistry capabilities,
             GatewayTransportDefaults transportDefaults,
             GatewayTransportSafetyLimits transportSafetyLimits) {
-        securityPolicyCompiler = new GatewaySecurityPolicyCompiler(
-                capabilities
-        );
-        this.transportDefaults = Objects.requireNonNull(
-                transportDefaults,
-                "transportDefaults"
-        );
-        this.transportSafetyLimits = Objects.requireNonNull(
-                transportSafetyLimits,
-                "transportSafetyLimits"
+        this(
+                new GatewaySecurityPolicyCompiler(Objects.requireNonNull(capabilities, "capabilities")),
+                Objects.requireNonNull(transportDefaults, "transportDefaults"),
+                Objects.requireNonNull(transportSafetyLimits, "transportSafetyLimits")
         );
     }
 
@@ -202,7 +210,9 @@ public final class EngineGatewayRuleCompiler {
      * @param snapshot 参数 snapshot；parameter snapshot。
      * @return 返回 compile 的处理结果；returns the result of the operation.
      */
+    @Override
     public CompiledGatewayRules compile(GatewayRuleSnapshot snapshot) {
+        Objects.requireNonNull(snapshot, "snapshot");
         GatewayRuleContent content = snapshot.content();
         CompiledMcpRules mcpRules = mcpCompiler.compile(
                 content.mcp(),

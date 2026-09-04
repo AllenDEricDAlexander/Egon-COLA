@@ -1,7 +1,7 @@
 package top.egon.cola.component.gateway.runtime.traffic.service;
 
-import top.egon.cola.component.gateway.engine.rule.service.GatewayTrafficGovernance;
-import top.egon.cola.component.gateway.engine.rule.service.GatewayTrafficPolicyCompiler;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayTrafficGovernance;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayTrafficPolicyCompiler;
 
 import top.egon.cola.component.gateway.engine.rpc.service.RpcMethodIndex;
 

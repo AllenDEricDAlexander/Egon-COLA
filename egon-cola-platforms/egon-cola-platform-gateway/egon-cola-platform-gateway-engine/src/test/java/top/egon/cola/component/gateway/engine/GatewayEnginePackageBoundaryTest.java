@@ -66,8 +66,6 @@ class GatewayEnginePackageBoundaryTest {
                 "operation/adapter",
                 "rule/domain",
                 "rule/service",
-                "rule/repository",
-                "rule/adapter/json",
                 "mcp/domain",
                 "mcp/service",
                 "mcp/adapter",

@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.runtime.traffic.service;
 
-import top.egon.cola.component.gateway.engine.rule.adapter.json.GatewayRuleJsonCodec;
+import top.egon.cola.component.gateway.runtime.rule.adapter.json.GatewayRuleJsonCodec;
 
 import java.nio.charset.StandardCharsets;
 

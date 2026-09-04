@@ -28,7 +28,7 @@ import top.egon.cola.component.gateway.runtime.observability.domain.GatewayCallO
 import top.egon.cola.component.gateway.runtime.observability.domain.GatewayTelemetry;
 import top.egon.cola.component.gateway.runtime.security.domain.GatewaySecurityException;
 import top.egon.cola.component.gateway.runtime.security.service.TrustedIdentitySanitizer;
-import top.egon.cola.component.gateway.engine.rule.service.GatewayTrafficGovernance;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.runtime.traffic.domain.GatewayTrafficRejectedException;
 import top.egon.cola.component.gateway.runtime.traffic.domain.ProviderCallClassification;
 import top.egon.cola.component.rpc.context.invocation.RpcFailureStage;

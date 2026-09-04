@@ -47,8 +47,8 @@ import top.egon.cola.component.gateway.engine.operation.adapter.HttpRpcUpstreamA
 import top.egon.cola.component.gateway.engine.rpc.domain.RawByteMarshaller;
 import top.egon.cola.component.gateway.engine.rpc.adapter.RpcProviderChannelCache;
 import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
-import top.egon.cola.component.gateway.engine.rule.adapter.json.GatewayRuleJsonCodec;
-import top.egon.cola.component.gateway.engine.rule.service.GatewayTrafficGovernance;
+import top.egon.cola.component.gateway.runtime.rule.adapter.json.GatewayRuleJsonCodec;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayTrafficGovernance;
 import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 
 import java.net.InetSocketAddress;

@@ -1,5 +1,7 @@
 package top.egon.cola.component.gateway.engine.bootstrap.lifecycle;
 
+import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
+
 import top.egon.cola.component.gateway.engine.common.config.GatewayEngineRuntimeProperties;
 
 import org.springframework.context.SmartLifecycle;
@@ -8,7 +10,7 @@ import top.egon.cola.component.gateway.engine.http.service.GatewayHttpServer;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewayServer;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewaySlotRuntime;
 import top.egon.cola.component.gateway.engine.rpc.domain.RpcGatewaySubsystemState;
-import top.egon.cola.component.gateway.engine.rule.service.GatewayRuleActivationApplier;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleActivationApplier;
 
 import java.util.Objects;
 import java.util.concurrent.Executors;
@@ -61,7 +63,7 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayEngineRuntime} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayEngineRuntime}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private final GatewayRuleActivationApplier activation;
+    private final GatewayRuleActivationApplier<CompiledGatewayRules> activation;
 
     /**
      * 中文说明：保存 提供方Directory 对应的状态、依赖或配置值；字段类型为 {@code ProviderDirectory}，由 {@code GatewayEngineRuntime} 在其生命周期内读取或更新。
@@ -112,7 +114,7 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
             GatewayHttpServer httpServer,
             RpcGatewayServer rpcServer,
             RpcGatewaySlotRuntime rpcSlot,
-            GatewayRuleActivationApplier activation,
+            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
             ProviderDirectory providerDirectory) {
         this.properties = Objects.requireNonNull(properties, "properties");
         this.httpServer = Objects.requireNonNull(httpServer, "httpServer");

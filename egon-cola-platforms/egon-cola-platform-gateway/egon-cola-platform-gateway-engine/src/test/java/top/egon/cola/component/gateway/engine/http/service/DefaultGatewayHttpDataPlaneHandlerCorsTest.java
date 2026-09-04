@@ -16,7 +16,7 @@ import top.egon.cola.component.gateway.core.route.GatewayResponseMode;
 import top.egon.cola.component.gateway.core.route.HttpRouteCompiler;
 import top.egon.cola.component.gateway.core.route.RuntimeHttpRoute;
 import top.egon.cola.component.gateway.engine.http.cors.GatewayCorsPolicyCompiler;
-import top.egon.cola.component.gateway.engine.rule.service.GatewayTrafficGovernance;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayTrafficGovernance;
 
 import java.net.InetSocketAddress;
 import java.time.Duration;

@@ -55,7 +55,7 @@ import top.egon.cola.component.gateway.runtime.security.domain.GatewaySecurityEx
 import top.egon.cola.component.gateway.runtime.security.service.TrustedIdentitySanitizer;
 import top.egon.cola.component.gateway.runtime.traffic.service.GatewayRequestResourceGuard;
 import top.egon.cola.component.gateway.runtime.traffic.domain.GatewayResourceLimits;
-import top.egon.cola.component.gateway.engine.rule.service.GatewayTrafficGovernance;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.runtime.traffic.domain.GatewayTrafficRejectedException;
 import top.egon.cola.component.gateway.runtime.traffic.domain.ProviderCallClassification;
 import top.egon.cola.component.gateway.runtime.transport.service.GatewayCommitGuard;

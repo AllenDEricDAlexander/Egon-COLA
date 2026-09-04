@@ -1,14 +1,16 @@
-package top.egon.cola.component.gateway.engine.rule.service;
+package top.egon.cola.component.gateway.runtime.rule.service;
 
-import top.egon.cola.component.gateway.engine.rule.adapter.json.GatewayRuleJsonCodec;
-import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
-import top.egon.cola.component.gateway.engine.rule.domain.GatewayRuleApplyStage;
-import top.egon.cola.component.gateway.engine.rule.domain.GatewayRuleRuntimeStatus;
-import top.egon.cola.component.gateway.engine.rule.repository.GatewayRuleChunkStore;
-import top.egon.cola.component.gateway.engine.rule.repository.GatewayRuleLkgRepository;
+import top.egon.cola.component.gateway.runtime.rule.adapter.json.GatewayRuleJsonCodec;
+import top.egon.cola.component.gateway.runtime.rule.domain.GatewayCompiledRulesDTO;
+import top.egon.cola.component.gateway.runtime.rule.domain.GatewayRuleApplyStage;
+import top.egon.cola.component.gateway.runtime.rule.domain.GatewayRuleRuntimeStatus;
+import top.egon.cola.component.gateway.runtime.rule.repository.GatewayRuleChunkStore;
+import top.egon.cola.component.gateway.runtime.rule.repository.GatewayRuleLkgRepository;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.ddc.api.refresh.DdcConfigApplier;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivation;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleActivationMode;
@@ -30,17 +32,9 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
-public final class GatewayRuleActivationApplier implements DdcConfigApplier {
-
-    /**
-     * 中文说明：表示 LOGGER 这一固定值；它属于 {@code GatewayRuleActivationApplier} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
-     * English summary: Represents the fixed value logger; it is a state, type, or protocol value of {@code GatewayRuleActivationApplier} and keeps callers aligned with the owning type.
-     *
-     * 用法 / Usage: 该字段通过 {@code GatewayRuleActivationApplier} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayRuleActivationApplier}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    private static final Logger LOGGER = LoggerFactory.getLogger(
-            GatewayRuleActivationApplier.class
-    );
+@Slf4j
+@RequiredArgsConstructor
+public final class GatewayRuleActivationApplier<T extends GatewayCompiledRulesDTO> implements DdcConfigApplier {
 
     /**
      * 中文说明：表示 ACTIVECONFIG键 这一固定值；它属于 {@code GatewayRuleActivationApplier} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
@@ -56,15 +50,19 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayRuleActivationApplier} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayRuleActivationApplier}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @NonNull
+    @Qualifier("gatewayRuleJsonCodec")
     private final GatewayRuleJsonCodec codec;
 
     /**
-     * 中文说明：保存 compiler 对应的状态、依赖或配置值；字段类型为 {@code EngineGatewayRuleCompiler}，由 {@code GatewayRuleActivationApplier} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by compiler; its type is {@code EngineGatewayRuleCompiler}, and {@code GatewayRuleActivationApplier} reads or updates it during its lifecycle.
+     * 中文说明：保存 compiler 对应的状态、依赖或配置值；字段类型为 {@code GatewayRuleCompilerStrategy<T>}，由 {@code GatewayRuleActivationApplier} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by compiler; its type is {@code GatewayRuleCompilerStrategy<T>}, and {@code GatewayRuleActivationApplier} reads or updates it during its lifecycle.
      *
      * 用法 / Usage: 该字段通过 {@code GatewayRuleActivationApplier} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayRuleActivationApplier}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private final EngineGatewayRuleCompiler compiler;
+    @NonNull
+    @Qualifier("gatewayRuleCompilerStrategy")
+    private final GatewayRuleCompilerStrategy<T> compiler;
 
     /**
      * 中文说明：保存 chunks 对应的状态、依赖或配置值；字段类型为 {@code GatewayRuleChunkStore}，由 {@code GatewayRuleActivationApplier} 在其生命周期内读取或更新。
@@ -72,6 +70,8 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayRuleActivationApplier} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayRuleActivationApplier}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @NonNull
+    @Qualifier("gatewayRuleChunkStore")
     private final GatewayRuleChunkStore chunks;
 
     /**
@@ -80,6 +80,8 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayRuleActivationApplier} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayRuleActivationApplier}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @NonNull
+    @Qualifier("gatewayProviderDirectory")
     private final ProviderDirectory providerDirectory;
 
     /**
@@ -88,6 +90,8 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayRuleActivationApplier} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayRuleActivationApplier}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @NonNull
+    @Qualifier("gatewayRuleLkgRepository")
     private final GatewayRuleLkgRepository lkgRepository;
 
     /**
@@ -96,6 +100,8 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayRuleActivationApplier} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayRuleActivationApplier}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @NonNull
+    @Qualifier("gatewayClock")
     private final Clock clock;
 
     /**
@@ -104,15 +110,17 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayRuleActivationApplier} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayRuleActivationApplier}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @NonNull
+    @Qualifier("gatewayTelemetry")
     private final GatewayTelemetry telemetry;
 
     /**
-     * 中文说明：保存 active 对应的状态、依赖或配置值；字段类型为 {@code AtomicReference<CompiledGatewayRules>}，由 {@code GatewayRuleActivationApplier} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by active; its type is {@code AtomicReference<CompiledGatewayRules>}, and {@code GatewayRuleActivationApplier} reads or updates it during its lifecycle.
+     * 中文说明：保存 active 对应的状态、依赖或配置值；字段类型为 {@code AtomicReference<T>}，由 {@code GatewayRuleActivationApplier} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by active; its type is {@code AtomicReference<T>}, and {@code GatewayRuleActivationApplier} reads or updates it during its lifecycle.
      *
      * 用法 / Usage: 该字段通过 {@code GatewayRuleActivationApplier} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayRuleActivationApplier}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private final AtomicReference<CompiledGatewayRules> active =
+    private final AtomicReference<T> active =
             new AtomicReference<>();
 
     /**
@@ -138,7 +146,7 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
      */
     public GatewayRuleActivationApplier(
             GatewayRuleJsonCodec codec,
-            EngineGatewayRuleCompiler compiler,
+            GatewayRuleCompilerStrategy<T> compiler,
             GatewayRuleChunkStore chunks,
             ProviderDirectory providerDirectory,
             GatewayRuleLkgRepository lkgRepository,
@@ -152,42 +160,6 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
                 clock,
                 GatewayTelemetry.noop()
         );
-    }
-
-    /**
-     * 中文说明：创建 {@code GatewayRuleActivationApplier} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
-     * English summary: Creates an instance of {@code GatewayRuleActivationApplier} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
-     *
-     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
-     * @param codec 参数 codec；parameter codec。
-     * @param compiler 参数 compiler；parameter compiler。
-     * @param chunks 参数 chunks；parameter chunks。
-     * @param providerDirectory 参数 提供方Directory；parameter provider directory。
-     * @param lkgRepository 参数 lkgRepository；parameter lkg repository。
-     * @param clock 参数 clock；parameter clock。
-     * @param telemetry 参数 遥测；parameter telemetry。
-     */
-    public GatewayRuleActivationApplier(
-            GatewayRuleJsonCodec codec,
-            EngineGatewayRuleCompiler compiler,
-            GatewayRuleChunkStore chunks,
-            ProviderDirectory providerDirectory,
-            GatewayRuleLkgRepository lkgRepository,
-            Clock clock,
-            GatewayTelemetry telemetry) {
-        this.codec = Objects.requireNonNull(codec, "codec");
-        this.compiler = Objects.requireNonNull(compiler, "compiler");
-        this.chunks = Objects.requireNonNull(chunks, "chunks");
-        this.providerDirectory = Objects.requireNonNull(
-                providerDirectory,
-                "providerDirectory"
-        );
-        this.lkgRepository = Objects.requireNonNull(
-                lkgRepository,
-                "lkgRepository"
-        );
-        this.clock = Objects.requireNonNull(clock, "clock");
-        this.telemetry = Objects.requireNonNull(telemetry, "telemetry");
     }
 
     /**
@@ -222,9 +194,9 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
             verifyActivation(activation, snapshot, snapshotJson);
             updateStage(GatewayRuleApplyStage.CHECKSUM_VERIFIED, null);
             updateStage(GatewayRuleApplyStage.SCHEMA_VALIDATED, null);
-            CompiledGatewayRules prepared = compiler.compile(snapshot);
+            T prepared = validateCompiled(snapshot, compiler.compile(snapshot));
             updateStage(GatewayRuleApplyStage.COMPILED, null);
-            CompiledGatewayRules previous = active.get();
+            T previous = active.get();
             Set<ProviderServiceKey> additions = difference(
                     prepared.providerServices(),
                     previous == null
@@ -254,11 +226,11 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
             operation.success();
         } catch (RuntimeException failure) {
             operation.failure(failure);
-            LOGGER.warn(
-                    "Gateway rule application failed for key={} version={}",
+            log.warn(
+                    "Gateway rule application failed for key={} version={} failureType={}",
                     key,
                     version,
-                    failure
+                    failure.getClass().getSimpleName()
             );
             GatewayRuleRuntimeStatus current = status.get();
             status.set(new GatewayRuleRuntimeStatus(
@@ -316,7 +288,7 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
                     "GATEWAY_RULE_CHECKSUM_MISMATCH: LKG"
             );
         }
-        CompiledGatewayRules prepared = compiler.compile(snapshot);
+        T prepared = validateCompiled(snapshot, compiler.compile(snapshot));
         providerDirectory.activate(prepared.providerServices());
         active.set(prepared);
         status.set(successStatus(prepared, 0));
@@ -330,7 +302,7 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayRuleActivationApplier.active(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      * @return 返回 active 的处理结果；returns the result of the operation.
      */
-    public CompiledGatewayRules active() {
+    public T active() {
         return active.get();
     }
 
@@ -454,7 +426,7 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
      * @return 返回 successStatus 的处理结果；returns the result of the operation.
      */
     private GatewayRuleRuntimeStatus successStatus(
-            CompiledGatewayRules rules,
+            T rules,
             long version) {
         GatewayRuleSnapshot snapshot = rules.snapshot();
         return new GatewayRuleRuntimeStatus(
@@ -490,4 +462,19 @@ public final class GatewayRuleActivationApplier implements DdcConfigApplier {
         }
         return message.length() <= 512 ? message : message.substring(0, 512);
     }
+    /**
+     * 中文说明：在准备 Provider 或持久化之前拒绝编译结果身份漂移。
+     * English summary: Rejects projection identity drift before any resource or durable state change.
+     */
+    private T validateCompiled(GatewayRuleSnapshot snapshot, T compiled) {
+        Objects.requireNonNull(compiled, "compiled rules");
+        if (!snapshot.equals(compiled.snapshot())
+                || !snapshot.releaseId().equals(compiled.releaseId())
+                || !snapshot.artifactSha256().equals(compiled.ruleChecksum())) {
+            throw new IllegalArgumentException(
+                    "GATEWAY_RULE_COMPILE_FAILED: compiled identity mismatch");
+        }
+        return compiled;
+    }
+
 }

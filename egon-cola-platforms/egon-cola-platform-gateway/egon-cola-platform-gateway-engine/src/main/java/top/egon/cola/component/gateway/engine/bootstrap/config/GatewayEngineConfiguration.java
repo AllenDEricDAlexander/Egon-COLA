@@ -1,5 +1,7 @@
 package top.egon.cola.component.gateway.engine.bootstrap.config;
 
+import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
+
 import top.egon.cola.component.gateway.engine.http.service.ReactorNettyHttpUpstreamAdapter;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcMethodIndex;
 
@@ -15,8 +17,10 @@ import io.micrometer.observation.ObservationRegistry;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import top.egon.cola.component.gateway.runtime.security.service.GatewaySecurityPolicyCompiler;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleCompilerStrategy;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -100,17 +104,17 @@ import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewaySlotRuntime;
 import top.egon.cola.component.gateway.engine.rpc.adapter.RpcProviderChannelCache;
 import top.egon.cola.component.gateway.engine.rpc.security.RuleBackedRpcGatewaySecurityProcessor;
 import top.egon.cola.component.gateway.engine.rule.service.EngineGatewayRuleCompiler;
-import top.egon.cola.component.gateway.engine.rule.service.GatewayRuleActivationApplier;
-import top.egon.cola.component.gateway.engine.rule.service.GatewayRuleApplierRegistrar;
-import top.egon.cola.component.gateway.engine.rule.repository.GatewayRuleChunkStore;
-import top.egon.cola.component.gateway.engine.rule.adapter.json.GatewayRuleJsonCodec;
-import top.egon.cola.component.gateway.engine.rule.repository.GatewayRuleLkgRepository;
-import top.egon.cola.component.gateway.engine.rule.domain.GatewayRuleRuntimeStatus;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleActivationApplier;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleApplierRegistrar;
+import top.egon.cola.component.gateway.runtime.rule.repository.GatewayRuleChunkStore;
+import top.egon.cola.component.gateway.runtime.rule.adapter.json.GatewayRuleJsonCodec;
+import top.egon.cola.component.gateway.runtime.rule.repository.GatewayRuleLkgRepository;
+import top.egon.cola.component.gateway.runtime.rule.domain.GatewayRuleRuntimeStatus;
 import top.egon.cola.component.gateway.runtime.security.service.GatewaySecurityCapabilityRegistry;
 import top.egon.cola.component.gateway.runtime.security.service.GatewaySecurityChain;
 import top.egon.cola.component.gateway.runtime.security.domain.GatewayTransportSecurity;
 import top.egon.cola.component.gateway.runtime.security.service.TrustedClientAddressResolver;
-import top.egon.cola.component.gateway.engine.rule.service.GatewayTrafficGovernance;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.runtime.traffic.service.RedisTokenBucketExecutor;
 import top.egon.cola.component.gateway.runtime.traffic.adapter.RedissonRedisTokenBucketExecutor;
 import top.egon.cola.component.gateway.engine.http.service.GatewayTransportDispatcher;
@@ -192,22 +196,14 @@ import java.util.function.Supplier;
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
-@Configuration(proxyBeanMethods = false)
+@Slf4j
+@RequiredArgsConstructor
+@Configuration(value = "gatewayEngineConfiguration", proxyBeanMethods = false)
 @EnableConfigurationProperties({
         GatewayEngineRuntimeProperties.class,
         McpRuntimeProperties.class
 })
 public class GatewayEngineConfiguration {
-
-    /**
-     * 中文说明：表示 LOGGER 这一固定值；它属于 {@code GatewayEngineConfiguration} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
-     * English summary: Represents the fixed value logger; it is a state, type, or protocol value of {@code GatewayEngineConfiguration} and keeps callers aligned with the owning type.
-     *
-     * 用法 / Usage: 该字段通过 {@code GatewayEngineConfiguration} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayEngineConfiguration}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    private static final Logger LOGGER = LoggerFactory.getLogger(
-            "gateway.mcp.audit"
-    );
 
     /**
      * 中文说明：执行 网关Clock 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -305,7 +301,7 @@ public class GatewayEngineConfiguration {
             observers.add(new McpAuditPublisher(
                     objectMapper,
                     gatewayClock,
-                    json -> LOGGER.info("MCP_RUNTIME_AUDIT {}", json)
+                    json -> log.info("MCP_RUNTIME_AUDIT {}", json)
             ));
         }
         return McpTelemetry.composite(observers);
@@ -543,54 +539,65 @@ public class GatewayEngineConfiguration {
     }
 
     /**
-     * 中文说明：执行 网关规则ActivationApplier 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway rule activation applier operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayRuleActivationApplier(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param applierRegistry 参数 applier注册表；parameter applier registry。
-     * @param capabilities 参数 capabilities；parameter capabilities。
-     * @param transportDefaults 参数 传输Defaults；parameter transport defaults。
-     * @param transportSafetyLimits 参数 传输SafetyLimits；parameter transport safety limits。
-     * @param chunks 参数 chunks；parameter chunks。
-     * @param providerDirectory 参数 提供方Directory；parameter provider directory。
-     * @param properties 参数 properties；parameter properties。
-     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
-     * @param telemetry 参数 遥测；parameter telemetry。
-     * @return 返回 网关规则ActivationApplier 的处理结果；returns the result of the operation.
+     * 中文说明：保留规范化 Snapshot 的同一 JSON 编解码与校验规则。
+     * English summary: Supplies the canonical snapshot codec to role-local activation.
      */
-    @Bean
-    public GatewayRuleActivationApplier gatewayRuleActivationApplier(
-            DdcConfigApplierRegistry applierRegistry,
-            GatewaySecurityCapabilityRegistry capabilities,
-            GatewayTransportDefaults transportDefaults,
-            GatewayTransportSafetyLimits transportSafetyLimits,
-            GatewayRuleChunkStore chunks,
-            ProviderDirectory providerDirectory,
-            GatewayEngineRuntimeProperties properties,
+    @Bean("gatewayRuleJsonCodec")
+    public GatewayRuleJsonCodec gatewayRuleJsonCodec() {
+        return new GatewayRuleJsonCodec();
+    }
+
+    /**
+     * 中文说明：在当前 Engine 的数据目录维护独立 LKG。
+     * English summary: Keeps the last-known-good repository local to this executable.
+     */
+    @Bean("gatewayRuleLkgRepository")
+    public GatewayRuleLkgRepository gatewayRuleLkgRepository(
+            GatewayEngineRuntimeProperties properties) {
+        return new GatewayRuleLkgRepository(
+                Path.of(properties.getDataDirectory()), properties.getGatewayGroupCode());
+    }
+
+    /**
+     * 中文说明：使用现有安全能力集合构建策略编译器。
+     * English summary: Compiles security policy using the registered capabilities.
+     */
+    @Bean("gatewaySecurityPolicyCompiler")
+    public GatewaySecurityPolicyCompiler gatewaySecurityPolicyCompiler(
+            @Qualifier("gatewaySecurityCapabilities") GatewaySecurityCapabilityRegistry capabilities) {
+        return new GatewaySecurityPolicyCompiler(capabilities);
+    }
+
+    /**
+     * 中文说明：中间步骤保留全部协议编译，双进程切换时收窄为 API/RPC。
+     * English summary: Names the compatible mixed compiler Strategy until the atomic ownership split.
+     */
+    @Bean(name = {"gatewayRuleCompilerStrategy", "engineGatewayRuleCompiler"})
+    public EngineGatewayRuleCompiler gatewayRuleCompilerStrategy(
+            @Qualifier("gatewaySecurityPolicyCompiler") GatewaySecurityPolicyCompiler security,
+            @Qualifier("gatewayTransportDefaults") GatewayTransportDefaults defaults,
+            @Qualifier("gatewayTransportSafetyLimits") GatewayTransportSafetyLimits limits) {
+        return new EngineGatewayRuleCompiler(security, defaults, limits);
+    }
+
+    /**
+     * 中文说明：按固定编译策略装配局部原子激活，并注册同一个 DDC Active Key。
+     * English summary: Wires one role-local activation pipeline and registers the shared DDC key.
+     */
+    @Bean("gatewayRuleActivationApplier")
+    public GatewayRuleActivationApplier<CompiledGatewayRules> gatewayRuleActivationApplier(
+            @Qualifier("ddcConfigApplierRegistry") DdcConfigApplierRegistry applierRegistry,
+            @Qualifier("gatewayRuleJsonCodec") GatewayRuleJsonCodec codec,
+            @Qualifier("gatewayRuleCompilerStrategy") GatewayRuleCompilerStrategy<CompiledGatewayRules> compiler,
+            @Qualifier("gatewayRuleChunkStore") GatewayRuleChunkStore chunks,
+            @Qualifier("gatewayProviderDirectory") ProviderDirectory providerDirectory,
+            @Qualifier("gatewayRuleLkgRepository") GatewayRuleLkgRepository lkg,
             @Qualifier("gatewayClock") Clock gatewayClock,
-            GatewayTelemetry telemetry) {
-        GatewayRuleActivationApplier activation =
-                new GatewayRuleActivationApplier(
-                        new GatewayRuleJsonCodec(),
-                        new EngineGatewayRuleCompiler(
-                                capabilities,
-                                transportDefaults,
-                                transportSafetyLimits
-                        ),
-                        chunks,
-                        providerDirectory,
-                        new GatewayRuleLkgRepository(
-                                Path.of(properties.getDataDirectory()),
-                                properties.getGatewayGroupCode()
-                        ),
-                        gatewayClock,
-                        telemetry
-                );
-        GatewayRuleApplierRegistrar.register(
-                applierRegistry,
-                activation,
-                chunks
-        );
+            @Qualifier("gatewayTelemetry") GatewayTelemetry telemetry) {
+        GatewayRuleActivationApplier<CompiledGatewayRules> activation =
+                new GatewayRuleActivationApplier<>(
+                        codec, compiler, chunks, providerDirectory, lkg, gatewayClock, telemetry);
+        GatewayRuleApplierRegistrar.register(applierRegistry, activation, chunks);
         return activation;
     }
 
@@ -609,7 +616,7 @@ public class GatewayEngineConfiguration {
     @Bean
     public DirectoryProviderSelector gatewayProviderSelector(
             ProviderDirectory providerDirectory,
-            GatewayRuleActivationApplier activation,
+            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
             PassiveHealthTracker passiveHealth,
             ActiveHealthTracker activeHealth,
             @Qualifier("gatewayClock") Clock gatewayClock) {
@@ -641,7 +648,7 @@ public class GatewayEngineConfiguration {
      */
     @Bean
     public GatewayTrafficGovernance gatewayTrafficGovernance(
-            GatewayRuleActivationApplier activation,
+            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
             ObjectProvider<RedisTokenBucketExecutor> redis) {
         return new GatewayTrafficGovernance(
                 activation::active,
@@ -886,7 +893,7 @@ public class GatewayEngineConfiguration {
             McpTaskService tasks,
             EngineGatewayOperationInvoker operationInvoker,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
-            GatewayRuleActivationApplier activation,
+            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
             McpTaskServiceTokenSupplier tokenSupplier,
             GatewayEngineRuntimeProperties properties,
             McpRuntimeProperties mcpProperties) {
@@ -941,7 +948,7 @@ public class GatewayEngineConfiguration {
             matchIfMissing = true
     )
     public McpEngineHttpHandler gatewayMcpHttpHandler(
-            GatewayRuleActivationApplier activation,
+            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
             GatewaySecurityCapabilityRegistry capabilities,
             EngineGatewayOperationInvoker operationInvoker,
             RedisMcpSessionStore sessionStore,
@@ -1337,7 +1344,7 @@ public class GatewayEngineConfiguration {
     public GatewayHttpServer gatewayHttpServer(
             GatewayEngineRuntimeProperties properties,
             GatewayHttpEngineProperties engineProperties,
-            GatewayRuleActivationApplier activation,
+            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
             DirectoryProviderSelector providerSelector,
             ReactorNettyHttpUpstreamAdapter upstream,
             GatewaySecurityCapabilityRegistry capabilities,
@@ -1461,7 +1468,7 @@ public class GatewayEngineConfiguration {
      */
     @Bean
     public HttpRpcUpstreamAdapter gatewayHttpRpcUpstreamAdapter(
-            GatewayRuleActivationApplier activation,
+            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
             RpcProviderChannelCache channels,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
         return new HttpRpcUpstreamAdapter(
@@ -1487,7 +1494,7 @@ public class GatewayEngineConfiguration {
      */
     @Bean
     public EngineGatewayOperationInvoker gatewayOperationInvoker(
-            GatewayRuleActivationApplier activation,
+            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
             DirectoryProviderSelector providerSelector,
             GatewayTrafficGovernance trafficGovernance,
             ReactorNettyHttpUpstreamAdapter http,
@@ -1532,7 +1539,7 @@ public class GatewayEngineConfiguration {
     @Bean
     public RpcGatewayHandlerRegistry gatewayRpcHandlerRegistry(
             GatewayEngineRuntimeProperties properties,
-            GatewayRuleActivationApplier activation,
+            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
             DirectoryProviderSelector providerSelector,
             RpcProviderChannelCache channels,
             GatewaySecurityCapabilityRegistry capabilities,
@@ -1684,7 +1691,7 @@ public class GatewayEngineConfiguration {
             GatewayHttpServer httpServer,
             RpcGatewayServer rpcServer,
             RpcGatewaySlotRuntime rpcSlot,
-            GatewayRuleActivationApplier activation,
+            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
             ProviderDirectory providerDirectory) {
         return new GatewayEngineRuntime(
                 properties,
@@ -1706,7 +1713,7 @@ public class GatewayEngineConfiguration {
      */
     @Bean
     public DdcInstanceMetadataContributor gatewayRuntimeMetadata(
-            GatewayRuleActivationApplier activation) {
+            GatewayRuleActivationApplier<CompiledGatewayRules> activation) {
         return () -> {
             GatewayRuleRuntimeStatus status = activation.status();
             return Map.of(
@@ -1789,7 +1796,7 @@ public class GatewayEngineConfiguration {
             matchIfMissing = true
     )
     public McpRuntimeHealthIndicator gatewayMcpRuntimeHealthIndicator(
-            GatewayRuleActivationApplier activation,
+            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
             ObjectProvider<RedisMcpSessionStore> sessionStores,
             ObjectProvider<McpTaskService> taskServices,
             McpRuntimeProperties properties,
@@ -1816,7 +1823,7 @@ public class GatewayEngineConfiguration {
     @Bean
     public HealthIndicator gatewayEngineHealthIndicator(
             GatewayEngineRuntime runtime,
-            GatewayRuleActivationApplier activation,
+            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
             RpcGatewaySlotRuntime rpcSlot) {
         return () -> {
             Health.Builder health = runtime.running()

@@ -11,6 +11,8 @@ import top.egon.cola.component.gateway.runtime.provider.domain.RuntimeProviderPo
 import top.egon.cola.component.gateway.runtime.traffic.domain.RuntimeTrafficPolicy;
 import top.egon.cola.component.gateway.mcp.rule.domain.CompiledMcpRules;
 
+import top.egon.cola.component.gateway.runtime.rule.domain.GatewayCompiledRulesDTO;
+
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -94,7 +96,7 @@ public record CompiledGatewayRules(
          * 用法 / Usage: 该字段通过 {@code CompiledGatewayRules} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code CompiledGatewayRules}; do not couple callers to its representation when the owning type exposes an API.
          */
         CompiledMcpRules mcpRules
-) {
+) implements GatewayCompiledRulesDTO {
 
     /**
      * 中文说明：创建 {@code CompiledGatewayRules} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
@@ -172,5 +174,22 @@ public record CompiledGatewayRules(
                 corsPolicies,
                 CompiledMcpRules.empty()
         );
+    }
+    /**
+     * 中文说明：直接复用快照发布身份，避免编译结果保存第二份事实。
+     * English summary: Derives release identity from the authoritative snapshot.
+     */
+    @Override
+    public String releaseId() {
+        return snapshot.releaseId();
+    }
+
+    /**
+     * 中文说明：规则一致性使用完整 Artifact SHA，而非内容或 Schema 版本。
+     * English summary: Uses the artifact checksum for cross-role consistency.
+     */
+    @Override
+    public String ruleChecksum() {
+        return snapshot.artifactSha256();
     }
 }

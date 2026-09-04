@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.engine.rule.domain;
+package top.egon.cola.component.gateway.runtime.rule.domain;
 
 import java.time.Instant;
 

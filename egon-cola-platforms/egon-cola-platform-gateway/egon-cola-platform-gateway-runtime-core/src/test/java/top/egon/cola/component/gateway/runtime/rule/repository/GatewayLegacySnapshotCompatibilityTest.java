@@ -1,6 +1,6 @@
-package top.egon.cola.component.gateway.engine.rule.repository;
+package top.egon.cola.component.gateway.runtime.rule.repository;
 
-import top.egon.cola.component.gateway.engine.rule.adapter.json.GatewayRuleJsonCodec;
+import top.egon.cola.component.gateway.runtime.rule.adapter.json.GatewayRuleJsonCodec;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleSnapshot;

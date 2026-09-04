@@ -1,4 +1,4 @@
-package top.egon.cola.component.gateway.engine.rule.service;
+package top.egon.cola.component.gateway.runtime.rule.service;
 
 import top.egon.cola.component.gateway.runtime.traffic.service.DistributedTokenBucketRateLimiter;
 import top.egon.cola.component.gateway.runtime.traffic.service.GatewayBulkheadRegistry;
@@ -20,7 +20,7 @@ import top.egon.cola.component.gateway.runtime.traffic.domain.TrafficPolicyType;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import top.egon.cola.component.gateway.core.provider.ProviderInstance;
-import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
+import top.egon.cola.component.gateway.runtime.rule.domain.GatewayCompiledRulesDTO;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -41,12 +41,12 @@ import java.util.function.Supplier;
 public final class GatewayTrafficGovernance {
 
     /**
-     * 中文说明：保存 rules 对应的状态、依赖或配置值；字段类型为 {@code Supplier<CompiledGatewayRules>}，由 {@code GatewayTrafficGovernance} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by rules; its type is {@code Supplier<CompiledGatewayRules>}, and {@code GatewayTrafficGovernance} reads or updates it during its lifecycle.
+     * 中文说明：保存 rules 对应的状态、依赖或配置值；字段类型为 {@code Supplier<? extends GatewayCompiledRulesDTO>}，由 {@code GatewayTrafficGovernance} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by rules; its type is {@code Supplier<? extends GatewayCompiledRulesDTO>}, and {@code GatewayTrafficGovernance} reads or updates it during its lifecycle.
      *
      * 用法 / Usage: 该字段通过 {@code GatewayTrafficGovernance} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayTrafficGovernance}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private final Supplier<CompiledGatewayRules> rules;
+    private final Supplier<? extends GatewayCompiledRulesDTO> rules;
 
     /**
      * 中文说明：保存 localRateLimiter 对应的状态、依赖或配置值；字段类型为 {@code LocalTokenBucketRateLimiter}，由 {@code GatewayTrafficGovernance} 在其生命周期内读取或更新。
@@ -100,7 +100,7 @@ public final class GatewayTrafficGovernance {
      * @param redis 参数 redis；parameter redis。
      */
     public GatewayTrafficGovernance(
-            Supplier<CompiledGatewayRules> rules,
+            Supplier<? extends GatewayCompiledRulesDTO> rules,
             RedisTokenBucketExecutor redis) {
         this.rules = Objects.requireNonNull(rules, "rules");
         localRateLimiter = new LocalTokenBucketRateLimiter(
@@ -294,7 +294,7 @@ public final class GatewayTrafficGovernance {
      * @return 返回 policies 的处理结果；returns the result of the operation.
      */
     private List<RuntimeTrafficPolicy> policies(Set<String> policyRefs) {
-        CompiledGatewayRules active = rules.get();
+        GatewayCompiledRulesDTO active = rules.get();
         if (active == null || policyRefs == null || policyRefs.isEmpty()) {
             return List.of();
         }

@@ -33,7 +33,7 @@ import top.egon.cola.component.gateway.core.route.HttpRouteMatch;
 import top.egon.cola.component.gateway.core.route.RuntimeHttpRoute;
 import top.egon.cola.component.gateway.engine.http.service.GatewayDataBufferTestSupport;
 import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
-import top.egon.cola.component.gateway.engine.rule.adapter.json.GatewayRuleJsonCodec;
+import top.egon.cola.component.gateway.runtime.rule.adapter.json.GatewayRuleJsonCodec;
 import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 
 import java.nio.charset.StandardCharsets;

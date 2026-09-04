@@ -18,7 +18,7 @@ import top.egon.cola.component.gateway.runtime.provider.domain.ProviderSelection
 import top.egon.cola.component.gateway.runtime.provider.service.ProviderSelector;
 import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
 import top.egon.cola.component.gateway.runtime.traffic.service.GatewayAttemptExecutor;
-import top.egon.cola.component.gateway.engine.rule.service.GatewayTrafficGovernance;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.runtime.traffic.domain.ProviderCallClassification;
 
 import java.net.URLEncoder;
