@@ -9,7 +9,7 @@
 | Complexity | `Complex` |
 | Complexity Drivers | 一个 Admin 控制面、两个可独立部署的数据面角色、统一 Release 在多进程内的局部原子激活、DDC 发现与 ACK、HTTP/gRPC/MCP 兼容、MCP Redis/PostgreSQL 状态、独立安全身份、HA/灰度/回滚及跨模块依赖重排 |
 | Created | `2026-09-02 19:52 CST` |
-| Updated | `2026-09-05 06:41 CST` |
+| Updated | `2026-09-05 07:01 CST` |
 | Owner | `User / Egon-COLA Gateway maintainers` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-platforms/egon-cola-platform-gateway`；Gateway Admin、共享 Runtime、现有 API/RPC Engine、新 MCP Engine、Admin Web、Gateway 测试与部署/本地运行契约 |
@@ -309,6 +309,8 @@ appCode、跨进程强原子发布或 API/RPC 再拆分，必须新建 Amendment
 | 前端角色展示 | TypeScript Record/map | Existing React Query | existing engine-nodes/runtime-consistency | TS 类型遗漏 metadata | 补类型和视图；无新 request |
 
 ### 6.2 User-mandated Java rule compliance
+
+Execution amendment `DEC-EXEC-002` (2026-09-05): 用户在收到 Step 2 的纯迁包与历史构造规范冲突后明确要求“继续，自行决定，不要问我”。本次据此保留纯 package/import 迁移类既有的类型表示、名称、校验、构造、默认值、防御性拷贝及生命周期；不为追溯统一注解而改变其行为。此项是本次迁移对历史 Rule 1–4 差异的显式例外，最终审计必须披露，不能声称旧实现满足原始规则。新增或实质修改的业务类、装配与边界对象继续执行完整规范，并允许在所属 Step 内完成必要的局部规范化及回归修复；不修改全局 skill、不扩大到无关代码或数据库。以下设计表针对新增/实质修改代码，机械迁移按本 Amendment 的兼容性检查执行。
 
 | Literal rule | Affected? | Repository evidence | Exact design decision | Files/types/interfaces | Validation/test evidence | Status/blocker |
 | --- | --- | --- | --- | --- | --- | --- |

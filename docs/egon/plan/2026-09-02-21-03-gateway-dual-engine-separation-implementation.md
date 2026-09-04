@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Ready` |
 | Created | `2026-09-02 21:03 CST` |
-| Updated | `2026-09-05 06:41 CST` |
+| Updated | `2026-09-05 07:01 CST` |
 | Owner | `Egon-COLA maintainers` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-platform-gateway runtime, Admin projection/Admin Web, gateway test suite, deployment and local operations` |
@@ -14,7 +14,7 @@
 | Baseline Revision | `main@ce10db63a24eecf6b5a3280cd4e9afa7c1849c81; concurrent dirty-worktree snapshot recorded in §6.1` |
 | Implements Spec | [Gateway Dual-Engine Separation Specification](../spec/2026-09-02-19-52-gateway-dual-engine-separation.md) |
 | Spec Status | `Accepted` |
-| Spec Revision | `Updated 2026-09-05 06:41 CST; baseline main@085c20048e35; explicitly confirmed by the user on 2026-09-02` |
+| Spec Revision | `Updated 2026-09-05 07:01 CST; baseline main@085c20048e35; explicitly confirmed by the user on 2026-09-02; execution conflict resolution delegated on 2026-09-05` |
 | Effective Specs | [Gateway Dual-Engine Separation Specification](../spec/2026-09-02-19-52-gateway-dual-engine-separation.md), [Gateway Engine MCP Package Refactor Specification](../spec/2026-08-19-13-51-gateway-engine-mcp-package-refactor.md), [Gateway Complete MCP Design](../../superpowers/specs/2026-08-02-gateway-complete-mcp-design.md), [Gateway Annotation-Managed MCP Design](../../superpowers/specs/2026-08-06-gateway-annotation-managed-mcp-design.md), [Gateway Admin Backend Design](../../superpowers/specs/2026-07-25-gateway-admin-backend-design.md) |
 | Depends On Plans | `None` |
 | Supersedes | `None` |
@@ -294,6 +294,12 @@ The user approved [the preflight correction](../review/2026-09-05-06-34-gateway-
 DDC numeric version remains exclusively in `GatewayRuleRuntimeStatus.activeDdcVersion`: `apply(key,value,version)` supplies it; LKG restore uses 0/degraded until DDC applies. The compiled DTO has no numeric version. Its checksum is `snapshot.artifactSha256()` and providerServices is `Set<ProviderServiceKey>`. External wire/LKG schemas and `compile(snapshot)` remain unchanged.
 
 Step 2 explicitly owns import/FQCN-only edits in its current direct production/test consumers, including `McpHaRecoveryIT`; no later-Step business behavior is advanced. The user additionally authorized full local platforms startup, browser testing, and repairs after the split, specifically RBAC3 role-permission assignment and Gateway OpenAPI 3 browsing. Runtime authorization is already satisfied.
+
+### 6.6 Delegated execution decision — legacy construction (2026-09-05)
+
+After the concrete Step 2 conflict was reported, the user directed: “继续，自行决定，不要问我”. Within that delegated authority, `DEC-EXEC-002` limits retroactive standards changes: package/import-only moves retain established type names, object representations, validation, factory construction, defensive copies, defaults and lifecycle contracts. For example, DirectoryProviderSelector's EnumMap copy/null checks and ProviderDirectory's registry/clock construction must not be replaced by a generated assignment-only constructor. Legacy annotation/constructor differences are an explicit migration-specific exception, not a claim that those unchanged implementations satisfy the original Rule 1–4 wording. The final audit must list this exception.
+
+New and materially changed business services, Bean assembly and boundary models remain subject to the full standards. Necessary local normalization, wiring and regression fixes are now allowed within the owning Step; document exact changed paths and behavior evidence before committing. No general skill changes, unrelated cleanup, public wire changes or database migrations are authorized by this decision. Architecture, sequential commits and runtime acceptance remain unchanged.
 
 ## 7. Ordered File-by-file Implementation Steps
 
