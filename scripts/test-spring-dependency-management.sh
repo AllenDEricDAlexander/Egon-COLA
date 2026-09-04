@@ -75,6 +75,7 @@ for child_pom in \
 done
 
 for source_pom in \
+  "${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-agent/pom.xml" \
   "${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-light/pom.xml" \
   "${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-light-open/pom.xml" \
   "${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-service/pom.xml" \
@@ -85,12 +86,23 @@ for source_pom in \
 done
 
 for springdoc_pom in \
+  "${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-agent/pom.xml" \
   "${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-light/pom.xml" \
   "${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-light-open/pom.xml" \
   "${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-web/pom.xml" \
   "${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-web-open/pom.xml"; do
   assert_springdoc_dependencies_are_managed "$springdoc_pom"
 done
+
+AGENT_SOURCE_POM="${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-agent/pom.xml"
+AGENT_INFRA_POM="${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-infrastructure/pom.xml"
+COMPONENTS_POM="${REPO_ROOT}/egon-cola-components/pom.xml"
+assert_contains "$AGENT_SOURCE_POM" '<spring-ai.version>1.1.8</spring-ai.version>' 'Agent Spring AI version'
+assert_contains "$AGENT_SOURCE_POM" '<artifactId>spring-ai-bom</artifactId>' 'Agent Spring AI BOM'
+assert_contains "$AGENT_SOURCE_POM" '<artifactId>egon-cola-components-bom</artifactId>' 'Agent Components BOM'
+assert_contains "$AGENT_INFRA_POM" '<artifactId>egon-cola-component-agent-flow-starter</artifactId>' 'Agent Flow component dependency'
+assert_contains "$COMPONENTS_POM" '<google-adk.version>0.7.0</google-adk.version>' 'Google ADK version owner'
+assert_contains "$COMPONENTS_POM" '<artifactId>google-adk</artifactId>' 'Google ADK dependency management'
 
 for dubbo_pom in \
   "${REPO_ROOT}/egon-cola-archetypes/source-projects/egon-cola-source-service/pom.xml" \

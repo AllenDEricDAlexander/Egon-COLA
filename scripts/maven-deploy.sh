@@ -131,7 +131,14 @@ definition_manifests() {
 }
 
 assert_generated_release_shape() {
-  local manifest target module_dir artifact_count=0
+  local manifest target module_dir artifact_count=0 actual_targets expected_targets
+  expected_targets=$'egon-cola-archetype-agent\negon-cola-archetype-light\negon-cola-archetype-light-open\negon-cola-archetype-service\negon-cola-archetype-service-open\negon-cola-archetype-web\negon-cola-archetype-web-open'
+  actual_targets="$(while IFS= read -r manifest; do
+    [[ -n "${manifest}" ]] || continue
+    sed -n 's/^targetArtifactId=//p' "${manifest}" | tr -d '\r'
+  done < <(definition_manifests) | LC_ALL=C sort)"
+  [[ "${actual_targets}" == "${expected_targets}" ]] \
+    || { echo "Expected exactly seven generated archetype targets, found:\n${actual_targets}" >&2; exit 1; }
   while IFS= read -r manifest; do
     [[ -n "${manifest}" ]] || continue
     target="$(sed -n 's/^targetArtifactId=//p' "${manifest}" | tr -d '\r')"
@@ -148,8 +155,8 @@ assert_generated_release_shape() {
       -name "${target}-*-javadoc.jar" | wc -l | tr -d ' ')" -eq 1
     artifact_count=$((artifact_count + 1))
   done < <(definition_manifests)
-  [[ "${artifact_count}" -eq 6 ]] \
-    || { echo "Expected six generated archetype artifacts, found ${artifact_count}." >&2; exit 1; }
+  [[ "${artifact_count}" -eq 7 ]] \
+    || { echo "Expected seven generated archetype artifacts, found ${artifact_count}." >&2; exit 1; }
 }
 
 echo "Maven target: ${target}"

@@ -99,7 +99,7 @@ EOF
 
 write_fixture_definitions() {
   local family target definition module
-  for family in light light-open service service-open web web-open; do
+  for family in agent light light-open service service-open web web-open; do
     target="egon-cola-archetype-${family}"
     definition="${FIXTURE_REPO}/egon-cola-archetypes/definitions/${target}"
     mkdir -p "${definition}" \
@@ -221,15 +221,17 @@ test_failure_never_reaches_deploy() {
 }
 
 test_definition_inventory() {
-  local expected=6 actual manifest target targets
+  local expected=7 actual manifest target targets expected_targets
   actual="$(find "$REPO_ROOT/egon-cola-archetypes/definitions" -mindepth 2 -maxdepth 2 \
     -type f -name archetype.properties -print | wc -l | tr -d ' ')"
   assert_equal "$expected" "$actual" 'definition manifest count'
   targets="$(find "$REPO_ROOT/egon-cola-archetypes/definitions" -mindepth 2 -maxdepth 2 \
     -type f -name archetype.properties -print | sort | \
-    while IFS= read -r manifest; do sed -n 's/^targetArtifactId=//p' "$manifest"; done)"
+    while IFS= read -r manifest; do sed -n 's/^targetArtifactId=//p' "$manifest"; done | sort)"
   actual="$(printf '%s\n' "$targets" | sort -u | sed '/^$/d' | wc -l | tr -d ' ')"
   assert_equal "$expected" "$actual" 'unique definition target count'
+  expected_targets=$'egon-cola-archetype-agent\negon-cola-archetype-light\negon-cola-archetype-light-open\negon-cola-archetype-service\negon-cola-archetype-service-open\negon-cola-archetype-web\negon-cola-archetype-web-open'
+  assert_equal "$expected_targets" "$targets" 'definition target set'
   while IFS= read -r manifest; do
     target="$(sed -n 's/^targetArtifactId=//p' "$manifest")"
     [[ "$target" == egon-cola-archetype-* ]] || fail "invalid definition target: ${manifest}"
@@ -242,7 +244,7 @@ test_generated_profile_and_paths() {
   local workflow
   assert_file_contains "$DEPLOY_SCRIPT" '-Pgenerated-archetypes' 'deploy generated profile'
   assert_file_contains "$DEPLOY_SCRIPT" 'egon-cola-archetypes/.generated' 'deploy generated artifact root'
-  assert_file_not_contains "$DEPLOY_SCRIPT" 'egon-cola-archetype-light-open' 'individual Open target'
+  assert_file_contains "$DEPLOY_SCRIPT" 'egon-cola-archetype-agent' 'deploy Agent target'
   for workflow in "$REPO_ROOT/.github/workflows/ci.yaml" \
       "$REPO_ROOT/.github/workflows/ci_java_compatibility.yaml" \
       "$REPO_ROOT/.github/workflows/publish-maven-central.yml"; do
