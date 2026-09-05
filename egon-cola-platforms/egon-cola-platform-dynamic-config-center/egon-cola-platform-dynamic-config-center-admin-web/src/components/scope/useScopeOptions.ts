@@ -37,9 +37,9 @@ const toOptions = (data: unknown): ScopeOption[] => {
     ).trim()
     const code = String(
       record.appCode
-        ?? record.bizCode
         ?? record.namespaceCode
         ?? record.envCode
+        ?? record.bizCode
         ?? '',
     )
     return { value: code, label: name ? `${code}（${name}）` : code }

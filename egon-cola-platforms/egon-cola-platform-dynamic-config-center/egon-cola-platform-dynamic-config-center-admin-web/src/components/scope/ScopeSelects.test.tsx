@@ -98,6 +98,14 @@ describe('ScopeSelects', () => {
     })
   })
 
+  it('uses the namespace code instead of its parent business code in options', async () => {
+    mockScopeEndpoints(['pay-biz'], ['orders-app'], ['default'], ['dev'])
+    renderWithQueryClient(<ScopeSelects value={{bizCode: 'pay-biz', namespaceCode: '', env: '', appCode: ''}} onChange={() => {}} />)
+    fireEvent.mouseDown(scopeInputs()[1])
+    expect((await screen.findAllByText('default（default）')).length).toBeGreaterThan(0)
+    expect(screen.queryByText('pay-biz（default）')).not.toBeInTheDocument()
+  })
+
   it('clears namespace, env and app when biz changes', async () => {
     mockScopeEndpoints(['pay-biz', 'risk-biz'], ['orders-app'], ['default'], ['dev'])
 
