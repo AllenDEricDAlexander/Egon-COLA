@@ -16,6 +16,18 @@ services:
       DDC_RPC_CERTIFICATE_CHAIN_PATH: /run/egon-tls/ddc-admin-2.crt
       DDC_RPC_PRIVATE_KEY_PATH: /run/egon-tls/ddc-admin-2.key
       DDC_RPC_TRUST_CERTIFICATE_COLLECTION_PATH: /run/egon-tls/ca.crt
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          bash -o pipefail -ec 'printf "GET /actuator/health/readiness HTTP/1.0\r\n\r\n" |
+          openssl s_client -quiet -connect 127.0.0.1:18080 -servername ddc-admin-2
+          -verify_return_error -verify_hostname ddc-admin-2 -CAfile /run/egon-tls/ca.crt
+          -cert /run/egon-tls/ddc-admin-2.crt -key /run/egon-tls/ddc-admin-2.key |
+          grep -q " 200 "'
+      interval: 5s
+      timeout: 5s
+      retries: 20
     volumes:
       - ${GATEWAY_TLS_DIRECTORY:?set GATEWAY_TLS_DIRECTORY}:/run/egon-tls:ro
 
@@ -39,6 +51,18 @@ services:
       EGON_COLA_COMPONENT_DDC_RPC_TLS_CERTIFICATE_CHAIN_PATH: /run/egon-tls/gateway-admin-2.crt
       EGON_COLA_COMPONENT_DDC_RPC_TLS_PRIVATE_KEY_PATH: /run/egon-tls/gateway-admin-2.key
       EGON_COLA_COMPONENT_DDC_RPC_TLS_TRUST_CERTIFICATE_COLLECTION_PATH: /run/egon-tls/ca.crt
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          bash -o pipefail -ec 'printf "GET /actuator/health/readiness HTTP/1.0\r\n\r\n" |
+          openssl s_client -quiet -connect 127.0.0.1:18080 -servername gateway-admin-2
+          -verify_return_error -verify_hostname gateway-admin-2 -CAfile /run/egon-tls/ca.crt
+          -cert /run/egon-tls/gateway-admin-2.crt -key /run/egon-tls/gateway-admin-2.key |
+          grep -q " 200 "'
+      interval: 5s
+      timeout: 5s
+      retries: 20
     volumes:
       - ${GATEWAY_TLS_DIRECTORY:?set GATEWAY_TLS_DIRECTORY}:/run/egon-tls:ro
 
@@ -47,6 +71,14 @@ services:
       EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
 
   gateway-engine-2:
+    environment:
+      EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
+
+  gateway-mcp-engine:
+    environment:
+      EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
+
+  gateway-mcp-engine-2:
     environment:
       EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
 

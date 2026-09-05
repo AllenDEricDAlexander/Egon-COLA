@@ -11,5 +11,5 @@ cd "${repository_root}"
   -am \
   -DskipITs=false \
   -Dsurefire.failIfNoSpecifiedTests=false \
-  -Dtest='McpSecurityIT,McpHaRecoveryIT,McpCompleteReleaseIT' \
+  -Dtest='McpSecurityIT,McpHaRecoveryIT,McpCompleteReleaseIT,GatewayRuleWireCompatibilityTest,McpGatewayEngineContextTest' \
   test

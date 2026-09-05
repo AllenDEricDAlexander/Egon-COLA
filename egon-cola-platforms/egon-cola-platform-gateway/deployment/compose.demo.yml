@@ -38,7 +38,7 @@ services:
     depends_on:
       gateway-admin: {condition: service_started}
       ddc-admin: {condition: service_started}
-    ports: ["18084:18080"]
+    ports: ["18094:18080"]
 
   http-provider-webflux:
     build:
@@ -69,7 +69,7 @@ services:
       GATEWAY_TEST_ADVERTISED_PORT: 18080
       EGON_COLA_COMPONENT_GATEWAY_REPORTING_ENABLED: "false"
     depends_on: {ddc-admin: {condition: service_started}}
-    ports: ["18085:18080"]
+    ports: ["18095:18080"]
 
   rpc-provider:
     build:

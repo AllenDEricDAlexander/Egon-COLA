@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Ready` |
 | Created | `2026-09-02 21:03 CST` |
-| Updated | `2026-09-05 15:06 CST` |
+| Updated | `2026-09-05 15:20 CST` |
 | Owner | `Egon-COLA maintainers` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-platform-gateway runtime, Admin projection/Admin Web, gateway test suite, deployment and local operations` |
@@ -1423,6 +1423,10 @@ restartOnlyMcpReplicaAndAssertLkgRecoveryWithoutApiRestart();
 - Rollback: revert the Step commit; production modules remain split but old suite is temporarily incompatible.
 - Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/process/GatewayProcessHarnessTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/process/GatewayProcessHarness.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayLiveEnvironment.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpCompleteReleaseIT.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/pom.xml`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/process`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp`
 - Commit: `test(gateway): cover dual engine topology`
+
+Step 10 source clarification under DEC-EXEC-002: demo Provider host ports 18084/18085 conflict with MCP defaults and move to18094/18095 (container ports and business wire unchanged). Add `deployment/ddc-rpc-credentials.yml` and `.env.example` updates to provision a complete existing-three plus MCP-two DDC credential list for both DDC replicas, preserving list replacement semantics. Add `deployment/haproxy.data-plane.mtls.cfg` for TLS termination/path routing plus verified TLS upstreams; the control-plane TCP proxy remains untouched. The data-plane proxy retains stable public host18081; the direct API replica diagnostic host port moves to18091. Management health is reachable only on the deployment network/loopback host; mTLS Engine configuration disables the TLS reload endpoint when exposing health to the proxy.
+
+Step 10 regression closure: the existing Provider artifact-version assertion in GatewayComposeConfigurationTest still targets `gateway.reporting` although both actual Provider applications now use `gateway.openapi`; update only that test key and retain the service-version equality assertion. Base and HA DDC replicas share the complete credentials source. mTLS DDC/Admin health checks use their verified client certificates rather than inherited plaintext checks. No real TLS handshake is claimed from Compose rendering.
 
 ### Step 10 — Encode independent role deployment and stable data-plane routing
 

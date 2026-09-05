@@ -10,6 +10,14 @@ services:
       context: ../../egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin
     environment:
       SERVER_PORT: 18080
+      SPRING_CONFIG_ADDITIONAL_LOCATION: file:/run/egon-config/ddc-rpc-credentials.yml
+      GATEWAY_MCP_DDC_RUNTIME_ACCESS_KEY: ${GATEWAY_MCP_DDC_RUNTIME_ACCESS_KEY}
+      GATEWAY_MCP_DDC_RUNTIME_SECRET_KEY: ${GATEWAY_MCP_DDC_RUNTIME_SECRET_KEY}
+      GATEWAY_MCP_DDC_REGISTRY_ACCESS_KEY: ${GATEWAY_MCP_DDC_REGISTRY_ACCESS_KEY}
+      GATEWAY_MCP_DDC_REGISTRY_SECRET_KEY: ${GATEWAY_MCP_DDC_REGISTRY_SECRET_KEY}
+      GATEWAY_BIZ_CODE: ${GATEWAY_BIZ_CODE}
+      GATEWAY_ENV: ${GATEWAY_ENV:-local}
+      GATEWAY_NAMESPACE: ${GATEWAY_NAMESPACE:-default}
       EGON_COLA_COMPONENT_ID_MACHINE_ID: "3"
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gateway_ddc
       SPRING_DATASOURCE_USERNAME: gateway
@@ -24,6 +32,8 @@ services:
       DDC_RPC_REGISTRY_SECRET_KEY: ${DDC_REGISTRY_SECRET_KEY}
       DDC_RPC_MANAGEMENT_ACCESS_KEY: ${DDC_MANAGEMENT_ACCESS_KEY}
       DDC_RPC_MANAGEMENT_SECRET_KEY: ${DDC_MANAGEMENT_SECRET_KEY}
+    volumes:
+      - ./ddc-rpc-credentials.yml:/run/egon-config/ddc-rpc-credentials.yml:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,6 +70,8 @@ services:
       SPRING_DATASOURCE_USERNAME: gateway
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       GATEWAY_ADMIN_DDC_ENABLED: "true"
+      GATEWAY_ADMIN_DDC_TARGET_BIZ_CODE: ${GATEWAY_BIZ_CODE}
+      GATEWAY_ADMIN_DDC_TARGET_APP_CODE: ge
       EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
       EGON_COLA_COMPONENT_DDC_RPC_LOAD_BALANCING_POLICY: round_robin
       EGON_COLA_COMPONENT_DDC_RPC_TLS_DEVELOPMENT_PLAINTEXT: "true"
@@ -92,6 +104,19 @@ services:
     profiles: ["ha"]
     environment:
       EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
+
+  gateway-mcp-engine:
+    profiles: ["ha"]
+    environment:
+      EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
+
+  gateway-mcp-engine-2:
+    profiles: ["ha"]
+    environment:
+      EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
+
+  gateway-data-plane-proxy:
+    profiles: ["ha"]
 
   gateway-admin-web:
     profiles: ["ha"]

@@ -4,16 +4,16 @@
 
 This directory provides deployment examples for Gateway Engine, Gateway Admin, Admin Web,
 and their local dependencies. It is not a production HA solution and does not manage Nginx
-node load balancing or dynamic configuration.
+node load balancing or dynamic configuration. The Admin remains one logical control plane; the fixed API_RPC and MCP roles have separate executables.
 
 ## Build prerequisites
 
-Build the three executable artifacts from the repository root:
+Build the four executable artifacts from the repository root:
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
-  -am clean package -DskipTests
+  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine \
+  -am package -DskipTests
 ```
 
 Copy `.env.example` to `.env` and fill it locally with separate random DDC runtime,
@@ -40,14 +40,18 @@ facade is `./scripts/demo.sh`; `down` preserves data and the explicitly destruct
 | DDC Admin HTTP | 18070 | Human management API and Actuator readiness |
 | DDC Admin gRPC | 19080 | Direct runtime, registry, and management facades |
 | Gateway Admin | 18080 | Management API and health endpoints |
-| Engine 1 PUBLIC | 18081 | External HTTP data plane |
+| API_RPC 1 PUBLIC (direct) | 18091 | External HTTP data plane |
 | Engine 1 INTERNAL | 18082 | Internal HTTP data plane |
 | Engine 1 Management | 18083 | Actuator |
 | Engine 1 RPC Slot | 19090 | Egon RPC internal Gateway |
-| Engine 2 PUBLIC | 18181 | Second external HTTP data plane |
+| API_RPC 2 PUBLIC | 18181 | Second external HTTP data plane |
 | Engine 2 INTERNAL | 18182 | Second internal HTTP data plane |
 | Engine 2 Management | 18183 | Second Actuator |
 | Engine 2 RPC Slot | 19190 | Second Egon RPC internal Gateway |
+| Stable data-plane proxy | 18081 | Existing API/MCP Host/Path entry |
+| MCP 1 Data / Management | 18084 / 18085 | Loopback diagnostics and independent readiness |
+| MCP 2 Data / Management | 18184 / 18185 | Second MCP replica |
+| Demo MVC / WebFlux | 18094 / 18095 | Avoid MCP default port collisions |
 | Admin Web | 18090 | React management page |
 
 Persist each Engine's LKG directory independently. DDC Redis and the distributed rate-limit
@@ -78,7 +82,7 @@ valid rules, and required Providers are ready.
 
 The fast gate does not start external processes; it covers Java unit/component tests, Admin Web
 type checking, Vitest, ESLint, and the production build. The real-topology gate starts real DDC,
-Admin, two Engines, an HTTP Provider, an RPC Provider, and an RPC Consumer through the process
+Admin, two API_RPC replicas, two MCP replicas, an HTTP Provider, an RPC Provider, and an RPC Consumer through the process
 harness. Infrastructure uses Testcontainers by default:
 
 ```bash
@@ -98,7 +102,7 @@ single-node KRaft broker; it does not use existing database or Redis state:
 ```
 
 The test verifies interface-definition reporting, rule
-publication, registration and readiness of both Engines, HTTP/RPC forwarding, load balancing
+publication, registration and readiness of both roles, HTTP/RPC forwarding, load balancing
 across two Providers, Provider removal, rate limiting, and Kafka Trace projection. Logs and
 redacted process parameters are written to `target/gateway-process-it`.
 
@@ -112,7 +116,7 @@ Stop:  remove Engine traffic → bounded Engine drain → Provider → Admin →
 Compose reserves 30 seconds for graceful termination. A Kafka failure must not change the
 business response, but dropped/failed events must be visible through metrics. When DDC is
 temporarily unavailable, a running Engine may continue using valid in-memory state and LKG;
-a cold-start node must not claim Ready on that basis.
+a restarted node with a validated LKG may serve degraded; it must not claim current-release consistency until the target version is acknowledged.
 
 ## Control-plane HA
 
@@ -171,6 +175,9 @@ gateway-admin-2.crt / gateway-admin-2.key
 gateway-admin-web.crt / gateway-admin-web.key
 gateway-engine.crt / gateway-engine.key
 gateway-engine-2.crt / gateway-engine-2.key
+gateway-mcp-engine.crt / gateway-mcp-engine.key
+gateway-mcp-engine-2.crt / gateway-mcp-engine-2.key
+gateway-data-plane-proxy.pem (certificate chain and private key)
 ```
 
 Private keys must be unencrypted PKCS#8 PEM. Certificate SANs must cover actual connection
@@ -189,10 +196,7 @@ Spring SSL Bundles use `reload-on-update=true`, so DDC Admin and Gateway Admin w
 file updates. Actuator exposes `ssl.chain.expiry` and SSL health information. Engine exposes
 `gateway.tls.certificate.expiry.epoch.seconds`; after an atomic certificate replacement, the
 protected `POST /actuator/gatewayTls` endpoint can perform bounded drain and rebuild the HTTP/RPC
-listeners. The endpoint is not created or exposed by default: the `operations` Profile must
-explicitly enable it and bind the Spring Management Server to `127.0.0.1` inside the container.
-`compose.mtls.yml` enables this Profile; the deployment platform must call it through a
-controlled in-container channel and must not forward it externally.
+listeners. This Compose mTLS example explicitly disables that endpoint. Management exposes only health/info/metrics on the container network and loopback host mappings so the data-plane proxy can remove unready replicas. The proxy never forwards management ports. Re-enable reload only through a separately controlled in-container management channel.
 
 ## OpenTelemetry
 
@@ -217,5 +221,20 @@ tags. Collector unavailability does not affect Gateway business responses.
 - Providers are discovered only through the DDC Registry, and rules are distributed only through DDC DB/Redis/PubSub;
 - DDC bootstrap is direct unary gRPC through a configured logical target; there is no machine HTTP fallback, DDC self-registration, streaming configuration channel, or sticky-session requirement;
 - Nacos, Dubbo, and Nginx management are outside this deployment;
-- Compose exposes two Engine ports, but ingress L4/L7 load balancing remains owned by the deployment platform;
+- The dedicated data-plane HAProxy selects fixed API_RPC/MCP backend pools; external DNS, certificates and production ingress remain operator-owned;
 - Secret Manager, NetworkPolicy, and external observability platforms remain owned by the deployment platform.
+
+## Dual-role state, credentials, and cutover
+
+- Both roles share DDC biz/env/appCode/namespace (`ge`) but each replica has a unique Config Client/Registry/Node identity. The role is fixed by the executable, never a mode flag.
+- `ddc-rpc-credentials.yml` retains all three existing credential capabilities and adds separate MCP Runtime/Registry credentials. Spring list overrides replace the whole list, so configuring only indices3/4 is invalid. The example retains the existing wildcard scopes; constrain production scopes against actual Provider access.
+- Provision separate IdP Resource IDs/URIs for the API and MCP processes. Business MCP Server resources, tokens, audiences and permission contracts stay unchanged. Replace example placeholders with registered identities; this directory does not deploy IdP.
+- MCP sessions/subscriptions share Redis; tasks/approvals use existing gateway_admin tables, with Flyway owned by Admin. API has no MCP datasource. Provision the existing shared `GATEWAY_MCP_ARTIFACT_DIRECTORY` with UID/GID10001 access before startup; scripts do not chown or erase user artifacts.
+- Four independent LKG volumes prevent cross-process writes. Start DDC/Admin/Providers, then Engines; after a valid release run `./scripts/wait-ready.sh --engines`. Require both roles and every online replica to ACK the same Release/Version/Checksum.
+- The proxy preserves18081 and routes `/mcp/`, `/legacy/mcp/`, and `/.well-known/oauth-protected-resource/mcp/` to MCP. Other paths use API_RPC, retaining Host/authentication/protocol headers. INTERNAL HTTP/gRPC retain separate listeners.
+- `haproxy.data-plane.mtls.cfg` terminates external TLS and verifies each TLS backend certificate/hostname. Control-plane `haproxy.cfg` remains TCP passthrough. Supply a proxy PEM with server/client usage and stable external SAN; each Engine certificate covers its service DNS name. No verify-none option is used.
+- A failed role retains its previous snapshot and Admin reports inconsistency. Do not publish a new Release while old Combined and split binaries coexist. Start MCP dark, validate, cut MCP routing, replace API_RPC, then retire old nodes. Roll back only the affected route/artifact; retain databases and LKG.
+- `run-mcp-conformance.sh` defaults to MCP `/mcp/commerce`; publish that Server and satisfy its authentication first. Explicit official-SDK fixture URLs remain supported but are not Engine acceptance evidence. The security script includes MCP Context and unified-artifact compatibility.
+- Static rendering/unit tests do not prove live IdP integration, TLS handshakes, browser flows or HA. Complete those runtime gates before production rollout.
+
+Health-check and TLS syntax follows the [HAProxy3.1 configuration reference](https://docs.haproxy.org/3.1/configuration.html).

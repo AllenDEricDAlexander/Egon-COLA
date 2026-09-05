@@ -86,7 +86,7 @@ command_build() {
 }
 
 command_up_control() {
-  compose up -d postgres ddc-redis rate-limit-redis kafka ddc-admin gateway-admin gateway-engine gateway-engine-2
+  compose up -d postgres ddc-redis rate-limit-redis kafka ddc-admin gateway-admin gateway-engine gateway-engine-2 gateway-mcp-engine gateway-mcp-engine-2 gateway-data-plane-proxy
   "${script_dir}/wait-ready.sh" http://127.0.0.1:18070/actuator/health/readiness
   "${script_dir}/wait-ready.sh" http://127.0.0.1:18080/actuator/health/readiness
 }
@@ -120,8 +120,8 @@ command_init() {
 command_up_providers() {
   [[ -s "${runtime_dir}/http-provider.env" && -s "${runtime_dir}/rpc-provider.env" ]] || { echo "run init first" >&2; exit 1; }
   compose up -d http-provider-mvc http-provider-webflux rpc-provider
-  "${script_dir}/wait-ready.sh" http://127.0.0.1:18084/actuator/health/readiness
-  "${script_dir}/wait-ready.sh" http://127.0.0.1:18085/actuator/health/readiness
+  "${script_dir}/wait-ready.sh" http://127.0.0.1:18094/actuator/health/readiness
+  "${script_dir}/wait-ready.sh" http://127.0.0.1:18095/actuator/health/readiness
   "${script_dir}/wait-ready.sh" http://127.0.0.1:18086/actuator/health/readiness
 }
 
@@ -154,6 +154,12 @@ command_publish() {
   api POST "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/validate" '{}' | jq -e '.valid == true' >/dev/null
   release="$(api POST "/api/v1/gateway/admin/gateway-groups/${group_id}/releases" "$(jq -n --argjson revision "${revision}" '{expectedDraftRevision:$revision,changeReason:"Gateway demo release"}')")"
   jq -e '.status == "SUCCEEDED"' <<<"${release}" >/dev/null
+  "${script_dir}/wait-ready.sh" --engines
+  deadline="$((SECONDS + 120))"
+  until api GET "/api/v1/gateway/admin/gateway-groups/${group_id}/runtime-consistency" | jq -e '.consistent == true and .readyEngineNodeCount == 4' >/dev/null; do
+    ((SECONDS < deadline)) || { echo "API_RPC/MCP release ACK convergence timed out" >&2; exit 1; }
+    sleep 2
+  done
   echo "Gateway demo rules published: $(jq -r '.releaseId' <<<"${release}")"
 }
 
@@ -166,7 +172,7 @@ command_verify() {
   group_id="$(cat "${runtime_dir}/group.id")"
   curl --fail --silent --show-error -H 'Host: providers.gateway.demo' http://127.0.0.1:18081/api/providers/demo-http | jq -e '.framework == "mvc" or .framework == "webflux"' >/dev/null
   curl --fail --silent --show-error 'http://127.0.0.1:18087/test/rpc/echo?message=demo-rpc' | jq -e '.message == "demo-rpc"' >/dev/null
-  api GET "/api/v1/gateway/admin/gateway-groups/${group_id}/runtime-consistency" | jq -e '.consistent == true and .readyEngineNodeCount == 2' >/dev/null
+  api GET "/api/v1/gateway/admin/gateway-groups/${group_id}/runtime-consistency" | jq -e '.consistent == true and .readyEngineNodeCount == 4' >/dev/null
   echo "Gateway demo verification passed."
 }
 

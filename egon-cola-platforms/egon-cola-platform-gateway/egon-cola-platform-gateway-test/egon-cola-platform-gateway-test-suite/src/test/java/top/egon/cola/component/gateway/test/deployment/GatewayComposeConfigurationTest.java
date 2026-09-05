@@ -27,6 +27,122 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class GatewayComposeConfigurationTest {
 
+    @Test
+    void deploymentSeparatesFourRoleReplicasAndPreservesThePublicRoute() throws IOException {
+        Map<String, Object> services = map(compose().get("services"));
+        assertThat(services).containsKeys("gateway-engine", "gateway-engine-2",
+                "gateway-mcp-engine", "gateway-mcp-engine-2", "gateway-data-plane-proxy");
+        var identities = new java.util.HashSet<Object>();
+        var stateVolumes = new java.util.HashSet<String>();
+        for (String name : List.of("gateway-engine", "gateway-engine-2", "gateway-mcp-engine", "gateway-mcp-engine-2")) {
+            var service = map(services.get(name));
+            var environment = map(service.get("environment"));
+            boolean mcp = name.startsWith("gateway-mcp");
+            assertThat(environment).containsEntry("EGON_COLA_COMPONENT_DDC_APP_CODE", "ge")
+                    .containsEntry("EGON_COLA_COMPONENT_DDC_BIZ_CODE", "${GATEWAY_BIZ_CODE}")
+                    .containsEntry("EGON_COLA_COMPONENT_DDC_ENV", "${GATEWAY_ENV:-local}")
+                    .containsEntry("EGON_COLA_COMPONENT_DDC_NAMESPACE", "${GATEWAY_NAMESPACE:-default}");
+            assertThat(identities.add(environment.get("EGON_COLA_COMPONENT_DDC_INSTANCE_ID"))).isTrue();
+            assertThat(stateVolumes.add(String.valueOf(list(service.get("volumes")).getFirst()))).isTrue();
+            assertThat(map(service.get("healthcheck"))).containsKey("test");
+            if (mcp) {
+                assertThat(map(service.get("build")).get("context"))
+                        .isEqualTo("../egon-cola-platform-gateway-mcp-engine");
+                assertThat(environment).containsEntry("GATEWAY_MCP_POSTGRES_URL", "jdbc:postgresql://postgres:5432/gateway_admin")
+                        .containsEntry("GATEWAY_MCP_ARTIFACT_ROOT", "/var/lib/egon-gateway-mcp/artifacts")
+                        .containsEntry("EGON_COLA_COMPONENT_DDC_RPC_AUTH_RUNTIME_ACCESS_KEY", "${GATEWAY_MCP_DDC_RUNTIME_ACCESS_KEY}");
+                assertThat(environment.keySet()).noneMatch(key -> key.contains("GATEWAY_ENGINE_RPC_"));
+            } else {
+                assertThat(environment.keySet()).noneMatch(key -> key.contains("MCP") || key.contains("DATASOURCE"));
+                assertThat(environment).containsEntry("EGON_COLA_COMPONENT_DDC_RPC_AUTH_RUNTIME_ACCESS_KEY", "${DDC_RUNTIME_ACCESS_KEY}");
+            }
+        }
+        var proxy = map(services.get("gateway-data-plane-proxy"));
+        assertThat(list(proxy.get("ports"))).contains("18081:18081");
+        assertThat(list(map(services.get("gateway-engine")).get("ports"))).doesNotContain("18081:18081");
+        String routes = Files.readString(deploymentFile("haproxy.data-plane.cfg"));
+        assertThat(routes).contains("path_beg /mcp/ /legacy/mcp/ /.well-known/oauth-protected-resource/mcp/",
+                "use_backend gateway_mcp_engines if is_mcp", "default_backend gateway_api_rpc_engines",
+                "gateway-mcp-engine:18084", "gateway-mcp-engine-2:18084", "/actuator/health/readiness");
+        assertThat(Files.readString(deploymentFile("haproxy.cfg"))).doesNotContain("gateway_mcp_engines", "path_beg");
+    }
+
+    @Test
+    void allOverlaysPreserveRoleIdentityStateTlsAndPortIsolation() throws IOException {
+        Map<String, Object> base = map(compose().get("services"));
+        var roles = List.of("gateway-engine", "gateway-engine-2", "gateway-mcp-engine", "gateway-mcp-engine-2");
+        for (String file : List.of("compose.ha.yml", "compose.ha-mtls.yml")) {
+            var services = map(compose(file).get("services"));
+            for (String role : roles) {
+                assertThat(map(map(services.get(role)).get("environment")))
+                        .containsEntry("EGON_COLA_COMPONENT_DDC_RPC_TARGET", "dns:///control-plane-proxy:19080");
+            }
+        }
+        var tls = map(compose("compose.mtls.yml").get("services"));
+        for (String role : roles) {
+            var environment = map(map(tls.get(role)).get("environment"));
+            assertThat(environment).containsEntry("EGON_COLA_COMPONENT_DDC_RPC_TLS_CERTIFICATE_CHAIN_PATH",
+                    "/run/egon-tls/" + role + ".crt");
+            assertThat(environment).containsEntry("SERVER_ADDRESS", "0.0.0.0");
+            if (role.startsWith("gateway-mcp")) {
+                assertThat(environment).containsEntry("GATEWAY_MCP_ENGINE_CERTIFICATE_CHAIN_PATH", "/run/egon-tls/" + role + ".crt")
+                        .containsEntry("GATEWAY_MCP_ENGINE_DEVELOPMENT_PLAINTEXT", "false")
+                        .containsEntry("GATEWAY_MCP_ENGINE_OUTBOUND_RPC_DEVELOPMENT_PLAINTEXT", "false");
+            } else {
+                assertThat(environment).containsEntry("EGON_COLA_COMPONENT_GATEWAY_ENGINE_TLS_RELOAD_ENABLED", "false");
+            }
+        }
+        for (var services : List.of(base, tls)) {
+            for (String first : List.of("gateway-engine", "gateway-mcp-engine")) {
+                assertThat(map(map(services.get(first)).get("environment")).keySet())
+                        .containsExactlyInAnyOrderElementsOf(map(map(services.get(first + "-2")).get("environment")).keySet());
+            }
+        }
+        var allServices = new LinkedHashMap<>(base);
+        allServices.putAll(map(compose("compose.demo.yml").get("services")));
+        var ports = new java.util.HashSet<String>();
+        for (Object value : allServices.values()) {
+            Object bindings = map(value).get("ports");
+            if (bindings == null) {
+                continue;
+            }
+            for (Object binding : list(bindings)) {
+                String[] parts = binding.toString().split(":");
+                assertThat(ports.add(parts[parts.length - 2])).as("unique host binding %s", binding).isTrue();
+            }
+        }
+        String routes = Files.readString(deploymentFile("haproxy.data-plane.mtls.cfg"));
+        assertThat(routes).contains("bind *:18081 ssl", "use_backend gateway_mcp_engines if is_mcp")
+                .doesNotContain("verify none", "control-plane-proxy");
+        for (String role : roles) {
+            assertThat(routes).contains("verifyhost " + role + " ca-file /run/egon-tls/ca.crt");
+        }
+    }
+
+    @Test
+    void ddcReplicasLoadACompleteListWithSeparateMcpCredentials() throws IOException {
+        Map<String, Object> config;
+        try (InputStream input = Files.newInputStream(deploymentFile("ddc-rpc-credentials.yml"))) {
+            config = map(new Yaml().load(input));
+        }
+        for (String key : List.of("egon", "cola", "component", "ddc", "admin", "rpc")) {
+            config = map(config.get(key));
+        }
+        var credentials = list(config.get("credentials"));
+        assertThat(credentials).hasSize(5);
+        assertThat(credentials).extracting(value -> map(value).get("credential-id"))
+                .containsExactly("runtime", "registry", "management", "gateway-mcp-runtime", "gateway-mcp-registry");
+        assertThat(map(credentials.get(3))).containsEntry("access-key", "${GATEWAY_MCP_DDC_RUNTIME_ACCESS_KEY}");
+        assertThat(map(credentials.get(4))).containsEntry("access-key", "${GATEWAY_MCP_DDC_REGISTRY_ACCESS_KEY}");
+        for (var entry : Map.of("compose.yml", "ddc-admin", "compose.ha.yml", "ddc-admin-2").entrySet()) {
+            var service = map(map(compose(entry.getKey()).get("services")).get(entry.getValue()));
+            assertThat(map(service.get("environment")))
+                    .containsEntry("SPRING_CONFIG_ADDITIONAL_LOCATION", "file:/run/egon-config/ddc-rpc-credentials.yml")
+                    .containsKeys("GATEWAY_MCP_DDC_RUNTIME_SECRET_KEY", "GATEWAY_MCP_DDC_REGISTRY_SECRET_KEY");
+            assertThat(list(service.get("volumes"))).contains("./ddc-rpc-credentials.yml:/run/egon-config/ddc-rpc-credentials.yml:ro");
+        }
+    }
+
     private static final Path GATEWAY_DEPLOYMENT = Path.of(
             "egon-cola-platforms",
             "egon-cola-platform-gateway",
@@ -323,7 +439,7 @@ class GatewayComposeConfigurationTest {
                 new PropertySourcesPropertyResolver(sources);
 
         assertThat(resolver.getProperty(
-                "egon.cola.component.gateway.reporting.artifact-version"
+                "egon.cola.component.gateway.openapi.artifact-version"
         )).isEqualTo("2.0.0-test");
     }
 
