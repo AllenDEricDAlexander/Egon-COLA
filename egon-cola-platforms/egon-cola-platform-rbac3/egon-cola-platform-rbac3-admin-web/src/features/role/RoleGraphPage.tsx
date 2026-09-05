@@ -33,8 +33,11 @@ type InheritanceFormValues = {
 }
 
 const roleTypes = [
-  {value: 'ACTIVATION_ROOT', label: '激活根角色'},
-  {value: 'BUSINESS', label: '业务角色'},
+  {value: 'PUBLIC', label: '公共角色'},
+  {value: 'POSITION', label: '岗位角色'},
+  {value: 'MANAGEMENT', label: '管理角色'},
+  {value: 'TEMPORARY', label: '临时角色'},
+  {value: 'EMERGENCY', label: '应急角色'},
 ]
 
 const riskLevels = [
@@ -149,7 +152,7 @@ export const RoleGraphPage = ({applicationId}: RoleGraphPageProps) => {
     roleForm.resetFields()
     roleForm.setFieldsValue({
       applicationId: applicationId ?? '',
-      roleType: 'BUSINESS',
+      roleType: 'PUBLIC',
       riskLevel: 'LOW',
       privileged: false,
       status: 'ACTIVE',
@@ -250,8 +253,9 @@ export const RoleGraphPage = ({applicationId}: RoleGraphPageProps) => {
                   <Typography.Text strong>{role.roleName}</Typography.Text>
                   <Typography.Text code>{role.roleCode}</Typography.Text>
                   <Typography.Text type="secondary">APP {role.applicationId}</Typography.Text>
-                  <Tag color={role.roleType === 'ACTIVATION_ROOT' ? 'blue' : 'default'}>
-                    {role.roleType === 'ACTIVATION_ROOT' ? 'Root' : 'Child'}
+                  <Tag>{roleTypes.find((type) => type.value === role.roleType)?.label ?? role.roleType}</Tag>
+                  <Tag color={impact?.activationRoots.includes(role.roleId) ? 'blue' : 'default'}>
+                    {impact ? (impact.activationRoots.includes(role.roleId) ? 'Root' : 'Child') : '层级待确认'}
                   </Tag>
                   {role.status !== 'ACTIVE' && <Tag color="red">Disabled</Tag>}
                   {ambiguous && <Tag color="orange">Ambiguous</Tag>}

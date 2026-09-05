@@ -1,6 +1,6 @@
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {type Rbac3Client, Rbac3Provider} from '@egon-cola/rbac3-react-sdk'
-import {render, screen, waitFor} from '@testing-library/react'
+import {fireEvent, render, screen, waitFor} from '@testing-library/react'
 import type {PropsWithChildren} from 'react'
 import {MemoryRouter} from 'react-router-dom'
 import {describe, expect, it, vi} from 'vitest'
@@ -14,7 +14,7 @@ const wrapper = ({ children }: PropsWithChildren) => {
   const sdk = {
     getAbout: async () => ({
         user: {id: '7', tenantId: '42', identitySub: 'role-test', status: 'ACTIVE'},
-      permissions: ['system:role:read', 'system:role-resource:read'],
+      permissions: ['system:role:read', 'system:role:create', 'system:role-resource:read'],
         fieldPolicies: {}, activeRoleContexts: [], apps: [], menus: [], routes: [], actions: [],
         defaultApplicationCode: null, defaultRoute: null, authVersion: 1, policyVersion: 1,
     }),
@@ -33,10 +33,12 @@ const wrapper = ({ children }: PropsWithChildren) => {
           ],
         }
       : path.includes('impact-analysis')
-        ? { roleId: '2', activationRoots: ['1', '3'], roleFamily: ['2'], effectiveFamilyRisk: 'HIGH', permissionCount: 4, conflicts: ['AMBIGUOUS_ROOT'] }
+        ? path.includes('/1/')
+          ? {roleId: '1', activationRoots: ['1'], roleFamily: ['1', '2'], effectiveFamilyRisk: 'HIGH', permissionCount: 4, conflicts: []}
+          : { roleId: '2', activationRoots: ['1', '3'], roleFamily: ['2'], effectiveFamilyRisk: 'HIGH', permissionCount: 4, conflicts: ['AMBIGUOUS_ROOT'] }
         : [
-          { roleId: '1', applicationId: '71', roleCode: 'ROOT', roleName: '根角色', roleType: 'ACTIVATION_ROOT', riskLevel: 'LOW', privileged: false, status: 'ACTIVE', version: 1 },
-          { roleId: '2', applicationId: '71', roleCode: 'CHILD', roleName: '子角色', roleType: 'BUSINESS', riskLevel: 'HIGH', privileged: false, status: 'DISABLED', version: 2 },
+          { roleId: '1', applicationId: '71', roleCode: 'ROOT', roleName: '根角色', roleType: 'MANAGEMENT', riskLevel: 'LOW', privileged: false, status: 'ACTIVE', version: 1 },
+          { roleId: '2', applicationId: '71', roleCode: 'CHILD', roleName: '子角色', roleType: 'POSITION', riskLevel: 'HIGH', privileged: false, status: 'DISABLED', version: 2 },
         ]) as T,
   }
   return (
@@ -58,7 +60,7 @@ describe('role pages', () => {
     await api.roles('71')
     await api.impact('2')
     await api.create({
-      applicationId: '71', roleCode: 'AUDITOR', roleName: '审计员', roleType: 'BUSINESS',
+      applicationId: '71', roleCode: 'AUDITOR', roleName: '审计员', roleType: 'POSITION',
       riskLevel: 'LOW', privileged: false, landingRouteId: null, landingPriority: 0,
       maximumAssignmentDays: null,
     })
@@ -82,7 +84,7 @@ describe('role pages', () => {
   it('distinguishes root child disabled and ambiguous roles', async () => {
     render(<RoleGraphPage applicationId="71" />, { wrapper })
     await waitFor(() => expect(screen.getByText('根角色')).toBeInTheDocument())
-    expect(screen.getByText('Root')).toBeInTheDocument()
+    expect(await screen.findByText('Root')).toBeInTheDocument()
     expect(screen.getByText('Child')).toBeInTheDocument()
     expect(screen.getByText('Disabled')).toBeInTheDocument()
     expect(screen.getByText('Ambiguous')).toBeInTheDocument()
@@ -93,6 +95,17 @@ describe('role pages', () => {
     await waitFor(() => expect(screen.getByText('用户管理')).toBeInTheDocument())
     expect(screen.getByText(/用户列表/)).toBeInTheDocument()
     expect(screen.queryByText(/system:|permissionId/i)).not.toBeInTheDocument()
+  })
+
+  it('offers the five backend role types instead of treating hierarchy as a type', async () => {
+    render(<RoleGraphPage applicationId="71" />, {wrapper})
+    fireEvent.click(await screen.findByRole('button', {name: '新建角色'}))
+    fireEvent.mouseDown(screen.getByLabelText('角色类型'))
+    for (const label of ['公共角色', '岗位角色', '管理角色', '临时角色', '应急角色']) {
+      expect((await screen.findAllByText(label)).length).toBeGreaterThan(0)
+    }
+    expect(screen.queryByText('激活根角色')).not.toBeInTheDocument()
+    expect(screen.queryByText('业务角色')).not.toBeInTheDocument()
   })
 
   it('exposes resource authorization from every role card', async () => {
