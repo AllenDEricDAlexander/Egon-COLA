@@ -4,12 +4,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.AnnotatedGenericBeanDefinition;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.context.annotation.AnnotationBeanNameGenerator;
 import org.springframework.stereotype.Component;
 import top.egon.cola.platform.idp.admin.oauth.domain.pojo.IdentityClientEntity;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.CreatedOAuthClientVO;
 import top.egon.cola.platform.idp.admin.oauth.domain.vo.OAuthClientVO;
 import top.egon.cola.platform.idp.admin.oauth.repo.IdentityClientRepository;
 import top.egon.cola.platform.idp.admin.oauth.service.OAuthClientService;
+import top.egon.cola.platform.idp.admin.oauth.service.impl.OAuthClientServiceImpl;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityClientResourceGrantEntity;
 import top.egon.cola.platform.idp.admin.resource.domain.pojo.IdentityResourceServerEntity;
 import top.egon.cola.platform.idp.admin.resource.repo.IdentityClientResourceGrantRepository;
@@ -479,7 +483,10 @@ class IdpDevelopmentClientBootstrapTest {
                 ResourceServerProjectionService.class, String.class, String.class);
         var parameters = constructor.getParameters();
         List<String> beanNames = List.of(
-                "oauthClientServiceImpl", "identityResourceServerRepository",
+                new AnnotationBeanNameGenerator().generateBeanName(
+                        new AnnotatedGenericBeanDefinition(OAuthClientServiceImpl.class),
+                        new DefaultListableBeanFactory()),
+                "identityResourceServerRepository",
                 "identityClientResourceGrantRepository", "identityClientRepository",
                 "resourceServerProjectionService");
         for (int index = 0; index < beanNames.size(); index++) {

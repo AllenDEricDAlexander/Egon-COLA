@@ -269,7 +269,7 @@ public class IdpDevelopmentClientBootstrap
 
     /** OAuth Client 管理服务；OAuth Client management service. */
     @NonNull
-    @Qualifier("oauthClientServiceImpl")
+    @Qualifier("OAuthClientServiceImpl")
     private final OAuthClientService clients;
 
     /** Resource Server 仓储；Resource Server repository. */
