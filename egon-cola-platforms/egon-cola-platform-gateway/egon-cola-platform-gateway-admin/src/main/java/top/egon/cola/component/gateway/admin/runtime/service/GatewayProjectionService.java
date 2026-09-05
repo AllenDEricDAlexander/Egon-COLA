@@ -1,8 +1,13 @@
 package top.egon.cola.component.gateway.admin.runtime.service;
 
-
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.validation.annotation.Validated;
+import jakarta.annotation.PostConstruct;
+import jakarta.validation.constraints.NotBlank;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import top.egon.cola.component.ddc.api.client.DdcManagementClient;
 import top.egon.cola.component.ddc.model.management.DdcInstanceStatus;
@@ -39,135 +44,40 @@ import java.util.function.Supplier;
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
-@Service
+@Slf4j
+@RequiredArgsConstructor
+@Validated
+@Service("gatewayProjectionService")
 public class GatewayProjectionService {
 
-    /**
-     * 中文说明：保存 groups 对应的状态、依赖或配置值；字段类型为 {@code GatewayGroupRepository}，由 {@code GatewayProjectionService} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by groups; its type is {@code GatewayGroupRepository}, and {@code GatewayProjectionService} reads or updates it during its lifecycle.
-     *
-     * 用法 / Usage: 该字段通过 {@code GatewayProjectionService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayProjectionService}; do not couple callers to its representation when the owning type exposes an API.
-     */
+    @NonNull
+    @Qualifier("gatewayGroupRepository")
     private final GatewayGroupRepository groups;
-
-    /**
-     * 中文说明：保存 releases 对应的状态、依赖或配置值；字段类型为 {@code GatewayReleaseService}，由 {@code GatewayProjectionService} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by releases; its type is {@code GatewayReleaseService}, and {@code GatewayProjectionService} reads or updates it during its lifecycle.
-     *
-     * 用法 / Usage: 该字段通过 {@code GatewayProjectionService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayProjectionService}; do not couple callers to its representation when the owning type exposes an API.
-     */
+    @NonNull
+    @Qualifier("gatewayReleaseService")
     private final GatewayReleaseService releases;
-
-    /**
-     * 中文说明：保存 客户端 对应的状态、依赖或配置值；字段类型为 {@code DdcManagementClient}，由 {@code GatewayProjectionService} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by client; its type is {@code DdcManagementClient}, and {@code GatewayProjectionService} reads or updates it during its lifecycle.
-     *
-     * 用法 / Usage: 该字段通过 {@code GatewayProjectionService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayProjectionService}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    private final DdcManagementClient client;
-
-    /**
-     * 中文说明：保存 cache 对应的状态、依赖或配置值；字段类型为 {@code Map<String, GatewayProjectionEnvelopeVO<?>>}，由 {@code GatewayProjectionService} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by cache; its type is {@code Map<String, GatewayProjectionEnvelopeVO<?>>}, and {@code GatewayProjectionService} reads or updates it during its lifecycle.
-     *
-     * 用法 / Usage: 该字段通过 {@code GatewayProjectionService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayProjectionService}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    private final Map<String, GatewayProjectionEnvelopeVO<?>> cache =
-            new ConcurrentHashMap<>();
-
-    /**
-     * 中文说明：保存 clock 对应的状态、依赖或配置值；字段类型为 {@code Clock}，由 {@code GatewayProjectionService} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by clock; its type is {@code Clock}, and {@code GatewayProjectionService} reads or updates it during its lifecycle.
-     *
-     * 用法 / Usage: 该字段通过 {@code GatewayProjectionService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayProjectionService}; do not couple callers to its representation when the owning type exposes an API.
-     */
+    @NonNull
+    @Qualifier("ddcManagementClient")
+    private final ObjectProvider<DdcManagementClient> clients;
+    @NonNull
+    @Qualifier("gatewayProjectionClock")
     private final Clock clock;
+    @NonNull
+    @Qualifier("gateway.admin-top.egon.cola.component.gateway.admin.config.GatewayAdminProperties")
+    private final GatewayAdminProperties properties;
+    @NonNull
+    @Qualifier("gatewayEngineRoleConsistencyStrategy")
+    private final GatewayEngineRoleConsistencyStrategy roleStrategy;
 
-    /**
-     * 中文说明：保存 targetBizCode 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayProjectionService} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by target biz code; its type is {@code String}, and {@code GatewayProjectionService} reads or updates it during its lifecycle.
-     *
-     * 用法 / Usage: 该字段通过 {@code GatewayProjectionService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayProjectionService}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    private final String targetBizCode;
+    private final Map<String, GatewayProjectionEnvelopeVO<?>> cache = new ConcurrentHashMap<>();
+    private String targetBizCode;
+    private String targetAppCode;
 
-    /**
-     * 中文说明：保存 targetAppCode 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayProjectionService} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by target app code; its type is {@code String}, and {@code GatewayProjectionService} reads or updates it during its lifecycle.
-     *
-     * 用法 / Usage: 该字段通过 {@code GatewayProjectionService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayProjectionService}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    private final String targetAppCode;
-
-    /**
-     * 中文说明：创建 {@code GatewayProjectionService} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
-     * English summary: Creates an instance of {@code GatewayProjectionService} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
-     *
-     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
-     * @param groups 参数 groups；parameter groups。
-     * @param releases 参数 releases；parameter releases。
-     * @param client 参数 客户端；parameter client。
-     * @param properties 参数 properties；parameter properties。
-     */
-    @Autowired
-    public GatewayProjectionService(
-            GatewayGroupRepository groups,
-            GatewayReleaseService releases,
-            ObjectProvider<DdcManagementClient> client,
-            GatewayAdminProperties properties) {
-        this(
-                groups,
-                releases,
-                client.getIfAvailable(),
-                Clock.systemUTC(),
-                properties.getDdc().getTargetBizCode(),
-                properties.getDdc().getTargetAppCode()
-        );
-    }
-
-    /**
-     * 中文说明：创建 {@code GatewayProjectionService} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
-     * English summary: Creates an instance of {@code GatewayProjectionService} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
-     *
-     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
-     * @param groups 参数 groups；parameter groups。
-     * @param releases 参数 releases；parameter releases。
-     * @param client 参数 客户端；parameter client。
-     * @param clock 参数 clock；parameter clock。
-     */
-    GatewayProjectionService(
-            GatewayGroupRepository groups,
-            GatewayReleaseService releases,
-            DdcManagementClient client,
-            Clock clock) {
-        this(groups, releases, client, clock, "infra", "ge");
-    }
-
-    /**
-     * 中文说明：创建 {@code GatewayProjectionService} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
-     * English summary: Creates an instance of {@code GatewayProjectionService} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
-     *
-     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
-     * @param groups 参数 groups；parameter groups。
-     * @param releases 参数 releases；parameter releases。
-     * @param client 参数 客户端；parameter client。
-     * @param clock 参数 clock；parameter clock。
-     * @param targetBizCode 参数 targetBizCode；parameter target biz code。
-     * @param targetAppCode 参数 targetAppCode；parameter target app code。
-     */
-    GatewayProjectionService(
-            GatewayGroupRepository groups,
-            GatewayReleaseService releases,
-            DdcManagementClient client,
-            Clock clock,
-            String targetBizCode,
-            String targetAppCode) {
-        this.groups = groups;
-        this.releases = releases;
-        this.client = client;
-        this.clock = clock;
-        this.targetBizCode = required(targetBizCode, "targetBizCode");
-        this.targetAppCode = required(targetAppCode, "targetAppCode");
+    /** Captures the validated bootstrap target once, preserving the former constructor semantics. */
+    @PostConstruct
+    void validateBootstrap() {
+        targetBizCode = required(properties.getDdc().getTargetBizCode(), "targetBizCode");
+        targetAppCode = required(properties.getDdc().getTargetAppCode(), "targetAppCode");
     }
 
     /**
@@ -179,7 +89,7 @@ public class GatewayProjectionService {
      * @return 返回 引擎Nodes 的处理结果；returns the result of the operation.
      */
     public GatewayProjectionEnvelopeVO<List<DdcManagementConfigClientInstance>>
-    engineNodes(String gatewayGroupId) {
+    engineNodes(@NotBlank String gatewayGroupId) {
         GatewayGroupPO group = group(gatewayGroupId);
         String key = "engine:" + gatewayGroupId;
         return load(key, "DDC_CONFIG_CLIENT", () -> client()
@@ -291,7 +201,7 @@ public class GatewayProjectionService {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 运行时Consistency 的处理结果；returns the result of the operation.
      */
-    public GatewayRuntimeConsistencyVO runtimeConsistency(String gatewayGroupId) {
+    public GatewayRuntimeConsistencyVO runtimeConsistency(@NotBlank String gatewayGroupId) {
         List<top.egon.cola.component.gateway.admin.release.domain.vo.GatewayReleaseVO> history =
                 releases.history(gatewayGroupId);
         top.egon.cola.component.gateway.admin.release.domain.vo.GatewayReleaseVO target = history.isEmpty()
@@ -303,8 +213,9 @@ public class GatewayProjectionService {
                 target
         );
         GatewayRuleExpectation expectation = expectation(attempt);
-        List<GatewayEngineNodeConsistencyVO> nodeStates = nodes.value().stream()
-                .filter(this::online)
+        List<DdcManagementConfigClientInstance> onlineNodes = nodes.value().stream()
+                .filter(this::online).toList();
+        List<GatewayEngineNodeConsistencyVO> nodeStates = onlineNodes.stream()
                 .map(node -> nodeConsistency(
                         node,
                         target,
@@ -322,6 +233,8 @@ public class GatewayProjectionService {
                 target != null
                         && "SUCCESS".equals(target.status().name())
                         && !nodeStates.isEmpty()
+                        && roleStrategy.missingRoles(onlineNodes).isEmpty()
+                        && !roleStrategy.hasUnknownRole(onlineNodes)
                         && ready == nodeStates.size(),
                 nodes.observedAt(),
                 nodes.source(),
@@ -367,6 +280,10 @@ public class GatewayProjectionService {
             GatewayRuleExpectation expectation) {
         if (!online(node)) {
             return nodeState(node, "NOT_READY", "NODE_OFFLINE");
+        }
+        if (roleStrategy.roleOf(node).isEmpty()) {
+            String role = node.metadata().get(GatewayEngineRoleConsistencyStrategy.ROLE_METADATA_KEY);
+            return nodeState(node, "NOT_READY", role == null || role.isBlank() ? "ROLE_MISSING" : "ROLE_UNKNOWN");
         }
         if (release == null || release.status() !=
                 top.egon.cola.component.gateway.admin.release.domain.enums
@@ -589,6 +506,7 @@ public class GatewayProjectionService {
      * @return 返回 客户端 的处理结果；returns the result of the operation.
      */
     private DdcManagementClient client() {
+        DdcManagementClient client = clients.getIfAvailable();
         if (client == null) {
             throw new IllegalStateException(
                     "DDC management client is not configured"
@@ -826,18 +744,6 @@ public class GatewayProjectionService {
         return value.length() <= 512 ? value : value.substring(0, 512);
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
     /**
      * 中文说明：执行 required 操作；该方法是 {@code GatewayProjectionService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
      * English summary: Executes the required operation; this method is the invocation entry point on {@code GatewayProjectionService} and performs the corresponding runtime, management, or protocol work.
@@ -853,6 +759,5 @@ public class GatewayProjectionService {
         }
         return value.trim();
     }
-
 
 }

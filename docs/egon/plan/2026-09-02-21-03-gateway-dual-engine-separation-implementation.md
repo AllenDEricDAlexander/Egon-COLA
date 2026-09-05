@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Ready` |
 | Created | `2026-09-02 21:03 CST` |
-| Updated | `2026-09-05 07:01 CST` |
+| Updated | `2026-09-05 13:27 CST` |
 | Owner | `Egon-COLA maintainers` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-platform-gateway runtime, Admin projection/Admin Web, gateway test suite, deployment and local operations` |
@@ -312,6 +312,8 @@ The three existing response lifecycle methods `GatewayOutboundHttpResponse.withB
 Step 5 contract clarification: Admin's `McpReleaseContentFactory.managedTool` emits `LOCAL_OPERATION` even for annotation-managed Tools, and Runtime Operation attributes are stringified rather than carrying a new provenance contract. The MCP Strategy must consume the canonical release, reject unsupported source/binding shapes and missing/non-callable Operations, and never query or reconstruct Tool drafts; it must not reject legitimate `LOCAL_OPERATION` or invent a managed-source wire flag. Provenance enforcement remains at the existing Admin annotation projection. The MCP provider view retains canonical non-deprecated Operations for direct capability calls, while HTTP/RPC ingress indexes remain absent.
 
 MCP bootstrap records cover explicit group/env/namespace/node/instance/data-directory identity, one data listener, management port, outbound pool/request/channel limits, role-local TLS and active-health settings. Only actual MCP runtime knobs are included; API-only Kafka/body-logging settings are not copied. Positive duration validation uses the existing Boot-managed Hibernate Validator annotation. Base/operations resources and their parity are implemented in Step 6; no legacy `engine.mcp` setting is renamed.
+
+Step 7 regression-closure clarification: the broader Admin test run revealed two pre-existing failures in `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/GatewayAdminApplicationConfigurationTest.java`. Its isolated DDC registration fixture omits the now-required registration resource URI, and its YAML assertions still require removed IdP admission identity keys. Step 7 may repair this exact test file by supplying a test-only DDC registration URI and asserting the actual resource-server-id/resource-uri contract plus absence of obsolete admission keys. Production IdP/DDC configuration and protocols are unchanged; include the file in the Step 7 commit and rerun the complete Admin unit-test package.
 
 ## 7. Ordered File-by-file Implementation Steps
 

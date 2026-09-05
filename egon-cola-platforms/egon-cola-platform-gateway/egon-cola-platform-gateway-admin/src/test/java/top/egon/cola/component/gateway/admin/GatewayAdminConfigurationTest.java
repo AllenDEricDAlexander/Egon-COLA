@@ -21,6 +21,48 @@ import static org.mockito.Mockito.when;
 class GatewayAdminConfigurationTest {
 
     @Test
+    void projectionClockIsNamedAndIndependentOfOpenApiFlag() throws Exception {
+        Method factory = GatewayAdminConfiguration.class.getDeclaredMethod("gatewayProjectionClock");
+        assertThat(factory.getAnnotation(org.springframework.context.annotation.Bean.class).value())
+                .containsExactly("gatewayProjectionClock");
+        assertThat(factory.getAnnotation(org.springframework.boot.autoconfigure.condition.ConditionalOnProperty.class))
+                .isNull();
+        assertThat(new GatewayAdminConfiguration().gatewayProjectionClock().getZone())
+                .isEqualTo(java.time.ZoneOffset.UTC);
+    }
+
+    @Test
+    void projectionConstructorQualifiesClockAndValidatesGroupBoundary() {
+        Class<?> type = top.egon.cola.component.gateway.admin.runtime.service.GatewayProjectionService.class;
+        assertThat(type.getConstructors()).hasSize(1);
+        assertThat(Arrays.stream(type.getConstructors()[0].getParameters())
+                .map(parameter -> parameter.getAnnotation(org.springframework.beans.factory.annotation.Qualifier.class).value()))
+                .contains("gatewayProjectionClock", "gatewayEngineRoleConsistencyStrategy", "ddcManagementClient");
+        new org.springframework.boot.test.context.runner.ApplicationContextRunner()
+                .withUserConfiguration(type,
+                        top.egon.cola.component.gateway.admin.runtime.service.GatewayEngineRoleConsistencyStrategy.class)
+                .withBean("gatewayGroupRepository", top.egon.cola.component.gateway.admin.group.repository.GatewayGroupRepository.class,
+                        () -> mock(top.egon.cola.component.gateway.admin.group.repository.GatewayGroupRepository.class))
+                .withBean("gatewayReleaseService", top.egon.cola.component.gateway.admin.release.service.GatewayReleaseService.class,
+                        () -> mock(top.egon.cola.component.gateway.admin.release.service.GatewayReleaseService.class))
+                .withBean("gatewayProjectionClock", java.time.Clock.class,
+                        () -> new GatewayAdminConfiguration().gatewayProjectionClock())
+                .withBean("unrelatedClock", java.time.Clock.class, java.time.Clock::systemDefaultZone)
+                .withBean("gateway.admin-top.egon.cola.component.gateway.admin.config.GatewayAdminProperties",
+                        top.egon.cola.component.gateway.admin.config.GatewayAdminProperties.class,
+                        top.egon.cola.component.gateway.admin.config.GatewayAdminProperties::new)
+                .withBean(org.springframework.validation.beanvalidation.MethodValidationPostProcessor.class,
+                        org.springframework.validation.beanvalidation.MethodValidationPostProcessor::new)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    var service = context.getBean(
+                            top.egon.cola.component.gateway.admin.runtime.service.GatewayProjectionService.class);
+                    org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.runtimeConsistency(" "))
+                            .isInstanceOf(jakarta.validation.ConstraintViolationException.class);
+                });
+    }
+
+    @Test
     void createsDdcManagementClientThroughTheDirectRpcFactory() {
         GatewayAdminConfiguration configuration =
                 new GatewayAdminConfiguration();

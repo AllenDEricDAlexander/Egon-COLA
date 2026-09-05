@@ -37,6 +37,7 @@ class GatewayAdminApplicationConfigurationTest {
                             "egon.cola.component.ddc.biz-code=infra",
                             "egon.cola.component.ddc.env=local",
                             "egon.cola.component.ddc.app-code=ga",
+                            "egon.cola.component.ddc.registration-resource-uri=https://resource.example.test/gateway-admin",
                             "egon.cola.component.ddc.registry.http.enabled=true",
                             "egon.cola.component.ddc.registry.http.service-name=egon-cola-gateway-admin",
                             "egon.cola.component.ddc.registry.http.version=5.3.2",
@@ -89,12 +90,8 @@ class GatewayAdminApplicationConfigurationTest {
                 .getProperty("egon.cola.platform.idp.resource-server-id"));
         assertEquals("${GATEWAY_ADMIN_RESOURCE_URI}", properties
                 .getProperty("egon.cola.platform.idp.resource-uri"));
-        assertEquals("${GATEWAY_ADMIN_RESOURCE_BIZ_CODE:platform}", properties
-                .getProperty("egon.cola.platform.idp.admission.biz-code"));
-        assertEquals("${GATEWAY_ADMIN_RESOURCE_APP_CODE:gateway-admin}", properties
-                .getProperty("egon.cola.platform.idp.admission.app-code"));
-        assertEquals("${DEPLOYMENT_ENV}", properties
-                .getProperty("egon.cola.platform.idp.admission.environment"));
+        assertThat(properties.stringPropertyNames())
+                .noneMatch(key -> key.startsWith("egon.cola.platform.idp.admission."));
         assertEquals("${GATEWAY_ADMIN_RESOURCE_BIZ_CODE:platform}", properties
                 .getProperty("egon.cola.component.ddc.biz-code"));
         assertEquals("${DEPLOYMENT_ENV}", properties

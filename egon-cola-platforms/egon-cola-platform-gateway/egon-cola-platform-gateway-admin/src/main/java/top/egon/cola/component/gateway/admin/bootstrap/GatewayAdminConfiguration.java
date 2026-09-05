@@ -1,5 +1,8 @@
 package top.egon.cola.component.gateway.admin.bootstrap;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -58,13 +61,21 @@ import java.util.Set;
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
-@Configuration(proxyBeanMethods = false)
+@Slf4j
+@RequiredArgsConstructor
+@Configuration(value = "gatewayAdminConfiguration", proxyBeanMethods = false)
 @EnableScheduling
 @EnableConfigurationProperties({
         GatewayAdminProperties.class,
         GatewayAdminOpenApiProperties.class
 })
 public class GatewayAdminConfiguration {
+
+    /** Supplies projection timestamps regardless of whether OpenAPI discovery is enabled. */
+    @Bean("gatewayProjectionClock")
+    Clock gatewayProjectionClock() {
+        return Clock.systemUTC();
+    }
 
     /** Creates the bounded JDK HTTP client used by the OpenAPI fetch boundary. */
     @Bean(name = "gatewayOpenApiHttpClient")

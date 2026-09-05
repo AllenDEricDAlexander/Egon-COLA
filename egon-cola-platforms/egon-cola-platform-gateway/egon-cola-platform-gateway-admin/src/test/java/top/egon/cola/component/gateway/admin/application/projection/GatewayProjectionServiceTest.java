@@ -40,13 +40,93 @@ import static org.mockito.Mockito.when;
 class GatewayProjectionServiceTest {
 
     @Test
+    void requiresBothRolesEvenWhenEveryExistingNodeAcknowledgedTheRelease() {
+        var api = roleNode("api-1", "API_RPC", Map.of());
+        assertThat(roleProjection(List.of(api)).consistent()).isFalse();
+        var mcp = roleNode("mcp-1", "MCP", Map.of());
+        assertThat(roleProjection(List.of(api, mcp)).consistent()).isTrue();
+        assertThat(roleProjection(List.of(api, mcp, roleNode("mcp-2", "MCP", Map.of()))))
+                .extracting(value -> value.engineNodeCount(), value -> value.readyEngineNodeCount(),
+                        value -> value.consistent()).containsExactly(3, 3L, true);
+        assertThat(roleProjection(List.of()).consistent()).isFalse();
+    }
+
+    @Test
+    void classifiesMissingAndUnknownRolesBeforeReleaseSkew() {
+        for (String role : new String[]{null, "", " ", "COMBINED", "api_rpc"}) {
+            var projection = roleProjection(List.of(roleNode("node", role, Map.of("activeReleaseId", "old"))));
+            assertThat(projection.consistent()).isFalse();
+            assertThat(projection.readyEngineNodeCount()).isZero();
+            assertThat(projection.nodes()).singleElement().extracting(value -> value.reason())
+                    .isEqualTo(role == null || role.isBlank() ? "ROLE_MISSING" : "ROLE_UNKNOWN");
+        }
+    }
+
+    @Test
+    void ignoresOfflineUnknownNodesWhenBothOnlineRolesAreComplete() {
+        Instant now = Instant.parse("2026-07-25T08:00:00Z");
+        var offline = new DdcManagementConfigClientInstance("infra", "test", "ge", "old-node",
+                "old-lease", "127.0.0.1", 18080, "CONFIG_CLIENT", "OFFLINE",
+                now.minusSeconds(60), now.minusSeconds(30), now.plusSeconds(30), Map.of());
+        var projection = roleProjection(List.of(roleNode("api", "API_RPC", Map.of()),
+                roleNode("mcp", "MCP", Map.of()), offline));
+        assertThat(projection.consistent()).isTrue();
+        assertThat(projection.engineNodeCount()).isEqualTo(2);
+    }
+
+    @Test
+    void roleCompletenessNeverHidesReleaseVersionChecksumOrAckSkew() {
+        for (var mismatch : List.of(
+                Map.entry("activeReleaseId", "RELEASE_MISMATCH"),
+                Map.entry("activeRuleVersion", "VERSION_MISMATCH"),
+                Map.entry("activeRuleChecksum", "CHECKSUM_MISMATCH"),
+                Map.entry("lastApplyStatus", "APPLY_NOT_ACKED"),
+                Map.entry("lastAckAt", "APPLY_NOT_ACKED"))) {
+            var projection = roleProjection(List.of(roleNode("api", "API_RPC", Map.of()),
+                    roleNode("mcp", "MCP", Map.of(mismatch.getKey(), "invalid"))));
+            assertThat(projection.consistent()).isFalse();
+            assertThat(projection.readyEngineNodeCount()).isEqualTo(1);
+            assertThat(projection.nodes().getLast().reason()).isEqualTo(mismatch.getValue());
+        }
+    }
+
+    private top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayRuntimeConsistencyVO roleProjection(
+            List<DdcManagementConfigClientInstance> nodes) {
+        Instant now = Instant.parse("2026-07-25T08:00:00Z");
+        var groups = mock(GatewayGroupRepository.class);
+        var releases = mock(GatewayReleaseService.class);
+        when(groups.findByIdAndDeletedFalse("group-1")).thenReturn(Optional.of(new GatewayGroupPO(
+                "group-1", "edge", "Edge", "test", "gateway", null, "admin", now)));
+        var target = new top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO(
+                "old-node", "old-lease", "SUCCESS", 12L, "artifact-sha", null, now.minusSeconds(5));
+        when(releases.history("group-1")).thenReturn(List.of(release("release-1", target, now)));
+        return projectionService(groups, releases, new StubClient(now, null, null, nodes),
+                Clock.fixed(now, ZoneOffset.UTC)).runtimeConsistency("group-1");
+    }
+
+    private DdcManagementConfigClientInstance roleNode(String id, String role, Map<String, String> overrides) {
+        Instant now = Instant.parse("2026-07-25T08:00:00Z");
+        var metadata = new java.util.LinkedHashMap<>(Map.of(
+                "activeReleaseId", "release-1", "activeRuleVersion", "12",
+                "activeRuleChecksum", "artifact-sha", "lastApplyStatus", "ACK_SUCCESS",
+                "lastAckAt", now.minusSeconds(4).toString()));
+        if (role != null) {
+            metadata.put("gateway.engine.role", role);
+        }
+        metadata.putAll(overrides);
+        return new DdcManagementConfigClientInstance("infra", "test", "ge", id, "lease-" + id,
+                "127.0.0.1", 18080, "CONFIG_CLIENT", "ONLINE",
+                now.minusSeconds(30), now.minusSeconds(2), now.plusSeconds(30), metadata);
+    }
+
+    @Test
     void preservesOptionalFiltersWhenListingProviderServices() {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         DdcManagementClient client = mock(DdcManagementClient.class);
         when(client.getServiceKeys(any())).thenReturn(
                 new DdcManagementServiceCatalog(0, now, List.of())
         );
-        GatewayProjectionService service = new GatewayProjectionService(
+        GatewayProjectionService service = projectionService(
                 mock(GatewayGroupRepository.class),
                 mock(GatewayReleaseService.class),
                 client,
@@ -85,7 +165,7 @@ class GatewayProjectionServiceTest {
         when(client.getInstances(any())).thenReturn(
                 new DdcManagementServiceSnapshot(null, 0, now, List.of())
         );
-        GatewayProjectionService service = new GatewayProjectionService(
+        GatewayProjectionService service = projectionService(
                 mock(GatewayGroupRepository.class),
                 mock(GatewayReleaseService.class),
                 client,
@@ -156,7 +236,7 @@ class GatewayProjectionServiceTest {
                         "test",
                         "gateway"
                 )).thenReturn(List.of());
-        GatewayProjectionService service = new GatewayProjectionService(
+        GatewayProjectionService service = projectionService(
                 groups,
                 mock(top.egon.cola.component.gateway.admin.release.service
                         .GatewayReleaseService.class),
@@ -235,6 +315,7 @@ class GatewayProjectionServiceTest {
                         now.minusSeconds(2),
                         now.plusSeconds(30),
                         Map.of(
+                                "gateway.engine.role", "API_RPC",
                                 "activeReleaseId", "release-1",
                                 "activeRuleVersion", "12",
                                 "activeRuleChecksum", "artifact-sha",
@@ -242,7 +323,7 @@ class GatewayProjectionServiceTest {
                                 "lastAckAt", now.minusSeconds(4).toString()
                         )
                 );
-        GatewayProjectionService service = new GatewayProjectionService(
+        GatewayProjectionService service = projectionService(
                 groups,
                 releases,
                 new StubClient(now, null, null, List.of(engine)),
@@ -251,7 +332,7 @@ class GatewayProjectionServiceTest {
 
         var consistency = service.runtimeConsistency("group-1");
 
-        assertThat(consistency.consistent()).isTrue();
+        assertThat(consistency.consistent()).isFalse();
         assertThat(consistency.readyEngineNodeCount()).isEqualTo(1);
         assertThat(consistency.nodes()).singleElement()
                 .extracting(
@@ -292,6 +373,7 @@ class GatewayProjectionServiceTest {
                 release("release-1", historicalTarget, now)
         ));
         Map<String, String> currentMetadata = Map.of(
+                "gateway.engine.role", "API_RPC",
                 "activeReleaseId", "release-1",
                 "activeRuleVersion", "12",
                 "activeRuleChecksum", "artifact-sha",
@@ -330,7 +412,7 @@ class GatewayProjectionServiceTest {
                         now.plusSeconds(30),
                         currentMetadata
                 );
-        GatewayProjectionService service = new GatewayProjectionService(
+        GatewayProjectionService service = projectionService(
                 groups,
                 releases,
                 new StubClient(
@@ -344,7 +426,7 @@ class GatewayProjectionServiceTest {
 
         var consistency = service.runtimeConsistency("group-1");
 
-        assertThat(consistency.consistent()).isTrue();
+        assertThat(consistency.consistent()).isFalse();
         assertThat(consistency.readyEngineNodeCount()).isEqualTo(2);
         assertThat(consistency.nodes()).extracting(
                 top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayEngineNodeConsistencyVO::status,
@@ -386,6 +468,7 @@ class GatewayProjectionServiceTest {
                 release("release-1", target, now)
         ));
         Map<String, String> currentMetadata = Map.of(
+                "gateway.engine.role", "API_RPC",
                 "activeReleaseId", "release-1",
                 "activeRuleVersion", "12",
                 "activeRuleChecksum", "artifact-sha",
@@ -408,7 +491,7 @@ class GatewayProjectionServiceTest {
                         now.minusSeconds(30), now.minusSeconds(2),
                         now.plusSeconds(30), currentMetadata
                 );
-        GatewayProjectionService service = new GatewayProjectionService(
+        GatewayProjectionService service = projectionService(
                 groups,
                 releases,
                 new StubClient(
@@ -424,7 +507,7 @@ class GatewayProjectionServiceTest {
 
         assertThat(consistency.engineNodeCount()).isEqualTo(1);
         assertThat(consistency.readyEngineNodeCount()).isEqualTo(1);
-        assertThat(consistency.consistent()).isTrue();
+        assertThat(consistency.consistent()).isFalse();
         assertThat(consistency.nodes()).singleElement()
                 .extracting(
                         top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayEngineNodeConsistencyVO
@@ -479,13 +562,14 @@ class GatewayProjectionServiceTest {
                         now.minusSeconds(2),
                         now.plusSeconds(30),
                         Map.of(
+                                "gateway.engine.role", "API_RPC",
                                 "activeReleaseId", "release-0",
                                 "activeRuleVersion", "11",
                                 "activeRuleChecksum", "old-sha",
                                 "lastApplyStatus", "ACK_SUCCESS"
                         )
                 );
-        GatewayProjectionService service = new GatewayProjectionService(
+        GatewayProjectionService service = projectionService(
                 groups,
                 releases,
                 new StubClient(now, null, null, List.of(engine)),
@@ -533,6 +617,21 @@ class GatewayProjectionServiceTest {
                         List.of(target)
                 ))
         );
+    }
+
+
+    private GatewayProjectionService projectionService(GatewayGroupRepository groups, GatewayReleaseService releases,
+                                                        DdcManagementClient client, Clock clock) {
+        var beans = new org.springframework.beans.factory.support.DefaultListableBeanFactory();
+        if (client != null) {
+            beans.registerSingleton("ddcManagementClient", client);
+        }
+        var service = new GatewayProjectionService(groups, releases,
+                beans.getBeanProvider(DdcManagementClient.class), clock,
+                new top.egon.cola.component.gateway.admin.config.GatewayAdminProperties(),
+                new GatewayEngineRoleConsistencyStrategy());
+        service.validateBootstrap();
+        return service;
     }
 
     private record StubClient(
