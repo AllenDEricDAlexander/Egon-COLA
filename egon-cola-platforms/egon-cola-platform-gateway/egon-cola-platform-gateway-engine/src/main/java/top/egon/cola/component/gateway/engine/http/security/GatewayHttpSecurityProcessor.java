@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.http.security;
 
-import top.egon.cola.component.gateway.engine.http.domain.GatewayInboundHttpRequest;
+import top.egon.cola.component.gateway.runtime.http.domain.GatewayInboundHttpRequest;
 
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;

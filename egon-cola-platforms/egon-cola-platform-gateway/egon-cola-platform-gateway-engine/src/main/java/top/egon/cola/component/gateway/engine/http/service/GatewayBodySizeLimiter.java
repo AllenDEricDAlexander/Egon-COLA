@@ -1,14 +1,14 @@
 package top.egon.cola.component.gateway.engine.http.service;
 
-import top.egon.cola.component.gateway.engine.http.service.GatewayOutboundHttpResponse;
+import top.egon.cola.component.gateway.runtime.http.service.GatewayOutboundHttpResponse;
 import top.egon.cola.component.gateway.engine.http.domain.GatewayRequestBodyTooLargeException;
 import top.egon.cola.component.gateway.engine.http.domain.GatewayResponseBodyTooLargeException;
 
 import org.springframework.core.io.buffer.DataBuffer;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import top.egon.cola.component.gateway.engine.http.common.buffer.GatewayDataBufferOwnership;
-import top.egon.cola.component.gateway.engine.http.common.buffer.GatewayDataBufferPipeline;
+import top.egon.cola.component.gateway.runtime.http.common.buffer.GatewayDataBufferOwnership;
+import top.egon.cola.component.gateway.runtime.http.common.buffer.GatewayDataBufferPipeline;
 
 import java.io.ByteArrayOutputStream;
 import java.util.List;

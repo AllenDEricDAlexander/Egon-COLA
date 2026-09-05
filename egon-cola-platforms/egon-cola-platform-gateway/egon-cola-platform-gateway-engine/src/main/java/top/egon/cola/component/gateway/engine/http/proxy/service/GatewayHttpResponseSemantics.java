@@ -1,12 +1,12 @@
 package top.egon.cola.component.gateway.engine.http.proxy.service;
 
-import top.egon.cola.component.gateway.engine.http.service.GatewayOutboundHttpResponse;
+import top.egon.cola.component.gateway.runtime.http.service.GatewayOutboundHttpResponse;
 
 import top.egon.cola.component.gateway.engine.http.proxy.domain.GatewayHttpProxyContext;
 
 import top.egon.cola.component.gateway.contract.rule.GatewayTransportResponseMode;
 import top.egon.cola.component.gateway.engine.http.service.GatewayBodySizeLimiter;
-import top.egon.cola.component.gateway.engine.http.domain.GatewayHttpFlushMode;
+import top.egon.cola.component.gateway.runtime.http.domain.GatewayHttpFlushMode;
 
 import java.util.LinkedHashMap;
 import java.util.List;

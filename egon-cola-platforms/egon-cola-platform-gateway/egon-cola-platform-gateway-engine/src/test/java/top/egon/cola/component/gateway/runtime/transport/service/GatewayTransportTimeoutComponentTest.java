@@ -1,7 +1,7 @@
 package top.egon.cola.component.gateway.runtime.transport.service;
 
-import top.egon.cola.component.gateway.engine.http.service.GatewayOutboundHttpResponse;
-import top.egon.cola.component.gateway.engine.http.service.ReactorNettyHttpUpstreamAdapter;
+import top.egon.cola.component.gateway.runtime.http.service.GatewayOutboundHttpResponse;
+import top.egon.cola.component.gateway.runtime.http.service.ReactorNettyHttpUpstreamAdapter;
 
 import top.egon.cola.component.gateway.runtime.transport.service.GatewayConnectTimeoutException;
 import top.egon.cola.component.gateway.runtime.transport.domain.GatewayStreamDirection;
@@ -16,7 +16,7 @@ import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import top.egon.cola.component.gateway.engine.http.domain.HttpUpstreamRequest;
+import top.egon.cola.component.gateway.runtime.http.domain.HttpUpstreamRequest;
 import top.egon.cola.component.gateway.runtime.transport.fixture.StreamingHttpTestUpstream;
 
 import java.time.Duration;

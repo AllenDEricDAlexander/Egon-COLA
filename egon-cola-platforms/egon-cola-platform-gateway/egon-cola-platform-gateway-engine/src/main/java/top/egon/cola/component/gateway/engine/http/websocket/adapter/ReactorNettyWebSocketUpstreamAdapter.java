@@ -2,13 +2,13 @@ package top.egon.cola.component.gateway.engine.http.websocket.adapter;
 
 import top.egon.cola.component.gateway.runtime.transport.service.GatewayTransportTimeoutException;
 
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayPreparedWebSocketSession;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketCloseStatus;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketFrame;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketFrameType;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketHandshakeResult;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketProxyContext;
-import top.egon.cola.component.gateway.engine.http.websocket.service.GatewayWebSocketPeer;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayPreparedWebSocketSession;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketCloseStatus;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketFrame;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketFrameType;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketHandshakeResult;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketProxyContext;
+import top.egon.cola.component.gateway.runtime.http.websocket.service.GatewayWebSocketPeer;
 import top.egon.cola.component.gateway.engine.http.websocket.service.WebSocketUpstreamAdapter;
 
 import io.netty.buffer.ByteBuf;

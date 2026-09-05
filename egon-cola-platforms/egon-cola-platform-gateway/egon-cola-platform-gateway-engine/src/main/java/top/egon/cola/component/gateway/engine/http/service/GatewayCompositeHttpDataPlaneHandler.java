@@ -1,8 +1,10 @@
 package top.egon.cola.component.gateway.engine.http.service;
 
-import top.egon.cola.component.gateway.engine.http.domain.GatewayHttpFlushMode;
-import top.egon.cola.component.gateway.engine.http.domain.GatewayInboundHttpRequest;
-import top.egon.cola.component.gateway.engine.http.service.GatewayOutboundHttpResponse;
+import top.egon.cola.component.gateway.runtime.http.service.GatewayHttpDataPlaneHandler;
+
+import top.egon.cola.component.gateway.runtime.http.domain.GatewayHttpFlushMode;
+import top.egon.cola.component.gateway.runtime.http.domain.GatewayInboundHttpRequest;
+import top.egon.cola.component.gateway.runtime.http.service.GatewayOutboundHttpResponse;
 
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferLimitException;
@@ -12,9 +14,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
 import top.egon.cola.component.gateway.engine.mcp.service.McpEngineHttpHandler;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayPreparedWebSocketSession;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketHandshakeResult;
-import top.egon.cola.component.gateway.engine.http.websocket.service.GatewayWebSocketPeer;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayPreparedWebSocketSession;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketHandshakeResult;
+import top.egon.cola.component.gateway.runtime.http.websocket.service.GatewayWebSocketPeer;
 import top.egon.cola.component.gateway.mcp.common.transport.McpHttpRequest;
 import top.egon.cola.component.gateway.mcp.common.transport.McpHttpResponse;
 

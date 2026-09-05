@@ -1,13 +1,13 @@
 package top.egon.cola.component.gateway.engine.http.websocket.adapter;
 
 import top.egon.cola.component.gateway.runtime.transport.service.GatewayCommitPoint;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketCloseStatus;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketFrame;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketFrameType;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketHandshakeResult;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketProxyContext;
-import top.egon.cola.component.gateway.engine.http.websocket.service.GatewayWebSocketObserver;
-import top.egon.cola.component.gateway.engine.http.websocket.service.GatewayWebSocketPeer;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketCloseStatus;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketFrame;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketFrameType;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketHandshakeResult;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketProxyContext;
+import top.egon.cola.component.gateway.runtime.http.websocket.service.GatewayWebSocketObserver;
+import top.egon.cola.component.gateway.runtime.http.websocket.service.GatewayWebSocketPeer;
 import top.egon.cola.component.gateway.engine.http.websocket.service.GatewayWebSocketProxy;
 
 import io.netty.handler.ssl.SslContext;

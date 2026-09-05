@@ -1,11 +1,15 @@
 package top.egon.cola.component.gateway.engine.http.websocket.service;
 
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayPreparedWebSocketSession;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketCloseStatus;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketFrame;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketFrameType;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketHandshakeResult;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketProxyContext;
+import top.egon.cola.component.gateway.runtime.http.websocket.service.GatewayWebSocketObserver;
+
+import top.egon.cola.component.gateway.runtime.http.websocket.service.GatewayWebSocketPeer;
+
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayPreparedWebSocketSession;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketCloseStatus;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketFrame;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketFrameType;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketHandshakeResult;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketProxyContext;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.buffer.DataBuffer;

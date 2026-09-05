@@ -4,7 +4,7 @@ import org.springframework.core.io.buffer.DataBuffer;
 import reactor.core.publisher.Flux;
 import top.egon.cola.component.gateway.core.provider.ProviderInstance;
 import top.egon.cola.component.gateway.core.transport.EffectiveGatewayTransportPolicy;
-import top.egon.cola.component.gateway.engine.http.adapter.HttpUpstreamAdapter;
+import top.egon.cola.component.gateway.runtime.http.adapter.HttpUpstreamAdapter;
 import top.egon.cola.component.gateway.engine.http.common.logging.GatewayBodyLogDirection;
 import top.egon.cola.component.gateway.engine.http.common.logging.GatewayBodyLogEvent;
 import top.egon.cola.component.gateway.engine.http.common.logging.GatewayBodyLogTap;

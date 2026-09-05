@@ -14,7 +14,7 @@ import org.springframework.core.io.buffer.NettyDataBuffer;
 import org.springframework.core.io.buffer.NettyDataBufferFactory;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
-import top.egon.cola.component.gateway.engine.http.common.buffer.GatewayDataBufferPipeline;
+import top.egon.cola.component.gateway.runtime.http.common.buffer.GatewayDataBufferPipeline;
 
 import java.time.Duration;
 import java.util.List;

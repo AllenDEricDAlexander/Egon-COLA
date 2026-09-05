@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.http.proxy.service;
 
-import top.egon.cola.component.gateway.engine.http.service.GatewayOutboundHttpResponse;
+import top.egon.cola.component.gateway.runtime.http.service.GatewayOutboundHttpResponse;
 
 import top.egon.cola.component.gateway.engine.http.proxy.domain.GatewayHttpProxyContext;
 

@@ -1,13 +1,15 @@
 package top.egon.cola.component.gateway.engine.http.service;
 
+import top.egon.cola.component.gateway.runtime.http.service.GatewayHttpDataPlaneHandler;
+
 import top.egon.cola.component.gateway.runtime.traffic.service.GatewayTrafficContext;
 
 import top.egon.cola.component.gateway.runtime.provider.service.ProviderCallOutcomeRecorder;
-import top.egon.cola.component.gateway.engine.http.adapter.HttpUpstreamAdapter;
+import top.egon.cola.component.gateway.runtime.http.adapter.HttpUpstreamAdapter;
 import top.egon.cola.component.gateway.engine.http.cors.GatewayCorsException;
 import top.egon.cola.component.gateway.engine.http.cors.GatewayCorsProcessor;
-import top.egon.cola.component.gateway.engine.http.domain.GatewayInboundHttpRequest;
-import top.egon.cola.component.gateway.engine.http.service.GatewayOutboundHttpResponse;
+import top.egon.cola.component.gateway.runtime.http.domain.GatewayInboundHttpRequest;
+import top.egon.cola.component.gateway.runtime.http.service.GatewayOutboundHttpResponse;
 import top.egon.cola.component.gateway.engine.http.domain.GatewayRequestBodyTooLargeException;
 import top.egon.cola.component.gateway.engine.http.domain.GatewayResponseBodyTooLargeException;
 import top.egon.cola.component.gateway.engine.http.security.GatewayHttpSecurityProcessor;
@@ -38,7 +40,7 @@ import top.egon.cola.component.gateway.runtime.provider.domain.ProviderSelection
 import top.egon.cola.component.gateway.engine.http.cors.RuntimeCorsPolicy;
 import top.egon.cola.component.gateway.runtime.provider.domain.ProviderCallOutcome;
 import top.egon.cola.component.gateway.runtime.provider.service.ProviderSelector;
-import top.egon.cola.component.gateway.engine.http.common.buffer.GatewayDataBufferOwnership;
+import top.egon.cola.component.gateway.runtime.http.common.buffer.GatewayDataBufferOwnership;
 import top.egon.cola.component.gateway.engine.http.common.logging.GatewayBodyLogEvent;
 import top.egon.cola.component.gateway.engine.http.common.logging.GatewayBodyLogTap;
 import top.egon.cola.component.gateway.engine.http.proxy.service.AggregatedHttpProxyStrategy;
@@ -50,7 +52,7 @@ import top.egon.cola.component.gateway.engine.http.common.logging.GatewayCallAcc
 import top.egon.cola.component.gateway.runtime.observability.service.GatewayCallCompletionListener;
 import top.egon.cola.component.gateway.runtime.observability.domain.GatewayCallObservation;
 import top.egon.cola.component.gateway.runtime.observability.domain.GatewayTelemetry;
-import top.egon.cola.component.gateway.engine.operation.adapter.HttpRpcUpstreamAdapter;
+import top.egon.cola.component.gateway.runtime.operation.adapter.HttpRpcUpstreamAdapter;
 import top.egon.cola.component.gateway.runtime.security.domain.GatewaySecurityException;
 import top.egon.cola.component.gateway.runtime.security.service.TrustedIdentitySanitizer;
 import top.egon.cola.component.gateway.runtime.traffic.service.GatewayRequestResourceGuard;
@@ -61,13 +63,13 @@ import top.egon.cola.component.gateway.runtime.traffic.domain.ProviderCallClassi
 import top.egon.cola.component.gateway.runtime.transport.service.GatewayCommitGuard;
 import top.egon.cola.component.gateway.runtime.transport.service.GatewayCommitPoint;
 import top.egon.cola.component.gateway.engine.http.service.GatewayTransportDispatcher;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayPreparedWebSocketSession;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketFrameType;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketHandshakeResult;
-import top.egon.cola.component.gateway.engine.http.websocket.service.GatewayWebSocketObserver;
-import top.egon.cola.component.gateway.engine.http.websocket.service.GatewayWebSocketPeer;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayPreparedWebSocketSession;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketFrameType;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketHandshakeResult;
+import top.egon.cola.component.gateway.runtime.http.websocket.service.GatewayWebSocketObserver;
+import top.egon.cola.component.gateway.runtime.http.websocket.service.GatewayWebSocketPeer;
 import top.egon.cola.component.gateway.engine.http.websocket.service.GatewayWebSocketProxy;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketProxyContext;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketProxyContext;
 import top.egon.cola.component.gateway.engine.http.websocket.adapter.ReactorNettyWebSocketUpstreamAdapter;
 
 import java.net.URLDecoder;

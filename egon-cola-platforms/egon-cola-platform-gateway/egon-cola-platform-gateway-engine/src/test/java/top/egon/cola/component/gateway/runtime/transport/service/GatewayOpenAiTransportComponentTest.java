@@ -1,9 +1,9 @@
 package top.egon.cola.component.gateway.runtime.transport.service;
 
-import top.egon.cola.component.gateway.engine.http.service.GatewayOutboundHttpResponse;
-import top.egon.cola.component.gateway.engine.http.service.ReactorNettyHttpUpstreamAdapter;
+import top.egon.cola.component.gateway.runtime.http.service.GatewayOutboundHttpResponse;
+import top.egon.cola.component.gateway.runtime.http.service.ReactorNettyHttpUpstreamAdapter;
 
-import top.egon.cola.component.gateway.engine.http.websocket.service.GatewayWebSocketObserver;
+import top.egon.cola.component.gateway.runtime.http.websocket.service.GatewayWebSocketObserver;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,20 +19,20 @@ import top.egon.cola.component.gateway.contract.rule.GatewayRouteProfile;
 import top.egon.cola.component.gateway.contract.rule.GatewayTransportProtocol;
 import top.egon.cola.component.gateway.contract.rule.GatewayTransportResponseMode;
 import top.egon.cola.component.gateway.core.transport.EffectiveGatewayTransportPolicy;
-import top.egon.cola.component.gateway.engine.http.domain.GatewayHttpEngineProperties;
+import top.egon.cola.component.gateway.runtime.http.domain.GatewayHttpEngineProperties;
 import top.egon.cola.component.gateway.engine.http.service.GatewayHttpServer;
 import top.egon.cola.component.gateway.engine.http.domain.GatewayRequestBodyTooLargeException;
 import top.egon.cola.component.gateway.engine.http.proxy.domain.GatewayHttpProxyContext;
 import top.egon.cola.component.gateway.engine.http.proxy.service.StreamingHttpProxyStrategy;
 import top.egon.cola.component.gateway.runtime.transport.fixture.StreamingHttpTestUpstream;
 import top.egon.cola.component.gateway.runtime.transport.fixture.WebSocketTestUpstream;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketCloseStatus;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketFrame;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketFrameType;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketHandshakeResult;
-import top.egon.cola.component.gateway.engine.http.websocket.service.GatewayWebSocketPeer;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketCloseStatus;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketFrame;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketFrameType;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketHandshakeResult;
+import top.egon.cola.component.gateway.runtime.http.websocket.service.GatewayWebSocketPeer;
 import top.egon.cola.component.gateway.engine.http.websocket.service.GatewayWebSocketProxy;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketProxyContext;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketProxyContext;
 import top.egon.cola.component.gateway.engine.http.websocket.adapter.ReactorNettyWebSocketUpstreamAdapter;
 
 import java.io.ByteArrayOutputStream;
@@ -364,7 +364,7 @@ class GatewayOpenAiTransportComponentTest {
                             List.of("realtime", "fallback"),
                             websocketPolicy(),
                             GatewayCommitGuard.websocket(),
-                                    top.egon.cola.component.gateway.engine.http.websocket.service
+                            top.egon.cola.component.gateway.runtime.http.websocket.service
                                     .GatewayWebSocketObserver.noop()
                     );
             GatewayWebSocketHandshakeResult.Accepted accepted =

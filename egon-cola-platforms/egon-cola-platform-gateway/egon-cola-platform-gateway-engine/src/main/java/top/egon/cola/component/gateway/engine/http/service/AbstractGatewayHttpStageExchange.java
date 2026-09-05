@@ -1,7 +1,7 @@
 package top.egon.cola.component.gateway.engine.http.service;
 
-import top.egon.cola.component.gateway.engine.http.domain.GatewayInboundHttpRequest;
-import top.egon.cola.component.gateway.engine.http.service.GatewayOutboundHttpResponse;
+import top.egon.cola.component.gateway.runtime.http.domain.GatewayInboundHttpRequest;
+import top.egon.cola.component.gateway.runtime.http.service.GatewayOutboundHttpResponse;
 
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
@@ -20,7 +20,7 @@ import top.egon.cola.component.gateway.core.exchange.GatewayResponse;
 import top.egon.cola.component.gateway.core.exchange.ImmutableGatewayHeaders;
 import top.egon.cola.component.gateway.core.filter.GatewayFilterChain;
 import top.egon.cola.component.gateway.contract.trace.GatewayTraceContext;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketHandshakeResult;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketHandshakeResult;
 
 import java.util.List;
 import java.util.Map;

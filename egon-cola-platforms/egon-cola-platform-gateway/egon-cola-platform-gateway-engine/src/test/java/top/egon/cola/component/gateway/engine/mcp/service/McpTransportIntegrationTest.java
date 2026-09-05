@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.mcp.service;
 
-import top.egon.cola.component.gateway.engine.http.service.GatewayOutboundHttpResponse;
+import top.egon.cola.component.gateway.runtime.http.service.GatewayOutboundHttpResponse;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,7 +11,7 @@ import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuleContent;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeServer;
 import top.egon.cola.component.gateway.engine.http.service.GatewayCompositeHttpDataPlaneHandler;
-import top.egon.cola.component.gateway.engine.http.domain.GatewayHttpEngineProperties;
+import top.egon.cola.component.gateway.runtime.http.domain.GatewayHttpEngineProperties;
 import top.egon.cola.component.gateway.engine.http.service.GatewayHttpServer;
 import top.egon.cola.component.gateway.runtime.security.domain.GatewayTransportSecurity;
 import top.egon.cola.component.gateway.engine.mcp.adapter.SharedMcpTransportStore;

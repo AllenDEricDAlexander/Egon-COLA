@@ -39,6 +39,28 @@ class GatewayRuntimePackageBoundaryTest {
     }
 
     @Test
+    void ownsReusableListenersAndOutboundCallsWithoutApiIngress() {
+        for (String shared : List.of(
+                "http/service/GatewayHttpListener.java",
+                "http/adapter/HttpUpstreamAdapter.java",
+                "rpc/adapter/RpcProviderChannelCache.java",
+                "rpc/adapter/ProtobufDescriptorRegistry.java",
+                "operation/service/EngineGatewayOperationInvoker.java"
+        )) {
+            assertTrue(Files.isRegularFile(SOURCE_ROOT.resolve(shared)), shared);
+        }
+        for (String ingress : List.of(
+                "http/service/GatewayHttpServer.java",
+                "http/service/DefaultGatewayHttpDataPlaneHandler.java",
+                "http/websocket/service/GatewayWebSocketProxy.java",
+                "rpc/service/RpcGatewayServer.java",
+                "rpc/service/RpcGatewayForwarder.java"
+        )) {
+            assertFalse(Files.exists(SOURCE_ROOT.resolve(ingress)), ingress);
+        }
+    }
+
+    @Test
     void doesNotDependOnExecutableModules() throws IOException {
         String pom = Files.readString(Path.of("pom.xml"));
         for (String artifact : List.of(

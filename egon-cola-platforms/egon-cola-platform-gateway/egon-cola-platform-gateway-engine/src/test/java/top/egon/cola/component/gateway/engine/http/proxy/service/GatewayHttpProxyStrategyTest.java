@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.http.proxy.service;
 
-import top.egon.cola.component.gateway.engine.http.service.GatewayOutboundHttpResponse;
+import top.egon.cola.component.gateway.runtime.http.service.GatewayOutboundHttpResponse;
 
 import top.egon.cola.component.gateway.engine.http.proxy.domain.GatewayHttpProxyContext;
 
@@ -20,9 +20,9 @@ import top.egon.cola.component.gateway.core.provider.ProviderRegistryState;
 import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
 import top.egon.cola.component.gateway.core.transport.EffectiveGatewayTransportPolicy;
 import top.egon.cola.component.gateway.engine.http.service.GatewayDataBufferTestSupport;
-import top.egon.cola.component.gateway.engine.http.domain.GatewayHttpFlushMode;
-import top.egon.cola.component.gateway.engine.http.adapter.HttpUpstreamAdapter;
-import top.egon.cola.component.gateway.engine.http.domain.HttpUpstreamRequest;
+import top.egon.cola.component.gateway.runtime.http.domain.GatewayHttpFlushMode;
+import top.egon.cola.component.gateway.runtime.http.adapter.HttpUpstreamAdapter;
+import top.egon.cola.component.gateway.runtime.http.domain.HttpUpstreamRequest;
 import top.egon.cola.component.gateway.engine.http.common.logging.GatewayBodyLogDirection;
 import top.egon.cola.component.gateway.engine.http.common.logging.GatewayBodyLogEvent;
 

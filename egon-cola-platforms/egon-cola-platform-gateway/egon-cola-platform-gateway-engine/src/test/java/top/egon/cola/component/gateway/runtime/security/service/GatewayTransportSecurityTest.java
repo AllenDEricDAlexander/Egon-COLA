@@ -4,7 +4,7 @@ import top.egon.cola.component.gateway.runtime.security.domain.GatewayTransportS
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import top.egon.cola.component.gateway.engine.http.domain.GatewayHttpEngineProperties;
+import top.egon.cola.component.gateway.runtime.http.domain.GatewayHttpEngineProperties;
 
 import java.io.IOException;
 import java.nio.file.Files;

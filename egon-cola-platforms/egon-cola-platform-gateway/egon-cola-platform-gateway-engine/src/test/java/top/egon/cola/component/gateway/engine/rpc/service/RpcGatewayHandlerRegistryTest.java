@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.rpc.service;
 
-import top.egon.cola.component.gateway.engine.rpc.adapter.RpcProviderChannelCache;
+import top.egon.cola.component.gateway.runtime.rpc.adapter.RpcProviderChannelCache;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcMethodIndex;
 
 import org.junit.jupiter.api.Test;

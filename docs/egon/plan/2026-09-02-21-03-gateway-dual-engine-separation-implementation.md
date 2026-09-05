@@ -305,6 +305,10 @@ Step 2 validation refinement: the original reactor-wide `*Provider*Test` selecto
 
 Step 3 compile-closure refinement: update the two existing suite consumers `test/mcp/McpHaRecoveryIT.java` and `test/live/GatewayRuleWireCompatibilityTest.java` in the same Step (imports/generic type arguments only). The runtime-core and Engine POMs may declare the already-managed provided Lombok dependency required by affected business classes; compiler annotation processing is already configured in the platform parent. These changes close the current source/annotation dependencies without a new library version or public protocol change.
 
+Step 4 compile-closure refinement: the listener/upstream dependencies also require `GatewayHttpFlushMode`, `GatewayHeaderFilter`, generic `GatewayDataBufferOwnership`/`GatewayDataBufferPipeline`, and the WebSocket prepared-session/context/frame/observer/peer value-port slice including `ReactorNettyWebSocketPeer`. Move that minimal closure unchanged; keep GatewayHttpServer, GatewayWebSocketProxy, route/security/default handlers and body-logging orchestration in the API Engine. Operation services consume the already-approved GatewayCompiledRulesDTO view, not the executable's compiled record. Existing cross-module test consumers receive import-only updates; independent operation tests use a test-only minimal immutable compiled DTO rather than depending on the API compiler. The same Gateway-package restriction used in Step 2 applies to the broad `*RpcProvider*Test` selector; do not count the upstream AccessGuard failure as passed.
+
+The three existing response lifecycle methods `GatewayOutboundHttpResponse.withBody`, `onAbandon`, and `abandon` become public Java library methods so the unchanged API handlers and future MCP server can call them across packages. Bodies and ownership semantics do not change; this is internal Java visibility, not a new HTTP/RPC contract. Preserve their idempotence/discard tests. Move the buffer/operation package metadata with their implementations, and do not rely on empty source directories in boundary tests.
+
 ## 7. Ordered File-by-file Implementation Steps
 
 ### Step 1 — Publish the two-role Engine contract
@@ -693,7 +697,7 @@ assert tests call fake provider adapters directly and never configure an API Eng
 - After this file: both roles can later inject one shared direct-operation invoker.
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine -am '-Dtest=GatewayDataBuffer*Test,GatewayHttp*Test,GatewayOutboundHttpResponseTest,GatewayWebSocketFrameTest,*RpcProvider*Test,HttpRpcDynamicMessageBridgeTest,HttpRpcUpstreamAdapterTest,EngineGatewayOperationInvokerTest' -Dsurefire.failIfNoSpecifiedTests=false test`
+- Verification command: `./mvnw -q -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine -am '-Dtest=GatewayDataBuffer*Test,GatewayHttp*Test,GatewayOutboundHttpResponseTest,GatewayWebSocketFrameTest,%regex[top/egon/cola/component/gateway/.*RpcProvider.*Test.class],HttpRpcDynamicMessageBridgeTest,HttpRpcUpstreamAdapterTest,EngineGatewayOperationInvokerTest,GatewayRuntimePackageBoundaryTest,GatewayEnginePackageBoundaryTest' -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: exit 0; shared transport/operation tests and API Engine compile pass; runtime-core scan has no ingress package.
 - Failure returns to: File 1/2 for incomplete compile closure; File 3 for direct-invocation or snapshot coupling.
 - Completion criteria: runtime-core owns reusable transport/outbound operation only; API Engine remains the sole API/RPC ingress owner.

@@ -22,7 +22,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.env.MapPropertySource;
-import top.egon.cola.component.gateway.engine.http.domain.GatewayHttpEngineProperties;
+import top.egon.cola.component.gateway.runtime.http.domain.GatewayHttpEngineProperties;
 import top.egon.cola.component.gateway.runtime.traffic.service.RedisTokenBucketExecutor;
 import top.egon.cola.component.gateway.runtime.traffic.adapter.RedissonRedisTokenBucketExecutor;
 

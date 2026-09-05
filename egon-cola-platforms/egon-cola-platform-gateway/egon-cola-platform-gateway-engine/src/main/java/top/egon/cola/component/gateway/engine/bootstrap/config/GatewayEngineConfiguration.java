@@ -2,14 +2,14 @@ package top.egon.cola.component.gateway.engine.bootstrap.config;
 
 import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
 
-import top.egon.cola.component.gateway.engine.http.service.ReactorNettyHttpUpstreamAdapter;
+import top.egon.cola.component.gateway.runtime.http.service.ReactorNettyHttpUpstreamAdapter;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcMethodIndex;
 
 import top.egon.cola.component.gateway.engine.bootstrap.lifecycle.GatewayEngineRuntime;
 import top.egon.cola.component.gateway.engine.common.config.GatewayEngineRuntimeProperties;
 import top.egon.cola.component.gateway.runtime.provider.domain.ProviderSelectionPolicy;
 import top.egon.cola.component.gateway.runtime.provider.service.ProviderCandidateFilter;
-import top.egon.cola.component.gateway.engine.http.adapter.HttpUpstreamAdapter;
+import top.egon.cola.component.gateway.runtime.http.adapter.HttpUpstreamAdapter;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.binder.MeterBinder;
@@ -59,10 +59,10 @@ import top.egon.cola.component.gateway.runtime.provider.domain.PassiveHealthPoli
 import top.egon.cola.component.gateway.runtime.provider.service.PassiveHealthTracker;
 import top.egon.cola.component.gateway.runtime.provider.service.ProviderActiveHealthMonitor;
 import top.egon.cola.component.gateway.runtime.provider.service.ProviderDirectory;
-import top.egon.cola.component.gateway.engine.rpc.adapter.RpcProviderActiveHealthProbe;
+import top.egon.cola.component.gateway.runtime.rpc.adapter.RpcProviderActiveHealthProbe;
 import top.egon.cola.component.gateway.engine.http.service.DefaultGatewayHttpDataPlaneHandler;
 import top.egon.cola.component.gateway.engine.http.service.GatewayCompositeHttpDataPlaneHandler;
-import top.egon.cola.component.gateway.engine.http.domain.GatewayHttpEngineProperties;
+import top.egon.cola.component.gateway.runtime.http.domain.GatewayHttpEngineProperties;
 import top.egon.cola.component.gateway.engine.http.service.GatewayHttpServer;
 import top.egon.cola.component.gateway.engine.http.security.RuleBackedHttpGatewaySecurityProcessor;
 import top.egon.cola.component.gateway.engine.http.proxy.service.AggregatedHttpProxyStrategy;
@@ -93,15 +93,15 @@ import top.egon.cola.component.gateway.runtime.observability.service.GatewayCall
 import top.egon.cola.component.gateway.runtime.observability.service.GatewayCallMetricsListener;
 import top.egon.cola.component.gateway.runtime.observability.domain.GatewayTelemetry;
 import top.egon.cola.component.gateway.runtime.observability.adapter.KafkaGatewayCallEventSink;
-import top.egon.cola.component.gateway.engine.operation.adapter.DefaultGatewayOperationTransport;
-import top.egon.cola.component.gateway.engine.operation.service.EngineGatewayOperationInvoker;
-import top.egon.cola.component.gateway.engine.operation.adapter.HttpRpcUpstreamAdapter;
+import top.egon.cola.component.gateway.runtime.operation.adapter.DefaultGatewayOperationTransport;
+import top.egon.cola.component.gateway.runtime.operation.service.EngineGatewayOperationInvoker;
+import top.egon.cola.component.gateway.runtime.operation.adapter.HttpRpcUpstreamAdapter;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewayForwarder;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewayHandlerRegistry;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewayServer;
 import top.egon.cola.component.gateway.engine.rpc.domain.RpcGatewaySlotProperties;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewaySlotRuntime;
-import top.egon.cola.component.gateway.engine.rpc.adapter.RpcProviderChannelCache;
+import top.egon.cola.component.gateway.runtime.rpc.adapter.RpcProviderChannelCache;
 import top.egon.cola.component.gateway.engine.rpc.security.RuleBackedRpcGatewaySecurityProcessor;
 import top.egon.cola.component.gateway.engine.rule.service.EngineGatewayRuleCompiler;
 import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleActivationApplier;

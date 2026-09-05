@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.http.service;
 
-import top.egon.cola.component.gateway.engine.http.service.GatewayOutboundHttpResponse;
+import top.egon.cola.component.gateway.runtime.http.service.GatewayOutboundHttpResponse;
 
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
@@ -12,7 +12,7 @@ import top.egon.cola.component.gateway.core.filter.DefaultGatewayFilterChain;
 import top.egon.cola.component.gateway.core.filter.GatewayFilter;
 import top.egon.cola.component.gateway.core.filter.GatewayFilterChain;
 import top.egon.cola.component.gateway.core.filter.GatewayFilterStage;
-import top.egon.cola.component.gateway.engine.http.websocket.domain.GatewayWebSocketHandshakeResult;
+import top.egon.cola.component.gateway.runtime.http.websocket.domain.GatewayWebSocketHandshakeResult;
 
 import java.util.List;
 

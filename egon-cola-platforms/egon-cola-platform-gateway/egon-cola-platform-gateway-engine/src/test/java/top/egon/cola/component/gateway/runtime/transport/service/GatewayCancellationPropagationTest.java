@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.runtime.transport.service;
 
-import top.egon.cola.component.gateway.engine.http.service.ReactorNettyHttpUpstreamAdapter;
+import top.egon.cola.component.gateway.runtime.http.service.ReactorNettyHttpUpstreamAdapter;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -12,7 +12,7 @@ import top.egon.cola.component.gateway.contract.rule.GatewayRouteProfile;
 import top.egon.cola.component.gateway.contract.rule.GatewayTransportProtocol;
 import top.egon.cola.component.gateway.contract.rule.GatewayTransportResponseMode;
 import top.egon.cola.component.gateway.core.transport.EffectiveGatewayTransportPolicy;
-import top.egon.cola.component.gateway.engine.http.domain.GatewayHttpEngineProperties;
+import top.egon.cola.component.gateway.runtime.http.domain.GatewayHttpEngineProperties;
 import top.egon.cola.component.gateway.engine.http.service.GatewayHttpServer;
 import top.egon.cola.component.gateway.engine.http.domain.GatewayRequestBodyTooLargeException;
 import top.egon.cola.component.gateway.engine.http.proxy.domain.GatewayHttpProxyContext;

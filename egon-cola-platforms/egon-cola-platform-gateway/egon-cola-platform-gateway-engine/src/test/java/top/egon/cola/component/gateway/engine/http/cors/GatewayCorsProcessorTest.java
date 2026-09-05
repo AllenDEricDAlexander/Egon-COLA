@@ -1,8 +1,8 @@
 package top.egon.cola.component.gateway.engine.http.cors;
 
-import top.egon.cola.component.gateway.engine.http.service.GatewayOutboundHttpResponse;
+import top.egon.cola.component.gateway.runtime.http.service.GatewayOutboundHttpResponse;
 
-import top.egon.cola.component.gateway.engine.http.domain.GatewayInboundHttpRequest;
+import top.egon.cola.component.gateway.runtime.http.domain.GatewayInboundHttpRequest;
 import top.egon.cola.component.gateway.engine.http.service.GatewayDataBufferTestSupport;
 
 import org.junit.jupiter.api.Test;

@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.http.proxy.service;
 
-import top.egon.cola.component.gateway.engine.http.service.GatewayOutboundHttpResponse;
+import top.egon.cola.component.gateway.runtime.http.service.GatewayOutboundHttpResponse;
 
 import top.egon.cola.component.gateway.engine.http.proxy.domain.GatewayHttpProxyContext;
 
@@ -8,7 +8,7 @@ import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.gateway.engine.http.service.GatewayBodySizeLimiter;
-import top.egon.cola.component.gateway.engine.http.domain.HttpUpstreamRequest;
+import top.egon.cola.component.gateway.runtime.http.domain.HttpUpstreamRequest;
 import top.egon.cola.component.gateway.engine.http.common.logging.GatewayBodyLogDirection;
 
 /**
