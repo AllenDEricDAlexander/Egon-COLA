@@ -2,7 +2,7 @@ package top.egon.cola.component.gateway.engine;
 
 import top.egon.cola.component.gateway.engine.bootstrap.config.GatewayEngineConfiguration;
 import top.egon.cola.component.gateway.engine.common.config.GatewayEngineRuntimeProperties;
-import top.egon.cola.component.gateway.engine.rule.service.EngineGatewayRuleCompiler;
+import top.egon.cola.component.gateway.engine.rule.service.ApiRpcGatewayRuleCompilerStrategy;
 import top.egon.cola.component.gateway.core.transport.GatewayTransportDefaults;
 import top.egon.cola.component.gateway.core.transport.GatewayTransportSafetyLimits;
 import top.egon.cola.component.gateway.runtime.security.service.GatewaySecurityPolicyCompiler;
@@ -41,6 +41,77 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GatewayEngineConfigurationTest {
 
+    @org.junit.jupiter.api.io.TempDir
+    java.nio.file.Path dataDirectory;
+
+    @Test
+    void startsApiRpcOnlyContextWithoutMcpOrDatasource() {
+        var identity = org.mockito.Mockito.mock(
+                top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity.class);
+        org.mockito.Mockito.when(identity.instanceId()).thenReturn("api-test");
+        String prefix = "egon.cola.component.gateway.engine.";
+        new org.springframework.boot.test.context.runner.ApplicationContextRunner()
+                .withUserConfiguration(GatewayEngineConfiguration.class)
+                .withPropertyValues(prefix + "data-directory=" + dataDirectory,
+                        prefix + "http.public-enabled=true", prefix + "http.public-port=0",
+                        prefix + "http.public-host=127.0.0.1", prefix + "http.internal-enabled=false",
+                        prefix + "http.public-tls.development-plaintext=true",
+                        prefix + "http.internal-tls.development-plaintext=true",
+                        prefix + "rpc.enabled=false", prefix + "rpc.tls.development-plaintext=true")
+                .withBean("objectMapper", com.fasterxml.jackson.databind.ObjectMapper.class,
+                        () -> new com.fasterxml.jackson.databind.ObjectMapper().findAndRegisterModules())
+                .withBean("meterRegistry", io.micrometer.core.instrument.simple.SimpleMeterRegistry.class,
+                        io.micrometer.core.instrument.simple.SimpleMeterRegistry::new)
+                .withBean("observationRegistry", io.micrometer.observation.ObservationRegistry.class,
+                        io.micrometer.observation.ObservationRegistry::create)
+                .withBean("ddcServiceRegistryClient", top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient.class,
+                        () -> org.mockito.Mockito.mock(top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient.class))
+                .withBean("ddcConfigApplierRegistry", top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry.class,
+                        () -> org.mockito.Mockito.mock(top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry.class))
+                .withBean("ddcServiceKeyFactory", top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory.class,
+                        () -> org.mockito.Mockito.mock(top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory.class))
+                .withBean("ddcInstanceIdentity", top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity.class, () -> identity)
+                .withBean("idpServiceOAuth2Client", top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client.class,
+                        () -> org.mockito.Mockito.mock(top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client.class))
+                .withBean("idpStarterProperties", top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties.class,
+                        top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties::new)
+                .run(context -> {
+                    assertEquals(null, context.getStartupFailure());
+                    assertTrue(context.containsBean("gatewayHttpServer"));
+                    assertTrue(context.containsBean("gatewayRpcServer"));
+                    assertTrue(context.containsBean("gatewayRpcSlotRuntime"));
+                    assertSame(context.getBean("gatewayEngineRuntime"), context.getBean("apiRpcGatewayEngineRuntime"));
+                    assertSame(context.getBean("gatewayRuleCompilerStrategy"), context.getBean("apiRpcGatewayRuleCompilerStrategy"));
+                    assertTrue(context.getBeansOfType(javax.sql.DataSource.class).isEmpty());
+                    assertFalse(context.containsBean("gatewayMcpHttpHandler"));
+                    assertFalse(context.containsBean("gatewayMcpTaskService"));
+                    var metadata = context.getBean("gatewayRuntimeMetadata",
+                            top.egon.cola.component.ddc.api.extension.DdcInstanceMetadataContributor.class).metadata();
+                    assertEquals("API_RPC", metadata.get("gateway.engine.role"));
+                });
+    }
+
+    @Test
+    void profilesHaveIdenticalApiOnlyKeys() {
+        var base = new YamlPropertiesFactoryBean();
+        base.setResources(new ClassPathResource("application.yml"));
+        var operations = new YamlPropertiesFactoryBean();
+        operations.setResources(new ClassPathResource("application-operations.yml"));
+        assertEquals(base.getObject().stringPropertyNames(), operations.getObject().stringPropertyNames());
+        assertFalse(base.getObject().stringPropertyNames().stream().anyMatch(
+                key -> key.contains("gateway.engine.mcp.") || key.startsWith("spring.datasource.")));
+        assertFalse(base.getObject().values().stream().anyMatch(value -> value.toString().contains("GATEWAY_MCP_")));
+    }
+
+    @Test
+    void exposesOnlyApiRpcBeanOwnership() {
+        assertTrue(Arrays.stream(GatewayEngineConfiguration.class.getDeclaredMethods())
+                .noneMatch(method -> method.getReturnType().getName().contains(".mcp.")),
+                "API_RPC configuration must not own MCP runtime beans");
+        assertThrows(ClassNotFoundException.class, () -> Class.forName(
+                "top.egon.cola.component.gateway.mcp.rule.domain.CompiledMcpRules"));
+    }
+
     private static final long MIB = 1024L * 1024L;
 
     @Test
@@ -48,9 +119,9 @@ class GatewayEngineConfigurationTest {
         var factory = GatewayEngineConfiguration.class.getMethod("gatewayRuleCompilerStrategy",
                 GatewaySecurityPolicyCompiler.class, GatewayTransportDefaults.class,
                 GatewayTransportSafetyLimits.class);
-        assertEquals(List.of("gatewayRuleCompilerStrategy", "engineGatewayRuleCompiler"),
+        assertEquals(List.of("gatewayRuleCompilerStrategy", "apiRpcGatewayRuleCompilerStrategy"),
                 Arrays.asList(factory.getAnnotation(Bean.class).name()));
-        var constructor = EngineGatewayRuleCompiler.class.getConstructor(
+        var constructor = ApiRpcGatewayRuleCompilerStrategy.class.getConstructor(
                 GatewaySecurityPolicyCompiler.class, GatewayTransportDefaults.class,
                 GatewayTransportSafetyLimits.class);
         List<String> qualifiers = List.of("gatewaySecurityPolicyCompiler",
@@ -379,7 +450,7 @@ class GatewayEngineConfigurationTest {
         context.register(configurationType);
         context.addBeanFactoryPostProcessor(beanFactory -> {
             for (String beanName : beanFactory.getBeanDefinitionNames()) {
-                if (beanName.startsWith("gateway")
+                if ((beanName.startsWith("gateway") || beanName.startsWith("apiRpcGateway"))
                         && !beanName.equals("gatewayRateLimitRedissonClient")
                         && !beanName.equals("gatewayEngineConfiguration")
                         && !beanName.contains("GatewayEngineConfiguration")

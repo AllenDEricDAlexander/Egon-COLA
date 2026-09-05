@@ -59,12 +59,7 @@ class GatewayEnginePackageBoundaryTest {
                 "rpc/service",
                 "rpc/security",
                 "rule/domain",
-                "rule/service",
-                "mcp/domain",
-                "mcp/service",
-                "mcp/adapter",
-                "mcp/adapter/remote",
-                "mcp/adapter/security"
+                "rule/service"
         );
         for (String relativePath : required) {
             assertTrue(
@@ -76,8 +71,7 @@ class GatewayEnginePackageBoundaryTest {
         for (String featureRoot : List.of(
                 "http",
                 "rpc",
-                "rule",
-                "mcp"
+                "rule"
         )) {
             assertNoDirectJavaFiles(featureRoot);
         }
@@ -112,6 +106,23 @@ class GatewayEnginePackageBoundaryTest {
                     Files.exists(SOURCE_ROOT.resolve(oldPackage)),
                     () -> "legacy Engine package remains " + oldPackage
             );
+        }
+    }
+
+    @Test
+    void containsNoMcpRuntimeOrStoreDependencies() throws IOException {
+        try (Stream<Path> files = Files.walk(SOURCE_ROOT)) {
+            List<String> forbidden = files.filter(path -> path.toString().endsWith(".java"))
+                    .flatMap(this::lines)
+                    .filter(line -> line.startsWith("import ") && (line.contains(".mcp.")
+                            || line.contains("javax.sql.") || line.contains("java.sql.")))
+                    .toList();
+            assertEquals(List.of(), forbidden);
+        }
+        String pom = Files.readString(Path.of("pom.xml"));
+        for (String artifact : List.of("gateway-mcp-core", "gateway-mcp-engine",
+                "spring-boot-starter-jdbc", "postgresql")) {
+            assertFalse(pom.contains(artifact), artifact);
         }
     }
 

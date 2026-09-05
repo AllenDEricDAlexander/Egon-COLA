@@ -34,7 +34,7 @@ import top.egon.cola.component.gateway.contract.rule.GatewayRuntimePolicy;
 import top.egon.cola.component.gateway.core.route.GatewayResponseMode;
 import top.egon.cola.component.gateway.core.route.HttpRouteCompiler;
 import top.egon.cola.component.gateway.runtime.provider.domain.ProviderCallOutcome;
-import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
+import top.egon.cola.component.gateway.engine.rule.domain.ApiRpcGatewayCompiledRulesDTO;
 import top.egon.cola.component.gateway.runtime.rule.service.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.runtime.rule.service.GatewayTrafficPolicyCompiler;
 import top.egon.cola.component.gateway.runtime.traffic.domain.RuntimeTrafficPolicy;
@@ -546,7 +546,7 @@ class RpcGatewayServerTest {
                 List.of(),
                 List.of()
         );
-        CompiledGatewayRules rules = new CompiledGatewayRules(
+        ApiRpcGatewayCompiledRulesDTO rules = new ApiRpcGatewayCompiledRulesDTO(
                 new GatewayRuleSnapshot(
                         "v1",
                         "release",

@@ -1,19 +1,13 @@
 package top.egon.cola.component.gateway.engine.bootstrap.config;
 
-import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
-
+import top.egon.cola.component.gateway.engine.rule.domain.ApiRpcGatewayCompiledRulesDTO;
 import top.egon.cola.component.gateway.runtime.http.service.ReactorNettyHttpUpstreamAdapter;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcMethodIndex;
-
 import top.egon.cola.component.gateway.engine.bootstrap.lifecycle.GatewayEngineRuntime;
 import top.egon.cola.component.gateway.engine.common.config.GatewayEngineRuntimeProperties;
-import top.egon.cola.component.gateway.runtime.provider.domain.ProviderSelectionPolicy;
-import top.egon.cola.component.gateway.runtime.provider.service.ProviderCandidateFilter;
 import top.egon.cola.component.gateway.runtime.http.adapter.HttpUpstreamAdapter;
-
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.binder.MeterBinder;
-import io.micrometer.observation.ObservationRegistry;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
@@ -38,54 +32,22 @@ import top.egon.cola.component.ddc.api.refresh.DdcConfigApplierRegistry;
 import top.egon.cola.component.ddc.model.instance.DdcInstanceIdentity;
 import top.egon.cola.component.ddc.service.registry.DdcServiceKeyFactory;
 import top.egon.cola.component.gateway.core.http.HttpRequestNormalizer;
-import top.egon.cola.component.gateway.core.mcp.remote.RemoteAuthProvider;
-import top.egon.cola.component.gateway.core.mcp.security.McpApprovalPort;
-import top.egon.cola.component.gateway.core.mcp.security.McpAuthorizationPort;
-import top.egon.cola.component.gateway.core.provider.ProviderProtocolType;
 import top.egon.cola.component.gateway.core.route.HttpRouteCompiler;
-import top.egon.cola.component.gateway.core.security.GatewayAuthenticationProvider;
-import top.egon.cola.component.gateway.core.security.GatewayAuthorizationProvider;
-import top.egon.cola.component.gateway.core.security.GatewayCredentialExtractor;
-import top.egon.cola.component.gateway.core.security.GatewayCredentialRecoveryProvider;
-import top.egon.cola.component.gateway.core.security.GatewayIdentityMapper;
 import top.egon.cola.component.gateway.core.transport.GatewayTransportDefaults;
 import top.egon.cola.component.gateway.core.transport.GatewayTransportSafetyLimits;
 import top.egon.cola.component.gateway.runtime.provider.domain.ActiveHealthProbePolicy;
-import top.egon.cola.component.gateway.runtime.provider.service.ActiveHealthTracker;
-import top.egon.cola.component.gateway.runtime.provider.adapter.DdcProviderServiceRegistryAdapter;
 import top.egon.cola.component.gateway.runtime.provider.service.DirectoryProviderSelector;
-import top.egon.cola.component.gateway.runtime.provider.adapter.HttpProviderActiveHealthProbe;
-import top.egon.cola.component.gateway.runtime.provider.domain.PassiveHealthPolicy;
 import top.egon.cola.component.gateway.runtime.provider.service.PassiveHealthTracker;
-import top.egon.cola.component.gateway.runtime.provider.service.ProviderActiveHealthMonitor;
 import top.egon.cola.component.gateway.runtime.provider.service.ProviderDirectory;
-import top.egon.cola.component.gateway.runtime.rpc.adapter.RpcProviderActiveHealthProbe;
 import top.egon.cola.component.gateway.engine.http.service.DefaultGatewayHttpDataPlaneHandler;
-import top.egon.cola.component.gateway.engine.http.service.GatewayCompositeHttpDataPlaneHandler;
 import top.egon.cola.component.gateway.runtime.http.domain.GatewayHttpEngineProperties;
 import top.egon.cola.component.gateway.engine.http.service.GatewayHttpServer;
 import top.egon.cola.component.gateway.engine.http.security.RuleBackedHttpGatewaySecurityProcessor;
 import top.egon.cola.component.gateway.engine.http.proxy.service.AggregatedHttpProxyStrategy;
 import top.egon.cola.component.gateway.engine.http.proxy.service.GatewayHttpProxyStrategySelector;
 import top.egon.cola.component.gateway.engine.http.proxy.service.StreamingHttpProxyStrategy;
-import top.egon.cola.component.gateway.engine.mcp.adapter.FileSystemMcpAppArtifactReader;
-import top.egon.cola.component.gateway.engine.mcp.adapter.HttpMcpTaskServiceTokenSupplier;
-import top.egon.cola.component.gateway.engine.mcp.adapter.JdbcMcpRuntimeTaskStore;
-import top.egon.cola.component.gateway.engine.mcp.service.McpAuditPublisher;
-import top.egon.cola.component.gateway.engine.mcp.service.McpEngineHttpHandler;
-import top.egon.cola.component.gateway.engine.mcp.service.McpGatewayIdentityAuthenticator;
-import top.egon.cola.component.gateway.engine.mcp.service.McpRuntimeHealthIndicator;
-import top.egon.cola.component.gateway.engine.mcp.domain.McpRuntimeProperties;
-import top.egon.cola.component.gateway.engine.mcp.service.McpTaskOperationExecutor;
-import top.egon.cola.component.gateway.engine.mcp.service.McpTaskServiceTokenSupplier;
-import top.egon.cola.component.gateway.engine.mcp.service.McpTaskWorker;
-import top.egon.cola.component.gateway.engine.mcp.adapter.MicrometerMcpTelemetry;
-import top.egon.cola.component.gateway.engine.mcp.adapter.RedisMcpSessionStore;
 import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
 import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
-import top.egon.cola.component.gateway.engine.mcp.adapter.remote.ReactorNettyRemoteMcpClient;
-import top.egon.cola.component.gateway.engine.mcp.adapter.security.JdbcMcpApprovalAdapter;
-import top.egon.cola.component.gateway.engine.mcp.adapter.security.Rbac3McpAuthorizationAdapter;
 import top.egon.cola.component.gateway.engine.http.common.logging.GatewayCallAccessLogger;
 import top.egon.cola.component.gateway.runtime.observability.service.GatewayCallCompletionListener;
 import top.egon.cola.component.gateway.runtime.observability.service.GatewayCallEventDispatcher;
@@ -93,8 +55,6 @@ import top.egon.cola.component.gateway.runtime.observability.service.GatewayCall
 import top.egon.cola.component.gateway.runtime.observability.service.GatewayCallMetricsListener;
 import top.egon.cola.component.gateway.runtime.observability.domain.GatewayTelemetry;
 import top.egon.cola.component.gateway.runtime.observability.adapter.KafkaGatewayCallEventSink;
-import top.egon.cola.component.gateway.runtime.operation.adapter.DefaultGatewayOperationTransport;
-import top.egon.cola.component.gateway.runtime.operation.service.EngineGatewayOperationInvoker;
 import top.egon.cola.component.gateway.runtime.operation.adapter.HttpRpcUpstreamAdapter;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewayForwarder;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewayHandlerRegistry;
@@ -103,7 +63,7 @@ import top.egon.cola.component.gateway.engine.rpc.domain.RpcGatewaySlotPropertie
 import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewaySlotRuntime;
 import top.egon.cola.component.gateway.runtime.rpc.adapter.RpcProviderChannelCache;
 import top.egon.cola.component.gateway.engine.rpc.security.RuleBackedRpcGatewaySecurityProcessor;
-import top.egon.cola.component.gateway.engine.rule.service.EngineGatewayRuleCompiler;
+import top.egon.cola.component.gateway.engine.rule.service.ApiRpcGatewayRuleCompilerStrategy;
 import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleActivationApplier;
 import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleApplierRegistrar;
 import top.egon.cola.component.gateway.runtime.rule.repository.GatewayRuleChunkStore;
@@ -120,75 +80,17 @@ import top.egon.cola.component.gateway.runtime.traffic.adapter.RedissonRedisToke
 import top.egon.cola.component.gateway.engine.http.service.GatewayTransportDispatcher;
 import top.egon.cola.component.gateway.engine.http.websocket.service.GatewayWebSocketProxy;
 import top.egon.cola.component.gateway.engine.http.websocket.adapter.ReactorNettyWebSocketUpstreamAdapter;
-import top.egon.cola.component.gateway.mcp.app.service.AppUiResourceDriver;
-import top.egon.cola.component.gateway.mcp.app.service.McpAppRuntime;
-import top.egon.cola.component.gateway.mcp.app.domain.McpAppSecurityValidator;
-import top.egon.cola.component.gateway.mcp.completion.service.DictionaryCompletionProvider;
-import top.egon.cola.component.gateway.mcp.completion.service.McpCompletionHandler;
-import top.egon.cola.component.gateway.mcp.completion.service.OperationCompletionProvider;
-import top.egon.cola.component.gateway.mcp.prompt.service.McpPromptDriver;
-import top.egon.cola.component.gateway.mcp.prompt.service.McpPromptsGetHandler;
-import top.egon.cola.component.gateway.mcp.prompt.service.McpPromptsListHandler;
-import top.egon.cola.component.gateway.mcp.prompt.service.OperationPromptDriver;
-import top.egon.cola.component.gateway.mcp.prompt.service.StaticPromptDriver;
-import top.egon.cola.component.gateway.mcp.prompt.domain.StrictPromptTemplate;
-import top.egon.cola.component.gateway.mcp.remote.service.McpDialectTranslator;
-import top.egon.cola.component.gateway.mcp.remote.service.McpNamespaceRouter;
-import top.egon.cola.component.gateway.mcp.remote.service.McpRemoteClientPool;
-import top.egon.cola.component.gateway.mcp.remote.service.RemoteMcpCompletionProvider;
-import top.egon.cola.component.gateway.mcp.remote.service.RemoteMcpPromptDriver;
-import top.egon.cola.component.gateway.mcp.remote.service.RemoteMcpResourceDriver;
-import top.egon.cola.component.gateway.mcp.remote.service.RemoteMcpToolDriver;
-import top.egon.cola.component.gateway.mcp.resource.adapter.DatabaseSchemaResourceDriver;
-import top.egon.cola.component.gateway.mcp.resource.service.McpResourceCatalog;
-import top.egon.cola.component.gateway.mcp.resource.service.McpResourceDriver;
-import top.egon.cola.component.gateway.mcp.resource.service.McpResourceTemplatesListHandler;
-import top.egon.cola.component.gateway.mcp.resource.domain.McpResourceUriValidator;
-import top.egon.cola.component.gateway.mcp.resource.service.McpResourcesListHandler;
-import top.egon.cola.component.gateway.mcp.resource.service.McpResourcesReadHandler;
-import top.egon.cola.component.gateway.mcp.resource.adapter.ObjectStorageResourceDriver;
-import top.egon.cola.component.gateway.mcp.resource.adapter.OperationResourceDriver;
-import top.egon.cola.component.gateway.mcp.resource.adapter.StaticBlobResourceDriver;
-import top.egon.cola.component.gateway.mcp.resource.adapter.StaticTextResourceDriver;
-import top.egon.cola.component.gateway.mcp.rule.domain.CompiledMcpRules;
-import top.egon.cola.component.gateway.mcp.common.security.McpSecurityGate;
-import top.egon.cola.component.gateway.mcp.server.service.McpMethodDispatcher;
-import top.egon.cola.component.gateway.mcp.server.service.McpMethodHandler;
-import top.egon.cola.component.gateway.mcp.server.service.handler.McpDiscoverHandler;
-import top.egon.cola.component.gateway.mcp.server.service.handler.McpInitializeHandler;
-import top.egon.cola.component.gateway.mcp.server.service.handler.McpInitializedHandler;
-import top.egon.cola.component.gateway.mcp.server.service.handler.McpPingHandler;
-import top.egon.cola.component.gateway.mcp.subscription.service.McpResourceSubscribeHandler;
-import top.egon.cola.component.gateway.mcp.subscription.service.McpSubscriptionService;
-import top.egon.cola.component.gateway.mcp.subscription.service.McpSubscriptionsListenHandler;
-import top.egon.cola.component.gateway.mcp.task.service.McpTaskService;
-import top.egon.cola.component.gateway.mcp.task.service.McpTasksCancelHandler;
-import top.egon.cola.component.gateway.mcp.task.service.McpTasksGetHandler;
-import top.egon.cola.component.gateway.mcp.task.service.McpTasksUpdateHandler;
-import top.egon.cola.component.gateway.mcp.common.telemetry.McpTelemetry;
-import top.egon.cola.component.gateway.mcp.tool.service.McpResultBinder;
-import top.egon.cola.component.gateway.mcp.tool.service.McpToolCatalog;
-import top.egon.cola.component.gateway.mcp.tool.service.McpToolsCallHandler;
-import top.egon.cola.component.gateway.mcp.tool.service.McpToolsListHandler;
-import top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties;
-import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
-import top.egon.cola.platform.rbac3.starter.cache.SingleFlightSnapshotLoader;
-
-import javax.sql.DataSource;
-import java.net.URI;
 import java.nio.file.Path;
-import java.sql.Connection;
-import java.sql.ResultSet;
 import java.time.Clock;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
-import java.util.function.Supplier;
+import org.springframework.context.annotation.Import;
+import top.egon.cola.component.gateway.runtime.config.GatewayRuntimeConfiguration;
+import top.egon.cola.component.gateway.contract.runtime.GatewayEngineRoleEnum;
 
 /**
  * 中文说明：{@code GatewayEngineConfiguration} 是配置类，位于当前 Gateway 模块的相关包中，负责网关引擎配置相关的职责与边界。
@@ -199,160 +101,9 @@ import java.util.function.Supplier;
 @Slf4j
 @RequiredArgsConstructor
 @Configuration(value = "gatewayEngineConfiguration", proxyBeanMethods = false)
-@EnableConfigurationProperties({
-        GatewayEngineRuntimeProperties.class,
-        McpRuntimeProperties.class
-})
+@Import(GatewayRuntimeConfiguration.class)
+@EnableConfigurationProperties(GatewayEngineRuntimeProperties.class)
 public class GatewayEngineConfiguration {
-
-    /**
-     * 中文说明：执行 网关Clock 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway clock operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayClock(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @return 返回 网关Clock 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    public Clock gatewayClock() {
-        return Clock.systemUTC();
-    }
-
-    /**
-     * 中文说明：执行 网关远程MCPAuthentication 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway remote mcp authentication operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayRemoteMcpAuthentication(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @return 返回 网关远程MCPAuthentication 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    @ConditionalOnMissingBean(RemoteAuthProvider.class)
-    public RemoteAuthProvider gatewayRemoteMcpAuthentication() {
-        return request -> {
-            if (request.provider().authProfileReference() == null) {
-                return reactor.core.publisher.Mono.just(
-                        new RemoteAuthProvider.OutboundAuthentication(
-                                Map.of(),
-                                request.provider().tlsProfileReference()
-                        )
-                );
-            }
-            return reactor.core.publisher.Mono.error(
-                    new IllegalStateException(
-                            "remote MCP authentication profile resolver "
-                                    + "is unavailable"
-                    )
-            );
-        };
-    }
-
-    /**
-     * 中文说明：执行 网关远程MCP客户端池 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway remote mcp client pool operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayRemoteMcpClientPool(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param authentication 参数 authentication；parameter authentication。
-     * @param objectMapper 参数 object映射器；parameter object mapper。
-     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
-     * @param properties 参数 properties；parameter properties。
-     * @return 返回 网关远程MCP客户端池 的处理结果；returns the result of the operation.
-     */
-    @Bean(destroyMethod = "close")
-    public McpRemoteClientPool gatewayRemoteMcpClientPool(
-            RemoteAuthProvider authentication,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
-            @Qualifier("gatewayClock") Clock gatewayClock,
-            McpRuntimeProperties properties) {
-        properties.validate();
-        return new McpRemoteClientPool(
-                provider -> new ReactorNettyRemoteMcpClient(objectMapper),
-                authentication,
-                gatewayClock,
-                properties.getRemote().getCallTimeout(),
-                properties.getRemote().getMaximumConcurrentCalls(),
-                properties.getRemote().getFailureThreshold(),
-                properties.getRemote().getCircuitOpenDuration()
-        );
-    }
-
-    /**
-     * 中文说明：执行 网关MCP遥测 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway mcp telemetry operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpTelemetry(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param meters 参数 meters；parameter meters。
-     * @param observations 参数 observations；parameter observations。
-     * @param objectMapper 参数 object映射器；parameter object mapper。
-     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
-     * @param properties 参数 properties；parameter properties。
-     * @return 返回 网关MCP遥测 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    @ConditionalOnMissingBean(McpTelemetry.class)
-    public McpTelemetry gatewayMcpTelemetry(
-            MeterRegistry meters,
-            ObservationRegistry observations,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
-            @Qualifier("gatewayClock") Clock gatewayClock,
-            McpRuntimeProperties properties) {
-        properties.validate();
-        ArrayList<McpTelemetry> observers = new ArrayList<>();
-        observers.add(new MicrometerMcpTelemetry(meters, observations));
-        if (properties.getAudit().isEnabled()) {
-            observers.add(new McpAuditPublisher(
-                    objectMapper,
-                    gatewayClock,
-                    json -> log.info("MCP_RUNTIME_AUDIT {}", json)
-            ));
-        }
-        return McpTelemetry.composite(observers);
-    }
-
-    /**
-     * 中文说明：执行 网关遥测 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway telemetry operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayTelemetry(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param observationRegistry 参数 观测注册表；parameter observation registry。
-     * @param samplingProbability 参数 samplingProbability；parameter sampling probability。
-     * @return 返回 网关遥测 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    public GatewayTelemetry gatewayTelemetry(
-            ObservationRegistry observationRegistry,
-            @Value("${management.tracing.sampling.probability:0.1}")
-            double samplingProbability) {
-        return new GatewayTelemetry(
-                observationRegistry,
-                samplingProbability
-        );
-    }
-
-    /**
-     * 中文说明：执行 网关安全Capabilities 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway security capabilities operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewaySecurityCapabilities(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param extractors 参数 extractors；parameter extractors。
-     * @param authentications 参数 authentications；parameter authentications。
-     * @param authorizations 参数 authorizations；parameter authorizations。
-     * @param identityMappers 参数 身份Mappers；parameter identity mappers。
-     * @return 返回 网关安全Capabilities 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    public GatewaySecurityCapabilityRegistry gatewaySecurityCapabilities(
-            ObjectProvider<GatewayCredentialExtractor> extractors,
-            ObjectProvider<GatewayAuthenticationProvider> authentications,
-            ObjectProvider<GatewayAuthorizationProvider> authorizations,
-            ObjectProvider<GatewayIdentityMapper> identityMappers,
-            ObjectProvider<GatewayCredentialRecoveryProvider> recoveries) {
-        return new GatewaySecurityCapabilityRegistry(
-                extractors.orderedStream().toList(),
-                authentications.orderedStream().toList(),
-                authorizations.orderedStream().toList(),
-                identityMappers.orderedStream().toList(),
-                recoveries.orderedStream().toList()
-        );
-    }
 
     /**
      * 中文说明：执行 网关传输Defaults 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
@@ -445,54 +196,6 @@ public class GatewayEngineConfiguration {
     }
 
     /**
-     * 中文说明：执行 网关提供方Directory 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway provider directory operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayProviderDirectory(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param registry 参数 注册表；parameter registry。
-     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
-     * @return 返回 网关提供方Directory 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    public ProviderDirectory gatewayProviderDirectory(
-            DdcServiceRegistryClient registry,
-            @Qualifier("gatewayClock") Clock gatewayClock) {
-        return new ProviderDirectory(
-                new DdcProviderServiceRegistryAdapter(registry),
-                gatewayClock
-        );
-    }
-
-    /**
-     * 中文说明：执行 网关规则Chunk存储 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway rule chunk store operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayRuleChunkStore(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @return 返回 网关规则Chunk存储 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    public GatewayRuleChunkStore gatewayRuleChunkStore() {
-        return new GatewayRuleChunkStore();
-    }
-
-    /**
-     * 中文说明：执行 网关Passive健康Tracker 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway passive health tracker operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayPassiveHealthTracker(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
-     * @return 返回 网关Passive健康Tracker 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    public PassiveHealthTracker gatewayPassiveHealthTracker(
-            @Qualifier("gatewayClock") Clock gatewayClock) {
-        return new PassiveHealthTracker(
-                PassiveHealthPolicy.defaults(),
-                gatewayClock
-        );
-    }
-
-    /**
      * 中文说明：执行 网关Active健康Probe策略 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
      * English summary: Executes the gateway active health probe policy operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
      *
@@ -522,32 +225,6 @@ public class GatewayEngineConfiguration {
     }
 
     /**
-     * 中文说明：执行 网关Active健康Tracker 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway active health tracker operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayActiveHealthTracker(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param policy 参数 策略；parameter policy。
-     * @return 返回 网关Active健康Tracker 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    public ActiveHealthTracker gatewayActiveHealthTracker(
-            ActiveHealthProbePolicy policy) {
-        return new ActiveHealthTracker(
-                policy.failureThreshold(),
-                policy.successThreshold()
-        );
-    }
-
-    /**
-     * 中文说明：保留规范化 Snapshot 的同一 JSON 编解码与校验规则。
-     * English summary: Supplies the canonical snapshot codec to role-local activation.
-     */
-    @Bean("gatewayRuleJsonCodec")
-    public GatewayRuleJsonCodec gatewayRuleJsonCodec() {
-        return new GatewayRuleJsonCodec();
-    }
-
-    /**
      * 中文说明：在当前 Engine 的数据目录维护独立 LKG。
      * English summary: Keeps the last-known-good repository local to this executable.
      */
@@ -572,12 +249,12 @@ public class GatewayEngineConfiguration {
      * 中文说明：中间步骤保留全部协议编译，双进程切换时收窄为 API/RPC。
      * English summary: Names the compatible mixed compiler Strategy until the atomic ownership split.
      */
-    @Bean(name = {"gatewayRuleCompilerStrategy", "engineGatewayRuleCompiler"})
-    public EngineGatewayRuleCompiler gatewayRuleCompilerStrategy(
+    @Bean(name = {"gatewayRuleCompilerStrategy", "apiRpcGatewayRuleCompilerStrategy"})
+    public ApiRpcGatewayRuleCompilerStrategy gatewayRuleCompilerStrategy(
             @Qualifier("gatewaySecurityPolicyCompiler") GatewaySecurityPolicyCompiler security,
             @Qualifier("gatewayTransportDefaults") GatewayTransportDefaults defaults,
             @Qualifier("gatewayTransportSafetyLimits") GatewayTransportSafetyLimits limits) {
-        return new EngineGatewayRuleCompiler(security, defaults, limits);
+        return new ApiRpcGatewayRuleCompilerStrategy(security, defaults, limits);
     }
 
     /**
@@ -585,75 +262,20 @@ public class GatewayEngineConfiguration {
      * English summary: Wires one role-local activation pipeline and registers the shared DDC key.
      */
     @Bean("gatewayRuleActivationApplier")
-    public GatewayRuleActivationApplier<CompiledGatewayRules> gatewayRuleActivationApplier(
+    public GatewayRuleActivationApplier<ApiRpcGatewayCompiledRulesDTO> gatewayRuleActivationApplier(
             @Qualifier("ddcConfigApplierRegistry") DdcConfigApplierRegistry applierRegistry,
             @Qualifier("gatewayRuleJsonCodec") GatewayRuleJsonCodec codec,
-            @Qualifier("gatewayRuleCompilerStrategy") GatewayRuleCompilerStrategy<CompiledGatewayRules> compiler,
+            @Qualifier("gatewayRuleCompilerStrategy") GatewayRuleCompilerStrategy<ApiRpcGatewayCompiledRulesDTO> compiler,
             @Qualifier("gatewayRuleChunkStore") GatewayRuleChunkStore chunks,
             @Qualifier("gatewayProviderDirectory") ProviderDirectory providerDirectory,
             @Qualifier("gatewayRuleLkgRepository") GatewayRuleLkgRepository lkg,
             @Qualifier("gatewayClock") Clock gatewayClock,
             @Qualifier("gatewayTelemetry") GatewayTelemetry telemetry) {
-        GatewayRuleActivationApplier<CompiledGatewayRules> activation =
+        GatewayRuleActivationApplier<ApiRpcGatewayCompiledRulesDTO> activation =
                 new GatewayRuleActivationApplier<>(
                         codec, compiler, chunks, providerDirectory, lkg, gatewayClock, telemetry);
         GatewayRuleApplierRegistrar.register(applierRegistry, activation, chunks);
         return activation;
-    }
-
-    /**
-     * 中文说明：执行 网关提供方Selector 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway provider selector operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayProviderSelector(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param providerDirectory 参数 提供方Directory；parameter provider directory。
-     * @param activation 参数 activation；parameter activation。
-     * @param passiveHealth 参数 passive健康；parameter passive health。
-     * @param activeHealth 参数 active健康；parameter active health。
-     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
-     * @return 返回 网关提供方Selector 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    public DirectoryProviderSelector gatewayProviderSelector(
-            ProviderDirectory providerDirectory,
-            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
-            PassiveHealthTracker passiveHealth,
-            ActiveHealthTracker activeHealth,
-            @Qualifier("gatewayClock") Clock gatewayClock) {
-        return new DirectoryProviderSelector(
-                providerDirectory,
-                DirectoryProviderSelector.defaultLoadBalancers(),
-                new ProviderCandidateFilter(
-                        gatewayClock,
-                        identity -> passiveHealth.eligible(identity)
-                                && activeHealth.eligible(identity)
-                ),
-                key -> ProviderSelectionPolicy.defaults(
-                        key.transport().equals("https")
-                ),
-                () -> activation.active() == null
-                        ? Map.of()
-                        : activation.active().providerPolicies()
-        );
-    }
-
-    /**
-     * 中文说明：执行 网关流量Governance 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway traffic governance operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayTrafficGovernance(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param activation 参数 activation；parameter activation。
-     * @param redis 参数 redis；parameter redis。
-     * @return 返回 网关流量Governance 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    public GatewayTrafficGovernance gatewayTrafficGovernance(
-            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
-            ObjectProvider<RedisTokenBucketExecutor> redis) {
-        return new GatewayTrafficGovernance(
-                activation::active,
-                redis.getIfAvailable()
-        );
     }
 
     /**
@@ -714,512 +336,6 @@ public class GatewayEngineConfiguration {
             @Qualifier("gatewayRateLimitRedissonClient")
             RedissonClient redisson) {
         return new RedissonRedisTokenBucketExecutor(redisson);
-    }
-
-    /**
-     * 中文说明：执行 网关MCPRedisson客户端 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway mcp redisson client operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpRedissonClient(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param address 参数 address；parameter address。
-     * @param database 参数 数据库；parameter database。
-     * @param password 参数 password；parameter password。
-     * @return 返回 网关MCPRedisson客户端 的处理结果；returns the result of the operation.
-     */
-    @Bean(name = "gatewayMcpRedissonClient", destroyMethod = "shutdown")
-    @ConditionalOnMissingBean(name = "gatewayMcpRedissonClient")
-    @ConditionalOnProperty(
-            prefix = "egon.cola.component.gateway.engine.mcp.redis",
-            name = "enabled",
-            havingValue = "true",
-            matchIfMissing = true
-    )
-    public RedissonClient gatewayMcpRedissonClient(
-            @Value(
-                    "${egon.cola.component.gateway.engine.mcp.redis.address:"
-                            + "redis://127.0.0.1:6379}"
-            ) String address,
-            @Value(
-                    "${egon.cola.component.gateway.engine.mcp.redis."
-                            + "database:0}"
-            ) int database,
-            @Value(
-                    "${egon.cola.component.gateway.engine.mcp.redis."
-                            + "password:}"
-            ) String password) {
-        Config config = new Config();
-        var server = config.useSingleServer()
-                .setAddress(address)
-                .setDatabase(database);
-        if (password != null && !password.isBlank()) {
-            server.setPassword(password);
-        }
-        return Redisson.create(config);
-    }
-
-    /**
-     * 中文说明：执行 网关MCP会话存储 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway mcp session store operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpSessionStore(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param redisson 参数 redisson；parameter redisson。
-     * @param objectMapper 参数 object映射器；parameter object mapper。
-     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
-     * @param keyPrefix 参数 键Prefix；parameter key prefix。
-     * @param maximumStreamLength 参数 maximumStreamLength；parameter maximum stream length。
-     * @return 返回 网关MCP会话存储 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    @ConditionalOnBean(name = "gatewayMcpRedissonClient")
-    public RedisMcpSessionStore gatewayMcpSessionStore(
-            @Qualifier("gatewayMcpRedissonClient") RedissonClient redisson,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
-            @Qualifier("gatewayClock") Clock gatewayClock,
-            @Value(
-                    "${egon.cola.component.gateway.engine.mcp.redis."
-                            + "key-prefix:gateway:mcp:}"
-            ) String keyPrefix,
-            @Value(
-                    "${egon.cola.component.gateway.engine.mcp.redis."
-                            + "stream-max-length:256}"
-            ) int maximumStreamLength) {
-        return new RedisMcpSessionStore(
-                redisson,
-                objectMapper,
-                keyPrefix,
-                maximumStreamLength,
-                gatewayClock
-        );
-    }
-
-    /**
-     * 中文说明：执行 网关MCP运行时任务存储 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway mcp runtime task store operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpRuntimeTaskStore(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param dataSource 参数 dataSource；parameter data source。
-     * @param objectMapper 参数 object映射器；parameter object mapper。
-     * @return 返回 网关MCP运行时任务存储 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    public JdbcMcpRuntimeTaskStore gatewayMcpRuntimeTaskStore(
-            DataSource dataSource,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
-        return new JdbcMcpRuntimeTaskStore(dataSource, objectMapper);
-    }
-
-    /**
-     * 中文说明：执行 网关MCP任务服务 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway mcp task service operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpTaskService(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param store 参数 存储；parameter store。
-     * @param objectMapper 参数 object映射器；parameter object mapper。
-     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
-     * @param properties 参数 properties；parameter properties。
-     * @return 返回 网关MCP任务服务 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    @ConditionalOnBean(JdbcMcpRuntimeTaskStore.class)
-    public McpTaskService gatewayMcpTaskService(
-            JdbcMcpRuntimeTaskStore store,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
-            @Qualifier("gatewayClock") Clock gatewayClock,
-            McpRuntimeProperties properties) {
-        return new McpTaskService(
-                store,
-                objectMapper,
-                gatewayClock,
-                properties.getTasks().getLeaseDuration()
-        );
-    }
-
-    /**
-     * 创建异步 MCP 任务使用的 IdP SERVICE Token Adapter。
-     * Creates the IdP SERVICE-token adapter used by asynchronous MCP tasks.
-     * 补充说明 / Supplementary summary: 执行 网关MCP任务服务TokenSupplier 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English supplement: Executes the gateway mcp task service token supplier operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpTaskServiceTokenSupplier(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     */
-    @Bean
-    @ConditionalOnProperty(
-            prefix = "egon.cola.component.gateway.engine.mcp.tasks.service-token",
-            name = "enabled",
-            havingValue = "true"
-    )
-    public McpTaskServiceTokenSupplier gatewayMcpTaskServiceTokenSupplier(
-            @Value("${egon.cola.component.gateway.engine.mcp.tasks.service-token.scopes}")
-            Set<String> scopes,
-            @Value("${egon.cola.component.gateway.engine.mcp.tasks.service-token.renewal-skew}")
-            Duration renewalSkew,
-            @Qualifier("gatewayClock") Clock gatewayClock,
-            IdpServiceOAuth2Client serviceClient,
-            IdpStarterProperties idpProperties) {
-        return new HttpMcpTaskServiceTokenSupplier(
-                serviceClient,
-                idpProperties,
-                scopes,
-                renewalSkew,
-                gatewayClock
-        );
-    }
-
-    /**
-     * 中文说明：执行 网关MCP任务Worker 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway mcp task worker operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpTaskWorker(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param tasks 参数 tasks；parameter tasks。
-     * @param operationInvoker 参数 操作Invoker；parameter operation invoker。
-     * @param objectMapper 参数 object映射器；parameter object mapper。
-     * @param activation 参数 activation；parameter activation。
-     * @param tokenSupplier 参数 tokenSupplier；parameter token supplier。
-     * @param properties 参数 properties；parameter properties。
-     * @param mcpProperties 参数 MCPProperties；parameter mcp properties。
-     * @return 返回 网关MCP任务Worker 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    @ConditionalOnBean({
-            McpTaskService.class,
-            McpTaskServiceTokenSupplier.class
-    })
-    @ConditionalOnProperty(
-            prefix = "egon.cola.component.gateway.engine.mcp",
-            name = "enabled",
-            havingValue = "true",
-            matchIfMissing = true
-    )
-    public McpTaskWorker gatewayMcpTaskWorker(
-            McpTaskService tasks,
-            EngineGatewayOperationInvoker operationInvoker,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
-            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
-            McpTaskServiceTokenSupplier tokenSupplier,
-            GatewayEngineRuntimeProperties properties,
-            McpRuntimeProperties mcpProperties) {
-        return new McpTaskWorker(
-                tasks,
-                new McpTaskOperationExecutor(
-                        operationInvoker,
-                        objectMapper,
-                        serverCode -> URI.create(activation.active()
-                                .mcpRules()
-                                .server(serverCode)
-                                .orElseThrow(() ->
-                                        new IllegalStateException(
-                                                "MCP_TASK_SERVER_NOT_FOUND"
-                                        ))
-                                .resourceUri()),
-                        tokenSupplier
-                ),
-                properties.getNodeId(),
-                mcpProperties.getTasks().getLeaseDuration(),
-                mcpProperties.getTasks().getPollInterval()
-        );
-    }
-
-    /**
-     * 中文说明：执行 网关MCPHttp处理器 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway mcp http handler operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpHttpHandler(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param activation 参数 activation；parameter activation。
-     * @param capabilities 参数 capabilities；parameter capabilities。
-     * @param operationInvoker 参数 操作Invoker；parameter operation invoker。
-     * @param sessionStore 参数 会话存储；parameter session store。
-     * @param taskServices 参数 任务Services；parameter task services。
-     * @param snapshots 参数 snapshots；parameter snapshots。
-     * @param dataSources 参数 dataSources；parameter data sources。
-     * @param remoteClients 参数 远程Clients；parameter remote clients。
-     * @param mcpTelemetry 参数 MCP遥测；parameter mcp telemetry。
-     * @param objectMapper 参数 object映射器；parameter object mapper。
-     * @param gatewayClock 参数 网关Clock；parameter gateway clock。
-     * @param properties 参数 properties；parameter properties。
-     * @param mcpProperties 参数 MCPProperties；parameter mcp properties。
-     * @param issuer 参数 issuer；parameter issuer。
-     * @return 返回 网关MCPHttp处理器 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    @ConditionalOnBean(RedisMcpSessionStore.class)
-    @ConditionalOnProperty(
-            prefix = "egon.cola.component.gateway.engine.mcp",
-            name = "enabled",
-            havingValue = "true",
-            matchIfMissing = true
-    )
-    public McpEngineHttpHandler gatewayMcpHttpHandler(
-            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
-            GatewaySecurityCapabilityRegistry capabilities,
-            EngineGatewayOperationInvoker operationInvoker,
-            RedisMcpSessionStore sessionStore,
-            ObjectProvider<McpTaskService> taskServices,
-            ObjectProvider<SingleFlightSnapshotLoader> snapshots,
-            ObjectProvider<DataSource> dataSources,
-            McpRemoteClientPool remoteClients,
-            McpTelemetry mcpTelemetry,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
-            @Qualifier("gatewayClock") Clock gatewayClock,
-            GatewayEngineRuntimeProperties properties,
-            McpRuntimeProperties mcpProperties,
-            @Value(
-                    "${egon.cola.platform.idp.gateway.issuer:"
-                            + "http://127.0.0.1:18120}"
-            ) String issuer) {
-        mcpProperties.validate();
-        Duration sessionTtl = mcpProperties.getSessionTtl();
-        Duration streamWait = mcpProperties.getStreamWait();
-        Supplier<CompiledMcpRules> mcpRules = () -> activation.active() == null
-                ? null
-                : activation.active().mcpRules();
-        var toolCatalog = new McpToolCatalog(mcpRules);
-        SingleFlightSnapshotLoader snapshotLoader = snapshots.getIfAvailable();
-        DataSource dataSource = dataSources.getIfAvailable();
-        McpAuthorizationPort authorization = snapshotLoader == null
-                ? request -> reactor.core.publisher.Mono.just(
-                McpAuthorizationPort.Decision.denied(
-                        "RBAC3_AUTHORIZATION_UNAVAILABLE",
-                        0L,
-                        0L,
-                        0L
-                ))
-                : new Rbac3McpAuthorizationAdapter(
-                snapshotLoader
-        );
-        McpApprovalPort approvals = dataSource == null
-                ? request -> reactor.core.publisher.Mono.just(
-                McpApprovalPort.Result.UNAVAILABLE
-        )
-                : new JdbcMcpApprovalAdapter(
-                dataSource,
-                gatewayClock
-        );
-        McpSecurityGate securityGate = new McpSecurityGate(
-                authorization,
-                approvals,
-                objectMapper
-        );
-        McpResourceUriValidator resourceUriValidator =
-                new McpResourceUriValidator();
-        McpResourceCatalog resourceCatalog = new McpResourceCatalog(
-                mcpRules,
-                resourceUriValidator
-        );
-        McpDialectTranslator dialectTranslator = new McpDialectTranslator();
-        McpNamespaceRouter namespaceRouter = new McpNamespaceRouter();
-        RemoteMcpToolDriver remoteToolDriver = new RemoteMcpToolDriver(
-                mcpRules,
-                remoteClients,
-                namespaceRouter,
-                dialectTranslator
-        );
-        ArrayList<McpResourceDriver> resourceDrivers = new ArrayList<>(
-                List.of(
-                        new StaticTextResourceDriver(),
-                        new StaticBlobResourceDriver(),
-                        new OperationResourceDriver(operationInvoker),
-                        new ObjectStorageResourceDriver(resourceUriValidator)
-                )
-        );
-        McpAppRuntime appRuntime = new McpAppRuntime(
-                () -> activation.active() == null
-                        ? null
-                        : activation.active().mcpRules(),
-                new FileSystemMcpAppArtifactReader(Path.of(
-                        mcpProperties.getArtifactRoot()
-                )),
-                new McpAppSecurityValidator()
-        );
-        resourceDrivers.add(new AppUiResourceDriver(appRuntime));
-        resourceDrivers.add(new RemoteMcpResourceDriver(
-                mcpRules,
-                remoteClients,
-                namespaceRouter,
-                dialectTranslator
-        ));
-        if (dataSource != null) {
-            resourceDrivers.add(new DatabaseSchemaResourceDriver(
-                    (schema, objectName) -> readDatabaseSchema(
-                            dataSource,
-                            schema,
-                            objectName,
-                            objectMapper
-                    ),
-                    resourceUriValidator
-            ));
-        }
-        McpSubscriptionService subscriptions = new McpSubscriptionService(
-                sessionStore,
-                objectMapper,
-                gatewayClock,
-                sessionTtl,
-                streamWait
-        );
-        List<McpPromptDriver> promptDrivers = List.of(
-                new StaticPromptDriver(new StrictPromptTemplate()),
-                new OperationPromptDriver(operationInvoker),
-                new RemoteMcpPromptDriver(
-                        mcpRules,
-                        remoteClients,
-                        namespaceRouter,
-                        dialectTranslator
-                )
-        );
-        McpTaskService taskService = taskServices.getIfAvailable();
-        ArrayList<McpMethodHandler> methodHandlers = new ArrayList<>(List.of(
-                new McpInitializeHandler(),
-                new McpInitializedHandler(),
-                new McpPingHandler(),
-                new McpDiscoverHandler(),
-                new McpToolsListHandler(toolCatalog, objectMapper),
-                new McpToolsCallHandler(
-                        toolCatalog,
-                        new McpResultBinder(objectMapper),
-                        operationInvoker,
-                        securityGate,
-                        objectMapper,
-                        taskService,
-                        mcpRules,
-                        remoteToolDriver
-                ),
-                new McpResourcesListHandler(
-                        resourceCatalog,
-                        securityGate
-                ),
-                new McpResourceTemplatesListHandler(
-                        resourceCatalog,
-                        securityGate
-                ),
-                new McpResourcesReadHandler(
-                        resourceCatalog,
-                        List.copyOf(resourceDrivers),
-                        securityGate
-                ),
-                new McpResourceSubscribeHandler(
-                        resourceCatalog,
-                        subscriptions,
-                        securityGate
-                ),
-                new McpSubscriptionsListenHandler(
-                        resourceCatalog,
-                        subscriptions,
-                        securityGate
-                ),
-                new McpPromptsListHandler(
-                        mcpRules,
-                        securityGate
-                ),
-                new McpPromptsGetHandler(
-                        mcpRules,
-                        promptDrivers,
-                        securityGate
-                ),
-                new McpCompletionHandler(
-                        mcpRules,
-                        resourceCatalog,
-                        List.of(
-                                new DictionaryCompletionProvider(Map.of()),
-                                new OperationCompletionProvider(
-                                        operationInvoker,
-                                        objectMapper
-                                ),
-                                new RemoteMcpCompletionProvider(
-                                        mcpRules,
-                                        remoteClients,
-                                        namespaceRouter,
-                                        dialectTranslator
-                                )
-                        ),
-                        securityGate
-                )
-        ));
-        if (taskService != null) {
-            methodHandlers.add(new McpTasksGetHandler(
-                    taskService,
-                    securityGate
-            ));
-            methodHandlers.add(new McpTasksUpdateHandler(
-                    taskService,
-                    securityGate
-            ));
-            methodHandlers.add(new McpTasksCancelHandler(
-                    taskService,
-                    securityGate
-            ));
-        }
-        McpMethodDispatcher dispatcher = new McpMethodDispatcher(
-                List.copyOf(methodHandlers),
-                mcpTelemetry
-        );
-        return new McpEngineHttpHandler(
-                () -> activation.active() == null
-                        ? null
-                        : activation.active().mcpRules(),
-                dispatcher,
-                sessionStore,
-                sessionStore,
-                new McpGatewayIdentityAuthenticator(
-                        new GatewaySecurityChain(capabilities),
-                        issuer,
-                        properties.getNodeId(),
-                        gatewayClock
-                ),
-                objectMapper,
-                gatewayClock,
-                sessionTtl,
-                streamWait,
-                Math.toIntExact(Math.min(
-                        Math.min(
-                                properties.getHttp().getMaxBodyBytes(),
-                                mcpProperties.getMaximumRequestBytes()
-                        ),
-                        Integer.MAX_VALUE
-                ))
-        );
-    }
-
-    /**
-     * 中文说明：执行 read数据库模式 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the read database schema operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.readDatabaseSchema(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param dataSource 参数 dataSource；parameter data source。
-     * @param schema 参数 模式；parameter schema。
-     * @param objectName 参数 objectName；parameter object name。
-     * @param objectMapper 参数 object映射器；parameter object mapper。
-     * @return 返回 read数据库模式 的处理结果；returns the result of the operation.
-     */
-    private String readDatabaseSchema(
-            DataSource dataSource,
-            String schema,
-            String objectName,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper)
-            throws Exception {
-        ArrayList<Map<String, Object>> columns = new ArrayList<>();
-        try (Connection connection = dataSource.getConnection();
-             ResultSet result = connection.getMetaData().getColumns(
-                     connection.getCatalog(),
-                     schema,
-                     objectName,
-                     null
-             )) {
-            while (result.next()) {
-                LinkedHashMap<String, Object> column = new LinkedHashMap<>();
-                column.put("name", result.getString("COLUMN_NAME"));
-                column.put("type", result.getString("TYPE_NAME"));
-                column.put("size", result.getInt("COLUMN_SIZE"));
-                column.put("nullable", result.getInt("NULLABLE")
-                        != java.sql.DatabaseMetaData.columnNoNulls);
-                columns.add(Map.copyOf(column));
-            }
-        }
-        if (columns.isEmpty()) {
-            return null;
-        }
-        return objectMapper.writeValueAsString(Map.of(
-                "schema", schema,
-                "object", objectName,
-                "columns", List.copyOf(columns)
-        ));
     }
 
     /**
@@ -1337,14 +453,13 @@ public class GatewayEngineConfiguration {
      * @param passiveHealth 参数 passive健康；parameter passive health。
      * @param telemetry 参数 遥测；parameter telemetry。
      * @param transportDispatcher 参数 传输分发器；parameter transport dispatcher。
-     * @param mcpHandlers 参数 MCPHandlers；parameter mcp handlers。
      * @return 返回 网关Http服务器 的处理结果；returns the result of the operation.
      */
     @Bean
     public GatewayHttpServer gatewayHttpServer(
             GatewayEngineRuntimeProperties properties,
             GatewayHttpEngineProperties engineProperties,
-            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
+            GatewayRuleActivationApplier<ApiRpcGatewayCompiledRulesDTO> activation,
             DirectoryProviderSelector providerSelector,
             ReactorNettyHttpUpstreamAdapter upstream,
             GatewaySecurityCapabilityRegistry capabilities,
@@ -1354,8 +469,7 @@ public class GatewayEngineConfiguration {
             HttpRpcUpstreamAdapter httpRpcUpstream,
             PassiveHealthTracker passiveHealth,
             GatewayTelemetry telemetry,
-            GatewayTransportDispatcher transportDispatcher,
-            ObjectProvider<McpEngineHttpHandler> mcpHandlers) {
+            GatewayTransportDispatcher transportDispatcher) {
         GatewayEngineRuntimeProperties.Http http = properties.getHttp();
         var emptyRoutes = new HttpRouteCompiler().compile(List.of());
         var security = new RuleBackedHttpGatewaySecurityProcessor(
@@ -1394,17 +508,7 @@ public class GatewayEngineConfiguration {
                 engineProperties.bodyLogSampleBytes(),
                 null
         );
-        McpEngineHttpHandler mcpHandler = mcpHandlers.getIfAvailable();
-        return new GatewayHttpServer(engineProperties, mcpHandler == null
-                ? handler
-                : new GatewayCompositeHttpDataPlaneHandler(
-                mcpHandler,
-                handler,
-                Math.toIntExact(Math.min(
-                        properties.getHttp().getMaxBodyBytes(),
-                        Integer.MAX_VALUE
-                ))
-        ));
+        return new GatewayHttpServer(engineProperties, handler);
     }
 
     /**
@@ -1421,102 +525,6 @@ public class GatewayEngineConfiguration {
         return new RpcProviderChannelCache(
                 properties.getRpc().getChannelDrainTimeout(),
                 transportSecurity(properties.getRpc().getTls())
-        );
-    }
-
-    /**
-     * 中文说明：执行 网关提供方Active健康监控器 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway provider active health monitor operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayProviderActiveHealthMonitor(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param directory 参数 directory；parameter directory。
-     * @param channels 参数 channels；parameter channels。
-     * @param tracker 参数 tracker；parameter tracker。
-     * @param policy 参数 策略；parameter policy。
-     * @return 返回 网关提供方Active健康监控器 的处理结果；returns the result of the operation.
-     */
-    @Bean(destroyMethod = "close")
-    public ProviderActiveHealthMonitor gatewayProviderActiveHealthMonitor(
-            ProviderDirectory directory,
-            RpcProviderChannelCache channels,
-            ActiveHealthTracker tracker,
-            ActiveHealthProbePolicy policy) {
-        return new ProviderActiveHealthMonitor(
-                directory,
-                Map.of(
-                        ProviderProtocolType.HTTP,
-                        new HttpProviderActiveHealthProbe(
-                                reactor.netty.http.client.HttpClient.create()
-                        ),
-                        ProviderProtocolType.RPC,
-                        new RpcProviderActiveHealthProbe(channels)
-                ),
-                tracker,
-                policy
-        );
-    }
-
-    /**
-     * 中文说明：执行 网关HttpRpcUpstreamAdapter 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway http rpc upstream adapter operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayHttpRpcUpstreamAdapter(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param activation 参数 activation；parameter activation。
-     * @param channels 参数 channels；parameter channels。
-     * @param objectMapper 参数 object映射器；parameter object mapper。
-     * @return 返回 网关HttpRpcUpstreamAdapter 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    public HttpRpcUpstreamAdapter gatewayHttpRpcUpstreamAdapter(
-            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
-            RpcProviderChannelCache channels,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
-        return new HttpRpcUpstreamAdapter(
-                activation::active,
-                channels,
-                objectMapper
-        );
-    }
-
-    /**
-     * 中文说明：执行 网关操作Invoker 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway operation invoker operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayOperationInvoker(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param activation 参数 activation；parameter activation。
-     * @param providerSelector 参数 提供方Selector；parameter provider selector。
-     * @param trafficGovernance 参数 流量Governance；parameter traffic governance。
-     * @param http 参数 http；parameter http。
-     * @param rpc 参数 rpc；parameter rpc。
-     * @param objectMapper 参数 object映射器；parameter object mapper。
-     * @param properties 参数 properties；parameter properties。
-     * @return 返回 网关操作Invoker 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    public EngineGatewayOperationInvoker gatewayOperationInvoker(
-            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
-            DirectoryProviderSelector providerSelector,
-            GatewayTrafficGovernance trafficGovernance,
-            ReactorNettyHttpUpstreamAdapter http,
-            HttpRpcUpstreamAdapter rpc,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
-            GatewayEngineRuntimeProperties properties) {
-        long maximumRequestBytes = properties.getHttp()
-                .getAbsoluteMaxRequestBodyBytes();
-        long maximumResponseBytes = 4L * 1024 * 1024;
-        return new EngineGatewayOperationInvoker(
-                activation::active,
-                providerSelector,
-                trafficGovernance,
-                new DefaultGatewayOperationTransport(
-                        http,
-                        rpc,
-                        maximumResponseBytes
-                ),
-                objectMapper,
-                properties.getHttp().getUpstreamTimeout(),
-                maximumRequestBytes,
-                maximumResponseBytes
         );
     }
 
@@ -1539,7 +547,7 @@ public class GatewayEngineConfiguration {
     @Bean
     public RpcGatewayHandlerRegistry gatewayRpcHandlerRegistry(
             GatewayEngineRuntimeProperties properties,
-            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
+            GatewayRuleActivationApplier<ApiRpcGatewayCompiledRulesDTO> activation,
             DirectoryProviderSelector providerSelector,
             RpcProviderChannelCache channels,
             GatewaySecurityCapabilityRegistry capabilities,
@@ -1685,13 +693,13 @@ public class GatewayEngineConfiguration {
      * @param providerDirectory 参数 提供方Directory；parameter provider directory。
      * @return 返回 网关引擎运行时 的处理结果；returns the result of the operation.
      */
-    @Bean
+    @Bean(name = {"apiRpcGatewayEngineRuntime", "gatewayEngineRuntime"})
     public GatewayEngineRuntime gatewayEngineRuntime(
             GatewayEngineRuntimeProperties properties,
             GatewayHttpServer httpServer,
             RpcGatewayServer rpcServer,
             RpcGatewaySlotRuntime rpcSlot,
-            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
+            GatewayRuleActivationApplier<ApiRpcGatewayCompiledRulesDTO> activation,
             ProviderDirectory providerDirectory) {
         return new GatewayEngineRuntime(
                 properties,
@@ -1713,10 +721,11 @@ public class GatewayEngineConfiguration {
      */
     @Bean
     public DdcInstanceMetadataContributor gatewayRuntimeMetadata(
-            GatewayRuleActivationApplier<CompiledGatewayRules> activation) {
+            GatewayRuleActivationApplier<ApiRpcGatewayCompiledRulesDTO> activation) {
         return () -> {
             GatewayRuleRuntimeStatus status = activation.status();
             return Map.of(
+                    "gateway.engine.role", GatewayEngineRoleEnum.API_RPC.name(),
                     "activeReleaseId", value(status.activeReleaseId()),
                     "activeRuleVersion",
                     Long.toString(status.activeDdcVersion()),
@@ -1777,40 +786,6 @@ public class GatewayEngineConfiguration {
     }
 
     /**
-     * 中文说明：执行 网关MCP运行时健康Indicator 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the gateway mcp runtime health indicator operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayEngineConfiguration.gatewayMcpRuntimeHealthIndicator(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param activation 参数 activation；parameter activation。
-     * @param sessionStores 参数 会话Stores；parameter session stores。
-     * @param taskServices 参数 任务Services；parameter task services。
-     * @param properties 参数 properties；parameter properties。
-     * @param remoteClients 参数 远程Clients；parameter remote clients。
-     * @return 返回 网关MCP运行时健康Indicator 的处理结果；returns the result of the operation.
-     */
-    @Bean
-    @ConditionalOnProperty(
-            prefix = "egon.cola.component.gateway.engine.mcp",
-            name = "enabled",
-            havingValue = "true",
-            matchIfMissing = true
-    )
-    public McpRuntimeHealthIndicator gatewayMcpRuntimeHealthIndicator(
-            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
-            ObjectProvider<RedisMcpSessionStore> sessionStores,
-            ObjectProvider<McpTaskService> taskServices,
-            McpRuntimeProperties properties,
-            McpRemoteClientPool remoteClients) {
-        return new McpRuntimeHealthIndicator(
-                activation,
-                sessionStores.getIfAvailable() != null,
-                taskServices.getIfAvailable() != null,
-                Path.of(properties.getArtifactRoot()),
-                remoteClients
-        );
-    }
-
-    /**
      * 中文说明：执行 网关引擎健康Indicator 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
      * English summary: Executes the gateway engine health indicator operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
      *
@@ -1823,7 +798,7 @@ public class GatewayEngineConfiguration {
     @Bean
     public HealthIndicator gatewayEngineHealthIndicator(
             GatewayEngineRuntime runtime,
-            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
+            GatewayRuleActivationApplier<ApiRpcGatewayCompiledRulesDTO> activation,
             RpcGatewaySlotRuntime rpcSlot) {
         return () -> {
             Health.Builder health = runtime.running()

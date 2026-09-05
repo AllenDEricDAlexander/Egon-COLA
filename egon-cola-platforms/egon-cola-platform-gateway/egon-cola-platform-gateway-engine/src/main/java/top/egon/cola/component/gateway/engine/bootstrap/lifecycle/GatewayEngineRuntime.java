@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.bootstrap.lifecycle;
 
-import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
+import top.egon.cola.component.gateway.engine.rule.domain.ApiRpcGatewayCompiledRulesDTO;
 
 import top.egon.cola.component.gateway.engine.common.config.GatewayEngineRuntimeProperties;
 
@@ -12,7 +12,10 @@ import top.egon.cola.component.gateway.engine.rpc.service.RpcGatewaySlotRuntime;
 import top.egon.cola.component.gateway.engine.rpc.domain.RpcGatewaySubsystemState;
 import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleActivationApplier;
 
-import java.util.Objects;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -23,6 +26,8 @@ import java.util.concurrent.TimeUnit;
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
+@Slf4j
+@RequiredArgsConstructor
 public final class GatewayEngineRuntime implements SmartLifecycle {
 
     /**
@@ -31,6 +36,8 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayEngineRuntime} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayEngineRuntime}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @NonNull
+    @Qualifier("egon.cola.component.gateway.engine-top.egon.cola.component.gateway.engine.common.config.GatewayEngineRuntimeProperties")
     private final GatewayEngineRuntimeProperties properties;
 
     /**
@@ -39,6 +46,8 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayEngineRuntime} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayEngineRuntime}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @NonNull
+    @Qualifier("gatewayHttpServer")
     private final GatewayHttpServer httpServer;
 
     /**
@@ -47,6 +56,8 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayEngineRuntime} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayEngineRuntime}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @NonNull
+    @Qualifier("gatewayRpcServer")
     private final RpcGatewayServer rpcServer;
 
     /**
@@ -55,6 +66,8 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayEngineRuntime} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayEngineRuntime}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @NonNull
+    @Qualifier("gatewayRpcSlotRuntime")
     private final RpcGatewaySlotRuntime rpcSlot;
 
     /**
@@ -63,7 +76,9 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayEngineRuntime} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayEngineRuntime}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private final GatewayRuleActivationApplier<CompiledGatewayRules> activation;
+    @NonNull
+    @Qualifier("gatewayRuleActivationApplier")
+    private final GatewayRuleActivationApplier<ApiRpcGatewayCompiledRulesDTO> activation;
 
     /**
      * 中文说明：保存 提供方Directory 对应的状态、依赖或配置值；字段类型为 {@code ProviderDirectory}，由 {@code GatewayEngineRuntime} 在其生命周期内读取或更新。
@@ -71,6 +86,8 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayEngineRuntime} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayEngineRuntime}; do not couple callers to its representation when the owning type exposes an API.
      */
+    @NonNull
+    @Qualifier("gatewayProviderDirectory")
     private final ProviderDirectory providerDirectory;
 
     /**
@@ -97,35 +114,6 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
      */
     private ScheduledExecutorService coordinator;
 
-    /**
-     * 中文说明：创建 {@code GatewayEngineRuntime} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
-     * English summary: Creates an instance of {@code GatewayEngineRuntime} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
-     *
-     * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
-     * @param properties 参数 properties；parameter properties。
-     * @param httpServer 参数 http服务器；parameter http server。
-     * @param rpcServer 参数 rpc服务器；parameter rpc server。
-     * @param rpcSlot 参数 rpc槽位；parameter rpc slot。
-     * @param activation 参数 activation；parameter activation。
-     * @param providerDirectory 参数 提供方Directory；parameter provider directory。
-     */
-    public GatewayEngineRuntime(
-            GatewayEngineRuntimeProperties properties,
-            GatewayHttpServer httpServer,
-            RpcGatewayServer rpcServer,
-            RpcGatewaySlotRuntime rpcSlot,
-            GatewayRuleActivationApplier<CompiledGatewayRules> activation,
-            ProviderDirectory providerDirectory) {
-        this.properties = Objects.requireNonNull(properties, "properties");
-        this.httpServer = Objects.requireNonNull(httpServer, "httpServer");
-        this.rpcServer = Objects.requireNonNull(rpcServer, "rpcServer");
-        this.rpcSlot = Objects.requireNonNull(rpcSlot, "rpcSlot");
-        this.activation = Objects.requireNonNull(activation, "activation");
-        this.providerDirectory = Objects.requireNonNull(
-                providerDirectory,
-                "providerDirectory"
-        );
-    }
 
     /**
      * 中文说明：执行 start 操作；该方法是 {@code GatewayEngineRuntime} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。

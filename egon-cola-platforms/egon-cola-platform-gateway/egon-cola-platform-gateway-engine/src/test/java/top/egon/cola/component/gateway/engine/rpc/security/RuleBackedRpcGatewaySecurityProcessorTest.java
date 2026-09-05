@@ -28,7 +28,7 @@ import top.egon.cola.component.gateway.core.security.GatewayCredential;
 import top.egon.cola.component.gateway.core.security.GatewayCredentialExtractor;
 import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
 import top.egon.cola.component.gateway.core.security.SecurityFailureMode;
-import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
+import top.egon.cola.component.gateway.engine.rule.domain.ApiRpcGatewayCompiledRulesDTO;
 import top.egon.cola.component.gateway.runtime.security.service.GatewaySecurityCapabilityRegistry;
 import top.egon.cola.component.gateway.runtime.security.service.GatewaySecurityChain;
 import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
@@ -212,7 +212,7 @@ class RuleBackedRpcGatewaySecurityProcessorTest {
         );
     }
 
-    private CompiledGatewayRules rules() {
+    private ApiRpcGatewayCompiledRulesDTO rules() {
         GatewayRuleContent content = new GatewayRuleContent(
                 "group",
                 "group",
@@ -238,7 +238,7 @@ class RuleBackedRpcGatewaySecurityProcessorTest {
                 SecurityFailureMode.FAIL_CLOSED,
                 CredentialForwardingMode.ORIGINAL_BEARER
         );
-        return new CompiledGatewayRules(
+        return new ApiRpcGatewayCompiledRulesDTO(
                 new GatewayRuleSnapshot(
                         "v1",
                         "release-1",

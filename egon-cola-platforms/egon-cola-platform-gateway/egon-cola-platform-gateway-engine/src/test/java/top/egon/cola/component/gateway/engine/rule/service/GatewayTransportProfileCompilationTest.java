@@ -178,7 +178,7 @@ class GatewayTransportProfileCompilationTest {
                         Duration.ofHours(2),
                         64L * MIB
                 );
-        EngineGatewayRuleCompiler compiler = new EngineGatewayRuleCompiler(
+        ApiRpcGatewayRuleCompilerStrategy compiler = new ApiRpcGatewayRuleCompilerStrategy(
                 GatewaySecurityCapabilityRegistry.empty(),
                 GatewayTransportDefaults.legacy(),
                 localSafety
@@ -208,7 +208,7 @@ class GatewayTransportProfileCompilationTest {
         ).get();
         GatewayTransportDefaults defaults = new GatewayEngineConfiguration()
                 .gatewayTransportDefaults(properties);
-        EngineGatewayRuleCompiler compiler = new EngineGatewayRuleCompiler(
+        ApiRpcGatewayRuleCompilerStrategy compiler = new ApiRpcGatewayRuleCompilerStrategy(
                 GatewaySecurityCapabilityRegistry.empty(),
                 defaults,
                 GatewayTransportSafetyLimits.specDefaults()
@@ -231,7 +231,7 @@ class GatewayTransportProfileCompilationTest {
             GatewayRouteTransportPolicy routePolicy,
             Set<String> policyRefs,
             List<GatewayRuntimePolicy> trafficPolicies,
-            EngineGatewayRuleCompiler compiler) {
+            ApiRpcGatewayRuleCompilerStrategy compiler) {
         GatewayRuntimeOperation operation = new GatewayRuntimeOperation(
                 "operation-1",
                 "openai:http:POST:/v1/responses",
@@ -297,8 +297,8 @@ class GatewayTransportProfileCompilationTest {
         ).orElseThrow().route();
     }
 
-    private EngineGatewayRuleCompiler legacyCompiler() {
-        return new EngineGatewayRuleCompiler();
+    private ApiRpcGatewayRuleCompilerStrategy legacyCompiler() {
+        return new ApiRpcGatewayRuleCompilerStrategy();
     }
 
     private GatewayRouteTransportPolicy profile(GatewayRouteProfile profile) {

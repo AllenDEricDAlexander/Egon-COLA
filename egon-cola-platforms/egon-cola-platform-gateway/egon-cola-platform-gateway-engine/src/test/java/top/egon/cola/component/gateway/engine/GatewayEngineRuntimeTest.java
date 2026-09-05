@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine;
 
-import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
+import top.egon.cola.component.gateway.engine.rule.domain.ApiRpcGatewayCompiledRulesDTO;
 
 import top.egon.cola.component.gateway.engine.bootstrap.lifecycle.GatewayEngineRuntime;
 import top.egon.cola.component.gateway.engine.common.config.GatewayEngineRuntimeProperties;
@@ -32,7 +32,7 @@ class GatewayEngineRuntimeTest {
         GatewayHttpServer httpServer = mock(GatewayHttpServer.class);
         RpcGatewayServer rpcServer = mock(RpcGatewayServer.class);
         RpcGatewaySlotRuntime rpcSlot = mock(RpcGatewaySlotRuntime.class);
-        GatewayRuleActivationApplier<CompiledGatewayRules> activation = mock(
+        GatewayRuleActivationApplier<ApiRpcGatewayCompiledRulesDTO> activation = mock(
                 GatewayRuleActivationApplier.class
         );
         ProviderDirectory providerDirectory = mock(ProviderDirectory.class);

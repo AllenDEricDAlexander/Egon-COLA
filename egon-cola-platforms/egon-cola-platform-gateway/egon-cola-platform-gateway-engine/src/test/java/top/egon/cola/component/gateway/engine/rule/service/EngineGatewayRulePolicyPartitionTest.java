@@ -1,6 +1,6 @@
 package top.egon.cola.component.gateway.engine.rule.service;
 
-import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
+import top.egon.cola.component.gateway.engine.rule.domain.ApiRpcGatewayCompiledRulesDTO;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
@@ -26,6 +26,26 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class EngineGatewayRulePolicyPartitionTest {
+
+    @Test
+    void ignoresMcpProjectionWithoutAddingMcpStateToApiRules() {
+        var invalidTool = new top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeTool(
+                "tool-1", "missing-server", "tool", "invalid MCP reference",
+                "LOCAL_OPERATION", "missing-operation", "HTTP", null, "{}", "{}",
+                Map.of(), Set.of(), "LOW", true, true);
+        var mcp = new top.egon.cola.component.gateway.contract.mcp.rule.McpRuleContent(
+                List.of(), List.of(invalidTool), List.of(), List.of(), List.of(),
+                List.of(), List.of(), List.of(), List.of());
+        var content = new GatewayRuleContent("group-1", "orders", "test", "default",
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), mcp);
+        var snapshot = new GatewayRuleSnapshot("v1", "release-1", Instant.EPOCH,
+                "content-sha", "artifact-sha", content);
+        var compiled = new ApiRpcGatewayRuleCompilerStrategy().compile(snapshot);
+        assertEquals(snapshot, compiled.snapshot());
+        assertEquals("artifact-sha", compiled.ruleChecksum());
+        assertTrue(java.util.Arrays.stream(ApiRpcGatewayCompiledRulesDTO.class.getRecordComponents())
+                .noneMatch(field -> field.getName().equals("mcpRules")));
+    }
 
     @Test
     void compilesSecurityPoliciesFromDedicatedSnapshotSection() {
@@ -94,8 +114,8 @@ class EngineGatewayRulePolicyPartitionTest {
                 content
         );
 
-        CompiledGatewayRules compiled =
-                new EngineGatewayRuleCompiler().compile(snapshot);
+        ApiRpcGatewayCompiledRulesDTO compiled =
+                new ApiRpcGatewayRuleCompilerStrategy().compile(snapshot);
 
         assertTrue(compiled.securityPolicies().containsKey("security-1"));
     }
@@ -179,8 +199,8 @@ class EngineGatewayRulePolicyPartitionTest {
                 "artifact-sha",
                 content
         );
-        CompiledGatewayRules compiled =
-                new EngineGatewayRuleCompiler().compile(snapshot);
+        ApiRpcGatewayCompiledRulesDTO compiled =
+                new ApiRpcGatewayRuleCompilerStrategy().compile(snapshot);
 
         assertFalse(compiled.trafficPolicies().values().stream()
                 .anyMatch(policy -> policy.type()

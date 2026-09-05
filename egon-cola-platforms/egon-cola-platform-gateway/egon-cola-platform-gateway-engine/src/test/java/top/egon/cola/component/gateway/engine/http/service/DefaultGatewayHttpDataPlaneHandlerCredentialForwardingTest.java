@@ -46,7 +46,7 @@ import top.egon.cola.component.gateway.runtime.observability.service.GatewayCall
 import top.egon.cola.component.gateway.runtime.operation.adapter.HttpRpcUpstreamAdapter;
 import top.egon.cola.component.gateway.runtime.rpc.domain.RawByteMarshaller;
 import top.egon.cola.component.gateway.runtime.rpc.adapter.RpcProviderChannelCache;
-import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
+import top.egon.cola.component.gateway.engine.rule.domain.ApiRpcGatewayCompiledRulesDTO;
 import top.egon.cola.component.gateway.runtime.rule.adapter.json.GatewayRuleJsonCodec;
 import top.egon.cola.component.gateway.runtime.rule.service.GatewayTrafficGovernance;
 import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
@@ -164,7 +164,7 @@ class DefaultGatewayHttpDataPlaneHandlerCredentialForwardingTest {
                     sha,
                     authorizationForwardingAllowed
             );
-            CompiledGatewayRules rules = rules(route, descriptor, sha);
+            ApiRpcGatewayCompiledRulesDTO rules = rules(route, descriptor, sha);
             HttpRpcUpstreamAdapter rpc = new HttpRpcUpstreamAdapter(
                     () -> rules,
                     channels,
@@ -263,7 +263,7 @@ class DefaultGatewayHttpDataPlaneHandlerCredentialForwardingTest {
         );
     }
 
-    private CompiledGatewayRules rules(
+    private ApiRpcGatewayCompiledRulesDTO rules(
             RuntimeHttpRoute route,
             byte[] descriptor,
             String sha
@@ -285,7 +285,7 @@ class DefaultGatewayHttpDataPlaneHandlerCredentialForwardingTest {
                         Base64.getEncoder().encodeToString(descriptor)
                 ))
         );
-        return new CompiledGatewayRules(
+        return new ApiRpcGatewayCompiledRulesDTO(
                 new GatewayRuleSnapshot(
                         "v1",
                         "release",

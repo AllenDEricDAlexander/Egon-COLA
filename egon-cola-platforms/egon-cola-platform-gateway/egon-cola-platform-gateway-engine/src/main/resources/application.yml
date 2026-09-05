@@ -7,10 +7,6 @@ spring:
     import:
       - optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/gateway-engine.properties
       - optional:ddc:application.yml
-  datasource:
-    url: ${GATEWAY_POSTGRES_URL:jdbc:postgresql://127.0.0.1:5432/gateway_admin}
-    username: ${GATEWAY_POSTGRES_USER:postgres}
-    password: ${GATEWAY_POSTGRES_PASSWORD:postgres}
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
@@ -65,16 +61,6 @@ egon:
             password-file: ${IDP_REDIS_PASSWORD_FILE:}
             timeout: ${IDP_REDIS_TIMEOUT:2s}
       rbac3:
-        enabled: ${GATEWAY_MCP_RBAC3_ENABLED:false}
-        register-filter: false
-        system-code: ${GATEWAY_MCP_RBAC3_SYSTEM_CODE:mock-backend}
-        runtime:
-          redis-enabled: ${GATEWAY_MCP_RBAC3_ENABLED:false}
-          redis-address: ${GATEWAY_MCP_RBAC3_REDIS_ADDRESS:redis://127.0.0.1:6379}
-          database: ${GATEWAY_MCP_RBAC3_REDIS_DATABASE:0}
-          password-file: ${GATEWAY_MCP_RBAC3_REDIS_PASSWORD_FILE:}
-        authorization:
-          endpoint: ${GATEWAY_MCP_RBAC3_AUTHORIZATION_ENDPOINT:}
         gateway:
           enabled: ${GATEWAY_RBAC3_SCOPE_ENABLED:true}
           runtime:
@@ -131,50 +117,11 @@ egon:
             port: ${GATEWAY_ENGINE_DDC_ADVERTISED_PORT:18081}
             metadata:
               gateway.component: engine
+              gateway.engine.role: API_RPC
       gateway:
         engine:
-          mcp:
-            enabled: ${GATEWAY_MCP_ENABLED:true}
-            artifact-root: ${GATEWAY_MCP_ARTIFACT_ROOT:${java.io.tmpdir}/egon-cola/gateway-mcp-artifacts}
-            session-ttl: ${GATEWAY_MCP_SESSION_TTL:PT30M}
-            stream-wait: ${GATEWAY_MCP_STREAM_WAIT:PT15S}
-            maximum-request-bytes: ${GATEWAY_MCP_MAXIMUM_REQUEST_BYTES:16777216}
-            maximum-resource-bytes: ${GATEWAY_MCP_MAXIMUM_RESOURCE_BYTES:67108864}
-            maximum-app-artifact-bytes: ${GATEWAY_MCP_MAXIMUM_APP_ARTIFACT_BYTES:16777216}
-            maximum-subscriptions-per-client: ${GATEWAY_MCP_MAXIMUM_SUBSCRIPTIONS_PER_CLIENT:100}
-            maximum-active-tasks-per-client: ${GATEWAY_MCP_MAXIMUM_ACTIVE_TASKS_PER_CLIENT:100}
-            tasks:
-              lease-duration: ${GATEWAY_MCP_TASK_LEASE_DURATION:PT30S}
-              poll-interval: ${GATEWAY_MCP_TASK_POLL_INTERVAL:PT2S}
-              default-ttl: ${GATEWAY_MCP_TASK_DEFAULT_TTL:PT24H}
-              cleanup-interval: ${GATEWAY_MCP_TASK_CLEANUP_INTERVAL:PT10M}
-              service-token:
-                enabled: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_ENABLED:false}
-                scopes: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_SCOPES:mcp:operation:invoke}
-                renewal-skew: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_RENEWAL_SKEW:30s}
-            remote:
-              discovery-timeout: ${GATEWAY_MCP_REMOTE_DISCOVERY_TIMEOUT:PT20S}
-              call-timeout: ${GATEWAY_MCP_REMOTE_CALL_TIMEOUT:PT60S}
-              health-interval: ${GATEWAY_MCP_REMOTE_HEALTH_INTERVAL:PT30S}
-              capability-sync-interval: ${GATEWAY_MCP_REMOTE_CAPABILITY_SYNC_INTERVAL:PT5M}
-              circuit-open-duration: ${GATEWAY_MCP_REMOTE_CIRCUIT_OPEN_DURATION:PT30S}
-              maximum-concurrent-calls: ${GATEWAY_MCP_REMOTE_MAXIMUM_CONCURRENT_CALLS:32}
-              failure-threshold: ${GATEWAY_MCP_REMOTE_FAILURE_THRESHOLD:3}
-              token-forwarding: false
-            security:
-              origin-validation: true
-              protected-resource-metadata: true
-              token-forwarding: false
-            audit:
-              enabled: ${GATEWAY_MCP_AUDIT_ENABLED:true}
-              body-log-enabled: false
-            redis:
-              enabled: ${GATEWAY_MCP_REDIS_ENABLED:true}
-              address: ${GATEWAY_MCP_REDIS_ADDRESS:redis://127.0.0.1:6379}
-              database: ${GATEWAY_MCP_REDIS_DATABASE:0}
-              password: ${GATEWAY_MCP_REDIS_PASSWORD:}
-              key-prefix: ${GATEWAY_MCP_REDIS_KEY_PREFIX:gateway:mcp:}
-              stream-max-length: ${GATEWAY_MCP_STREAM_MAX_LENGTH:256}
+          tls-reload:
+            enabled: false
           http:
             public-tls:
               enabled: false

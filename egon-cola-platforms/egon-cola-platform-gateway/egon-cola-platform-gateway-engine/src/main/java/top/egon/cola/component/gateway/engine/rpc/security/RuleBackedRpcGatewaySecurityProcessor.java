@@ -22,7 +22,7 @@ import top.egon.cola.component.gateway.core.exchange.ImmutableGatewayHeaders;
 import top.egon.cola.component.gateway.core.provider.ProviderServiceKey;
 import top.egon.cola.component.gateway.core.security.GatewayAuthContext;
 import top.egon.cola.component.gateway.core.security.GatewaySecurityPolicy;
-import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
+import top.egon.cola.component.gateway.engine.rule.domain.ApiRpcGatewayCompiledRulesDTO;
 import top.egon.cola.component.gateway.runtime.security.service.GatewaySecurityChain;
 
 import java.time.Duration;
@@ -53,12 +53,12 @@ public final class RuleBackedRpcGatewaySecurityProcessor
     private final GatewaySecurityChain chain;
 
     /**
-     * 中文说明：保存 rules 对应的状态、依赖或配置值；字段类型为 {@code Supplier<CompiledGatewayRules>}，由 {@code RuleBackedRpcGatewaySecurityProcessor} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by rules; its type is {@code Supplier<CompiledGatewayRules>}, and {@code RuleBackedRpcGatewaySecurityProcessor} reads or updates it during its lifecycle.
+     * 中文说明：保存 rules 对应的状态、依赖或配置值；字段类型为 {@code Supplier<ApiRpcGatewayCompiledRulesDTO>}，由 {@code RuleBackedRpcGatewaySecurityProcessor} 在其生命周期内读取或更新。
+     * English summary: Holds the state, dependency, or configuration represented by rules; its type is {@code Supplier<ApiRpcGatewayCompiledRulesDTO>}, and {@code RuleBackedRpcGatewaySecurityProcessor} reads or updates it during its lifecycle.
      *
      * 用法 / Usage: 该字段通过 {@code RuleBackedRpcGatewaySecurityProcessor} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code RuleBackedRpcGatewaySecurityProcessor}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private final Supplier<CompiledGatewayRules> rules;
+    private final Supplier<ApiRpcGatewayCompiledRulesDTO> rules;
 
     /**
      * 中文说明：保存 引擎NodeId 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code RuleBackedRpcGatewaySecurityProcessor} 在其生命周期内读取或更新。
@@ -79,7 +79,7 @@ public final class RuleBackedRpcGatewaySecurityProcessor
      */
     public RuleBackedRpcGatewaySecurityProcessor(
             GatewaySecurityChain chain,
-            Supplier<CompiledGatewayRules> rules,
+            Supplier<ApiRpcGatewayCompiledRulesDTO> rules,
             String engineNodeId) {
         this.chain = Objects.requireNonNull(chain, "chain");
         this.rules = Objects.requireNonNull(rules, "rules");
@@ -106,7 +106,7 @@ public final class RuleBackedRpcGatewaySecurityProcessor
             Metadata inboundMetadata,
             String traceId,
             Deadline inboundDeadline) {
-        CompiledGatewayRules current = rules.get();
+        ApiRpcGatewayCompiledRulesDTO current = rules.get();
         List<GatewaySecurityPolicy> policies = route.policyRefs().stream()
                 .map(current.securityPolicies()::get)
                 .filter(Objects::nonNull)

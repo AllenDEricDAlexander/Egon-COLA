@@ -38,7 +38,7 @@ import top.egon.cola.component.gateway.runtime.provider.domain.ProviderSelection
 import top.egon.cola.component.gateway.runtime.provider.domain.ProviderCallOutcome;
 import top.egon.cola.component.gateway.runtime.observability.service
         .GatewayCallCompletionListener;
-import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
+import top.egon.cola.component.gateway.engine.rule.domain.ApiRpcGatewayCompiledRulesDTO;
 import top.egon.cola.component.gateway.engine.rpc.service.RpcMethodIndex;
 import top.egon.cola.component.gateway.runtime.rule.service.GatewayTrafficGovernance;
 import top.egon.cola.component.gateway.runtime.traffic.domain.RuntimeTrafficPolicy;
@@ -494,7 +494,7 @@ class DefaultGatewayHttpDataPlaneHandlerRetryTest {
                 List.of(),
                 List.of()
         );
-        CompiledGatewayRules rules = new CompiledGatewayRules(
+        ApiRpcGatewayCompiledRulesDTO rules = new ApiRpcGatewayCompiledRulesDTO(
                 new GatewayRuleSnapshot(
                         "v1",
                         "release",

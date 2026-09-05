@@ -14,7 +14,7 @@ import top.egon.cola.component.gateway.contract.rule.GatewayRuleContent;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuleSnapshot;
 import top.egon.cola.component.gateway.contract.rule.GatewayRuntimePolicy;
 import top.egon.cola.component.gateway.core.route.HttpRouteCompiler;
-import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
+import top.egon.cola.component.gateway.engine.rule.domain.ApiRpcGatewayCompiledRulesDTO;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -179,7 +179,7 @@ class GatewayTrafficGovernanceTest {
                 "artifact",
                 content
         );
-        CompiledGatewayRules rules = new CompiledGatewayRules(
+        ApiRpcGatewayCompiledRulesDTO rules = new ApiRpcGatewayCompiledRulesDTO(
                 snapshot,
                 new HttpRouteCompiler().compile(List.of()),
                 RpcMethodIndex.empty(),
