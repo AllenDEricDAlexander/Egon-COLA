@@ -719,6 +719,8 @@ assert_contains "${identity_script}" \
   'direct DDC client startup must reconcile when DDC is still starting'
 assert_contains "${identity_script}" 'wait_ddc_rpc' \
   'local startup must wait for the DDC RPC listener before starting clients'
+assert_contains "${identity_script}" '"X-Gateway-Contract-Version","traceparent","x-egon-request-id"' \
+  'Gateway frontend contract and trace headers must be allowed by the local CORS policy'
 assert_contains "${identity_script}" \
   'starting Gateway Engine after DDC control plane is ready' \
   'Gateway Engine must start after the final DDC provider restart'

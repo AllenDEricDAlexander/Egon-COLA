@@ -1830,7 +1830,7 @@ publish_gateway_routes() {
   cors_policy_id=unified-local-cors
   cors_origins='["http://127.0.0.1:18121","http://127.0.0.1:18125","http://127.0.0.1:18131","http://127.0.0.1:18141","http://127.0.0.1:18152"]'
   cors_methods='["GET","POST","PUT","PATCH","DELETE","OPTIONS"]'
-  cors_headers='["Authorization","Content-Type","X-IDP-CSRF","X-CSRF-TOKEN","Idempotency-Key"]'
+  cors_headers='["Authorization","Content-Type","X-IDP-CSRF","X-CSRF-TOKEN","Idempotency-Key","X-Gateway-Contract-Version","traceparent","x-egon-request-id"]'
   cors_exposed='["traceparent","x-egon-request-id"]'
   ids="$(jq -c '[.[].id] | sort' <<<"${operations}")"
   if ! jq -e --arg policy "${cors_policy_id}" --argjson ids "${ids}" \
