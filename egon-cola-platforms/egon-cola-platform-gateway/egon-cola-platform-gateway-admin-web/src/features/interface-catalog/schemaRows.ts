@@ -12,52 +12,123 @@ export type SchemaRow = {
 
 type SchemaNode = Record<string, unknown>
 
+type SchemaContext = {
+  root: SchemaNode
+  references: ReadonlySet<string>
+  depth: number
+  budget: {remaining: number}
+}
+
+const MAX_DEPTH = 16
+const MAX_ROWS = 1000
+
+// Resolve document-local references only; schemas never trigger network requests.
+const resolveReferences = (schema: SchemaNode, context: SchemaContext) => {
+  let node = schema
+  const references = new Set(context.references)
+  let recursive = false
+  while (typeof node.$ref === 'string' && (node.$ref === '#' || node.$ref.startsWith('#/'))) {
+    const reference = node.$ref
+    let target: unknown = context.root
+    try {
+      for (const part of decodeURIComponent(reference.slice(2)).split('/').filter(() => reference !== '#')) {
+        const key = part.replace(/~1/g, '/').replace(/~0/g, '~')
+        target = typeof target === 'object' && target !== null && Object.hasOwn(target, key)
+          ? (target as SchemaNode)[key] : undefined
+      }
+    } catch {
+      break
+    }
+    const resolved = record(target)
+    if (!resolved) break
+    const {$ref: ignoredReference, ...siblings} = node
+    void ignoredReference
+    node = {...resolved, ...siblings}
+    if (references.has(reference)) {
+      recursive = true
+      break
+    }
+    references.add(reference)
+  }
+  return {
+    node: schema.$ref ? {...node, $ref: schema.$ref} : node,
+    references,
+    recursive,
+  }
+}
+
 export const buildSchemaRows = (schema: SchemaNode): SchemaRow[] => {
   if (Object.keys(schema).length === 0) return []
-  const properties = record(schema.properties)
-  if (properties) {
-    return propertyRows(properties, '', requiredNames(schema))
+  const context: SchemaContext = {root: schema, references: new Set(), depth: 0, budget: {remaining: MAX_ROWS}}
+  const resolved = resolveReferences(schema, context)
+  const properties = record(resolved.node.properties)
+  if (properties && !resolved.recursive) {
+    return propertyRows(properties, '', requiredNames(resolved.node), {...context, references: resolved.references})
   }
-  return [schemaRow('$', '$', schema, false)]
+  return [schemaRow('$', '$', schema, false, context)]
 }
 
 const propertyRows = (
   properties: SchemaNode,
   parentPath: string,
   required: Set<string>,
-): SchemaRow[] => Object.entries(properties)
-  .filter((entry): entry is [string, SchemaNode] => record(entry[1]) !== undefined)
-  .map(([name, value]) => {
+  context: SchemaContext,
+): SchemaRow[] => {
+  const rows: SchemaRow[] = []
+  for (const [name, value] of Object.entries(properties)) {
+    if (!record(value)) continue
+    if (context.budget.remaining <= 0) {
+      rows.at(-1)?.constraints.push('字段数量达到显示上限')
+      break
+    }
     const path = parentPath ? `${parentPath}.${name}` : name
-    return schemaRow(name, path, value, required.has(name))
-  })
+    rows.push(schemaRow(name, path, value as SchemaNode, required.has(name), context))
+  }
+  return rows
+}
 
 const schemaRow = (
   name: string,
   path: string,
   schema: SchemaNode,
   required: boolean,
+  context: SchemaContext,
 ): SchemaRow => {
+  context.budget.remaining--
+  const resolved = resolveReferences(schema, context)
+  schema = resolved.node
+  const childContext = {...context, references: resolved.references, depth: context.depth + 1}
   const row: SchemaRow = {
     key: path,
     name,
     path,
-    type: displayType(schema),
+    type: displayType(schema, childContext),
     technicalType: technicalType(schema),
     required,
     description: stringValue(schema.description),
     constraints: constraints(schema),
   }
-  const nested = nestedSchema(schema)
-  const properties = record(nested.properties)
+  const nested = schema.type === 'array'
+    ? resolveReferences(record(schema.items) ?? {}, childContext) : resolved
+  if (resolved.recursive || nested.recursive) {
+    row.constraints.push('递归引用，已停止展开')
+    return row
+  }
+  if (context.depth >= MAX_DEPTH || context.budget.remaining <= 0) {
+    row.constraints.push('结构达到显示上限')
+    return row
+  }
+  childContext.references = nested.references
+  const properties = record(nested.node.properties)
   if (properties) {
     row.children = propertyRows(
       properties,
       path === '$' ? '' : path,
-      requiredNames(nested),
+      requiredNames(nested.node),
+      childContext,
     )
   } else {
-    const additionalProperties = record(nested.additionalProperties)
+    const additionalProperties = record(nested.node.additionalProperties)
     if (additionalProperties) {
       const childPath = path === '$' ? '{value}' : `${path}.{value}`
       row.children = [schemaRow(
@@ -65,24 +136,20 @@ const schemaRow = (
         childPath,
         additionalProperties,
         false,
+        childContext,
       )]
     }
   }
   return row
 }
 
-const nestedSchema = (schema: SchemaNode): SchemaNode => {
-  if (schema.type === 'array') return record(schema.items) ?? {}
-  return schema
-}
-
-const displayType = (schema: SchemaNode): string => {
+const displayType = (schema: SchemaNode, context: SchemaContext): string => {
   const type = schemaType(schema)
   if (type === 'array') {
-    return `array<${schemaType(record(schema.items) ?? {})}>`
+    return `array<${schemaType(resolveReferences(record(schema.items) ?? {}, context).node)}>`
   }
   if (type === 'object' && record(schema.additionalProperties)) {
-    return `object<${schemaType(record(schema.additionalProperties) ?? {})}>`
+    return `object<${schemaType(resolveReferences(record(schema.additionalProperties) ?? {}, context).node)}>`
   }
   return type
 }

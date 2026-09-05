@@ -2,6 +2,55 @@ import { describe, expect, it } from 'vitest'
 import { buildSchemaRows } from './schemaRows'
 
 describe('buildSchemaRows', () => {
+  it('expands local OpenAPI definitions at the root and inside arrays', () => {
+    const rows = buildSchemaRows({
+      $ref: '#/$defs/Result',
+      $defs: {
+        Result: {type: 'object', required: ['data'], properties: {
+          data: {type: 'array', items: {$ref: '#/$defs/Item'}},
+        }},
+        Item: {type: 'object', properties: {id: {type: 'string', description: '资源标识'}}},
+      },
+    })
+    expect(rows[0]).toMatchObject({name: 'data', type: 'array<object>', required: true})
+    expect(rows[0].children?.[0]).toMatchObject({name: 'id', description: '资源标识'})
+  })
+
+  it('handles escaped pointers and resolves shared definitions on independent branches', () => {
+    const rows = buildSchemaRows({type: 'object', properties: {
+      left: {$ref: '#/$defs/A~1B~0'}, right: {$ref: '#/$defs/A~1B~0'},
+    }, $defs: {'A/B~': {type: 'object', properties: {name: {type: 'string'}}}}})
+    expect(rows.map((row) => row.children?.[0].path)).toEqual(['left.name', 'right.name'])
+  })
+
+  it('keeps recursive and external references visible without unbounded expansion', () => {
+    const rows = buildSchemaRows({$ref: '#/$defs/Node', $defs: {
+      Node: {type: 'object', properties: {children: {type: 'array', items: {$ref: '#/$defs/Node'}}}},
+    }})
+    expect(rows[0].type).toBe('array<object>')
+    expect(rows[0].constraints).toContain('递归引用，已停止展开')
+    expect(rows[0].children).toBeUndefined()
+    expect(buildSchemaRows({$ref: 'https://example.invalid/schema'})[0].technicalType)
+      .toBe('https://example.invalid/schema')
+  })
+
+  it('bounds wide and deeply nested schemas', () => {
+    const rows = buildSchemaRows({type: 'object', properties: Object.fromEntries(
+      Array.from({length: 1500}, (_, index) => [`field${index}`, {type: 'string'}]),
+    )})
+    expect(rows).toHaveLength(1000)
+    expect(rows.at(-1)?.constraints).toContain('字段数量达到显示上限')
+    let schema: Record<string, unknown> = {type: 'string'}
+    for (let depth = 0; depth < 30; depth++) schema = {type: 'object', properties: {next: schema}}
+    let last = buildSchemaRows(schema)[0]
+    let depth = 1
+    while (last.children?.length) {
+      last = last.children[0]
+      depth++
+    }
+    expect(depth).toBeLessThanOrEqual(17)
+    expect(last.constraints).toContain('结构达到显示上限')
+  })
   it('expands nested protobuf objects and repeated fields', () => {
     const rows = buildSchemaRows({
       type: 'object',
