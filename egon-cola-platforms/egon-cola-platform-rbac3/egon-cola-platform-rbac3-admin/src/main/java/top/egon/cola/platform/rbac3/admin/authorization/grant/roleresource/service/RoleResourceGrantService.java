@@ -35,6 +35,8 @@ public class RoleResourceGrantService {
         this.authorizationState = Objects.requireNonNull(authorizationState, "authorizationState");
     }
 
+    /** Keeps the role lock and its resource facts in the same transaction. */
+    @Transactional
     public RoleResourceGrantTreeVO tree(String tenantId, String roleId, Instant now) {
         Long tenant = positive(tenantId, "tenantId");
         Long role = positive(roleId, "roleId");
@@ -100,6 +102,7 @@ public class RoleResourceGrantService {
         return replace(command);
     }
 
+    @Transactional
     public RoleResourceGrantMutationVO replace(ReplaceRoleResourcesCommandDTO command) {
         Objects.requireNonNull(command, "command");
         RoleResourceGrantRepository.ReplaceResult result = grants.replace(

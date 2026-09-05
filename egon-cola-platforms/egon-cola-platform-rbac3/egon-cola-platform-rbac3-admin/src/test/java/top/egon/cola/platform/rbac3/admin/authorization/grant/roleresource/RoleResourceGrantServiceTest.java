@@ -1,6 +1,8 @@
 package top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.annotation.AnnotationTransactionAttributeSource;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.service.RoleResourceGrantService;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.dto.ReplaceRoleResourcesCommandDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.dto.ReplaceRoleResourcesRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.vo.RoleResourceGrantMutationVO;
@@ -11,8 +13,27 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class RoleResourceGrantServiceTest {
+
+    @Test
+    void allPublicGrantOperationsKeepRepositoryLocksInsideATransaction() throws Exception {
+        var transactions = new AnnotationTransactionAttributeSource();
+        for (var method : List.of(
+                RoleResourceGrantService.class.getMethod(
+                        "tree", String.class, String.class, Instant.class),
+                RoleResourceGrantService.class.getMethod(
+                        "replace", String.class, String.class,
+                        ReplaceRoleResourcesRequestDTO.class, String.class, Instant.class),
+                RoleResourceGrantService.class.getMethod(
+                        "replace", ReplaceRoleResourcesCommandDTO.class))) {
+            var attribute = transactions.getTransactionAttribute(method, RoleResourceGrantService.class);
+            assertNotNull(attribute, method.toString());
+            assertFalse(attribute.isReadOnly(), "PostgreSQL locking reads require a writable transaction");
+        }
+    }
 
     @Test
     void requestAcceptsUniqueResourceIdsAndRejectsDuplicates() {
