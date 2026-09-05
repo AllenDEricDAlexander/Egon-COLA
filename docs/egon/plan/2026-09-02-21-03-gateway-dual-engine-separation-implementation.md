@@ -309,6 +309,10 @@ Step 4 compile-closure refinement: the listener/upstream dependencies also requi
 
 The three existing response lifecycle methods `GatewayOutboundHttpResponse.withBody`, `onAbandon`, and `abandon` become public Java library methods so the unchanged API handlers and future MCP server can call them across packages. Bodies and ownership semantics do not change; this is internal Java visibility, not a new HTTP/RPC contract. Preserve their idempotence/discard tests. Move the buffer/operation package metadata with their implementations, and do not rely on empty source directories in boundary tests.
 
+Step 5 contract clarification: Admin's `McpReleaseContentFactory.managedTool` emits `LOCAL_OPERATION` even for annotation-managed Tools, and Runtime Operation attributes are stringified rather than carrying a new provenance contract. The MCP Strategy must consume the canonical release, reject unsupported source/binding shapes and missing/non-callable Operations, and never query or reconstruct Tool drafts; it must not reject legitimate `LOCAL_OPERATION` or invent a managed-source wire flag. Provenance enforcement remains at the existing Admin annotation projection. The MCP provider view retains canonical non-deprecated Operations for direct capability calls, while HTTP/RPC ingress indexes remain absent.
+
+MCP bootstrap records cover explicit group/env/namespace/node/instance/data-directory identity, one data listener, management port, outbound pool/request/channel limits, role-local TLS and active-health settings. Only actual MCP runtime knobs are included; API-only Kafka/body-logging settings are not copied. Positive duration validation uses the existing Boot-managed Hibernate Validator annotation. Base/operations resources and their parity are implemented in Step 6; no legacy `engine.mcp` setting is renamed.
+
 ## 7. Ordered File-by-file Implementation Steps
 
 ### Step 1 — Publish the two-role Engine contract
