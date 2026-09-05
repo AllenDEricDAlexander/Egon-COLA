@@ -1,4 +1,5 @@
 import {apiRequest} from './client'
+import {normalizeEngineMetadata} from './types'
 import {createLogicalTrace, type LogicalTrace, newIdempotencyKey} from './trace'
 import type {
     Application,
@@ -8,6 +9,7 @@ import type {
     DashboardSummary,
     DraftMutationResult,
     EngineNode,
+    EngineNodeConsistency,
     GatewayDraft,
     GatewayGroup,
     GatewayRelease,
@@ -87,13 +89,16 @@ type ProjectionEnvelope<T> = {
   refreshError?: string
 }
 
-type EngineNodeResponse = Omit<EngineNode, 'observedAt' | 'stale'>
+type EngineNodeResponse = Omit<EngineNode, 'observedAt' | 'stale' | 'metadata'> & {
+  metadata?: unknown
+}
 
 type RuntimeConsistencyResponse = {
   targetReleaseId?: string
   targetReleaseStatus?: string
   engineNodeCount: number
   readyEngineNodeCount: number
+  nodes?: EngineNodeConsistency[] | null
   consistent: boolean
   observedAt: string
   source: string
@@ -181,6 +186,7 @@ export const gatewayApi = {
     )
     return projection.value.map((node) => ({
       ...node,
+      metadata: normalizeEngineMetadata(node.metadata),
       observedAt: projection.observedAt,
       stale: projection.stale,
     }))
@@ -194,6 +200,7 @@ export const gatewayApi = {
       targetReleaseId: value.targetReleaseId,
       targetReleaseStatus: value.targetReleaseStatus,
       readyNodes: value.readyEngineNodeCount,
+      nodes: value.nodes ?? [],
       totalNodes: value.engineNodeCount,
       consistent: value.consistent,
       stale: value.stale,

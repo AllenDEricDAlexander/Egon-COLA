@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { gatewayApi } from './gatewayApi'
+import { gatewayEngineRoleOf, normalizeEngineMetadata } from './types'
 
 const jsonResponse = (body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -12,6 +13,38 @@ afterEach(() => {
 })
 
 describe('gateway API response adapters', () => {
+  it('accepts canonical role values without guessing malformed or absent metadata', () => {
+    expect(gatewayEngineRoleOf({ 'gateway.engine.role': ' API_RPC ' })).toBe('API_RPC')
+    expect(gatewayEngineRoleOf({ 'gateway.engine.role': 'MCP' })).toBe('MCP')
+    for (const metadata of [null, undefined, {}, { role: 'MCP' },
+      { 'gateway.engine.role': 12 }, { 'gateway.engine.role': 'mcp' }, { 'gateway.engine.role': 'COMBINED' }]) {
+      expect(gatewayEngineRoleOf(metadata)).toBeUndefined()
+    }
+    expect(normalizeEngineMetadata(['MCP'])).toEqual({})
+  })
+  it('normalizes nullable role metadata and retains per-node ACK reasons', async () => {
+    const state = { instanceId: 'mcp', leaseId: 'lease-mcp', leaseStatus: 'ONLINE',
+      status: 'INCONSISTENT', reason: 'VERSION_MISMATCH', activeRuleVersion: 11,
+      activeReleaseId: 'release-1', activeRuleChecksum: 'sha', lastApplyStatus: 'ACK_SUCCESS',
+      lastAckAt: '2026-09-05T00:00:00Z' }
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse({ value: [
+        { instanceId: 'old', metadata: null },
+        { instanceId: 'mcp', metadata: { 'gateway.engine.role': 'MCP', invalid: 12 } },
+      ], observedAt: '2026-09-05T00:00:00Z', stale: false }))
+      .mockResolvedValueOnce(jsonResponse({ engineNodeCount: 1, readyEngineNodeCount: 0,
+        consistent: false, stale: false, source: 'DDC_CONFIG_CLIENT', observedAt: '2026-09-05T00:00:00Z',
+        nodes: [state] }))
+    vi.stubGlobal('fetch', fetchMock)
+    const nodes = await gatewayApi.engineNodes('group-1')
+    expect(nodes[0].metadata).toEqual({})
+    expect(nodes[1].metadata).toEqual({ 'gateway.engine.role': 'MCP' })
+    expect((await gatewayApi.consistency('group-1')).nodes).toEqual([state])
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      '/api/v1/gateway/admin/gateway-groups/group-1/engine-nodes',
+      '/api/v1/gateway/admin/gateway-groups/group-1/runtime-consistency',
+    ])
+  })
   it('loads OpenAPI sync states with encoded scope filters and immutable reads', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse([{

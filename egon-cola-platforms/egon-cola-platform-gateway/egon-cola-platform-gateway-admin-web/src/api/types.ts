@@ -66,6 +66,22 @@ export type IssuedCredential = Credential & {
   secret: string
 }
 
+export type GatewayEngineRole = 'API_RPC' | 'MCP'
+
+export const gatewayEngineRoleOf = (metadata: unknown): GatewayEngineRole | undefined => {
+  if (!metadata || typeof metadata !== 'object' || !('gateway.engine.role' in metadata)) return undefined
+  const value = metadata['gateway.engine.role']
+  if (typeof value !== 'string') return undefined
+  const role = value.trim()
+  return role === 'API_RPC' || role === 'MCP' ? role : undefined
+}
+
+export const normalizeEngineMetadata = (metadata: unknown): Readonly<Record<string, string>> => {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return {}
+  return Object.fromEntries(Object.entries(metadata).filter((entry): entry is [string, string] =>
+    typeof entry[1] === 'string'))
+}
+
 export type EngineNode = {
   appCode: string
   env: string
@@ -81,7 +97,21 @@ export type EngineNode = {
   expireAt: string
   observedAt: string
   stale: boolean
+  readonly metadata: Readonly<Record<string, string>>
 }
+
+export type EngineNodeConsistency = Readonly<{
+  instanceId: string
+  leaseId: string
+  leaseStatus: string
+  status: string
+  reason?: string | null
+  activeReleaseId?: string | null
+  activeRuleVersion?: number | null
+  activeRuleChecksum?: string | null
+  lastApplyStatus?: string | null
+  lastAckAt?: string | null
+}>
 
 export type RuntimeConsistency = {
   targetReleaseId?: string
@@ -92,6 +122,7 @@ export type RuntimeConsistency = {
   stale: boolean
   source: string
   observedAt: string
+  readonly nodes: readonly EngineNodeConsistency[]
 }
 
 export type ProviderInstance = {

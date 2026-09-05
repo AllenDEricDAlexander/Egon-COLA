@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Ready` |
 | Created | `2026-09-02 21:03 CST` |
-| Updated | `2026-09-05 13:27 CST` |
+| Updated | `2026-09-05 13:46 CST` |
 | Owner | `Egon-COLA maintainers` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-platform-gateway runtime, Admin projection/Admin Web, gateway test suite, deployment and local operations` |
@@ -314,6 +314,8 @@ Step 5 contract clarification: Admin's `McpReleaseContentFactory.managedTool` em
 MCP bootstrap records cover explicit group/env/namespace/node/instance/data-directory identity, one data listener, management port, outbound pool/request/channel limits, role-local TLS and active-health settings. Only actual MCP runtime knobs are included; API-only Kafka/body-logging settings are not copied. Positive duration validation uses the existing Boot-managed Hibernate Validator annotation. Base/operations resources and their parity are implemented in Step 6; no legacy `engine.mcp` setting is renamed.
 
 Step 7 regression-closure clarification: the broader Admin test run revealed two pre-existing failures in `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/GatewayAdminApplicationConfigurationTest.java`. Its isolated DDC registration fixture omits the now-required registration resource URI, and its YAML assertions still require removed IdP admission identity keys. Step 7 may repair this exact test file by supplying a test-only DDC registration URI and asserting the actual resource-server-id/resource-uri contract plus absence of obsolete admission keys. Production IdP/DDC configuration and protocols are unchanged; include the file in the Step 7 commit and rerun the complete Admin unit-test package.
+
+Step 8 mapper-closure clarification: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.ts` currently drops the backend consistency `nodes` array, while its Engine-node spread does not normalize nullable metadata. Include this exact mapper file in Step 8: retain the existing per-node consistency fields and normalize metadata to a string map. Use the backend's online node/lease projection for role presence and ACK reasons instead of inventing a second clock/lease-status rule in the browser. Endpoint paths and query keys remain unchanged.
 
 ## 7. Ordered File-by-file Implementation Steps
 
