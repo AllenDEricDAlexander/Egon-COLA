@@ -1,4 +1,5 @@
 import {Alert, Button, Card, Form, Input, Typography} from 'antd'
+import {Navigate, useLocation} from 'react-router-dom'
 import {useAuth} from './AuthContext'
 
 interface LoginForm {
@@ -9,6 +10,14 @@ interface LoginForm {
 
 export const LoginPage = () => {
   const auth = useAuth()
+  const location = useLocation()
+  if (auth.authorization && !auth.loading) {
+    const from = location.state?.from
+    const destination = typeof from === 'string' && from.startsWith('/')
+      && !from.startsWith('//') && !from.includes('\\') && from !== '/login'
+      ? from : '/dashboard'
+    return <Navigate replace to={destination} />
+  }
   return (
     <main className="login-shell">
       <Card className="login-card">

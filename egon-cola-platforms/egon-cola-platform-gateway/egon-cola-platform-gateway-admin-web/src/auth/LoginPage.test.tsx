@@ -1,10 +1,10 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const auth = vi.hoisted(() => ({
   loading: false,
-    authorization: undefined,
+    authorization: undefined as unknown,
   error: undefined,
   login: vi.fn(),
   logout: vi.fn(),
@@ -13,6 +13,8 @@ const auth = vi.hoisted(() => ({
 vi.mock('./AuthContext', () => ({ useAuth: () => auth }))
 
 beforeEach(() => {
+  auth.authorization = undefined
+  auth.loading = false
   auth.login.mockReset()
   vi.stubGlobal('matchMedia', vi.fn().mockImplementation(() => ({
     matches: false,
@@ -35,6 +37,26 @@ afterEach(() => {
 })
 
 describe('gateway admin login', () => {
+  it.each([
+    ['/catalog', '接口目录'],
+    [undefined, '运行总览'],
+    ['/login', '运行总览'],
+    ['//example.invalid', '运行总览'],
+    ['https://example.invalid', '运行总览'],
+  ])('redirects an authenticated user from %s to a local page', async (from, expected) => {
+    auth.authorization = {user: {id: 'admin'}}
+    const {LoginPage} = await import('./LoginPage')
+    render(
+      <MemoryRouter initialEntries={[{pathname: '/login', state: {from}}]}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/dashboard" element={<div>运行总览</div>} />
+          <Route path="/catalog" element={<div>接口目录</div>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    expect(await screen.findByText(expected!)).toBeInTheDocument()
+  })
     it('uses the Gateway cookie login flow and never renders token inputs', async () => {
     const { LoginPage } = await import('./LoginPage')
     render(<MemoryRouter><LoginPage /></MemoryRouter>)
