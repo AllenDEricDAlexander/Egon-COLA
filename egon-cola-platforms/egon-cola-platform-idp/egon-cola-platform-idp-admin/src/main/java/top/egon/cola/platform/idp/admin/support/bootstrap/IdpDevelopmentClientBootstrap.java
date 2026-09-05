@@ -1,7 +1,10 @@
 package top.egon.cola.platform.idp.admin.support.bootstrap;
 
 import org.springframework.beans.factory.SmartInitializingSingleton;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
@@ -32,7 +35,6 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -44,7 +46,9 @@ import java.util.stream.Collectors;
  * <p>Idempotently registers OAuth Clients, Resource Servers, and application-level grants used
  * by the explicit local topology.</p>
  */
-@Component
+@Slf4j
+@RequiredArgsConstructor
+@Component("idpDevelopmentClientBootstrap")
 @Profile("local")
 @ConditionalOnProperty(
         prefix = "egon.idp.development-bootstrap",
@@ -84,6 +88,10 @@ public class IdpDevelopmentClientBootstrap
             new MachineClientSpec(
                     "gateway-engine-service",
                     "Gateway Engine Local Service"
+            ),
+            new MachineClientSpec(
+                    "gateway-mcp-engine-service",
+                    "Gateway MCP Engine Local Service"
             ),
             new MachineClientSpec(
                     "mock-backend-service",
@@ -153,6 +161,17 @@ public class IdpDevelopmentClientBootstrap
                     null
             ),
             new ResourceSpec(
+                    "identity-gateway-mcp-engine-default-local",
+                    "https://api.egon.internal/local/identity/gateway-mcp-engine-default",
+                    "identity",
+                    "gateway-mcp-engine-default",
+                    "Gateway MCP Engine Local",
+                    "gateway-mcp-engine-service",
+                    "mock-backend",
+                    "mock:read",
+                    null
+            ),
+            new ResourceSpec(
                     "identity-mock-backend-local",
                     "https://api.egon.internal/local/identity/mock-backend",
                     "identity",
@@ -183,6 +202,7 @@ public class IdpDevelopmentClientBootstrap
             "ddc-service",
             "gateway-admin-service",
             "gateway-engine-service",
+            "gateway-mcp-engine-service",
             "mock-backend-service",
             "mcp-provider-service"
     );
@@ -225,7 +245,7 @@ public class IdpDevelopmentClientBootstrap
 
     /** MCP Task Worker 的 Source Client；source Client used by the MCP task worker. */
     private static final String MCP_TASK_SERVICE_CLIENT =
-            "gateway-engine-service";
+            "gateway-mcp-engine-service";
 
     /** MCP Provider 的目标 Resource；target Resource exposed by the MCP Provider. */
     private static final String MCP_TASK_RESOURCE_SERVER =
@@ -242,88 +262,44 @@ public class IdpDevelopmentClientBootstrap
             "rbac3-service",
             "gateway-admin-service",
             "gateway-engine-service",
+            "gateway-mcp-engine-service",
             "mock-backend-service",
             "mcp-provider-service"
     );
 
     /** OAuth Client 管理服务；OAuth Client management service. */
+    @NonNull
+    @Qualifier("oauthClientServiceImpl")
     private final OAuthClientService clients;
 
     /** Resource Server 仓储；Resource Server repository. */
+    @NonNull
+    @Qualifier("identityResourceServerRepository")
     private final IdentityResourceServerRepository resources;
 
     /** Client Resource Grant 仓储；Client Resource Grant repository. */
+    @NonNull
+    @Qualifier("identityClientResourceGrantRepository")
     private final IdentityClientResourceGrantRepository grants;
 
     /** OAuth Client 主记录仓储；OAuth Client master-record repository. */
+    @NonNull
+    @Qualifier("identityClientRepository")
     private final IdentityClientRepository clientEntities;
 
     /** Resource 运行态投影服务；Resource runtime projection service. */
+    @NonNull
+    @Qualifier("resourceServerProjectionService")
     private final ResourceServerProjectionService projections;
 
-    /** RBAC3 本地服务授权绑定的精确租户集合；exact tenants bound to local RBAC3 service grants. */
-    private final Set<String> rbac3ServiceTenantIds;
-
     /** 本地机器 Client Secret 目录；local machine-Client Secret directory. */
-    private final Path secretDirectory;
+    @NonNull
+    @Value("${egon.idp.development-bootstrap.key-directory:target/local-unified-platform/secrets}")
+    private final String secretDirectory;
 
-    /**
-     * 创建开发拓扑初始化器。
-     *
-     * <p>Creates the development-topology bootstrap.</p>
-     *
-     * @param clients OAuth Client 管理服务；OAuth Client management service
-     * @param resources Resource Server 仓储；Resource Server repository
-     * @param grants Client Resource Grant 仓储；Client Resource Grant repository
-     */
-    @Autowired
-    public IdpDevelopmentClientBootstrap(
-            OAuthClientService clients,
-            IdentityResourceServerRepository resources,
-            IdentityClientResourceGrantRepository grants,
-            IdentityClientRepository clientEntities,
-            ResourceServerProjectionService projections,
-            @Value("${egon.idp.development-bootstrap.key-directory:target/local-unified-platform/secrets}")
-            String secretDirectory,
-            @Value("${egon.idp.development-bootstrap.rbac3-service-tenant-ids:default}")
-            String rbac3ServiceTenantIds
-    ) {
-        this.clients = Objects.requireNonNull(clients, "clients");
-        this.resources = Objects.requireNonNull(resources, "resources");
-        this.grants = Objects.requireNonNull(grants, "grants");
-        this.clientEntities = Objects.requireNonNull(
-                clientEntities,
-                "clientEntities"
-        );
-        this.projections = Objects.requireNonNull(
-                projections,
-                "projections"
-        );
-        this.secretDirectory = Path.of(Objects.requireNonNull(
-                secretDirectory,
-                "secretDirectory"
-        )).toAbsolutePath().normalize();
-        this.rbac3ServiceTenantIds = tenantIds(rbac3ServiceTenantIds);
-    }
-
-    IdpDevelopmentClientBootstrap(
-            OAuthClientService clients,
-            IdentityResourceServerRepository resources,
-            IdentityClientResourceGrantRepository grants,
-            IdentityClientRepository clientEntities,
-            ResourceServerProjectionService projections,
-            Path secretDirectory
-    ) {
-        this(
-                clients,
-                resources,
-                grants,
-                clientEntities,
-                projections,
-                secretDirectory.toString(),
-                "default"
-        );
-    }
+    /** RBAC3 服务授权租户集合配置；configured tenants for RBAC3 service grants. */
+    @Value("${egon.idp.development-bootstrap.rbac3-service-tenant-ids:default}")
+    private final String rbac3ServiceTenantIds;
 
     /**
      * 在 DDC 生命周期启动前，幂等对齐本地 Client、Resource 与显式 Grant。
@@ -333,6 +309,9 @@ public class IdpDevelopmentClientBootstrap
      */
     @Override
     public void afterSingletonsInstantiated() {
+        // 在任何身份写入前校验配置；validate configuration before identity side effects.
+        Path.of(secretDirectory);
+        tenantIds(rbac3ServiceTenantIds);
         Map<String, OAuthClientVO> existing =
                 clients.list().stream().collect(Collectors.toUnmodifiableMap(
                         OAuthClientVO::clientId,
@@ -352,6 +331,7 @@ public class IdpDevelopmentClientBootstrap
         reconcileGatewayRefreshStatusGrant();
         reconcileGatewayAdminServiceGrants();
         reconcileMcpTaskServiceGrants();
+        log.info("Reconciled local IdP development Client and Resource Server definitions");
     }
 
     /**
@@ -448,6 +428,7 @@ public class IdpDevelopmentClientBootstrap
                     "local machine Client secret was not returned: " + clientId
             );
         }
+        Path secretDirectory = Path.of(this.secretDirectory).toAbsolutePath().normalize();
         Path target = secretFile(clientId);
         Path temporary = null;
         try {
@@ -491,7 +472,8 @@ public class IdpDevelopmentClientBootstrap
 
     /** 返回一个受限目录内的稳定 Secret 文件。 */
     private Path secretFile(String clientId) {
-        return secretDirectory.resolve(clientId + ".secret").normalize();
+        return Path.of(secretDirectory).toAbsolutePath().normalize()
+                .resolve(clientId + ".secret").normalize();
     }
 
     /**
@@ -600,6 +582,7 @@ public class IdpDevelopmentClientBootstrap
      * <p>Explicitly grants services that query USER permissions access to the RBAC3 Resource.</p>
      */
     private void reconcileRbac3ServiceGrants() {
+        Set<String> rbac3ServiceTenantIds = tenantIds(this.rbac3ServiceTenantIds);
         String target = "permission-rbac3-local";
         String allowedScopes = RBAC3_SERVICE_SCOPES.stream()
                 .sorted()
@@ -680,6 +663,7 @@ public class IdpDevelopmentClientBootstrap
      * scopes used by the local catalog and route publisher.</p>
      */
     private void reconcileGatewayAdminServiceGrants() {
+        Set<String> rbac3ServiceTenantIds = tenantIds(this.rbac3ServiceTenantIds);
         String target = "platform-gateway-admin-local";
         String allowedScopes = GATEWAY_ADMIN_SERVICE_SCOPES.stream()
                 .sorted()
@@ -863,6 +847,7 @@ public class IdpDevelopmentClientBootstrap
      * Provider Resource.
      */
     private void reconcileMcpTaskServiceGrants() {
+        Set<String> rbac3ServiceTenantIds = tenantIds(this.rbac3ServiceTenantIds);
         String allowedScopes = MCP_TASK_SERVICE_SCOPES.stream()
                 .sorted()
                 .map(scope -> "\"" + scope + "\"")
@@ -956,7 +941,7 @@ public class IdpDevelopmentClientBootstrap
         String suffix = UUID.nameUUIDFromBytes(
                 tenantId.getBytes(StandardCharsets.UTF_8)
         ).toString().substring(0, 8);
-        return "dev-mcp-task-grant-" + suffix;
+        return "dev-mcp-engine-task-grant-" + suffix;
     }
 
     /**
