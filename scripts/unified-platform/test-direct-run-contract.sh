@@ -41,6 +41,18 @@ extract_function() {
 temporary_dir="$(mktemp -d "${TMPDIR:-/tmp}/egon-direct-run-contract.XXXXXX")"
 trap 'rm -rf "${temporary_dir}"' EXIT
 
+function_file="${temporary_dir}/command-start.sh"
+extract_function command_start "${function_file}"
+awk '
+  /stage "issuing IdP-owned service credentials"/ { issuing = 1 }
+  issuing && /refresh_service_tokens/ { refreshed = 1 }
+  refreshed && /stop_process ddc/ { stopped = 1 }
+  stopped && /start_process ddc/ { restarted = 1 }
+  /initialize_ddc_topology/ { exit !restarted }
+  END { if (!restarted) exit 1 }
+' "${function_file}" \
+  || fail 'DDC must reload initialized OAuth credentials before Admin topology requests'
+
 function_file="${temporary_dir}/local-build-id.sh"
 extract_function local_build_id "${function_file}"
 # shellcheck disable=SC1090

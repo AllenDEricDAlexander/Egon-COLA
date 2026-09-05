@@ -2036,6 +2036,13 @@ command_start() {
   write_application_build_ids
   stage "issuing IdP-owned service credentials"
   refresh_service_tokens
+  # DDC starts before IdP can create/rotate machine credentials. Reload the
+  # regenerated properties before its Admin API requests an RBAC3 service token.
+  stage "reloading DDC with initialized IdP client credentials"
+  stop_process ddc
+  start_process ddc "${env_dir}/ddc.env" "${ddc_jar}"
+  wait_http ddc "${ddc_url}/actuator/health/readiness"
+  wait_ddc_rpc
   subject="$(identity_subject)"
   [[ -n "${subject}" ]] || fail "IdP bootstrap subject is missing"
 
