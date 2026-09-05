@@ -765,8 +765,8 @@ write_service_env_files() {
   write_env "${file}" GATEWAY_ADMIN_OPENAPI_RECONCILE_DELAY PT1S
   write_env "${file}" DDC_MAX_CONFIG_BYTES 67108864
   write_env "${file}" EGON_COLA_COMPONENT_DDC_RPC_DEFAULT_TIMEOUT 300s
-  write_env "${file}" GATEWAY_ADMIN_RULE_CHUNK_RETENTION 1s
-  write_env "${file}" GATEWAY_ADMIN_RULE_CHUNK_CLEANUP_DELAY 1s
+  write_env "${file}" GATEWAY_ADMIN_RULE_CHUNK_RETENTION 24h
+  write_env "${file}" GATEWAY_ADMIN_RULE_CHUNK_CLEANUP_DELAY 1h
   write_env "${file}" DDC_ENABLED true
   write_env "${file}" DDC_REGISTRY_ENABLED true
   write_env "${file}" GATEWAY_ADMIN_DDC_REGISTRATION_ENABLED true
