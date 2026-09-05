@@ -47,6 +47,8 @@ public final class Rbac3DevelopmentTopology {
             "system:role-assignment:read",
             "system:role-inheritance:manage",
             "system:role-permission:manage",
+            "system:role-resource:manage",
+            "system:role-resource:read",
             "system:role:create",
             "system:role:read",
             "system:role:update",

@@ -35,6 +35,8 @@ class Rbac3DevelopmentTopologyTest {
                 "system:bootstrap:read",
                 "system:role-activation:read",
                 "system:role-activation:use",
+                "system:role-resource:read",
+                "system:role-resource:manage",
                 "system:tenant:target");
         assertThat(application("rbac3-admin").permissions())
                 .doesNotContain("system:tenant:read", "system:tenant:manage");
