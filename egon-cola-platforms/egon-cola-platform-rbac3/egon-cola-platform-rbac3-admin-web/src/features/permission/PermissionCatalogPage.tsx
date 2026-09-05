@@ -4,7 +4,7 @@ import {PageState} from '@egon-cola/admin-web-shared'
 import {Alert, Button, Card, Descriptions, Drawer, Form, Input, Modal, Select, Space, Table, Tag} from 'antd'
 import {useState} from 'react'
 import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
-import {applicationApi, type PermissionView, type TenantApplicationView} from '../application/application.api'
+import {applicationApi, type PermissionView} from '../application/application.api'
 
 type PermissionFormValues = {
   readonly permissionCode: string
@@ -15,8 +15,9 @@ type PermissionFormValues = {
 
 const riskLevels = [
   {value: 'LOW', label: '低风险'},
-  {value: 'NORMAL', label: '普通'},
+  {value: 'MEDIUM', label: '中风险'},
   {value: 'HIGH', label: '高风险'},
+  {value: 'CRITICAL', label: '关键风险'},
 ]
 
 export const PermissionCatalogPage = () => {
@@ -30,8 +31,8 @@ export const PermissionCatalogPage = () => {
   const [permissionForm] = Form.useForm<PermissionFormValues>()
   const tenant = effectiveTenantId ?? 'none'
   const applications = useQuery({
-    queryKey: ['rbac3', 'tenant-applications', tenant],
-    queryFn: api.tenantApplications,
+    queryKey: ['rbac3', 'resource-applications', tenant],
+    queryFn: api.applications,
     enabled: status === 'READY',
   })
 
@@ -96,7 +97,7 @@ export const PermissionCatalogPage = () => {
           style={{minWidth: 260}}
           value={resolvedApplicationId || undefined}
           loading={applications.isPending}
-          options={(applications.data ?? []).map((application: TenantApplicationView) => ({
+          options={(applications.data ?? []).map((application) => ({
             value: application.applicationId,
             label: `${application.applicationName} (${application.applicationCode})`,
           }))}
@@ -190,7 +191,7 @@ export const PermissionCatalogPage = () => {
         <Form form={permissionForm} layout="vertical">
           <Form.Item name="permissionCode" label="权限字符" rules={[{required: true}]}><Input /></Form.Item>
           <Form.Item name="permissionName" label="权限名称" rules={[{required: true}]}><Input /></Form.Item>
-          <Form.Item name="riskLevel" label="风险等级" initialValue="NORMAL" rules={[{required: true}]}>
+          <Form.Item name="riskLevel" label="风险等级" initialValue="MEDIUM" rules={[{required: true}]}>
             <Select options={riskLevels} />
           </Form.Item>
           <Form.Item name="description" label="说明"><Input.TextArea rows={3} /></Form.Item>
