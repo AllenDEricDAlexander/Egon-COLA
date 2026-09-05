@@ -20,6 +20,16 @@ server:
   port: ${GATEWAY_ADMIN_PORT:8080}
   shutdown: graceful
 
+springdoc:
+  api-docs:
+    enabled: ${GATEWAY_ADMIN_HTTP_OPENAPI_ENABLED:false}
+    version: OPENAPI_3_1
+  group-configs:
+    - group: gateway-admin
+      paths-to-match:
+        - /api/v1/gateway/admin/**
+        - /api/v1/auth/bootstrap
+
 management:
   endpoints:
     web:
@@ -142,8 +152,18 @@ egon:
             metadata:
               gateway.component: admin
       gateway:
+        openapi:
+          enabled: ${GATEWAY_ADMIN_HTTP_OPENAPI_ENABLED:false}
+          publish-to-ddc: ${GATEWAY_ADMIN_HTTP_OPENAPI_PUBLISH_TO_DDC:true}
+          published-groups:
+            - gateway-admin
+          biz-code: ${GATEWAY_ADMIN_RESOURCE_BIZ_CODE:platform}
+          application-code: ${GATEWAY_ADMIN_RESOURCE_APP_CODE:gateway-admin}
+          resource-uri: ${GATEWAY_ADMIN_RESOURCE_URI:}
+          artifact-version: ${GATEWAY_ADMIN_VERSION:local}
+          build-id: ${GATEWAY_ADMIN_BUILD_ID:local}
         reporting:
-          enabled: ${GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED:true}
+          enabled: ${GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED:false}
           admin-base-url: ${GATEWAY_ADMIN_BASE_URL:}
           biz-code: ${GATEWAY_ADMIN_RESOURCE_BIZ_CODE:platform}
           application-code: ${GATEWAY_ADMIN_RESOURCE_APP_CODE:gateway-admin}

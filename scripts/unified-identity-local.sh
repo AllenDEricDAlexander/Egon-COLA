@@ -62,6 +62,7 @@ Commands:
   prepare  Check host dependencies, create named databases/secrets, and package jars
   start    Start and bootstrap DDC, IdP, RBAC3, Gateway, and the mock backend
   publish-gateway-routes  Publish the prepared local Gateway routes after Engine startup
+  refresh-gateway-admin-catalog  Refresh the running Admin's own interface catalog
   sync-local-credentials  Refresh local SERVICE credentials and USER cookie snapshots
   issue-user-token  Issue one local USER Access Token from explicit inputs
   verify   Execute the host-local unified identity acceptance checks
@@ -759,6 +760,7 @@ write_service_env_files() {
   # Local OpenAPI ingestion is explicitly restricted to the detected provider
   # host. Production keeps the HTTPS-only default from application.yml.
   write_env "${file}" GATEWAY_ADMIN_OPENAPI_ENABLED true
+  write_env "${file}" GATEWAY_ADMIN_HTTP_OPENAPI_ENABLED true
   write_env "${file}" GATEWAY_ADMIN_OPENAPI_ALLOW_DEVELOPMENT_HTTP true
   write_env "${file}" GATEWAY_ADMIN_OPENAPI_ALLOWED_CIDR \
     "${advertised_host}/32"
@@ -1603,7 +1605,7 @@ initialize_gateway_control_plane() {
   if [[ "${startup_mode}" == "full" ]]; then
     ensure_gateway_reporting_application permission idp "IdP Identity Admin"
     ensure_gateway_reporting_application permission rbac3 "RBAC3 Permission Admin"
-    ensure_gateway_reporting_application platform gateway-admin "Gateway Admin"
+    ensure_gateway_application platform gateway-admin "Gateway Admin"
     ensure_gateway_reporting_application platform ddc "Dynamic Config Center Admin"
     ensure_gateway_reporting_application identity mock-backend "Unified Identity Mock Backend"
   else
@@ -1635,6 +1637,17 @@ wait_gateway_catalog_for_app() {
       "/api/v1/gateway/admin/applications/${app_id}/catalog" || true)"
     if jq -e '.. | objects | select(.protocol? == "HTTP" and .lifecycleStatus? == "ACTIVE")' \
         <<<"${response}" >/dev/null 2>&1; then
+      if [[ "${app_code}" == "gateway-admin" ]] && ! jq -e '
+        [.. | objects | select(.protocol? == "HTTP" and .lifecycleStatus? == "ACTIVE")
+          | .methodIdentity] as $methods
+        | ["GET /api/v1/gateway/admin/openapi/sync-states",
+           "GET /api/v1/gateway/admin/operations/{operationId}/openapi",
+           "GET /api/v1/gateway/admin/openapi/snapshots/{snapshotId}/document"]
+        | all(. as $method | $methods | index($method) != null)
+      ' <<<"${response}" >/dev/null 2>&1; then
+        sleep 1
+        continue
+      fi
       return
     fi
     sleep 1
@@ -1768,20 +1781,18 @@ route_id_for_operation() {
     | awk '{print "unified-" substr($1, 1, 32)}'
 }
 
-publish_gateway_routes() {
-  local defer_release="${1:-false}"
-  local group_id operations draft revision response validation release
-  local security ids policy_id route_type auth_mode forward recovery
-  local extractors auth_providers authz_providers operation_id method_identity app_code
-  local method path route_id legacy_route_id stale_route_id route_content desired_policy
-  local managed_operation_ids cors_policy_id cors_origins cors_methods
-  local cors_headers cors_exposed security_type route_transport_policy
-  group_id="$(<"${runtime_dir}/gateway-group.id")"
-  operations="$(gateway_catalog_operations | jq '
+select_gateway_catalog_operations() {
+  jq '
     map(select(.protocol == "HTTP" and .externalAccessible == true
       and .lifecycleStatus == "ACTIVE"))
     | map(select(.methodIdentity != "GET /api/v1/auth/bootstrap"
       or .reportedApplication == "gateway-admin"))
+    | group_by([.reportedApplication, (.methodIdentity | split("/")
+        | map(if startswith("{") and endswith("}") then "{}" else . end)
+        | join("/"))])
+    | map(if any(.[]; .sourceType == "OPENAPI31")
+        then map(select(.sourceType != "STARTER")) else . end)
+    | (add // [])
     | map(. + {securityType:
       (if .reportedApplication == "idp" and (
         .methodIdentity == "GET /oauth2/login/csrf"
@@ -1796,7 +1807,19 @@ publish_gateway_routes() {
         .methodIdentity == "GET /oauth2/userinfo"
         or .methodIdentity == "POST /oauth2/step-up")
        then "IDENTITY_PROTECTED"
-       else "BUSINESS_PROTECTED" end)})')"
+       else "BUSINESS_PROTECTED" end)})'
+}
+
+publish_gateway_routes() {
+  local defer_release="${1:-false}"
+  local group_id operations draft revision response validation release
+  local security ids policy_id route_type auth_mode forward recovery
+  local extractors auth_providers authz_providers operation_id method_identity app_code
+  local method path route_id legacy_route_id stale_route_id route_content desired_policy
+  local managed_operation_ids cors_policy_id cors_origins cors_methods
+  local cors_headers cors_exposed security_type route_transport_policy
+  group_id="$(<"${runtime_dir}/gateway-group.id")"
+  operations="$(gateway_catalog_operations | select_gateway_catalog_operations)"
   printf '%s' "${operations}" >"${runtime_dir}/gateway-operations.json"
   draft="$(gateway_api GET "/api/v1/gateway/admin/gateway-groups/${group_id}/draft")"
   revision="$(jq -er '.revision' <<<"${draft}")"
@@ -2142,6 +2165,8 @@ command_start() {
   initialize_gateway_control_plane
 
   if [[ "${startup_mode}" == "platforms" ]]; then
+    stage "waiting for Gateway Admin OpenAPI catalog ingestion"
+    wait_gateway_catalog_for_app gateway-admin
     stage "waiting for RBAC3 OpenAPI group ingestion"
     wait_gateway_openapi_sync_for_app permission rbac3
     stage "reconciling orphaned local MCP draft capabilities"
@@ -2173,7 +2198,7 @@ command_start() {
   start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}"
   wait_http rbac3 "${rbac3_url}/actuator/health/readiness"
   write_env "${env_dir}/gateway-admin.env" \
-    GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED true
+    GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED false
   stop_process gateway-admin
   start_process gateway-admin "${env_dir}/gateway-admin.env" "${gateway_admin_jar}"
   wait_http gateway-admin "${gateway_admin_url}/actuator/health/readiness"
@@ -2362,6 +2387,26 @@ command_status() {
   done
 }
 
+command_refresh_gateway_admin_catalog() {
+  for command in java curl jq openssl psql; do
+    require_command "${command}"
+  done
+  initialize_directories
+  process_running gateway-admin || fail "gateway-admin is not running"
+  resolve_existing_service_tenant_id
+  refresh_service_tokens
+  ensure_gateway_application platform gateway-admin "Gateway Admin"
+  write_env "${env_dir}/gateway-admin.env" GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED false
+  write_env "${env_dir}/gateway-admin.env" GATEWAY_ADMIN_HTTP_OPENAPI_ENABLED true
+  write_env "${env_dir}/gateway-admin.env" GATEWAY_ADMIN_BUILD_ID \
+    "$(local_build_id "${gateway_admin_jar}")"
+  stop_process gateway-admin
+  start_process gateway-admin "${env_dir}/gateway-admin.env" "${gateway_admin_jar}"
+  wait_http gateway-admin "${gateway_admin_url}/actuator/health/readiness"
+  wait_gateway_catalog_for_app gateway-admin
+  echo "Gateway Admin current OpenAPI query interfaces are available in its catalog."
+}
+
 command_publish_gateway_routes() {
   local command
   for command in curl jq openssl; do
@@ -2414,6 +2459,7 @@ case "${1:---help}" in
   prepare) command_prepare ;;
   start) command_start ;;
   publish-gateway-routes) command_publish_gateway_routes ;;
+  refresh-gateway-admin-catalog) command_refresh_gateway_admin_catalog ;;
   sync-local-credentials) command_refresh_tokens ;;
   issue-user-token) command_issue_user_token ;;
   verify) command_verify ;;

@@ -924,4 +924,40 @@ done
 assert_contains "${verifier}" 'admin-feature-matrix' \
   'sanitized evidence must include the Admin feature matrix'
 
+function_file="${temporary_dir}/wait-admin-catalog.sh"
+selector_file="${temporary_dir}/select-catalog.sh"
+extract_function select_gateway_catalog_operations "${selector_file}"
+source "${selector_file}"
+selected_operations="$(jq -cn '[
+  {id:"old",sourceType:"STARTER",methodIdentity:"GET /mcp/{plural:tools|resources}/{id}"},
+  {id:"new",sourceType:"OPENAPI31",methodIdentity:"GET /mcp/{plural}/{id}"},
+  {id:"manual",sourceType:"MANUAL",methodIdentity:"GET /custom"},
+  {id:"legacy-only",sourceType:"STARTER",methodIdentity:"GET /existing"}
+] | map(. + {reportedApplication:"gateway-admin",protocol:"HTTP",externalAccessible:true,lifecycleStatus:"ACTIVE"})' \
+  | select_gateway_catalog_operations)"
+jq -e '[.[].id] | sort == ["legacy-only","manual","new"]' \
+  <<<"${selected_operations}" >/dev/null \
+  || fail 'OpenAPI routes must supersede duplicate legacy starter patterns without dropping manual or unmatched routes'
+
+extract_function wait_gateway_catalog_for_app "${function_file}"
+source "${function_file}"
+printf '%s' 'admin-application' >"${temporary_dir}/admin-application.id"
+gateway_application_id_file() { printf '%s/admin-application.id' "${temporary_dir}"; }
+gateway_api() {
+  printf 'query\n' >>"${temporary_dir}/admin-catalog-queries"
+  if [[ "$(wc -l <"${temporary_dir}/admin-catalog-queries" | tr -d ' ')" == 1 ]]; then
+    printf '%s' '{"operations":[{"protocol":"HTTP","lifecycleStatus":"ACTIVE","methodIdentity":"GET /old"}]}'
+  else
+    jq -cn '["GET /api/v1/gateway/admin/openapi/sync-states",
+      "GET /api/v1/gateway/admin/operations/{operationId}/openapi",
+      "GET /api/v1/gateway/admin/openapi/snapshots/{snapshotId}/document"]
+      | {operations:map({protocol:"HTTP",lifecycleStatus:"ACTIVE",methodIdentity:.})}'
+  fi
+}
+sleep() { :; }
+wait_gateway_catalog_for_app gateway-admin
+[[ "$(wc -l <"${temporary_dir}/admin-catalog-queries" | tr -d ' ')" == 2 ]] \
+  || fail 'Admin catalog wait must reject a stale catalog without the OpenAPI query endpoints'
+unset -f gateway_api gateway_application_id_file sleep wait_gateway_catalog_for_app
+
 printf 'direct-run-contract: runtime properties adapter PASS\n'

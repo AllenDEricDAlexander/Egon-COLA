@@ -223,6 +223,13 @@ class IdpDevelopmentClientBootstrapTest {
                         && grant.getTenantId() == null
                         && grant.getAllowedScopes().contains(
                         "gateway.openapi.read")));
+        verify(grants).save(argThat(grant ->
+                grant.getClientId().equals("gateway-admin-service")
+                        && grant.getResourceServerId().equals("platform-gateway-admin-local")
+                        && grant.getGrantContext()
+                        == top.egon.cola.platform.idp.contract.ServiceTokenContext.PLATFORM
+                        && grant.getTenantId() == null
+                        && grant.getAllowedScopes().equals("[\"gateway.openapi.read\"]")));
         verify(grants, atLeastOnce()).save(any(
                 IdentityClientResourceGrantEntity.class
         ));
