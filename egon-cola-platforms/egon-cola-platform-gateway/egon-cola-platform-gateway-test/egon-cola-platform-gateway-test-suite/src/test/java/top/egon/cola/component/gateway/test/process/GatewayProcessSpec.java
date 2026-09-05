@@ -1,5 +1,8 @@
 package top.egon.cola.component.gateway.test.process;
 
+import top.egon.cola.component.gateway.contract.runtime.GatewayEngineRoleEnum;
+
+import java.net.URI;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -12,8 +15,20 @@ public record GatewayProcessSpec(
         String mainClass,
         List<String> arguments,
         Map<String, String> environment,
-        Duration startupTimeout
+        Duration startupTimeout,
+        GatewayEngineRoleEnum engineRole,
+        String artifactId,
+        URI dataPlaneBaseUri,
+        URI managementBaseUri
 ) {
+
+    private static final Map<GatewayEngineRoleEnum, EngineArtifactDTO> ENGINE_ARTIFACTS = Map.of(
+            GatewayEngineRoleEnum.API_RPC, new EngineArtifactDTO(
+                    "egon-cola-platform-gateway-engine",
+                    "top.egon.cola.component.gateway.engine.GatewayEngineApplication"),
+            GatewayEngineRoleEnum.MCP, new EngineArtifactDTO(
+                    "egon-cola-platform-gateway-mcp-engine",
+                    "top.egon.cola.component.gateway.mcp.engine.McpGatewayEngineApplication"));
 
     private static final List<String> SENSITIVE_MARKERS = List.of(
             "password",
@@ -42,6 +57,48 @@ public record GatewayProcessSpec(
                     "startupTimeout must be positive"
             );
         }
+        if (engineRole != null) {
+            EngineArtifactDTO expected = ENGINE_ARTIFACTS.get(engineRole);
+            if (!expected.artifactId().equals(artifactId) || !expected.mainClass().equals(mainClass)) {
+                throw new IllegalArgumentException("Engine role, artifact and main class must agree");
+            }
+            validateEndpoint(dataPlaneBaseUri, "dataPlaneBaseUri");
+            validateEndpoint(managementBaseUri, "managementBaseUri");
+            if (dataPlaneBaseUri.getPort() == managementBaseUri.getPort()) {
+                throw new IllegalArgumentException("Engine data and management ports must differ");
+            }
+        } else if (artifactId != null || dataPlaneBaseUri != null || managementBaseUri != null
+                || ENGINE_ARTIFACTS.values().stream().map(EngineArtifactDTO::mainClass).toList().contains(mainClass)) {
+            throw new IllegalArgumentException("Engine processes require an explicit role");
+        }
+    }
+
+    public GatewayProcessSpec(String name, String mainClass, List<String> arguments,
+                              Map<String, String> environment, Duration startupTimeout) {
+        this(name, mainClass, arguments, environment, startupTimeout, null, null, null, null);
+    }
+
+    public static Builder engineBuilder(String name, GatewayEngineRoleEnum role,
+                                        URI dataPlaneBaseUri, URI managementBaseUri) {
+        EngineArtifactDTO artifact = ENGINE_ARTIFACTS.get(Objects.requireNonNull(role, "engineRole"));
+        Builder builder = new Builder(name, artifact.mainClass());
+        builder.engineRole = role;
+        builder.artifactId = artifact.artifactId();
+        builder.dataPlaneBaseUri = dataPlaneBaseUri;
+        builder.managementBaseUri = managementBaseUri;
+        return builder;
+    }
+
+    private static void validateEndpoint(URI uri, String field) {
+        if (uri == null || !("http".equals(uri.getScheme()) || "https".equals(uri.getScheme()))
+                || uri.getHost() == null || uri.getPort() < 1 || uri.getPort() > 65535
+                || uri.getUserInfo() != null || uri.getRawQuery() != null || uri.getFragment() != null
+                || !List.of("", "/").contains(uri.getPath())) {
+            throw new IllegalArgumentException(field + " requires an HTTP(S) host and explicit port without credentials or path");
+        }
+    }
+
+    private record EngineArtifactDTO(String artifactId, String mainClass) {
     }
 
     public static Builder builder(String name, String mainClass) {
@@ -98,6 +155,10 @@ public record GatewayProcessSpec(
                 new LinkedHashMap<>();
 
         private Duration startupTimeout = Duration.ofSeconds(60);
+        private GatewayEngineRoleEnum engineRole;
+        private String artifactId;
+        private URI dataPlaneBaseUri;
+        private URI managementBaseUri;
 
         private Builder(String name, String mainClass) {
             this.name = name;
@@ -133,7 +194,11 @@ public record GatewayProcessSpec(
                     mainClass,
                     arguments,
                     environment,
-                    startupTimeout
+                    startupTimeout,
+                    engineRole,
+                    artifactId,
+                    dataPlaneBaseUri,
+                    managementBaseUri
             );
         }
     }

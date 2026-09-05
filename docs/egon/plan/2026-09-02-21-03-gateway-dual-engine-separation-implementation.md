@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Ready` |
 | Created | `2026-09-02 21:03 CST` |
-| Updated | `2026-09-05 13:46 CST` |
+| Updated | `2026-09-05 15:06 CST` |
 | Owner | `Egon-COLA maintainers` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-platform-gateway runtime, Admin projection/Admin Web, gateway test suite, deployment and local operations` |
@@ -316,6 +316,8 @@ MCP bootstrap records cover explicit group/env/namespace/node/instance/data-dire
 Step 7 regression-closure clarification: the broader Admin test run revealed two pre-existing failures in `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/GatewayAdminApplicationConfigurationTest.java`. Its isolated DDC registration fixture omits the now-required registration resource URI, and its YAML assertions still require removed IdP admission identity keys. Step 7 may repair this exact test file by supplying a test-only DDC registration URI and asserting the actual resource-server-id/resource-uri contract plus absence of obsolete admission keys. Production IdP/DDC configuration and protocols are unchanged; include the file in the Step 7 commit and rerun the complete Admin unit-test package.
 
 Step 8 mapper-closure clarification: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.ts` currently drops the backend consistency `nodes` array, while its Engine-node spread does not normalize nullable metadata. Include this exact mapper file in Step 8: retain the existing per-node consistency fields and normalize metadata to a string map. Use the backend's online node/lease projection for role presence and ACK reasons instead of inventing a second clock/lease-status rule in the browser. Endpoint paths and query keys remain unchanged.
+
+Step 9 source-closure clarification: the suite still imports the relocated MCP classes and old compiled DTO/compiler, so its MCP import/type-only updates and the already-planned MCP test dependency may precede the behavioral RED gate. `GatewayLiveEnvironment` currently owns infrastructure/scope/directories, while process URLs/specs live in `GatewayLiveTopologyIT`; extend these actual owners rather than inventing an existing URL registry. `McpCompleteReleaseIT` and conformance clients currently use in-process remote fixtures, not a mixed Engine URL; preserve those protocol fixtures and add role-aware Engine projection proof. Retained API defaults are data 18081, internal 18082, management 18083 and gRPC 19090. Role processes must resolve their matching executable JAR without the mixed test-classpath fallback; ordinary probe/Admin/provider handling stays compatible.
 
 ## 7. Ordered File-by-file Implementation Steps
 
@@ -1303,6 +1305,8 @@ return <>{renderRoleCard('API_RPC', grouped.API_RPC, consistency.data)}{renderRo
 - Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/gateway-groups/GatewayGroupDetailPage.test.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpRuntimeStatus.test.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/types.ts`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/gateway-groups/GatewayGroupDetailPage.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpRuntimeStatus.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.test.ts`
 - Commit: `feat(gateway-admin-web): show dual engine roles`
 
+Step 9 focused execution additionally exposed a stale synthetic MCP fixture: `src/test/resources/mcp/complete-release.json` still supplies `McpRuntimeTool.inputLocations`, removed from the pre-existing current contract. Under DEC-EXEC-002, extend Step 9 scope to remove only those four obsolete fixture fields and retain strict Jackson deserialization. This is not a production rule-wire change; the canonical Admin artifact golden checksum remains unchanged. Failed apply keeps the previous ready/degraded flags and reports FAILED; only LKG restoration starts at version 0 with degraded=true.
+
 ### Step 9 — Upgrade the gateway test suite for dual-role releases
 
 - Requirements: `REQ-006`, `REQ-008`, `REQ-012`
@@ -1330,7 +1334,7 @@ return <>{renderRoleCard('API_RPC', grouped.API_RPC, consistency.data)}{renderRo
 - Implementation pseudocode:
 
 ```java
-GatewayProcessSpec api = specFor(GatewayEngineRoleEnum.API_RPC, "gateway-engine", GatewayEngineApplication.class, 18081, 19090);
+GatewayProcessSpec api = specFor(GatewayEngineRoleEnum.API_RPC, "gateway-engine", GatewayEngineApplication.class, 18081, 18083);
 GatewayProcessSpec mcp = specFor(GatewayEngineRoleEnum.MCP, "gateway-mcp-engine", McpGatewayEngineApplication.class, 18084, 18085);
 assertThat(harness.resolveJar(api)).isNotEqualTo(harness.resolveJar(mcp));
 ```

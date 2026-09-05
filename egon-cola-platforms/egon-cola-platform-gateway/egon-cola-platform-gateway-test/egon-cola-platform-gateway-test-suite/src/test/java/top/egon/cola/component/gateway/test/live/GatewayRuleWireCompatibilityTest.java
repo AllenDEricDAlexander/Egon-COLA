@@ -1,6 +1,17 @@
 package top.egon.cola.component.gateway.test.live;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import top.egon.cola.component.gateway.engine.rule.service.ApiRpcGatewayRuleCompilerStrategy;
+import top.egon.cola.component.gateway.engine.bootstrap.config.GatewayEngineConfiguration;
+import top.egon.cola.component.gateway.mcp.engine.rule.service.McpGatewayRuleCompilerStrategy;
+import top.egon.cola.component.gateway.mcp.engine.bootstrap.config.McpGatewayEngineConfiguration;
+import top.egon.cola.component.gateway.runtime.provider.service.ProviderDirectory;
+import top.egon.cola.component.gateway.runtime.rule.domain.GatewayCompiledRulesDTO;
+import top.egon.cola.component.gateway.runtime.rule.repository.GatewayRuleChunkStore;
+import top.egon.cola.component.gateway.runtime.rule.repository.GatewayRuleLkgRepository;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleActivationApplier;
+import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleCompilerStrategy;
 import top.egon.cola.component.gateway.admin.rule.service.GatewayRuleCanonicalizer;
 import top.egon.cola.component.gateway.admin.rule.service.GatewayRuleCompiler;
 import top.egon.cola.component.gateway.contract.protocol.AccessZone;
@@ -18,15 +29,83 @@ import top.egon.cola.component.gateway.contract.rule.GatewayTransportResponseMod
 import top.egon.cola.component.gateway.runtime.rule.adapter.json.GatewayRuleJsonCodec;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 class GatewayRuleWireCompatibilityTest {
+
+    @TempDir
+    Path dataDirectory;
+
+    @Test
+    void bothRolesActivateOneArtifactButKeepFailureAndLkgStateIndependent() {
+        var content = new GatewayRuleContent("group-1", "default", "test", "gateway-live",
+                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+        var publisher = new GatewayRuleCompiler(new GatewayRuleCanonicalizer());
+        var first = publisher.compile("release-1", Instant.parse("2026-09-05T00:00:00Z"), content);
+        var second = publisher.compile("release-2", Instant.parse("2026-09-05T00:01:00Z"), content);
+        var api = applier("api", new ApiRpcGatewayRuleCompilerStrategy());
+        var mcpCompiler = new McpGatewayRuleCompilerStrategy();
+        var mcp = applier("mcp", snapshot -> {
+            if ("release-2".equals(snapshot.releaseId())) {
+                throw new IllegalStateException("test-only MCP compiler failure");
+            }
+            return mcpCompiler.compile(snapshot);
+        });
+        api.apply(GatewayRuleActivationApplier.ACTIVE_CONFIG_KEY, first.activationJson(), 41);
+        mcp.apply(GatewayRuleActivationApplier.ACTIVE_CONFIG_KEY, first.activationJson(), 41);
+        var apiMetadata = new GatewayEngineConfiguration().gatewayRuntimeMetadata(api).metadata();
+        var mcpMetadata = new McpGatewayEngineConfiguration().gatewayRuntimeMetadata(mcp).metadata();
+        assertEquals("API_RPC", apiMetadata.get("gateway.engine.role"));
+        assertEquals("MCP", mcpMetadata.get("gateway.engine.role"));
+        for (String key : List.of("activeReleaseId", "activeRuleVersion", "activeRuleChecksum")) {
+            assertEquals(apiMetadata.get(key), mcpMetadata.get(key));
+        }
+        assertEquals(first.snapshot().artifactSha256(), api.active().ruleChecksum());
+        var previousMcp = mcp.active();
+        api.apply(GatewayRuleActivationApplier.ACTIVE_CONFIG_KEY, second.activationJson(), 42);
+        assertThrows(IllegalStateException.class, () ->
+                mcp.apply(GatewayRuleActivationApplier.ACTIVE_CONFIG_KEY, second.activationJson(), 42));
+        assertEquals("release-2", api.active().releaseId());
+        assertSame(previousMcp, mcp.active());
+        assertEquals(41, mcp.status().activeDdcVersion());
+        assertTrue(mcp.status().ready());
+        assertEquals("FAILED", mcp.status().lastStage().name());
+        assertFalse(mcp.status().degraded());
+        var restoredApi = applier("api", new ApiRpcGatewayRuleCompilerStrategy());
+        var restoredMcp = applier("mcp", new McpGatewayRuleCompilerStrategy());
+        restoredApi.restoreLkg();
+        restoredMcp.restoreLkg();
+        assertEquals("release-2", restoredApi.active().releaseId());
+        assertEquals("release-1", restoredMcp.active().releaseId());
+        assertEquals(0, restoredMcp.status().activeDdcVersion());
+        assertTrue(restoredMcp.status().ready());
+        assertTrue(restoredMcp.status().degraded());
+        restoredApi.apply(GatewayRuleActivationApplier.ACTIVE_CONFIG_KEY, second.activationJson(), 42);
+        restoredMcp.apply(GatewayRuleActivationApplier.ACTIVE_CONFIG_KEY, second.activationJson(), 42);
+        assertEquals(restoredApi.active().ruleChecksum(), restoredMcp.active().ruleChecksum());
+        assertEquals(restoredApi.status().activeDdcVersion(), restoredMcp.status().activeDdcVersion());
+        assertEquals(42, restoredMcp.status().activeDdcVersion());
+    }
+
+    private <T extends GatewayCompiledRulesDTO> GatewayRuleActivationApplier<T> applier(
+            String roleDirectory, GatewayRuleCompilerStrategy<T> compiler) {
+        return new GatewayRuleActivationApplier<>(new GatewayRuleJsonCodec(), compiler, new GatewayRuleChunkStore(),
+                mock(ProviderDirectory.class), new GatewayRuleLkgRepository(dataDirectory.resolve(roleDirectory), "default"),
+                Clock.systemUTC());
+    }
 
     @Test
     void engineVerifiesAdminSnapshotWithMultiZoneRouteAndTrafficPolicy() {

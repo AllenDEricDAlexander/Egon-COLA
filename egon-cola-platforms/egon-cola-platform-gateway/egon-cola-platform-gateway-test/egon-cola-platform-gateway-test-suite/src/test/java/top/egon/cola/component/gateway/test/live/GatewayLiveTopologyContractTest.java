@@ -7,6 +7,11 @@ class GatewayLiveTopologyContractTest {
     private final GatewayLiveTopologyIT topology = new GatewayLiveTopologyIT();
 
     @Test
+    void rolesShareReleaseScopeWithoutSharingCredentialsOrState() {
+        topology.dualRoleSpecsShareReleaseScopeButNotIdentityCredentialsOrState();
+    }
+
+    @Test
     void everyDdcClientUsesInfrastructureRedisCoordinates() {
         topology.everyDdcClientUsesInfrastructureRedisCoordinates();
     }

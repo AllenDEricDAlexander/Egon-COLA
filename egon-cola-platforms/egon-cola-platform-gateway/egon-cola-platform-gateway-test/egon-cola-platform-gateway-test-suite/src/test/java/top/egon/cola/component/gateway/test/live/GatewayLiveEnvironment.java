@@ -1,5 +1,7 @@
 package top.egon.cola.component.gateway.test.live;
 
+import top.egon.cola.component.gateway.contract.runtime.GatewayEngineRoleEnum;
+
 import top.egon.cola.component.gateway.test.process.GatewayProcessHarness;
 import top.egon.cola.component.gateway.test.process.GatewayProcessSpec;
 import top.egon.cola.component.gateway.test.process.GatewayTestInfrastructure;
@@ -66,6 +68,23 @@ public final class GatewayLiveEnvironment implements AutoCloseable {
 
     public Path processOutputDirectory() {
         return scope.processOutputDirectory();
+    }
+
+    public URI dataPlaneBaseUri(GatewayEngineRoleEnum role, GatewayProcessHarness.ChildProcess engine) {
+        requireRole(role, engine);
+        return engine.spec().dataPlaneBaseUri();
+    }
+
+    public URI managementBaseUri(GatewayEngineRoleEnum role, GatewayProcessHarness.ChildProcess engine) {
+        requireRole(role, engine);
+        return engine.spec().managementBaseUri();
+    }
+
+    private void requireRole(GatewayEngineRoleEnum role, GatewayProcessHarness.ChildProcess engine) {
+        Objects.requireNonNull(engine, "engine");
+        if (role == null || role != engine.spec().engineRole()) {
+            throw new IllegalArgumentException("Engine endpoint requested for the wrong role");
+        }
     }
 
     public GatewayProcessHarness.ChildProcess start(

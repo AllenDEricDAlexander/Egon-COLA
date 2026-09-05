@@ -19,6 +19,11 @@
     <dependencies>
         <dependency>
             <groupId>top.egon</groupId>
+            <artifactId>egon-cola-platform-gateway-mcp-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
             <artifactId>egon-cola-platform-gateway-engine</artifactId>
             <scope>test</scope>
         </dependency>

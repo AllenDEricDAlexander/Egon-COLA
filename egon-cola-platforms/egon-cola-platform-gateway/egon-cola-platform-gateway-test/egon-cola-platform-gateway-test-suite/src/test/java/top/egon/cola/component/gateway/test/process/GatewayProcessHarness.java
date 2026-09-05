@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.jar.JarFile;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -93,6 +94,7 @@ public final class GatewayProcessHarness implements AutoCloseable {
 
     public ChildProcess start(GatewayProcessSpec spec) throws IOException {
         Objects.requireNonNull(spec, "spec");
+        validateProcessIsolation(spec);
         int attempt = attempts.merge(spec.name(), 1, Integer::sum);
         Path processDirectory = outputDirectory.resolve(spec.name());
         Path attemptDirectory = processDirectory.resolve(
@@ -100,7 +102,7 @@ public final class GatewayProcessHarness implements AutoCloseable {
         );
         Path logFile = attemptDirectory.resolve("process.log");
         Path manifestFile = attemptDirectory.resolve("manifest.json");
-        Path lkgDirectory = processDirectory.resolve("lkg");
+        Path lkgDirectory = runtimeDataDirectory(spec, processDirectory.resolve("lkg"));
         Files.createDirectories(attemptDirectory);
         Files.createDirectories(lkgDirectory);
         List<String> command = new ArrayList<>();
@@ -110,9 +112,9 @@ public final class GatewayProcessHarness implements AutoCloseable {
                 "java"
         ).toString());
         Path applicationArchive = applicationArchive(spec.mainClass());
-        Optional<Path> executableArchive = executableArchive(
-                applicationArchive
-        );
+        Optional<Path> executableArchive = spec.engineRole() == null
+                ? executableArchive(applicationArchive)
+                : Optional.of(resolveJar(spec, applicationArchive));
         if (executableArchive.isPresent()) {
             command.add("-jar");
             command.add(executableArchive.orElseThrow().toString());
@@ -144,6 +146,86 @@ public final class GatewayProcessHarness implements AutoCloseable {
             throw failure;
         }
         return child;
+    }
+
+    public Path resolveJar(GatewayProcessSpec spec) throws IOException {
+        return resolveJar(spec, applicationArchive(spec.mainClass()));
+    }
+
+    static Path resolveJar(GatewayProcessSpec spec, Path applicationArchive) throws IOException {
+        if (spec.engineRole() == null) {
+            throw new IllegalArgumentException("Executable resolution requires an Engine role");
+        }
+        Path target = applicationArchive.toAbsolutePath().getParent();
+        List<Path> candidates;
+        try (var files = Files.list(target)) {
+            candidates = files.filter(Files::isRegularFile)
+                    .filter(file -> file.getFileName().toString().startsWith(spec.artifactId()))
+                    .filter(file -> file.getFileName().toString().endsWith("-exec.jar"))
+                    .sorted().toList();
+        }
+        List<Path> matched = new ArrayList<>();
+        for (Path candidate : candidates) {
+            try (JarFile jar = new JarFile(candidate.toFile())) {
+                var manifest = jar.getManifest();
+                if (manifest != null
+                        && spec.mainClass().equals(manifest.getMainAttributes().getValue("Start-Class"))
+                        && "org.springframework.boot.loader.launch.JarLauncher".equals(
+                        manifest.getMainAttributes().getValue("Main-Class"))) {
+                    matched.add(candidate);
+                }
+            }
+        }
+        if (matched.size() != 1) {
+            throw new IllegalStateException("Expected one " + spec.engineRole() + " executable for "
+                    + spec.artifactId() + " in " + target + ", found " + matched.size()
+                    + "; build the matching module with package (no test-classpath fallback)");
+        }
+        return matched.getFirst();
+    }
+
+    private void validateProcessIsolation(GatewayProcessSpec spec) {
+        validateProcessIsolation(spec, children.stream().filter(child -> child.process().isAlive())
+                .map(ChildProcess::spec).toList());
+    }
+
+    static void validateProcessIsolation(GatewayProcessSpec spec, List<GatewayProcessSpec> active) {
+        for (GatewayProcessSpec child : active) {
+            if (child.name().equals(spec.name())) {
+                throw new IllegalArgumentException("Process identity is already running: " + spec.name());
+            }
+            if (spec.engineRole() != null && child.engineRole() != null) {
+                List<Integer> occupied = List.of(child.dataPlaneBaseUri().getPort(),
+                        child.managementBaseUri().getPort());
+                if (occupied.contains(spec.dataPlaneBaseUri().getPort())
+                        || occupied.contains(spec.managementBaseUri().getPort())) {
+                    throw new IllegalArgumentException("Engine endpoint port collides with " + child.name());
+                }
+                if (runtimeDataDirectory(spec, null).equals(runtimeDataDirectory(child, null))) {
+                    throw new IllegalArgumentException("Engine LKG directory collides with " + child.name());
+                }
+            }
+        }
+    }
+
+    /** Reports the actual configured Engine state path, not an unused diagnostic directory. */
+    static Path runtimeDataDirectory(GatewayProcessSpec spec, Path fallback) {
+        if (spec.engineRole() == null) {
+            return fallback;
+        }
+        String prefix = spec.engineRole() == top.egon.cola.component.gateway.contract.runtime.GatewayEngineRoleEnum.MCP
+                ? "--egon.cola.component.gateway.mcp-engine.data-directory="
+                : "--egon.cola.component.gateway.engine.data-directory=";
+        List<String> values = spec.arguments().stream().filter(argument -> argument.startsWith(prefix))
+                .map(argument -> argument.substring(prefix.length())).toList();
+        if (values.size() != 1 || values.getFirst().isBlank()) {
+            throw new IllegalArgumentException("Engine requires one explicit data-directory argument");
+        }
+        Path configured = Path.of(values.getFirst()).normalize();
+        if (configured.toString().isBlank() || configured.equals(configured.getRoot())) {
+            throw new IllegalArgumentException("Engine data-directory must name an isolated state directory");
+        }
+        return configured.toAbsolutePath().normalize();
     }
 
     public ChildProcess restart(ChildProcess child) throws IOException {
@@ -384,18 +466,20 @@ public final class GatewayProcessHarness implements AutoCloseable {
     }
 
     private void writeManifest(ChildProcess child) throws IOException {
+        Map<String, Object> manifest = new LinkedHashMap<>(Map.of(
+                "name", child.name(), "attempt", child.attempt(), "pid", child.process().pid(),
+                "mainClass", child.spec().mainClass(), "arguments", child.spec().redactedArguments(),
+                "environment", child.spec().redactedEnvironment(), "logFile", child.logFile().toString(),
+                "lkgDirectory", child.lkgDirectory().toString()));
+        if (child.spec().engineRole() != null) {
+            manifest.put("engineRole", child.spec().engineRole().name());
+            manifest.put("artifactId", child.spec().artifactId());
+            manifest.put("dataPlaneBaseUri", child.spec().dataPlaneBaseUri().toString());
+            manifest.put("managementBaseUri", child.spec().managementBaseUri().toString());
+        }
         objectMapper.writerWithDefaultPrettyPrinter().writeValue(
                 child.manifestFile().toFile(),
-                Map.of(
-                        "name", child.name(),
-                        "attempt", child.attempt(),
-                        "pid", child.process().pid(),
-                        "mainClass", child.spec().mainClass(),
-                        "arguments", child.spec().redactedArguments(),
-                        "environment", child.spec().redactedEnvironment(),
-                        "logFile", child.logFile().toString(),
-                        "lkgDirectory", child.lkgDirectory().toString()
-                )
+                manifest
         );
     }
 

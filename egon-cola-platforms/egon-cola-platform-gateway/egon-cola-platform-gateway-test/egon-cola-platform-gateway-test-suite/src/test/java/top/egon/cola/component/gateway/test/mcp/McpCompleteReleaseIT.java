@@ -6,7 +6,15 @@ import top.egon.cola.component.gateway.contract.mcp.protocol.McpProtocolDialect;
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuleContent;
 import top.egon.cola.component.gateway.mcp.rule.domain.CompiledMcpRules;
 import top.egon.cola.component.gateway.mcp.rule.service.McpRuleCompiler;
+import top.egon.cola.component.gateway.mcp.engine.rule.service.McpGatewayRuleCompilerStrategy;
+import top.egon.cola.component.gateway.admin.rule.service.GatewayRuleCanonicalizer;
+import top.egon.cola.component.gateway.contract.protocol.GatewayProtocol;
+import top.egon.cola.component.gateway.contract.rule.GatewayProviderServiceRef;
+import top.egon.cola.component.gateway.contract.rule.GatewayRuleContent;
+import top.egon.cola.component.gateway.contract.rule.GatewayRuntimeOperation;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -35,6 +43,16 @@ class McpCompleteReleaseIT {
                 content,
                 Set.of("operation-http", "operation-rpc")
         );
+        var snapshot = new GatewayRuleCanonicalizer().snapshot("complete-release",
+                Instant.parse("2026-09-05T00:00:00Z"),
+                new GatewayRuleContent("group-1", "default", "test", "default",
+                        List.of(operation("operation-http", GatewayProtocol.HTTP),
+                                operation("operation-rpc", GatewayProtocol.RPC)),
+                        List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), content));
+        var executableRules = new McpGatewayRuleCompilerStrategy().compile(snapshot);
+        assertEquals(rules, executableRules.mcpRules());
+        assertEquals(snapshot.artifactSha256(), executableRules.ruleChecksum());
+        assertEquals(2, executableRules.providerServices().size());
 
         assertAll(
                 () -> assertEquals(1, rules.serversByCode().size()),
@@ -78,6 +96,15 @@ class McpCompleteReleaseIT {
                         rules.server("commerce").orElseThrow().dialects()
                 )
         );
+    }
+
+    private GatewayRuntimeOperation operation(String id, GatewayProtocol protocol) {
+        return new GatewayRuntimeOperation(id, id, protocol,
+                protocol == GatewayProtocol.HTTP ? "POST /fixture" : "fixture.Service/Call",
+                "{}", "{}", true,
+                new GatewayProviderServiceRef("test", "fixture", "test", "default",
+                        protocol, "fixture", "default", "v1", protocol == GatewayProtocol.HTTP ? "http" : "grpc"),
+                "TRANSPARENT", Set.of(), Map.of(), false);
     }
 
     @Test

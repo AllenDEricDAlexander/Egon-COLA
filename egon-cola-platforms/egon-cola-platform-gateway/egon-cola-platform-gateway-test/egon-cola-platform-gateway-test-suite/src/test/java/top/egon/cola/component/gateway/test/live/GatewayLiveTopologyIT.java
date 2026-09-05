@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.ddc.model.management.DdcInstanceStatus;
+import top.egon.cola.component.gateway.contract.runtime.GatewayEngineRoleEnum;
 import top.egon.cola.component.gateway.test.process.GatewayProcessHarness;
 import top.egon.cola.component.gateway.test.process.GatewayProcessSpec;
 import top.egon.cola.component.gateway.test.process.GatewayTestInfrastructure;
@@ -18,6 +19,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -53,6 +55,11 @@ class GatewayLiveTopologyIT {
 
     private static final String DDC_MANAGEMENT_ACCESS_KEY =
             "gateway-live-ddc-management";
+
+    private static final String MCP_DDC_RUNTIME_ACCESS_KEY = "gateway-live-mcp-ddc-runtime";
+    private static final String MCP_DDC_RUNTIME_SECRET_KEY = "gateway-live-mcp-runtime-secret-at-least-32-bytes";
+    private static final String MCP_DDC_REGISTRY_ACCESS_KEY = "gateway-live-mcp-ddc-registry";
+    private static final String MCP_DDC_REGISTRY_SECRET_KEY = "gateway-live-mcp-registry-secret-at-least-32-bytes";
 
     private static final String DDC_MANAGEMENT_SECRET_KEY =
             "gateway-live-ddc-management-secret-at-least-32-bytes";
@@ -201,6 +208,10 @@ class GatewayLiveTopologyIT {
                     "gateway-engine-2"
             ));
 
+            List<GatewayProcessHarness.ChildProcess> mcpEngines = startMcpEngines(environment, ddcBase);
+            List<GatewayProcessHarness.ChildProcess> allEngines = new ArrayList<>(List.of(engine, secondEngine));
+            allEngines.addAll(mcpEngines);
+
             awaitHttpProviderProjection(
                     processes,
                     adminClient,
@@ -239,7 +250,7 @@ class GatewayLiveTopologyIT {
                     processes,
                     adminClient,
                     groupId,
-                    List.of(engine, secondEngine)
+                    allEngines
             );
             JsonNode mutation = adminClient.putRoute(
                     groupId,
@@ -359,6 +370,8 @@ class GatewayLiveTopologyIT {
                     groupId,
                     v1ReleaseId
             );
+            assertMcpRestartIsIndependent(environment, mcpEngines.getFirst(), List.of(engine, secondEngine));
+            awaitRuntimeConsistency(processes, adminClient, groupId, v1ReleaseId);
             revision = adminClient.getDraft(groupId)
                     .required("revision")
                     .asLong();
@@ -755,6 +768,10 @@ class GatewayLiveTopologyIT {
                     "gateway-engine-2"
             ));
 
+            List<GatewayProcessHarness.ChildProcess> mcpEngines = startMcpEngines(environment, ddcBase);
+            List<GatewayProcessHarness.ChildProcess> allEngines = new ArrayList<>(List.of(engine, secondEngine));
+            allEngines.addAll(mcpEngines);
+
             String operationId = awaitOperation(
                     processes,
                     adminClient,
@@ -776,7 +793,7 @@ class GatewayLiveTopologyIT {
                     processes,
                     adminClient,
                     groupId,
-                    List.of(engine, secondEngine)
+                    allEngines
             );
             JsonNode mutation = adminClient.putRoute(
                     groupId,
@@ -836,6 +853,9 @@ class GatewayLiveTopologyIT {
                     secondEngine
             );
             awaitRpcProviderProjection(processes, adminClient, admin);
+
+            awaitRuntimeConsistency(processes, adminClient, groupId,
+                    release.required("releaseId").asText());
 
             var consumer = processes.start(rpcConsumerSpec(
                     infrastructure,
@@ -1084,6 +1104,38 @@ class GatewayLiveTopologyIT {
     }
 
     @Test
+    void dualRoleSpecsShareReleaseScopeButNotIdentityCredentialsOrState() {
+        var infrastructure = testInfrastructure();
+        URI ddc = URI.create("http://127.0.0.1:18070");
+        var api = engineSpec(infrastructure, ddc, 18083, 18081, 18082,
+                Path.of("target/api"), false, 0, "api-1");
+        var mcp = mcpEngineSpec(infrastructure, ddc, 18085, 18084, Path.of("target/mcp"), "mcp-1");
+        assertThat(api.engineRole()).isEqualTo(GatewayEngineRoleEnum.API_RPC);
+        assertThat(mcp.engineRole()).isEqualTo(GatewayEngineRoleEnum.MCP);
+        for (var spec : List.of(api, mcp)) {
+            assertThat(spec.arguments()).contains("--egon.cola.component.ddc.biz-code=infra",
+                    "--egon.cola.component.ddc.app-code=ge", "--egon.cola.component.ddc.env=" + ENV,
+                    "--egon.cola.component.ddc.namespace=" + NAMESPACE,
+                    "--egon.cola.component.ddc.instance.id=" + spec.name(),
+                    "--egon.cola.component.ddc.registry.http.instance-id=" + spec.name());
+        }
+        assertThat(api.arguments()).contains("--egon.cola.component.gateway.engine.data-directory=target/api")
+                .noneMatch(argument -> argument.startsWith("--spring.datasource.")
+                        || argument.contains("gateway.engine.mcp."));
+        assertThat(mcp.arguments()).contains("--egon.cola.component.gateway.mcp-engine.data-directory=target/mcp",
+                "--spring.datasource.url=jdbc:postgresql://db:5432/gateway_admin",
+                "--egon.cola.component.ddc.rpc.auth.runtime.access-key=" + MCP_DDC_RUNTIME_ACCESS_KEY)
+                .noneMatch(argument -> argument.contains("gateway.engine.http.")
+                        || argument.contains("gateway.engine.rpc."));
+        assertThat(api.arguments()).contains("--egon.cola.component.ddc.rpc.auth.runtime.access-key=" + DDC_RUNTIME_ACCESS_KEY);
+        assertThat(mcp.redactedArguments()).noneMatch(argument -> argument.contains(MCP_DDC_RUNTIME_SECRET_KEY)
+                || argument.contains(MCP_DDC_REGISTRY_SECRET_KEY));
+        assertThat(ddcSpec(infrastructure, 18070).arguments()).contains(
+                "--egon.cola.component.ddc.admin.rpc.credentials[3].access-key=" + MCP_DDC_RUNTIME_ACCESS_KEY,
+                "--egon.cola.component.ddc.admin.rpc.credentials[4].access-key=" + MCP_DDC_REGISTRY_ACCESS_KEY);
+    }
+
+    @Test
     void httpProviderSpecUsesSingleServiceVersionSource() {
         GatewayTestInfrastructure infrastructure = testInfrastructure();
         URI ddcBase = URI.create("http://127.0.0.1:18070");
@@ -1181,6 +1233,9 @@ class GatewayLiveTopologyIT {
         when(infrastructure.rateLimitRedisHost()).thenReturn("rate-live-host");
         when(infrastructure.rateLimitRedisPort()).thenReturn(26379);
         when(infrastructure.kafkaBootstrapServers()).thenReturn("kafka:19092");
+        when(infrastructure.jdbcUrl("gateway_admin")).thenReturn("jdbc:postgresql://db:5432/gateway_admin");
+        when(infrastructure.postgresUsername()).thenReturn("gateway-test");
+        when(infrastructure.postgresPassword()).thenReturn("test-only-password");
         return infrastructure;
     }
 
@@ -1202,6 +1257,11 @@ class GatewayLiveTopologyIT {
     private GatewayProcessSpec.Builder ddcRuntimeRpc(
             GatewayProcessSpec.Builder builder,
             URI ddcBase) {
+        return ddcRuntimeRpc(builder, ddcBase, GatewayEngineRoleEnum.API_RPC);
+    }
+
+    private GatewayProcessSpec.Builder ddcRuntimeRpc(
+            GatewayProcessSpec.Builder builder, URI ddcBase, GatewayEngineRoleEnum role) {
         return builder
                 .argument(
                         "egon.cola.component.ddc.rpc.target",
@@ -1214,19 +1274,19 @@ class GatewayLiveTopologyIT {
                 )
                 .argument(
                         "egon.cola.component.ddc.rpc.auth.runtime.access-key",
-                        DDC_RUNTIME_ACCESS_KEY
+                        role == GatewayEngineRoleEnum.MCP ? MCP_DDC_RUNTIME_ACCESS_KEY : DDC_RUNTIME_ACCESS_KEY
                 )
                 .argument(
                         "egon.cola.component.ddc.rpc.auth.runtime.secret-key",
-                        DDC_RUNTIME_SECRET_KEY
+                        role == GatewayEngineRoleEnum.MCP ? MCP_DDC_RUNTIME_SECRET_KEY : DDC_RUNTIME_SECRET_KEY
                 )
                 .argument(
                         "egon.cola.component.ddc.rpc.auth.registry.access-key",
-                        DDC_REGISTRY_ACCESS_KEY
+                        role == GatewayEngineRoleEnum.MCP ? MCP_DDC_REGISTRY_ACCESS_KEY : DDC_REGISTRY_ACCESS_KEY
                 )
                 .argument(
                         "egon.cola.component.ddc.rpc.auth.registry.secret-key",
-                        DDC_REGISTRY_SECRET_KEY
+                        role == GatewayEngineRoleEnum.MCP ? MCP_DDC_REGISTRY_SECRET_KEY : DDC_REGISTRY_SECRET_KEY
                 );
     }
 
@@ -1255,7 +1315,7 @@ class GatewayLiveTopologyIT {
     private GatewayProcessSpec ddcSpec(
             GatewayTestInfrastructure infrastructure,
             int port) {
-        return GatewayProcessSpec.builder(
+        GatewayProcessSpec.Builder builder = GatewayProcessSpec.builder(
                         "ddc-admin",
                         "top.egon.cola.component.ddc.admin."
                                 + "DynamicConfigCenterAdminApplication"
@@ -1515,8 +1575,27 @@ class GatewayLiveTopologyIT {
                                 + "credentials[2].allowed-operations[7]",
                         "MANAGEMENT_REGISTRY_READ"
                 )
-                .startupTimeout(STARTUP_TIMEOUT)
-                .build();
+                .startupTimeout(STARTUP_TIMEOUT);
+        addDdcCredential(builder, 3, "gateway-live-mcp-runtime", MCP_DDC_RUNTIME_ACCESS_KEY,
+                MCP_DDC_RUNTIME_SECRET_KEY, "SDK",
+                List.of("SDK_REGISTER", "SDK_HEARTBEAT", "SDK_OFFLINE", "CONFIG_PULL", "PUBLISH_ACK"));
+        addDdcCredential(builder, 4, "gateway-live-mcp-registry", MCP_DDC_REGISTRY_ACCESS_KEY,
+                MCP_DDC_REGISTRY_SECRET_KEY, "REGISTRY",
+                List.of("REGISTRY_REGISTER", "REGISTRY_HEARTBEAT", "REGISTRY_DEREGISTER", "REGISTRY_READ"));
+        return builder.build();
+    }
+
+    private void addDdcCredential(GatewayProcessSpec.Builder builder, int index, String id,
+                                  String accessKey, String secret, String clientType, List<String> operations) {
+        String prefix = "egon.cola.component.ddc.admin.rpc.credentials[" + index + "].";
+        builder.argument(prefix + "credential-id", id).argument(prefix + "access-key", accessKey)
+                .argument(prefix + "secret", secret).argument(prefix + "client-type", clientType);
+        for (String dimension : List.of("app-code", "env", "biz-code", "namespace")) {
+            builder.argument(prefix + dimension + "-patterns[0]", "*");
+        }
+        for (int operation = 0; operation < operations.size(); operation++) {
+            builder.argument(prefix + "allowed-operations[" + operation + "]", operations.get(operation));
+        }
     }
 
     private GatewayProcessSpec adminSpec(
@@ -1892,6 +1971,84 @@ class GatewayLiveTopologyIT {
                 .build();
     }
 
+
+    private List<GatewayProcessHarness.ChildProcess> startMcpEngines(
+            GatewayLiveEnvironment environment, URI ddcBase) throws IOException {
+        List<GatewayProcessHarness.ChildProcess> engines = new ArrayList<>();
+        for (int replica = 1; replica <= 2; replica++) {
+            String name = "gateway-mcp-engine-" + replica;
+            engines.add(environment.start(mcpEngineSpec(environment.infrastructure(), ddcBase,
+                    GatewayProcessHarness.availablePort(), GatewayProcessHarness.availablePort(),
+                    environment.dataDirectory(name), name)));
+        }
+        return List.copyOf(engines);
+    }
+
+    private void assertMcpRestartIsIndependent(
+            GatewayLiveEnvironment environment, GatewayProcessHarness.ChildProcess mcp,
+            List<GatewayProcessHarness.ChildProcess> apiEngines) throws Exception {
+        List<Long> apiPids = apiEngines.stream().map(engine -> engine.process().pid()).toList();
+        assertThat(mcp.lkgDirectory()).isDirectory();
+        try (var files = java.nio.file.Files.walk(mcp.lkgDirectory())) {
+            assertThat(files.anyMatch(java.nio.file.Files::isRegularFile)).isTrue();
+        }
+        environment.kill(mcp);
+        var restarted = environment.restart(mcp);
+        environment.awaitHttp(environment.managementBaseUri(GatewayEngineRoleEnum.MCP, restarted)
+                .resolve("/actuator/health"), STARTUP_TIMEOUT, restarted);
+        assertThat(restarted.lkgDirectory()).isEqualTo(mcp.lkgDirectory());
+        assertThat(apiEngines).allSatisfy(engine -> assertThat(engine.process().isAlive()).isTrue());
+        assertThat(apiEngines.stream().map(engine -> engine.process().pid()).toList()).isEqualTo(apiPids);
+        HttpResponse<String> ordinary = httpClient.send(HttpRequest.newBuilder(
+                        environment.dataPlaneBaseUri(GatewayEngineRoleEnum.MCP, restarted).resolve("/api/not-mcp"))
+                .timeout(Duration.ofSeconds(3)).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertThat(ordinary.statusCode()).isEqualTo(404);
+        assertThat(ordinary.body()).contains("MCP_ROUTE_NOT_FOUND");
+    }
+
+    private GatewayProcessSpec mcpEngineSpec(
+            GatewayTestInfrastructure infrastructure, URI ddcBase, int managementPort, int dataPort,
+            Path dataDirectory, String instanceId) {
+        String prefix = "egon.cola.component.gateway.mcp-engine.";
+        return ddcRuntimeRpc(GatewayProcessSpec.engineBuilder(instanceId, GatewayEngineRoleEnum.MCP,
+                        URI.create("http://127.0.0.1:" + dataPort),
+                        URI.create("http://127.0.0.1:" + managementPort)), ddcBase, GatewayEngineRoleEnum.MCP)
+                .argument("server.port", managementPort)
+                .argument("egon.cola.component.ddc.enabled", true)
+                .argument("egon.cola.component.ddc.biz-code", "infra")
+                .argument("egon.cola.component.ddc.app-code", "ge")
+                .argument("egon.cola.component.ddc.env", ENV)
+                .argument("egon.cola.component.ddc.namespace", NAMESPACE)
+                .argument("egon.cola.component.ddc.instance.id", instanceId)
+                .argument("egon.cola.component.ddc.registry.enabled", true)
+                .argument("egon.cola.component.ddc.registry.http.instance-id", instanceId)
+                .argument("egon.cola.component.ddc.registry.http.advertised-host", "127.0.0.1")
+                .argument("egon.cola.component.ddc.registry.http.port", dataPort)
+                .argument("egon.cola.component.ddc.redis.host", infrastructure.ddcRedisHost())
+                .argument("egon.cola.component.ddc.redis.port", infrastructure.ddcRedisPort())
+                .argument(prefix + "gateway-group-code", "default")
+                .argument(prefix + "env", ENV)
+                .argument(prefix + "namespace", NAMESPACE)
+                .argument(prefix + "node-id", instanceId)
+                .argument(prefix + "instance-id", instanceId)
+                .argument(prefix + "data-directory", dataDirectory)
+                .argument(prefix + "management-port", managementPort)
+                .argument(prefix + "listener.host", "127.0.0.1")
+                .argument(prefix + "listener.port", dataPort)
+                .argument(prefix + "listener.tls.enabled", false)
+                .argument(prefix + "listener.tls.development-plaintext", true)
+                .argument(prefix + "outbound.rpc-tls.enabled", false)
+                .argument(prefix + "outbound.rpc-tls.development-plaintext", true)
+                .argument("spring.datasource.url", infrastructure.jdbcUrl("gateway_admin"))
+                .argument("spring.datasource.username", infrastructure.postgresUsername())
+                .argument("spring.datasource.password", infrastructure.postgresPassword())
+                .argument("egon.cola.component.gateway.engine.mcp.redis.address",
+                        "redis://" + infrastructure.ddcRedisHost() + ":" + infrastructure.ddcRedisPort())
+                .argument("egon.cola.component.gateway.engine.mcp.artifact-root",
+                        dataDirectory.resolveSibling("mcp-shared-artifacts"))
+                .startupTimeout(STARTUP_TIMEOUT).build();
+    }
+
     private GatewayProcessSpec engineSpec(
             GatewayTestInfrastructure infrastructure,
             URI ddcBase,
@@ -1945,19 +2102,25 @@ class GatewayLiveTopologyIT {
             int rpcPort,
             String instanceId) {
         GatewayProcessSpec.Builder builder = ddcClient(
-                GatewayProcessSpec.builder(
+                GatewayProcessSpec.engineBuilder(
                                 instanceId,
-                                "top.egon.cola.component.gateway.engine."
-                                        + "GatewayEngineApplication"
+                                GatewayEngineRoleEnum.API_RPC,
+                                URI.create("http://127.0.0.1:" + publicPort),
+                                URI.create("http://127.0.0.1:" + managementPort)
                         ),
                 infrastructure,
                 ddcBase
         )
                 .argument("server.port", managementPort)
                 .argument("egon.cola.component.ddc.enabled", true)
+                .argument("egon.cola.component.ddc.biz-code", "infra")
+                .argument("egon.cola.component.ddc.instance.id", instanceId)
+                .argument("egon.cola.component.ddc.registry.http.instance-id", instanceId)
+                .argument("egon.cola.component.ddc.registry.http.advertised-host", "127.0.0.1")
+                .argument("egon.cola.component.ddc.registry.http.port", publicPort)
                 .argument(
                         "egon.cola.component.ddc.app-code",
-                        "gateway-engine-default"
+                        "ge"
                 )
                 .argument("egon.cola.component.ddc.env", ENV)
                 .argument(
@@ -2158,25 +2321,14 @@ class GatewayLiveTopologyIT {
         processes.awaitCondition(
                 () -> {
                     JsonNode projection = adminClient.engineNodes(groupId);
-                    int onlineCount = 0;
-                    for (JsonNode instance : projection.path("value")) {
-                        boolean online = DdcInstanceStatus.fromWire(
-                                instance.path("status").asText()
-                        ) == DdcInstanceStatus.ONLINE;
-                        String expireAt = instance.path("expireAt").asText();
-                        if (online
-                                && !expireAt.isBlank()
-                                && Instant.parse(expireAt)
-                                .isAfter(Instant.now())) {
-                            onlineCount++;
+                    Instant now = Instant.now();
+                    for (GatewayProcessHarness.ChildProcess engine : engines) {
+                        GatewayProcessSpec spec = engine.spec();
+                        Map<String, String> leases = activeEngineLeases(projection, now, spec.engineRole());
+                        if (!leases.containsKey(spec.name())) {
+                            throw new AssertionError("Missing online " + spec.engineRole()
+                                    + " Engine config client " + spec.name() + ": " + projection);
                         }
-                    }
-                    if (onlineCount < engines.size()) {
-                        throw new AssertionError(
-                                "Expected " + engines.size()
-                                        + " online Engine config clients: "
-                                        + projection
-                        );
                     }
                     return true;
                 },
@@ -2378,13 +2530,16 @@ class GatewayLiveTopologyIT {
             String groupId) throws Exception {
         return activeEngineLeases(
                 adminClient.engineNodes(groupId),
-                Instant.now()
+                Instant.now(), GatewayEngineRoleEnum.API_RPC
         );
     }
 
+    static Map<String, String> activeEngineLeases(JsonNode projection, Instant now) {
+        return activeEngineLeases(projection, now, null);
+    }
+
     static Map<String, String> activeEngineLeases(
-            JsonNode projection,
-            Instant now) {
+            JsonNode projection, Instant now, GatewayEngineRoleEnum requiredRole) {
         JsonNode nodes = projection.path("value");
         Map<String, String> leases = new LinkedHashMap<>();
         if (nodes.isArray()) {
@@ -2398,6 +2553,10 @@ class GatewayLiveTopologyIT {
                         Instant.parse(expireAt)
                 );
                 if (!active) {
+                    continue;
+                }
+                if (requiredRole != null && GatewayEngineRoleEnum.fromWire(
+                        node.path("metadata").path("gateway.engine.role").asText()).orElse(null) != requiredRole) {
                     continue;
                 }
                 String instanceId = node.path("instanceId").asText();
@@ -2424,11 +2583,54 @@ class GatewayLiveTopologyIT {
                             .path("targetReleaseId")
                             .asText())
                             && consistency.path("readyEngineNodeCount")
-                            .asInt() == 2;
+                            .asInt() == 4
+                            && hasUnifiedRoleAcks(adminClient.engineNodes(groupId), expectedReleaseId, 4);
                 },
                 Duration.ofSeconds(30),
-                "two Engine runtime consistency for " + expectedReleaseId
+                "API_RPC and MCP runtime consistency for " + expectedReleaseId
         );
+    }
+
+    static boolean hasUnifiedRoleAcks(JsonNode projection, String releaseId, int expectedNodes) {
+        return hasUnifiedRoleAcks(projection, releaseId, expectedNodes, Instant.now());
+    }
+
+    static boolean hasUnifiedRoleAcks(JsonNode projection, String releaseId, int expectedNodes, Instant now) {
+        Map<String, String> activeLeases = activeEngineLeases(projection, now);
+        var roles = java.util.EnumSet.noneOf(GatewayEngineRoleEnum.class);
+        String version = null;
+        String checksum = null;
+        int count = 0;
+        for (JsonNode node : projection.path("value")) {
+            if (!node.path("leaseId").asText().equals(activeLeases.get(node.path("instanceId").asText()))) {
+                continue;
+            }
+            JsonNode metadata = node.path("metadata");
+            var role = GatewayEngineRoleEnum.fromWire(metadata.path("gateway.engine.role").asText());
+            if (role.isEmpty() || !releaseId.equals(metadata.path("activeReleaseId").asText())
+                    || !"ACK_SUCCESS".equals(metadata.path("lastApplyStatus").asText())
+                    || metadata.path("activeRuleVersion").asText().isBlank()
+                    || metadata.path("activeRuleChecksum").asText().isBlank()
+                    || metadata.path("lastAckAt").asText().isBlank()) {
+                return false;
+            }
+            try {
+                Long.parseLong(metadata.path("activeRuleVersion").asText());
+                Instant.parse(metadata.path("lastAckAt").asText());
+            } catch (RuntimeException invalidIdentity) {
+                return false;
+            }
+            if (version == null) {
+                version = metadata.path("activeRuleVersion").asText();
+                checksum = metadata.path("activeRuleChecksum").asText();
+            } else if (!version.equals(metadata.path("activeRuleVersion").asText())
+                    || !checksum.equals(metadata.path("activeRuleChecksum").asText())) {
+                return false;
+            }
+            roles.add(role.orElseThrow());
+            count++;
+        }
+        return count == expectedNodes && roles.equals(java.util.EnumSet.allOf(GatewayEngineRoleEnum.class));
     }
 
     private Set<String> awaitRpcEngineSelections(

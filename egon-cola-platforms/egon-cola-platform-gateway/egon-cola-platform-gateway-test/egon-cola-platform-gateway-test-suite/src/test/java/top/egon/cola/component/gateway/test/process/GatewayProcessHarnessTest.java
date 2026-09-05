@@ -4,15 +4,106 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import java.util.jar.Attributes;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
+import top.egon.cola.component.gateway.contract.runtime.GatewayEngineRoleEnum;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GatewayProcessHarnessTest {
+
+    @Test
+    void engineSpecsCarryExplicitRoleArtifactAndSeparateEndpoints() {
+        assertThat(GatewayProcessSpec.class.getRecordComponents())
+                .extracting(java.lang.reflect.RecordComponent::getName)
+                .contains("engineRole", "artifactId", "dataPlaneBaseUri", "managementBaseUri");
+    }
+
+    @Test
+    void mapsEachExplicitRoleToItsOwnMainClassAndArtifact() {
+        var api = engine("api", GatewayEngineRoleEnum.API_RPC, 18081, 18083);
+        var mcp = engine("mcp", GatewayEngineRoleEnum.MCP, 18084, 18085);
+        assertThat(api.artifactId()).isEqualTo("egon-cola-platform-gateway-engine");
+        assertThat(mcp.artifactId()).isEqualTo("egon-cola-platform-gateway-mcp-engine");
+        assertThat(api.mainClass()).isEqualTo("top.egon.cola.component.gateway.engine.GatewayEngineApplication");
+        assertThat(mcp.mainClass()).isEqualTo("top.egon.cola.component.gateway.mcp.engine.McpGatewayEngineApplication");
+        assertThat(api.dataPlaneBaseUri()).isNotEqualTo(mcp.dataPlaneBaseUri());
+        assertThat(api.managementBaseUri()).isNotEqualTo(mcp.managementBaseUri());
+        assertThatThrownBy(() -> GatewayProcessSpec.builder("mixed", api.mainClass()).build())
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("explicit role");
+        assertThatThrownBy(() -> new GatewayProcessSpec("bad", api.mainClass(), List.of(), Map.of(),
+                Duration.ofSeconds(30), GatewayEngineRoleEnum.MCP, api.artifactId(),
+                mcp.dataPlaneBaseUri(), mcp.managementBaseUri()))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("must agree");
+    }
+
+    @Test
+    void rejectsDuplicatePortsUnsafeEndpointsAndRunningIdentities() {
+        assertThatThrownBy(() -> engine("same", GatewayEngineRoleEnum.MCP, 18084, 18084))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("must differ");
+        for (String endpoint : List.of("relative", "http://user:secret@localhost:18084", "http://localhost",
+                "http://localhost:18084/path", "http://localhost:18084?token=secret")) {
+            assertThatThrownBy(() -> GatewayProcessSpec.engineBuilder("mcp", GatewayEngineRoleEnum.MCP,
+                    URI.create(endpoint), URI.create("http://localhost:18085")).build())
+                    .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("dataPlaneBaseUri");
+        }
+        var api = engine("api", GatewayEngineRoleEnum.API_RPC, 18081, 18083);
+        var mcp = engine("mcp", GatewayEngineRoleEnum.MCP, 18081, 18085);
+        assertThatThrownBy(() -> GatewayProcessHarness.validateProcessIsolation(mcp, List.of(api)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("collides");
+        assertThatThrownBy(() -> GatewayProcessHarness.validateProcessIsolation(api, List.of(api)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("already running");
+        var sharedDirectory = GatewayProcessSpec.engineBuilder("other", GatewayEngineRoleEnum.MCP,
+                URI.create("http://127.0.0.1:18084"), URI.create("http://127.0.0.1:18085"))
+                .argument("egon.cola.component.gateway.mcp-engine.data-directory",
+                        GatewayProcessHarness.runtimeDataDirectory(api, null)).build();
+        assertThatThrownBy(() -> GatewayProcessHarness.validateProcessIsolation(sharedDirectory, List.of(api)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("LKG directory");
+    }
+
+    @Test
+    void resolvesOnlyOneMatchingRoleExecutableAndNeverFallsBackToApiClasspath() throws Exception {
+        Path classes = Files.createDirectories(temporaryDirectory.resolve("target/classes"));
+        var api = engine("api", GatewayEngineRoleEnum.API_RPC, 18081, 18083);
+        var mcp = engine("mcp", GatewayEngineRoleEnum.MCP, 18084, 18085);
+        writeExecutable(classes.getParent().resolve(api.artifactId() + "-exec.jar"), api.mainClass());
+        assertThatThrownBy(() -> GatewayProcessHarness.resolveJar(mcp, classes))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("MCP").hasMessageContaining("found 0");
+        writeExecutable(classes.getParent().resolve(mcp.artifactId() + "-wrong-exec.jar"), api.mainClass());
+        assertThatThrownBy(() -> GatewayProcessHarness.resolveJar(mcp, classes))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("found 0");
+        Path valid = classes.getParent().resolve(mcp.artifactId() + "-exec.jar");
+        writeExecutable(valid, mcp.mainClass());
+        assertThat(GatewayProcessHarness.resolveJar(mcp, classes)).isEqualTo(valid);
+        writeExecutable(classes.getParent().resolve(mcp.artifactId() + "-duplicate-exec.jar"), mcp.mainClass());
+        assertThatThrownBy(() -> GatewayProcessHarness.resolveJar(mcp, classes))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("found 2");
+    }
+
+    private GatewayProcessSpec engine(String name, GatewayEngineRoleEnum role, int dataPort, int managementPort) {
+        return GatewayProcessSpec.engineBuilder(name, role, URI.create("http://127.0.0.1:" + dataPort),
+                URI.create("http://127.0.0.1:" + managementPort))
+                .argument("egon.cola.component.gateway." + (role == GatewayEngineRoleEnum.MCP ? "mcp-engine" : "engine")
+                        + ".data-directory", temporaryDirectory.resolve(name)).build();
+    }
+
+    private void writeExecutable(Path path, String mainClass) throws Exception {
+        var manifest = new Manifest();
+        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+        manifest.getMainAttributes().putValue("Main-Class", "org.springframework.boot.loader.launch.JarLauncher");
+        manifest.getMainAttributes().putValue("Start-Class", mainClass);
+        try (var jar = new JarOutputStream(Files.newOutputStream(path), manifest)) {
+            jar.flush();
+        }
+    }
 
     @TempDir
     Path temporaryDirectory;

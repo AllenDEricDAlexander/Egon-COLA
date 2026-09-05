@@ -20,10 +20,10 @@ import top.egon.cola.component.gateway.core.provider.ProviderServiceRegistry;
 import top.egon.cola.component.gateway.core.provider.ProviderServiceSnapshot;
 import top.egon.cola.component.gateway.core.provider.ProviderSubscription;
 import top.egon.cola.component.gateway.runtime.provider.service.ProviderDirectory;
-import top.egon.cola.component.gateway.engine.mcp.service.McpEngineHttpHandler;
-import top.egon.cola.component.gateway.engine.mcp.service.McpTaskWorker;
-import top.egon.cola.component.gateway.engine.rule.domain.CompiledGatewayRules;
-import top.egon.cola.component.gateway.engine.rule.service.EngineGatewayRuleCompiler;
+import top.egon.cola.component.gateway.mcp.engine.mcp.service.McpEngineHttpHandler;
+import top.egon.cola.component.gateway.mcp.engine.mcp.service.McpTaskWorker;
+import top.egon.cola.component.gateway.mcp.engine.rule.domain.McpGatewayCompiledRulesDTO;
+import top.egon.cola.component.gateway.mcp.engine.rule.service.McpGatewayRuleCompilerStrategy;
 import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleActivationApplier;
 import top.egon.cola.component.gateway.runtime.rule.repository.GatewayRuleChunkStore;
 import top.egon.cola.component.gateway.runtime.rule.adapter.json.GatewayRuleJsonCodec;
@@ -205,14 +205,14 @@ class McpHaRecoveryIT {
 
     @Test
     void invalidDdcReleaseKeepsActiveRulesAndRestartRestoresLkg() {
-        GatewayRuleActivationApplier<CompiledGatewayRules> running = applier();
+        GatewayRuleActivationApplier<McpGatewayCompiledRulesDTO> running = applier();
         TestRelease valid = release("release-1", validMcp());
         running.apply(
                 GatewayRuleActivationApplier.ACTIVE_CONFIG_KEY,
                 valid.activationJson(),
                 1L
         );
-        CompiledGatewayRules before = running.active();
+        McpGatewayCompiledRulesDTO before = running.active();
 
         TestRelease invalid = release("release-2", invalidMcp());
         assertThrows(IllegalArgumentException.class, () -> running.apply(
@@ -223,7 +223,7 @@ class McpHaRecoveryIT {
         assertSame(before, running.active());
         assertEquals("release-1", running.active().snapshot().releaseId());
 
-        GatewayRuleActivationApplier<CompiledGatewayRules> restarted = applier();
+        GatewayRuleActivationApplier<McpGatewayCompiledRulesDTO> restarted = applier();
         assertTrue(restarted.restoreLkg());
         assertEquals("release-1", restarted.active().snapshot().releaseId());
         assertTrue(restarted.active().mcpRules()
@@ -309,11 +309,11 @@ class McpHaRecoveryIT {
         );
     }
 
-    private GatewayRuleActivationApplier<CompiledGatewayRules> applier() {
+    private GatewayRuleActivationApplier<McpGatewayCompiledRulesDTO> applier() {
         Clock clock = Clock.systemUTC();
         return new GatewayRuleActivationApplier<>(
                 new GatewayRuleJsonCodec(),
-                new EngineGatewayRuleCompiler(),
+                new McpGatewayRuleCompilerStrategy(),
                 new GatewayRuleChunkStore(),
                 new ProviderDirectory(new EmptyRegistry(), clock),
                 new GatewayRuleLkgRepository(dataDirectory, "developer"),
