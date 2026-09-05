@@ -57,3 +57,36 @@ Evaluation 初始拓扑包含 `master_data`、`shard_0`、`shard_1`。逻辑表�
 生成测试覆盖 Proto descriptor、Long identity、Common MyBatis-Plus DAO/service、ShardingSphere H2 路由、手工 SQL 约定、11 个 Triple provider、标准 gRPC unary interop、Organization client/stub、DTP executor 上下文和 ArchUnit 依赖方向。ArchUnit 取代内部 bytecode Maven plugin，并检查 service-only、无 JPA、无 Flyway、无 Gateway、无 Springdoc 边界。
 
 这些检查只证明源码、生成工程和本地测试；不证明真实 PostgreSQL schema、Redis DTP registry、Nacos 拓扑、RabbitMQ、跨 Project provider、部署网络或生产权限。archetype 生成和上述命令不会自动启动应用，也不会执行数据库 SQL。
+
+## Maven Profiles 与外部启动参数
+
+每次选择 `dev`、`test`、`prod` 中一个环境 profile，未指定时使用 `dev` 默认值。
+这些 profile 控制应用启动，Surefire 仍使用原有 `test` 配置。堆内存参数是示例值，部署时按资源调整。
+
+在项目根目录执行，多模块项目先安装兄弟模块依赖：
+
+```bash
+mvn install
+mvn -pl egon-cola-source-service-open-starter -Pdev spring-boot:run
+mvn -Pprod -Drun.jvm-args="-Xms1g -Xmx2g" \
+  -Drun.server-port=8081 \
+  -Drun.config-location=file:/etc/myapp/override.yml package
+```
+
+Maven 在 `process-resources` 阶段生成 `egon-cola-source-service-open-starter/target/launch.args`，打包时也会生成。
+切换 profile 或 `-Drun.*` 参数后，无须 `clean` 即可更新文件。此执行仅使用 `@...@`
+过滤 `src/main/launch/launch.args`，现有 YAML 占位符继续在运行时解析，参数文件不进入 JAR。
+
+将可执行 JAR 与 `launch.args` 一起部署，JAR 可重命名为 `app.jar`，然后在部署目录执行：
+
+```bash
+java @launch.args -jar app.jar
+java @launch.args -Xmx3g -jar app.jar --server.port=9081
+```
+
+文件记录 JVM 参数、Spring profile、端口及额外配置位置。这些显式系统属性优先于对应环境变量；
+`-Drun.*` 覆盖 Maven 默认值，JVM 覆盖参数放在 `-jar` 前，Spring 命令行覆盖参数放在 JAR 后。
+单独 `java -jar` 或 IDE 直接运行 main 不会自动读取该文件。相对配置路径以启动工作目录为准，
+并非参数文件所在目录；部署建议使用绝对 `file:` 路径，Windows 路径使用正斜杠。
+额外文件补充 `application.yml` 和选中的 `application-{profile}.yml`，不替换默认配置位置；
+要求文件必须存在时去掉 `optional:`。密码和密钥继续通过现有环境变量/secrets 注入，不写入 `run.*`。

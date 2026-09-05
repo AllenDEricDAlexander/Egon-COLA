@@ -32,6 +32,11 @@
         <shardingsphere.version>5.5.3</shardingsphere.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
         <exec.maven.plugin.version>3.5.0</exec.maven.plugin.version>
+        <!-- Shared defaults for Maven run and the external Java argument file. -->
+        <run.profile>dev</run.profile>
+        <run.jvm-args>-Xms256m -Xmx512m</run.jvm-args>
+        <run.server-port>8080</run.server-port>
+        <run.config-location>optional:file:./config/override.yml</run.config-location>
     </properties>
 
     <dependencyManagement>
@@ -263,9 +268,47 @@
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>generate-launch-args</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                            <overwrite>true</overwrite>
+                            <delimiters>
+                                <delimiter>@</delimiter>
+                            </delimiters>
+                            <useDefaultDelimiters>false</useDefaultDelimiters>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/launch</directory>
+                                    <filtering>true</filtering>
+                                    <includes>
+                                        <include>launch.args</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <jvmArguments>${run.jvm-args}</jvmArguments>
+                    <profiles>
+                        <profile>${run.profile}</profile>
+                    </profiles>
+                    <systemPropertyVariables>
+                        <server.port>${run.server-port}</server.port>
+                        <spring.config.additional-location>${run.config-location}</spring.config.additional-location>
+                    </systemPropertyVariables>
                     <layers>
                         <enabled>true</enabled>
                     </layers>
@@ -285,4 +328,27 @@
         </plugins>
     </build>
 
+
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <properties>
+                <run.profile>dev</run.profile>
+            </properties>
+        </profile>
+        <profile>
+            <id>test</id>
+            <properties>
+                <run.profile>test</run.profile>
+                <run.jvm-args>-Xms512m -Xmx1g</run.jvm-args>
+            </properties>
+        </profile>
+        <profile>
+            <id>prod</id>
+            <properties>
+                <run.profile>prod</run.profile>
+                <run.jvm-args>-Xms1g -Xmx2g -XX:+ExitOnOutOfMemoryError</run.jvm-args>
+            </properties>
+        </profile>
+    </profiles>
 </project>

@@ -4,6 +4,45 @@
 
 `egon-cola-source-light-open` is the open-source edition of the Egon COLA Light archetype. It is one deployable Spring Boot 3.5.16 module. The package architecture remains the large-monolith, domain-first layout; `start`, `adapter`, `facade`, `application`, `domain`, `infrastructure`, and `common` are logical packages, not Maven modules.
 
+## Maven Profiles And External Launch Arguments
+
+Use one environment profile at a time: `dev`, `test`, or `prod`; omitted profiles use
+`dev` defaults. These profiles configure application startup, while Surefire keeps
+its existing `test` profile. JVM heap sizes are examples to tune for the deployment.
+
+From the project root (install sibling modules first for a multi-module project):
+
+```bash
+mvn install
+mvn -Pdev spring-boot:run
+mvn -Pprod -Drun.jvm-args="-Xms1g -Xmx2g" \
+  -Drun.server-port=8080 \
+  -Drun.config-location=file:/etc/myapp/override.yml package
+```
+
+Maven generates `target/launch.args` during `process-resources`, including when
+packaging. Switching profiles or `-Drun.*` values rewrites it even without `clean`.
+Only `src/main/launch/launch.args` is filtered by this execution using `@...@`;
+existing YAML placeholders remain runtime values. The argument file stays outside the JAR.
+
+Deploy the executable JAR and `launch.args` together, optionally renaming the JAR to
+`app.jar`, then launch from the deployment directory:
+
+```bash
+java @launch.args -jar app.jar
+java @launch.args -Xmx3g -jar app.jar --server.port=9080
+```
+
+The file records JVM arguments, the Spring profile, port, and additional configuration
+location. These explicit system properties take precedence over corresponding environment
+variables; `-Drun.*` overrides Maven defaults, JVM options go before `-jar`, and Spring
+command-line overrides go after the JAR. Plain `java -jar` and IDE main-class runs do not
+read this file automatically. Relative configuration paths use the launch working directory,
+not the argument file directory; use an absolute `file:` path for deployment and forward
+slashes for Windows paths. Extra configuration supplements `application.yml` and the
+selected `application-{profile}.yml`; omit `optional:` when the file must exist. Keep
+credentials in the existing environment/secrets mechanism, never in `run.*` properties.
+
 ## Stack
 
 - Java 21, Spring Boot 3.5.16, Spring Cloud 2025.0.3, Spring Cloud Alibaba 2025.0.0.0, and Nacos 3.0.3.

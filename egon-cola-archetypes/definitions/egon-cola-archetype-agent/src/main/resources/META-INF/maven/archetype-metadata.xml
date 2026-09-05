@@ -106,6 +106,12 @@
                     <directory></directory>
                     <includes><include>pom.xml</include></includes>
                 </fileSet>
+                <fileSet filtered="false" encoding="UTF-8">
+                    <directory>src/main/launch</directory>
+                    <includes>
+                        <include>launch.args</include>
+                    </includes>
+                </fileSet>
                 <fileSet filtered="true" encoding="UTF-8">
                     <directory>src/main/resources</directory>
                     <includes><include>**/*.yml</include></includes>

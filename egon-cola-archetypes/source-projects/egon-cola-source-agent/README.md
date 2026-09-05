@@ -13,6 +13,45 @@ The project consumes `egon-cola-component-agent-flow-starter` for Agent Flow exe
 
 The source reactor is verified with Java 21, Spring Boot 3.5.16, Spring AI 1.1.8, Springdoc 2.8.17, and Google ADK 0.7.0 through the Components starter. Only the generated `egon-cola-archetype-agent` definition becomes a public Archetype family.
 
+## Maven Profiles And External Launch Arguments
+
+Use one environment profile at a time: `dev`, `test`, or `prod`; omitted profiles use
+`dev` defaults. These profiles configure application startup, while Surefire keeps
+its existing `test` profile. JVM heap sizes are examples to tune for the deployment.
+
+From the project root (install sibling modules first for a multi-module project):
+
+```bash
+mvn install
+mvn -pl egon-cola-source-agent-starter -Pdev spring-boot:run
+mvn -Pprod -Drun.jvm-args="-Xms1g -Xmx2g" \
+  -Drun.server-port=8080 \
+  -Drun.config-location=file:/etc/myapp/override.yml package
+```
+
+Maven generates `egon-cola-source-agent-starter/target/launch.args` during `process-resources`, including when
+packaging. Switching profiles or `-Drun.*` values rewrites it even without `clean`.
+Only `src/main/launch/launch.args` is filtered by this execution using `@...@`;
+existing YAML placeholders remain runtime values. The argument file stays outside the JAR.
+
+Deploy the executable JAR and `launch.args` together, optionally renaming the JAR to
+`app.jar`, then launch from the deployment directory:
+
+```bash
+java @launch.args -jar app.jar
+java @launch.args -Xmx3g -jar app.jar --server.port=9080
+```
+
+The file records JVM arguments, the Spring profile, port, and additional configuration
+location. These explicit system properties take precedence over corresponding environment
+variables; `-Drun.*` overrides Maven defaults, JVM options go before `-jar`, and Spring
+command-line overrides go after the JAR. Plain `java -jar` and IDE main-class runs do not
+read this file automatically. Relative configuration paths use the launch working directory,
+not the argument file directory; use an absolute `file:` path for deployment and forward
+slashes for Windows paths. Extra configuration supplements `application.yml` and the
+selected `application-{profile}.yml`; omit `optional:` when the file must exist. Keep
+credentials in the existing environment/secrets mechanism, never in `run.*` properties.
+
 ## Runtime contract
 
 The only public operation is `POST /api/v1/deep-research/runs`. It consumes JSON and produces `text/event-stream`. The request body accepts `topic`, optional `reportLanguage` (`ZH_CN` or `EN_US`, default `ZH_CN`), and optional `maxSources` (default `8`, bounded to `3..20`). The `X-Research-Api-Key` header is required; `X-Trace-Id` is optional and is generated when absent.

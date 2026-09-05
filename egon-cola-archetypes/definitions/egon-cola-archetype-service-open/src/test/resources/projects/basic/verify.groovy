@@ -265,3 +265,24 @@ assert sourceBoundaryFiles.every { candidate ->
     }
 }
 true
+
+// Verify Maven filtering and Java argument parsing without starting the application.
+def launchModule = new File(projectDir, "student-management-evaluation-starter")
+def launchTemplate = new File(launchModule, "src/main/launch/launch.args")
+assert launchTemplate.isFile(): "Expected external launch argument template"
+assert launchTemplate.text.contains('@run.jvm-args@')
+assert launchTemplate.text.contains('@run.config-location@')
+def launchArgs = new File(launchModule, "target/launch.args")
+assert launchArgs.isFile(): "Maven must generate target/launch.args"
+assert !launchArgs.text.contains('@run.')
+assert !new File(launchModule, "target/classes/launch.args").exists()
+def launchJava = new File(System.getProperty("java.home"),
+        System.getProperty("os.name").toLowerCase().contains("windows") ? "bin/java.exe" : "bin/java")
+def launchCheck = new ProcessBuilder(launchJava.absolutePath, "@${launchArgs.absolutePath}",
+        "-XshowSettings:properties", "-version").redirectErrorStream(true).start()
+def launchOutput = launchCheck.inputStream.getText("UTF-8")
+assert launchCheck.waitFor() == 0: launchOutput
+assert launchOutput.contains("spring.profiles.active = dev"): launchOutput
+assert launchOutput.contains("server.port = 8081"): launchOutput
+assert launchOutput.contains("spring.config.additional-location = optional:file:./config/override.yml"): launchOutput
+true

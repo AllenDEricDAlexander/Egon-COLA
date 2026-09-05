@@ -36,6 +36,11 @@
         <archunit.version>1.4.2</archunit.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
         <exec.maven.plugin.version>3.5.0</exec.maven.plugin.version>
+        <!-- Shared defaults for Maven run and the external Java argument file. -->
+        <run.profile>dev</run.profile>
+        <run.jvm-args>-Xms256m -Xmx512m</run.jvm-args>
+        <run.server-port>8080</run.server-port>
+        <run.config-location>optional:file:./config/override.yml</run.config-location>
     </properties>
 
     <modules>
@@ -233,4 +238,27 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <properties>
+                <run.profile>dev</run.profile>
+            </properties>
+        </profile>
+        <profile>
+            <id>test</id>
+            <properties>
+                <run.profile>test</run.profile>
+                <run.jvm-args>-Xms512m -Xmx1g</run.jvm-args>
+            </properties>
+        </profile>
+        <profile>
+            <id>prod</id>
+            <properties>
+                <run.profile>prod</run.profile>
+                <run.jvm-args>-Xms1g -Xmx2g -XX:+ExitOnOutOfMemoryError</run.jvm-args>
+            </properties>
+        </profile>
+    </profiles>
 </project>

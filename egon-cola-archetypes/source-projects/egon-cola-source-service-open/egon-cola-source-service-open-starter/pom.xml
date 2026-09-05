@@ -78,9 +78,47 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>generate-launch-args</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                            <overwrite>true</overwrite>
+                            <delimiters>
+                                <delimiter>@</delimiter>
+                            </delimiters>
+                            <useDefaultDelimiters>false</useDefaultDelimiters>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/launch</directory>
+                                    <filtering>true</filtering>
+                                    <includes>
+                                        <include>launch.args</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <jvmArguments>${run.jvm-args}</jvmArguments>
+                    <profiles>
+                        <profile>${run.profile}</profile>
+                    </profiles>
+                    <systemPropertyVariables>
+                        <server.port>${run.server-port}</server.port>
+                        <spring.config.additional-location>${run.config-location}</spring.config.additional-location>
+                    </systemPropertyVariables>
                     <layers>
                         <enabled>true</enabled>
                     </layers>

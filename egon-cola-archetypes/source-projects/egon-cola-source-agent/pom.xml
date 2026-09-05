@@ -28,6 +28,11 @@
         <lombok.version>1.18.46</lombok.version>
         <lombok.mapstruct.binding.version>0.2.0</lombok.mapstruct.binding.version>
         <mapstruct-plus.version>1.5.1</mapstruct-plus.version>
+        <!-- Shared defaults for Maven run and the external Java argument file. -->
+        <run.profile>dev</run.profile>
+        <run.jvm-args>-Xms256m -Xmx512m</run.jvm-args>
+        <run.server-port>8080</run.server-port>
+        <run.config-location>optional:file:./config/override.yml</run.config-location>
     </properties>
 
     <modules>
@@ -142,4 +147,27 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <properties>
+                <run.profile>dev</run.profile>
+            </properties>
+        </profile>
+        <profile>
+            <id>test</id>
+            <properties>
+                <run.profile>test</run.profile>
+                <run.jvm-args>-Xms512m -Xmx1g</run.jvm-args>
+            </properties>
+        </profile>
+        <profile>
+            <id>prod</id>
+            <properties>
+                <run.profile>prod</run.profile>
+                <run.jvm-args>-Xms1g -Xmx2g -XX:+ExitOnOutOfMemoryError</run.jvm-args>
+            </properties>
+        </profile>
+    </profiles>
 </project>
