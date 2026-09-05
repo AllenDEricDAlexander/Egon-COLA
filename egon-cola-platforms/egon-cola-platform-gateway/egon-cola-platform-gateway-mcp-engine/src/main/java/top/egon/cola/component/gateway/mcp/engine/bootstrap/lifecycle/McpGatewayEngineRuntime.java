@@ -13,6 +13,7 @@ import top.egon.cola.component.gateway.runtime.provider.service.ProviderDirector
 import top.egon.cola.component.gateway.runtime.rule.service.GatewayRuleActivationApplier;
 
 import java.util.concurrent.Executors;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -24,6 +25,8 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @RequiredArgsConstructor
 public final class McpGatewayEngineRuntime implements SmartLifecycle {
+
+    private static final Set<String> SERVING_HEALTH_CODES = Set.of(Status.UP.getCode(), "DEGRADED");
 
     @NonNull
     @Qualifier("mcpGatewayHttpServer")
@@ -93,9 +96,10 @@ public final class McpGatewayEngineRuntime implements SmartLifecycle {
         try {
             restoreRulesSafely();
             var active = activation.active();
+            // A valid LKG/previous release remains serving while its degradation is reported separately.
             ready = running && server.accepting() && active != null && activation.status().ready()
                     && directory.allAvailable(active.providerServices())
-                    && Status.UP.equals(health.health().getStatus());
+                    && SERVING_HEALTH_CODES.contains(health.health().getStatus().getCode());
         } catch (RuntimeException failure) {
             ready = false;
         }
