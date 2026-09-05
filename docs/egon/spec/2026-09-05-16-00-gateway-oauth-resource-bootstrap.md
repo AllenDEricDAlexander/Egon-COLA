@@ -9,11 +9,11 @@
 | Complexity | `Simple` |
 | Complexity Drivers | 声明式 local 种子变更；身份唯一性和已有数据保护 |
 | Created | `2026-09-05 16:00 CST` |
-| Updated | `2026-09-05 16:00 CST` |
+| Updated | `2026-09-05 16:20 CST` |
 | Owner | 用户 / Codex |
 | Repository | `Egon-COLA` |
 | Scope | IdP development bootstrap 中三个 Gateway 身份及 MCP 服务授权的先决修正 |
-| Change Surface | `IdpDevelopmentClientBootstrap.java` 的种子和 MCP grant ID 前缀、必要构造注入规范化；对应测试及模块 lombok.config |
+| Change Surface | `IdpDevelopmentClientBootstrap.java` 的种子和 MCP grant ID 前缀、必要构造注入规范化；对应测试、模块 lombok.config/POM |
 | Affected Chapters | §7, §8, §14, §15, §16, §17, §18 |
 | Source Requirement | 用户：“两个gateway engine 在 oauth2 resource 中当作两个server…gateway admin server也是一个单独的 resource server”；已批准继续修复 |
 | Baseline Revision | `main@4237b6bdbc95de37c58296e1bdf01890040f74b2`；其他脏文件受保护 |
@@ -112,7 +112,7 @@
 
 ### 5.1 Confirmed constraints
 
-严格三资源；保持 IdP/DDC 核心鉴权；只修改 §8 三个文件；保护脏工作区；每任务一次提交。
+严格三资源；保持 IdP/DDC 核心鉴权；只修改 §8 四个文件；保护脏工作区；每任务一次提交。
 
 ### 5.2 Small-gap assumptions
 
@@ -122,13 +122,15 @@
 
 DEC-IDENTITY-001：保留旧 Admin/API 行，新增 MCP 行。DEC-IDENTITY-002：Task 新 grant ID 加 mcp-engine 标识，不覆盖旧 ID。DEC-IDENTITY-003：种子变更同时落实 Rule 4 的本类 DI，不重写既有 reconcile 算法。五个依赖仍为原 Service/Repository；改用 Lombok 生成的七参数构造器，参数次序 clients/resources/grants/clientEntities/projections/secretDirectory/rbac3ServiceTenantIds。两个配置参数保留 String 与原 @Value 表达式；Path 规范化移至 writeSecret/secretFile，tenantIds 解析移至启动入口和原三个租户协调方法的局部变量。先校验 tenant 再做任何 CRUD。保留原配置键/default/local/开关，不触碰 YAML。
 
+2026-09-05 16:20 构建证据修正：首轮 GREEN 编译发现 IdP admin 未声明 Lombok，而 platforms parent 已有 annotationProcessorPaths、root 已定义 lombok.version=1.18.46。Rule 4 不能省略。仅在本模块 POM 增加 org.projectlombok:lombok:${lombok.version}、provided、optional=true，不增加新版本或下游传递依赖。原“POM 不变”判断撤回；属于用户要求自行完成修复内的必要构建修正。
+
 ### 5.4 Open major decisions
 
 本先决范围内 None。父任务的 fan-out 设计和实施仍须完成，但用户已批准方向，无须再问同一个架构问题。
 
 ## 6. Project Technology Context
 
-Java 21、Spring Boot 3.5.16、Maven wrapper、JUnit5/Mockito 均使用当前仓库。无新增版本或依赖。
+Java 21、Spring Boot 3.5.16、Maven wrapper、JUnit5/Mockito 均使用当前仓库。不引入新版本；只补 root 已管理的 Lombok 构建依赖。
 
 ### 6.1 Java architecture profile and capability baseline
 
@@ -138,16 +140,16 @@ Java 21、Spring Boot 3.5.16、Maven wrapper、JUnit5/Mockito 均使用当前仓
 
 | Literal rule | Affected? | Repository evidence | Exact design decision | Files/types/interfaces | Validation/test evidence | Status/blocker |
 | --- | --- | --- | --- | --- | --- | --- |
-| Rule 1 | No | §2 EVD-001/002；§8 三个目标文件 | 不新增类型或修改既有 record 声明；仅种子实例 | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | N/A |
-| Rule 2 | Yes | §2 EVD-001/002；§8 三个目标文件 | 保留 requireMatchingResource、机密 Client 类型校验与既有 Service/Repo 契约；增加不匹配拒绝测试；无新层间输入对象或复用组 | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | PASS |
-| Rule 3 | No | §2 EVD-001/002；§8 三个目标文件 | 既有 record、Entity 与映射代码不变；无 Converter | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | N/A |
+| Rule 1 | No | §2 EVD-001/002；§8 四个目标文件 | 不新增类型或修改既有 record 声明；仅种子实例 | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | N/A |
+| Rule 2 | Yes | §2 EVD-001/002；§8 四个目标文件 | 保留 requireMatchingResource、机密 Client 类型校验与既有 Service/Repo 契约；增加不匹配拒绝测试；无新层间输入对象或复用组 | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | PASS |
+| Rule 3 | No | §2 EVD-001/002；§8 四个目标文件 | 既有 record、Entity 与映射代码不变；无 Converter | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | N/A |
 | Rule 4 | Yes | bootstrap 现有手写构造注入不满足 touched-class 门禁 | bootstrap 添加 @Slf4j、显式 Bean 名、@RequiredArgsConstructor；五个 final 依赖标 @Qualifier，保留两项 @Value；模块 lombok.config 复制注解，删除手写注入构造器 | IdpDevelopmentClientBootstrap、模块 lombok.config | 构造器元数据/编译/配置默认值断言 | PASS |
-| Rule 5 | Yes | §2 EVD-001/002；§8 三个目标文件 | 仅既有 JDK 工具；测试 JUnit/Mockito；不新增依赖 | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | PASS |
-| Rule 6 | No | §2 EVD-001/002；§8 三个目标文件 | 不改外部 JSON 字段或 Jackson 行为 | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | N/A |
-| Rule 7 | No | §2 EVD-001/002；§8 三个目标文件 | 不改任何 profile 的配置键 | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | N/A |
-| Rule 9 | Yes | §2 EVD-001/002；§8 三个目标文件 | Simple 声明式种子修正，复用 reconcile；未引入复杂业务规则 | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | PASS |
-| Rule 10 | Yes | §2 EVD-001/002；§8 三个目标文件 | 时间仍用 Instant；测试固定 Instant.EPOCH | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | PASS |
-| Rule 11 | Yes | §2 EVD-001/002；§8 三个目标文件 | 保留父 Spec 批准的 feature-local traditional layered 配置支持边界，无包迁移 | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | PASS |
+| Rule 5 | Yes | §2 EVD-001/002；§8 四个目标文件 | 仅既有 JDK 工具；测试 JUnit/Mockito；不引入新库，仅声明已管理 Lombok 构建依赖 | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | PASS |
+| Rule 6 | No | §2 EVD-001/002；§8 四个目标文件 | 不改外部 JSON 字段或 Jackson 行为 | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | N/A |
+| Rule 7 | No | §2 EVD-001/002；§8 四个目标文件 | 不改任何 profile 的配置键 | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | N/A |
+| Rule 9 | Yes | §2 EVD-001/002；§8 四个目标文件 | Simple 声明式种子修正，复用 reconcile；未引入复杂业务规则 | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | PASS |
+| Rule 10 | Yes | §2 EVD-001/002；§8 四个目标文件 | 时间仍用 Instant；测试固定 Instant.EPOCH | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | PASS |
+| Rule 11 | Yes | §2 EVD-001/002；§8 四个目标文件 | 保留父 Spec 批准的 feature-local traditional layered 配置支持边界，无包迁移 | IdpDevelopmentClientBootstrap/测试 | TEST-001–004 和最终 diff 范围审查 | PASS |
 
 ## 7. Architecture Design
 
@@ -196,9 +198,10 @@ DDC 授权仍用 PLATFORM、tenant=null、scope=ddc:registration:write；MCP sou
 egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java  MODIFY
 egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java  MODIFY
 egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/lombok.config  CREATE
+egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/pom.xml  MODIFY
 ```
 
-测试先锁定契约；生产修改种子、Task ID 前缀和 Rule 4 必需的本类 DI 规范化。新增 `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/lombok.config` 复制 Qualifier/Value；无新业务类型、转换器、Bean 数量、接口或 schema。
+测试先锁定契约；生产修改种子、Task ID 前缀和 Rule 4 必需的本类 DI 规范化。新增 `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/lombok.config` 复制 Qualifier/Value，修改 `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/pom.xml` 补 Lombok provided/optional 构建依赖；无新业务类型、转换器、Bean 数量、接口或 schema。
 
 ## 9. Interface Definitions
 
@@ -275,7 +278,7 @@ Context-only：本次为 Simple 声明式列表修正，沿用已有 reconcile�
 
 ### 20.2 Repository and technical fidelity
 
-已读两个目标文件及当前唯一性/source app 绑定证据；沿用当前分层、record、CRUD，无依赖/API/DDL 扩展。
+已读两个目标文件及当前唯一性/source app 绑定证据；沿用当前分层、record、CRUD，无 API/DDL 扩展；仅补已管理 Lombok 编译依赖。
 
 ### 20.3 Cross-section consistency
 
@@ -289,9 +292,9 @@ Context-only：本次为 Simple 声明式列表修正，沿用已有 reconcile�
 
 | Check ID | Applicability | Status | Evidence | Finding | Required action/exception |
 | --- | --- | --- | --- | --- | --- |
-| MC-ARCH-001 | Applicable | PASS | 现有 IdP admin 的 support/bootstrap、oauth/service、resource/repo 分层；仅三个目标文件 | 不移动或引入架构 | None |
+| MC-ARCH-001 | Applicable | PASS | 现有 IdP admin 的 support/bootstrap、oauth/service、resource/repo 分层；仅四个目标文件 | 不移动或引入架构 | None |
 | MC-REUSE-001 | Applicable | PASS | IdpDevelopmentClientBootstrap 的 MACHINE_CLIENTS、RESOURCES、reconcileResourceAndGrant | 复用已存在的本地种子协调机制 | None |
-| MC-DEP-001 | Not applicable | N/A | 种子和本类 DI 使用既有 Spring/Lombok；POM 不变 | 无新增依赖 | None |
+| MC-DEP-001 | Applicable | PASS | IdP admin POM 缺 Lombok；platforms parent 已配置其处理器，root lombok.version=1.18.46 | 只补 provided/optional 的仓库已管理构建依赖 | None |
 | MC-NAME-001 | Not applicable | N/A | 复用 MachineClientSpec/ResourceSpec；不新增或修改类型声明 | 无新 POJO 或行为类型 | None |
 | MC-VALID-001 | Applicable | PASS | requireMatchingResource 和 confidential Client 检查保留；新增冲突测试 | 现有身份不匹配时拒绝，不覆盖 | None |
 | MC-MODEL-001 | Not applicable | N/A | 既有私有 record 的组件、构造器和实体声明均不变 | 只新增种子实例 | None |
@@ -303,7 +306,7 @@ Context-only：本次为 Simple 声明式列表修正，沿用已有 reconcile�
 | MC-TIME-001 | Applicable | PASS | 既有 Instant 与测试 Instant.EPOCH | 不引入 java.util 日期 | None |
 | MC-CONFIG-001 | Not applicable | N/A | @Profile(local) 和 development-bootstrap.enabled 原样保留；无 YAML 键变更 | 本次只种子声明 | None |
 | MC-PATTERN-001 | Applicable | PASS | 现有数据驱动 reconcile 流程；只加入一个同形资源和 Client | Simple 常量修正，不引入 Strategy/Factory | None |
-| MC-SCOPE-001 | Applicable | PASS | §8 bootstrap/测试和模块 lombok.config 三文件；无其他类重构 | 范围锁定 | None |
+| MC-SCOPE-001 | Applicable | PASS | bootstrap/测试、模块 lombok.config、IdP admin pom.xml 四文件；不改其他业务类 | 范围锁定 | None |
 | MC-TEST-001 | Applicable | PASS | IdpDevelopmentClientBootstrapTest RED/GREEN；身份/授权/重复启动/旧 ID 冲突/错误绑定 | 测试隔离使用 @TempDir 与 Mock | None |
 | MC-BLOCKER-001 | Applicable | PASS | 本 Spec 仅身份种子先决修复；发布 fan-out 与真实验收在父任务继续 | 不将前置完成等同总体完成 | None |
 

@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Ready` |
 | Created | `2026-09-05 16:00 CST` |
-| Updated | `2026-09-05 16:00 CST` |
+| Updated | `2026-09-05 16:20 CST` |
 | Owner | 用户 / Codex |
 | Repository | `Egon-COLA` |
 | Scope | local IdP bootstrap 静态种子与测试；父任务的前置修正 |
@@ -14,7 +14,7 @@
 | Baseline Revision | `main@4237b6bdbc95de37c58296e1bdf01890040f74b2` |
 | Implements Spec | [Gateway 三资源身份种子](../spec/2026-09-05-16-00-gateway-oauth-resource-bootstrap.md) |
 | Spec Status | `Accepted` |
-| Spec Revision | `2026-09-05 16:00 CST` |
+| Spec Revision | `2026-09-05 16:20 CST` |
 | Effective Specs | [身份种子](../spec/2026-09-05-16-00-gateway-oauth-resource-bootstrap.md) |
 | Depends On Plans | [主计划](2026-09-02-21-03-gateway-dual-engine-separation-implementation.md) 已提交 Step 6/10 |
 | Supersedes | `None` |
@@ -23,19 +23,19 @@
 
 ## 1. Summary
 
-以一个顺序、可单独提交的 Step 实施身份种子 Spec 的四项要求。只修改两个现有 IdP 文件和一个模块 Lombok 配置；先测试 RED，再声明式修改，再测试 GREEN。继续父任务所需的 Gateway fan-out、版本核对与运行时验收不由这个先决提交冒充完成。
+以一个顺序、可单独提交的 Step 实施身份种子 Spec 的四项要求。只修改两个现有 IdP 文件和模块 Lombok 配置及 POM 构建依赖；先测试 RED，再声明式修改，再测试 GREEN。继续父任务所需的 Gateway fan-out、版本核对与运行时验收不由这个先决提交冒充完成。
 
 ## 2. Target Spec and Effective Design
 
 ### 2.1 Primary target
 
-[身份种子 Spec](../spec/2026-09-05-16-00-gateway-oauth-resource-bootstrap.md)，Accepted，Updated 2026-09-05 16:00 CST。批准证据为用户本轮确认三组独立身份并要求继续修复；本计划只是该明确选择的最小实现。
+[身份种子 Spec](../spec/2026-09-05-16-00-gateway-oauth-resource-bootstrap.md)，Accepted，Updated 2026-09-05 16:20 CST。批准证据为用户本轮确认三组独立身份并要求继续修复；本计划只是该明确选择的最小实现。
 
 ### 2.2 Effective Spec set
 
 | Role | Spec/link | Status/revision | Effective sections | Why included |
 | --- | --- | --- | --- | --- |
-| Primary | [身份种子](../spec/2026-09-05-16-00-gateway-oauth-resource-bootstrap.md) | Accepted / 2026-09-05 16:00 CST | 全文 | 当前前置交付 |
+| Primary | [身份种子](../spec/2026-09-05-16-00-gateway-oauth-resource-bootstrap.md) | Accepted / 2026-09-05 16:20 CST | 全文 | 当前前置交付 |
 | Context-only predecessor | [双 Engine 分离](../spec/2026-09-02-19-52-gateway-dual-engine-separation.md) | Accepted / 2026-09-05 07:01 CST | §7.1、§8 已实现固定角色与 Admin/Engine 边界，由 Primary §6.1 保留 | 该主计划的其余要求不属于此窄范围前置计划，仍在父任务执行 |
 
 ### 2.3 Superseded or excluded content
@@ -49,7 +49,7 @@ Primary Spec 明确修改父 Spec 的 local IdP 范围限制。主计划原同 a
 | REQ-001 | Primary §4/7 | 三组独立 Resource/Client | 精确断言 Admin/API 保留、MCP 新增 | bootstrap 列表 |
 | REQ-002 | Primary §4/7.3 | MCP 最小 DDC/RBAC/Task grant | PLATFORM vs tenant context 正确；无 Admin scope | 成员和 Client 常量 |
 | REQ-003 | Primary §4/16 | 幂等与已有数据保护 | 不重复 save/rotate，不复用旧 Task ID，冲突拒绝 | 新 ID 字面前缀、测试 |
-| REQ-004 | Primary §4/9–15 | 鉴权/API/schema/profile 边界不动 | 三文件 diff 与 focused regression | 测试/范围审查 |
+| REQ-004 | Primary §4/9–15 | 鉴权/API/schema/profile 边界不动 | 四文件 diff 与 focused regression | 测试/范围审查 |
 
 ## 4. Implementation Strategy and Dependency Order
 
@@ -65,7 +65,7 @@ Primary Spec 明确修改父 Spec 的 local IdP 范围限制。主计划原同 a
 
 | Step | Depends on | May run in parallel with | Must not overlap with | Reason |
 | --- | --- | --- | --- | --- |
-| Step 1 | 主计划 Step 6/10 已提交 | None | 任何三个目标文件的并发修改 | 单个先决任务 |
+| Step 1 | 主计划 Step 6/10 已提交 | None | 任何四个目标文件的并发修改 | 单个先决任务 |
 
 ### 4.4 Commit boundaries
 
@@ -107,11 +107,11 @@ Primary Spec 明确修改父 Spec 的 local IdP 范围限制。主计划原同 a
 
 | Literal rule | Spec source | Repository evidence | Exact files and order | Pseudocode obligations | Validation gate | Steps | Status/blocker |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Rule 1 | Primary §6.2 | bootstrap 的既有 record/reconcile 和 §8 范围 | File 1 测试 → File 2 Lombok 配置 → File 3 种子/DI | 不新增类型或修改既有 record 声明；仅种子实例 | focused 测试 + diff 审查 | Step 1 | N/A |
+| Rule 1 | Primary §6.2 | bootstrap 的既有 record/reconcile 和 §8 范围 | File 1 测试 → File 2 Lombok 配置 → File 4 种子/DI | 不新增类型或修改既有 record 声明；仅种子实例 | focused 测试 + diff 审查 | Step 1 | N/A |
 | Rule 2 | Primary §6.2 | bootstrap 的既有 record/reconcile 和 §8 范围 | File 1 测试 → File 2 Lombok 配置 → File 3 种子/DI | 保留 requireMatchingResource、机密 Client 类型校验与既有 Service/Repo 契约；增加不匹配拒绝测试；无新层间输入对象或复用组 | focused 测试 + diff 审查 | Step 1 | PASS |
 | Rule 3 | Primary §6.2 | bootstrap 的既有 record/reconcile 和 §8 范围 | File 1 测试 → File 2 Lombok 配置 → File 3 种子/DI | 既有 record、Entity 与映射代码不变；无 Converter | focused 测试 + diff 审查 | Step 1 | N/A |
 | Rule 4 | Primary §6.2/7.2 | 本类现有注入；Gateway lombok.config | 测试 → 模块 lombok.config → bootstrap | bootstrap 添加 @Slf4j、显式 Bean 名、@RequiredArgsConstructor；五个 final 依赖标 @Qualifier，保留两项 @Value；模块 lombok.config 复制注解，删除手写注入构造器 | 构造器注解/编译/diff | Step 1 | PASS |
-| Rule 5 | Primary §6.2 | bootstrap 的既有 record/reconcile 和 §8 范围 | File 1 测试 → File 2 Lombok 配置 → File 3 种子/DI | 仅既有 JDK 工具；测试 JUnit/Mockito；不新增依赖 | focused 测试 + diff 审查 | Step 1 | PASS |
+| Rule 5 | Primary §6.2 | bootstrap 的既有 record/reconcile 和 §8 范围 | File 1 测试 → File 2 Lombok 配置 → File 3 种子/DI | 仅既有 JDK 工具；测试 JUnit/Mockito；不引入新库，仅声明已管理 Lombok 构建依赖 | focused 测试 + diff 审查 | Step 1 | PASS |
 | Rule 6 | Primary §6.2 | bootstrap 的既有 record/reconcile 和 §8 范围 | File 1 测试 → File 2 Lombok 配置 → File 3 种子/DI | 不改外部 JSON 字段或 Jackson 行为 | focused 测试 + diff 审查 | Step 1 | N/A |
 | Rule 7 | Primary §6.2 | bootstrap 的既有 record/reconcile 和 §8 范围 | File 1 测试 → File 2 Lombok 配置 → File 3 种子/DI | 不改任何 profile 的配置键 | focused 测试 + diff 审查 | Step 1 | N/A |
 | Rule 9 | Primary §6.2 | bootstrap 的既有 record/reconcile 和 §8 范围 | File 1 测试 → File 2 Lombok 配置 → File 3 种子/DI | Simple 声明式种子修正，复用 reconcile；未引入复杂业务规则 | focused 测试 + diff 审查 | Step 1 | PASS |
@@ -124,11 +124,13 @@ Primary Spec 明确修改父 Spec 的 local IdP 范围限制。主计划原同 a
 egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java  MODIFY
 egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java  MODIFY
 egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/lombok.config  CREATE
+egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/pom.xml  MODIFY
 ```
 
 | Operation | Path | Current evidence/symbol | Final symbols/state | Responsibility | Step | Requirements | Validation owner |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | MODIFY | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java` | bootstrap 三个既有测试与 fixtures | 增补三身份/授权/幂等/冲突测试 | 锁定可观察行为 | Step 1 | REQ-001/002/003/004 | Codex focused test |
+| MODIFY | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/pom.xml` | 缺 Lombok 编译依赖；父 POM 已有处理器 | provided/optional Lombok，${lombok.version} | Rule 4 编译支撑 | Step 1 | REQ-004 | focused compile |
 | CREATE | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/lombok.config` | 模块尚无 lombok.config；Gateway 已有同形配置 | 复制 Qualifier/Value | DI 元数据传播 | Step 1 | REQ-004 | constructor metadata test |
 | MODIFY | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java` | MACHINE_CLIENTS/RESOURCES/两个授权列表/Task 常量/ID 前缀 | §7 Spec 精确值 | 数据声明修复 | Step 1 | REQ-001/002/003/004 | Codex diff+test |
 
@@ -138,7 +140,7 @@ egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/lombok.c
 
 cwd=/Users/mario/SelfProject/Egon-COLA；main@4237b6bdb。保持用户 AGENTS 的最小安全改动、每任务一次提交；本次无 subagent。
 
-不触碰 12 个已暂存 Archetype migration 删除、Archetype Spec、shared Web tsbuildinfo、其他新 Spec/Plan。只用 git commit --only 明确三文件，文档先单独提交。
+不触碰 12 个已暂存 Archetype migration 删除、Archetype Spec、shared Web tsbuildinfo、其他新 Spec/Plan。只用 git commit --only 明确四文件，文档先单独提交。
 
 ### 6.2 Build, test, and environment prerequisites
 
@@ -146,11 +148,13 @@ cwd=/Users/mario/SelfProject/Egon-COLA；main@4237b6bdb。保持用户 AGENTS �
 | --- | --- | --- | --- |
 | Maven/JDK | ./mvnw，root pom.xml | 当前 Java21，已有依赖 | 编译/模块 |
 | Focused | ./mvnw -pl :egon-cola-platform-idp-admin -am -Dtest=IdpDevelopmentClientBootstrapTest -Dsurefire.failIfNoSpecifiedTests=false test | @TempDir/Mockito | 不启动服务/DB |
-| Scope | git diff --check -- 三个 §5 路径；git diff --name-only | 无外部并发覆盖 | 静态 |
+| Scope | git diff --check -- 四个 §5 路径；git diff --name-only | 无外部并发覆盖 | 静态 |
 
 ### 6.3 Immutable constraints and approved decisions
 
 历史 Flyway 与 IdP/DDC 核心鉴权完全不改；Admin/API 身份旧值保留；MCP 不拿 Admin scope；旧 grant 不删除。
+
+2026-09-05 16:20 Build correction：首次 GREEN 缺 Lombok compile classpath（identity-step-01-missing-lombok.log）；停止代码推进，先修正 Spec 和本计划，新增本模块 POM 到当前 Step。这是父 POM 已配置处理器与实际依赖的不一致，不改身份设计，不跳过 Rule 4；用户已要求自行决定并继续修复。
 
 ### 6.4 Plan Clarifications
 
@@ -206,7 +210,7 @@ verify(resources).save(argThat(r -> preservesSpecAdminIdentity(r)));
 - Purpose: 在当前模块保证 Lombok 复制注入注解。
 - Symbols: config.stopBubbling、lombok.copyableAnnotations
 - Repository evidence: Gateway/lombok.config 已使用相同配置；IdP admin 无模块配置
-- Dependencies and consumers: File 3 的 @RequiredArgsConstructor；File 1 构造器注解测试
+- Dependencies and consumers: File 4 的 @RequiredArgsConstructor；File 1 构造器注解测试
 - Why now: 生产切换 Lombok 前先准备注解传播
 - Contract/signature changes: 无运行 API 变化；只编译期构造注解
 - Input/output and state mapping: final 字段 Qualifier/Value → 生成构造器参数
@@ -224,7 +228,34 @@ lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Value
 - Verification contribution: 编译 + IdpDevelopmentClientBootstrapTest 构造参数注解断言
 - After this file: 生成构造器可保留五个 Qualifier 和两个 Value
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java`
+#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/pom.xml`
+
+- Purpose: 修正首次 GREEN 暴露的缺失构建依赖，不省略 Rule 4。
+- Symbols: dependencies/org.projectlombok:lombok
+- Repository evidence: root lombok.version=1.18.46；platforms parent 已有 Lombok annotationProcessorPaths；IdP admin 未声明编译依赖
+- Dependencies and consumers: File 4 注解；现有 Maven compiler
+- Why now: 记录编译失败后修订 Spec/Plan，先补必要 classpath 再重跑 GREEN
+- Contract/signature changes: 仅构建 classpath；无 REST/RPC/DB 变化
+- Input/output and state mapping: root 受管理版本 → 本模块 provided、optional 依赖
+- Error and edge behavior: 版本不复制硬编码；不向下游传递依赖
+- Standards impact: MC-DEP-001/MC-BEAN-001/MC-TEST-001；复用现有库和处理器
+- Literal rule enforcement: Rule 4 Lombok 编译支持；Rule 5 无新工具库；Rule 11 模块 POM
+- Implementation pseudocode:
+
+```xml
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+    <version>${lombok.version}</version>
+    <scope>provided</scope>
+    <optional>true</optional>
+</dependency>
+```
+
+- Verification contribution: 同 focused 命令重新编译成功；构造器注解测试通过
+- After this file: 所有既有处理器与当前注解所需类型均可解析
+
+#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java`
 
 - Purpose: 用现有协调机制执行准确种子映射。
 - Symbols: MACHINE_CLIENTS、RESOURCES、RBAC3_SERVICE_CLIENTS、DDC_REGISTRATION_CLIENTS、MCP_TASK_SERVICE_CLIENT、mcpTaskServiceGrantId
@@ -270,7 +301,7 @@ return "dev-mcp-engine-task-grant-" + suffix;
 - Failure returns to: File 1（fixture/断言问题）或 File 3（种子字段错误）；触及鉴权/DDL则返回 Spec 修正
 - Completion criteria: 四项要求、十条 literal rule、17项 Manual Check 分别有证据；diff无噪声
 - Rollback: 记录本 Step hash，必要时人工做 path-limited forward correction；不删数据库资源/secret
-- Commit paths: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java`, `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/lombok.config`, `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java`
+- Commit paths: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java`, `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/lombok.config`, `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/pom.xml`, `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java`
 - Commit: `fix(idp): seed separate gateway resource identities`
 
 ## 8. Test, Validation, and Quality Gates
@@ -279,7 +310,7 @@ return "dev-mcp-engine-task-grant-" + suffix;
 | --- | --- | --- | --- | --- | --- | --- |
 | RED | /Users/mario/SelfProject/Egon-COLA | ./mvnw -pl :egon-cola-platform-idp-admin -am -Dtest=IdpDevelopmentClientBootstrapTest -Dsurefire.failIfNoSpecifiedTests=false test | bootstrap test | 缺 MCP 行/owner/ID 失败 | File 1 | REQ-001/002/003；模块 |
 | GREEN | 同上 | 同一命令 | bootstrap test | Exit 0，无失败/跳过 | File 3 | REQ-001/002/003/004；模块 |
-| Diff | 同上 | git diff --check -- §5 三个精确路径；逐行 diff | 范围 | 不改其他生产符号 | Step 1 | REQ-004；静态 |
+| Diff | 同上 | git diff --check -- §5 四个精确路径；逐行 diff | 范围 | 不改其他生产符号 | Step 1 | REQ-004；静态 |
 | 父任务 runtime | 本地 platforms | 后续父任务修订的启动与测试脚本 | 三真实身份、DDC发布、Web | 此计划不宣称已经执行 | 主计划 Step 11 | 非本前置提交完成门槛；总体目标仍须验证 |
 
 ## 9. Migration, Compatibility, Rollout, and Rollback
@@ -290,7 +321,7 @@ Primary §11/16：没有 Flyway/数据库迁移；已有 local-enabled bootstrap
 
 | Requirement | Effective Spec section | Steps | Files | Tests/gates | Completion evidence |
 | --- | --- | --- | --- | --- | --- |
-| REQ-001 | Primary §4/7 | Step 1 | §5 三文件 | TEST-001 | focused log + commit |
+| REQ-001 | Primary §4/7 | Step 1 | §5 四文件 | TEST-001 | focused log + commit |
 | REQ-002 | Primary §4/7.3 | Step 1 | 同上 | TEST-002 | scoped grants assertions |
 | REQ-003 | Primary §4/16 | Step 1 | 同上 | TEST-003 | repeat/mismatch/legacy ID tests |
 | REQ-004 | Primary §9–15 | Step 1 | 同上 | TEST-004/diff | scope review |
@@ -314,7 +345,7 @@ Primary §11/16：没有 Flyway/数据库迁移；已有 local-enabled bootstrap
 
 ### 12.3 Repository executability
 
-三个文件均已读取且无用户重叠修改；测试能通过已有生产签名定义 RED；Maven wrapper 存在；提交限定范围。
+四个文件均已读取且无用户重叠修改；测试能通过已有生产签名定义 RED；Maven wrapper 存在；提交限定范围。
 
 ### 12.4 Test and release completeness
 
@@ -324,9 +355,9 @@ Primary §11/16：没有 Flyway/数据库迁移；已有 local-enabled bootstrap
 
 | Check ID | Applicability | Status | Evidence | Finding | Required action/exception |
 | --- | --- | --- | --- | --- | --- |
-| MC-ARCH-001 | Applicable | PASS | 现有 IdP admin 的 support/bootstrap、oauth/service、resource/repo 分层；仅三个目标文件 | 不移动或引入架构 | None |
+| MC-ARCH-001 | Applicable | PASS | 现有 IdP admin 的 support/bootstrap、oauth/service、resource/repo 分层；仅四个目标文件 | 不移动或引入架构 | None |
 | MC-REUSE-001 | Applicable | PASS | IdpDevelopmentClientBootstrap 的 MACHINE_CLIENTS、RESOURCES、reconcileResourceAndGrant | 复用已存在的本地种子协调机制 | None |
-| MC-DEP-001 | Not applicable | N/A | 种子和本类 DI 使用既有 Spring/Lombok；POM 不变 | 无新增依赖 | None |
+| MC-DEP-001 | Applicable | PASS | IdP admin POM 缺 Lombok；platforms parent 已配置其处理器，root lombok.version=1.18.46 | 只补 provided/optional 的仓库已管理构建依赖 | None |
 | MC-NAME-001 | Not applicable | N/A | 复用 MachineClientSpec/ResourceSpec；不新增或修改类型声明 | 无新 POJO 或行为类型 | None |
 | MC-VALID-001 | Applicable | PASS | requireMatchingResource 和 confidential Client 检查保留；新增冲突测试 | 现有身份不匹配时拒绝，不覆盖 | None |
 | MC-MODEL-001 | Not applicable | N/A | 既有私有 record 的组件、构造器和实体声明均不变 | 只新增种子实例 | None |
@@ -338,7 +369,7 @@ Primary §11/16：没有 Flyway/数据库迁移；已有 local-enabled bootstrap
 | MC-TIME-001 | Applicable | PASS | 既有 Instant 与测试 Instant.EPOCH | 不引入 java.util 日期 | None |
 | MC-CONFIG-001 | Not applicable | N/A | @Profile(local) 和 development-bootstrap.enabled 原样保留；无 YAML 键变更 | 本次只种子声明 | None |
 | MC-PATTERN-001 | Applicable | PASS | 现有数据驱动 reconcile 流程；只加入一个同形资源和 Client | Simple 常量修正，不引入 Strategy/Factory | None |
-| MC-SCOPE-001 | Applicable | PASS | §8 bootstrap/测试和模块 lombok.config 三文件；无其他类重构 | 范围锁定 | None |
+| MC-SCOPE-001 | Applicable | PASS | bootstrap/测试、模块 lombok.config、IdP admin pom.xml 四文件；不改其他业务类 | 范围锁定 | None |
 | MC-TEST-001 | Applicable | PASS | IdpDevelopmentClientBootstrapTest RED/GREEN；身份/授权/重复启动/旧 ID 冲突/错误绑定 | 测试隔离使用 @TempDir 与 Mock | None |
 | MC-BLOCKER-001 | Applicable | PASS | 本 Spec 仅身份种子先决修复；发布 fan-out 与真实验收在父任务继续 | 不将前置完成等同总体完成 | None |
 
