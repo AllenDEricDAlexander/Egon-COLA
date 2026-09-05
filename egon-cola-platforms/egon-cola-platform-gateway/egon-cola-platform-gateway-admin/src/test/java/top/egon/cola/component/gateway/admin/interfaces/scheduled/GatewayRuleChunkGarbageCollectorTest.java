@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.admin.release.controller.scheduled;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.scheduling.annotation.Scheduled;
 import top.egon.cola.component.ddc.api.client.DdcManagementClient;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfig;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishRequest;
@@ -27,6 +28,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class GatewayRuleChunkGarbageCollectorTest {
+
+    @Test
+    void startupLeavesTheFirstIntervalForRegistrationAndReleaseRecovery() throws Exception {
+        Scheduled schedule = GatewayRuleChunkGarbageCollector.class
+                .getMethod("collect").getAnnotation(Scheduled.class);
+        assertThat(schedule.initialDelayString()).isEqualTo(schedule.fixedDelayString());
+    }
 
     private static final Instant NOW =
             Instant.parse("2026-07-26T08:00:00Z");

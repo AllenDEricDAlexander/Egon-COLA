@@ -171,6 +171,8 @@ public class GatewayRuleChunkGarbageCollector {
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayRuleChunkGarbageCollector.collect(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      */
     @Scheduled(
+            initialDelayString =
+                    "${gateway.admin.rule-chunk.cleanup-delay:PT1H}",
             fixedDelayString =
                     "${gateway.admin.rule-chunk.cleanup-delay:PT1H}"
     )
