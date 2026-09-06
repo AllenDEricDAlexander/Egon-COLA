@@ -121,7 +121,7 @@ public class JpaManagementPolicyRepository implements
         Long tenant = Long.valueOf(tenantId);
         List<ManagementPolicyPO> candidates = entityManager.createQuery("""
                         select distinct p from ManagementPolicyEntity p,
-                             ManagementSubjectPO s
+                             ManagementSubjectEntity s
                          where p.tenantId = :tenantId and s.tenantId = p.tenantId
                            and s.policyId = p.id and p.status = :status
                            and p.validFrom <= :now
