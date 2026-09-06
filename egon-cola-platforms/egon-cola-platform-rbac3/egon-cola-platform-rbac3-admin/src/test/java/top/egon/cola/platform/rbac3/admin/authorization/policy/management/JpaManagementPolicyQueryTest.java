@@ -11,6 +11,8 @@ import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain
 import top.egon.cola.platform.rbac3.admin.authorization.policy.management.domain.po.ManagementSubjectPO;
 import top.egon.cola.platform.rbac3.admin.authorization.policy.management.repository.jpa.JpaManagementPolicyRepository;
 import top.egon.cola.platform.rbac3.admin.iam.position.snapshot.domain.po.UserPositionSnapshotPO;
+import top.egon.cola.platform.rbac3.admin.iam.user.domain.enums.UserStatusEnum;
+import top.egon.cola.platform.rbac3.admin.iam.user.domain.po.UserPO;
 
 import java.time.Instant;
 import java.util.List;
@@ -20,9 +22,45 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_SELF;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class JpaManagementPolicyQueryTest {
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void parsesManageableUsersAgainstTheIdentityOnlyUserEntity() {
+        var registry = new StandardServiceRegistryBuilder()
+                .applySetting("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect")
+                .applySetting("hibernate.boot.allow_jdbc_metadata_access", false)
+                .applySetting("hibernate.hbm2ddl.auto", "none")
+                .applySetting("jakarta.persistence.validation.mode", "none")
+                .build();
+        try (var factory = new MetadataSources(registry)
+                .addAnnotatedClass(UserPO.class)
+                .buildMetadata().buildSessionFactory();
+             var session = factory.openSession()) {
+            EntityManager entityManager = mock(EntityManager.class);
+            TypedQuery<Object[]> query = mock(TypedQuery.class, RETURNS_SELF);
+            when(query.getResultList()).thenReturn(List.of());
+            when(entityManager.createQuery(anyString(), eq(Object[].class)))
+                    .thenAnswer(invocation -> {
+                        session.createSelectionQuery(invocation.getArgument(0), Object[].class);
+                        return query;
+                    });
+            var repository = new JpaManagementPolicyRepository(entityManager, null, null);
+
+            assertEquals(List.of(), repository.manageableUsers(
+                    "1", "2", " Subject-3 ", Instant.parse("2026-09-06T05:00:00Z")));
+            verify(query).setParameter("tenantId", 1L);
+            verify(query).setParameter("status", UserStatusEnum.ACTIVE);
+            verify(query).setParameter("query", "subject-3");
+            verify(query).setParameter("pattern", "%subject-3%");
+            verify(query).setMaxResults(200);
+        } finally {
+            StandardServiceRegistryBuilder.destroy(registry);
+        }
+    }
 
     @Test
     @SuppressWarnings("unchecked")

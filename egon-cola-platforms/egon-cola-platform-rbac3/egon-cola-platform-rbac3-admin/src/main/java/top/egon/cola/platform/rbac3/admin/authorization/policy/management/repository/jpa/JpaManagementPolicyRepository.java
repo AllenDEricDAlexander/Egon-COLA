@@ -430,19 +430,20 @@ public class JpaManagementPolicyRepository implements
             Instant databaseNow
     ) {
         String normalized = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
-        @SuppressWarnings("unchecked")
-        List<Object[]> rows = entityManager.createNativeQuery("""
-                        select id, username, display_name
-                          from rbac3_user
-                         where tenant_id = :tenantId and status = 'ACTIVE'
-                           and (:query = '' or normalized_username like :pattern
-                             or lower(display_name) like :pattern)
-                         order by normalized_username, id
-                         limit 200
-                        """)
+        // RBAC owns membership identifiers only; profile search belongs to IdP.
+        List<Object[]> rows = entityManager.createQuery("""
+                        select u.id, u.identitySub from UserEntity u
+                         where u.tenantId = :tenantId and u.status = :status
+                           and (:query = '' or lower(u.identitySub) like :pattern
+                             or cast(u.id as string) like :pattern)
+                         order by u.identitySub, u.id
+                        """, Object[].class)
                 .setParameter("tenantId", Long.valueOf(tenantId))
+                .setParameter("status", top.egon.cola.platform.rbac3.admin.iam.user.domain.enums
+                        .UserStatusEnum.ACTIVE)
                 .setParameter("query", normalized)
                 .setParameter("pattern", '%' + normalized + '%')
+                .setMaxResults(200)
                 .getResultList();
         return rows.stream()
                 .filter(row -> policies(
@@ -451,7 +452,7 @@ public class JpaManagementPolicyRepository implements
                                 .contains(row[0].toString())))
                 .limit(50)
                 .map(row -> new ManagedUserVO(
-                        row[0].toString(), row[1].toString(), row[2].toString()))
+                        row[0].toString(), row[1].toString()))
                 .toList();
     }
 

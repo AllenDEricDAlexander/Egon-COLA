@@ -35,8 +35,7 @@ export interface ManagementCapabilityView {
 
 export interface ManageableUserView {
   readonly userId: string
-  readonly username: string
-  readonly displayName: string
+  readonly identitySub: string
 }
 
 export interface ManageableRoleView {
