@@ -36,15 +36,21 @@ export const ManagementPolicyPage = () => {
     queryFn: () => api.manageableRoles(),
     enabled: status === 'READY' && open,
   })
+  const refreshPolicyViews = () => Promise.all([
+    'management-policies', 'management-capabilities', 'manageable-users',
+    'manageable-roles', 'management-policy',
+  ].map((key) => queryClient.invalidateQueries({
+    queryKey: ['rbac3', key, effectiveTenantId ?? 'none'],
+  })))
   const save = useMutation({
     mutationFn: (command: SaveManagementPolicyCommand) => selected
       ? api.update(selected, command, crypto.randomUUID())
       : api.create(command, crypto.randomUUID()),
-    onSuccess: async () => { setOpen(false); setSelected(null); await queryClient.invalidateQueries({ queryKey }) },
+    onSuccess: async () => { await refreshPolicyViews(); setOpen(false); setSelected(null) },
   })
   const disable = useMutation({
     mutationFn: (policy: ManagementPolicyView) => api.disable(policy, crypto.randomUUID()),
-    onSuccess: async () => queryClient.invalidateQueries({ queryKey }),
+    onSuccess: refreshPolicyViews,
   })
   const edit = (policy: ManagementPolicyView | null) => { setSelected(policy); setOpen(true) }
   const mutationError = save.error ?? disable.error
