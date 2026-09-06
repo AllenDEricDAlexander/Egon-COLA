@@ -5,6 +5,7 @@ import {useState} from 'react'
 import {useFeatureApi, useFeatureTenantContext} from '../shared/FeatureApi'
 import {PageState} from '@egon-cola/admin-web-shared'
 import {AssignmentEditor} from './AssignmentEditor'
+import {directoryApi} from '../directory/directory.api'
 import {
     assignmentApi,
     type AssignmentOperation,
@@ -17,38 +18,57 @@ export interface AssignmentListPageProps {
 }
 
 export const AssignmentListPage = ({ userId }: AssignmentListPageProps) => {
-    const {status, about} = useRbac3Authorization()
+  const {status, about} = useRbac3Authorization()
   const { effectiveTenantId } = useFeatureTenantContext()
-  const api = assignmentApi(useFeatureApi())
+  const client = useFeatureApi()
+  const api = assignmentApi(client)
+  const users = directoryApi(client)
   const queryClient = useQueryClient()
   const [editorOpen, setEditorOpen] = useState(false)
   const queryKey = ['rbac3', 'assignments', effectiveTenantId ?? 'none', userId]
   const query = useQuery({ queryKey, queryFn: () => api.list(userId), enabled: status === 'READY' })
+  const userQueryKey = ['rbac3', 'directory-user', effectiveTenantId ?? 'none', userId]
+  const targetUser = useQuery({
+    queryKey: userQueryKey,
+    queryFn: () => users.user(userId),
+    enabled: status === 'READY' && about?.permissions.includes('system:role-assignment:manage'),
+  })
+  const refreshAssignments = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({queryKey}),
+      queryClient.invalidateQueries({queryKey: userQueryKey}),
+      queryClient.invalidateQueries({queryKey: ['rbac3', 'directory-users']}),
+    ])
+  }
   const create = useMutation({
     mutationFn: (command: CreateAssignmentCommand) => api.create(userId, command, crypto.randomUUID()),
-    onSuccess: async () => { setEditorOpen(false); await queryClient.invalidateQueries({ queryKey }) },
+    onSuccess: async () => { setEditorOpen(false); await refreshAssignments() },
   })
   const change = useMutation({
-    mutationFn: ({ assignment, operation }: { assignment: AssignmentView; operation: AssignmentOperation }) => api.change(
-      userId,
-      assignment.assignmentId,
-      operation,
-      {
-        reason: 'console state change',
-        ticketNo: null,
-        expectedAssignmentVersion: assignment.version,
-        expectedUserAuthVersion: about?.authVersion ?? 0,
-      },
-      crypto.randomUUID(),
-    ),
-    onSuccess: async () => queryClient.invalidateQueries({ queryKey }),
+    mutationFn: ({ assignment, operation }: { assignment: AssignmentView; operation: AssignmentOperation }) => {
+      if (!targetUser.data || targetUser.isError) throw new Error('目标用户授权版本尚未加载')
+      return api.change(
+        userId,
+        assignment.assignmentId,
+        operation,
+        {
+          reason: 'console state change',
+          ticketNo: null,
+          expectedAssignmentVersion: assignment.version,
+          expectedUserAuthVersion: targetUser.data.authVersion,
+        },
+        crypto.randomUUID(),
+      )
+    },
+    onSuccess: refreshAssignments,
   })
+  const mutationDisabled = !targetUser.data || targetUser.isError || targetUser.isFetching || create.isPending || change.isPending
   return (
     <Card
       title={`用户 ${userId} 的角色任职`}
       extra={(
         <PermissionGuard permission="system:role-assignment:manage">
-          <Button type="primary" onClick={() => setEditorOpen(true)}>新增任职资格</Button>
+          <Button type="primary" disabled={mutationDisabled} onClick={() => setEditorOpen(true)}>新增任职资格</Button>
         </PermissionGuard>
       )}
     >
@@ -56,6 +76,7 @@ export const AssignmentListPage = ({ userId }: AssignmentListPageProps) => {
       <Typography.Paragraph type="secondary" style={{ marginTop: 12 }}>
         列表保留暂停、恢复、撤销后的历史状态；所有写操作使用幂等键和版本前置条件。
       </Typography.Paragraph>
+      {targetUser.error && <Alert type="error" showIcon message="无法读取目标用户授权版本，请刷新后重试" />}
       <PageState loading={query.isPending} error={query.error ?? create.error ?? change.error} empty={query.data?.length === 0}>
         <Table<AssignmentView>
           rowKey="assignmentId"
@@ -73,9 +94,9 @@ export const AssignmentListPage = ({ userId }: AssignmentListPageProps) => {
               render: (_value, assignment) => (
                 <PermissionGuard permission="system:role-assignment:manage">
                   <Space>
-                    {assignment.status === 'ACTIVE' && <ChangeButton label="暂停" operation="suspend" assignment={assignment} onChange={change.mutate} />}
-                    {assignment.status === 'SUSPENDED' && <ChangeButton label="恢复" operation="resume" assignment={assignment} onChange={change.mutate} />}
-                    {!['REVOKED', 'EXPIRED'].includes(assignment.status) && <ChangeButton label="撤销" operation="revoke" assignment={assignment} onChange={change.mutate} danger />}
+                    {assignment.status === 'ACTIVE' && <ChangeButton label="暂停" operation="suspend" assignment={assignment} onChange={change.mutate} disabled={mutationDisabled} />}
+                    {assignment.status === 'SUSPENDED' && <ChangeButton label="恢复" operation="resume" assignment={assignment} onChange={change.mutate} disabled={mutationDisabled} />}
+                    {!['REVOKED', 'EXPIRED'].includes(assignment.status) && <ChangeButton label="撤销" operation="revoke" assignment={assignment} onChange={change.mutate} disabled={mutationDisabled} danger />}
                   </Space>
                 </PermissionGuard>
               ),
@@ -83,7 +104,7 @@ export const AssignmentListPage = ({ userId }: AssignmentListPageProps) => {
           ]}
         />
       </PageState>
-      <AssignmentEditor open={editorOpen} saving={create.isPending} onCancel={() => setEditorOpen(false)} onSave={create.mutate} />
+      {targetUser.data && <AssignmentEditor open={editorOpen} saving={mutationDisabled} error={create.error} expectedUserAuthVersion={targetUser.data.authVersion} onCancel={() => setEditorOpen(false)} onSave={create.mutate} />}
     </Card>
   )
 }
@@ -93,11 +114,12 @@ interface ChangeButtonProps {
   readonly operation: AssignmentOperation
   readonly assignment: AssignmentView
   readonly danger?: boolean
+  readonly disabled: boolean
   readonly onChange: (value: { assignment: AssignmentView; operation: AssignmentOperation }) => void
 }
 
-const ChangeButton = ({ label, operation, assignment, danger, onChange }: ChangeButtonProps) => (
+const ChangeButton = ({ label, operation, assignment, danger, disabled, onChange }: ChangeButtonProps) => (
   <Popconfirm title={`确认${label}此任职资格？`} onConfirm={() => onChange({ assignment, operation })}>
-    <Button size="small" danger={danger}>{label}</Button>
+    <Button size="small" danger={danger} disabled={disabled}>{label}</Button>
   </Popconfirm>
 )

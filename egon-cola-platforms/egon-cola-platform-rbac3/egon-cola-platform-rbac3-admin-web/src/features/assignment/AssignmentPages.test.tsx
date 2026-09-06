@@ -1,13 +1,15 @@
 import {type Rbac3Client, Rbac3Provider} from '@egon-cola/rbac3-react-sdk'
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
-import {render, screen, waitFor} from '@testing-library/react'
+import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/react'
 import type {PropsWithChildren} from 'react'
-import {describe, expect, it, vi} from 'vitest'
+import {afterEach, describe, expect, it, vi} from 'vitest'
 import {type FeatureApiClient, FeatureApiProvider} from '../shared/FeatureApi'
 import {AssignmentListPage} from './AssignmentListPage'
 import {assignmentApi} from './assignment.api'
 
 describe('assignment pages', () => {
+  afterEach(cleanup)
+
   it('renders assignment eligibility states and idempotent guarded actions', async () => {
     const request: FeatureApiClient['request'] = async <T,>() => [{
       assignmentId: '9007199254740999', roleId: '81', assignmentType: 'DIRECT',
@@ -62,6 +64,51 @@ describe('assignment pages', () => {
       method: 'POST',
       headers: {'Idempotency-Key': 'idempotency-2'},
     }))
+  })
+
+  it('uses the target user version for creation and refreshes it before the next mutation', async () => {
+    let targetAuthVersion = 7
+    const request = vi.fn(async (path: string, options?: {method?: string; body?: unknown}) => {
+      if (path === '/api/rbac3/v1/iam/users/42') {
+        return {userId: '42', identitySub: 'target-user', status: 'ACTIVE', authVersion: targetAuthVersion}
+      }
+      if (options?.method === 'POST') {
+        targetAuthVersion += 1
+        return {assignmentId: 'assignment-1'}
+      }
+      return [{assignmentId: 'assignment-1', roleId: '81', assignmentType: 'DIRECT', status: 'ACTIVE',
+        validFrom: '2026-09-06T00:00:00Z', validTo: null, sourceType: 'MANUAL', sourceId: '7', version: 3}]
+    })
+    render(<AssignmentListPage userId="42" />, {wrapper: wrapper(request as FeatureApiClient['request'], ['system:role-assignment:manage'])})
+    await waitFor(() => expect(screen.getByRole('button', {name: '新增任职资格'})).toBeEnabled())
+    fireEvent.click(screen.getByRole('button', {name: '新增任职资格'}))
+    const version = await screen.findByRole('spinbutton', {name: '目标用户授权版本'})
+    expect(version).toHaveValue('7')
+    expect(version).toHaveAttribute('readonly')
+    fireEvent.change(screen.getByLabelText('Role ID'), {target: {value: '81'}})
+    fireEvent.change(screen.getByLabelText('生效时间'), {target: {value: '2026-09-06T13:00'}})
+    fireEvent.click(screen.getByRole('button', {name: '保存资格'}))
+    await waitFor(() => expect(request).toHaveBeenCalledWith(
+      '/api/rbac3/v1/users/42/role-assignments',
+      expect.objectContaining({method: 'POST', body: expect.objectContaining({expectedUserAuthVersion: 7})}),
+    ))
+    await waitFor(() => expect(screen.getByRole('button', {name: /暂\s*停/})).toBeEnabled())
+    fireEvent.click(screen.getByRole('button', {name: /暂\s*停/}))
+    fireEvent.click(await screen.findByRole('button', {name: 'OK'}))
+    await waitFor(() => expect(request).toHaveBeenCalledWith(
+      '/api/rbac3/v1/users/42/role-assignments/assignment-1/suspend',
+      expect.objectContaining({method: 'POST', body: expect.objectContaining({expectedAssignmentVersion: 3, expectedUserAuthVersion: 8})}),
+    ))
+  })
+
+  it('keeps assignment mutations disabled when the target user version cannot be read', async () => {
+    const request: FeatureApiClient['request'] = async <T,>(path: string) => {
+      if (path === '/api/rbac3/v1/iam/users/42') throw new Error('target lookup failed')
+      return [] as T
+    }
+    render(<AssignmentListPage userId="42" />, {wrapper: wrapper(request, ['system:role-assignment:manage'])})
+    await screen.findByText('无法读取目标用户授权版本，请刷新后重试')
+    expect(screen.getByRole('button', {name: '新增任职资格'})).toBeDisabled()
   })
 })
 
