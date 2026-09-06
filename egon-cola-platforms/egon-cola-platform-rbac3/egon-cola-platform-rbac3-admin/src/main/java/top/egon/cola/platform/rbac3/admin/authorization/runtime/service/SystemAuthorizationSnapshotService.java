@@ -11,6 +11,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -92,7 +93,21 @@ public final class SystemAuthorizationSnapshotService {
                 .filter(context -> systemCode.equals(context.applicationCode())
                         || systemCode.equals(context.applicationId()))
                 .findFirst()
-                .orElseThrow(() -> new Rbac3RuleViolation("AUTHORIZATION_DENIED"));
+                .orElse(null);
+        if (app == null) {
+            // Selecting a business role must not remove an active member's own role-selection entry.
+            // This does not bootstrap DDC or grant any RBAC management capability.
+            if (RBAC3_ADMIN_SYSTEM.equals(systemCode)) {
+                return initialSnapshot(tenantId, identitySub, systemCode)
+                        .orElseThrow(() -> new Rbac3RuleViolation("AUTHORIZATION_DENIED"));
+            }
+            throw new Rbac3RuleViolation("AUTHORIZATION_DENIED");
+        }
+        Set<String> permissions = app.permissions();
+        if (RBAC3_ADMIN_SYSTEM.equals(systemCode)) {
+            permissions = new LinkedHashSet<>(permissions);
+            permissions.addAll(ROLE_ACTIVATION_PERMISSIONS);
+        }
         Instant generatedAt = clock.instant();
         Instant expiresAt = user.expiresAt().isAfter(generatedAt)
                 ? user.expiresAt() : generatedAt.plus(DEFAULT_TTL);
@@ -106,7 +121,7 @@ public final class SystemAuthorizationSnapshotService {
                 app.effectiveRoleIds(),
                 null,
                 app.landingRouteCode(),
-                app.permissions(),
+                permissions,
                 Set.copyOf(app.resourceCodes()),
                 app.dataScopes(),
                 app.fieldPolicies(),

@@ -5,11 +5,17 @@ import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.Initi
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.decision.controller.Rbac3AboutController;
 import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.decision.domain.vo.SnapshotRecordVO;
+import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
+import top.egon.cola.platform.rbac3.contract.authorization.UserAuthorizationSnapshot;
 
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -17,6 +23,52 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class SystemAuthorizationSnapshotServiceTest {
 
     private static final Instant NOW = Instant.parse("2026-08-23T12:00:00Z");
+
+    @Test
+    void businessOnlyActivationRetainsOnlyRbacSelfServicePermissions() {
+        var snapshot = activatedService("mock-backend", true)
+                .snapshot("1", "alice-sub", "rbac3-admin");
+        assertThat(snapshot.permissions()).containsExactlyInAnyOrder(
+                "system:about:read", "system:role-activation:read", "system:role-activation:use");
+        assertThat(snapshot.activeRoleIds()).isEmpty();
+        assertThat(snapshot.resourceCodes()).isEmpty();
+        assertThat(snapshot.authVersion()).isEqualTo(1L);
+        assertThat(snapshot.policyVersion()).isEqualTo(2L);
+    }
+
+    @Test
+    void anActivatedRbacRoleCannotRemoveTheUsersOwnRoleSelectionEntry() {
+        var snapshot = activatedService("rbac3-admin", true)
+                .snapshot("1", "alice-sub", "rbac3-admin");
+        assertThat(snapshot.permissions()).containsExactlyInAnyOrder(
+                "test:read", "system:about:read", "system:role-activation:read", "system:role-activation:use");
+        assertThat(snapshot.activeRoleIds()).containsExactly("10");
+    }
+
+    @Test
+    void businessActivationDoesNotBootstrapOtherSystemsOrMissingMemberships() {
+        assertThatThrownBy(() -> activatedService("mock-backend", true)
+                .snapshot("1", "alice-sub", "ddc-admin"))
+                .hasMessage("AUTHORIZATION_DENIED");
+        assertThatThrownBy(() -> activatedService("mock-backend", true)
+                .snapshot("1", "alice-sub", "idp-admin"))
+                .hasMessage("AUTHORIZATION_DENIED");
+        assertThatThrownBy(() -> activatedService("mock-backend", false)
+                .snapshot("1", "alice-sub", "rbac3-admin"))
+                .hasMessage("AUTHORIZATION_DENIED");
+    }
+
+    private SystemAuthorizationSnapshotService activatedService(String applicationCode, boolean member) {
+        var app = new AppAuthorizationContext("5", applicationCode, List.of("10"), List.of("20"),
+                List.of("10"), Set.of("test:read"), Map.of(), Map.of(), List.of(), null);
+        var user = new UserAuthorizationSnapshot("rbac3", "1", "alice-sub", "101", 1L, 2L,
+                List.of(app), "checksum", NOW, NOW.plusSeconds(3600));
+        return new SystemAuthorizationSnapshotService(
+                (tenant, subject) -> new SnapshotRecordVO("1", "alice-sub", "101", user),
+                (tenant, subject) -> member ? Optional.of(new InitialAuthorizationContext("101", 1L, 2L))
+                        : Optional.empty(),
+                Clock.fixed(NOW, ZoneOffset.UTC), true);
+    }
 
     @Test
     void initialContextCanReadItsOwnAboutEndpointToRenderRoleSelection() throws Exception {
