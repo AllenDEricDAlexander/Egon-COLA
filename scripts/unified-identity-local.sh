@@ -2425,6 +2425,7 @@ command_refresh_gateway_admin_catalog() {
   start_process gateway-admin "${env_dir}/gateway-admin.env" "${gateway_admin_jar}"
   wait_http gateway-admin "${gateway_admin_url}/actuator/health/readiness"
   wait_gateway_catalog_for_app gateway-admin
+  wait_gateway_openapi_sync_for_app platform gateway-admin
   echo "Gateway Admin current OpenAPI query interfaces are available in its catalog."
 }
 

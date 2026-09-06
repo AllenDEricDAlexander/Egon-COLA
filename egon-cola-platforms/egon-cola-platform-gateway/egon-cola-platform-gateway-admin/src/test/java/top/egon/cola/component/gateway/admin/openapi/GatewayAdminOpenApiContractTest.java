@@ -3,6 +3,8 @@ package top.egon.cola.component.gateway.admin.openapi;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.junit.jupiter.api.Test;
+import org.springdoc.core.service.AbstractRequestService;
+import org.springdoc.core.utils.SpringDocUtils;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import top.egon.cola.component.gateway.admin.application.controller.GatewayApplicationController;
@@ -26,6 +28,9 @@ import top.egon.cola.component.gateway.admin.openapi.controller.GatewayOpenApiCo
 import top.egon.cola.component.gateway.admin.routing.controller.GatewayDraftController;
 import top.egon.cola.component.gateway.admin.runtime.controller.GatewayProjectionController;
 import top.egon.cola.component.gateway.admin.scope.controller.GatewayScopeController;
+import top.egon.cola.component.gateway.admin.shared.controller.GatewayAdminActorArgumentResolver;
+import top.egon.cola.component.gateway.admin.shared.controller.GatewayAdminWebMvcConfiguration;
+import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
 import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
 
 import java.lang.reflect.Method;
@@ -58,6 +63,25 @@ class GatewayAdminOpenApiContractTest {
             GatewayScopeController.class,
             GatewayOpenApiController.class
     );
+
+    @Test
+    void authenticatedActorRemainsServerResolvedAndIsNotAnOpenApiRequestParameter() {
+        boolean wasIgnored = AbstractRequestService.isRequestTypeToIgnore(AdminActor.class);
+        try {
+            var resolvers = new java.util.ArrayList<org.springframework.web.method.support.HandlerMethodArgumentResolver>();
+            new GatewayAdminWebMvcConfiguration().addArgumentResolvers(resolvers);
+            assertThat(resolvers).anySatisfy(resolver ->
+                    assertThat(resolver).isInstanceOf(GatewayAdminActorArgumentResolver.class));
+            assertThat(AbstractRequestService.isRequestTypeToIgnore(AdminActor.class)).isTrue();
+            assertThat(AbstractRequestService.isRequestTypeToIgnore(BusinessInput.class)).isFalse();
+        } finally {
+            if (!wasIgnored) {
+                SpringDocUtils.getConfig().removeRequestWrapperToIgnore(AdminActor.class);
+            }
+        }
+    }
+
+    private record BusinessInput(String value) { }
 
     @Test
     void everyAdminControllerPublishesTheGatewayAdminGroup() {

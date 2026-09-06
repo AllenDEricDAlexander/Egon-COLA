@@ -221,6 +221,9 @@ assert_contains "${identity_script}" \
   'wait_gateway_catalog_for_app' \
   'Gateway startup must wait for every real provider catalog'
 assert_contains "${identity_script}" \
+  'wait_gateway_openapi_sync_for_app platform gateway-admin' \
+  'Admin catalog refresh must wait for the current executable build to become valid'
+assert_contains "${identity_script}" \
   'publish_gateway_routes' \
   'Gateway startup must publish operation-scoped routes from real catalogs'
 assert_contains "${identity_script}" \

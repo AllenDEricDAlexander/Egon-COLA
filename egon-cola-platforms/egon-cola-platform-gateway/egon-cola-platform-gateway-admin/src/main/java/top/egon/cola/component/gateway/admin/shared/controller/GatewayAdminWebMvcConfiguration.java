@@ -2,8 +2,10 @@ package top.egon.cola.component.gateway.admin.shared.controller;
 
 
 import org.springframework.context.annotation.Configuration;
+import org.springdoc.core.utils.SpringDocUtils;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import top.egon.cola.component.gateway.admin.shared.domain.AdminActor;
 
 import java.util.List;
 
@@ -28,5 +30,7 @@ public class GatewayAdminWebMvcConfiguration
     public void addArgumentResolvers(
             List<HandlerMethodArgumentResolver> resolvers) {
         resolvers.add(new GatewayAdminActorArgumentResolver());
+        // Authenticated actor data is supplied by the resolver, never by HTTP query parameters.
+        SpringDocUtils.getConfig().addRequestWrapperToIgnore(AdminActor.class);
     }
 }
