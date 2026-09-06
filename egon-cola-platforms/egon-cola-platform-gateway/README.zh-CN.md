@@ -61,6 +61,15 @@ Admin Web 是与 Gateway 源码同目录的私有 React 应用，路径为
 - Micrometer Observation / OpenTelemetry Span 和有界 Kafka 调用事件投影；遥测
   故障不得改变业务响应。
 
+## MCP 扩展边界
+
+现有持久化 Tasks 是 Egon 扩展，不是 MCP 2025-11-25 标准 Tasks。
+Stable 初始化通过 `capabilities.experimental["top.egon/tasks"]` 声明任务扩展，
+UI 资源扩展通过 `capabilities.experimental["top.egon/apps"]` 声明。
+保留现有任务策略以及 `tasks/get`、`tasks/update`、`tasks/cancel`，
+未实现标准任务增强协商、`tasks/list` 和 `tasks/result`。
+RC 发现仍保留既有方言描述；Resource、Prompt 回归通过不代表标准 Tasks 或 Apps 兼容性。
+
 ## Trace 传播
 
 Gateway 数据面使用 `egon-cola-component-common-trace` 的 W3C Trace Context 能力。

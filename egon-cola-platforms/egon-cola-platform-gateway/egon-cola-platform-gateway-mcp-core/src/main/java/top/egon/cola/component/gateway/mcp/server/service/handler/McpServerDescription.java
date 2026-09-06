@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -90,6 +91,17 @@ final class McpServerDescription {
         }
         LinkedHashMap<String, Object> result = new LinkedHashMap<>(result(context));
         result.remove("server");
+        // Existing durable tasks and UI resources are Egon extensions, not Stable Tasks negotiation.
+        result.put("capabilities", Map.of(
+                "tools", Map.of("listChanged", true),
+                "resources", Map.of("subscribe", true),
+                "prompts", Map.of("listChanged", true),
+                "experimental", Map.of(
+                        "top.egon/tasks", Map.of(
+                                "durable", true,
+                                "standardTaskAugmentation", false,
+                                "methods", List.of("tasks/get", "tasks/update", "tasks/cancel")),
+                        "top.egon/apps", Map.of("uiResources", true))));
         result.put("serverInfo", Collections.unmodifiableMap(serverInfo));
         if (server.instructions() != null) {
             result.put("instructions", server.instructions());

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  Alert,
   Button,
   Form,
   Input,
@@ -124,6 +125,13 @@ export const McpTasksPanel = ({ serverId, gatewayGroupId, draftRevision }: {
 
   return (
     <section>
+      <Alert
+        type="info"
+        showIcon
+        title="Egon Tasks 扩展（非标准 MCP Tasks）"
+        description="保留现有持久化任务策略及 tasks/get、tasks/update、tasks/cancel；暂不支持标准任务协商、tasks/list 或 tasks/result。"
+        style={{marginBottom: 16}}
+      />
       <Tabs items={[
         {
           key: 'policies',

@@ -66,6 +66,17 @@ Maven child. See its [frontend README](egon-cola-platform-gateway-admin-web/READ
 - Micrometer Observation / OpenTelemetry spans and bounded Kafka call-event
   projection. Telemetry failures must not change the business response.
 
+## MCP extension boundary
+
+The current durable Tasks workflow is an Egon extension, not the MCP 2025-11-25
+Tasks contract. Stable initialization advertises it under
+`capabilities.experimental["top.egon/tasks"]`, and UI-resource support under
+`capabilities.experimental["top.egon/apps"]`. Existing task policies and
+`tasks/get`, `tasks/update`, and `tasks/cancel` remain available; standard task
+augmentation negotiation, `tasks/list`, and `tasks/result` are not implemented.
+RC discovery retains its existing dialect-specific description. A successful
+resource or prompt smoke test is not proof of standard Tasks or Apps compatibility.
+
 ## OAuth Resource binding
 
 Gateway resolves the expected Resource Server from the trusted route target,

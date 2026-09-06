@@ -76,6 +76,16 @@ class McpMethodDispatcherTest {
         assertFalse(initialization.containsKey("server"));
         assertEquals("2025-11-25", initialization.get("protocolVersion"));
         assertNotNull(initialization.get("capabilities"));
+        Map<?, ?> capabilities = (Map<?, ?>) initialization.get("capabilities");
+        assertFalse(capabilities.containsKey("tasks"));
+        assertFalse(capabilities.containsKey("apps"));
+        Map<?, ?> experimental = (Map<?, ?>) capabilities.get("experimental");
+        assertEquals(Map.of("durable", true, "standardTaskAugmentation", false,
+                        "methods", List.of("tasks/get", "tasks/update", "tasks/cancel")),
+                experimental.get("top.egon/tasks"));
+        assertEquals(Map.of("uiResources", true), experimental.get("top.egon/apps"));
+        assertEquals(Map.of("durable", true),
+                ((Map<?, ?>) ((Map<?, ?>) discover.result()).get("capabilities")).get("tasks"));
         Map<?, ?> rcDescription = (Map<?, ?>) ((Map<?, ?>) discover.result()).get("server");
         assertEquals("billing", rcDescription.get("code"));
         assertEquals("Billing", rcDescription.get("name"));
