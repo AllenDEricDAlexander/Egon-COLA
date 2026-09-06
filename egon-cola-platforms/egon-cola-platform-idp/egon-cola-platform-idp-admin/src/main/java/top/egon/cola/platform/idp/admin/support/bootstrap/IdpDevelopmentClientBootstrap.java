@@ -719,7 +719,8 @@ public class IdpDevelopmentClientBootstrap
                 .sorted()
                 .map(scope -> "\"" + scope + "\"")
                 .collect(Collectors.joining(",", "[", "]"));
-        for (String target : List.of("permission-rbac3-local", "platform-gateway-admin-local")) {
+        for (String target : List.of("permission-idp-local", "permission-rbac3-local",
+                "platform-gateway-admin-local", "platform-ddc-local")) {
             Optional<IdentityClientResourceGrantEntity> existing =
                     grants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
                             "gateway-admin-service",
@@ -729,9 +730,7 @@ public class IdpDevelopmentClientBootstrap
                     );
             IdentityClientResourceGrantEntity grant = existing.orElseGet(() ->
                     IdentityClientResourceGrantEntity.platformClientCredentials(
-                            "permission-rbac3-local".equals(target)
-                                    ? "dev-gateway-openapi-platform-grant"
-                                    : "dev-gateway-admin-openapi-platform-grant",
+                            "dev-gateway-openapi-" + target,
                             "gateway-admin-service",
                             target,
                             allowedScopes,

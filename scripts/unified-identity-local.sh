@@ -575,6 +575,7 @@ write_service_env_files() {
   write_env "${file}" DDC_REDIS_PASSWORD "${redis_password}"
   write_env "${file}" DDC_REDIS_DATABASE 10
   write_env "${file}" DDC_GATEWAY_REPORTING_ENABLED false
+  write_env "${file}" DDC_HTTP_OPENAPI_ENABLED true
   write_env "${file}" GATEWAY_ADMIN_BASE_URL "${gateway_admin_url}"
   write_env "${file}" DDC_RESOURCE_BIZ_CODE platform
   write_env "${file}" DDC_RESOURCE_APP_CODE ddc
@@ -660,6 +661,7 @@ write_service_env_files() {
   write_env "${file}" DDC_REGISTRY_REDIS_PASSWORD "${redis_password}"
   write_env "${file}" DDC_REGISTRY_REDIS_DATABASE 10
   write_env "${file}" IDP_GATEWAY_REPORTING_ENABLED false
+  write_env "${file}" IDP_HTTP_OPENAPI_ENABLED true
   write_env "${file}" GATEWAY_ADMIN_BASE_URL "${gateway_admin_url}"
   write_env "${file}" IDP_RESOURCE_BIZ_CODE permission
   write_env "${file}" IDP_RESOURCE_APP_CODE idp
@@ -1602,17 +1604,13 @@ ensure_gateway_application() {
 
 initialize_gateway_control_plane() {
   local groups group group_id
+  ensure_gateway_application permission idp "IdP Identity Admin"
+  ensure_gateway_application permission rbac3 "RBAC3 Permission Admin"
+  ensure_gateway_application platform gateway-admin "Gateway Admin"
+  ensure_gateway_application platform ddc "Dynamic Config Center Admin"
   if [[ "${startup_mode}" == "full" ]]; then
-    ensure_gateway_reporting_application permission idp "IdP Identity Admin"
-    ensure_gateway_reporting_application permission rbac3 "RBAC3 Permission Admin"
-    ensure_gateway_application platform gateway-admin "Gateway Admin"
-    ensure_gateway_reporting_application platform ddc "Dynamic Config Center Admin"
     ensure_gateway_reporting_application identity mock-backend "Unified Identity Mock Backend"
   else
-    ensure_gateway_application permission idp "IdP Identity Admin"
-    ensure_gateway_application permission rbac3 "RBAC3 Permission Admin"
-    ensure_gateway_application platform gateway-admin "Gateway Admin"
-    ensure_gateway_application platform ddc "Dynamic Config Center Admin"
     ensure_gateway_application identity mock-backend "Unified Identity Mock Backend"
   fi
 
@@ -1681,7 +1679,13 @@ wait_gateway_engine_provider_registration() {
 
 wait_gateway_openapi_sync_for_app() {
   local biz_code="$1" app_code="$2" response build_id
-  build_id="$(local_build_id "${rbac3_jar}")"
+  case "${app_code}" in
+    idp) build_id="$(local_build_id "${idp_jar}")" ;;
+    rbac3) build_id="$(local_build_id "${rbac3_jar}")" ;;
+    ddc) build_id="$(local_build_id "${ddc_jar}")" ;;
+    gateway-admin) build_id="$(local_build_id "${gateway_admin_jar}")" ;;
+    *) fail "unknown local OpenAPI provider: ${app_code}" ;;
+  esac
   for ((attempt = 1; attempt <= 60; attempt++)); do
     response="$(gateway_api GET \
       "/api/v1/gateway/admin/openapi/sync-states?bizCode=${biz_code}&namespace=default&env=local&appCode=${app_code}" \
@@ -2169,6 +2173,9 @@ command_start() {
     wait_gateway_catalog_for_app gateway-admin
     stage "waiting for RBAC3 OpenAPI group ingestion"
     wait_gateway_openapi_sync_for_app permission rbac3
+    stage "waiting for IdP and DDC OpenAPI group ingestion"
+    wait_gateway_openapi_sync_for_app permission idp
+    wait_gateway_openapi_sync_for_app platform ddc
     stage "reconciling orphaned local MCP draft capabilities"
     reconcile_platform_mcp_draft "$(<"${runtime_dir}/gateway-group.id")"
     stage "preparing the current local Gateway HTTP catalog draft"

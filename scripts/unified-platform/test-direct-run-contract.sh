@@ -198,7 +198,7 @@ assert_contains "${platform_start_script}" \
   'gateway-admin-control-plane.service.jwt' \
   'Gateway control-plane automation must use the dedicated IdP SERVICE token'
 assert_contains "${identity_script}" \
-  'ensure_gateway_reporting_application permission idp' \
+  'ensure_gateway_application permission idp' \
   'Gateway initialization must register the real IdP catalog application'
 assert_contains "${identity_script}" \
   'wait_gateway_catalog_for_app' \
@@ -299,6 +299,8 @@ assert_env_equals "${idp_env}" IDP_RESOURCE_APP_CODE idp \
   'local IdP must report under the idp application scope'
 assert_env_equals "${idp_env}" IDP_DECLARED_HOSTS 127.0.0.1 \
   'local IdP must report its declared host explicitly'
+assert_env_equals "${idp_env}" IDP_HTTP_OPENAPI_ENABLED true \
+  'fresh IdP must publish its HTTP OpenAPI catalog without historical reports'
 assert_env_equals "${idp_env}" \
   EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false \
   'local IdP must recover until its DDC scope binding is initialized'
@@ -539,7 +541,9 @@ assert_env_equals "${ddc_env}" DDC_ADMIN_JWT_AUDIENCE \
   https://api.egon.internal/local/platform/ddc \
   'local DDC Admin security chain must use the Resource URI as audience'
 assert_env_equals "${ddc_env}" DDC_GATEWAY_REPORTING_ENABLED false \
-  'DDC must defer Gateway catalog reporting until its control plane is ready'
+  'DDC HTTP catalog must use OpenAPI instead of legacy Gateway reporting'
+assert_env_equals "${ddc_env}" DDC_HTTP_OPENAPI_ENABLED true \
+  'fresh DDC must publish its HTTP OpenAPI catalog without historical reports'
 assert_env_equals "${ddc_env}" DDC_RESOURCE_BIZ_CODE platform \
   'DDC must report under the platform business scope'
 assert_env_equals "${ddc_env}" DDC_RESOURCE_APP_CODE ddc \

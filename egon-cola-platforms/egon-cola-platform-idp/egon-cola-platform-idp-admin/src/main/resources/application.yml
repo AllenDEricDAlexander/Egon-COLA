@@ -40,6 +40,17 @@ server:
   port: ${IDP_ADVERTISED_PORT:18120}
   shutdown: graceful
 
+springdoc:
+  api-docs:
+    enabled: ${IDP_HTTP_OPENAPI_ENABLED:false}
+    version: OPENAPI_3_1
+  group-configs:
+    - group: idp
+      paths-to-match:
+        - /api/v1/identity/**
+        - /oauth2/**
+        - /.well-known/**
+
 management:
   endpoints:
     web:
@@ -164,6 +175,16 @@ egon:
             heartbeat-interval-seconds: 10
             fail-fast: true
       gateway:
+        openapi:
+          enabled: ${IDP_HTTP_OPENAPI_ENABLED:false}
+          publish-to-ddc: true
+          published-groups:
+            - idp
+          biz-code: ${IDP_RESOURCE_BIZ_CODE:permission}
+          application-code: ${IDP_RESOURCE_APP_CODE:idp}
+          resource-uri: ${IDP_RESOURCE_URI:}
+          artifact-version: ${IDP_ARTIFACT_VERSION:local}
+          build-id: ${IDP_BUILD_ID:local}
         reporting:
           enabled: ${IDP_GATEWAY_REPORTING_ENABLED:true}
           admin-base-url: ${GATEWAY_ADMIN_BASE_URL:}
