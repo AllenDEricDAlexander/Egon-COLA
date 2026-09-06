@@ -12,7 +12,7 @@ import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.dto.Mutat
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.EventEnvelopeVO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.RuntimeProjectionTargetRepository;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.RuntimeProjectionTargetRepository.ProjectionTarget;
-import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.redis.RedisAuthorizationRuntimeRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.RuntimePublicationRepository;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.Rbac3RuntimeProjectionRecovery;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.state.domain.po.TenantAuthorizationStatePO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.state.repository.TenantAuthorizationStateRepository;
@@ -42,7 +42,7 @@ class Rbac3RuntimeProjectionRecoveryTest {
     private final ActivationTransaction activeRoles = mock(ActivationTransaction.class);
     private final RoleActivationFacade activation = mock(RoleActivationFacade.class);
     private final ReselectionRepository reselection = mock(ReselectionRepository.class);
-    private final RedisAuthorizationRuntimeRepository runtime = mock(RedisAuthorizationRuntimeRepository.class);
+    private final RuntimePublicationRepository runtime = mock(RuntimePublicationRepository.class);
     private final TenantAuthorizationStateRepository state = mock(TenantAuthorizationStateRepository.class);
     private final ProjectionTarget user = new ProjectionTarget("9", "subject", 3L, true);
     private final Rbac3RuntimeProjectionRecovery recovery = new Rbac3RuntimeProjectionRecovery(

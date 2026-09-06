@@ -9,7 +9,7 @@ import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.dto.Mutat
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.EventEnvelopeVO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.RuntimeProjectionTargetRepository;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.RuntimeProjectionTargetRepository.ProjectionTarget;
-import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.redis.RedisAuthorizationRuntimeRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.RuntimePublicationRepository;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.state.repository.TenantAuthorizationStateRepository;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 
@@ -38,7 +38,7 @@ public final class Rbac3RuntimeProjectionRecovery implements
     private final ActivationTransaction activeRoles;
     private final RoleActivationFacade activation;
     private final ReselectionRepository reselection;
-    private final RedisAuthorizationRuntimeRepository runtime;
+    private final RuntimePublicationRepository runtime;
     private final TenantAuthorizationStateRepository authorizationState;
     private final Clock clock;
 
@@ -46,7 +46,7 @@ public final class Rbac3RuntimeProjectionRecovery implements
                                          ActivationTransaction activeRoles,
                                          RoleActivationFacade activation,
                                          ReselectionRepository reselection,
-                                         RedisAuthorizationRuntimeRepository runtime,
+                                         RuntimePublicationRepository runtime,
                                          TenantAuthorizationStateRepository authorizationState,
                                          Clock clock) {
         this.targets = Objects.requireNonNull(targets, "targets");

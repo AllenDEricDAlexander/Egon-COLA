@@ -156,6 +156,7 @@ public class RedisAuthorizationRuntimeRepository implements
     }
 
     /** Removes an unusable publication while retaining monotonic version watermarks. */
+    @Override
     public void invalidate(String tenantId, String identitySub, String userId,
                            long authVersion, long policyVersion) {
         if (authVersion < 0L || policyVersion < 0L) {
