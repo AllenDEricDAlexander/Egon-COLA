@@ -120,7 +120,9 @@ class GatewayAdminConfigurationTest {
                 .gatewayOpenApiObjectMapper();
 
         assertThat(mapper.getRegisteredModuleIds()).isNotEmpty();
-        assertThat(mapper.readTree(mapper.writeValueAsString(
-                Instant.parse("2026-08-27T00:00:00Z")))).isNotNull();
+        var value = mapper.readTree(mapper.writeValueAsString(
+                Instant.parse("2026-08-27T00:00:00Z")));
+        assertThat(value.isTextual()).isTrue();
+        assertThat(value.asText()).isEqualTo("2026-08-27T00:00:00Z");
     }
 }

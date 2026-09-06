@@ -931,9 +931,7 @@ public class GatewayOpenApiSyncService {
             String canonicalSha = new GatewayOpenApi31ContractAdapter()
                     .canonicalSha256(document);
             JsonNode root = document.documentJson();
-            int operations = root.path("paths").isObject()
-                    ? root.path("paths").size()
-                    : 0;
+            int operations = GatewayOpenApi31ContractAdapter.operationCount(root);
             int schemas = root.path("components").path("schemas").isObject()
                     ? root.path("components").path("schemas").size()
                     : 0;

@@ -105,6 +105,7 @@ class GatewayOpenApiSyncServiceTest {
         assertThat(persisted.getValue().canonicalSha256())
                 .isEqualTo(new GatewayOpenApi31ContractAdapter().canonicalSha256(document));
         assertThat(persisted.getValue().documentJson()).containsKey("servers");
+        assertThat(persisted.getValue().operationCount()).isEqualTo(2);
         verify(coordinator).aggregateAndIngest(
                 any(top.egon.cola.component.gateway.admin.openapi.domain.dto.GatewayOpenApiAggregateDTO.class),
                 any(top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReport.Application.class));
@@ -394,6 +395,10 @@ class GatewayOpenApiSyncServiceTest {
             GatewayOpenApiSyncCandidateDTO candidate) {
         var json = JsonNodeFactory.instance.objectNode().put("openapi", "3.1.0");
         json.putArray("servers").addObject().put("url", "https://provider.internal");
+        var path = json.putObject("paths").putObject("/orders");
+        path.putArray("parameters");
+        path.putObject("get").put("operationId", "orders.list");
+        path.putObject("post").put("operationId", "orders.create");
         json.putObject("components").putObject("schemas").putObject("Order")
                 .put("type", "object").putArray("required").add("z").add("a");
         byte[] raw = json.toString().getBytes(StandardCharsets.UTF_8);

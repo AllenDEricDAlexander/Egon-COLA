@@ -13,6 +13,7 @@ import top.egon.cola.component.gateway.admin.application.repository.GatewayAppli
 import top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationDefinitionPO;
 import top.egon.cola.component.gateway.admin.catalog.domain.po.GatewayOperationPO;
 import top.egon.cola.component.gateway.admin.catalog.repository.GatewayCatalogRepository;
+import top.egon.cola.component.gateway.admin.openapi.converter.GatewayOpenApi31ContractAdapter;
 import top.egon.cola.component.gateway.admin.openapi.domain.po.GatewayOpenApiSnapshotPO;
 import top.egon.cola.component.gateway.admin.openapi.domain.po.GatewayOpenApiSyncPO;
 import top.egon.cola.component.gateway.admin.openapi.domain.vo.GatewayOpenApiDocumentVO;
@@ -240,7 +241,8 @@ public class GatewayOpenApiQueryService {
                 row.status().name(),
                 row.latestSnapshotId(),
                 row.definitionSetId(),
-                snapshot == null ? null : snapshot.operationCount(),
+                snapshot == null ? null : GatewayOpenApi31ContractAdapter.operationCount(
+                        objectMapper.valueToTree(snapshot.documentJson())),
                 snapshot == null ? null : snapshot.schemaCount(),
                 snapshot == null ? null : snapshot.canonicalSha256(),
                 row.lastErrorCode(),

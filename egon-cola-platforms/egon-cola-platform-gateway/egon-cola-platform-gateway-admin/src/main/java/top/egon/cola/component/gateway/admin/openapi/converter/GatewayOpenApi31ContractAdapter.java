@@ -221,6 +221,16 @@ public class GatewayOpenApi31ContractAdapter {
         return canonicalize(document).sha256();
     }
 
+    /** Counts HTTP operations, excluding path-item metadata and shared parameters. */
+    public static int operationCount(JsonNode document) {
+        int count = 0;
+        for (JsonNode pathItem : document.path("paths")) {
+            count += (int) HTTP_METHODS.stream()
+                    .filter(method -> pathItem.path(method).isObject()).count();
+        }
+        return count;
+    }
+
     private List<GatewayOpenApiDefinitionDTO.Operation> operations(
             GatewayOpenApiDocumentDTO document,
             JsonNode root,

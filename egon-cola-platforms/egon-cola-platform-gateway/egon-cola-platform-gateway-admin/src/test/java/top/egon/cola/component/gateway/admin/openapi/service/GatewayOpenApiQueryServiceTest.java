@@ -60,7 +60,7 @@ class GatewayOpenApiQueryServiceTest {
         assertThat(result).extracting("openapiGroup")
                 .containsExactly("orders", "inventory");
         assertThat(result.get(1).canonicalSha256()).hasSize(64);
-        assertThat(result.get(0).operationCount()).isZero();
+        assertThat(result.get(0).operationCount()).isEqualTo(1);
         verify(syncStates).findByApplicationId("application-1");
         verify(syncStates, never()).markFailure(
                 any(), any(Long.TYPE), any(), any(), any(), any(), any());
