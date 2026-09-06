@@ -36,6 +36,10 @@ public final class Rbac3DevelopmentTopology {
             "system:management-policy:read",
             "system:operation-sod:manage",
             "system:operation-sod:read",
+            "system:organization:read",
+            "system:organization:manage",
+            "system:position:read",
+            "system:position:manage",
             "system:resource-manifest:activate",
             "system:resource-manifest:read",
             "system:resource-manifest:submit",
@@ -54,6 +58,10 @@ public final class Rbac3DevelopmentTopology {
             "system:role:update",
             "system:tenant:target",
             "system:user-status:manage",
+            "system:user-organization:read",
+            "system:user-organization:manage",
+            "system:user-position:read",
+            "system:user-position:manage",
             "system:user:read");
 
     /** 本地应用定义；local application definitions.

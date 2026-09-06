@@ -11,6 +11,23 @@ import top.egon.cola.platform.rbac3.admin.bootstrap.domain.Rbac3DevelopmentTopol
 class Rbac3DevelopmentTopologyTest {
 
     @Test
+    void localAdministratorCoversManualDirectoryControllerPermissions() {
+        var permissions = application("rbac3-admin").permissions();
+        for (Class<?> controller : java.util.List.of(
+                top.egon.cola.platform.rbac3.admin.iam.organization.controller.OrganizationController.class,
+                top.egon.cola.platform.rbac3.admin.iam.organization.controller.UserOrganizationAssignmentController.class,
+                top.egon.cola.platform.rbac3.admin.iam.position.controller.PositionController.class,
+                top.egon.cola.platform.rbac3.admin.iam.position.controller.UserPositionAssignmentController.class)) {
+            for (var method : controller.getDeclaredMethods()) {
+                var required = method.getAnnotation(top.egon.cola.platform.rbac3.starter.security.RequiresPermission.class);
+                if (required != null) {
+                    assertThat(permissions).as("local capability for %s", method).contains(required.value());
+                }
+            }
+        }
+    }
+
+    @Test
     void declaresEveryUnifiedIdentityApplicationAndItsAdministrativeCapabilities() {
         var applications = Rbac3DevelopmentTopology.applications();
 
