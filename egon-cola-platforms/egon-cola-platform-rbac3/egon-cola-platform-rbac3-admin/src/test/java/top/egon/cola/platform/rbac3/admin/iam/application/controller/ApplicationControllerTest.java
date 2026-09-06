@@ -37,8 +37,8 @@ class ApplicationControllerTest {
                     return Stream.empty();
                 });
         assertThat(routes).containsExactlyInAnyOrder(
-                "/applications:admit", "/applications", "/applications/{applicationId}",
-                "/applications/{applicationId}/status", "/applications/{applicationId}");
+                "/tenant-applications", "/tenant-applications", "/tenant-applications/{applicationId}",
+                "/tenant-applications/{applicationId}/status", "/tenant-applications/{applicationId}");
     }
 
     @Test

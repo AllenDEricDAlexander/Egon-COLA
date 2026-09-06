@@ -150,7 +150,7 @@ class Rbac3AdminApplicationContextTest {
                 .containsExactly("ddcHttpRegistrationServerReadyListener");
         ConditionalOnProperty condition = method.getAnnotation(
                 ConditionalOnProperty.class);
-        assertThat(condition.prefix()).isEqualTo("egon.cola.component.ddc");
+        assertThat(condition.prefix()).isEqualTo("egon.cola.component.ddc.registry.http");
         assertThat(condition.name()).containsExactly("enabled");
         assertThat(condition.havingValue()).isEqualTo("true");
         assertThat(condition.matchIfMissing()).isFalse();

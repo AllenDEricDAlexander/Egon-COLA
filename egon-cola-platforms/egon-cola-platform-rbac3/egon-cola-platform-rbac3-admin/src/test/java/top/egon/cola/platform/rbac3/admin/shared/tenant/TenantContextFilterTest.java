@@ -63,7 +63,7 @@ class TenantContextFilterTest {
 
     @Test
     void allowsExplicitPlatformTargetOnlyWithPermission() throws Exception {
-        authenticate(principal("platform", Set.of("system:tenant:target")));
+        authenticate(principal("platform", Set.of("system:platform:admin", "system:tenant:target")));
         MockHttpServletRequest request = request("/api/v1/platform/tenants/users");
         request.addHeader("X-RBAC3-Target-Tenant", "tenant-2");
         MockFilterChain chain = new MockFilterChain();
@@ -74,6 +74,14 @@ class TenantContextFilterTest {
         assertEquals(200, response.getStatus());
         assertEquals("tenant-2", request.getAttribute(TenantContextFilter.TENANT_ATTRIBUTE));
         assertEquals(TenantContext.class.getName(), TenantContextFilter.TENANT_ATTRIBUTE);
+    }
+
+    @Test
+    void targetTenantPermissionAloneDoesNotImplyPlatformAdministration() throws Exception {
+        authenticate(principal("platform", Set.of("system:tenant:target")));
+        MockHttpServletRequest request = request("/api/rbac3/v1/platform/tenants/users");
+        request.addHeader("X-RBAC3-Target-Tenant", "tenant-2");
+        assertEquals(403, execute(request).getStatus());
     }
 
     @Test
@@ -121,7 +129,7 @@ class TenantContextFilterTest {
         Instant now = Instant.parse("2026-08-10T00:00:00Z");
         IdentityPrincipal identity = new IdentityPrincipal(
                 "user-1", tenantId, "access-token", Set.of("rbac3-admin-web"),
-                now, now.plusSeconds(300), AuthenticationContext.of("TEST", now));
+                now, now.plusSeconds(300), AuthenticationContext.of("PASSWORD", now));
         SystemAuthorizationSnapshot snapshot = new SystemAuthorizationSnapshot(
                 tenantId, "user-1", "user-1", "rbac3-admin", 1L, 1L,
                 List.of(), permissions, Map.of(), Map.of(),
