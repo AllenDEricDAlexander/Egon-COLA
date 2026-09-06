@@ -213,8 +213,9 @@ export const McpPromptsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
             ]} />
           </Form.Item>
           {['STATIC_TEMPLATE', 'LOCAL_TEMPLATE', 'STRICT_TEMPLATE'].includes(sourceType) && (
-            <Form.Item name="template" label="Prompt Template" rules={[{ required: true }]}>
-              <Input.TextArea rows={8} placeholder="请处理订单 {{orderId}}" />
+            <Form.Item name="template" label="Prompt Template" rules={[{ required: true }]}
+              extra="仅支持 ${参数名}，参数须在 Arguments 中声明；预览以 [参数名] 标记。">
+              <Input.TextArea rows={8} placeholder="请处理订单 ${orderId}" />
             </Form.Item>
           )}
           {sourceType === 'LOCAL_OPERATION' && (

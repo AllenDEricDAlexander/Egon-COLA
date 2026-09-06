@@ -73,7 +73,26 @@ export const validateJsonSchema = (value: string, field: string): Record<string,
 export const renderPromptTemplate = (
   template: string,
   argumentsList: string[],
-): string => template.replace(/\{\{\s*([A-Za-z][A-Za-z0-9_]*)\s*\}\}/g, (_, name: string) => {
-  if (!argumentsList.includes(name)) throw new Error(`未声明 Prompt 参数：${name}`)
-  return `[${name}]`
-})
+): string => {
+  // Mirror StrictPromptTemplate's one-pass literal syntax; this preview never evaluates expressions.
+  if (template.length > 256 * 1024) throw new Error('Prompt 模板过长')
+  const identifier = /^[A-Za-z][A-Za-z0-9_]{0,63}$/
+  const declared = new Set(argumentsList)
+  if (declared.size !== argumentsList.length || argumentsList.some((name) => !identifier.test(name))) {
+    throw new Error('Prompt 参数声明无效或重复')
+  }
+  let result = ''
+  let cursor = 0
+  while (cursor < template.length) {
+    const start = template.indexOf('${', cursor)
+    if (start < 0) return result + template.slice(cursor)
+    result += template.slice(cursor, start)
+    const end = template.indexOf('}', start + 2)
+    if (end < 0) throw new Error('Prompt 参数表达式未闭合')
+    const name = template.slice(start + 2, end)
+    if (!identifier.test(name) || !declared.has(name)) throw new Error(`未声明或无效的 Prompt 参数：${name}`)
+    result += `[${name}]`
+    cursor = end + 1
+  }
+  return result
+}
