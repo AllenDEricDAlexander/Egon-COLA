@@ -1,9 +1,8 @@
 import {
     Rbac3ApiClient,
-    type Rbac3ErrorCode,
     type Rbac3ErrorResponse,
-    Rbac3RequestError,
 } from '@egon-cola/rbac3-react-sdk'
+import {ApiError} from '@egon-cola/admin-web-shared'
 import type {FeatureApiClient, FeatureApiRequest} from '../features/shared/FeatureApi'
 
 export interface AdminApiClients {
@@ -34,23 +33,21 @@ export const createAdminApiClients = (
         body: options.body === undefined ? undefined : JSON.stringify(options.body),
       })
     } catch (cause) {
-      throw new Rbac3RequestError({
-        status: 0,
-        code: 'NETWORK_ERROR',
-        message: cause instanceof Error ? cause.message : 'RBAC3 network request failed',
-        retryable: true,
-      })
+      throw new ApiError(
+        cause instanceof Error ? cause.message : 'RBAC3 network request failed',
+        0, 'NETWORK_ERROR', {retryable: true},
+      )
     }
     if (!response.ok) throw await responseError(response)
     const envelope = await readJson<ResultRecord<T> | LegacyDataEnvelope<T>>(response)
     if (isLegacyDataEnvelope(envelope)) return envelope.data
     if (envelope === null || typeof envelope !== 'object' || !('data' in envelope) || envelope.success !== true) {
-      throw new Rbac3RequestError({
-        status: response.status,
-        code: envelope?.code === 401 ? 'AUTHENTICATION_REQUIRED' : 'INVALID_RESPONSE',
-        message: envelope?.message ?? 'RBAC3 response envelope is invalid',
-        retryable: false,
-      })
+      throw new ApiError(
+        envelope?.message ?? 'RBAC3 response envelope is invalid',
+        response.status,
+        envelope?.status ?? (envelope?.code === 401 ? 'AUTHENTICATION_REQUIRED' : 'INVALID_RESPONSE'),
+        {retryable: false},
+      )
     }
     return envelope.data as T
   }
@@ -66,6 +63,8 @@ interface ResultRecord<T> {
   readonly code: number
   readonly message: string
   readonly data: T | null
+  readonly status?: string
+  readonly traceId?: string | null
 }
 
 interface LegacyDataEnvelope<T> {
@@ -93,13 +92,15 @@ const readJson = async <T,>(response: Response): Promise<T | null> => {
   try { return await response.json() as T } catch { return null }
 }
 
-const responseError = async (response: Response): Promise<Rbac3RequestError> => {
-  const body = await readJson<Rbac3ErrorResponse>(response)
-  return new Rbac3RequestError({
-    status: response.status,
-    code: (body?.error?.code as Rbac3ErrorCode | undefined) ?? 'INVALID_RESPONSE',
-    message: body?.error?.message ?? 'RBAC3 request was rejected',
-    retryable: body?.error?.retryable ?? (response.status === 429 || response.status >= 500),
-    traceId: body?.meta?.traceId,
-  })
+const responseError = async (response: Response): Promise<ApiError> => {
+  const body = await readJson<Rbac3ErrorResponse & Partial<ResultRecord<unknown>>>(response)
+  return new ApiError(
+    body?.error?.message ?? body?.message ?? 'RBAC3 request was rejected',
+    response.status,
+    body?.error?.code ?? body?.status ?? 'INVALID_RESPONSE',
+    {
+      retryable: body?.error?.retryable ?? (response.status === 429 || response.status >= 500),
+      requestId: body?.meta?.traceId ?? body?.traceId ?? undefined,
+    },
+  )
 }
