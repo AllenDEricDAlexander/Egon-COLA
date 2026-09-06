@@ -1905,6 +1905,12 @@ select_gateway_catalog_operations() {
         .methodIdentity == "GET /oauth2/userinfo"
         or .methodIdentity == "POST /oauth2/step-up")
        then "IDENTITY_PROTECTED"
+       elif .reportedApplication == "rbac3" and (
+        .methodIdentity == "GET /api/v1/auth/about"
+        or .methodIdentity == "GET /api/rbac3/v1/auth/role-activation-candidates"
+        or .methodIdentity == "GET /api/rbac3/v1/auth/role-activations"
+        or .methodIdentity == "PUT /api/rbac3/v1/auth/role-activations")
+       then "IDENTITY_PROTECTED"
        else "BUSINESS_PROTECTED" end)})'
 }
 

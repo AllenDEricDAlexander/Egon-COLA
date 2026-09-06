@@ -982,6 +982,28 @@ function_file="${temporary_dir}/wait-admin-catalog.sh"
 selector_file="${temporary_dir}/select-catalog.sh"
 extract_function select_gateway_catalog_operations "${selector_file}"
 source "${selector_file}"
+selected_self_operations="$(jq -cn '[
+  "GET /api/v1/auth/about",
+  "GET /api/rbac3/v1/auth/role-activation-candidates",
+  "GET /api/rbac3/v1/auth/role-activations",
+  "PUT /api/rbac3/v1/auth/role-activations",
+  "POST /api/v1/auth/about",
+  "GET /api/rbac3/v1/iam/users",
+  "GET /api/rbac3/v1/auth/role-activations/admin"
+] | [ .[] as $method | ["rbac3", "gateway-admin"][] as $app
+  | {id:($app + ":" + $method),methodIdentity:$method,reportedApplication:$app,
+     protocol:"HTTP",sourceType:"OPENAPI31",externalAccessible:true,lifecycleStatus:"ACTIVE"}]' \
+  | select_gateway_catalog_operations)"
+jq -e '[.[] | select(.securityType == "IDENTITY_PROTECTED") | .id] | sort == ([
+  "rbac3:GET /api/v1/auth/about",
+  "rbac3:GET /api/rbac3/v1/auth/role-activation-candidates",
+  "rbac3:GET /api/rbac3/v1/auth/role-activations",
+  "rbac3:PUT /api/rbac3/v1/auth/role-activations"
+] | sort)' <<<"${selected_self_operations}" >/dev/null \
+  || fail 'only the four RBAC current-user bootstrap operations may use identity-only Gateway policy'
+jq -e 'all(.[] | select(.securityType != "IDENTITY_PROTECTED"); .securityType == "BUSINESS_PROTECTED")' \
+  <<<"${selected_self_operations}" >/dev/null \
+  || fail 'management endpoints, other applications, methods and path suffixes must retain business authorization'
 selected_operations="$(jq -cn '[
   {id:"old",sourceType:"STARTER",methodIdentity:"GET /mcp/{plural:tools|resources}/{id}"},
   {id:"new",sourceType:"OPENAPI31",methodIdentity:"GET /mcp/{plural}/{id}"},
