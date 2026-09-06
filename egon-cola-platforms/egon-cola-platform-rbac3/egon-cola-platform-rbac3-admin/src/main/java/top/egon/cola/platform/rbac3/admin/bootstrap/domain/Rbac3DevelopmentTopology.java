@@ -62,7 +62,8 @@ public final class Rbac3DevelopmentTopology {
             "system:user-organization:manage",
             "system:user-position:read",
             "system:user-position:manage",
-            "system:user:read");
+            "system:user:read",
+            "system:user:manage");
 
     /** 本地应用定义；local application definitions.
      * 含义与用法：读取、传递或更新 `APPLICATIONS` 时应保持 `Rbac3DevelopmentTopology` 的生命周期、不可变性和线程安全约束。
