@@ -78,6 +78,15 @@ public final class RoleActivationFacade {
     }
 
     public ReplaceActiveRolesResult replace(ReplaceCommandDTO command) {
+        return replace(command, false);
+    }
+
+    /** Reprojects an existing selection without allowing hierarchy normalization to select new roots. */
+    public ReplaceActiveRolesResult refresh(ReplaceCommandDTO command) {
+        return replace(command, true);
+    }
+
+    private ReplaceActiveRolesResult replace(ReplaceCommandDTO command, boolean preserveRoots) {
         Instant now = clock.instant();
         TransactionResultVO result = transaction.replace(command, now, state -> {
             ActivationFactsVO facts = factSource.load(command.tenantId(), command.userId(), now);
@@ -93,6 +102,9 @@ public final class RoleActivationFacade {
                     facts.policyVersion(),
                     now));
             requireWithinRootLimit(resolution);
+            if (preserveRoots && !resolution.activeRoleSet().rootIds().equals(Set.copyOf(command.requestedRoleIds()))) {
+                throw new Rbac3RuleViolation("ROLE_ACTIVATION_SET_INVALID");
+            }
             return new ResolvedActivationVO(resolution, facts);
         });
 

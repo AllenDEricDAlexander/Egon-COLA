@@ -8,6 +8,8 @@ import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domai
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.repository.RoleResourceGrantRepository;
 import top.egon.cola.platform.rbac3.admin.authorization.resource.apibinding.repository.ResourceApiBindingRepository;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.state.repository.TenantAuthorizationStateRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.AuthorizationEventVO;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.AuthorizationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,14 +27,17 @@ public class RoleResourceGrantService {
     private final RoleResourceGrantRepository grants;
     private final ResourceApiBindingRepository bindings;
     private final TenantAuthorizationStateRepository authorizationState;
+    private final AuthorizationEventPublisher events;
 
     public RoleResourceGrantService(
             RoleResourceGrantRepository grants,
             ResourceApiBindingRepository bindings,
-            TenantAuthorizationStateRepository authorizationState) {
+            TenantAuthorizationStateRepository authorizationState,
+            AuthorizationEventPublisher events) {
         this.grants = Objects.requireNonNull(grants, "grants");
         this.bindings = Objects.requireNonNull(bindings, "bindings");
         this.authorizationState = Objects.requireNonNull(authorizationState, "authorizationState");
+        this.events = Objects.requireNonNull(events, "events");
     }
 
     /** Keeps the role lock and its resource facts in the same transaction. */
@@ -118,6 +123,13 @@ public class RoleResourceGrantService {
                 ? authorizationState.require(command.tenantId()).getPolicyVersion()
                 : authorizationState.increment(command.tenantId(), command.actorId());
         long policyVersion = authorizationState.require(command.tenantId()).getPolicyVersion();
+        if (result.addedCount() != 0L || result.removedCount() != 0L) {
+            // Persist the repair trigger in the same transaction as grants and version.
+            events.enqueue(new AuthorizationEventVO(command.tenantId().toString(), "ROLE",
+                    command.roleId().toString(), "ROLE_RESOURCE_CHANGED",
+                    Map.of("policyVersion", Long.toString(policyVersion)),
+                    "role-resource-changed-" + command.roleId()));
+        }
         return RoleResourceGrantMutationVO.success(
                 command.roleId(), result.roleVersion(), result.directResourceIds(),
                 derived, effective, result.addedCount(), result.removedCount(),

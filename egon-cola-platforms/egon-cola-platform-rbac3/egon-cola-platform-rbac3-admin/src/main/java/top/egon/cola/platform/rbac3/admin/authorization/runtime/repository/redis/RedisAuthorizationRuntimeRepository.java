@@ -49,7 +49,8 @@ public class RedisAuthorizationRuntimeRepository implements
     private final Rbac3RuntimeKeyFactory keyFactory;
     private final Clock clock;
     private final InitialAuthorizationContextRepository authorizationContext;
-    private static final String PUBLISH_SCRIPT = publicationScript();
+    private static final String PUBLISH_SCRIPT = script("redis/rbac3-publish-authorization.lua");
+    private static final String INVALIDATE_SCRIPT = script("redis/rbac3-invalidate-authorization.lua");
 
     @Autowired
     public RedisAuthorizationRuntimeRepository(
@@ -144,6 +145,22 @@ public class RedisAuthorizationRuntimeRepository implements
         bucket(keyFactory.authorizationPublicationGuard(tenantId, identitySub)).delete();
     }
 
+    /** Removes an unusable publication while retaining monotonic version watermarks. */
+    public void invalidate(String tenantId, String identitySub, String userId,
+                           long authVersion, long policyVersion) {
+        if (authVersion < 0L || policyVersion < 0L) {
+            throw new IllegalArgumentException("authorization versions must not be negative");
+        }
+        Long invalidated = redisson.getScript(StringCodec.INSTANCE).eval(
+                RScript.Mode.READ_WRITE, INVALIDATE_SCRIPT, RScript.ReturnType.INTEGER,
+                List.of(keyFactory.authVersion(tenantId, userId), keyFactory.policyVersion(tenantId),
+                        keyFactory.user(tenantId, identitySub)),
+                Long.toString(authVersion), Long.toString(policyVersion));
+        if (invalidated == null || invalidated < 0L) {
+            throw new IllegalStateException("RBAC3_RUNTIME_VERSION_CONFLICT");
+        }
+    }
+
     @Override
     public SnapshotRecordVO load(String tenantId, String identitySub) {
         try {
@@ -209,9 +226,9 @@ public class RedisAuthorizationRuntimeRepository implements
         }
     }
 
-    private static String publicationScript() {
+    private static String script(String path) {
         try {
-            return new ClassPathResource("redis/rbac3-publish-authorization.lua")
+            return new ClassPathResource(path)
                     .getContentAsString(StandardCharsets.UTF_8);
         } catch (IOException exception) {
             throw new IllegalStateException("cannot load RBAC3 runtime publication script", exception);

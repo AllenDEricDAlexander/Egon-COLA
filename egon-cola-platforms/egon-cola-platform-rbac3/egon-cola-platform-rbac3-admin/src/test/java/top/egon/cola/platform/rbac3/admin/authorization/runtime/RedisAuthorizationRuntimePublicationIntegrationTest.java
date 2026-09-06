@@ -72,6 +72,20 @@ class RedisAuthorizationRuntimePublicationIntegrationTest {
     }
 
     @Test
+    void staleInvalidationCannotRemoveANewerPublication() throws Exception {
+        publish(44L, 4L);
+        var repository = new RedisAuthorizationRuntimeRepository(redisson, mapper, keys,
+                Clock.fixed(RedisAuthorizationRuntimeRepositoryTest.NOW, ZoneOffset.UTC),
+                (tenantId, subject) -> Optional.empty());
+        assertThatThrownBy(() -> repository.invalidate(tenant, "subject-a", "101", 43L, 4L))
+                .hasMessage("RBAC3_RUNTIME_VERSION_CONFLICT");
+        assertPublished(44L, 4L);
+        repository.invalidate(tenant, "subject-a", "101", 45L, 4L);
+        assertThat(redisson.getBucket(keys.user(tenant, "subject-a")).isExists()).isFalse();
+        assertThatThrownBy(() -> publish(44L, 4L)).hasMessage("RBAC3_RUNTIME_VERSION_CONFLICT");
+    }
+
+    @Test
     void watermarksSurviveSnapshotExpiryAndRejectOlderUserVersion() {
         publish(44L, 4L);
         redisson.getKeys().delete(keys.user(tenant, "subject-a"),

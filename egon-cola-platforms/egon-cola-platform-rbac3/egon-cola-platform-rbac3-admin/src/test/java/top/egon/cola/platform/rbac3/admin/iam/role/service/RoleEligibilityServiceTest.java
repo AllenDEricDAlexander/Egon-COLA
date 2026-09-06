@@ -100,6 +100,15 @@ class RoleEligibilityServiceTest {
                 .thenThrow(new IllegalStateException("rpc unavailable"));
 
         assertThat(service.isEffective("7", "9", "1", NOW)).isFalse();
+        assertThatThrownBy(() -> service.isEffectiveForProjection("7", "9", "1", NOW))
+                .hasMessage("rpc unavailable");
+    }
+
+    @Test
+    void projectionDistinguishesRevokedBusinessAccessFromAnOutage() {
+        stubApplicationLookup();
+        when(businessAccessStore.effectiveBusinessIds(7L, 9L, NOW)).thenReturn(Set.of());
+        assertThat(service.isEffectiveForProjection("7", "9", "1", NOW)).isFalse();
     }
 
     @Test

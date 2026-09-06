@@ -127,7 +127,7 @@ public class JpaRoleActivationFactRepository
             String applicationId = text(row[1]);
             if (roleEligibility != null && !eligibleApplications.computeIfAbsent(
                     applicationId,
-                    id -> roleEligibility.isEffective(
+                    id -> roleEligibility.isEffectiveForProjection(
                             tenantId, userId, id, databaseNow))) {
                 continue;
             }

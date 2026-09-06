@@ -6,6 +6,13 @@ import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.servi
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.dto.ReplaceRoleResourcesCommandDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.dto.ReplaceRoleResourcesRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.vo.RoleResourceGrantMutationVO;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.repository.RoleResourceGrantRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.resource.apibinding.repository.ResourceApiBindingRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.AuthorizationEventPublisher;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.AuthorizationEventVO;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.state.repository.TenantAuthorizationStateRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.state.domain.po.TenantAuthorizationStatePO;
+import org.mockito.ArgumentCaptor;
 
 import java.time.Instant;
 import java.util.List;
@@ -15,8 +22,57 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 class RoleResourceGrantServiceTest {
+
+    @Test
+    void changedGrantsPersistARepairEventWithTheNewPolicyVersion() {
+        var events = mock(AuthorizationEventPublisher.class);
+        var service = service(events, 1L);
+        service.replace(command());
+        var event = ArgumentCaptor.forClass(AuthorizationEventVO.class);
+        verify(events).enqueue(event.capture());
+        assertEquals("ROLE_RESOURCE_CHANGED", event.getValue().eventType());
+        assertEquals("200", event.getValue().tenantId());
+        assertEquals("301", event.getValue().aggregateId());
+        assertEquals("1", event.getValue().safePayload().get("policyVersion"));
+    }
+
+    @Test
+    void noOpGrantReplacementDoesNotCreateAnotherRepairEvent() {
+        var events = mock(AuthorizationEventPublisher.class);
+        service(events, 0L).replace(command());
+        verifyNoInteractions(events);
+    }
+
+    @Test
+    void eventPersistenceFailureIsNotReportedAsSuccessfulReplacement() {
+        var events = mock(AuthorizationEventPublisher.class);
+        when(events.enqueue(any())).thenThrow(new IllegalStateException("outbox unavailable"));
+        assertThrows(IllegalStateException.class, () -> service(events, 1L).replace(command()));
+    }
+
+    private RoleResourceGrantService service(AuthorizationEventPublisher events, long added) {
+        var grants = mock(RoleResourceGrantRepository.class);
+        var bindings = mock(ResourceApiBindingRepository.class);
+        var state = mock(TenantAuthorizationStateRepository.class);
+        var tenant = new TenantAuthorizationStatePO(200L, "actor", command().validFrom());
+        tenant.incrementPolicyVersion("actor", command().validFrom());
+        when(state.require(200L)).thenReturn(tenant);
+        when(state.increment(200L, "actor")).thenReturn(1L);
+        when(grants.replace(any())).thenReturn(new RoleResourceGrantRepository.ReplaceResult(Set.of(501L), 9L, added, 0L));
+        return new RoleResourceGrantService(grants, bindings, state, events);
+    }
+
+    private ReplaceRoleResourcesCommandDTO command() {
+        return new ReplaceRoleResourcesCommandDTO(200L, 71L, 301L, Set.of(501L),
+                Instant.parse("2026-08-25T00:00:00Z"), null, 8L, "actor");
+    }
 
     @Test
     void allPublicGrantOperationsKeepRepositoryLocksInsideATransaction() throws Exception {

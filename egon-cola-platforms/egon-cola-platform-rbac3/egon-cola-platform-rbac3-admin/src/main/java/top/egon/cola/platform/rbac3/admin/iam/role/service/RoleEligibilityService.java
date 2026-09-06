@@ -53,6 +53,15 @@ public final class RoleEligibilityService {
         return resolveEffectiveScope(tenantId, userId, applicationId, at).isPresent();
     }
 
+    /** Propagates infrastructure failures so runtime repair never treats an outage as revoked eligibility. */
+    public boolean isEffectiveForProjection(String tenantId, String userId, String applicationId, Instant at) {
+        long tenant = Long.parseLong(required(tenantId, "tenantId"));
+        long user = Long.parseLong(required(userId, "userId"));
+        LocalApplication application = findApplication(tenant, applicationId, Objects.requireNonNull(at, "at"))
+                .orElse(null);
+        return resolveEffectiveScope(tenant, user, application, at).isPresent();
+    }
+
     /**
      * Resolves the effective DDC Business/Application identity for a local Application.
      */
