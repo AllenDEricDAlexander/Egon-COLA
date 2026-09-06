@@ -16,6 +16,9 @@ class Rbac3DevelopmentTopologyTest {
         for (Class<?> controller : java.util.List.of(
                 top.egon.cola.platform.rbac3.admin.iam.user.controller.UserController.class,
                 top.egon.cola.platform.rbac3.admin.iam.user.controller.UserDirectoryController.class,
+                top.egon.cola.platform.rbac3.admin.iam.application.controller.ApplicationController.class,
+                top.egon.cola.platform.rbac3.admin.iam.business.controller.BusinessCatalogController.class,
+                top.egon.cola.platform.rbac3.admin.authorization.grant.business.controller.UserBusinessAccessController.class,
                 top.egon.cola.platform.rbac3.admin.iam.organization.controller.OrganizationController.class,
                 top.egon.cola.platform.rbac3.admin.iam.organization.controller.UserOrganizationAssignmentController.class,
                 top.egon.cola.platform.rbac3.admin.iam.position.controller.PositionController.class,

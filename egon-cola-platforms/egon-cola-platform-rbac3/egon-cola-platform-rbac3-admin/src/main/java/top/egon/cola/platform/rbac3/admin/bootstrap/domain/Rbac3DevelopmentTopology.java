@@ -17,6 +17,7 @@ public final class Rbac3DevelopmentTopology {
      * Meaning and usage: when reading, passing, or updating `RBAC3_PERMISSIONS`, preserve `Rbac3DevelopmentTopology`'s lifecycle, immutability, and thread-safety constraints.
      */
     private static final List<String> RBAC3_PERMISSIONS = List.of(
+            "system:application:manage",
             "system:application:read",
             "system:audit:read",
             "system:authorization-constraint:manage",
@@ -25,6 +26,7 @@ public final class Rbac3DevelopmentTopology {
             "system:authorization-runtime:read",
             "system:authorization-simulation:execute",
             "system:bootstrap:read",
+            "system:business:read",
             "system:data-rule:manage",
             "system:data-rule:read",
             "system:directory-snapshot:read",
@@ -57,6 +59,9 @@ public final class Rbac3DevelopmentTopology {
             "system:role:read",
             "system:role:update",
             "system:tenant:target",
+            "system:user-application-access:read",
+            "system:user-business-access:manage",
+            "system:user-business-access:read",
             "system:user-status:manage",
             "system:user-organization:read",
             "system:user-organization:manage",
