@@ -2,6 +2,34 @@ import { describe, expect, it } from 'vitest'
 import { buildSchemaRows } from './schemaRows'
 
 describe('buildSchemaRows', () => {
+  it('renders OpenAPI 3.1 nullable types and boolean schemas', () => {
+    const rows = buildSchemaRows({type: 'object', properties: {
+      name: {type: ['string', 'null'], description: '可空名称'},
+      items: {type: ['array', 'null'], items: {type: 'integer'}},
+      anyValue: true,
+      forbidden: false,
+      referencedAny: {$ref: '#/$defs/Any'},
+    }, $defs: {Any: true}})
+    expect(rows[0]).toMatchObject({type: 'string | null', description: '可空名称'})
+    expect(rows[0].constraints).toContain('允许 null')
+    expect(rows[1].type).toBe('array<integer> | null')
+    expect(rows[2].type).toBe('any')
+    expect(rows[3].type).toBe('never')
+    expect(rows[4]).toMatchObject({type: 'any', technicalType: '#/$defs/Any'})
+  })
+
+  it('shows composition branches without merging conditional required fields', () => {
+    const rows = buildSchemaRows({allOf: [
+      {$ref: '#/$defs/Base'},
+      {type: 'object', properties: {choice: {oneOf: [{type: 'string'}, {type: 'integer'}]}}},
+    ], $defs: {Base: {type: 'object', required: ['id'], properties: {id: {type: 'string', description: '标识'}}}}})
+    expect(rows[0].type).toBe('allOf')
+    expect(rows[0].children?.map((row) => row.name)).toEqual(['allOf[1]', 'allOf[2]'])
+    expect(rows[0].children?.[0].children?.[0]).toMatchObject({name: 'id', required: true, description: '标识'})
+    const choice = rows[0].children?.[1].children?.[0]
+    expect(choice?.type).toBe('oneOf')
+    expect(choice?.children?.map((row) => row.type)).toEqual(['string', 'integer'])
+  })
   it('expands local OpenAPI definitions at the root and inside arrays', () => {
     const rows = buildSchemaRows({
       $ref: '#/$defs/Result',
