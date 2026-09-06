@@ -1,42 +1,44 @@
 # Archetype 两阶段生成、Spring 依赖治理与 Flyway 收敛设计
 
-| Field              | Value                                                                                                                 |
-|--------------------|-----------------------------------------------------------------------------------------------------------------------|
-| Document           | 2026-09-03-11-04-archetype-generated-reactor-spring-flyway-design.md                                                  |
-| Template Version   | 6                                                                                                                     |
-| Status             | Draft                                                                                                                 |
-| Type               | Architecture                                                                                                          |
-| Complexity         | Complex                                                                                                               |
-| Complexity Drivers | 六个脚手架的源码与发布物分离、动态 Maven Reactor、Spring Boot 依赖管理层级、不可变 Flyway 历史与单文件诉求冲突、Central 单次发布一致性                              |
-| Created            | 2026-09-03 11:04 CST                                                                                                  |
-| Updated            | 2026-09-03 11:04 CST                                                                                                  |
-| Owner              | Egon-COLA maintainer                                                                                                  |
-| Repository         | Egon-COLA                                                                                                             |
-| Scope              | egon-cola-archetypes、六个 source-projects、根及子 Reactor POM、Archetype 生成与发布脚本、Spring 版本治理、Light Service Web 的 Flyway 迁移布局 |
-| Change Surface     | 删除旧的六个已提交 Archetype Maven 包装模块；保留六个正常源码工程；生成忽略入库的完整 Archetype Reactor；统一 Spring Boot Parent/BOM 职责；定义 Flyway 收敛决策边界   |
-| Affected Chapters  | §7, §8, §9, §11, §13, §14, §15, §16, §17, §18                                                                         |
-| Source Requirement | 只保留新的可正常开发、由 maven-archetype-plugin 生成并发布的结构；优化全部模块 Spring 依赖；Flyway 每个项目只留一个；先写新的 Spec                               |
-| Baseline Revision  | main at 91d985134bbfc741fc797443755da77cef426e11 with unrelated dirty worktree preserved                              |
-| Amends             | None                                                                                                                  |
-| Supersedes         | None                                                                                                                  |
-| Depends On         | None                                                                                                                  |
-| Related Specs      | [两阶段源码生成前置设计](2026-08-27-20-31-archetype-two-stage-source-generation.md)                                              |
-| Related Plans      | [两阶段源码生成实现计划](../plan/2026-09-01-11-23-archetype-two-stage-source-generation-implementation.md)                       |
+| Field              | Value                                                                                                                                                                                        |
+|--------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Document           | 2026-09-03-11-04-archetype-generated-reactor-spring-flyway-design.md                                                                                                                         |
+| Template Version   | 6                                                                                                                                                                                            |
+| Status             | Accepted                                                                                                                                                                                     |
+| Type               | Architecture                                                                                                                                                                                 |
+| Complexity         | Complex                                                                                                                                                                                      |
+| Complexity Drivers | 六个脚手架的源码与发布物分离、动态 Maven Reactor、Spring Boot 依赖管理层级、不可变 Flyway 历史与单文件诉求冲突、Central 单次发布一致性                                                                                                     |
+| Created            | 2026-09-03 11:04 CST                                                                                                                                                                         |
+| Updated            | 2026-09-03 13:38 CST                                                                                                                                                                         |
+| Owner              | Egon-COLA maintainer                                                                                                                                                                         |
+| Repository         | Egon-COLA                                                                                                                                                                                    |
+| Scope              | egon-cola-archetypes、六个 source-projects、根及子 Reactor POM、Archetype 生成与发布脚本、Spring 版本治理、Light Service Web 的 Flyway 迁移布局                                                                        |
+| Change Surface     | 删除旧的六个已提交 Archetype Maven 包装模块；保留六个正常源码工程；生成忽略入库的完整 Archetype Reactor；统一 Spring Boot Parent/BOM 职责；定义 Flyway 收敛决策边界                                                                          |
+| Affected Chapters  | §7, §8, §9, §11, §13, §14, §15, §16, §17, §18                                                                                                                                                |
+| Source Requirement | 只保留新的可正常开发、由 maven-archetype-plugin 生成并发布的结构；优化全部模块 Spring 依赖；Flyway 每个项目只留一个；先写新的 Spec                                                                                                      |
+| Baseline Revision  | main at 9566c96796df73aa28e4a20de63c12379dcfdfeb with unrelated dirty worktree preserved                                                                                                     |
+| Amends             | None                                                                                                                                                                                         |
+| Supersedes         | None                                                                                                                                                                                         |
+| Depends On         | None                                                                                                                                                                                         |
+| Related Specs      | [两阶段源码生成前置设计](2026-08-27-20-31-archetype-two-stage-source-generation.md)                                                                                                                     |
+| Related Plans      | [两阶段源码生成实现计划](../plan/2026-09-01-11-23-archetype-two-stage-source-generation-implementation.md); [当前生成 Reactor 实施计划](../plan/2026-09-03-13-38-archetype-generated-reactor-implementation.md) |
 
 ## 1. Summary
 
 本设计把六套脚手架拆成两个明确阶段：日常开发只维护正常 Maven 源码工程；发布前由固定版本的
 maven-archetype-plugin 从源码生成六个完整的 maven-archetype 模块，再由独立 Maven 调用完成
-integration-test、附件组装和 Central deploy。旧的六个已提交包装模块从 Reactor 和 Git 中移除，
-其 metadata、post-generate、IT、javadoc 说明和架构校验等非业务生成合同迁入 definitions 目录。
+integration-test、附件组装和 Central deploy。旧的六个已提交包装模块从 Reactor 移除，其非历史内容从
+Git移除；受不可变规则保护的十二个旧V SQL原路径只读保留。metadata、post-generate、IT、javadoc说明和
+架构校验等非业务生成合同迁入 definitions 目录。
 
 Spring 依赖采用分层治理：仓库根 Parent 统一导入 Spring Boot BOM；六个可运行的源码工程继续直接继承
-spring-boot-starter-parent，并删除重复 BOM；公共组件 BOM 不接管消费者的整套 Spring 版本。Flyway 的
-“每项目一个文件”目前不能直接接受为可实施结论：三个 legacy 工程各自把 master-data 与 shard 指向不同
-物理数据源和不同 location，同时仓库规则禁止修改、移动或删除任何已创建 migration。该冲突必须由用户在
-保持两文件分角色或接受迁移引擎/拓扑重设计之间作出决定，因此本 Spec 为 Draft 且阻断进入 Plan。
+spring-boot-starter-parent，并删除重复 BOM；公共组件 BOM 不接管消费者的整套 Spring 版本。用户于
+2026-09-03 确认 Flyway 按 schema 角色收敛：Light、Service、Web 各增加 master-data 与 shard 两个
+Baseline Migration；旧 V migration 原路径、原字节保留，供既有 schema history 兼容，Open 手工 SQL 不变。
+Baseline 使用 Flyway 官方 B 前缀语义，新环境选择最新 baseline，已有迁移环境忽略 baseline。
 
-成功标准是：源码工程可独立开发验证，生成目录不入库且可确定性重建，旧包装模块不再存在，六个公开 GAV
+成功标准是：源码工程可独立开发验证，生成目录不入库且可确定性重建，旧包装Maven模块身份不再存在且仅保留
+批准的历史SQL archive，六个公开 GAV
 与生成结果兼容，Spring 版本来源可由 effective POM 解释，发布仍为根 Reactor 的单个 Central bundle，
 并且任何 Flyway 决策都不伪造历史安全性。
 
@@ -151,7 +153,7 @@ Flyway 还有更深的语义冲突。每个 legacy 项目的 master-data 与 sha
 | REQ-015 | 相关应用统一 Springdoc BOM 2.8.17                                            | Should   | source-web 不再使用 2.8.13，所有 Springdoc artifact 由同一 BOM 管理                   | 当前版本差异          |
 | REQ-016 | Flyway 文件数量目标必须保持 master-data 与 shard 的迁移角色隔离                          | Must     | 每个物理 target 只执行其角色允许的 DDL，不出现跨角色建表                                        | 运行时安全           |
 | REQ-017 | 任何既有 Flyway migration 的路径和字节不得改变                                       | Must     | 二十四个 baseline path 和 SHA-256 全部一致，无 delete、rename、modify                  | 仓库强制规则          |
-| REQ-018 | 未解决单文件语义和历史保留方式前不得进入实施 Plan                                            | Must     | DEC-005 与 DEC-006 关闭前，最终 verdict 保持 BLOCKED                               | 重大决策治理          |
+| REQ-018 | Flyway 单文件语义和历史保留方式必须在实施 Plan 前获得用户确认                                  | Must     | DEC-005 与 DEC-006 由用户确认关闭，Plan 按每角色一个 Baseline Migration 展开               | 重大决策治理          |
 | REQ-019 | Open 变体的手工 PostgreSQL SQL 默认不纳入 Flyway 单文件要求                           | Should   | Open SQL 保持原文件、路径和人工使用语义                                                  | 小范围解释           |
 | REQ-020 | 所有发布前 Gate 失败均禁止 deploy                                                | Must     | source verify、generate/check、generated IT、附件检查任一非零时 deploy 不执行            | 发布安全            |
 
@@ -229,26 +231,25 @@ flowchart LR
 | ID      | Inference                                    | Repository evidence                                   | Why locally reversible | Impact if wrong  |
 |---------|----------------------------------------------|-------------------------------------------------------|------------------------|------------------|
 | ASM-001 | 两个 facade 模块不是用户所称旧 Archetype 模块，继续保留        | source service/web 依赖 facade，目录不含 archetype packaging | 可在 Plan 前调整聚合清单        | 删除会导致源码编译失败      |
-| ASM-002 | Open 变体的手工 PostgreSQL SQL 不属于 Flyway 单文件要求   | Open source 没有 db/migration 与 Flyway migrator         | 用户可一句话扩大范围             | 若纳入则需额外 SQL 发布合同 |
 | ASM-003 | Spring Boot 基线保持 3.5.16，不在本改造升级              | 多个现有 Parent/BOM 已使用 3.5.16                            | 后续可独立升级                | 同时升级会放大回归面       |
 | ASM-004 | Flyway 11.15.0 与 PostgreSQL 42.7.8 暂视为显式兼容例外 | 当前属性与 Boot BOM 管理值不同                                  | 可在独立依赖验证后删除例外          | 机械替换可能改变迁移或驱动行为  |
 
 ### 5.3 Resolved decisions
 
-| ID      | Decision                                                              | Decision owner               | Evidence and rationale                | Requirements      |
-|---------|-----------------------------------------------------------------------|------------------------------|---------------------------------------|-------------------|
-| DEC-001 | source-projects 是唯一业务源码事实源                                            | User                         | 正常 src 结构解决开发迭代痛点                     | REQ-001, REQ-002  |
-| DEC-002 | definitions 只保存非业务 Archetype 合同，生成完整 .generated Reactor               | Spec design                  | 保留 metadata/IT 又不恢复双业务源码              | REQ-003 至 REQ-008 |
-| DEC-003 | 根 Archetype POM 以 generated-archetypes profile 引用一个 .generated module | Spec design                  | fresh checkout 默认可解析；第二次 Maven 调用显式启用 | REQ-005, REQ-011  |
-| DEC-004 | Spring 采用根 BOM加应用 Boot Parent 的分层混合，而不是全仓强制一种 parent                  | User choice bounded by Maven | Maven 单继承限制且应用需要 Boot plugin defaults | REQ-012 至 REQ-015 |
+| ID      | Decision                                                                             | Decision owner               | Evidence and rationale                       | Requirements      |
+|---------|--------------------------------------------------------------------------------------|------------------------------|----------------------------------------------|-------------------|
+| DEC-001 | source-projects 是唯一业务源码事实源                                                           | User                         | 正常 src 结构解决开发迭代痛点                            | REQ-001, REQ-002  |
+| DEC-002 | definitions 只保存非业务 Archetype 合同，生成完整 .generated Reactor                              | Spec design                  | 保留 metadata/IT 又不恢复双业务源码                     | REQ-003 至 REQ-008 |
+| DEC-003 | 根 Archetype POM 以 generated-archetypes profile 引用一个 .generated module                | Spec design                  | fresh checkout 默认可解析；第二次 Maven 调用显式启用        | REQ-005, REQ-011  |
+| DEC-004 | Spring 采用根 BOM加应用 Boot Parent 的分层混合，而不是全仓强制一种 parent                                 | User choice bounded by Maven | Maven 单继承限制且应用需要 Boot plugin defaults        | REQ-012 至 REQ-015 |
+| DEC-005 | Flyway 按 schema 角色收敛，Light、Service、Web 每个项目保留 master-data 与 shard 两个 active baseline | User                         | 2026-09-03 用户确认推荐方案；物理数据源角色不能合并              | REQ-016 至 REQ-018 |
+| DEC-006 | 二十四个既有 V migration 原路径原字节保留；旧包装模块中的十二个文件作为只读 archive 且不进入 Reactor                    | User                         | 2026-09-03 用户确认；满足不可变历史规则并让旧 Maven module 退出 | REQ-002, REQ-017  |
+| DEC-007 | Flyway 11.15.0 与 PostgreSQL 42.7.8 本次保留为显式兼容例外                                       | User                         | 2026-09-03 对推荐方案的确认；避免依赖治理夹带版本切换             | REQ-014           |
+| DEC-008 | Open 变体手工 PostgreSQL SQL 不纳入 Flyway 收敛                                               | User                         | 2026-09-03 用户确认；Open 无 Flyway runtime        | REQ-019           |
 
 ### 5.4 Open major decisions
 
-| ID      | Question and options                                                    | Recommendation, not decision                    | Impact                     | Owner | Status                              |
-|---------|-------------------------------------------------------------------------|-------------------------------------------------|----------------------------|-------|-------------------------------------|
-| DEC-005 | “每项目一个”是接受每个 schema 角色一个文件，即 legacy 项目共两个；还是坚持跨 master/shard 只留一个普通 SQL | 推荐每角色一个，即每项目两个；它保持物理拓扑、无条件 SQL 和故障隔离            | 坚持一个需自定义条件迁移或合并数据库拓扑       | User  | Open                                |
-| DEC-006 | 旧包装模块要删除，但其中十二个 Flyway 文件受不可删除规则保护；是保留只读 archive，还是取消删除要求，还是明确撤回该规则     | 推荐保留只读 archive 且不进入 Reactor/生成物；source 内历史同样不合并 | 决定 Git 树能否字面删除旧目录，以及历史审计方式 | User  | Open                                |
-| DEC-007 | 是否授权把 Flyway/PostgreSQL 显式版本改为 Boot BOM 管理值                             | 推荐本次保留 11.15.0 与 42.7.8 并登记例外                   | 改值需兼容测试和独立发布风险评估           | User  | Open but non-blocking for structure |
+None。DEC-005 至 DEC-008 已由用户在 2026-09-03 的 Plan 确认消息中关闭。
 
 ## 6. Project Technology Context
 
@@ -278,32 +279,32 @@ flowchart LR
 
 ### 6.2 User-mandated Java rule compliance
 
-| Literal rule | Affected? | Repository evidence                          | Exact design decision                     | Files/types/interfaces               | Validation/test evidence                     | Status/blocker     |
-|--------------|-----------|----------------------------------------------|-------------------------------------------|--------------------------------------|----------------------------------------------|--------------------|
-| Rule 1       | No        | 本 Spec 不增改 Java 类型，仅搬迁等价源码                   | 保留全部现有语义后缀，不重命名类                          | six source Java trees                | source-to-generated path and class inventory | N/A                |
-| Rule 2       | No        | 无新增 Controller/Service 参数边界                  | 不改变 validation annotations 或 groups       | existing business methods            | generated consumer regression                | N/A                |
-| Rule 3       | No        | 无新增 POJO、转换器或实体                              | 不改变 record/Lombok/MapStruct 结构            | existing domain types                | byte and compile comparison                  | N/A                |
-| Rule 4       | No        | 无业务类、Bean 或注入语义变化                            | 保留 Slf4j、Bean names、constructor injection | existing configs                     | context tests where already present          | N/A                |
-| Rule 5       | No        | 生成脚本使用现有 shell/Maven，不增 Java utility         | 不引入 Java helper 替代已有库                     | scripts only                         | dependency diff review                       | N/A                |
-| Rule 6       | No        | HTTP/RPC/Event JSON 合同不变                     | 不改 Jackson annotations/defaults           | existing DTOs                        | existing contract tests                      | N/A                |
-| Rule 7       | Yes       | master/shard YAML locations 与 migration 目录相关 | 所有环境保持相同 key 结构；单文件方案不得合并角色配置             | datasource YAML and Flyway locations | profile key parity and target-location tests | BLOCKED by DEC-005 |
-| Rule 9       | No        | 改造复杂度在构建编排而非新增业务逻辑                           | 采用脚本流水线，无业务 Strategy/Factory 类            | generator and Maven POMs             | CLI branch tests                             | N/A                |
-| Rule 10      | No        | 无时间字段或 API 时间语义变化                            | 保留现有 java.time 使用                         | existing models                      | compile and serialization regression         | N/A                |
-| Rule 11      | Yes       | 六个 source trees 已对应允许的 Egon-COLA variants    | 生成不得改变各 variant 模块和包依赖                    | source and generated trees           | architecture verifier for all six            | PASS               |
+| Literal rule | Affected? | Repository evidence                          | Exact design decision                                              | Files/types/interfaces               | Validation/test evidence                     | Status/blocker |
+|--------------|-----------|----------------------------------------------|--------------------------------------------------------------------|--------------------------------------|----------------------------------------------|----------------|
+| Rule 1       | No        | 本 Spec 不增改 Java 类型，仅搬迁等价源码                   | 保留全部现有语义后缀，不重命名类                                                   | six source Java trees                | source-to-generated path and class inventory | N/A            |
+| Rule 2       | No        | 无新增 Controller/Service 参数边界                  | 不改变 validation annotations 或 groups                                | existing business methods            | generated consumer regression                | N/A            |
+| Rule 3       | No        | 无新增 POJO、转换器或实体                              | 不改变 record/Lombok/MapStruct 结构                                     | existing domain types                | byte and compile comparison                  | N/A            |
+| Rule 4       | No        | 无业务类、Bean 或注入语义变化                            | 保留 Slf4j、Bean names、constructor injection                          | existing configs                     | context tests where already present          | N/A            |
+| Rule 5       | No        | 生成脚本使用现有 shell/Maven，不增 Java utility         | 不引入 Java helper 替代已有库                                              | scripts only                         | dependency diff review                       | N/A            |
+| Rule 6       | No        | HTTP/RPC/Event JSON 合同不变                     | 不改 Jackson annotations/defaults                                    | existing DTOs                        | existing contract tests                      | N/A            |
+| Rule 7       | Yes       | master/shard YAML locations 与 migration 目录相关 | 不改任何环境 key 或 location；B migration 与旧 V migration 共处原 role location | datasource YAML and Flyway locations | profile key parity and target-location tests | PASS           |
+| Rule 9       | No        | 改造复杂度在构建编排而非新增业务逻辑                           | 采用脚本流水线，无业务 Strategy/Factory 类                                     | generator and Maven POMs             | CLI branch tests                             | N/A            |
+| Rule 10      | No        | 无时间字段或 API 时间语义变化                            | 保留现有 java.time 使用                                                  | existing models                      | compile and serialization regression         | N/A            |
+| Rule 11      | Yes       | 六个 source trees 已对应允许的 Egon-COLA variants    | 生成不得改变各 variant 模块和包依赖                                             | source and generated trees           | architecture verifier for all six            | PASS           |
 
 ## 7. Architecture Design
 
 ### 7.0 Minimum-design baseline and element-necessity audit
 
-| Proposed element                   | Change        | Requirements     | Existing/direct alternative | Concrete inadequacy of alternative | Added calls/state/coupling/failures/migration/operations | Verdict                |
-|------------------------------------|---------------|------------------|-----------------------------|------------------------------------|----------------------------------------------------------|------------------------|
-| source-projects six roots          | Keep          | REQ-001          | 继续编辑 resources 模板           | 不能直接编译且双事实源                        | 无新增运行时调用                                                 | Keep                   |
-| definitions six directories        | New           | REQ-003, REQ-007 | 保留旧 Maven module            | 会保留业务 template 副本和 deploy module   | 一组静态合同文件                                                 | Add                    |
-| .generated aggregator              | Expand        | REQ-005, REQ-006 | 只输出 resource fragment       | 不能直接进入 Maven IT/deploy             | 生成阶段多一个 POM                                              | Add                    |
-| generated-archetypes Maven profile | New           | REQ-005, REQ-011 | 默认 modules 直接引用 .generated  | fresh checkout 在生命周期前解析失败          | 发布多一次 Maven invocation                                   | Add                    |
-| root Boot BOM import               | Expand        | REQ-012          | 三个子 Parent各自 import         | 版本来源重复并易漂移                         | 无运行时成本                                                   | Add                    |
-| custom Flyway conditional engine   | New candidate | REQ-016          | 每角色保留一个普通 SQL               | 只有坚持全项目一个文件时才不足                    | 新代码、方言、测试、运行风险                                           | Remove pending DEC-005 |
-| read-only migration archive        | New candidate | REQ-002, REQ-017 | 直接删除旧副本                     | 违反不可删除规则                           | 只增加静态审计目录                                                | Blocked by DEC-006     |
+| Proposed element                   | Change        | Requirements     | Existing/direct alternative  | Concrete inadequacy of alternative | Added calls/state/coupling/failures/migration/operations | Verdict |
+|------------------------------------|---------------|------------------|------------------------------|------------------------------------|----------------------------------------------------------|---------|
+| source-projects six roots          | Keep          | REQ-001          | 继续编辑 resources 模板            | 不能直接编译且双事实源                        | 无新增运行时调用                                                 | Keep    |
+| definitions six directories        | New           | REQ-003, REQ-007 | 保留旧 Maven module             | 会保留业务 template 副本和 deploy module   | 一组静态合同文件                                                 | Add     |
+| .generated aggregator              | Expand        | REQ-005, REQ-006 | 只输出 resource fragment        | 不能直接进入 Maven IT/deploy             | 生成阶段多一个 POM                                              | Add     |
+| generated-archetypes Maven profile | New           | REQ-005, REQ-011 | 默认 modules 直接引用 .generated   | fresh checkout 在生命周期前解析失败          | 发布多一次 Maven invocation                                   | Add     |
+| root Boot BOM import               | Expand        | REQ-012          | 三个子 Parent各自 import          | 版本来源重复并易漂移                         | 无运行时成本                                                   | Add     |
+| custom Flyway conditional engine   | New candidate | REQ-016          | Flyway B baseline 原生支持新旧环境分流 | 官方机制已足够                            | 新代码、方言、测试、运行风险                                           | Remove  |
+| read-only migration archive        | Keep boundary | REQ-002, REQ-017 | 直接删除旧副本                      | 违反不可删除规则                           | 旧包装目录只保留原路径 SQL，不进入 Reactor                              | Keep    |
 
 | Path            | Network calls            | Client states                    | Server contracts/state | Failure and TOCTOU points | Additional user/business value |
 |-----------------|--------------------------|----------------------------------|------------------------|---------------------------|--------------------------------|
@@ -351,7 +352,7 @@ profile，完成 Archetype IT、consumer verify、release shape 和最终 deploy
 
 Spring 管理分两类：可运行 source root直接继承 Boot Parent；其他仓库 Parent 从根 dependencyManagement
 继承 Boot BOM。局部显式版本只有在 BOM未管理或已登记为兼容例外时保留。Flyway 保持 per-target location，
-在 DEC-005/006 未关闭前不定义文件合并动作。
+Flyway 每个角色增加一个 B prefix 的 cumulative baseline；现有 V migration 不改，配置 location 不改。
 
 #### 7.2.1 Critical business/control flowchart
 
@@ -469,11 +470,11 @@ sequenceDiagram
 
 #### 7.3.6 Conclusion evidence chain
 
-| Conclusion              | Repository/user evidence                            | Constraint or requirement | Design decision                                                    | Consequence and trade-off | Verification and acceptance evidence |
-|-------------------------|-----------------------------------------------------|---------------------------|--------------------------------------------------------------------|---------------------------|--------------------------------------|
-| 需要两个 Maven invocation   | EVD-006, EVD-007 and Maven module resolution timing | REQ-005, REQ-011          | default source build plus generated-archetypes profile second call | fresh checkout可用但流水线多一步   | TEST-005, TEST-013                   |
-| Spring 要分层而非全仓统一 Parent | EVD-008 至 EVD-013                                   | REQ-012 至 REQ-015         | root BOM plus application Boot Parent and exception ledger         | 来源清晰，仍保留少量兼容覆盖            | TEST-003, TEST-004                   |
-| Flyway 不能直接合成一个普通 SQL   | EVD-014 至 EVD-018                                   | REQ-016 至 REQ-018         | 保留角色隔离并阻断至 DEC-005/006                                             | 不满足字面数量但避免跨库错误和历史破坏       | TEST-016 至 TEST-019                  |
+| Conclusion              | Repository/user evidence                            | Constraint or requirement | Design decision                                                    | Consequence and trade-off                 | Verification and acceptance evidence |
+|-------------------------|-----------------------------------------------------|---------------------------|--------------------------------------------------------------------|-------------------------------------------|--------------------------------------|
+| 需要两个 Maven invocation   | EVD-006, EVD-007 and Maven module resolution timing | REQ-005, REQ-011          | default source build plus generated-archetypes profile second call | fresh checkout可用但流水线多一步                   | TEST-005, TEST-013                   |
+| Spring 要分层而非全仓统一 Parent | EVD-008 至 EVD-013                                   | REQ-012 至 REQ-015         | root BOM plus application Boot Parent and exception ledger         | 来源清晰，仍保留少量兼容覆盖                            | TEST-003, TEST-004                   |
+| Flyway 不能直接合成一个普通 SQL   | EVD-014 至 EVD-018                                   | REQ-016 至 REQ-018         | 每角色增加一个 Flyway B baseline，旧 V 历史不变                                 | 每项目两个 active baseline，兼容既有 schema history | TEST-016 至 TEST-019                  |
 
 ## 8. Package Structure and Code File Tree
 
@@ -520,11 +521,11 @@ egon-cola-archetypes
     ├── pom.xml                                            GENERATED private aggregator
     └── six public maven-archetype child modules           GENERATED complete modules
 
-egon-cola-archetypes/egon-cola-archetype-light             DELETE except blocked Flyway archive decision
+egon-cola-archetypes/egon-cola-archetype-light             REMOVE Maven module; KEEP immutable Flyway archive paths
 egon-cola-archetypes/egon-cola-archetype-light-open        DELETE
-egon-cola-archetypes/egon-cola-archetype-service           DELETE except blocked Flyway archive decision
+egon-cola-archetypes/egon-cola-archetype-service           REMOVE Maven module; KEEP immutable Flyway archive paths
 egon-cola-archetypes/egon-cola-archetype-service-open      DELETE
-egon-cola-archetypes/egon-cola-archetype-web               DELETE except blocked Flyway archive decision
+egon-cola-archetypes/egon-cola-archetype-web               REMOVE Maven module; KEEP immutable Flyway archive paths
 egon-cola-archetypes/egon-cola-archetype-web-open          DELETE
 scripts/generate_archetypes.sh                             MODIFY generate full reactor
 scripts/check_archetypes.sh                                CREATE deterministic drift gate
@@ -532,22 +533,22 @@ scripts/publish_maven_central.sh                           MODIFY or CREATE sing
 .github/workflows                                           MODIFY affected CI and Central workflows
 ```
 
-Flyway target subtree cannot be finalized before DEC-005 and DEC-006. No Plan may invent DELETE/MOVE/MODIFY operations
-for existing migration paths.
+Flyway target subtree按 DEC-005/006 使用同 location 的 B baseline；Plan 不得对既有 migration 路径安排
+DELETE、MOVE、RENAME 或 MODIFY 操作。
 
 ### 8.3 Package and file responsibilities
 
-| Operation     | Path/package                         | Symbols                               | Responsibility                                      | Dependencies            | Requirements               |
-|---------------|--------------------------------------|---------------------------------------|-----------------------------------------------------|-------------------------|----------------------------|
-| Modify        | pom.xml                              | dependencyManagement/pluginManagement | Boot BOM and plugin source of truth                 | Boot 3.5.16             | REQ-012                    |
-| Modify        | egon-cola-archetypes/pom.xml         | generated-archetypes profile          | reference ignored reactor only on second invocation | .generated/pom.xml      | REQ-005, REQ-011           |
-| Keep/Modify   | six source root POMs                 | parent/dependencyManagement           | normal development and Boot Parent boundary         | root and Boot Parent    | REQ-001, REQ-013 至 REQ-015 |
-| Create        | definitions six directories          | packaging descriptors                 | curated non-business contracts                      | source identity         | REQ-003, REQ-007           |
-| Modify        | scripts/generate_archetypes.sh       | CLI-001                               | full atomic generation                              | Maven plugin            | REQ-004 至 REQ-008          |
-| Create        | scripts/check_archetypes.sh          | CLI-002                               | drift and reproducibility check                     | CLI-001                 | REQ-006, REQ-020           |
-| Modify/Create | release script and workflows         | CLI-003                               | ordered gates and one deploy                        | Maven, Central plugin   | REQ-010, REQ-011, REQ-020  |
-| Delete        | six old module non-Flyway content    | old packaging modules                 | remove duplicate module/source                      | definitions replacement | REQ-002                    |
-| Blocked       | twenty-four existing migration paths | versioned SQL                         | immutable history and role DDL                      | Flyway                  | REQ-016 至 REQ-018          |
+| Operation     | Path/package                                                   | Symbols                               | Responsibility                                      | Dependencies            | Requirements               |
+|---------------|----------------------------------------------------------------|---------------------------------------|-----------------------------------------------------|-------------------------|----------------------------|
+| Modify        | pom.xml                                                        | dependencyManagement/pluginManagement | Boot BOM and plugin source of truth                 | Boot 3.5.16             | REQ-012                    |
+| Modify        | egon-cola-archetypes/pom.xml                                   | generated-archetypes profile          | reference ignored reactor only on second invocation | .generated/pom.xml      | REQ-005, REQ-011           |
+| Keep/Modify   | six source root POMs                                           | parent/dependencyManagement           | normal development and Boot Parent boundary         | root and Boot Parent    | REQ-001, REQ-013 至 REQ-015 |
+| Create        | definitions six directories                                    | packaging descriptors                 | curated non-business contracts                      | source identity         | REQ-003, REQ-007           |
+| Modify        | scripts/generate_archetypes.sh                                 | CLI-001                               | full atomic generation                              | Maven plugin            | REQ-004 至 REQ-008          |
+| Create        | scripts/check_archetypes.sh                                    | CLI-002                               | drift and reproducibility check                     | CLI-001                 | REQ-006, REQ-020           |
+| Modify/Create | release script and workflows                                   | CLI-003                               | ordered gates and one deploy                        | Maven, Central plugin   | REQ-010, REQ-011, REQ-020  |
+| Delete        | six old module non-Flyway content                              | old packaging modules                 | remove duplicate module/source                      | definitions replacement | REQ-002                    |
+| Keep/Create   | twenty-four existing migration paths plus six B baseline paths | versioned/baseline SQL                | immutable history plus cumulative role DDL          | Flyway                  | REQ-016 至 REQ-018          |
 
 ## 9. Interface Definitions
 
@@ -698,7 +699,7 @@ deployment id，禁止自动使用相同版本重发；由 operator查询并决�
 
 ##### Interface logic for frontend and consumers
 
-1. 校验分支、版本和发布模式，未关闭 DEC-005/006时拒绝。
+1. 校验分支、版本、发布模式以及 DEC-005/006 的已接受状态。
 2. 运行 source reactor verify并识别已知 baseline failure。
 3. 执行 CLI-001和CLI-002，随后开启 generated-archetypes profile的新 Maven调用。
 4. 执行六模块 integration-test和消费者生成验证。
@@ -747,14 +748,18 @@ Relational model change: No
 | Web           | infrastructure resources master-data | infrastructure resources shard | two plus two           | PhysicalDataSourceFlywayMigrator | 同上                           |
 | Open variants | no Flyway location                   | no Flyway location             | zero Flyway migrations | manual SQL consumer              | 默认不适用                        |
 
-允许的设计方向只有：
+选定设计为每个 schema 角色一个 Flyway Baseline Migration，使用 B prefix 且版本等于该角色当前最高 V 版本：
 
-1. 推荐：每个 schema 角色一个合并后的逻辑基线，所以 legacy 项目共两个 active migration；既有 versioned
-   文件仍需保留为不可变历史，实际收敛方式由 DEC-006 决定。
-2. 坚持全项目一个普通 SQL：不选用，因为同一文件在 master与shard都会运行全部 DDL。
-3. 自定义 role-aware JavaMigration或预处理器：仅在用户坚持一个文件时另立 Spec；它改变启动路径和测试面。
-4. 合并 master与shard物理拓扑：拒绝，属于业务数据库架构变更。
-5. 直接合并或删除现有 migration：禁止，违反 REQ-017。
+1. Light 新增 B20260825_001 master-data 与 B20260825_002 shard。
+2. Service 新增 B20260825_001 master-data 与 B20260825_002 shard。
+3. Web 新增 B20260825_003 master-data 与 B20260825_004 shard。
+4. Baseline SQL 直接声明最终 schema，不串接旧 CREATE 后再 ALTER；新环境选择最新 B 起点，既有环境忽略 B 并继续保留 V
+   history。
+5. 所有旧 V 文件原路径原字节保留；master/shard location、PhysicalDataSourceFlywayMigrator 和 profile key 不变。
+6. 旧包装 module 的非 SQL 内容迁入 definitions 或删除，原十二个 SQL 仅作只读 archive，不进入 Maven Reactor。
+7.
+依据 [Redgate Flyway Baseline Migrations](https://documentation.red-gate.com/flyway/flyway-concepts/migrations/baseline-migrations)
+，B migration 与同版本 V migration 可共存。
 
 ## 12. Frontend Page Design
 
@@ -843,7 +848,7 @@ Maven即可，无需新框架。
 requiredProperties、fileSets、post-generate行为、basic IT、模块拓扑、包名、配置 key、外部接口和 Flyway
 schema语义。
 
-只有 DEC-005/006 关闭后才能形成具体迁移方案。可接受结构迁移需要先建立 source/definition/generated
+DEC-005/006 已关闭。结构迁移需要先建立 source/definition/generated
 三方 parity证据，再让根 Reactor停止引用旧 module，最后删除被授权删除的非历史内容。任何现有 migration
 文件都必须按用户决策和仓库规则处理，不能用 Git rename或内容合并掩盖删除。
 
@@ -854,30 +859,30 @@ artifact allowlist、显式 Central deploy。回滚在发布前可回退结构�
 
 ## 17. Alternatives and Decisions
 
-| Alternative                                   | Advantages        | Disadvantages                               | Decision                         |
-|-----------------------------------------------|-------------------|---------------------------------------------|----------------------------------|
-| 保留六个旧包装 module并同步 source                      | 改动小               | 永久双事实源，不满足用户删除要求                            | Rejected                         |
-| source projects直接使用 maven-archetype packaging | module少           | 失去正常应用构建语义和开发体验                             | Rejected                         |
-| 同一 Maven invocation生成再构建动态 module             | 表面命令少             | Maven在 lifecycle前解析 module，fresh checkout失败 | Rejected                         |
-| definitions加完整 ignored generated Reactor      | 单一业务源、保留发布合同      | CI多一次生成和 Maven调用                            | Selected                         |
-| 所有模块强制继承 Boot Parent                          | 表面统一              | Maven单继承冲突，library Parent语义不合适              | Rejected                         |
-| 根 Parent导入 Boot BOM，应用根继承 Boot Parent         | 适配库与应用差异          | 需要 effective POM Gate                       | Selected                         |
-| 每角色一个 Flyway baseline                         | 保持 master/shard隔离 | 字面为每 legacy项目两个                             | Recommended, open                |
-| 全项目一个普通 Flyway SQL                            | 文件最少              | 跨角色建表错误                                     | Rejected unless topology changes |
-| 自定义 role-aware migration                      | 可满足一个文件字面要求       | 新运行时引擎、方言和高测试成本                             | Not selected, requires new Spec  |
+| Alternative                                   | Advantages                       | Disadvantages                               | Decision                         |
+|-----------------------------------------------|----------------------------------|---------------------------------------------|----------------------------------|
+| 保留六个旧包装 module并同步 source                      | 改动小                              | 永久双事实源，不满足用户删除要求                            | Rejected                         |
+| source projects直接使用 maven-archetype packaging | module少                          | 失去正常应用构建语义和开发体验                             | Rejected                         |
+| 同一 Maven invocation生成再构建动态 module             | 表面命令少                            | Maven在 lifecycle前解析 module，fresh checkout失败 | Rejected                         |
+| definitions加完整 ignored generated Reactor      | 单一业务源、保留发布合同                     | CI多一次生成和 Maven调用                            | Selected                         |
+| 所有模块强制继承 Boot Parent                          | 表面统一                             | Maven单继承冲突，library Parent语义不合适              | Rejected                         |
+| 根 Parent导入 Boot BOM，应用根继承 Boot Parent         | 适配库与应用差异                         | 需要 effective POM Gate                       | Selected                         |
+| 每角色一个 Flyway B baseline                       | 保持 master/shard隔离并兼容既有 V history | 字面为每 legacy项目两个，旧 V 仍物理保留                   | Selected                         |
+| 全项目一个普通 Flyway SQL                            | 文件最少                             | 跨角色建表错误                                     | Rejected unless topology changes |
+| 自定义 role-aware migration                      | 可满足一个文件字面要求                      | 新运行时引擎、方言和高测试成本                             | Not selected, requires new Spec  |
 
 ## 18. Risks and Open Questions
 
-| Risk/open question                       | Likelihood       | Impact                    | Mitigation/owner                 | Status                |
-|------------------------------------------|------------------|---------------------------|----------------------------------|-----------------------|
-| DEC-005 单文件含义未确认                         | High             | Critical database错误或目标不满足 | User选择每角色一个或接受另立迁移引擎设计           | Open blocker          |
-| DEC-006 删除旧模块与历史不可删除冲突                   | Certain          | Spec不可形成合法文件操作            | User决定只读archive、保留旧路径或调整目标       | Open blocker          |
-| Flyway/PostgreSQL版本例外意图不明                | Medium           | 依赖回归                      | 本次保留并由effective POM记录，后续专项验证     | Open non-blocker      |
-| create-from-project自动metadata覆盖curated合同 | Medium           | consumer生成缺文件             | definitions覆盖并做descriptor parity | Designed              |
-| source与generated漂移                       | Medium           | 发布错误模板                    | CLI-002和fresh generation         | Designed              |
-| Maven root全绿受AccessGuard baseline影响      | High until rerun | 无法获得全量绿色证据                | 先复现并隔离；不在本scope修改                | External blocker risk |
-| Central规则或plugin行为未来变化                   | Low/Medium       | 发布失败                      | 发布前复核官方规则和本地release shape        | Operational           |
-| Open手工SQL范围理解错误                          | Low              | 用户目标漏项                    | 用户确认ASM-002                      | Open clarification    |
+| Risk/open question                       | Likelihood       | Impact                 | Mitigation/owner                           | Status                |
+|------------------------------------------|------------------|------------------------|--------------------------------------------|-----------------------|
+| B baseline 最终 DDL 与旧 V 链结果漂移             | Medium           | 新环境 schema 与既有环境不同     | 三项目 parity tests 对比 B-only 与 V-only schema | Designed              |
+| 旧包装目录因不可变 SQL 不能物理消失                     | Certain          | 目录仍存在但不再是 Maven module | 只保留十二个原路径 SQL并以 static gate 限制             | Accepted trade-off    |
+| Flyway/PostgreSQL版本例外                    | Medium           | 依赖回归                   | 本次保留并由effective POM记录，后续专项验证               | Closed for this scope |
+| create-from-project自动metadata覆盖curated合同 | Medium           | consumer生成缺文件          | definitions覆盖并做descriptor parity           | Designed              |
+| source与generated漂移                       | Medium           | 发布错误模板                 | CLI-002和fresh generation                   | Designed              |
+| Maven root全绿受AccessGuard baseline影响      | High until rerun | 无法获得全量绿色证据             | 先复现并隔离；不在本scope修改                          | External blocker risk |
+| Central规则或plugin行为未来变化                   | Low/Medium       | 发布失败                   | 发布前复核官方规则和本地release shape                  | Operational           |
+| Open手工SQL被误纳入Flyway收敛                    | Low              | 破坏Open无Flyway合同        | DEC-008与static search gate                 | Closed by user        |
 
 ## 19. Traceability Matrix
 
@@ -929,26 +934,26 @@ Flyway文件收敛”要求为准。此前 implementation Plan不能直接继续
 
 ### 20.5 Blocking Manual Check
 
-| Check ID       | Applicability  | Status  | Evidence                                     | Finding                                | Required action/exception       |
-|----------------|----------------|---------|----------------------------------------------|----------------------------------------|---------------------------------|
-| MC-ARCH-001    | Applicable     | PASS    | §6.1 and six source trees                    | 精确保留Egon-COLA六variant，不混合传统三层          | None                            |
-| MC-REUSE-001   | Applicable     | PASS    | §6.1 capability ledger, EVD-006 至 EVD-013    | 复用官方plugin、Boot Parent/BOM和现有generator | None                            |
-| MC-DEP-001     | Applicable     | PASS    | §6.1, REQ-012 至 REQ-015                      | 不新增业务依赖，差异版本保留例外                       | Plan执行effective POM Gate        |
-| MC-NAME-001    | Not applicable | N/A     | §10说明无新增Java类型                               | 无命名后缀变更                                | Evidence retained               |
-| MC-VALID-001   | Not applicable | N/A     | 外部业务边界未变，CLI规则在§9定义                          | 无Java Validation边界改造                   | Evidence retained               |
-| MC-MODEL-001   | Not applicable | N/A     | §10无新增POJO/entity                            | 构造和Lombok规则不受影响                        | Evidence retained               |
-| MC-CONVERT-001 | Not applicable | N/A     | §10无对象转换改造                                   | BaseConverter和MapStruct不受影响            | Evidence retained               |
-| MC-LOG-001     | Not applicable | N/A     | 无业务Java类变更                                   | CLI observability在§7.3.5覆盖             | Evidence retained               |
-| MC-BEAN-001    | Not applicable | N/A     | 无Spring Bean新增或修改                            | Bean name、Qualifier和注入语义不变             | Evidence retained               |
-| MC-UTIL-001    | Not applicable | N/A     | 无Java utility新增                              | 使用现有shell、Maven和标准工具                   | Evidence retained               |
-| MC-JSON-001    | Not applicable | N/A     | HTTP/RPC/Event合同不变                           | Jackson序列化不变                           | Evidence retained               |
-| MC-TIME-001    | Not applicable | N/A     | 无时间字段/API变更                                  | java.time规则不受影响                        | Evidence retained               |
-| MC-CONFIG-001  | Applicable     | BLOCKED | EVD-016, EVD-017 and Rule 7 row              | 单文件方案可能改变master/shard location结构       | User关闭DEC-005                   |
-| MC-PATTERN-001 | Applicable     | PASS    | §13                                          | 构建复杂度以Pipeline/staging处理，不新增业务pattern类 | None                            |
-| MC-SCOPE-001   | Applicable     | PASS    | §3.3 and §8                                  | 仅Spec文件被写入，设计范围与用户要求一致                 | None                            |
-| MC-TEST-001    | Applicable     | BLOCKED | §14 and EVD-019                              | 测试设计完整，但Flyway方案和全绿baseline未闭合         | User关闭DEC-005/006；实施前重跑baseline |
-| MC-BLOCKER-001 | Applicable     | BLOCKED | DEC-005, DEC-006, MC-CONFIG-001, MC-TEST-001 | 存在用户必须决定的数据库与历史文件冲突                    | User选择Flyway含义和历史保留策略           |
+| Check ID       | Applicability  | Status | Evidence                                    | Finding                                        | Required action/exception |
+|----------------|----------------|--------|---------------------------------------------|------------------------------------------------|---------------------------|
+| MC-ARCH-001    | Applicable     | PASS   | §6.1 and six source trees                   | 精确保留Egon-COLA六variant，不混合传统三层                  | None                      |
+| MC-REUSE-001   | Applicable     | PASS   | §6.1 capability ledger, EVD-006 至 EVD-013   | 复用官方plugin、Boot Parent/BOM和现有generator         | None                      |
+| MC-DEP-001     | Applicable     | PASS   | §6.1, REQ-012 至 REQ-015                     | 不新增业务依赖，差异版本保留例外                               | Plan执行effective POM Gate  |
+| MC-NAME-001    | Not applicable | N/A    | §10说明无新增Java类型                              | 无命名后缀变更                                        | Evidence retained         |
+| MC-VALID-001   | Not applicable | N/A    | 外部业务边界未变，CLI规则在§9定义                         | 无Java Validation边界改造                           | Evidence retained         |
+| MC-MODEL-001   | Not applicable | N/A    | §10无新增POJO/entity                           | 构造和Lombok规则不受影响                                | Evidence retained         |
+| MC-CONVERT-001 | Not applicable | N/A    | §10无对象转换改造                                  | BaseConverter和MapStruct不受影响                    | Evidence retained         |
+| MC-LOG-001     | Not applicable | N/A    | 无业务Java类变更                                  | CLI observability在§7.3.5覆盖                     | Evidence retained         |
+| MC-BEAN-001    | Not applicable | N/A    | 无Spring Bean新增或修改                           | Bean name、Qualifier和注入语义不变                     | Evidence retained         |
+| MC-UTIL-001    | Not applicable | N/A    | 无Java utility新增                             | 使用现有shell、Maven和标准工具                           | Evidence retained         |
+| MC-JSON-001    | Not applicable | N/A    | HTTP/RPC/Event合同不变                          | Jackson序列化不变                                   | Evidence retained         |
+| MC-TIME-001    | Not applicable | N/A    | 无时间字段/API变更                                 | java.time规则不受影响                                | Evidence retained         |
+| MC-CONFIG-001  | Applicable     | PASS   | EVD-016, EVD-017, DEC-005                   | B baseline不改变master/shard location或profile key | Plan执行key parity gate     |
+| MC-PATTERN-001 | Applicable     | PASS   | §13                                         | 构建复杂度以Pipeline/staging处理，不新增业务pattern类         | None                      |
+| MC-SCOPE-001   | Applicable     | PASS   | §3.3 and §8                                 | 仅Spec文件被写入，设计范围与用户要求一致                         | None                      |
+| MC-TEST-001    | Applicable     | PASS   | §14, DEC-005, DEC-006                       | 已定义B-only/V-only parity、历史hash和全量构建Gate        | Plan按Step执行；当前不声称运行通过     |
+| MC-BLOCKER-001 | Applicable     | PASS   | DEC-005 至 DEC-008 and all Manual Check rows | 用户决策已关闭，无Spec级阻断                               | None                      |
 
 ### 20.6 Final verdict
 
-BLOCKED — User decision required
+PASS — Ready for user review
