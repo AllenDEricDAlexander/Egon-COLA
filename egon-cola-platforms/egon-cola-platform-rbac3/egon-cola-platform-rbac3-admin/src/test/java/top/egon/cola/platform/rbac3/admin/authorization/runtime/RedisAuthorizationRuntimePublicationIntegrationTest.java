@@ -13,6 +13,7 @@ import org.redisson.config.Config;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.InitialAuthorizationContextRepository.InitialAuthorizationContext;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.redis.RedisAuthorizationRuntimeRepository;
 import top.egon.cola.platform.rbac3.core.runtime.Rbac3RuntimeKeyFactory;
+import top.egon.cola.platform.rbac3.starter.cache.AuthorizationSnapshotCache;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 /** Uses isolated keys on an explicitly selected Redis; never starts or flushes a server. */
 @EnabledIfEnvironmentVariable(named = "RBAC3_TEST_REDIS_ADDRESS", matches = ".+")
@@ -76,7 +78,7 @@ class RedisAuthorizationRuntimePublicationIntegrationTest {
         publish(44L, 4L);
         var repository = new RedisAuthorizationRuntimeRepository(redisson, mapper, keys,
                 Clock.fixed(RedisAuthorizationRuntimeRepositoryTest.NOW, ZoneOffset.UTC),
-                (tenantId, subject) -> Optional.empty());
+                (tenantId, subject) -> Optional.empty(), mock(AuthorizationSnapshotCache.class));
         assertThatThrownBy(() -> repository.invalidate(tenant, "subject-a", "101", 43L, 4L))
                 .hasMessage("RBAC3_RUNTIME_VERSION_CONFLICT");
         assertPublished(44L, 4L);
@@ -128,7 +130,8 @@ class RedisAuthorizationRuntimePublicationIntegrationTest {
         // Each publisher models facts read before a competing transaction committed.
         var repository = new RedisAuthorizationRuntimeRepository(redisson, mapper, keys,
                 Clock.fixed(RedisAuthorizationRuntimeRepositoryTest.NOW, ZoneOffset.UTC),
-                (tenantId, subject) -> Optional.of(new InitialAuthorizationContext("101", authVersion, policyVersion)));
+                (tenantId, subject) -> Optional.of(new InitialAuthorizationContext("101", authVersion, policyVersion)),
+                mock(AuthorizationSnapshotCache.class));
         repository.publish(RedisAuthorizationRuntimeRepositoryTest.command(tenant, authVersion, policyVersion));
     }
 

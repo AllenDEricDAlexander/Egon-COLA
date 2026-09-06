@@ -15,8 +15,10 @@ import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.Initi
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.InitialAuthorizationContextRepository.InitialAuthorizationContext;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.redis.RedisAuthorizationRuntimeRepository;
 import top.egon.cola.platform.rbac3.contract.authorization.GatewayBizAppScopeSnapshot;
+import top.egon.cola.platform.rbac3.contract.authorization.AppAuthorizationContext;
 import top.egon.cola.platform.rbac3.contract.authorization.UserAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.core.runtime.Rbac3RuntimeKeyFactory;
+import top.egon.cola.platform.rbac3.starter.cache.AuthorizationSnapshotCache;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -24,16 +26,21 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.times;
 
 class RedisAuthorizationRuntimeRepositoryTest {
 
@@ -43,6 +50,7 @@ class RedisAuthorizationRuntimeRepositoryTest {
     private final Rbac3RuntimeKeyFactory keys = new Rbac3RuntimeKeyFactory();
     private final ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
     private final InitialAuthorizationContextRepository context = mock(InitialAuthorizationContextRepository.class);
+    private final AuthorizationSnapshotCache cache = mock(AuthorizationSnapshotCache.class);
     private RedisAuthorizationRuntimeRepository repository;
 
     @BeforeEach
@@ -51,8 +59,9 @@ class RedisAuthorizationRuntimeRepositoryTest {
         when(script.<Long>eval(any(RScript.Mode.class), anyString(), any(RScript.ReturnType.class),
                 anyList(), any(Object[].class))).thenReturn(1L);
         current(43L, 3L);
+        stored(keys.user("tenant-a", "subject-a"), null);
         repository = new RedisAuthorizationRuntimeRepository(redisson, mapper, keys,
-                Clock.fixed(NOW, ZoneOffset.UTC), context);
+                Clock.fixed(NOW, ZoneOffset.UTC), context, cache);
     }
 
     @Test
@@ -61,6 +70,7 @@ class RedisAuthorizationRuntimeRepositoryTest {
         assertThat(result).isNotNull();
         verify(script).eval(any(RScript.Mode.class), anyString(), any(RScript.ReturnType.class),
                 anyList(), any(Object[].class));
+        verify(cache).invalidateUser("rbac3-admin", "tenant-a", "subject-a");
     }
 
     @Test
@@ -69,6 +79,26 @@ class RedisAuthorizationRuntimeRepositoryTest {
                 anyList(), any(Object[].class))).thenReturn(-1L);
         assertThatThrownBy(() -> repository.publish(command("tenant-a", 43L, 3L)))
                 .hasMessage("RBAC3_RUNTIME_VERSION_CONFLICT");
+        verifyNoInteractions(cache);
+    }
+
+    @Test
+    void invalidatesRemovedApplicationCachesOnlyAfterTheNewSnapshotIsPublished() throws Exception {
+        var previous = command("tenant-a", 43L, 3L).projection();
+        var oldSnapshot = new UserAuthorizationSnapshot("rbac3-admin", "tenant-a", "subject-a", "101", 43L, 3L,
+                List.of(new AppAuthorizationContext("5", "mock-backend", List.of("10"), List.of("20"), List.of("10"),
+                        Set.of("mcp:read"), Map.of(), Map.of(), List.of("mcp.resource"), null)),
+                "old", NOW, NOW.plusSeconds(3600));
+        stored(keys.user("tenant-a", "subject-a"), mapper.writeValueAsString(previous.user()));
+        stored(keys.snapshot("tenant-a", "subject-a", 43L), mapper.writeValueAsString(oldSnapshot));
+
+        repository.publish(command("tenant-a", 43L, 3L));
+
+        var order = inOrder(script, cache);
+        order.verify(script).eval(any(RScript.Mode.class), anyString(), any(RScript.ReturnType.class), anyList(), any(Object[].class));
+        order.verify(cache, times(2)).invalidateUser(anyString(), eq("tenant-a"), eq("subject-a"));
+        verify(cache).invalidateUser("mock-backend", "tenant-a", "subject-a");
+        verify(cache).invalidateUser("rbac3-admin", "tenant-a", "subject-a");
     }
 
     @Test

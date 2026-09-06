@@ -25,6 +25,7 @@ import top.egon.cola.platform.rbac3.contract.authorization.GatewayBizAppScopeSna
 import top.egon.cola.platform.rbac3.contract.authorization.UserAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
 import top.egon.cola.platform.rbac3.core.runtime.Rbac3RuntimeKeyFactory;
+import top.egon.cola.platform.rbac3.starter.cache.AuthorizationSnapshotCache;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -32,6 +33,8 @@ import java.time.Instant;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.Objects;
 
 /**
@@ -49,6 +52,7 @@ public class RedisAuthorizationRuntimeRepository implements
     private final Rbac3RuntimeKeyFactory keyFactory;
     private final Clock clock;
     private final InitialAuthorizationContextRepository authorizationContext;
+    private final AuthorizationSnapshotCache authorizationCache;
     private static final String PUBLISH_SCRIPT = script("redis/rbac3-publish-authorization.lua");
     private static final String INVALIDATE_SCRIPT = script("redis/rbac3-invalidate-authorization.lua");
 
@@ -58,12 +62,14 @@ public class RedisAuthorizationRuntimeRepository implements
             ObjectMapper objectMapper,
             Rbac3RuntimeKeyFactory keyFactory,
             Clock clock,
-            InitialAuthorizationContextRepository authorizationContext) {
+            InitialAuthorizationContextRepository authorizationContext,
+            AuthorizationSnapshotCache authorizationCache) {
         this.redisson = Objects.requireNonNull(redisson, "redisson");
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
         this.keyFactory = Objects.requireNonNull(keyFactory, "keyFactory");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.authorizationContext = Objects.requireNonNull(authorizationContext, "authorizationContext");
+        this.authorizationCache = Objects.requireNonNull(authorizationCache, "authorizationCache");
     }
 
     @Override
@@ -103,6 +109,8 @@ public class RedisAuthorizationRuntimeRepository implements
             throw new IllegalArgumentException("authorization publication identity mismatch");
         }
         requireCurrentAuthorization(user);
+        Set<String> affectedSystems = cachedSystems(command.tenantId(), command.identitySub());
+        snapshot.appContexts().forEach(context -> affectedSystems.add(context.applicationCode()));
         Long published = redisson.getScript(StringCodec.INSTANCE).eval(
                 RScript.Mode.READ_WRITE, PUBLISH_SCRIPT, RScript.ReturnType.INTEGER,
                 List.of(keyFactory.snapshot(command.tenantId(), command.identitySub(), command.authVersion()),
@@ -116,6 +124,8 @@ public class RedisAuthorizationRuntimeRepository implements
         if (published == null || published < 0L) {
             throw new IllegalStateException("RBAC3_RUNTIME_VERSION_CONFLICT");
         }
+        affectedSystems.forEach(system -> authorizationCache.invalidateUser(
+                system, command.tenantId(), command.identitySub()));
         return new PublishResultVO(published == 1L, snapshot.checksum());
     }
 
@@ -151,6 +161,7 @@ public class RedisAuthorizationRuntimeRepository implements
         if (authVersion < 0L || policyVersion < 0L) {
             throw new IllegalArgumentException("authorization versions must not be negative");
         }
+        Set<String> affectedSystems = cachedSystems(tenantId, identitySub);
         Long invalidated = redisson.getScript(StringCodec.INSTANCE).eval(
                 RScript.Mode.READ_WRITE, INVALIDATE_SCRIPT, RScript.ReturnType.INTEGER,
                 List.of(keyFactory.authVersion(tenantId, userId), keyFactory.policyVersion(tenantId),
@@ -159,6 +170,26 @@ public class RedisAuthorizationRuntimeRepository implements
         if (invalidated == null || invalidated < 0L) {
             throw new IllegalStateException("RBAC3_RUNTIME_VERSION_CONFLICT");
         }
+        affectedSystems.forEach(system -> authorizationCache.invalidateUser(system, tenantId, identitySub));
+    }
+
+    /** Includes removed application contexts and the pre-activation self context. */
+    private Set<String> cachedSystems(String tenantId, String identitySub) {
+        Set<String> systems = new HashSet<>(Set.of("rbac3-admin"));
+        String userJson = bucket(keyFactory.user(tenantId, identitySub)).get();
+        if (userJson == null) {
+            return systems;
+        }
+        RuntimeUserAuthorizationVO previous = read(userJson, RuntimeUserAuthorizationVO.class);
+        String snapshotJson = bucket(keyFactory.snapshot(tenantId, identitySub, previous.authVersion())).get();
+        if (snapshotJson != null) {
+            UserAuthorizationSnapshot previousSnapshot = read(snapshotJson, UserAuthorizationSnapshot.class);
+            if (!tenantId.equals(previousSnapshot.tenantId()) || !identitySub.equals(previousSnapshot.identitySub())) {
+                throw new IllegalStateException("authorization cache identity mismatch");
+            }
+            previousSnapshot.appContexts().forEach(context -> systems.add(context.applicationCode()));
+        }
+        return systems;
     }
 
     @Override
