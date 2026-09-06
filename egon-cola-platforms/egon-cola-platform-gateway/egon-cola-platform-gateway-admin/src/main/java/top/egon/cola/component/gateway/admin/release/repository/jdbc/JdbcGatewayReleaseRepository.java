@@ -103,6 +103,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
+import top.egon.cola.component.gateway.contract.runtime.GatewayEngineRoleEnum;
 import org.springframework.stereotype.Repository;
 import top.egon.cola.component.gateway.admin.release.repository.GatewayReleaseRepository;
 import top.egon.cola.component.gateway.admin.release.domain.enums.GatewayReleaseStatus;
@@ -327,7 +328,7 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
         jdbc.query("""
                 SELECT attempt_no, instance_id, lease_id, status,
                        applied_version, applied_artifact_sha256, error_code,
-                       observed_at
+                       observed_at, engine_role
                   FROM gateway_release_target
                  WHERE release_id = ?
                  ORDER BY attempt_no, instance_id, lease_id
@@ -342,7 +343,8 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
                     (Long) result.getObject("applied_version"),
                     result.getString("applied_artifact_sha256"),
                     result.getString("error_code"),
-                    result.getTimestamp("observed_at").toInstant()
+                    result.getTimestamp("observed_at").toInstant(),
+                    GatewayEngineRoleEnum.fromWire(result.getString("engine_role")).orElse(null)
             ));
         }, releaseId);
         return jdbc.query("""
@@ -530,8 +532,8 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
                 INSERT INTO gateway_release_target(
                     release_id, attempt_no, instance_id, lease_id, status,
                     applied_version, applied_artifact_sha256, error_code,
-                    observed_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    observed_at, engine_role
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (
                     release_id, attempt_no, instance_id, lease_id
                 ) DO UPDATE SET status = EXCLUDED.status,
@@ -539,7 +541,8 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
                                 applied_artifact_sha256 =
                                     EXCLUDED.applied_artifact_sha256,
                                 error_code = EXCLUDED.error_code,
-                                observed_at = EXCLUDED.observed_at
+                                observed_at = EXCLUDED.observed_at,
+                                engine_role = EXCLUDED.engine_role
                 """,
                 releaseId,
                 attemptNo,
@@ -549,7 +552,8 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
                 target.appliedVersion(),
                 target.appliedArtifactSha256(),
                 target.errorCode(),
-                timestamp(target.observedAt())
+                timestamp(target.observedAt()),
+                target.engineRole() == null ? null : target.engineRole().name()
         ));
     }
 
@@ -561,6 +565,12 @@ public class JdbcGatewayReleaseRepository implements GatewayReleaseRepository {
      * @param gatewayGroupId 参数 网关GroupId；parameter gateway group id。
      * @return 返回 has发布InProgress 的处理结果；returns the result of the operation.
      */
+    @Override
+    public Optional<String> findArtifactSha256(String releaseId) {
+        return jdbc.query("SELECT artifact_sha256 FROM gateway_release_content WHERE release_id = ?",
+                (result, row) -> result.getString("artifact_sha256"), releaseId).stream().findFirst();
+    }
+
     @Override
     public boolean hasReleaseInProgress(String gatewayGroupId) {
         Integer count = jdbc.queryForObject("""

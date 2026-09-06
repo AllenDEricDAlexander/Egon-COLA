@@ -81,6 +81,10 @@ class GatewayRuleChunkGarbageCollectorTest {
                 ArgumentCaptor.forClass(DdcManagementPublishRequest.class);
         verify(client).publish(captor.capture());
         assertThat(captor.getValue().expectedVersion()).isEqualTo(7L);
+        assertThat(captor.getValue().bizCode()).isEqualTo("infra");
+        assertThat(captor.getValue().appCode()).isEqualTo("ge");
+        verify(client).findConfig(new top.egon.cola.component.ddc.model.management.DdcManagementConfigQuery(
+                "infra", "test", "ge"));
         assertThat(yaml().leafValue(
                 captor.getValue().content(),
                 candidate.configKey()
@@ -174,6 +178,9 @@ class GatewayRuleChunkGarbageCollectorTest {
             DdcManagementClient client) {
         GatewayAdminProperties properties = new GatewayAdminProperties();
         properties.getRuleChunk().setRetention(Duration.ofHours(24));
+        properties.getDdc().setApiRpcBizCode("changed-biz");
+        properties.getDdc().setApiRpcAppCode("changed-api");
+        properties.getDdc().setMcpAppCode("changed-mcp");
         return new GatewayRuleChunkGarbageCollector(
                 journal,
                 client,
@@ -243,7 +250,7 @@ class GatewayRuleChunkGarbageCollectorTest {
                 "test",
                 "default",
                 configKey,
-                targetVersion
+                targetVersion, new top.egon.cola.component.gateway.admin.release.domain.dto.GatewayPublicationScopeDTO("infra", "test", "ge", top.egon.cola.component.gateway.contract.runtime.GatewayEngineRoleEnum.API_RPC)
         );
     }
 }

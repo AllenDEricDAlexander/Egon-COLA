@@ -306,6 +306,35 @@ generated_runtime="${temporary_dir}/generated-runtime"
   write_service_env_files
 )
 
+mcp_engine_env="${generated_runtime}/env/gateway-mcp-engine.env"
+assert_env_equals "${mcp_engine_env}" DDC_APP_CODE gateway-mcp-engine-default \
+  'MCP Engine must use its own source-bound DDC application'
+assert_env_equals "${mcp_engine_env}" GATEWAY_MCP_ENGINE_RESOURCE_SERVER_ID \
+  identity-gateway-mcp-engine-default-local \
+  'MCP Engine must use its own OAuth Resource Server'
+assert_env_equals "${mcp_engine_env}" GATEWAY_MCP_ENGINE_RESOURCE_URI \
+  https://api.egon.internal/local/identity/gateway-mcp-engine-default \
+  'MCP Engine must not borrow the API Resource URI'
+assert_env_equals "${mcp_engine_env}" SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_CLIENT_ID \
+  gateway-mcp-engine-service \
+  'MCP Engine must use its own confidential management Client'
+assert_env_equals "${mcp_engine_env}" GATEWAY_MCP_ENGINE_PORT 18185 \
+  'MCP data-plane listener must not reuse an API Engine listener'
+assert_env_equals "${mcp_engine_env}" GATEWAY_MCP_ENGINE_MANAGEMENT_PORT 18186 \
+  'MCP management listener must be independent'
+assert_env_equals "${mcp_engine_env}" GATEWAY_MCP_ENGINE_DDC_INSTANCE_ID gateway-mcp-engine-local-1 \
+  'MCP Engine must publish an independent lease'
+assert_env_equals "${mcp_engine_env}" GATEWAY_MCP_ENGINE_GROUP_CODE default \
+  'both roles must consume the same Gateway group'
+assert_env_equals "${generated_runtime}/env/gateway-admin.env" GATEWAY_ADMIN_DDC_API_RPC_APP_CODE \
+  gateway-engine-default 'Admin must target the API role scope explicitly'
+assert_env_equals "${generated_runtime}/env/gateway-admin.env" GATEWAY_ADMIN_DDC_MCP_APP_CODE \
+  gateway-mcp-engine-default 'Admin must target the MCP role scope explicitly'
+assert_contains "${platform_start_script}" 'unified_platform_start_jar gateway-mcp-engine' \
+  'core startup must start the independent MCP process before publication'
+assert_not_contains "${mcp_engine_env}" 'GATEWAY_MCP_TASK_SERVICE_TOKEN_PRIVATE_KEY_FILE=' \
+  'MCP must use the standard confidential service Client'
+
 idp_env="${generated_runtime}/env/idp.env"
 assert_env_equals "${idp_env}" IDP_DDC_ENABLED true \
   'local IdP must start its DDC config client'
@@ -587,6 +616,7 @@ gateway-admin|gateway-admin-service|gateway-admin-local|gateway-admin
 ddc|ddc-service|ddc-local|ddc
 mock-backend|mock-backend-service|mock-backend-local|mock-backend
 gateway-engine|gateway-engine-service|gateway-engine-local|gateway-engine
+gateway-mcp-engine|gateway-mcp-engine-service|gateway-mcp-engine-local|gateway-mcp-engine
 SERVICE_TOKENS
 
 function_file="${temporary_dir}/initialize-ddc-topology.sh"

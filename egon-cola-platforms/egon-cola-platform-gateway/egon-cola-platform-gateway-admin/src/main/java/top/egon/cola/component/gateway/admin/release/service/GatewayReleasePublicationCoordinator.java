@@ -13,6 +13,10 @@ import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishStatus;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishTask;
 import top.egon.cola.component.gateway.admin.release.domain.dto.GatewayPublicationScopeDTO;
+import top.egon.cola.component.gateway.admin.config.properties.GatewayAdminDdcProperties;
+import top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO;
+import top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO;
+import top.egon.cola.component.gateway.contract.runtime.GatewayEngineRoleEnum;
 import top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO;
 import top.egon.cola.component.gateway.admin.release.domain.vo.GatewayReleaseArtifactVO;
 import top.egon.cola.component.gateway.admin.release.repository.GatewayReleasePublicationRepository;
@@ -30,6 +34,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -93,20 +98,10 @@ public final class GatewayReleasePublicationCoordinator {
     private final GatewayDdcYamlDocument yamlDocument;
 
     /**
-     * 中文说明：保存 targetBizCode 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayReleasePublicationCoordinator} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by target biz code; its type is {@code String}, and {@code GatewayReleasePublicationCoordinator} reads or updates it during its lifecycle.
-     *
-     * 用法 / Usage: 该字段通过 {@code GatewayReleasePublicationCoordinator} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleasePublicationCoordinator}; do not couple callers to its representation when the owning type exposes an API.
+     * 中文说明：仅新 Release 读取目标配置，恢复与重试以已持久化 scope 为准。
+     * English summary: Only new releases resolve configuration; retries use frozen journal targets.
      */
-    private final String targetBizCode;
-
-    /**
-     * 中文说明：保存 targetAppCode 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayReleasePublicationCoordinator} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by target app code; its type is {@code String}, and {@code GatewayReleasePublicationCoordinator} reads or updates it during its lifecycle.
-     *
-     * 用法 / Usage: 该字段通过 {@code GatewayReleasePublicationCoordinator} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReleasePublicationCoordinator}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    private final String targetAppCode;
+    private final GatewayAdminDdcProperties targetProperties;
 
     /**
      * 中文说明：保存 clock 对应的状态、依赖或配置值；字段类型为 {@code Clock}，由 {@code GatewayReleasePublicationCoordinator} 在其生命周期内读取或更新。
@@ -135,8 +130,7 @@ public final class GatewayReleasePublicationCoordinator {
      * @param publisher 参数 发布器；parameter publisher。
      * @param clock 参数 clock；parameter clock。
      * @param timeout 参数 超时；parameter timeout。
-     * @param targetBizCode 参数 targetBizCode；parameter target biz code。
-     * @param targetAppCode 参数 targetAppCode；parameter target app code。
+     * @param targetProperties 两个固定角色的目标配置；target configuration for both fixed roles。
      */
     public GatewayReleasePublicationCoordinator(
             GatewayReleasePublicationRepository journal,
@@ -145,8 +139,7 @@ public final class GatewayReleasePublicationCoordinator {
             GatewayDdcRulePublisher publisher,
             Clock clock,
             Duration timeout,
-            String targetBizCode,
-            String targetAppCode) {
+            GatewayAdminDdcProperties targetProperties) {
         this.journal = Objects.requireNonNull(journal, "journal");
         this.releases = Objects.requireNonNull(releases, "releases");
         this.client = Objects.requireNonNull(client, "client");
@@ -154,8 +147,7 @@ public final class GatewayReleasePublicationCoordinator {
         this.yamlDocument = new GatewayDdcYamlDocument();
         this.clock = Objects.requireNonNull(clock, "clock");
         this.timeout = positive(timeout);
-        this.targetBizCode = required(targetBizCode, "targetBizCode");
-        this.targetAppCode = required(targetAppCode, "targetAppCode");
+        this.targetProperties = Objects.requireNonNull(targetProperties, "targetProperties");
     }
 
     /**
@@ -194,17 +186,12 @@ public final class GatewayReleasePublicationCoordinator {
             String actorId) {
         Objects.requireNonNull(compiled, "compiled");
         String operator = required(actorId, "actorId");
-        GatewayPublicationScopeDTO scope = scope(compiled);
         List<top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO> operations =
                 initialize(releaseId, attemptNo, compiled);
-        if (operations.stream().anyMatch(operation ->
-                operation.status() != SUCCESS)) {
-            publisher.ensureReadyTarget(
-                    scope.bizCode(),
-                    scope.env(),
-                    scope.appCode()
-            );
-        }
+        operations.stream().filter(operation -> operation.status() != SUCCESS)
+                .map(GatewayReleasePublicationPO::targetScope).distinct()
+                .forEach(publisher::ensureReadyTarget);
+        List<GatewayReleaseTargetPO> targets = new ArrayList<>();
         int successfulPhases = 0;
         DdcManagementPublishResult latestResult = null;
         for (top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO original
@@ -213,23 +200,32 @@ public final class GatewayReleasePublicationCoordinator {
                     current(releaseId, attemptNo, original.phaseOrder());
             if (operation.status() == SUCCESS) {
                 successfulPhases++;
+                if (operation.phaseType() == ACTIVATION) {
+                    latestResult = publishedResult(operation);
+                    targets.addAll(targets(operation, latestResult, compiled));
+                }
                 continue;
             }
             DdcManagementPublishResult result = execute(
-                    scope,
+                    operation.targetScope(),
                     operation,
                     operator
             );
+            result = validateAcknowledgements(result);
             latestResult = result;
             top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum status =
                     status(result.status());
             recordResult(operation.changeId(), result, status);
+            if (operation.phaseType() == ACTIVATION) {
+                targets.addAll(targets(operation, result, compiled));
+            }
             if (status != SUCCESS) {
                 return new GatewayPublicationOutcomeVO(
                         status,
                         operation.changeId(),
                         result,
-                        successfulPhases > 0
+                        successfulPhases > 0,
+                        List.copyOf(targets)
                 );
             }
             successfulPhases++;
@@ -250,7 +246,8 @@ public final class GatewayReleasePublicationCoordinator {
                 SUCCESS,
                 activation.changeId(),
                 result,
-                false
+                false,
+                List.copyOf(targets)
         );
     }
 
@@ -623,15 +620,18 @@ public final class GatewayReleasePublicationCoordinator {
             validateExisting(existing, artifacts);
             return existing;
         }
+        List<GatewayPublicationScopeDTO> scopes = attemptNo == 1
+                ? targetProperties.targets(compiled.snapshot().content().env())
+                : frozenScopes(journal.findAttemptMetadata(releaseId, 1));
         Instant now = clock.instant();
         List<top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO> created =
                 new ArrayList<>();
-        for (int index = 0; index < artifacts.size(); index++) {
-            GatewayReleaseArtifactVO artifact = artifacts.get(index);
-            created.add(new top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO(
+        for (GatewayReleaseArtifactVO artifact : artifacts) {
+            for (GatewayPublicationScopeDTO scope : scopes) {
+                created.add(new top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO(
                     required(releaseId, "releaseId"),
                     attemptNo,
-                    index,
+                    created.size(),
                     artifact.phaseType(),
                     artifact.configKey(),
                     artifact.value(),
@@ -643,8 +643,10 @@ public final class GatewayReleasePublicationCoordinator {
                     null,
                     null,
                     now,
-                    now
-            ));
+                    now,
+                    scope
+                ));
+            }
         }
         journal.insertAll(created);
         return List.copyOf(created);
@@ -689,16 +691,18 @@ public final class GatewayReleasePublicationCoordinator {
     private void validateExisting(
             List<top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO> existing,
             List<GatewayReleaseArtifactVO> artifacts) {
-        if (existing.size() != artifacts.size()) {
+        List<GatewayPublicationScopeDTO> scopes = frozenScopes(existing);
+        if (existing.size() != artifacts.size() * scopes.size()) {
             throw new IllegalStateException(
                     "publication journal does not match compiled release"
             );
         }
-        for (int index = 0; index < artifacts.size(); index++) {
-            GatewayReleaseArtifactVO artifact = artifacts.get(index);
+        for (int index = 0; index < existing.size(); index++) {
+            GatewayReleaseArtifactVO artifact = artifacts.get(index / scopes.size());
             top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO operation =
                     existing.get(index);
-            if (operation.phaseOrder() != index
+            if (!operation.targetScope().equals(scopes.get(index % scopes.size()))
+                    || operation.phaseOrder() != index
                     || operation.phaseType() != artifact.phaseType()
                     || !operation.configKey().equals(artifact.configKey())
                     || !operation.contentSha256().equals(
@@ -863,19 +867,63 @@ public final class GatewayReleasePublicationCoordinator {
     }
 
     /**
-     * 中文说明：执行 scope 操作；该方法是 {@code GatewayReleasePublicationCoordinator} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the scope operation; this method is the invocation entry point on {@code GatewayReleasePublicationCoordinator} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleasePublicationCoordinator.scope(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param compiled 参数 compiled；parameter compiled。
-     * @return 返回 scope 的处理结果；returns the result of the operation.
+     * 中文说明：要求 journal 具备完整的两角色目标，禁止将无目标的历史记录绑定到新配置。
+     * English summary: Requires both frozen role targets and never rebinds unclassified history.
      */
-    private GatewayPublicationScopeDTO scope(CompiledGatewayRelease compiled) {
-        return new GatewayPublicationScopeDTO(
-                targetBizCode,
-                compiled.snapshot().content().env(),
-                targetAppCode
-        );
+    private List<GatewayPublicationScopeDTO> frozenScopes(List<GatewayReleasePublicationPO> operations) {
+        if (operations.isEmpty() || operations.stream().anyMatch(operation -> operation.targetScope() == null)) {
+            throw new IllegalStateException("GATEWAY_PUBLICATION_TARGET_MISSING");
+        }
+        List<GatewayPublicationScopeDTO> scopes = operations.stream()
+                .map(GatewayReleasePublicationPO::targetScope).distinct().toList();
+        if (scopes.size() != 2 || !scopes.stream().map(GatewayPublicationScopeDTO::engineRole)
+                .collect(java.util.stream.Collectors.toSet()).equals(EnumSet.allOf(GatewayEngineRoleEnum.class))) {
+            throw new IllegalStateException("GATEWAY_PUBLICATION_TARGET_CONFLICT");
+        }
+        GatewayPublicationScopeDTO first = scopes.getFirst();
+        GatewayPublicationScopeDTO second = scopes.getLast();
+        if (first.bizCode().equals(second.bizCode()) && first.env().equals(second.env())
+                && first.appCode().equals(second.appCode())) {
+            throw new IllegalStateException("GATEWAY_PUBLICATION_TARGET_CONFLICT");
+        }
+        return scopes;
+    }
+
+    /**
+     * 中文说明：成功发布必须包含完整节点 ACK，不能把空目标任务视为应用成功。
+     * English summary: Requires complete node acknowledgements before treating publication as successful.
+     */
+    private DdcManagementPublishResult validateAcknowledgements(DdcManagementPublishResult result) {
+        if (result.status() != DdcManagementPublishStatus.SUCCESS) {
+            return result;
+        }
+        if (result.targetVersion() != null && result.targetCount() > 0
+                && result.targets().size() == result.targetCount()
+                && result.targets().stream().allMatch(target -> "SUCCESS".equals(target.status())
+                && target.ackAt() != null && target.currentVersion() != null
+                && target.currentVersion() >= result.targetVersion())) {
+            return result;
+        }
+        return new DdcManagementPublishResult(result.changeId(), DdcManagementPublishStatus.UNKNOWN,
+                result.targetVersion(), result.resourceChecksum(), result.targetCount(), result.targets(),
+                "GATEWAY_RELEASE_ACK_MISSING", result.createdAt(), result.dispatchedAt(), result.completedAt());
+    }
+
+    /**
+     * 中文说明：保留每个角色的独立版本与 ACK，避免后一侧覆盖前一侧。
+     * English summary: Retains both roles' independent activation versions and acknowledgements.
+     */
+    private List<GatewayReleaseTargetPO> targets(
+            GatewayReleasePublicationPO operation,
+            DdcManagementPublishResult result,
+            CompiledGatewayRelease compiled) {
+        return result.targets().stream().map(target -> new GatewayReleaseTargetPO(
+                target.instanceId(), target.leaseId(), target.status(), target.currentVersion(),
+                "SUCCESS".equals(target.status()) ? compiled.activation().artifactSha256() : null,
+                target.errorMessage() == null ? null : "DDC_TARGET_ERROR",
+                target.ackAt() == null ? clock.instant() : target.ackAt(),
+                operation.targetScope().engineRole()
+        )).toList();
     }
 
     /**

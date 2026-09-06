@@ -50,8 +50,10 @@ gateway:
       mode: DEVELOPMENT_PLAINTEXT
     ddc:
       enabled: false
-      target-biz-code: ${GATEWAY_ADMIN_DDC_TARGET_BIZ_CODE:infra}
-      target-app-code: ${GATEWAY_ADMIN_DDC_TARGET_APP_CODE:ge}
+      api-rpc-biz-code: ${GATEWAY_ADMIN_DDC_API_RPC_BIZ_CODE:infra}
+      api-rpc-app-code: ${GATEWAY_ADMIN_DDC_API_RPC_APP_CODE:ge}
+      mcp-biz-code: ${GATEWAY_ADMIN_DDC_MCP_BIZ_CODE:infra}
+      mcp-app-code: ${GATEWAY_ADMIN_DDC_MCP_APP_CODE:gme}
     openapi:
       enabled: ${GATEWAY_ADMIN_OPENAPI_ENABLED:false}
       allow-development-http: ${GATEWAY_ADMIN_OPENAPI_ALLOW_DEVELOPMENT_HTTP:false}

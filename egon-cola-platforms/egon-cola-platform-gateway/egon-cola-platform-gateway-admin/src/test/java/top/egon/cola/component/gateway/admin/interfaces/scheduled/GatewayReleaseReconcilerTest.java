@@ -140,7 +140,7 @@ class GatewayReleaseReconcilerTest {
                         NOW,
                         NOW
                 ),
-                false
+                false, List.of()
         );
     }
 

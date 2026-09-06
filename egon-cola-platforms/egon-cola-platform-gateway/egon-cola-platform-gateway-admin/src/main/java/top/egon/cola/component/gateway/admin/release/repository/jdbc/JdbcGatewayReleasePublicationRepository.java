@@ -100,6 +100,7 @@ import top.egon.cola.component.gateway.admin.shared.domain.vo.*;
 import top.egon.cola.component.gateway.admin.shared.repository.*;
 import top.egon.cola.component.gateway.admin.shared.repository.jdbc.*;
 import org.springframework.jdbc.core.JdbcTemplate;
+import top.egon.cola.component.gateway.contract.runtime.GatewayEngineRoleEnum;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.gateway.admin.release.repository.GatewayReleasePublicationRepository;
@@ -177,7 +178,8 @@ public class JdbcGatewayReleasePublicationRepository
                        config_key, content_value, content_sha256,
                        expected_version, change_id, ddc_target_version,
                        ddc_status, error_code, error_message,
-                       created_at, updated_at
+                       created_at, updated_at,
+                    target_role, target_biz_code, target_env, target_app_code
                   FROM gateway_release_publication
                  WHERE release_id = ? AND attempt_no = ?
                  ORDER BY phase_order
@@ -199,7 +201,8 @@ public class JdbcGatewayReleasePublicationRepository
                        config_key, NULL AS content_value, content_sha256,
                        expected_version, change_id, ddc_target_version,
                        ddc_status, error_code, error_message,
-                       created_at, updated_at
+                       created_at, updated_at,
+                       target_role, target_biz_code, target_env, target_app_code
                   FROM gateway_release_publication
                  WHERE release_id = ? AND attempt_no = ?
                  ORDER BY phase_order
@@ -218,7 +221,8 @@ public class JdbcGatewayReleasePublicationRepository
                        config_key, content_value, content_sha256,
                        expected_version, change_id, ddc_target_version,
                        ddc_status, error_code, error_message,
-                       created_at, updated_at
+                       created_at, updated_at,
+                       target_role, target_biz_code, target_env, target_app_code
                   FROM gateway_release_publication
                  WHERE release_id = ? AND attempt_no = ?
                    AND phase_order = ?
@@ -244,7 +248,8 @@ public class JdbcGatewayReleasePublicationRepository
                        config_key, content_value, content_sha256,
                        expected_version, change_id, ddc_target_version,
                        ddc_status, error_code, error_message,
-                       created_at, updated_at
+                       created_at, updated_at,
+                       target_role, target_biz_code, target_env, target_app_code
                   FROM gateway_release_publication
                  WHERE release_id = ? AND attempt_no = ?
                    AND ddc_status <> 'SUCCESS'
@@ -268,12 +273,10 @@ public class JdbcGatewayReleasePublicationRepository
         return jdbc.query("""
                 SELECT publication.change_id,
                        publication.release_id,
-                       'gateway-engine-' || (
-                           content.canonical_snapshot
-                               -> 'content' ->> 'gatewayGroupCode'
-                       ) AS app_code,
-                       content.canonical_snapshot
-                           -> 'content' ->> 'env' AS env,
+                       publication.target_app_code AS app_code,
+                       publication.target_env AS env,
+                       publication.target_role,
+                       publication.target_biz_code,
                        content.canonical_snapshot
                            -> 'content' ->> 'namespace' AS namespace,
                        publication.config_key,
@@ -284,10 +287,16 @@ public class JdbcGatewayReleasePublicationRepository
                   JOIN gateway_release_content content
                     ON content.release_id = publication.release_id
                  WHERE publication.phase_type = 'CHUNK'
+                   AND publication.target_role IS NOT NULL
                    AND publication.ddc_status = 'SUCCESS'
                    AND publication.ddc_target_version IS NOT NULL
                    AND COALESCE(publication.error_code, '')
                        <> 'CHUNK_GC_DELETED'
+                   AND NOT EXISTS (
+                       SELECT 1 FROM gateway_release pending_release
+                        WHERE pending_release.gateway_group_id = old_release.gateway_group_id
+                          AND pending_release.status IN ('READY', 'PUBLISHING', 'UNKNOWN', 'TIMEOUT')
+                   )
                    AND NOT EXISTS (
                        SELECT 1
                          FROM gateway_draft active_draft
@@ -301,6 +310,10 @@ public class JdbcGatewayReleasePublicationRepository
                            ON activation.release_id = successor.id
                           AND activation.phase_type = 'ACTIVATION'
                           AND activation.ddc_status = 'SUCCESS'
+                          AND activation.target_role = publication.target_role
+                          AND activation.target_biz_code = publication.target_biz_code
+                          AND activation.target_env = publication.target_env
+                          AND activation.target_app_code = publication.target_app_code
                         WHERE successor.gateway_group_id =
                               old_release.gateway_group_id
                           AND successor.created_at > old_release.created_at
@@ -314,7 +327,12 @@ public class JdbcGatewayReleasePublicationRepository
                 result.getString("env"),
                 result.getString("namespace"),
                 result.getString("config_key"),
-                result.getLong("ddc_target_version")
+                result.getLong("ddc_target_version"),
+                new GatewayPublicationScopeDTO(
+                        result.getString("target_biz_code"),
+                        result.getString("env"),
+                        result.getString("app_code"),
+                        GatewayEngineRoleEnum.valueOf(result.getString("target_role")))
         ), timestamp(successorActivatedBefore));
     }
 
@@ -414,7 +432,7 @@ public class JdbcGatewayReleasePublicationRepository
                    SET ddc_target_version = ?, ddc_status = ?,
                        error_code = ?, error_message = ?, updated_at = ?
                  WHERE change_id = ? AND ddc_status IN (
-                       'RESOLVED', 'SUBMITTED', 'PARTIAL_SUCCESS',
+                       'RESOLVED', 'SUBMITTED', 'FAILED', 'PARTIAL_SUCCESS',
                        'TIMEOUT', 'UNKNOWN'
                  )
                 """,
@@ -468,8 +486,9 @@ public class JdbcGatewayReleasePublicationRepository
                     config_key, content_value, content_sha256,
                     expected_version, change_id, ddc_target_version,
                     ddc_status, error_code, error_message,
-                    created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    created_at, updated_at,
+                       target_role, target_biz_code, target_env, target_app_code
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 operation.releaseId(),
                 operation.attemptNo(),
@@ -485,7 +504,11 @@ public class JdbcGatewayReleasePublicationRepository
                 operation.errorCode(),
                 operation.errorMessage(),
                 timestamp(operation.createdAt()),
-                timestamp(operation.updatedAt())
+                timestamp(operation.updatedAt()),
+                operation.targetScope().engineRole().name(),
+                operation.targetScope().bizCode(),
+                operation.targetScope().env(),
+                operation.targetScope().appCode()
         );
     }
 
@@ -514,7 +537,12 @@ public class JdbcGatewayReleasePublicationRepository
                 result.getString("error_code"),
                 result.getString("error_message"),
                 result.getTimestamp("created_at").toInstant(),
-                result.getTimestamp("updated_at").toInstant()
+                result.getTimestamp("updated_at").toInstant(),
+                result.getString("target_role") == null ? null : new GatewayPublicationScopeDTO(
+                        result.getString("target_biz_code"),
+                        result.getString("target_env"),
+                        result.getString("target_app_code"),
+                        GatewayEngineRoleEnum.valueOf(result.getString("target_role")))
         );
     }
 

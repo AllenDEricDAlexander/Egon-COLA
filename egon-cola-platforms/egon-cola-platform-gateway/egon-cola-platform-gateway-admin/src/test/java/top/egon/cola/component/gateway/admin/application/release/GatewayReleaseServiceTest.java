@@ -464,7 +464,7 @@ class GatewayReleaseServiceTest {
                         NOW,
                         NOW
                 ),
-                false
+                false, List.of()
         );
     }
 

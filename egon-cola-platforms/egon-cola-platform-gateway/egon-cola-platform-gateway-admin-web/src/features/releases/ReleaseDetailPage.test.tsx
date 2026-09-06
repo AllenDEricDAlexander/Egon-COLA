@@ -27,7 +27,7 @@ vi.mock('../../app/capabilities', () => ({
   useCapability: () => true,
 }))
 
-const baseRelease: GatewayRelease = {
+const baseRelease = {
   id: 'release-1',
   gatewayGroupId: 'group-1',
   draftRevision: 3,
@@ -44,6 +44,7 @@ const baseRelease: GatewayRelease = {
     startedAt: '2026-08-27T03:00:01Z',
     completedAt: '2026-08-27T03:00:02Z',
     targets: [{
+      engineRole: 'API_RPC',
       instanceId: 'engine-1',
       leaseId: 'lease-1',
       status: 'APPLIED',
@@ -52,7 +53,7 @@ const baseRelease: GatewayRelease = {
       observedAt: '2026-08-27T03:00:02Z',
     }],
   }],
-}
+} satisfies GatewayRelease
 
 const renderPage = () => {
   const queryClient = new QueryClient({
@@ -98,6 +99,24 @@ afterEach(() => {
 })
 
 describe('ReleaseDetailPage evidence state', () => {
+  it('shows both role acknowledgements with independent DDC versions', async () => {
+    mocks.release.mockResolvedValue({
+      ...baseRelease,
+      attempts: [{
+        ...baseRelease.attempts[0],
+        targets: [
+          { ...baseRelease.attempts[0].targets[0], engineRole: 'API_RPC', appliedVersion: 7 },
+          { ...baseRelease.attempts[0].targets[0], engineRole: 'MCP', instanceId: 'mcp-1', leaseId: 'mcp-lease', appliedVersion: 41 },
+        ],
+      }],
+    })
+    renderPage()
+    expect(await screen.findByText('API_RPC')).toBeInTheDocument()
+    expect(await screen.findByText('MCP')).toBeInTheDocument()
+    expect(screen.getByText('7')).toBeInTheDocument()
+    expect(screen.getByText('41')).toBeInTheDocument()
+  })
+
   it('opens structured release diff through the existing API', async () => {
     renderPage()
 

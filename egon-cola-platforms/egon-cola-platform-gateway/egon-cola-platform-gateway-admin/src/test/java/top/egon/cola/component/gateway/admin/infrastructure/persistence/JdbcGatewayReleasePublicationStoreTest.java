@@ -168,7 +168,7 @@ class JdbcGatewayReleasePublicationStoreTest {
                         "test",
                         "default",
                         "gateway.rules.chunk.release-old.0",
-                        3L
+                        3L, new top.egon.cola.component.gateway.admin.release.domain.dto.GatewayPublicationScopeDTO("infra", "test", "ge", top.egon.cola.component.gateway.contract.runtime.GatewayEngineRoleEnum.API_RPC)
                 );
         when(jdbc.query(
                 contains("active_draft"),
@@ -207,7 +207,7 @@ class JdbcGatewayReleasePublicationStoreTest {
                 null,
                 null,
                 NOW,
-                NOW
+                NOW, new top.egon.cola.component.gateway.admin.release.domain.dto.GatewayPublicationScopeDTO("infra", "test", "ge", top.egon.cola.component.gateway.contract.runtime.GatewayEngineRoleEnum.API_RPC)
         );
     }
 }

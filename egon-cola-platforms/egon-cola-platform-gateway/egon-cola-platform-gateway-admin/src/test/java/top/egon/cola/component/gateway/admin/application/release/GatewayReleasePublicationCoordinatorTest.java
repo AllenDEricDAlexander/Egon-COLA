@@ -1,6 +1,9 @@
 package top.egon.cola.component.gateway.admin.release.service;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.gateway.admin.config.properties.GatewayAdminDdcProperties;
+import top.egon.cola.component.gateway.contract.runtime.GatewayEngineRoleEnum;
+import top.egon.cola.component.ddc.model.management.DdcManagementPublishTarget;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import top.egon.cola.component.ddc.api.client.DdcManagementClient;
@@ -47,6 +50,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum.FAILED;
@@ -81,10 +85,11 @@ class GatewayReleasePublicationCoordinatorTest {
         assertThat(outcome.status()).isEqualTo(FAILED);
         assertThat(client.publishedKeys).containsExactly(
                 "gateway.rules.chunk.release-1.0",
+                "gateway.rules.chunk.release-1.0",
                 "gateway.rules.chunk.release-1.1"
         );
-        assertThat(client.upsertRequests).singleElement()
-                .satisfies(request -> {
+        assertThat(client.upsertRequests).hasSize(2)
+                .allSatisfy(request -> {
                     assertThat(request.expectedVersion()).isZero();
                     assertThat(yaml().leafValue(
                             request.content(),
@@ -94,30 +99,30 @@ class GatewayReleasePublicationCoordinatorTest {
         assertThat(client.upsertRequests).allSatisfy(request -> {
             assertThat(request.bizCode()).isEqualTo("infra");
             assertThat(request.env()).isEqualTo("test");
-            assertThat(request.appCode()).isEqualTo("ge");
+            assertThat(request.appCode()).isIn("ge", "gme");
         });
         assertThat(client.publishRequests).allSatisfy(request -> {
             assertThat(request.bizCode()).isEqualTo("infra");
             assertThat(request.env()).isEqualTo("test");
-            assertThat(request.appCode()).isEqualTo("ge");
+            assertThat(request.appCode()).isIn("ge", "gme");
         });
         assertThat(client.publishRequests)
                 .extracting(DdcManagementPublishRequest::expectedVersion)
-                .containsExactly(1L, 2L);
+                .containsExactly(1L, 1L, 2L);
         assertThat(yaml().leafValue(
-                client.publishRequests.get(1).content(),
+                client.publishRequests.get(2).content(),
                 "gateway.rules.chunk.release-1.0"
         )).contains("chunk-0");
         assertThat(yaml().leafValue(
-                client.publishRequests.get(1).content(),
+                client.publishRequests.get(2).content(),
                 "gateway.rules.chunk.release-1.1"
         )).contains("chunk-1");
         assertThat(journal.findAttempt("release-1", 1))
-                .hasSize(3)
+                .hasSize(6)
                 .extracting(
                         top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO
                                 ::status
-                ).containsExactly(SUCCESS, FAILED, PLANNED);
+                ).containsExactly(SUCCESS, SUCCESS, FAILED, PLANNED, PLANNED, PLANNED);
         assertThat(journal.insertCount).isEqualTo(1);
         assertThat(journal.findAttempt("release-1", 1))
                 .allSatisfy(operation -> assertUuidV7(
@@ -144,16 +149,18 @@ class GatewayReleasePublicationCoordinatorTest {
                 );
 
         assertThat(outcome.successful()).isTrue();
-        assertThat(client.publishRequests).hasSize(1);
+        assertThat(client.publishRequests).hasSize(2);
         assertThat(client.taskQueries).containsExactly(
                 client.publishRequests.getFirst().changeId()
         );
+        assertThat(outcome.targets()).extracting(GatewayReleaseTargetPO::engineRole)
+                .containsExactly(GatewayEngineRoleEnum.API_RPC, GatewayEngineRoleEnum.MCP);
         assertThat(journal.findAttempt("release-inline", 1))
-                .singleElement()
+                .hasSize(2)
                 .extracting(
                         top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO
                                 ::status
-                ).isEqualTo(SUCCESS);
+                ).containsExactly(SUCCESS, SUCCESS);
     }
 
     @Test
@@ -241,11 +248,10 @@ class GatewayReleasePublicationCoordinatorTest {
         assertThat(first.status())
                 .isEqualTo(GatewayPublicationStatusEnum.UNKNOWN);
         assertThat(resumed.successful()).isTrue();
-        assertThat(client.publishRequests).hasSize(2)
-                .allSatisfy(request -> assertThat(request.changeId())
-                        .isEqualTo(changeId));
-        DdcManagementPublishRequest recovered =
-                client.publishRequests.getLast();
+        assertThat(client.publishRequests).hasSize(3);
+        assertThat(client.publishRequests.subList(0, 2))
+                .allSatisfy(request -> assertThat(request.changeId()).isEqualTo(changeId));
+        DdcManagementPublishRequest recovered = client.publishRequests.get(1);
         assertThat(recovered.expectedVersion()).isEqualTo(2L);
         assertThat(recovered.content()).contains("external: true");
         assertThat(yaml().leafValue(
@@ -276,19 +282,18 @@ class GatewayReleasePublicationCoordinatorTest {
                         new GatewayDdcRulePublisher(client),
                         Clock.fixed(NOW, ZoneOffset.UTC),
                         Duration.ofSeconds(30),
-                        "infra",
-                        "ge"
+                new GatewayAdminDdcProperties()
                 );
 
         top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO outcome =
                 resumedCoordinator.resume("release-inline", 1);
 
         assertThat(outcome.successful()).isTrue();
-        assertThat(client.publishRequests).hasSize(1);
+        assertThat(client.publishRequests).hasSize(2);
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {0, 1, 2, 3})
+    @ValueSource(ints = {0, 1, 2, 3, 4, 5, 6, 7})
     void crashAtEveryPhaseReusesIdentityAndSkipsCompletedPhases(
             int crashPhase) {
         InMemoryPublicationStore journal = new InMemoryPublicationStore();
@@ -347,6 +352,106 @@ class GatewayReleasePublicationCoordinatorTest {
         }
     }
 
+    @Test
+    void secondRoleFailureCannotCompleteReleaseAndBothActivationAcksRemainVisible() {
+        var journal = new InMemoryPublicationStore();
+        var client = new RecordingClient(journal);
+        client.failedApp = "gme";
+
+        var outcome = coordinator(journal, client).execute("release-inline", 1, compiledInline(), "admin");
+
+        assertThat(outcome.successful()).isFalse();
+        assertThat(outcome.status()).isEqualTo(TIMEOUT);
+        assertThat(outcome.partialApplied()).isTrue();
+        assertThat(outcome.targets()).extracting(GatewayReleaseTargetPO::engineRole)
+                .containsExactly(GatewayEngineRoleEnum.API_RPC, GatewayEngineRoleEnum.MCP);
+        assertThat(outcome.targets()).extracting(GatewayReleaseTargetPO::status)
+                .containsExactly("SUCCESS", "TIMEOUT");
+        assertThat(journal.findAttempt("release-inline", 1)).extracting(GatewayReleasePublicationPO::status)
+                .containsExactly(SUCCESS, TIMEOUT);
+    }
+
+    @Test
+    void restartAndNewAttemptKeepOriginalScopesAfterConfigurationDrifts() {
+        var journal = new InMemoryPublicationStore();
+        var client = new RecordingClient(journal);
+        client.failBeforeTaskAt = 1;
+        var compiled = compiledInline();
+        coordinator(journal, client).execute("release-inline", 1, compiled, "admin");
+        String originalChangeId = journal.findAttempt("release-inline", 1).getLast().changeId();
+        var changed = new GatewayAdminDdcProperties();
+        changed.setApiRpcBizCode("changed");
+        changed.setApiRpcAppCode("changed-api");
+        changed.setMcpBizCode("changed");
+        changed.setMcpAppCode("changed-mcp");
+        var restarted = new GatewayReleasePublicationCoordinator(journal, mock(GatewayReleaseRepository.class),
+                client, new GatewayDdcRulePublisher(client), Clock.fixed(NOW, ZoneOffset.UTC),
+                Duration.ofSeconds(30), changed);
+
+        assertThat(restarted.execute("release-inline", 1, compiled, "admin").successful()).isTrue();
+        assertThat(client.publishRequests.getLast().changeId()).isEqualTo(originalChangeId);
+        assertThat(restarted.execute("release-inline", 2, compiled, "admin").successful()).isTrue();
+        assertThat(client.publishRequests).allSatisfy(request -> {
+            assertThat(request.bizCode()).isEqualTo("infra");
+            assertThat(request.appCode()).isIn("ge", "gme");
+        });
+        assertThat(journal.findAttempt("release-inline", 2)).extracting(GatewayReleasePublicationPO::targetScope)
+                .containsExactlyElementsOf(journal.findAttempt("release-inline", 1).stream()
+                        .map(GatewayReleasePublicationPO::targetScope).toList());
+    }
+
+    @Test
+    void refusesSharedScopesAndMissingRoleBeforePublishingAnyPhase() {
+        var journal = new InMemoryPublicationStore();
+        var client = new RecordingClient(journal);
+        client.roles.put("gme", "API_RPC");
+        assertThatThrownBy(() -> coordinator(journal, client)
+                .execute("release-inline", 1, compiledInline(), "admin"))
+                .hasMessageContaining("NO_READY_TARGET: MCP");
+        assertThat(client.publishRequests).isEmpty();
+        assertThat(journal.findAttempt("release-inline", 1)).hasSize(2);
+
+        var properties = new GatewayAdminDdcProperties();
+        properties.setMcpAppCode("ge");
+        assertThatThrownBy(() -> properties.targets("test"))
+                .hasMessageContaining("distinct DDC scopes");
+    }
+
+    @Test
+    void usesEachScopesOwnDdcVersionAndMergesItsOwnYaml() {
+        var journal = new InMemoryPublicationStore();
+        var client = new RecordingClient(journal);
+        client.configs.put("infra/test/gme", new DdcManagementConfig(
+                "infra", "test", "gme", "application.yml", "mcpFeature: preserved\\n",
+                "YAML", 40L, true, false, NOW));
+
+        var outcome = coordinator(journal, client).execute("release-inline", 1, compiledInline(), "admin");
+
+        assertThat(outcome.successful()).isTrue();
+        assertThat(client.publishRequests).extracting(DdcManagementPublishRequest::expectedVersion)
+                .containsExactly(1L, 40L);
+        assertThat(outcome.targets()).extracting(GatewayReleaseTargetPO::appliedVersion)
+                .containsExactly(2L, 41L);
+        assertThat(outcome.targets()).extracting(GatewayReleaseTargetPO::appliedArtifactSha256)
+                .containsOnly(compiledInline().activation().artifactSha256());
+        assertThat(client.publishRequests.getFirst().content()).doesNotContain("mcpFeature");
+        assertThat(client.publishRequests.getLast().content()).contains("mcpFeature: preserved");
+    }
+
+    @Test
+    void zeroTargetSuccessDoesNotCountAsAnEngineAcknowledgement() {
+        var journal = new InMemoryPublicationStore();
+        var client = new RecordingClient(journal);
+        client.emptyAcknowledgements = true;
+
+        var outcome = coordinator(journal, client).execute("release-inline", 1, compiledInline(), "admin");
+
+        assertThat(outcome.successful()).isFalse();
+        assertThat(outcome.status()).isEqualTo(GatewayPublicationStatusEnum.UNKNOWN);
+        assertThat(outcome.result().errorMessage()).isEqualTo("GATEWAY_RELEASE_ACK_MISSING");
+        assertThat(client.publishRequests).hasSize(1);
+    }
+
     private GatewayReleasePublicationCoordinator coordinator(
             InMemoryPublicationStore journal,
             RecordingClient client) {
@@ -357,8 +462,7 @@ class GatewayReleasePublicationCoordinatorTest {
                 new GatewayDdcRulePublisher(client),
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 Duration.ofSeconds(30),
-                "infra",
-                "ge"
+                new GatewayAdminDdcProperties()
         );
     }
 
@@ -596,7 +700,8 @@ class GatewayReleasePublicationCoordinatorTest {
                     errorCode,
                     errorMessage,
                     source.createdAt(),
-                    updatedAt
+                    updatedAt,
+                    source.targetScope()
             );
         }
     }
@@ -630,6 +735,10 @@ class GatewayReleasePublicationCoordinatorTest {
         private boolean loseResponse;
 
         private boolean ready = true;
+
+        private final Map<String, String> roles = new LinkedHashMap<>();
+        private String failedApp;
+        private boolean emptyAcknowledgements;
 
         private int failBeforeTaskAt = -1;
 
@@ -713,7 +822,8 @@ class GatewayReleasePublicationCoordinatorTest {
                 throw new IllegalStateException("request not sent");
             }
             DdcManagementPublishStatus status = ddcStatus(
-                    statuses.getOrDefault(operation.configKey(), SUCCESS)
+                    request.appCode().equals(failedApp) ? TIMEOUT
+                            : statuses.getOrDefault(operation.configKey(), SUCCESS)
             );
             configs.put(scope(
                     request.bizCode(),
@@ -771,7 +881,9 @@ class GatewayReleasePublicationCoordinatorTest {
                     current.targetVersion(),
                     current.resourceChecksum(),
                     current.targetCount(),
-                    current.targets(),
+                    current.targets().stream().map(target -> new DdcManagementPublishTarget(
+                            target.instanceId(), target.leaseId(), target.currentVersion(), status.name(),
+                            null, NOW)).toList(),
                     null,
                     current.createdAt(),
                     NOW,
@@ -791,8 +903,8 @@ class GatewayReleasePublicationCoordinatorTest {
                     query.bizCode(),
                     query.env(),
                     query.appCode(),
-                    "engine-1",
-                    "lease-1",
+                    "engine-" + query.appCode(),
+                    "lease-" + query.appCode(),
                     "127.0.0.1",
                     18080,
                     "CONFIG_CLIENT",
@@ -800,7 +912,8 @@ class GatewayReleasePublicationCoordinatorTest {
                     NOW,
                     NOW,
                     Instant.parse("2099-01-01T00:00:00Z"),
-                    Map.of()
+                    Map.of("gateway.engine.role", roles.getOrDefault(query.appCode(),
+                            query.appCode().equals("ge") ? "API_RPC" : "MCP"))
             ));
         }
 
@@ -830,8 +943,10 @@ class GatewayReleasePublicationCoordinatorTest {
                     status,
                     request.expectedVersion() + 1,
                     "checksum",
-                    1,
-                    List.of(),
+                    emptyAcknowledgements ? 0 : 1,
+                    emptyAcknowledgements ? List.of() : List.of(new DdcManagementPublishTarget(
+                            "engine-" + request.appCode(), "lease-" + request.appCode(),
+                            request.expectedVersion() + 1, status.name(), null, NOW)),
                     status == DdcManagementPublishStatus.SUCCESS
                             ? null
                             : "publish failed",

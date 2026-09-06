@@ -14,6 +14,7 @@ rbac3_root_dir="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-plat
 rbac3_web_dir="${rbac3_root_dir}/egon-cola-platform-rbac3-admin-web"
 ddc_web_dir="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web"
 gateway_engine_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/target/egon-cola-platform-gateway-engine-exec.jar"
+gateway_mcp_engine_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/target/egon-cola-platform-gateway-mcp-engine-exec.jar"
 mcp_provider_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-mcp-provider/target/gateway-test-mcp-provider-exec.jar"
 mcp_remote_jar="${unified_platform_repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-mcp-remote/target/gateway-test-mcp-remote-exec.jar"
 gateway_control_plane_service_token_file="${unified_platform_secret_dir}/gateway-admin-control-plane.service.jwt"
@@ -906,6 +907,11 @@ if [[ "${UNIFIED_IDENTITY_START_MODE}" != "full" ]]; then
     "${unified_platform_env_dir}/gateway-engine.env" "${gateway_engine_jar}"
   unified_platform_wait_http gateway-engine \
     "${GATEWAY_ENGINE_A_BASE_URL}/actuator/health/readiness"
+  unified_platform_stage "starting independent Gateway MCP Engine before release fan-out"
+  unified_platform_start_jar gateway-mcp-engine \
+    "${unified_platform_env_dir}/gateway-mcp-engine.env" "${gateway_mcp_engine_jar}"
+  unified_platform_wait_http gateway-mcp-engine \
+    "${GATEWAY_MCP_ENGINE_BASE_URL}/actuator/health/readiness"
   if [[ "${UNIFIED_PLATFORM_SKIP_GATEWAY_RELEASE:-false}" == "true" ]]; then
     unified_platform_stage "reusing the existing local Gateway HTTP release"
   else

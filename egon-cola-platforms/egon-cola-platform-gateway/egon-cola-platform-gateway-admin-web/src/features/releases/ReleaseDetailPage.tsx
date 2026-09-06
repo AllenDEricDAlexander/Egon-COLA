@@ -138,6 +138,7 @@ export const ReleaseDetailPage = () => {
                 dataSource={attempt.targets}
                 scroll={{ x: 1050 }}
                 columns={[
+                  { title: 'Engine Role', render: (_, target) => target.engineRole ?? 'UNKNOWN' },
                   { title: 'Engine Instance', dataIndex: 'instanceId' },
                   { title: 'Lease', dataIndex: 'leaseId' },
                   { title: 'ACK', render: (_, target) => <StatusTag status={target.status} /> },

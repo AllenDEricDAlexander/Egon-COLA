@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.id.uuid.UuidV7;
-import top.egon.cola.component.ddc.model.management.DdcManagementPublishTarget;
 import top.egon.cola.component.gateway.admin.catalog.repository.GatewayCatalogRepository;
 import top.egon.cola.component.gateway.admin.group.domain.po.GatewayGroupPO;
 import top.egon.cola.component.gateway.admin.group.repository.GatewayGroupRepository;
@@ -426,6 +425,14 @@ public class GatewayReleaseService {
      * @param releaseId 参数 发布Id；parameter release id。
      * @return 返回 get 的处理结果；returns the result of the operation.
      */
+    /**
+     * 中文说明：读取已持久化的制品摘要，运行时投影无需重复反序列化完整快照。
+     * English summary: Reads the persisted artifact digest without loading the full rule snapshot.
+     */
+    public java.util.Optional<String> artifactSha256(String releaseId) {
+        return releases.findArtifactSha256(releaseId);
+    }
+
     public GatewayReleaseVO get(String releaseId) {
         return view(required(releaseId));
     }
@@ -602,16 +609,7 @@ public class GatewayReleaseService {
                             prepared.compiled(),
                             actor.actorId()
                     );
-            List<top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO> targets = outcome.result()
-                    .targets()
-                    .stream()
-                    .map(target -> target(
-                            target,
-                            prepared.compiled()
-                                    .activation()
-                                    .artifactSha256()
-                    ))
-                    .toList();
+            List<top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO> targets = outcome.targets();
             transactions.executeWithoutResult(status -> {
                 releases.completeAttempt(
                         prepared.release().id(),
@@ -997,28 +995,7 @@ public class GatewayReleaseService {
         return values(operationIds).contains(operationId);
     }
 
-    /**
-     * 中文说明：执行 target 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the target operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayReleaseService.target(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param target 参数 target；parameter target。
-     * @param artifactSha256 参数 制品Sha256；parameter artifact sha256。
-     * @return 返回 target 的处理结果；returns the result of the operation.
-     */
-    private top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO target(
-            DdcManagementPublishTarget target,
-            String artifactSha256) {
-        return new top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO(
-                target.instanceId(),
-                target.leaseId(),
-                target.status(),
-                target.currentVersion(),
-                artifactSha256,
-                target.errorMessage() == null ? null : "DDC_TARGET_ERROR",
-                target.ackAt() == null ? clock.instant() : target.ackAt()
-        );
-    }
+
 
     /**
      * 中文说明：执行 required 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。

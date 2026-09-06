@@ -1,5 +1,7 @@
 package top.egon.cola.component.gateway.admin.release.domain.po;
 
+import top.egon.cola.component.gateway.admin.release.domain.dto.GatewayPublicationScopeDTO;
+
 
 /**
  * 中文说明：{@code GatewayChunkCleanupCandidatePO} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责GatewayChunkCleanupCandidatePO相关的职责与边界。
@@ -63,6 +65,7 @@ public record GatewayChunkCleanupCandidatePO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.release.domain.po.GatewayChunkCleanupCandidatePO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.release.domain.po.GatewayChunkCleanupCandidatePO}; do not couple callers to its representation when the owning type exposes an API.
          */
-        long targetVersion
+        long targetVersion,
+        GatewayPublicationScopeDTO targetScope
 ) {
 }

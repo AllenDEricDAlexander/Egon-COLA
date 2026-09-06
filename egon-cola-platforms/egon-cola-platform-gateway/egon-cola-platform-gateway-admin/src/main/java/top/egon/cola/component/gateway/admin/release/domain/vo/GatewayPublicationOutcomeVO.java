@@ -2,6 +2,8 @@ package top.egon.cola.component.gateway.admin.release.domain.vo;
 
 
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
+import top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO;
+import java.util.List;
 
 import static top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum.SUCCESS;
 
@@ -13,6 +15,7 @@ import static top.egon.cola.component.gateway.admin.release.domain.enums.Gateway
  * @param status 参数 status；parameter status。
  * @param changeId 参数 changeId；parameter change id。
  * @param result 参数 result；parameter result。
+ * @param targets 两个角色的激活 ACK；activation acknowledgements from both roles。
  * @param partialApplied 参数 partialApplied；parameter partial applied。
  */
 public record GatewayPublicationOutcomeVO(
@@ -43,7 +46,8 @@ public record GatewayPublicationOutcomeVO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.release.domain.vo.GatewayPublicationOutcomeVO}; do not couple callers to its representation when the owning type exposes an API.
          */
-        boolean partialApplied
+        boolean partialApplied,
+        List<GatewayReleaseTargetPO> targets
 ) {
 
     /**

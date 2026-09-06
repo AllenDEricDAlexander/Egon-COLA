@@ -3,6 +3,7 @@ package top.egon.cola.component.gateway.admin.release.domain.po;
 
 import top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationPhaseEnum;
 import top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum;
+import top.egon.cola.component.gateway.admin.release.domain.dto.GatewayPublicationScopeDTO;
 
 import java.time.Instant;
 
@@ -25,6 +26,7 @@ import java.time.Instant;
  * @param errorCode 参数 errorCode；parameter error code。
  * @param errorMessage 参数 error消息；parameter error message。
  * @param createdAt 参数 createdAt；parameter created at。
+ * @param targetScope 发布时冻结的角色与 DDC scope；role and DDC scope frozen at publication time。
  * @param updatedAt 参数 updatedAt；parameter updated at。
  */
 public record GatewayReleasePublicationPO(
@@ -132,6 +134,7 @@ public record GatewayReleasePublicationPO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO}; do not couple callers to its representation when the owning type exposes an API.
          */
-        Instant updatedAt
+        Instant updatedAt,
+        GatewayPublicationScopeDTO targetScope
 ) {
 }

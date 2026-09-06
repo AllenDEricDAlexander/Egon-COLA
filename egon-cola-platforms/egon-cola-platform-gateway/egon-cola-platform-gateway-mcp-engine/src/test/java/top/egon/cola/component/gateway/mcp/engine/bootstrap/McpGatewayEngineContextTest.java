@@ -83,7 +83,7 @@ class McpGatewayEngineContextTest {
         assertFalse(base.stringPropertyNames().stream().anyMatch(key ->
                 key.startsWith("egon.cola.component.gateway.engine.http.")
                         || key.startsWith("egon.cola.component.gateway.engine.rpc.")));
-        assertEquals("${DDC_APP_CODE:ge}", base.getProperty("egon.cola.component.ddc.app-code"));
+        assertEquals("${DDC_APP_CODE:gme}", base.getProperty("egon.cola.component.ddc.app-code"));
         assertTrue(base.getProperty("egon.cola.component.ddc.rpc.auth.runtime.secret-key")
                 .contains("GATEWAY_MCP_DDC_RPC_RUNTIME_SECRET_KEY"));
     }

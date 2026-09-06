@@ -8,6 +8,7 @@ import top.egon.cola.component.ddc.model.management.DdcManagementInstanceQuery;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishRequest;
 import top.egon.cola.component.ddc.model.management.DdcManagementPublishResult;
 import top.egon.cola.component.gateway.admin.rule.domain.dto.GatewayDdcPublicationCommand;
+import top.egon.cola.component.gateway.admin.release.domain.dto.GatewayPublicationScopeDTO;
 
 import java.time.Instant;
 import java.util.List;
@@ -79,30 +80,29 @@ public final class GatewayDdcRulePublisher {
      * English summary: Executes the ensure ready target operation; this method is the invocation entry point on {@code GatewayDdcRulePublisher} and performs the corresponding runtime, management, or protocol work.
      *
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayDdcRulePublisher.ensureReadyTarget(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param bizCode 参数 bizCode；parameter biz code。
-     * @param env 参数 env；parameter env。
-     * @param appCode 参数 appCode；parameter app code。
+     * @param scope 角色与独立 DDC scope；role and its independent DDC scope。
      */
-    public void ensureReadyTarget(
-            String bizCode,
-            String env,
-            String appCode) {
+    public void ensureReadyTarget(GatewayPublicationScopeDTO scope) {
         List<DdcManagementConfigClientInstance> targets =
                 client.getConfigClients(new DdcManagementInstanceQuery(
-                        bizCode,
-                        env,
-                        appCode
+                        scope.bizCode(),
+                        scope.env(),
+                        scope.appCode()
                 ));
         Instant now = Instant.now();
         boolean ready = targets != null && targets.stream()
                 .filter(Objects::nonNull)
+                .filter(target -> scope.bizCode().equals(target.bizCode())
+                        && scope.env().equals(target.env()) && scope.appCode().equals(target.appCode()))
+                .filter(target -> scope.engineRole().name().equals(
+                        target.metadata().get("gateway.engine.role")))
                 .anyMatch(target -> target.normalizedStatus()
                         == DdcInstanceStatus.ONLINE
                         && target.expireAt() != null
                         && target.expireAt().isAfter(now));
         if (!ready) {
             throw new IllegalStateException(
-                    "GATEWAY_RELEASE_NO_READY_TARGET"
+                    "GATEWAY_RELEASE_NO_READY_TARGET: " + scope.engineRole()
             );
         }
     }

@@ -51,6 +51,7 @@ idp_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-idp/egon-cola-platf
 rbac3_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/target/egon-cola-platform-rbac3-admin-exec.jar"
 gateway_admin_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/target/egon-cola-platform-gateway-admin-exec.jar"
 gateway_engine_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/target/egon-cola-platform-gateway-engine-exec.jar"
+gateway_mcp_engine_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/target/egon-cola-platform-gateway-mcp-engine-exec.jar"
 ddc_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/target/egon-cola-platform-dynamic-config-center-admin-exec.jar"
 mock_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-idp-backend/target/gateway-test-idp-backend-exec.jar"
 
@@ -235,6 +236,7 @@ write_runtime_secrets() {
   write_pending_service_credential "${secret_dir}/gateway-admin.service.jwt"
   write_pending_service_credential "${secret_dir}/gateway-admin-control-plane.service.jwt"
   write_pending_service_credential "${secret_dir}/gateway-engine.service.jwt"
+  write_pending_service_credential "${secret_dir}/gateway-mcp-engine.service.jwt"
   write_pending_service_credential "${secret_dir}/ddc-admin.service.jwt"
   write_pending_service_credential "${secret_dir}/mock-backend.service.jwt"
   write_pending_service_credential "${secret_dir}/mcp-provider.service.jwt"
@@ -279,6 +281,8 @@ refresh_service_tokens() {
     'gateway:read gateway:applications:write gateway:catalog:write gateway:credentials:write gateway:drafts:write gateway:groups:write gateway:mcp:approve gateway:mcp:read gateway:mcp:runtime:read gateway:mcp:test gateway:mcp:write gateway:releases:write'
   oauth_service_token gateway-engine-service \
     "${secret_dir}/gateway-engine.service.jwt"
+  oauth_service_token gateway-mcp-engine-service \
+    "${secret_dir}/gateway-mcp-engine.service.jwt"
   oauth_service_token ddc-service \
     "${secret_dir}/ddc-admin.service.jwt"
   oauth_service_token mock-backend-service \
@@ -789,8 +793,10 @@ write_service_env_files() {
   write_env "${file}" GATEWAY_ADMIN_DDC_ADVERTISED_HOST "${advertised_host}"
   write_env "${file}" GATEWAY_ADMIN_DDC_ADVERTISED_PORT 18140
   write_env "${file}" GATEWAY_ADMIN_VERSION local
-  write_env "${file}" GATEWAY_ADMIN_DDC_TARGET_BIZ_CODE identity
-  write_env "${file}" GATEWAY_ADMIN_DDC_TARGET_APP_CODE gateway-engine-default
+  write_env "${file}" GATEWAY_ADMIN_DDC_API_RPC_BIZ_CODE identity
+  write_env "${file}" GATEWAY_ADMIN_DDC_API_RPC_APP_CODE gateway-engine-default
+  write_env "${file}" GATEWAY_ADMIN_DDC_MCP_BIZ_CODE identity
+  write_env "${file}" GATEWAY_ADMIN_DDC_MCP_APP_CODE gateway-mcp-engine-default
   write_env "${file}" GATEWAY_ADMIN_DEFINITION_RECONCILE_DELAY 1000
   if [[ "${startup_mode}" == "platforms" ]]; then
     write_env "${file}" GATEWAY_ADMIN_RELEASE_RECONCILE_ENABLED false
@@ -935,16 +941,90 @@ write_service_env_files() {
   write_env "${file}" GATEWAY_MCP_REMOTE_CIRCUIT_OPEN_DURATION PT3S
   write_env "${file}" GATEWAY_MCP_REMOTE_FAILURE_THRESHOLD 2
   write_env "${file}" GATEWAY_MCP_TASK_POLL_INTERVAL PT1S
+  write_mcp_engine_env_file
+}
+
+# The MCP process has its own OAuth resource/client and DDC source scope.
+# Do not copy the API Engine environment: its identity and ports are not aliases.
+write_mcp_engine_env_file() {
+  local file redis_password postgres_password_value
+  file="$(new_env_file gateway-mcp-engine)"
+  redis_password="$(<"${secret_dir}/redis.password")"
+  postgres_password_value="$(postgres_password)"
+  common_identity_env "${file}"
+  write_tenant_aware_rbac3_service_token_env "${file}" gateway-mcp-engine-service
+  write_env "${file}" SERVER_PORT 18186
+  write_env "${file}" GATEWAY_MCP_ENGINE_MANAGEMENT_PORT 18186
+  write_env "${file}" GATEWAY_MCP_ENGINE_PORT 18185
+  write_env "${file}" GATEWAY_MCP_ENGINE_RESOURCE_SERVER_ID identity-gateway-mcp-engine-default-local
+  write_env "${file}" GATEWAY_MCP_ENGINE_RESOURCE_URI \
+    https://api.egon.internal/local/identity/gateway-mcp-engine-default
+  write_env "${file}" IDP_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" IDP_REDIS_DATABASE 8
+  write_env "${file}" IDP_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
+  write_env "${file}" IDP_REFRESH_URI "${idp_url}/oauth2/token"
+  write_env "${file}" IDP_ACCESS_TOKEN_COOKIE_NAME egon_user_at_local
+  write_env "${file}" IDP_REFRESH_TOKEN_COOKIE_NAME egon_user_rt_local
+  write_env "${file}" IDP_REFRESH_STATUS_RESOURCE_URI https://api.egon.internal/local/permission/idp
+  write_env "${file}" IDP_REFRESH_STATUS_SCOPES idp:refresh-token:validate
+  write_env "${file}" IDP_GATEWAY_TRUSTED_ORIGINS \
+    http://127.0.0.1:18121,http://127.0.0.1:18125,http://127.0.0.1:18131,http://127.0.0.1:18141,http://127.0.0.1:18152
+  write_env "${file}" GATEWAY_MCP_RBAC3_ENABLED true
+  write_env "${file}" GATEWAY_MCP_RBAC3_SYSTEM_CODE mock-backend
+  write_env "${file}" GATEWAY_MCP_RBAC3_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" GATEWAY_MCP_RBAC3_REDIS_DATABASE 8
+  write_env "${file}" GATEWAY_MCP_RBAC3_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
+  write_env "${file}" GATEWAY_MCP_RBAC3_AUTHORIZATION_ENDPOINT "${rbac3_url}"
+  write_env "${file}" GATEWAY_MCP_RBAC3_SCOPE_ENABLED true
+  write_env "${file}" GATEWAY_MCP_RBAC3_SCOPE_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" GATEWAY_MCP_RBAC3_SCOPE_REDIS_DATABASE 8
+  write_env "${file}" GATEWAY_MCP_RBAC3_SCOPE_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
+  write_env "${file}" GATEWAY_MCP_POSTGRES_URL "jdbc:postgresql://${postgres_host}:${postgres_port}/${gateway_database}"
+  write_env "${file}" GATEWAY_MCP_POSTGRES_USER "${postgres_user}"
+  write_env "${file}" GATEWAY_MCP_POSTGRES_PASSWORD "${postgres_password_value}"
+  write_env "${file}" GATEWAY_MCP_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" GATEWAY_MCP_REDIS_DATABASE 8
+  write_env "${file}" GATEWAY_MCP_REDIS_PASSWORD "${redis_password}"
+  write_env "${file}" GATEWAY_MCP_ARTIFACT_ROOT "${runtime_dir}/mcp-artifacts"
+  write_env "${file}" EGON_COLA_COMPONENT_ID_MACHINE_ID 36
+  write_env "${file}" DDC_ENABLED true
+  write_env "${file}" DDC_MAX_CONFIG_BYTES 67108864
+  write_env "${file}" DDC_BIZ_CODE identity
+  write_env "${file}" DDC_APP_CODE gateway-mcp-engine-default
+  write_env "${file}" DDC_ENV local
+  write_env "${file}" DDC_RPC_TARGET "${ddc_rpc_target}"
+  write_env "${file}" DDC_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" GATEWAY_MCP_DDC_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/ddc-runtime.access-key")"
+  write_env "${file}" GATEWAY_MCP_DDC_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/ddc-runtime.secret")"
+  write_env "${file}" GATEWAY_MCP_DDC_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/ddc-registry.access-key")"
+  write_env "${file}" GATEWAY_MCP_DDC_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/ddc-registry.secret")"
+  write_env "${file}" DDC_REDIS_HOST "${redis_host}"
+  write_env "${file}" DDC_REDIS_PORT "${redis_port}"
+  write_env "${file}" DDC_REDIS_PASSWORD "${redis_password}"
+  write_env "${file}" DDC_REDIS_DATABASE 10
+  write_env "${file}" EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST false
+  write_env "${file}" GATEWAY_MCP_ENGINE_GROUP_CODE default
+  write_env "${file}" GATEWAY_MCP_ENGINE_ENV local
+  write_env "${file}" GATEWAY_MCP_ENGINE_NAMESPACE default
+  write_env "${file}" GATEWAY_MCP_ENGINE_NODE_ID gateway-mcp-engine-local
+  write_env "${file}" GATEWAY_MCP_ENGINE_DDC_INSTANCE_ID gateway-mcp-engine-local-1
+  write_env "${file}" GATEWAY_MCP_ENGINE_DATA_DIRECTORY "${runtime_dir}/gateway-mcp-engine-data"
+  write_env "${file}" GATEWAY_MCP_ENGINE_DDC_ADVERTISED_HOST "${advertised_host}"
+  write_env "${file}" GATEWAY_MCP_ENGINE_DDC_ADVERTISED_PORT 18185
+  write_env "${file}" GATEWAY_MCP_ENGINE_VERSION local
+  write_env "${file}" GATEWAY_MCP_ENGINE_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" GATEWAY_MCP_ENGINE_OUTBOUND_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" GATEWAY_MCP_TASK_POLL_INTERVAL PT1S
 }
 
 package_applications() {
   if [[ "${UNIFIED_IDENTITY_SKIP_BUILD:-false}" == "true" ]] \
       && [[ -s "${idp_jar}" && -s "${rbac3_jar}" && -s "${gateway_admin_jar}" \
-      && -s "${gateway_engine_jar}" && -s "${ddc_jar}" && -s "${mock_jar}" ]]; then
+      && -s "${gateway_engine_jar}" && -s "${gateway_mcp_engine_jar}" && -s "${ddc_jar}" && -s "${mock_jar}" ]]; then
     return
   fi
   "${repo_root}/mvnw" -B -ntp -f "${repo_root}/pom.xml" \
-    -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin,egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-idp-backend \
+    -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin,egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-idp-backend \
     -am package -DskipTests
 }
 
@@ -1471,6 +1551,7 @@ platform ddc
 platform gateway-admin
 identity mock-backend
 identity gateway-engine-default
+identity gateway-mcp-engine-default
 identity gateway-test-mcp-provider
 APPLICATIONS
 }
@@ -2230,6 +2311,9 @@ command_start() {
   stage "starting Gateway Engine after DDC control plane is ready"
   start_process gateway-engine "${env_dir}/gateway-engine.env" "${gateway_engine_jar}"
   wait_http gateway-engine http://127.0.0.1:18182/actuator/health/readiness
+  stage "starting independent Gateway MCP Engine"
+  start_process gateway-mcp-engine "${env_dir}/gateway-mcp-engine.env" "${gateway_mcp_engine_jar}"
+  wait_http gateway-mcp-engine http://127.0.0.1:18186/actuator/health/readiness
 
   stage "starting mock backend"
   start_process mock-backend "${env_dir}/mock-backend.env" "${mock_jar}"
@@ -2302,7 +2386,7 @@ command_verify() {
   local status subject_before subject_tenant_b token_claims
   local rbac3_access_token default_access_token tenant_b_access_token
   local verify_token_dir mvn_status
-  for name in ddc idp rbac3 gateway-admin mock-backend gateway-engine; do
+  for name in ddc idp rbac3 gateway-admin mock-backend gateway-engine gateway-mcp-engine; do
     process_running "${name}" || fail "${name} is not running; run start first"
   done
   platform_user_login
@@ -2386,7 +2470,7 @@ command_verify() {
 
 command_status() {
   local name pid state url status
-  for name in ddc idp rbac3 gateway-admin mock-backend gateway-engine; do
+  for name in ddc idp rbac3 gateway-admin mock-backend gateway-engine gateway-mcp-engine; do
     if process_running "${name}"; then
       pid="$(<"${pid_dir}/${name}.pid")"
       state=running
@@ -2401,6 +2485,7 @@ command_status() {
       gateway-admin) url="${gateway_admin_url}/actuator/health/readiness" ;;
       mock-backend) url="${mock_url}/actuator/health/readiness" ;;
       gateway-engine) url=http://127.0.0.1:18182/actuator/health/readiness ;;
+      gateway-mcp-engine) url=http://127.0.0.1:18186/actuator/health/readiness ;;
     esac
     status="$(curl -sS -o /dev/null -w '%{http_code}' "${url}" 2>/dev/null || true)"
     printf '%-16s pid=%-8s process=%-7s health=%s\n' \
@@ -2470,7 +2555,7 @@ stop_process() {
 }
 
 command_stop() {
-  for name in gateway-engine mock-backend gateway-admin rbac3 idp ddc; do
+  for name in gateway-mcp-engine gateway-engine mock-backend gateway-admin rbac3 idp ddc; do
     stop_process "${name}"
   done
   echo "Unified identity managed processes stopped; databases and secrets were preserved."

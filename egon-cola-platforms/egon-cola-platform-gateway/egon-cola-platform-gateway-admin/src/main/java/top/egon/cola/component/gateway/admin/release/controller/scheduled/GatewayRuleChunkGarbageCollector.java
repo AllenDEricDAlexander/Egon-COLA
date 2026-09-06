@@ -245,9 +245,9 @@ public class GatewayRuleChunkGarbageCollector {
             }
             DdcManagementPublishResult result = client.publish(
                     new DdcManagementPublishRequest(
-                            properties.getDdc().getTargetBizCode(),
-                            candidate.env(),
-                            properties.getDdc().getTargetAppCode(),
+                            candidate.targetScope().bizCode(),
+                            candidate.targetScope().env(),
+                            candidate.targetScope().appCode(),
                             config.resourceName(),
                             removal.content(),
                             config.format(),
@@ -334,9 +334,9 @@ public class GatewayRuleChunkGarbageCollector {
     private Optional<DdcManagementConfig> current(
             top.egon.cola.component.gateway.admin.release.domain.po.GatewayChunkCleanupCandidatePO candidate) {
         return client.findConfig(new DdcManagementConfigQuery(
-                properties.getDdc().getTargetBizCode(),
-                candidate.env(),
-                properties.getDdc().getTargetAppCode()
+                candidate.targetScope().bizCode(),
+                candidate.targetScope().env(),
+                candidate.targetScope().appCode()
         ));
     }
 

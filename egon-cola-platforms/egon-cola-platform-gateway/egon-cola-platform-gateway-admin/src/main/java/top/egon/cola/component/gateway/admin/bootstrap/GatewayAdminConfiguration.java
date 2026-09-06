@@ -315,8 +315,7 @@ public class GatewayAdminConfiguration {
                 publisher,
                 Clock.systemUTC(),
                 timeout,
-                properties.getDdc().getTargetBizCode(),
-                properties.getDdc().getTargetAppCode()
+                properties.getDdc()
         );
     }
 

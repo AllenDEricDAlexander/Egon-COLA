@@ -22,6 +22,12 @@ import top.egon.cola.component.gateway.admin.config.GatewayAdminProperties;
 import top.egon.cola.component.gateway.admin.group.domain.po.GatewayGroupPO;
 import top.egon.cola.component.gateway.admin.group.repository.GatewayGroupRepository;
 import top.egon.cola.component.gateway.admin.release.service.GatewayReleaseService;
+import top.egon.cola.component.gateway.admin.release.repository.GatewayReleasePublicationRepository;
+import top.egon.cola.component.gateway.admin.release.domain.dto.GatewayPublicationScopeDTO;
+import top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO;
+import top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationPhaseEnum;
+import top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum;
+import top.egon.cola.component.gateway.contract.runtime.GatewayEngineRoleEnum;
 import top.egon.cola.component.gateway.admin.runtime.domain.dto.GatewayProviderQueryDTO;
 import top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayEngineNodeConsistencyVO;
 import top.egon.cola.component.gateway.admin.runtime.domain.vo.GatewayProjectionEnvelopeVO;
@@ -68,16 +74,17 @@ public class GatewayProjectionService {
     @NonNull
     @Qualifier("gatewayEngineRoleConsistencyStrategy")
     private final GatewayEngineRoleConsistencyStrategy roleStrategy;
+    @NonNull
+    @Qualifier("jdbcGatewayReleasePublicationRepository")
+    private final GatewayReleasePublicationRepository publications;
 
     private final Map<String, GatewayProjectionEnvelopeVO<?>> cache = new ConcurrentHashMap<>();
-    private String targetBizCode;
-    private String targetAppCode;
+
 
     /** Captures the validated bootstrap target once, preserving the former constructor semantics. */
     @PostConstruct
     void validateBootstrap() {
-        targetBizCode = required(properties.getDdc().getTargetBizCode(), "targetBizCode");
-        targetAppCode = required(properties.getDdc().getTargetAppCode(), "targetAppCode");
+        properties.getDdc().targets("bootstrap-validation");
     }
 
     /**
@@ -91,13 +98,10 @@ public class GatewayProjectionService {
     public GatewayProjectionEnvelopeVO<List<DdcManagementConfigClientInstance>>
     engineNodes(@NotBlank String gatewayGroupId) {
         GatewayGroupPO group = group(gatewayGroupId);
-        String key = "engine:" + gatewayGroupId;
-        return load(key, "DDC_CONFIG_CLIENT", () -> client()
-                .getConfigClients(new DdcManagementInstanceQuery(
-                        targetBizCode,
-                        group.getEnv(),
-                        targetAppCode
-                )));
+        var history = releases.history(gatewayGroupId);
+        List<GatewayReleasePublicationPO> journal = history.isEmpty()
+                ? List.of() : journal(history.getFirst());
+        return engineNodes(group, targetScopes(group, journal));
     }
 
     /**
@@ -207,19 +211,22 @@ public class GatewayProjectionService {
         top.egon.cola.component.gateway.admin.release.domain.vo.GatewayReleaseVO target = history.isEmpty()
                 ? null
                 : history.getFirst();
+        GatewayGroupPO group = group(gatewayGroupId);
+        List<GatewayReleasePublicationPO> journal = target == null ? List.of() : journal(target);
         GatewayProjectionEnvelopeVO<List<DdcManagementConfigClientInstance>> nodes =
-                engineNodes(gatewayGroupId);
+                engineNodes(group, targetScopes(group, journal));
         top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseAttemptPO attempt = latestSuccessfulAttempt(
                 target
         );
-        GatewayRuleExpectation expectation = expectation(attempt);
+        Map<GatewayEngineRoleEnum, GatewayRuleExpectation> expectations =
+                expectations(target, attempt, journal);
         List<DdcManagementConfigClientInstance> onlineNodes = nodes.value().stream()
                 .filter(this::online).toList();
         List<GatewayEngineNodeConsistencyVO> nodeStates = onlineNodes.stream()
                 .map(node -> nodeConsistency(
                         node,
                         target,
-                        expectation
+                        expectations
                 ))
                 .toList();
         long ready = nodeStates.stream()
@@ -232,6 +239,7 @@ public class GatewayProjectionService {
                 ready,
                 target != null
                         && "SUCCESS".equals(target.status().name())
+                        && !nodes.stale()
                         && !nodeStates.isEmpty()
                         && roleStrategy.missingRoles(onlineNodes).isEmpty()
                         && !roleStrategy.hasUnknownRole(onlineNodes)
@@ -277,7 +285,7 @@ public class GatewayProjectionService {
     private GatewayEngineNodeConsistencyVO nodeConsistency(
             DdcManagementConfigClientInstance node,
             top.egon.cola.component.gateway.admin.release.domain.vo.GatewayReleaseVO release,
-            GatewayRuleExpectation expectation) {
+            Map<GatewayEngineRoleEnum, GatewayRuleExpectation> expectations) {
         if (!online(node)) {
             return nodeState(node, "NOT_READY", "NODE_OFFLINE");
         }
@@ -294,13 +302,17 @@ public class GatewayProjectionService {
         if (!release.releaseId().equals(metadata.get("activeReleaseId"))) {
             return nodeState(node, "INCONSISTENT", "RELEASE_MISMATCH");
         }
+        GatewayRuleExpectation expectation = expectations.get(roleStrategy.roleOf(node).orElseThrow());
         if (expectation == null) {
             return nodeState(node, "INCONSISTENT", "ACK_MISSING");
         }
-        if (!Objects.equals(
-                value(expectation.version()),
-                metadata.get("activeRuleVersion")
-        )) {
+        GatewayPublicationScopeDTO scope = expectation.targetScope();
+        if (!scope.bizCode().equals(node.bizCode()) || !scope.env().equals(node.env())
+                || !scope.appCode().equals(node.appCode())) {
+            return nodeState(node, "INCONSISTENT", "TARGET_SCOPE_MISMATCH");
+        }
+        Long version = longValue(metadata.get("activeRuleVersion"));
+        if (version == null || version < expectation.version()) {
             return nodeState(node, "INCONSISTENT", "VERSION_MISMATCH");
         }
         if (!Objects.equals(
@@ -324,35 +336,65 @@ public class GatewayProjectionService {
      * @param attempt 参数 attempt；parameter attempt。
      * @return 返回 expectation 的处理结果；returns the result of the operation.
      */
-    private GatewayRuleExpectation expectation(
-            top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseAttemptPO attempt) {
-        if (attempt == null) {
-            return null;
+    private Map<GatewayEngineRoleEnum, GatewayRuleExpectation> expectations(
+            top.egon.cola.component.gateway.admin.release.domain.vo.GatewayReleaseVO release,
+            top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseAttemptPO attempt,
+            List<GatewayReleasePublicationPO> journal) {
+        if (release == null || attempt == null || journal.isEmpty()
+                || journal.stream().anyMatch(phase -> phase.targetScope() == null
+                || phase.status() != GatewayPublicationStatusEnum.SUCCESS)) {
+            return Map.of();
         }
-        List<top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO> targets = attempt.targets();
-        if (targets.isEmpty() || targets.stream().anyMatch(target ->
-                !"SUCCESS".equals(target.status())
-                        || target.appliedVersion() == null
-                        || target.appliedArtifactSha256() == null
-                        || target.appliedArtifactSha256().isBlank())) {
-            return null;
+        String checksum = releases.artifactSha256(release.releaseId()).orElse(null);
+        if (checksum == null || checksum.isBlank()) {
+            return Map.of();
         }
-        top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO first = targets.getFirst();
-        boolean unanimous = targets.stream().allMatch(target ->
-                Objects.equals(
-                        first.appliedVersion(),
-                        target.appliedVersion()
-                )
-                        && Objects.equals(
-                        first.appliedArtifactSha256(),
-                        target.appliedArtifactSha256()
-                ));
-        return unanimous
-                ? new GatewayRuleExpectation(
-                first.appliedVersion(),
-                first.appliedArtifactSha256()
-        )
-                : null;
+        Map<GatewayEngineRoleEnum, GatewayRuleExpectation> result =
+                new java.util.EnumMap<>(GatewayEngineRoleEnum.class);
+        for (GatewayReleasePublicationPO activation : journal) {
+            if (activation.phaseType() != GatewayPublicationPhaseEnum.ACTIVATION) {
+                continue;
+            }
+            if (activation.ddcTargetVersion() == null || result.put(
+                    activation.targetScope().engineRole(),
+                    new GatewayRuleExpectation(activation.ddcTargetVersion(), checksum,
+                            activation.targetScope())) != null) {
+                return Map.of();
+            }
+        }
+        return result.size() == 2 ? Map.copyOf(result) : Map.of();
+    }
+
+    /**
+     * 中文说明：节点目录按发布时冻结的双目标查询；尚未发布时展示当前引导目标。
+     * English summary: Queries both frozen release targets, or bootstrap targets before the first publication.
+     */
+    private List<GatewayPublicationScopeDTO> targetScopes(
+            GatewayGroupPO group, List<GatewayReleasePublicationPO> journal) {
+        List<GatewayPublicationScopeDTO> frozen = journal.stream()
+                .map(GatewayReleasePublicationPO::targetScope).filter(Objects::nonNull).distinct().toList();
+        return frozen.isEmpty() ? properties.getDdc().targets(group.getEnv()) : frozen;
+    }
+
+    private List<GatewayReleasePublicationPO> journal(
+            top.egon.cola.component.gateway.admin.release.domain.vo.GatewayReleaseVO release) {
+        return release.attempts().stream().max(java.util.Comparator.comparingInt(
+                top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseAttemptPO::attemptNo))
+                .map(attempt -> publications.findAttemptMetadata(release.releaseId(), attempt.attemptNo()))
+                .orElse(List.of());
+    }
+
+    private GatewayProjectionEnvelopeVO<List<DdcManagementConfigClientInstance>> engineNodes(
+            GatewayGroupPO group, List<GatewayPublicationScopeDTO> scopes) {
+        String key = "engine:" + group.getId() + ":" + scopes;
+        return load(key, "DDC_CONFIG_CLIENT", () -> {
+            List<DdcManagementConfigClientInstance> result = new ArrayList<>();
+            for (GatewayPublicationScopeDTO scope : scopes) {
+                result.addAll(client().getConfigClients(new DdcManagementInstanceQuery(
+                        scope.bizCode(), scope.env(), scope.appCode())));
+            }
+            return List.copyOf(result);
+        });
     }
 
     /**

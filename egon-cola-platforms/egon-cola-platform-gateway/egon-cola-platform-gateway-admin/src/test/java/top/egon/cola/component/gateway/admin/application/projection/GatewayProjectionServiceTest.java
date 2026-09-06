@@ -1,6 +1,12 @@
 package top.egon.cola.component.gateway.admin.runtime.service;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.gateway.contract.runtime.GatewayEngineRoleEnum;
+import top.egon.cola.component.gateway.admin.release.repository.GatewayReleasePublicationRepository;
+import top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleasePublicationPO;
+import top.egon.cola.component.gateway.admin.release.domain.dto.GatewayPublicationScopeDTO;
+import top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationPhaseEnum;
+import top.egon.cola.component.gateway.admin.release.domain.enums.GatewayPublicationStatusEnum;
 import top.egon.cola.component.ddc.api.client.DdcManagementClient;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfig;
 import top.egon.cola.component.ddc.model.management.DdcManagementConfigClientInstance;
@@ -98,7 +104,7 @@ class GatewayProjectionServiceTest {
         when(groups.findByIdAndDeletedFalse("group-1")).thenReturn(Optional.of(new GatewayGroupPO(
                 "group-1", "edge", "Edge", "test", "gateway", null, "admin", now)));
         var target = new top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO(
-                "old-node", "old-lease", "SUCCESS", 12L, "artifact-sha", null, now.minusSeconds(5));
+                "old-node", "old-lease", "SUCCESS", 12L, "artifact-sha", null, now.minusSeconds(5), GatewayEngineRoleEnum.API_RPC);
         when(releases.history("group-1")).thenReturn(List.of(release("release-1", target, now)));
         return projectionService(groups, releases, new StubClient(now, null, null, nodes),
                 Clock.fixed(now, ZoneOffset.UTC)).runtimeConsistency("group-1");
@@ -114,7 +120,7 @@ class GatewayProjectionServiceTest {
             metadata.put("gateway.engine.role", role);
         }
         metadata.putAll(overrides);
-        return new DdcManagementConfigClientInstance("infra", "test", "ge", id, "lease-" + id,
+        return new DdcManagementConfigClientInstance("infra", "test", "MCP".equals(role) ? "gme" : "ge", id, "lease-" + id,
                 "127.0.0.1", 18080, "CONFIG_CLIENT", "ONLINE",
                 now.minusSeconds(30), now.minusSeconds(2), now.plusSeconds(30), metadata);
     }
@@ -295,7 +301,7 @@ class GatewayProjectionServiceTest {
                         12L,
                         "artifact-sha",
                         null,
-                        now.minusSeconds(5)
+                        now.minusSeconds(5), GatewayEngineRoleEnum.API_RPC
                 );
         when(releases.history("group-1")).thenReturn(List.of(
                 release("release-1", target, now)
@@ -367,7 +373,7 @@ class GatewayProjectionServiceTest {
                         12L,
                         "artifact-sha",
                         null,
-                        now.minusSeconds(5)
+                        now.minusSeconds(5), GatewayEngineRoleEnum.API_RPC
                 );
         when(releases.history("group-1")).thenReturn(List.of(
                 release("release-1", historicalTarget, now)
@@ -462,7 +468,7 @@ class GatewayProjectionServiceTest {
                         12L,
                         "artifact-sha",
                         null,
-                        now.minusSeconds(5)
+                        now.minusSeconds(5), GatewayEngineRoleEnum.API_RPC
                 );
         when(releases.history("group-1")).thenReturn(List.of(
                 release("release-1", target, now)
@@ -542,7 +548,7 @@ class GatewayProjectionServiceTest {
                         12L,
                         "artifact-sha",
                         null,
-                        now.minusSeconds(5)
+                        now.minusSeconds(5), GatewayEngineRoleEnum.API_RPC
                 );
         when(releases.history("group-1")).thenReturn(List.of(
                 release("release-1", target, now)
@@ -626,12 +632,49 @@ class GatewayProjectionServiceTest {
         if (client != null) {
             beans.registerSingleton("ddcManagementClient", client);
         }
+        when(releases.artifactSha256("release-1")).thenReturn(Optional.of("artifact-sha"));
+        var publications = mock(GatewayReleasePublicationRepository.class);
+        when(publications.findAttemptMetadata("release-1", 1)).thenReturn(List.of(
+                activation(GatewayEngineRoleEnum.API_RPC, 12L, clock.instant()),
+                activation(GatewayEngineRoleEnum.MCP, 12L, clock.instant())));
         var service = new GatewayProjectionService(groups, releases,
                 beans.getBeanProvider(DdcManagementClient.class), clock,
                 new top.egon.cola.component.gateway.admin.config.GatewayAdminProperties(),
-                new GatewayEngineRoleConsistencyStrategy());
+                new GatewayEngineRoleConsistencyStrategy(), publications);
         service.validateBootstrap();
         return service;
+    }
+
+    private GatewayReleasePublicationPO activation(GatewayEngineRoleEnum role, long version, Instant now) {
+        return new GatewayReleasePublicationPO("release-1", 1, role.ordinal(),
+                GatewayPublicationPhaseEnum.ACTIVATION, "gateway.rules.active", null, "sha",
+                version - 1, "change-" + role, version, GatewayPublicationStatusEnum.SUCCESS,
+                null, null, now.minusSeconds(10), now.minusSeconds(5),
+                new GatewayPublicationScopeDTO("infra", "test", role == GatewayEngineRoleEnum.API_RPC ? "ge" : "gme", role));
+    }
+
+    @Test
+    void acceptsIndependentDdcVersionsAndLaterYamlReapplyForTheSameArtifact() {
+        var projection = roleProjection(List.of(roleNode("api", "API_RPC", Map.of()),
+                roleNode("mcp", "MCP", Map.of("activeRuleVersion", "27"))));
+        assertThat(projection.consistent()).isTrue();
+        assertThat(projection.readyEngineNodeCount()).isEqualTo(2);
+    }
+
+    @Test
+    void rejectsAValidRoleReportedFromTheOtherRolesScope() {
+        var wrongScope = roleNode("mcp", "API_RPC", Map.of("gateway.engine.role", "MCP"));
+        var projection = roleProjection(List.of(roleNode("api", "API_RPC", Map.of()), wrongScope));
+        assertThat(projection.consistent()).isFalse();
+        assertThat(projection.nodes().getLast().reason()).isEqualTo("TARGET_SCOPE_MISMATCH");
+    }
+
+    @Test
+    void rejectsVersionBelowTheRolesActivationEvenWithMatchingReleaseAndChecksum() {
+        var projection = roleProjection(List.of(roleNode("api", "API_RPC", Map.of()),
+                roleNode("mcp", "MCP", Map.of("activeRuleVersion", "11"))));
+        assertThat(projection.consistent()).isFalse();
+        assertThat(projection.nodes().getLast().reason()).isEqualTo("VERSION_MISMATCH");
     }
 
     private record StubClient(
@@ -744,7 +787,8 @@ class GatewayProjectionServiceTest {
         @Override
         public List<DdcManagementConfigClientInstance> getConfigClients(
                 DdcManagementInstanceQuery query) {
-            return engines;
+            return engines.stream().filter(engine -> engine.bizCode().equals(query.bizCode())
+                    && engine.env().equals(query.env()) && engine.appCode().equals(query.appCode())).toList();
         }
 
         @Override

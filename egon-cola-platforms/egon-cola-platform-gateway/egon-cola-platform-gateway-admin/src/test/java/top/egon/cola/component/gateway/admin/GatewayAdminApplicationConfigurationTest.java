@@ -110,14 +110,18 @@ class GatewayAdminApplicationConfigurationTest {
         assertThat(properties.getProperty(
                 "egon.cola.component.ddc.admin." + "endpoint"
         )).isNull();
-        assertEquals("${GATEWAY_ADMIN_DDC_TARGET_BIZ_CODE:infra}",
+        assertEquals("${GATEWAY_ADMIN_DDC_API_RPC_BIZ_CODE:infra}",
                 properties.getProperty(
-                        "gateway.admin.ddc.target-biz-code"
+                        "gateway.admin.ddc.api-rpc-biz-code"
                 ));
-        assertEquals("${GATEWAY_ADMIN_DDC_TARGET_APP_CODE:ge}",
+        assertEquals("${GATEWAY_ADMIN_DDC_API_RPC_APP_CODE:ge}",
                 properties.getProperty(
-                        "gateway.admin.ddc.target-app-code"
+                        "gateway.admin.ddc.api-rpc-app-code"
                 ));
+        assertEquals("${GATEWAY_ADMIN_DDC_MCP_BIZ_CODE:infra}",
+                properties.getProperty("gateway.admin.ddc.mcp-biz-code"));
+        assertEquals("${GATEWAY_ADMIN_DDC_MCP_APP_CODE:gme}",
+                properties.getProperty("gateway.admin.ddc.mcp-app-code"));
     }
 
     @Test

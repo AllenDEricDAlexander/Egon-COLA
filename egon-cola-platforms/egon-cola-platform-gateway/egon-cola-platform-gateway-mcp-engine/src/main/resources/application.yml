@@ -95,7 +95,7 @@ egon:
         enabled: ${DDC_ENABLED:true}
         biz-code: ${DDC_BIZ_CODE:infra}
         env: ${DDC_ENV:local}
-        app-code: ${DDC_APP_CODE:ge}
+        app-code: ${DDC_APP_CODE:gme}
         max-config-bytes: ${DDC_MAX_CONFIG_BYTES:1048576}
         instance:
           id: ${GATEWAY_MCP_ENGINE_DDC_INSTANCE_ID:}

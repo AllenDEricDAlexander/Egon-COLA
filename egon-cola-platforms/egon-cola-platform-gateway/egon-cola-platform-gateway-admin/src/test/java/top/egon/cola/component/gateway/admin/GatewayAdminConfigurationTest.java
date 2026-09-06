@@ -45,6 +45,9 @@ class GatewayAdminConfigurationTest {
                         () -> mock(top.egon.cola.component.gateway.admin.group.repository.GatewayGroupRepository.class))
                 .withBean("gatewayReleaseService", top.egon.cola.component.gateway.admin.release.service.GatewayReleaseService.class,
                         () -> mock(top.egon.cola.component.gateway.admin.release.service.GatewayReleaseService.class))
+                .withBean("jdbcGatewayReleasePublicationRepository",
+                        top.egon.cola.component.gateway.admin.release.repository.GatewayReleasePublicationRepository.class,
+                        () -> mock(top.egon.cola.component.gateway.admin.release.repository.GatewayReleasePublicationRepository.class))
                 .withBean("gatewayProjectionClock", java.time.Clock.class,
                         () -> new GatewayAdminConfiguration().gatewayProjectionClock())
                 .withBean("unrelatedClock", java.time.Clock.class, java.time.Clock::systemDefaultZone)

@@ -2,6 +2,7 @@ package top.egon.cola.component.gateway.admin.release.domain.po;
 
 
 import java.time.Instant;
+import top.egon.cola.component.gateway.contract.runtime.GatewayEngineRoleEnum;
 
 
 /**
@@ -15,6 +16,7 @@ import java.time.Instant;
  * @param appliedVersion 参数 appliedVersion；parameter applied version。
  * @param appliedArtifactSha256 参数 applied制品Sha256；parameter applied artifact sha256。
  * @param errorCode 参数 errorCode；parameter error code。
+ * @param engineRole ACK 所属引擎角色；engine role that acknowledged the activation。
  * @param observedAt 参数 observedAt；parameter observed at。
  */
 public record GatewayReleaseTargetPO(
@@ -66,6 +68,7 @@ public record GatewayReleaseTargetPO(
          *
          * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.gateway.admin.release.domain.po.GatewayReleaseTargetPO}; do not couple callers to its representation when the owning type exposes an API.
          */
-        Instant observedAt
+        Instant observedAt,
+        GatewayEngineRoleEnum engineRole
 ) {
 }

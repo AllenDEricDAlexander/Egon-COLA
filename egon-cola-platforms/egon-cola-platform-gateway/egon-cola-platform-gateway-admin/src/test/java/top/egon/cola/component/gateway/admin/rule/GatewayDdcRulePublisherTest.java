@@ -115,11 +115,9 @@ class GatewayDdcRulePublisherTest {
                 new GatewayDdcRulePublisher(client);
 
         assertThatThrownBy(() -> publisher.ensureReadyTarget(
-                "infra",
-                "test",
-                "ge"
+                new top.egon.cola.component.gateway.admin.release.domain.dto.GatewayPublicationScopeDTO("infra", "test", "ge", top.egon.cola.component.gateway.contract.runtime.GatewayEngineRoleEnum.API_RPC)
         )).isInstanceOf(IllegalStateException.class)
-                .hasMessage("GATEWAY_RELEASE_NO_READY_TARGET");
+                .hasMessage("GATEWAY_RELEASE_NO_READY_TARGET: API_RPC");
     }
 
     private GatewayDdcPublicationCommand command(

@@ -374,6 +374,7 @@ export type ValidationReport = {
 }
 
 export type ReleaseTarget = {
+  engineRole?: GatewayEngineRole | null
   instanceId: string
   leaseId: string
   status: string

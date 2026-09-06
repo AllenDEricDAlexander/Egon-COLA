@@ -94,6 +94,12 @@ public interface GatewayReleaseRepository {
     CompiledGatewayRelease loadCompiled(String releaseId);
 
     /**
+     * 中文说明：仅查询持久化的制品 SHA，不加载完整 JSON 快照。
+     * English summary: Reads only the persisted artifact SHA, not the full JSON snapshot.
+     */
+    Optional<String> findArtifactSha256(String releaseId);
+
+    /**
      * 中文说明：执行 nextAttempt 操作；该方法是 {@code GatewayReleaseRepository} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
      * English summary: Executes the next attempt operation; this method is the invocation entry point on {@code GatewayReleaseRepository} and performs the corresponding runtime, management, or protocol work.
      *
