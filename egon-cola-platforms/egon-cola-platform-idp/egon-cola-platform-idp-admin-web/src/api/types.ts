@@ -9,9 +9,9 @@ export interface AuthorizationBootstrap {
         readonly status: string
     }
     readonly activeRoleContexts: readonly {
+        readonly roleId: string
+        readonly roleCode: string
         readonly applicationCode: string
-        readonly activationRoot: { readonly roleId: string }
-        readonly effectiveRoleIds: readonly string[]
     }[]
   readonly permissions: readonly string[]
     readonly apps: readonly unknown[]

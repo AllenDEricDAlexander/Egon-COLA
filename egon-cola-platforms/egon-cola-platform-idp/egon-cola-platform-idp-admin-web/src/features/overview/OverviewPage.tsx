@@ -16,7 +16,7 @@ export const OverviewPage = () => {
         retry: false,
     })
     if (!b) return null
-    const activeRoleIds = b.activeRoleContexts.flatMap((context) => context.effectiveRoleIds)
+    const activeRoleIds = b.activeRoleContexts.map((context) => context.roleId)
 
     const permissionModules = [
         {key: 'users', label: '全局用户', perm: 'idp:identity-user:read'},
@@ -54,7 +54,7 @@ export const OverviewPage = () => {
                   <Descriptions column={2} bordered size="small">
                       <Descriptions.Item label="全局身份">{b.user.identitySub}</Descriptions.Item>
                       <Descriptions.Item label="租户">{b.user.tenantId}</Descriptions.Item>
-                      <Descriptions.Item label="RBAC3 用户 ID">{b.user.id}</Descriptions.Item>
+                      <Descriptions.Item label="当前应用">{b.defaultApplicationCode ?? '未指定'}</Descriptions.Item>
                       <Descriptions.Item label="身份状态">{b.user.status}</Descriptions.Item>
                       <Descriptions.Item label="策略版本">{b.policyVersion}</Descriptions.Item>
                       <Descriptions.Item label="认证版本">{b.authVersion}</Descriptions.Item>
@@ -64,7 +64,7 @@ export const OverviewPage = () => {
           <Col xs={24} lg={10}>
               <Card title={<><TeamOutlined/> 活跃角色</>}>
                   {activeRoleIds.length === 0
-                      ? <Typography.Text type="secondary">无活跃角色</Typography.Text>
+                      ? <Typography.Text type="secondary">当前上下文未返回角色明细</Typography.Text>
                       : <Space wrap>{activeRoleIds.map((r) => <Tag key={r} color="purple">{r}</Tag>)}</Space>
                   }
               </Card>
