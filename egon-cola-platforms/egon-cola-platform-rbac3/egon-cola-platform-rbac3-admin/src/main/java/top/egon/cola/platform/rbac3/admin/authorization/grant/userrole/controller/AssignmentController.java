@@ -184,7 +184,7 @@ public class AssignmentController {
                         tenantId(), new CurrentRbac3User().require().rbac3UserId(), userId, request.roleId(),
                         request.assignmentType(), request.validFrom(), request.validTo(),
                         request.reason(), request.ticketNo(),
-                        "ACCESS_TOKEN",
+                        new CurrentRbac3User().require().identity().authenticationContext().acr(),
                         new CurrentRbac3User().require().hasPermission("system:platform:admin"),
                         request.expectedUserAuthVersion(), claim.recordId(), now));
         return complete(claim, result, now);
@@ -329,7 +329,7 @@ public class AssignmentController {
                 new RoleAssignmentChangeDTO(
                         tenantId(), new CurrentRbac3User().require().rbac3UserId(), userId, assignmentId, operation,
                         request.reason(), request.ticketNo(),
-                        "ACCESS_TOKEN",
+                        principal.identity().authenticationContext().acr(),
                         new CurrentRbac3User().require().hasPermission("system:platform:admin"),
                         request.expectedAssignmentVersion(),
                         request.expectedUserAuthVersion(), claim.recordId(), now));
