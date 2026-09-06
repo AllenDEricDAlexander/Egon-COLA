@@ -128,11 +128,20 @@ export const WujieChild = ({ manifest, context, onState }: WujieChildProps) => {
       url: resolveChildUrl(manifest.url, manifest.key, context.routeIntent),
       el: host,
       attrs: {src: 'about:blank'},
+      degradeAttrs: {title: manifest.displayName, style: 'display:block;width:100%;height:100%;border:0;box-shadow:none'},
       sync: false,
       fiber: false,
       // Vite development HTML contains HMR modules that are safer in Wujie's
       // supported degrade iframe; production keeps the normal sandbox path.
       degrade: import.meta.env.DEV,
+      // These styles exist only inside the embedded runtime, never in standalone applications.
+      plugins: [{cssAfterLoaders: [{content: `
+        html, body, #root { height: 100%; min-width: 0; margin: 0; }
+        #root > .ant-layout, #root > .ant-app, #root > .ant-app > .ant-layout {
+          height: 100%; min-height: 0 !important;
+        }
+        .ant-layout-content { min-height: 0; }
+      `}]}],
       props: safeProps,
       afterMount: () => onState({
         type: 'MOUNTED',
@@ -189,8 +198,9 @@ export const WujieChild = ({ manifest, context, onState }: WujieChildProps) => {
     <ChildErrorBoundary onCrash={() => onState({ type: 'CHILD_CRASHED', message: 'Child render failed' })}>
       <div
         ref={hostRef}
+        className="portal-child-host"
         data-testid={`wujie-host-${manifest.key}`}
-        style={{width: '100%', height: 'calc(100vh - 160px)', minHeight: 640, overflow: 'hidden'}}
+        style={{width: '100%', height: '100%', minHeight: 0, overflow: 'auto'}}
       />
     </ChildErrorBoundary>
   )

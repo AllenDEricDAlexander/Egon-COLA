@@ -49,13 +49,14 @@ describe('WujieChild', () => {
       url: expect.stringMatching(/\/overview$/),
       el: screen.getByTestId('wujie-host-idp'),
       attrs: {src: 'about:blank'},
+      degradeAttrs: {title: '身份与安全', style: 'display:block;width:100%;height:100%;border:0;box-shadow:none'},
       fiber: false,
       sync: false,
     }))
     expect(screen.getByTestId('wujie-host-idp')).toHaveStyle({
-      height: 'calc(100vh - 160px)',
-      minHeight: '640px',
-      overflow: 'hidden',
+      height: '100%',
+      minHeight: '0',
+      overflow: 'auto',
     })
   })
 

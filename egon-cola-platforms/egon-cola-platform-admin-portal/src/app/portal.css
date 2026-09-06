@@ -1,0 +1,39 @@
+.portal-layout,
+.portal-layout > .ant-layout {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0 !important;
+  overflow: hidden;
+}
+
+.portal-layout > .ant-layout > .ant-layout {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.portal-layout > .ant-layout > .ant-layout > .ant-layout-sider {
+  border-inline-end: 0 !important;
+}
+
+.portal-content,
+.portal-child-stage,
+.portal-child-mount,
+.portal-child-host {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.portal-child-host > iframe,
+.portal-child-host > wujie-app {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  box-shadow: none;
+}

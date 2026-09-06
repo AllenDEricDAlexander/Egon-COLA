@@ -2,14 +2,11 @@ import { useQuery } from '@tanstack/react-query'
 import { Alert, Button, Result, Space, Spin, Typography } from 'antd'
 import { useEffect, useReducer, useState } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
-import {
-  EnterpriseLayout,
-  PageHeader,
-} from '@egon-cola/admin-web-shared'
+import {PortalLayout} from '../app/PortalLayout'
 import { buildChildProps } from '../bridge/context'
 import { ManifestLoadError, PORTAL_HOST_VERSION, loadManifest } from '../manifest/loader'
 import type { PlatformKey } from '../manifest/types'
-import { PORTAL_PLATFORM_ITEMS, navigationFor } from './PortalHomePage'
+import { PORTAL_PLATFORM_ITEMS } from './PortalHomePage'
 import { WujieChild } from '../lifecycle/WujieChild'
 import {
   initialLifecycleState,
@@ -85,11 +82,6 @@ export const ChildRoutePage = () => {
   }, [lifecycle.status, remounting])
 
   const item = PORTAL_PLATFORM_ITEMS.find((candidate) => candidate.key === platformKey)
-  const config = {
-    platformName: 'Egon COLA Platform',
-    navigation: navigationFor(),
-    footer: { version: PORTAL_HOST_VERSION },
-  }
 
   let content: React.ReactNode
   if (!platformKey || !item) {
@@ -120,7 +112,7 @@ export const ChildRoutePage = () => {
       hostVersion: PORTAL_HOST_VERSION,
     })
     content = (
-      <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+      <div className="portal-child-stage">
         {isFailure && (
           <MountFailure
             message={lifecycle.status === 'CRASHED' ? '子应用运行异常' : '子应用加载失败'}
@@ -130,7 +122,7 @@ export const ChildRoutePage = () => {
           />
         )}
         {!remounting && (
-          <div style={isFailure ? { display: 'none' } : undefined}>
+          <div className="portal-child-mount" style={isFailure ? { display: 'none' } : undefined}>
             <WujieChild
               key={`${manifestQuery.data.key}:${mountKey}`}
               manifest={manifestQuery.data}
@@ -139,17 +131,13 @@ export const ChildRoutePage = () => {
             />
           </div>
         )}
-      </Space>
+      </div>
     )
   }
 
   return (
-    <EnterpriseLayout config={config}>
-      <PageHeader
-        title={item?.label ?? '平台'}
-        subtitle="子应用运行区；业务权限和数据仍由对应平台负责"
-      />
+    <PortalLayout>
       {content}
-    </EnterpriseLayout>
+    </PortalLayout>
   )
 }

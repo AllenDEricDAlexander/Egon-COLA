@@ -6,6 +6,8 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { startApp } from 'wujie'
 import { ChildRoutePage } from './ChildRoutePage'
 
+vi.mock('../auth/portalAuth', () => ({portalAuth: {userInfo: async () => null}}))
+
 const manifest = (overrides: Record<string, unknown> = {}) => ({
   key: 'gateway',
   displayName: 'API 网关',
@@ -62,6 +64,9 @@ describe('ChildRoutePage', () => {
     renderRoute('/platform/gateway/dashboard')
 
     await screen.findByTestId('wujie-host-gateway')
+    expect(screen.queryByText('子应用运行区；业务权限和数据仍由对应平台负责')).not.toBeInTheDocument()
+    expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument()
+    expect(screen.getByTestId('wujie-host-gateway').closest('.portal-child-stage')).not.toBeNull()
     expect(vi.mocked(startApp)).toHaveBeenCalledWith(expect.objectContaining({
       url: expect.stringMatching(/\/dashboard$/),
     }))

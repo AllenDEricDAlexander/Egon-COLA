@@ -1,9 +1,10 @@
 import { resolve as resolvePath } from 'node:path'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
+import {egonFaviconPlugin} from '@egon-cola/admin-web-shared/vite-plugin'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), egonFaviconPlugin()],
   publicDir: process.env.PORTAL_PUBLIC_DIR ?? 'public',
   resolve: {
     alias: {
@@ -23,6 +24,10 @@ export default defineConfig({
     port: 18125,
     strictPort: true,
     proxy: {
+      '/oauth2': {
+        target: process.env.PORTAL_AUTH_PROXY ?? 'http://127.0.0.1:18180',
+        changeOrigin: true,
+      },
       '/api': {
         target: process.env.PORTAL_API_PROXY ?? 'http://127.0.0.1:18100',
         changeOrigin: true,
