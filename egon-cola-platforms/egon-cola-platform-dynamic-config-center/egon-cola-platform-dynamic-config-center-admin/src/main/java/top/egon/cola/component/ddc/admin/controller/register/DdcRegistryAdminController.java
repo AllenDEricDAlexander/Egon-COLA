@@ -28,7 +28,7 @@ import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
         businessDomainName = "平台治理域",
         entityDomainCode = "ddc-admin",
         entityDomainName = "Dynamic Config Center 管理实体域",
-        interfaceGroupCode = "ddc-admin-ddc-registry-admin-controller"
+        interfaceGroupCode = "ddc"
 )
 public class DdcRegistryAdminController {
 

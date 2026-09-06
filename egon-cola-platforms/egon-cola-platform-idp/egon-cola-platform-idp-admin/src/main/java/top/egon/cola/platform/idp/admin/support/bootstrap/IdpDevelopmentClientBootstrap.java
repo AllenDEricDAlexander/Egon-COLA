@@ -723,7 +723,7 @@ public class IdpDevelopmentClientBootstrap
                 .map(scope -> "\"" + scope + "\"")
                 .collect(Collectors.joining(",", "[", "]"));
         for (String target : List.of("permission-idp-local", "permission-rbac3-local",
-                "platform-gateway-admin-local", "platform-ddc-local")) {
+                "platform-gateway-admin-local")) {
             Optional<IdentityClientResourceGrantEntity> existing =
                     grants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
                             "gateway-admin-service",
@@ -761,8 +761,10 @@ public class IdpDevelopmentClientBootstrap
     /** 给本地服务登记 DDC PLATFORM 注册授权。 */
     private void reconcileDdcPlatformServiceGrants() {
         String target = "platform-ddc-local";
-        String allowedScopes = "[\"ddc:registration:write\"]";
         DDC_REGISTRATION_CLIENTS.forEach(clientId -> {
+            String allowedScopes = "gateway-admin-service".equals(clientId)
+                    ? "[\"ddc:registration:write\",\"gateway.openapi.read\"]"
+                    : "[\"ddc:registration:write\"]";
             Optional<IdentityClientResourceGrantEntity> existing =
                     grants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
                             clientId,

@@ -25,7 +25,7 @@ import java.util.Objects;
         businessDomainName = "平台治理域",
         entityDomainCode = "identity-auth",
         entityDomainName = "统一身份认证上下文域",
-        interfaceGroupCode = "identity-auth-bootstrap"
+        interfaceGroupCode = "idp"
 )
 
 public final class IdentityAuthBootstrapController {

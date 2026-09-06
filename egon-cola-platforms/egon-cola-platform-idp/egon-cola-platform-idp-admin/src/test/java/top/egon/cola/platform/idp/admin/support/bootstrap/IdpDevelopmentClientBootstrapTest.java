@@ -238,7 +238,7 @@ class IdpDevelopmentClientBootstrapTest {
                             && grant.getGrantContext()
                             == top.egon.cola.platform.idp.contract.ServiceTokenContext.PLATFORM
                             && grant.getTenantId() == null
-                            && grant.getAllowedScopes().equals("[\"gateway.openapi.read\"]")));
+                            && grant.getAllowedScopes().contains("gateway.openapi.read")));
         }
         verify(grants, atLeastOnce()).save(any(
                 IdentityClientResourceGrantEntity.class
@@ -534,6 +534,25 @@ class IdpDevelopmentClientBootstrapTest {
         }
         verifyNoInteractions(bootstrapClients, bootstrapResources, bootstrapGrants,
                 bootstrapClientEntities, bootstrapProjections);
+    }
+
+    @Test
+    void retainsDdcRegistrationAndOpenApiScopesOnTheSamePlatformGrant() {
+        IdpDevelopmentClientBootstrap bootstrap = bootstrapFixture();
+        IdentityClientResourceGrantEntity existing = IdentityClientResourceGrantEntity.platformClientCredentials(
+                "existing-ddc-grant", "gateway-admin-service", "platform-ddc-local",
+                "[\"ddc:registration:write\"]", java.time.Instant.EPOCH);
+        when(bootstrapGrants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
+                "gateway-admin-service", "platform-ddc-local",
+                IdentityClientResourceGrantEntity.GrantType.CLIENT_CREDENTIALS, null))
+                .thenReturn(Optional.of(existing));
+
+        bootstrap.afterSingletonsInstantiated();
+
+        assertThat(existing.getAllowedScopes())
+                .isEqualTo("[\"ddc:registration:write\",\"gateway.openapi.read\"]");
+        assertThat(existing.getVersion()).isEqualTo(1);
+        verify(bootstrapGrants).save(existing);
     }
 
     private IdpDevelopmentClientBootstrap bootstrapFixture() {

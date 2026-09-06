@@ -29,7 +29,7 @@ import java.util.Objects;
         businessDomainName = "平台治理域",
         entityDomainCode = "ddc-admin",
         entityDomainName = "Dynamic Config Center 管理实体域",
-        interfaceGroupCode = "ddc-admin-ddc-auth-bootstrap-controller"
+        interfaceGroupCode = "ddc"
 )
 public class DdcAuthBootstrapController {
 

@@ -48,7 +48,7 @@ import java.util.TreeSet;
         businessDomainName = "平台治理域",
         entityDomainCode = "oauth-protocol",
         entityDomainName = "OAuth 协议域",
-        interfaceGroupCode = "idp-oauth-token"
+        interfaceGroupCode = "idp"
 )
 
 public class OAuthTokenController {
