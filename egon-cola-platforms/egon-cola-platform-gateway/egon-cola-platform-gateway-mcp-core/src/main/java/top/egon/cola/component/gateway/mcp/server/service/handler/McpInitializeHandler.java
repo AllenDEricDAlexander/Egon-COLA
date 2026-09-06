@@ -43,7 +43,7 @@ public final class McpInitializeHandler implements McpMethodHandler {
             McpRequestContext context) {
         return Mono.just(McpJsonRpcResponse.success(
                 request.id(),
-                McpServerDescription.result(
+                McpServerDescription.initializeResult(
                         new McpServerDescription.McpRequestContextView(
                                 context.server(),
                                 context.dialect().protocolVersion()

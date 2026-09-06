@@ -2,9 +2,12 @@ package top.egon.cola.component.gateway.mcp.server.service.handler;
 
 import top.egon.cola.component.gateway.contract.mcp.rule.McpRuntimeServer;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * 中文说明：{@code McpServerDescription} 是类型，位于当前 Gateway 模块的相关包中，负责MCP服务器Description相关的职责与边界。
@@ -13,6 +16,8 @@ import java.util.Map;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 final class McpServerDescription {
+
+    private static final String IMPLEMENTATION_VERSION = implementationVersion();
 
     /**
      * 中文说明：创建 {@code McpServerDescription} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
@@ -65,6 +70,55 @@ final class McpServerDescription {
                         "apps", Map.of("uiResources", true)
                 )
         );
+    }
+
+    /**
+     * 中文说明：按 Stable 初始化契约提供实现信息，指令位于结果顶层，不混入 RC Server 描述。
+     * English summary: Exposes Stable implementation metadata and top-level instructions without changing RC discovery.
+     *
+     * @param context 已协商的服务器和协议版本；negotiated server and protocol version。
+     * @return Stable 初始化结果；Stable initialization result。
+     */
+    static Map<String, Object> initializeResult(McpRequestContextView context) {
+        McpRuntimeServer server = context.server();
+        LinkedHashMap<String, Object> serverInfo = new LinkedHashMap<>();
+        serverInfo.put("name", server.serverCode());
+        serverInfo.put("title", server.name());
+        serverInfo.put("version", IMPLEMENTATION_VERSION);
+        if (server.description() != null) {
+            serverInfo.put("description", server.description());
+        }
+        LinkedHashMap<String, Object> result = new LinkedHashMap<>(result(context));
+        result.remove("server");
+        result.put("serverInfo", Collections.unmodifiableMap(serverInfo));
+        if (server.instructions() != null) {
+            result.put("instructions", server.instructions());
+        }
+        return Collections.unmodifiableMap(result);
+    }
+
+    /**
+     * 中文说明：读取当前 MCP Core 制品版本，IDE 未打包运行明确标记为 development。
+     * English summary: Reads the current MCP Core artifact version and identifies unpackaged IDE runs as development.
+     *
+     * @return 构建版本或 development；artifact version or development。
+     */
+    private static String implementationVersion() {
+        String path = "/META-INF/maven/top.egon/egon-cola-platform-gateway-mcp-core/pom.properties";
+        try (InputStream input = McpServerDescription.class.getResourceAsStream(path)) {
+            if (input == null) {
+                return "development";
+            }
+            Properties properties = new Properties();
+            properties.load(input);
+            String version = properties.getProperty("version");
+            if (version == null || version.isBlank()) {
+                throw new IllegalStateException("MCP implementation version is missing");
+            }
+            return version;
+        } catch (IOException failure) {
+            throw new IllegalStateException("Cannot read MCP implementation version", failure);
+        }
     }
 
     /**

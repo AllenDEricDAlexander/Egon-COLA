@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class McpMethodDispatcherTest {
@@ -45,7 +47,7 @@ class McpMethodDispatcherTest {
     );
 
     @Test
-    void dispatchesLifecycleAndNormalizesStableAndRcDescriptions() {
+    void dispatchesStableInitializationWithoutChangingRcDiscovery() {
         McpMethodDispatcher dispatcher = dispatcher();
 
         McpJsonRpcResponse initialize = response(dispatcher, request(
@@ -62,11 +64,44 @@ class McpMethodDispatcherTest {
                 request(3L, "ping", Map.of())
         );
 
-        assertEquals(
-                ((Map<?, ?>) initialize.result()).get("server"),
-                ((Map<?, ?>) discover.result()).get("server")
-        );
+        Map<?, ?> initialization = (Map<?, ?>) initialize.result();
+        Map<?, ?> serverInfo = (Map<?, ?>) initialization.get("serverInfo");
+        assertNotNull(serverInfo);
+        assertEquals("billing", serverInfo.get("name"));
+        assertEquals("Billing", serverInfo.get("title"));
+        assertFalse(((String) serverInfo.get("version")).isBlank());
+        assertEquals("Billing operations", serverInfo.get("description"));
+        assertFalse(serverInfo.containsKey("instructions"));
+        assertEquals("Use approved billing capabilities.", initialization.get("instructions"));
+        assertFalse(initialization.containsKey("server"));
+        assertEquals("2025-11-25", initialization.get("protocolVersion"));
+        assertNotNull(initialization.get("capabilities"));
+        Map<?, ?> rcDescription = (Map<?, ?>) ((Map<?, ?>) discover.result()).get("server");
+        assertEquals("billing", rcDescription.get("code"));
+        assertEquals("Billing", rcDescription.get("name"));
+        assertEquals("Use approved billing capabilities.", rcDescription.get("instructions"));
+        assertEquals("https://resource.egon.top/gateway-mcp", rcDescription.get("resourceUri"));
         assertEquals(Map.of(), ping.result());
+    }
+
+    @Test
+    void omitsAbsentOptionalInitializationMetadata() {
+        McpRequestContext minimal = new McpRequestContext(
+                new McpRuntimeServer(
+                        "minimal", "minimal", "Minimal", null, null,
+                        Set.of(McpProtocolDialect.STABLE_2025_11_25),
+                        "https://resource.egon.top/gateway-mcp", 0, true
+                ),
+                McpProtocolDialect.STABLE_2025_11_25, "session-minimal", Map.of()
+        );
+        McpJsonRpcResponse response = Mono.from(dispatcher().dispatch(
+                request(1L, "initialize", Map.of("protocolVersion", "2025-11-25")),
+                minimal
+        )).block();
+
+        Map<?, ?> result = (Map<?, ?>) response.result();
+        assertFalse(result.containsKey("instructions"));
+        assertFalse(((Map<?, ?>) result.get("serverInfo")).containsKey("description"));
     }
 
     @Test
