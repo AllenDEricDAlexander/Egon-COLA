@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.egon.cola.component.common.core.pojo.ResultRecord;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
 import top.egon.cola.component.gateway.openapi.annotation.EgonGatewayPolicy;
@@ -53,7 +54,9 @@ public class RoleResourceGrantController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
     )
-    public ResultRecord<RoleResourceGrantTreeVO> tree(@PathVariable String roleId) {
+    public ResultRecord<RoleResourceGrantTreeVO> tree(
+            @Parameter(description = "当前租户中待查询的角色 ID", required = true)
+            @PathVariable String roleId) {
         Rbac3UserDetails principal = new CurrentRbac3User().require();
         return ResultRecord.success(service.tree(
                 principal.tenantId(), roleId, clock.transactionNow()));
@@ -70,7 +73,10 @@ public class RoleResourceGrantController {
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
     )
     public ResultRecord<RoleResourceGrantMutationVO> replace(
+            @Parameter(description = "当前租户中待配置授权的角色 ID", required = true)
             @PathVariable String roleId,
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    description = "完整替换角色的直接资源授权，不修改角色继承关系", required = true)
             @RequestBody ReplaceRoleResourcesRequestDTO request) {
         Rbac3UserDetails principal = new CurrentRbac3User().require();
         return ResultRecord.success(service.replace(

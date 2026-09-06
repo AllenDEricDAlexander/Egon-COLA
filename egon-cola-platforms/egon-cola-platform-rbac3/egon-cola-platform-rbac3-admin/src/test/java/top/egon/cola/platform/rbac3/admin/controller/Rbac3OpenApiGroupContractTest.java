@@ -1,10 +1,15 @@
 package top.egon.cola.platform.rbac3.admin.controller;
 
 import org.junit.jupiter.api.Test;
+import io.swagger.v3.core.converter.AnnotatedType;
+import io.swagger.v3.core.converter.ModelConverters;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.models.media.Schema;
 import top.egon.cola.component.gateway.openapi.annotation.EgonApiCatalog;
 import top.egon.cola.platform.rbac3.admin.audit.controller.AuditController;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.business.controller.UserBusinessAccessController;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.controller.RoleResourceGrantController;
+import top.egon.cola.platform.rbac3.admin.authorization.grant.roleresource.domain.dto.ReplaceRoleResourcesRequestDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.grant.userrole.controller.AssignmentController;
 import top.egon.cola.platform.rbac3.admin.authorization.permission.controller.PermissionController;
 import top.egon.cola.platform.rbac3.admin.authorization.permission.controller.ResourcePermissionMappingController;
@@ -79,6 +84,38 @@ class Rbac3OpenApiGroupContractTest {
                 .isEqualTo("business-participation");
         assertThat(catalog(InternalAuthorizationController.class).interfaceGroupCode())
                 .isEqualTo("internal-authorization");
+    }
+
+    @Test
+    void roleResourceSchemasExposeFieldDescriptionsAndUnambiguousComponentNames() throws Exception {
+        var method = RoleResourceGrantController.class.getMethod("tree", String.class);
+        var resolved = ModelConverters.getInstance(true).resolveAsResolvedSchema(
+                new AnnotatedType(method.getGenericReturnType()).resolveAsRef(true));
+        String wrapperName = resolved.schema.get$ref().substring("#/components/schemas/".length());
+        Schema<?> wrapper = resolved.referencedSchemas.get(wrapperName);
+        assertThat(wrapper.getProperties().get("data").getDescription()).isNotBlank();
+        Schema<?> tree = resolved.referencedSchemas.get("RoleResourceGrantTreeVO");
+        assertThat(tree.getProperties().get("roleId").getDescription()).isEqualTo("角色 ID");
+        assertThat(tree.getProperties().get("nodes").getDescription()).isNotBlank();
+        assertThat(resolved.referencedSchemas).containsKeys(
+                "RoleResourceGrantNode", "RoleResourceGrantSummary", "RoleResourceLinkedApi");
+        for (String component : List.of(wrapperName, "RoleResourceGrantTreeVO",
+                "RoleResourceGrantNode", "RoleResourceGrantSummary", "RoleResourceLinkedApi")) {
+            Schema<?> componentSchema = resolved.referencedSchemas.get(component);
+            assertThat(componentSchema.getProperties().values())
+                    .allSatisfy(property -> assertThat(property.getDescription()).isNotBlank());
+        }
+        assertThat(method.getParameters()[0].getAnnotation(Parameter.class).description()).isNotBlank();
+        Schema<?> node = resolved.referencedSchemas.get("RoleResourceGrantNode");
+        assertThat(node.getProperties().get("parentCode").getTypes())
+                .containsExactlyInAnyOrder("string", "null");
+        var request = ModelConverters.getInstance(true).resolveAsResolvedSchema(
+                new AnnotatedType(ReplaceRoleResourcesRequestDTO.class).resolveAsRef(true));
+        Schema<?> requestSchema = request.referencedSchemas.get("ReplaceRoleResourcesRequestDTO");
+        assertThat(requestSchema.getProperties().get("resourceIds").getMaxItems()).isEqualTo(2000);
+        assertThat(requestSchema.getProperties().get("resourceIds").getUniqueItems()).isTrue();
+        assertThat(requestSchema.getProperties().get("validFrom").getTypes())
+                .containsExactlyInAnyOrder("string", "null");
     }
 
     private EgonApiCatalog catalog(Class<?> controller) {

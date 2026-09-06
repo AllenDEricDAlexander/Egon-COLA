@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import io.swagger.v3.oas.annotations.media.Schema;
 import top.egon.cola.component.common.core.enums.ErrorStatus;
 import top.egon.cola.component.common.core.enums.ResultCode;
 import top.egon.cola.component.common.core.exception.CommonException;
@@ -30,13 +31,13 @@ import java.time.Instant;
 @JsonInclude(JsonInclude.Include.ALWAYS)
 @JsonPropertyOrder({"success", "code", "status", "message", "data", "traceId", "timestamp"})
 public record ResultRecord<T>(
-        @JsonProperty("success") boolean success,
-        @JsonProperty("code") int code,
-        @JsonProperty("status") String status,
-        @JsonProperty("message") String message,
-        @JsonProperty("data") T data,
-        @JsonProperty("traceId") String traceId,
-        @JsonProperty("timestamp") Long timestamp
+        @JsonProperty("success") @Schema(description = "本次操作是否成功") boolean success,
+        @JsonProperty("code") @Schema(description = "稳定的业务结果码") int code,
+        @JsonProperty("status") @Schema(description = "业务结果状态标识") String status,
+        @JsonProperty("message") @Schema(description = "可向调用方展示的结果说明") String message,
+        @JsonProperty("data") @Schema(description = "业务返回数据；失败或无返回值时可为空") T data,
+        @JsonProperty("traceId") @Schema(description = "请求链路追踪 ID，可用于关联服务日志") String traceId,
+        @JsonProperty("timestamp") @Schema(description = "响应生成时间，Unix 毫秒时间戳") Long timestamp
 ) implements Serializable {
 
     @Serial
