@@ -133,6 +133,7 @@ export const TenantListPage = () => {
 
     const openEdit = () => {
         if (!detailTenant) return
+        // initialValues covers the lazy first mount; refresh a retained form when reopening.
         editForm.setFieldsValue({
             tenantName: detailTenant.tenantName,
             status: detailTenant.status,
@@ -362,7 +363,11 @@ export const TenantListPage = () => {
                 onOk={() => {void submitUpdate()}}
                 destroyOnHidden
             >
-                <Form form={editForm} layout="vertical" preserve={false}>
+                <Form form={editForm} layout="vertical" preserve={false} initialValues={{
+                    tenantName: detailTenant?.tenantName,
+                    status: detailTenant?.status,
+                    settings: JSON.stringify(detailTenant?.settings ?? {}, null, 2),
+                }}>
                     <Form.Item name="tenantName" label="租户名称" rules={[{required: true, max: 200}]}>
                         <Input/>
                     </Form.Item>
@@ -392,7 +397,11 @@ export const TenantListPage = () => {
                 onOk={() => {void submitMember()}}
                 destroyOnHidden
             >
-                <Form form={memberForm} layout="vertical" preserve={false}>
+                <Form form={memberForm} layout="vertical" preserve={false} initialValues={{
+                    identitySub: memberEdit?.identitySub ?? '',
+                    status: memberEdit?.status ?? 'ACTIVE',
+                    expectedVersion: memberEdit?.version,
+                }}>
                     <Form.Item name="identitySub" label="Identity Sub" rules={[{required: true}]}>
                         <Input disabled={!!memberEdit} autoComplete="off"/>
                     </Form.Item>

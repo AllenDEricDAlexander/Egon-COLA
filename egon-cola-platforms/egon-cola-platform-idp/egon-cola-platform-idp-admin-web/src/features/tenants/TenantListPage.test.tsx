@@ -1,7 +1,8 @@
-import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/react'
+import {cleanup, fireEvent, render, screen, waitFor, within} from '@testing-library/react'
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {MemoryRouter} from 'react-router-dom'
+import {ConfigProvider} from 'antd'
 import {TenantListPage} from './TenantListPage'
 
 const state = vi.hoisted(() => ({
@@ -47,9 +48,11 @@ const renderPage = () => {
     const queryClient = new QueryClient({defaultOptions: {queries: {retry: false}}})
     return render(
         <QueryClientProvider client={queryClient}>
-            <MemoryRouter initialEntries={['/tenants']}>
-                <TenantListPage/>
-            </MemoryRouter>
+            <ConfigProvider theme={{token: {motion: false}}}>
+                <MemoryRouter initialEntries={['/tenants']}>
+                    <TenantListPage/>
+                </MemoryRouter>
+            </ConfigProvider>
         </QueryClientProvider>,
     )
 }
@@ -77,6 +80,50 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('IdP tenant and membership administration', () => {
+    it('prefills tenant editing on first open and again after saving', async () => {
+        renderPage()
+        fireEvent.click(await screen.findByText('Acme'))
+        fireEvent.click(await screen.findByRole('button', {name: /编\s*辑/}))
+        const nameInput = await screen.findByLabelText('租户名称')
+        const form = within(nameInput.closest('form')!)
+        expect(nameInput).toHaveValue('Acme')
+        expect(form.getByText('ACTIVE')).toBeInTheDocument()
+        expect(form.getByLabelText('Settings JSON')).toHaveValue(JSON.stringify(tenant.settings, null, 2))
+        fireEvent.change(nameInput, {target: {value: 'Acme Updated'}})
+        fireEvent.click(screen.getByRole('button', {name: /确定|OK/}))
+        await waitFor(() => expect(state.request).toHaveBeenCalledWith(
+            '/api/v1/identity/tenants/tenant-1',
+            expect.objectContaining({
+                method: 'PATCH',
+                body: JSON.stringify({tenantName: 'Acme Updated', status: 'ACTIVE', settings: {region: 'cn'}, expectedVersion: 2}),
+            }),
+        ))
+        await waitFor(() => expect(nameInput).not.toBeVisible())
+        fireEvent.click(await screen.findByRole('button', {name: /编\s*辑/}))
+        const reopened = await screen.findByLabelText('租户名称')
+        expect(reopened).toHaveValue('Acme Updated')
+        expect(within(reopened.closest('form')!).getByText('ACTIVE')).toBeInTheDocument()
+    })
+
+    it('prefills the immutable member subject and current version before editing', async () => {
+        renderPage()
+        fireEvent.click(await screen.findByText('Acme'))
+        fireEvent.click(screen.getByRole('button', {name: /成员/}))
+        const row = await screen.findByRole('row', {name: /alice-sub/})
+        fireEvent.click(within(row).getByRole('button', {name: /编\s*辑/}))
+        const subject = await screen.findByLabelText('Identity Sub')
+        const form = within(subject.closest('form')!)
+        expect(subject).toHaveValue('alice-sub')
+        expect(subject).toBeDisabled()
+        expect(form.getByLabelText('成员版本（新建留空）')).toHaveValue(4)
+        expect(form.getByText('ACTIVE')).toBeInTheDocument()
+        fireEvent.click(screen.getByRole('button', {name: /确定|OK/}))
+        await waitFor(() => expect(state.request).toHaveBeenCalledWith(
+            '/api/v1/identity/tenants/tenant-1/members/alice-sub',
+            expect.objectContaining({method: 'PUT', body: JSON.stringify({status: 'ACTIVE', expectedVersion: 4})}),
+        ))
+    })
+
     it('guards management actions and maps tenant/member mutations to IdP APIs', async () => {
         renderPage()
         await waitFor(() => expect(screen.getByText('Acme')).toBeInTheDocument())
