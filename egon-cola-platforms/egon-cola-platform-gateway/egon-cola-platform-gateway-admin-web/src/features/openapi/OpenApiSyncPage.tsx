@@ -9,10 +9,12 @@ import {EmptyBlock, LoadingBlock, QueryFailure} from '../../components/QueryStat
 import {readScopeSearchParams, writeScopeSearchParams} from '../../hooks/scopeSearchParams'
 import {JsonPanel} from '../../components/JsonPanel'
 
+const failedStates = new Set(['INVALID', 'INCONSISTENT_BUILD', 'INGEST_FAILED', 'FETCH_FAILED'])
+
 const statusColor = (status: string): string => {
   if (status === 'VALID') return 'success'
-  if (['INVALID', 'INCONSISTENT_BUILD', 'INGEST_FAILED', 'FETCH_FAILED'].includes(status)) return 'error'
-  if (['STALE', 'FETCHING', 'VALIDATING', 'INGESTING'].includes(status)) return 'processing'
+  if (failedStates.has(status)) return 'error'
+  if (['FETCHING', 'VALIDATING', 'INGESTING'].includes(status)) return 'processing'
   return 'default'
 }
 
@@ -66,6 +68,12 @@ export const OpenApiSyncPage = () => {
                   {title: '最后成功', dataIndex: 'lastSuccessAt', render: (value: string | null) => value ?? '—'},
                   {title: '下次重试', dataIndex: 'nextRetryAt', render: (value: string | null) => value ?? '—'},
                   {
+                    title: '最近错误',
+                    render: (_value: unknown, state: GatewayOpenApiSyncState) => state.lastErrorCode
+                      ? <Typography.Text title={state.lastErrorMessage ?? undefined}>{state.lastErrorCode}</Typography.Text>
+                      : '—',
+                  },
+                  {
                     title: '快照',
                     render: (_value: unknown, state: GatewayOpenApiSyncState) => state.snapshotId
                       ? <Button size="small" onClick={() => setSnapshotId(state.snapshotId)}>查看文档</Button>
@@ -75,7 +83,7 @@ export const OpenApiSyncPage = () => {
               />
             ) : <EmptyBlock description="当前 Scope 没有 OpenAPI 同步记录" />}
       </Card>
-      {states.data?.some((state) => state.lastErrorCode) && (
+      {states.data?.some((state) => failedStates.has(state.status)) && (
         <Alert
           className="section-row"
           type="warning"

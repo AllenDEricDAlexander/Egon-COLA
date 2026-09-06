@@ -1,7 +1,7 @@
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
-import {fireEvent, render, screen, waitFor} from '@testing-library/react'
+import {cleanup, fireEvent, render, screen, waitFor} from '@testing-library/react'
 import {MemoryRouter} from 'react-router-dom'
-import {beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {gatewayApi} from '../../api/gatewayApi'
 import {OpenApiSyncPage} from './OpenApiSyncPage'
 
@@ -45,6 +45,7 @@ const state = {
 }
 
 describe('OpenApiSyncPage', () => {
+  afterEach(cleanup)
   beforeEach(() => {
     vi.stubGlobal('matchMedia', vi.fn().mockImplementation(() => ({
       matches: false,
@@ -83,4 +84,21 @@ describe('OpenApiSyncPage', () => {
     await waitFor(() => expect(screen.getByText('3.1.0')).toBeInTheDocument())
     expect(gatewayApi.openapiSnapshotDocument).toHaveBeenCalledWith('snapshot-1', expect.anything())
   })
+
+  it.each([['STALE', false], ['FETCH_FAILED', true]] as const)(
+    'reports errors for %s without treating retired builds as failures', async (status, warns) => {
+      vi.mocked(gatewayApi.openapiSyncStates).mockResolvedValue([
+        state,
+        {...state, id: 'old-sync', buildId: 'old-build', status, lastErrorCode: 'PROVIDER_ERROR'},
+      ])
+      render(
+        <QueryClientProvider client={new QueryClient({defaultOptions: {queries: {retry: false}}})}>
+          <MemoryRouter><OpenApiSyncPage /></MemoryRouter>
+        </QueryClientProvider>,
+      )
+      await screen.findByText(status)
+      expect(screen.getByText('PROVIDER_ERROR')).toBeInTheDocument()
+      await waitFor(() => expect(screen.queryByText('存在同步失败记录') !== null).toBe(warns))
+    },
+  )
 })
