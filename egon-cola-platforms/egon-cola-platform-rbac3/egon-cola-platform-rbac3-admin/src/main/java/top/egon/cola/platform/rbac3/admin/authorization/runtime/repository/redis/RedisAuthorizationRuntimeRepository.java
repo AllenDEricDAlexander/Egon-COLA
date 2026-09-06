@@ -3,11 +3,13 @@ package top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.redi
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.redisson.api.RBucket;
+import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
+import org.springframework.core.io.ClassPathResource;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.activation.domain.vo.RuntimePublicationVO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.activation.repository.RoleActivationRuntimeRepository;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.decision.domain.vo.SnapshotRecordVO;
@@ -18,6 +20,7 @@ import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.Publis
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.RuntimeUserAuthorizationVO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.vo.UserSnapshotProjectionVO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.RuntimePublicationRepository;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.InitialAuthorizationContextRepository;
 import top.egon.cola.platform.rbac3.contract.authorization.GatewayBizAppScopeSnapshot;
 import top.egon.cola.platform.rbac3.contract.authorization.UserAuthorizationSnapshot;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
@@ -26,6 +29,9 @@ import top.egon.cola.platform.rbac3.core.runtime.Rbac3RuntimeKeyFactory;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -42,24 +48,21 @@ public class RedisAuthorizationRuntimeRepository implements
     private final ObjectMapper objectMapper;
     private final Rbac3RuntimeKeyFactory keyFactory;
     private final Clock clock;
-
-    public RedisAuthorizationRuntimeRepository(
-            @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
-            ObjectMapper objectMapper,
-            Rbac3RuntimeKeyFactory keyFactory) {
-        this(redisson, objectMapper, keyFactory, Clock.systemUTC());
-    }
+    private final InitialAuthorizationContextRepository authorizationContext;
+    private static final String PUBLISH_SCRIPT = publicationScript();
 
     @Autowired
     public RedisAuthorizationRuntimeRepository(
             @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
             ObjectMapper objectMapper,
             Rbac3RuntimeKeyFactory keyFactory,
-            Clock clock) {
+            Clock clock,
+            InitialAuthorizationContextRepository authorizationContext) {
         this.redisson = Objects.requireNonNull(redisson, "redisson");
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
         this.keyFactory = Objects.requireNonNull(keyFactory, "keyFactory");
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.authorizationContext = Objects.requireNonNull(authorizationContext, "authorizationContext");
     }
 
     @Override
@@ -98,28 +101,21 @@ public class RedisAuthorizationRuntimeRepository implements
                 || !snapshot.expiresAt().equals(gatewayScope.expiresAt())) {
             throw new IllegalArgumentException("authorization publication identity mismatch");
         }
-        String currentJson = bucket(keyFactory.user(
-                command.tenantId(), command.identitySub())).get();
-        if (currentJson != null) {
-            RuntimeUserAuthorizationVO current = read(currentJson, RuntimeUserAuthorizationVO.class);
-            if (current.authVersion() > command.authVersion()) {
-                throw new IllegalStateException("RBAC3_RUNTIME_VERSION_CONFLICT");
-            }
+        requireCurrentAuthorization(user);
+        Long published = redisson.getScript(StringCodec.INSTANCE).eval(
+                RScript.Mode.READ_WRITE, PUBLISH_SCRIPT, RScript.ReturnType.INTEGER,
+                List.of(keyFactory.snapshot(command.tenantId(), command.identitySub(), command.authVersion()),
+                        keyFactory.gatewayScope(command.tenantId(), command.identitySub(), command.authVersion()),
+                        keyFactory.authVersion(command.tenantId(), command.userId()),
+                        keyFactory.policyVersion(command.tenantId()),
+                        keyFactory.user(command.tenantId(), command.identitySub()),
+                        keyFactory.authorizationPublicationGuard(command.tenantId(), command.identitySub())),
+                json(snapshot), json(gatewayScope), Long.toString(command.authVersion()),
+                Long.toString(command.policyVersion()), json(user), Long.toString(ttl(user.expiresAt()).toMillis()));
+        if (published == null || published < 0L) {
+            throw new IllegalStateException("RBAC3_RUNTIME_VERSION_CONFLICT");
         }
-        Duration ttl = ttl(user.expiresAt());
-        bucket(keyFactory.snapshot(command.tenantId(), command.identitySub(),
-                command.authVersion())).set(json(snapshot), ttl);
-        bucket(keyFactory.gatewayScope(command.tenantId(), command.identitySub(),
-                command.authVersion())).set(json(gatewayScope), ttl);
-        bucket(keyFactory.authVersion(command.tenantId(), command.userId()))
-                .set(Long.toString(command.authVersion()), ttl);
-        bucket(keyFactory.policyVersion(command.tenantId()))
-                .set(Long.toString(command.policyVersion()), ttl);
-        bucket(keyFactory.user(command.tenantId(), command.identitySub()))
-                .set(json(user), ttl);
-        bucket(keyFactory.authorizationPublicationGuard(
-                command.tenantId(), command.identitySub())).delete();
-        return new PublishResultVO(currentJson == null, snapshot.checksum());
+        return new PublishResultVO(published == 1L, snapshot.checksum());
     }
 
     @Override
@@ -187,6 +183,9 @@ public class RedisAuthorizationRuntimeRepository implements
                     || !snapshot.expiresAt().isAfter(now)) {
                 throw new Rbac3RuleViolation("AUTH_VERSION_MISMATCH");
             }
+            // The outbox may still be rebuilding after a committed revocation. Never
+            // authorize a Redis snapshot whose PostgreSQL versions are already stale.
+            requireCurrentAuthorization(user);
             return new SnapshotRecordVO(tenantId, identitySub, user.userId(), snapshot);
         } catch (Rbac3RuleViolation exception) {
             throw exception;
@@ -197,6 +196,26 @@ public class RedisAuthorizationRuntimeRepository implements
 
     private RBucket<String> bucket(String key) {
         return redisson.getBucket(key, StringCodec.INSTANCE);
+    }
+
+    private void requireCurrentAuthorization(RuntimeUserAuthorizationVO user) {
+        var current = authorizationContext.find(user.tenantId(), user.identitySub())
+                .orElseThrow(() -> new Rbac3RuleViolation("IDENTITY_INACTIVE"));
+        if (!current.userId().equals(user.userId()) || current.authVersion() != user.authVersion()) {
+            throw new Rbac3RuleViolation("AUTH_VERSION_MISMATCH");
+        }
+        if (current.policyVersion() != user.policyVersion()) {
+            throw new Rbac3RuleViolation("POLICY_VERSION_MISMATCH");
+        }
+    }
+
+    private static String publicationScript() {
+        try {
+            return new ClassPathResource("redis/rbac3-publish-authorization.lua")
+                    .getContentAsString(StandardCharsets.UTF_8);
+        } catch (IOException exception) {
+            throw new IllegalStateException("cannot load RBAC3 runtime publication script", exception);
+        }
     }
 
     private Duration ttl(Instant expiresAt) {
