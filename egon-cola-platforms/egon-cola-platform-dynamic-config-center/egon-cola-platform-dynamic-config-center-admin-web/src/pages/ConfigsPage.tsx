@@ -40,6 +40,8 @@ const emptyScope: ScopeValue = {
   appCode: '',
 }
 
+const configScopeLabel = (config: DdcConfig): string => `${config.bizCode} / ${config.env} / ${config.appCode}`
+
 export default function ConfigsPage() {
   const { message, modal } = App.useApp()
   const screens = Grid.useBreakpoint()
@@ -194,6 +196,7 @@ export default function ConfigsPage() {
   const confirmPublish = (config: DdcConfig) => {
     modal.confirm({
       title: `确认发布 ${config.resourceName} 当前版本？`,
+      content: `作用域：${configScopeLabel(config)}`,
       okText: '发布',
       onOk: () => publishMutation.mutateAsync(config),
     })
@@ -202,6 +205,7 @@ export default function ConfigsPage() {
   const confirmDelete = (config: DdcConfig) => {
     modal.confirm({
       title: `确认删除 ${config.resourceName}？`,
+      content: `作用域：${configScopeLabel(config)}`,
       okText: '删除',
       okButtonProps: { danger: true },
       onOk: () => deleteMutation.mutateAsync(config),
@@ -214,6 +218,7 @@ export default function ConfigsPage() {
   ) => {
     modal.confirm({
       title: `确认回滚到版本 ${version.version}？`,
+      content: `作用域：${configScopeLabel(config)}`,
       okText: '回滚',
       onOk: () => rollbackMutation.mutateAsync({ config, version }),
     })
@@ -224,6 +229,11 @@ export default function ConfigsPage() {
   }), [draftScope])
 
   const configColumns: TableColumnsType<DdcConfig> = [
+    {
+      title: '业务域 / 环境 / 应用',
+      key: 'scope',
+      render: (_: unknown, row) => <Typography.Text code>{configScopeLabel(row)}</Typography.Text>,
+    },
     {
       title: '配置文件',
       dataIndex: 'resourceName',

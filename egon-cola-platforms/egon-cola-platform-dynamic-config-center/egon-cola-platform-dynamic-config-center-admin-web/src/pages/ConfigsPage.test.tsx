@@ -1,4 +1,4 @@
-import {fireEvent, screen, waitFor} from '@testing-library/react'
+import {fireEvent, screen, waitFor, within} from '@testing-library/react'
 import {beforeEach, describe, expect, it, vi} from 'vitest'
 import {setDdcUnauthorizedHandler} from '../api/client'
 import {renderWithQueryClient} from '../test/renderWithQueryClient'
@@ -104,6 +104,8 @@ describe('ConfigsPage', () => {
     renderWithQueryClient(<ConfigsPage />)
 
     expect(await screen.findByText('业务配置')).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', {name: '业务域 / 环境 / 应用'})).toBeInTheDocument()
+    expect(screen.getByText('pay-biz / dev / orders')).toBeInTheDocument()
     expect(screen.getByText('共 13 条')).toBeInTheDocument()
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining(
@@ -135,6 +137,7 @@ describe('ConfigsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /发\s*布/ }))
     expect(await screen.findAllByText('确认发布 application.yml 当前版本？'))
       .not.toHaveLength(0)
+    expect(within(screen.getAllByRole('dialog').at(-1)!).getByText('作用域：pay-biz / dev / orders')).toBeInTheDocument()
     expect(vi.mocked(fetch).mock.calls.some(([input, init]) =>
       String(input).includes('/publish') && init?.method === 'POST')).toBe(false)
 
@@ -152,6 +155,7 @@ describe('ConfigsPage', () => {
     fireEvent.click(await screen.findByRole('menuitem', { name: /删\s*除/ }))
     expect(await screen.findAllByText('确认删除 application.yml？'))
       .not.toHaveLength(0)
+    expect(within(screen.getAllByRole('dialog').at(-1)!).getByText('作用域：pay-biz / dev / orders')).toBeInTheDocument()
     expect(vi.mocked(fetch).mock.calls.some(([input, init]) =>
       String(input) === '/api/v1/ddc/configs/cfg-1'
       && init?.method === 'DELETE')).toBe(false)
@@ -166,6 +170,7 @@ describe('ConfigsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /回\s*滚/ }))
     expect(await screen.findAllByText('确认回滚到版本 3？'))
       .not.toHaveLength(0)
+    expect(within(screen.getAllByRole('dialog').at(-1)!).getByText('作用域：pay-biz / dev / orders')).toBeInTheDocument()
     expect(vi.mocked(fetch).mock.calls.some(([input, init]) =>
       String(input).includes('/rollback') && init?.method === 'POST')).toBe(false)
     clickLastButton(/回\s*滚/)
