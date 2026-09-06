@@ -31,7 +31,7 @@ const baseRelease = {
   id: 'release-1',
   gatewayGroupId: 'group-1',
   draftRevision: 3,
-  status: 'SUCCEEDED',
+  status: 'SUCCESS',
   partialApplied: false,
   validationReport: { valid: true, errors: [], warnings: [] },
   structuredDiff: { routes: { changed: 1 } },
@@ -40,7 +40,7 @@ const baseRelease = {
   updatedAt: '2026-08-27T03:01:00Z',
   attempts: [{
     attemptNo: 1,
-    status: 'SUCCEEDED',
+    status: 'SUCCESS',
     startedAt: '2026-08-27T03:00:01Z',
     completedAt: '2026-08-27T03:00:02Z',
     targets: [{
@@ -117,6 +117,27 @@ describe('ReleaseDetailPage evidence state', () => {
     expect(screen.getByText('41')).toBeInTheDocument()
   })
 
+  it.each(['CREATED', 'VALIDATING', 'READY', 'PUBLISHING', 'SUCCESS', 'SUPERSEDED'])(
+    'does not offer retry for non-retryable backend status %s', async (status) => {
+      mocks.release.mockResolvedValue({ ...baseRelease, status })
+      renderPage()
+      await screen.findByText('Release release-1')
+      expect(screen.getByRole('button', { name: '使用原 Release 内容和原 Target 重试' })).toBeDisabled()
+      expect(mocks.retryRelease).not.toHaveBeenCalled()
+      const rollback = screen.getByRole('button', { name: '创建回滚 Release' })
+      if (status === 'SUCCESS') expect(rollback).toBeEnabled()
+      else expect(rollback).toBeDisabled()
+    },
+  )
+
+  it.each(['FAILED', 'TIMEOUT', 'UNKNOWN'])('allows retry but not rollback for %s', async (status) => {
+    mocks.release.mockResolvedValue({ ...baseRelease, status })
+    renderPage()
+    await screen.findByText('Release release-1')
+    expect(screen.getByRole('button', { name: '使用原 Release 内容和原 Target 重试' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: '创建回滚 Release' })).toBeDisabled()
+  })
+
   it('opens structured release diff through the existing API', async () => {
     renderPage()
 
@@ -128,12 +149,12 @@ describe('ReleaseDetailPage evidence state', () => {
   })
 
   it('does not render a partially applied release as successful', async () => {
-    mocks.release.mockResolvedValue({ ...baseRelease, partialApplied: true })
+    mocks.release.mockResolvedValue({ ...baseRelease, status: 'FAILED', partialApplied: true })
 
     renderPage()
 
     expect(await screen.findByText('该 Release 存在部分生效，不能视为成功。')).toBeInTheDocument()
-    expect(screen.getByText('SUCCEEDED（部分生效）')).toBeInTheDocument()
+    expect(screen.getByText('FAILED（部分生效）')).toBeInTheDocument()
     expect(screen.queryByText('发布成功')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '使用原 Release 内容和原 Target 重试' }))

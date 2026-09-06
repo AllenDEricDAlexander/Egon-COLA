@@ -17,16 +17,17 @@ const release = (status: string, partialApplied = false): GatewayRelease => ({
 
 describe('release evidence state', () => {
   it('never renders partial, failed, timeout, or unknown as success', () => {
-    expect(releaseOutcome(release('SUCCEEDED', true))).toBe('DANGER')
+    expect(releaseOutcome(release('SUCCESS', true))).toBe('DANGER')
     expect(releaseOutcome(release('FAILED'))).toBe('DANGER')
     expect(releaseOutcome(release('TIMEOUT'))).toBe('DANGER')
     expect(releaseOutcome(release('UNKNOWN'))).toBe('DANGER')
-    expect(releaseOutcome(release('SUCCEEDED'))).toBe('SUCCESS')
+    expect(releaseOutcome(release('SUCCESS'))).toBe('SUCCESS')
   })
 
   it('polls only visible non-terminal releases', () => {
     expect(shouldPollRelease(release('PUBLISHING'), true)).toBe(true)
     expect(shouldPollRelease(release('PUBLISHING'), false)).toBe(false)
-    expect(shouldPollRelease(release('SUCCEEDED'), true)).toBe(false)
+    expect(shouldPollRelease(release('SUCCESS'), true)).toBe(false)
+    expect(shouldPollRelease(release('SUPERSEDED'), true)).toBe(false)
   })
 })

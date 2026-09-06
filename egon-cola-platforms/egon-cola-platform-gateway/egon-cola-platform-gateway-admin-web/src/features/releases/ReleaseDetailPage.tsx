@@ -72,6 +72,8 @@ export const ReleaseDetailPage = () => {
   if (release.isLoading) return <LoadingBlock />
   if (release.error || !release.data) return <QueryFailure error={release.error} />
   const status = release.data.status.toUpperCase()
+  const retryable = ['FAILED', 'TIMEOUT', 'UNKNOWN'].includes(status)
+  const rollbackSource = status === 'SUCCESS' && !release.data.partialApplied
   const recoveryMessage = release.data.partialApplied
     ? '该 Release 存在部分生效，不能视为成功。'
     : status === 'FAILED'
@@ -89,8 +91,10 @@ export const ReleaseDetailPage = () => {
           type="error"
           showIcon
           title={recoveryMessage}
-          description="请核对 Target ACK、结构化 Diff 和审计记录；确认后可使用原 Release 内容和原 Target 重试。"
-          action={canPublish ? (
+          description={retryable
+            ? '请核对 Target ACK、结构化 Diff 和审计记录；确认后可使用原 Release 内容和原 Target 重试。'
+            : '请核对 Target ACK、结构化 Diff 和审计记录；当前状态不允许重试。'}
+          action={canPublish && retryable ? (
             <Button size="small" disabled={retry.isPending} onClick={() => retry.mutate()}>
               重试该 Release
             </Button>
@@ -109,10 +113,10 @@ export const ReleaseDetailPage = () => {
           <Button onClick={() => setDiffOpen(true)}>
             查看 Release Diff
           </Button>
-          <Button disabled={!canPublish || retry.isPending} loading={retry.isPending} onClick={() => retry.mutate()}>
+          <Button disabled={!canPublish || !retryable || retry.isPending} loading={retry.isPending} onClick={() => retry.mutate()}>
             使用原 Release 内容和原 Target 重试
           </Button>
-          <Button danger disabled={!canRollback || rollback.isPending} onClick={() => {
+          <Button danger disabled={!canRollback || !rollbackSource || rollback.isPending} onClick={() => {
             setActionError(undefined)
             setRollbackOpen(true)
           }}>

@@ -1,6 +1,6 @@
 import type { GatewayRelease } from '../../api/types'
 
-const terminal = new Set(['SUCCEEDED', 'FAILED', 'TIMEOUT', 'UNKNOWN', 'ROLLED_BACK'])
+const terminal = new Set(['SUCCESS', 'FAILED', 'TIMEOUT', 'UNKNOWN', 'SUPERSEDED'])
 
 export const shouldPollRelease = (
   release: GatewayRelease | undefined,
@@ -11,7 +11,7 @@ export const releaseOutcome = (
   release: Pick<GatewayRelease, 'status' | 'partialApplied'>,
 ): 'SUCCESS' | 'DANGER' | 'PROGRESS' => {
   if (release.partialApplied) return 'DANGER'
-  if (release.status.toUpperCase() === 'SUCCEEDED') return 'SUCCESS'
+  if (release.status.toUpperCase() === 'SUCCESS') return 'SUCCESS'
   if (['FAILED', 'TIMEOUT', 'UNKNOWN'].includes(release.status.toUpperCase())) return 'DANGER'
   return 'PROGRESS'
 }
