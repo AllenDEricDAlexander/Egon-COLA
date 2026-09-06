@@ -12,7 +12,6 @@ export type Capability =
   | 'gateway:mcp:read'
   | 'gateway:mcp:write'
   | 'gateway:mcp:test'
-  | 'gateway:mcp:release'
   | 'gateway:mcp:approve'
   | 'gateway:mcp:runtime:read'
 

@@ -11,7 +11,6 @@ export const McpCapabilityPreview = ({ serverId, gatewayGroupId }: {
   gatewayGroupId: string
 }) => {
   const navigate = useNavigate()
-  const canRelease = useCapability('gateway:mcp:release')
   const canPublish = useCapability('gateway:releases:write')
   const preview = useQuery({
     queryKey: ['mcp-capability-preview', serverId],
@@ -33,7 +32,7 @@ export const McpCapabilityPreview = ({ serverId, gatewayGroupId }: {
         </Button>
         <Button
           type="primary"
-          disabled={!canRelease || !canPublish || report?.valid !== true}
+          disabled={!canPublish || report?.valid !== true}
           onClick={() => navigate(`/gateway-groups/${gatewayGroupId}/releases`)}
         >
           发布
