@@ -24,6 +24,7 @@ public final class SystemAuthorizationSnapshotService {
     private static final Duration DEFAULT_TTL = Duration.ofHours(12);
     private static final String RBAC3_ADMIN_SYSTEM = "rbac3-admin";
     private static final Set<String> ROLE_ACTIVATION_PERMISSIONS = Set.of(
+            "system:about:read",
             "system:role-activation:read",
             "system:role-activation:use"
     );

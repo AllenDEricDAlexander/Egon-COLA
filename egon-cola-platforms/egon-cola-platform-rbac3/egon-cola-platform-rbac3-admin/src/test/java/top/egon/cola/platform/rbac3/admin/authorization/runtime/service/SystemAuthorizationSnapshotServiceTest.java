@@ -3,6 +3,8 @@ package top.egon.cola.platform.rbac3.admin.authorization.runtime.service;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.repository.InitialAuthorizationContextRepository.InitialAuthorizationContext;
 import top.egon.cola.platform.rbac3.core.rule.Rbac3RuleViolation;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.decision.controller.Rbac3AboutController;
+import top.egon.cola.platform.rbac3.starter.security.RequiresPermission;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -17,7 +19,14 @@ class SystemAuthorizationSnapshotServiceTest {
     private static final Instant NOW = Instant.parse("2026-08-23T12:00:00Z");
 
     @Test
-    void exposesOnlyRoleActivationPermissionsBeforeFirstRuntimeSnapshot() {
+    void initialContextCanReadItsOwnAboutEndpointToRenderRoleSelection() throws Exception {
+        String permission = Rbac3AboutController.class.getMethod("about")
+                .getAnnotation(RequiresPermission.class).value();
+        assertThat(service().snapshot("1", "alice-sub", "rbac3-admin").permissions()).contains(permission);
+    }
+
+    @Test
+    void exposesOnlySelfContextAndRoleActivationPermissionsBeforeFirstRuntimeSnapshot() {
         var service = service();
 
         var snapshot = service.snapshot("1", "alice-sub", "rbac3-admin");
@@ -25,6 +34,7 @@ class SystemAuthorizationSnapshotServiceTest {
         assertThat(snapshot.rbac3UserId()).isEqualTo("101");
         assertThat(snapshot.activeRoleIds()).isEmpty();
         assertThat(snapshot.permissions()).containsExactlyInAnyOrder(
+                "system:about:read",
                 "system:role-activation:read",
                 "system:role-activation:use"
         );
@@ -40,6 +50,16 @@ class SystemAuthorizationSnapshotServiceTest {
                 "1", "alice-sub", "idp-admin"))
                 .isInstanceOf(Rbac3RuleViolation.class)
                 .hasMessage("AUTH_SNAPSHOT_NOT_READY");
+    }
+
+    @Test
+    void staleSnapshotsDoNotFallBackToTheInitialContext() {
+        var service = new SystemAuthorizationSnapshotService(
+                (tenant, subject) -> { throw new Rbac3RuleViolation("POLICY_VERSION_MISMATCH"); },
+                (tenant, subject) -> Optional.of(new InitialAuthorizationContext("101", 1L, 2L)),
+                Clock.fixed(NOW, ZoneOffset.UTC));
+        assertThatThrownBy(() -> service.snapshot("1", "alice-sub", "rbac3-admin"))
+                .hasMessage("POLICY_VERSION_MISMATCH");
     }
 
     @Test

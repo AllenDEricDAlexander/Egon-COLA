@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.activation.domain.dto.ReplaceCommandDTO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.activation.domain.vo.ActivationFactsVO;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.activation.domain.vo.CurrentStateVO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.activation.domain.vo.ApplicationFactVO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.activation.domain.vo.ResolvedActivationVO;
 import top.egon.cola.platform.rbac3.admin.authorization.runtime.activation.domain.vo.TransactionResultVO;
@@ -86,6 +87,15 @@ class RoleActivationRefreshTest {
         var result = facade.replace(command("11"));
         assertThat(result.authVersion()).isEqualTo(3L);
         verify(runtime).publish(any());
+    }
+
+    @Test
+    void initialSelectionStateUsesTheDatabasePolicyVersionAndRequiresActivation() {
+        when(transaction.current("7", "subject", "9", NOW))
+                .thenReturn(new CurrentStateVO(Map.of(), 3L, 0L, "unavailable", false));
+        var result = facade.current("7", "subject", "9");
+        assertThat(result.activationRequired()).isTrue();
+        assertThat(result.policyVersion()).isEqualTo(8L);
     }
 
     private ReplaceCommandDTO command(String root) {

@@ -160,9 +160,9 @@ public final class RoleActivationFacade {
         CurrentStateVO state = transaction.current(tenantId, identitySub, userId, now);
         return new ActiveRoleSetView(
                 activeRoles(state.rootsByApplication(), facts),
-                state.activationRequired(),
+                state.rootsByApplication().isEmpty(),
                 state.authVersion(),
-                state.policyVersion(),
+                facts.policyVersion(),
                 state.snapshotChecksum() == null ? "unavailable" : state.snapshotChecksum());
     }
 
