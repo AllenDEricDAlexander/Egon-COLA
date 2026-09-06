@@ -33,11 +33,18 @@ const pairs = <T extends PolicySubject | PolicyScope>(value: string, referenceFi
     return { type, [referenceField]: reference || null } as unknown as T
   })
 
+// datetime-local displays local wall time; retain seconds and milliseconds when editing an existing policy.
+const localDateTime = (value: string | null | undefined): string | undefined => {
+  if (!value) return undefined
+  const date = new Date(value)
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, -1)
+}
+
 const values = (policy: ManagementPolicyView | null): Partial<PolicyForm> => ({
   policyCode: policy?.policyCode,
   name: policy?.name,
-  validFrom: policy?.validFrom.slice(0, 16),
-  validTo: policy?.validTo?.slice(0, 16),
+  validFrom: localDateTime(policy?.validFrom),
+  validTo: localDateTime(policy?.validTo),
   subjects: policy?.subjects.map((subject) => `${subject.type}:${subject.id}`).join(', '),
   scopes: policy?.scopes.map((scope) => `${scope.type}:${scope.referenceId ?? ''}`).join(', '),
   activationRootRoleIds: policy?.activationRootRoleIds.join(', '),
@@ -79,15 +86,15 @@ export const ManagementPolicyEditor = ({ open, policy, saving, onCancel, onSave 
     >
       <Form.Item name="policyCode" label="策略编码" rules={[{ required: true }]}><Input disabled={policy !== null} /></Form.Item>
       <Form.Item name="name" label="名称" rules={[{ required: true }]}><Input /></Form.Item>
-      <Form.Item name="validFrom" label="生效时间" rules={[{ required: true }]}><Input type="datetime-local" /></Form.Item>
-      <Form.Item name="validTo" label="失效时间"><Input type="datetime-local" /></Form.Item>
+      <Form.Item name="validFrom" label="生效时间" rules={[{ required: true }]}><Input type="datetime-local" step="0.001" /></Form.Item>
+      <Form.Item name="validTo" label="失效时间"><Input type="datetime-local" step="0.001" /></Form.Item>
       <Form.Item name="subjects" label="Subject 集合（TYPE:ID，逗号分隔）" rules={[{ required: true }]}><Input.TextArea /></Form.Item>
       <Form.Item name="scopes" label="Scope 集合（TYPE:REFERENCE，逗号分隔）" rules={[{ required: true }]}><Input.TextArea /></Form.Item>
       <Form.Item name="activationRootRoleIds" label="激活根角色白名单（逗号分隔）" rules={[{ required: true }]}><Input.TextArea /></Form.Item>
       <Form.Item name="operations" label="操作集合（逗号分隔）" rules={[{ required: true }]}><Input.TextArea /></Form.Item>
       <Form.Item name="maximumAssignmentDays" label="最长任职天数"><InputNumber min={1} precision={0} style={{ width: '100%' }} /></Form.Item>
       <Form.Item name="maximumRiskLevel" label="最高风险等级" rules={[{ required: true }]}><Select options={['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'].map((value) => ({ value }))} /></Form.Item>
-      <Form.Item name="requiredAuthenticationStrength" label="最低认证强度" rules={[{ required: true }]}><Select options={['PASSWORD', 'MFA', 'HARDWARE_KEY'].map((value) => ({ value }))} /></Form.Item>
+      <Form.Item name="requiredAuthenticationStrength" label="最低认证强度" rules={[{ required: true }]}><Select options={['PASSWORD', 'MFA', 'STRONG'].map((value) => ({ value }))} /></Form.Item>
       <Form.Item name="requireReason" valuePropName="checked"><Checkbox>必须填写原因</Checkbox></Form.Item>
       <Form.Item name="requireTicket" valuePropName="checked"><Checkbox>必须填写外部工单号</Checkbox></Form.Item>
       <Form.Item name="includeInheritedSubjectRoles" valuePropName="checked"><Checkbox>Subject 角色包含继承角色</Checkbox></Form.Item>
