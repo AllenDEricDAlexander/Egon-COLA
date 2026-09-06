@@ -1068,6 +1068,10 @@ resolve_existing_service_tenant_id() {
   fi
   if database_table_exists "${idp_database}" public.identity_tenant \
       || database_table_exists "${rbac3_database}" public.rbac3_tenant; then
+    if database_table_exists "${idp_database}" public.identity_tenant \
+        && ! database_row_exists "${idp_database}" 'select count(*) from identity_tenant'; then
+      return
+    fi
     service_tenant_id="$(rbac3_tenant_id "${service_tenant_id}")"
   fi
 }
@@ -1086,11 +1090,20 @@ rbac3_jdbc_url() {
       'select count(*) from rbac3_tenant')"
   fi
   bootstrap_tenant_ids="${service_tenant_id}"
+  # The first IdP process creates tenant authority. RBAC3 is not started until
+  # the generated environment is rewritten with those exact numeric IDs.
+  if [[ "${bootstrap_tenant_ids}" == "default" && -z "${tenant_authority_artifact}" ]]; then
+    printf '%s' "${base}"
+    return
+  fi
   if [[ -n "${tenant_authority_artifact}" \
       && -s "${tenant_authority_artifact}" ]]; then
     bootstrap_tenant_ids="$(jq -er \
       '[.tenants[].id] | unique | join(",")' \
       "${tenant_authority_artifact}")"
+  elif database_table_exists "${idp_database}" public.identity_tenant; then
+    bootstrap_tenant_ids="$(psql_command "${idp_database}" -Atqc \
+      "select string_agg(id, ',' order by tenant_code) from identity_tenant where tenant_code in ('default', 'tenant-b')")"
   fi
   [[ "${bootstrap_tenant_ids}" =~ ^[1-9][0-9]{0,18}(,[1-9][0-9]{0,18})*$ ]] \
     || fail "RBAC3 bootstrap tenant IDs are invalid"
@@ -2059,6 +2072,7 @@ command_start() {
   wait_http idp "${idp_url}/actuator/health/readiness"
   stage "adopting IdP tenant authority and local confidential app IDs"
   adopt_local_idp_authority
+  resolve_existing_service_tenant_id
   write_service_env_files
   write_application_build_ids
   stage "issuing IdP-owned service credentials"

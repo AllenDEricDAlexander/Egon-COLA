@@ -292,6 +292,10 @@ public class IdpDevelopmentClientBootstrap
     @Qualifier("resourceServerProjectionService")
     private final ResourceServerProjectionService projections;
 
+    /** IdP 本地租户初始化；IdP-owned local tenant initialization. */
+    @NonNull
+    private final IdpDevelopmentTenantBootstrap developmentTenants;
+
     /** 本地机器 Client Secret 目录；local machine-Client Secret directory. */
     @NonNull
     @Value("${egon.idp.development-bootstrap.key-directory:target/local-unified-platform/secrets}")
@@ -311,7 +315,8 @@ public class IdpDevelopmentClientBootstrap
     public void afterSingletonsInstantiated() {
         // 在任何身份写入前校验配置；validate configuration before identity side effects.
         Path.of(secretDirectory);
-        tenantIds(rbac3ServiceTenantIds);
+        Set<String> serviceTenantIds = developmentTenants.resolveTenantIds(
+                tenantIds(rbac3ServiceTenantIds));
         Map<String, OAuthClientVO> existing =
                 clients.list().stream().collect(Collectors.toUnmodifiableMap(
                         OAuthClientVO::clientId,
@@ -325,12 +330,12 @@ public class IdpDevelopmentClientBootstrap
                 existing.get(client.clientId())
         ));
         RESOURCES.forEach(this::reconcileResourceAndGrant);
-        reconcileRbac3ServiceGrants();
+        reconcileRbac3ServiceGrants(serviceTenantIds);
         reconcileGatewayOpenApiServiceGrant();
         reconcileDdcPlatformServiceGrants();
         reconcileGatewayRefreshStatusGrant();
-        reconcileGatewayAdminServiceGrants();
-        reconcileMcpTaskServiceGrants();
+        reconcileGatewayAdminServiceGrants(serviceTenantIds);
+        reconcileMcpTaskServiceGrants(serviceTenantIds);
         log.info("Reconciled local IdP development Client and Resource Server definitions");
     }
 
@@ -581,8 +586,7 @@ public class IdpDevelopmentClientBootstrap
      *
      * <p>Explicitly grants services that query USER permissions access to the RBAC3 Resource.</p>
      */
-    private void reconcileRbac3ServiceGrants() {
-        Set<String> rbac3ServiceTenantIds = tenantIds(this.rbac3ServiceTenantIds);
+    private void reconcileRbac3ServiceGrants(Set<String> rbac3ServiceTenantIds) {
         String target = "permission-rbac3-local";
         String allowedScopes = RBAC3_SERVICE_SCOPES.stream()
                 .sorted()
@@ -662,8 +666,7 @@ public class IdpDevelopmentClientBootstrap
      * <p>Explicitly grants the Gateway Admin control-plane Client the IdP-signed management
      * scopes used by the local catalog and route publisher.</p>
      */
-    private void reconcileGatewayAdminServiceGrants() {
-        Set<String> rbac3ServiceTenantIds = tenantIds(this.rbac3ServiceTenantIds);
+    private void reconcileGatewayAdminServiceGrants(Set<String> rbac3ServiceTenantIds) {
         String target = "platform-gateway-admin-local";
         String allowedScopes = GATEWAY_ADMIN_SERVICE_SCOPES.stream()
                 .sorted()
@@ -845,8 +848,7 @@ public class IdpDevelopmentClientBootstrap
      * Explicitly grants the Gateway Engine asynchronous MCP worker access to the target
      * Provider Resource.
      */
-    private void reconcileMcpTaskServiceGrants() {
-        Set<String> rbac3ServiceTenantIds = tenantIds(this.rbac3ServiceTenantIds);
+    private void reconcileMcpTaskServiceGrants(Set<String> rbac3ServiceTenantIds) {
         String allowedScopes = MCP_TASK_SERVICE_SCOPES.stream()
                 .sorted()
                 .map(scope -> "\"" + scope + "\"")

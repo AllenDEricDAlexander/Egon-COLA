@@ -76,6 +76,7 @@ class IdpDevelopmentClientBootstrapTest {
                         grants,
                         clientEntities,
                         projections,
+                        tenantBootstrap(),
                         secretDirectory.toString(),
                         "default"
                 );
@@ -284,6 +285,7 @@ class IdpDevelopmentClientBootstrapTest {
                         grants,
                         clientEntities,
                         projections,
+                        tenantBootstrap(),
                         secretDirectory.toString(),
                         "tenant-42,tenant-84"
                 );
@@ -353,6 +355,7 @@ class IdpDevelopmentClientBootstrapTest {
                         grants,
                         clientEntities,
                         projections,
+                        tenantBootstrap(),
                         secretDirectory.toString(),
                         "default"
                 );
@@ -496,7 +499,8 @@ class IdpDevelopmentClientBootstrapTest {
         var constructor = IdpDevelopmentClientBootstrap.class.getConstructor(
                 OAuthClientService.class, IdentityResourceServerRepository.class,
                 IdentityClientResourceGrantRepository.class, IdentityClientRepository.class,
-                ResourceServerProjectionService.class, String.class, String.class);
+                ResourceServerProjectionService.class, IdpDevelopmentTenantBootstrap.class,
+                String.class, String.class);
         var parameters = constructor.getParameters();
         List<String> beanNames = List.of(
                 new AnnotationBeanNameGenerator().generateBeanName(
@@ -510,9 +514,9 @@ class IdpDevelopmentClientBootstrapTest {
             assertThat(qualifier).isNotNull();
             assertThat(qualifier.value()).isEqualTo(beanNames.get(index));
         }
-        assertThat(parameters[5].getAnnotation(Value.class).value()).isEqualTo(
-                "${egon.idp.development-bootstrap.key-directory:target/local-unified-platform/secrets}");
         assertThat(parameters[6].getAnnotation(Value.class).value()).isEqualTo(
+                "${egon.idp.development-bootstrap.key-directory:target/local-unified-platform/secrets}");
+        assertThat(parameters[7].getAnnotation(Value.class).value()).isEqualTo(
                 "${egon.idp.development-bootstrap.rbac3-service-tenant-ids:default}");
         assertThat(IdpDevelopmentClientBootstrap.class.getAnnotation(Component.class).value())
                 .isEqualTo("idpDevelopmentClientBootstrap");
@@ -524,6 +528,7 @@ class IdpDevelopmentClientBootstrapTest {
             assertThatThrownBy(() -> new IdpDevelopmentClientBootstrap(
                     bootstrapClients, bootstrapResources, bootstrapGrants,
                     bootstrapClientEntities, bootstrapProjections,
+                    tenantBootstrap(),
                     secretDirectory.toString(), tenants).afterSingletonsInstantiated())
                     .isInstanceOf(IllegalArgumentException.class);
         }
@@ -538,7 +543,13 @@ class IdpDevelopmentClientBootstrapTest {
                 Optional.of(machineClient(invocation.getArgument(0))));
         return new IdpDevelopmentClientBootstrap(
                 bootstrapClients, bootstrapResources, bootstrapGrants,
-                bootstrapClientEntities, bootstrapProjections, secretDirectory.toString(), "default");
+                bootstrapClientEntities, bootstrapProjections, tenantBootstrap(), secretDirectory.toString(), "default");
+    }
+
+    private IdpDevelopmentTenantBootstrap tenantBootstrap() {
+        IdpDevelopmentTenantBootstrap bootstrap = mock(IdpDevelopmentTenantBootstrap.class);
+        when(bootstrap.resolveTenantIds(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        return bootstrap;
     }
 
     private static IdentityResourceServerEntity gatewayResource(

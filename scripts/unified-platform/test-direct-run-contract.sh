@@ -178,7 +178,24 @@ rbac3_tenant_id() {
 resolve_existing_service_tenant_id
 [[ "${service_tenant_id}" == '73001' ]] \
   || fail 'an explicit numeric service tenant ID must be preserved'
-unset -f database_table_exists rbac3_tenant_id
+service_tenant_id=default
+database_table_exists() { [[ "$1" == 'idp-test' ]]; }
+database_row_exists() { return 1; }
+resolve_existing_service_tenant_id
+[[ "${service_tenant_id}" == 'default' ]] \
+  || fail 'an empty IdP catalog must wait for local tenant bootstrap'
+function_file="${temporary_dir}/rbac3-jdbc-url.sh"
+extract_function rbac3_jdbc_url "${function_file}"
+(
+  source "${function_file}"
+  postgres_host=127.0.0.1
+  postgres_port=5432
+  tenant_authority_artifact=
+  database_table_exists() { return 1; }
+  [[ "$(rbac3_jdbc_url)" == 'jdbc:postgresql://127.0.0.1:5432/rbac3-test' ]] \
+    || fail 'fresh prepare must not emit a fake numeric tenant or authority gate'
+)
+unset -f database_table_exists database_row_exists rbac3_tenant_id
 unset idp_database
 
 jq -e '

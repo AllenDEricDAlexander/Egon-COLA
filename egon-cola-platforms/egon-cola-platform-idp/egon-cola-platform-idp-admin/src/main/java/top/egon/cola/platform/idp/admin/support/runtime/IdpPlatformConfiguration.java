@@ -18,6 +18,7 @@ import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperti
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.platform.idp.admin.audit.repo.IdentityAuditLogRepository;
 import top.egon.cola.platform.idp.admin.support.bootstrap.IdpBootstrapRunner;
+import top.egon.cola.platform.idp.admin.support.bootstrap.IdpDevelopmentTenantBootstrap;
 import top.egon.cola.platform.idp.admin.support.bootstrap.IdpBootstrapService;
 import top.egon.cola.platform.idp.admin.support.outbox.service.IdentityOutboxPublisher;
 import top.egon.cola.platform.idp.admin.identity.service.IdentityUserStateService;
@@ -58,7 +59,8 @@ public class IdpPlatformConfiguration {
     @Bean
     ApplicationRunner idpBootstrapApplicationRunner(
             IdpBootstrapService bootstrap,
-            IdentityUserStateService stateService
+            IdentityUserStateService stateService,
+            ObjectProvider<IdpDevelopmentTenantBootstrap> developmentTenants
     ) {
         IdpBootstrapRunner runner = new IdpBootstrapRunner(bootstrap);
         return (ApplicationArguments arguments) -> {
@@ -66,6 +68,7 @@ public class IdpPlatformConfiguration {
                     arguments.getSourceArgs(),
                     Map.copyOf(System.getenv())
             );
+            developmentTenants.ifAvailable(IdpDevelopmentTenantBootstrap::initializeAdministratorMemberships);
             stateService.reconcile();
         };
     }
