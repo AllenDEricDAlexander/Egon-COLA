@@ -34,6 +34,31 @@ const client = (overrides: Partial<Rbac3Client> = {}): Rbac3Client => ({
 })
 
 describe('Rbac3Provider', () => {
+    it('opens role selection when about returns the restricted initial RBAC context', async () => {
+        const sdk = client({getAbout: vi.fn(async () => ({
+            ...about, currentApplicationCode: 'rbac3-admin', activeRoles: [], resourceCodes: [],
+            permissions: ['system:about:read', 'system:role-activation:read', 'system:role-activation:use'],
+        }))})
+        const wrapper = ({children}: PropsWithChildren) => <Rbac3Provider client={sdk}>{children}</Rbac3Provider>
+        const {result} = renderHook(() => useRbac3Authorization(), {wrapper})
+        await waitFor(() => expect(result.current.status).toBe('ACTIVATION_REQUIRED'))
+        expect(sdk.getActivationCandidates).toHaveBeenCalledTimes(1)
+        expect(sdk.getActiveRoles).toHaveBeenCalledTimes(1)
+        expect(sdk.replaceActiveRoles).not.toHaveBeenCalled()
+    })
+
+    it('keeps a user with selected roles ready even when role activation is permitted', async () => {
+        const sdk = client({getAbout: vi.fn(async () => ({
+            ...about, currentApplicationCode: 'rbac3-admin',
+            activeRoles: [{applicationCode: 'rbac3-admin', roleId: '10', roleCode: 'ROOT'}],
+            permissions: ['system:role-activation:use'],
+        }))})
+        const wrapper = ({children}: PropsWithChildren) => <Rbac3Provider client={sdk}>{children}</Rbac3Provider>
+        const {result} = renderHook(() => useRbac3Authorization(), {wrapper})
+        await waitFor(() => expect(result.current.status).toBe('READY'))
+        expect(sdk.getActivationCandidates).not.toHaveBeenCalled()
+    })
+
     it('initializes through the protected about endpoint without token state', async () => {
     const sdk = client()
     const wrapper = ({ children }: PropsWithChildren) => (

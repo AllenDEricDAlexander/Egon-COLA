@@ -53,7 +53,17 @@ export const Rbac3Provider = ({
         if (initializePromise.current === null) {
             dispatch({type: 'INITIALIZE'})
             initializePromise.current = client.getAbout()
-                .then((about) => dispatch({type: 'ABOUT_SUCCEEDED', about}))
+                .then(async (about) => {
+                    // The initial RBAC context permits only reading self context and
+                    // choosing roles; it does not yet represent a ready application.
+                    if (about.currentApplicationCode === 'rbac3-admin'
+                        && about.activeRoles.length === 0
+                        && about.permissions.includes('system:role-activation:use')) {
+                        await loadActivation()
+                        return
+                    }
+                    dispatch({type: 'ABOUT_SUCCEEDED', about})
+                })
                 .catch(async (error: unknown) => {
                     const classified = classifyError(error)
                     if (classified.code === 'ROLE_ACTIVATION_REQUIRED') {
