@@ -28,6 +28,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -145,6 +148,62 @@ class GatewayRuleCompilerStrategyTest {
         assertEquals(2, compiled.get());
         assertEquals(7, applier.status().activeDdcVersion());
         assertFalse(applier.status().degraded());
+    }
+
+    @Test
+    void lateBootstrapRestoreCannotReplaceAnAlreadyAcknowledgedVersion() {
+        var applier = applier(TestCompiledRulesDTO::new, repository());
+        applier.apply(GatewayRuleActivationApplier.ACTIVE_CONFIG_KEY, activation(snapshot("release-1")), 7);
+        var active = applier.active();
+
+        assertTrue(applier.restoreLkg());
+
+        assertSame(active, applier.active());
+        assertEquals(7, applier.status().activeDdcVersion());
+        assertFalse(applier.status().degraded());
+        verify(providers, times(1)).activate(Set.of());
+    }
+
+    @Test
+    void bootstrapCheckRacingWithFirstDdcActivationDoesNotResetItsAcknowledgement() throws Exception {
+        var compileStarted = new CountDownLatch(1);
+        var allowCompile = new CountDownLatch(1);
+        var restoreRequested = new CountDownLatch(1);
+        var compileCount = new AtomicInteger();
+        var applier = applier(value -> {
+            compileCount.incrementAndGet();
+            compileStarted.countDown();
+            try {
+                if (!allowCompile.await(5, TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("test compile gate timed out");
+                }
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(interrupted);
+            }
+            return new TestCompiledRulesDTO(value);
+        }, repository());
+        try (var workers = Executors.newVirtualThreadPerTaskExecutor()) {
+            var apply = workers.submit(() -> applier.apply(GatewayRuleActivationApplier.ACTIVE_CONFIG_KEY,
+                    activation(snapshot("release-1")), 7));
+            assertTrue(compileStarted.await(5, TimeUnit.SECONDS));
+            var restore = workers.submit(() -> {
+                assertNull(applier.active());
+                restoreRequested.countDown();
+                return applier.restoreLkg();
+            });
+            assertTrue(restoreRequested.await(5, TimeUnit.SECONDS));
+            allowCompile.countDown();
+            apply.get(5, TimeUnit.SECONDS);
+            assertTrue(restore.get(5, TimeUnit.SECONDS));
+        } finally {
+            allowCompile.countDown();
+        }
+
+        assertEquals(7, applier.status().activeDdcVersion());
+        assertEquals(1, compileCount.get());
+        assertFalse(applier.status().degraded());
+        verify(providers, times(1)).activate(Set.of());
     }
 
     @Test

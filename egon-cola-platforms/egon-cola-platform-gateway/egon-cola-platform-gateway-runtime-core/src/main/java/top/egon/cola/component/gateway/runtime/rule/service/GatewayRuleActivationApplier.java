@@ -273,6 +273,11 @@ public final class GatewayRuleActivationApplier<T extends GatewayCompiledRulesDT
      * @return 返回 restoreLkg 的处理结果；returns the result of the operation.
      */
     public synchronized boolean restoreLkg() {
+        // Recheck under the same monitor as apply: a bootstrap caller may have observed null
+        // while the first DDC activation was still running. Its ACK version must win over LKG.
+        if (active.get() != null) {
+            return true;
+        }
         GatewayRuleLkgRepository.StoredGatewayRule stored = lkgRepository
                 .loadActive()
                 .orElse(null);
