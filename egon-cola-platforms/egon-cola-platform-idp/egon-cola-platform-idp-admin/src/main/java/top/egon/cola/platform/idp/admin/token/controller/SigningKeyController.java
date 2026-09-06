@@ -33,7 +33,7 @@ import java.util.Objects;
         businessDomainName = "平台治理域",
         entityDomainCode = "identity",
         entityDomainName = "统一身份实体域",
-        interfaceGroupCode = "idp"
+        interfaceGroupCode = "idp-identity"
 )
 
 public class SigningKeyController {

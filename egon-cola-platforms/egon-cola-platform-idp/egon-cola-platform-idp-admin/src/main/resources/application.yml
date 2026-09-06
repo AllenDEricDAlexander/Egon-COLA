@@ -45,11 +45,29 @@ springdoc:
     enabled: ${IDP_HTTP_OPENAPI_ENABLED:false}
     version: OPENAPI_3_1
   group-configs:
-    - group: idp
+    - group: idp-identity
       paths-to-match:
-        - /api/v1/identity/**
+        - /api/v1/identity/clients/**
+        - /api/v1/identity/resource-servers/**
+        - /api/v1/identity/signing-keys/**
+        - /api/v1/identity/tenants/**
+        - /api/v1/identity/users/**
+    - group: idp-audit
+      paths-to-match:
+        - /api/v1/identity/audits/**
+    - group: idp-auth
+      paths-to-match:
+        - /api/v1/identity/auth/**
+    - group: idp-profile
+      paths-to-match:
+        - /api/v1/identity/me
+        - /oauth2/userinfo
+    - group: idp-oauth
+      paths-to-match:
         - /oauth2/**
         - /.well-known/**
+      paths-to-exclude:
+        - /oauth2/userinfo
 
 management:
   endpoints:
@@ -179,7 +197,11 @@ egon:
           enabled: ${IDP_HTTP_OPENAPI_ENABLED:false}
           publish-to-ddc: true
           published-groups:
-            - idp
+            - idp-identity
+            - idp-audit
+            - idp-auth
+            - idp-profile
+            - idp-oauth
           biz-code: ${IDP_RESOURCE_BIZ_CODE:permission}
           application-code: ${IDP_RESOURCE_APP_CODE:idp}
           resource-uri: ${IDP_RESOURCE_URI:}

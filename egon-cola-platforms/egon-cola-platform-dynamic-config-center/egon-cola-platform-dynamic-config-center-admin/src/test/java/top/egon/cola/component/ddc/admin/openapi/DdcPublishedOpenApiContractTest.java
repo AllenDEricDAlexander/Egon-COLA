@@ -30,9 +30,6 @@ class DdcPublishedOpenApiContractTest {
         int operations = 0;
         for (var bean : scanner.findCandidateComponents("top.egon.cola.component.ddc.admin.controller")) {
             String name = bean.getBeanClassName();
-            if (!(true)) {
-                continue;
-            }
             Class<?> controller = Class.forName(name);
             Object instance = mock(controller);
             assertThat(controller.getAnnotation(EgonApiCatalog.class).interfaceGroupCode())

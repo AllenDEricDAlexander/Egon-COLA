@@ -25,7 +25,7 @@ import java.util.Objects;
         businessDomainName = "平台治理域",
         entityDomainCode = "identity-audit",
         entityDomainName = "统一身份审计域",
-        interfaceGroupCode = "idp"
+        interfaceGroupCode = "idp-audit"
 )
 
 public class IdentityAuditController {

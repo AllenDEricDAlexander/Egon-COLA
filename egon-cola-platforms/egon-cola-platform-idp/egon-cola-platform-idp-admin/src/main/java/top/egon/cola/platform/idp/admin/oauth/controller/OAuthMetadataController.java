@@ -28,7 +28,7 @@ import java.util.Objects;
         businessDomainName = "平台治理域",
         entityDomainCode = "oauth-protocol",
         entityDomainName = "OAuth 协议域",
-        interfaceGroupCode = "idp"
+        interfaceGroupCode = "idp-oauth"
 )
 
 public class OAuthMetadataController {

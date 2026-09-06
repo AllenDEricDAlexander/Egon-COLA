@@ -24,7 +24,7 @@ import java.util.Objects;
         businessDomainName = "平台治理域",
         entityDomainCode = "identity-profile",
         entityDomainName = "统一身份本人信息域",
-        interfaceGroupCode = "idp"
+        interfaceGroupCode = "idp-profile"
 )
 
 public class OAuthUserInfoController {
