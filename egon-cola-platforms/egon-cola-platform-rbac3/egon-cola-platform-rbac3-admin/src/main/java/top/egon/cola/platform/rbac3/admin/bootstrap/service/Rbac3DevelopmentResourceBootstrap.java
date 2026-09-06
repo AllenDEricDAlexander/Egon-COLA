@@ -26,6 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Local-only catalog initializer for the four-platform development topology.
@@ -33,7 +34,8 @@ import java.util.Objects;
  * <p>The CI registration endpoint intentionally records pending mechanical facts and never
  * confirms an actual permission mapping. A local stack has no release pipeline or operator
  * review step, so this runner provides that explicit development-only confirmation and grants
- * every active local resource to the built-in administrator roles before role activation.</p>
+ * configured, grantable local resources to the built-in administrator roles before role activation.
+ * User-created permissions and grouping-only menus are not bootstrap grants.</p>
  */
 @Component
 @Profile("local")
@@ -96,6 +98,7 @@ public class Rbac3DevelopmentResourceBootstrap implements ApplicationRunner {
             }
         }
 
+        Set<Long> bootstrapPermissionIds = Set.copyOf(permissionIds.values());
         List<Object[]> activePermissions = entityManager.createNativeQuery("""
                         select id, application_id, permission_code
                           from rbac3_permission
@@ -103,6 +106,9 @@ public class Rbac3DevelopmentResourceBootstrap implements ApplicationRunner {
                         """).getResultList();
         for (Object[] row : activePermissions) {
             long permissionId = ((Number) row[0]).longValue();
+            if (!bootstrapPermissionIds.contains(permissionId)) {
+                continue;
+            }
             long applicationId = ((Number) row[1]).longValue();
             String permissionCode = String.valueOf(row[2]);
             ensureResource(applicationId, new DesiredResource(
@@ -138,7 +144,7 @@ public class Rbac3DevelopmentResourceBootstrap implements ApplicationRunner {
             ensureField(rbac3ApplicationId, field, now);
         }
         entityManager.flush();
-        ensureLocalAdminResourceGrants(now);
+        ensureLocalAdminResourceGrants(now, bootstrapPermissionIds);
         entityManager.flush();
     }
 
@@ -455,14 +461,23 @@ public class Rbac3DevelopmentResourceBootstrap implements ApplicationRunner {
                 .executeUpdate();
     }
 
-    private void ensureLocalAdminResourceGrants(Instant now) {
+    private void ensureLocalAdminResourceGrants(Instant now, Set<Long> permissionIds) {
         Map<Long, List<Long>> resourceIdsByApplication = new HashMap<>();
         for (Object value : entityManager.createNativeQuery("""
-                        select id, application_id
-                          from rbac3_resource
-                         where status = 'ACTIVE'
-                         order by application_id, id
-                        """).getResultList()) {
+                        select r.id, r.application_id
+                          from rbac3_resource r
+                          join rbac3_permission p
+                            on p.id = r.required_permission_id
+                           and p.application_id = r.application_id
+                         where r.status = 'ACTIVE' and p.status = 'ACTIVE'
+                           and r.resource_type in ('ROUTE', 'ACTION', 'API')
+                           and p.id in (:permissionIds)
+                           and r.source_build_id = :buildId
+                         order by r.application_id, r.id
+                        """)
+                .setParameter("permissionIds", permissionIds)
+                .setParameter("buildId", BUILD_ID)
+                .getResultList()) {
             Object[] row = (Object[]) value;
             long resourceId = ((Number) row[0]).longValue();
             long applicationId = ((Number) row[1]).longValue();
