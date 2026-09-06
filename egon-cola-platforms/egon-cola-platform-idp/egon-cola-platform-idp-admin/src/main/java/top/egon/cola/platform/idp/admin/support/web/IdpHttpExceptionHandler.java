@@ -11,6 +11,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
 import java.util.NoSuchElementException;
@@ -25,6 +26,7 @@ public class IdpHttpExceptionHandler {
     @ExceptionHandler({
             IllegalArgumentException.class,
             MethodArgumentNotValidException.class,
+            MethodArgumentTypeMismatchException.class,
             ConstraintViolationException.class,
             HttpMessageNotReadableException.class
     })

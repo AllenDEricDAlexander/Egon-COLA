@@ -52,6 +52,28 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('Identity audit administration', () => {
+    it('renders persisted ISO filters in local time without losing precision', async () => {
+        const from = new Date(2026, 8, 6, 15, 30, 45, 123).toISOString()
+        renderPage(`/audits?from=${encodeURIComponent(from)}`)
+        await screen.findByText('LOGIN_SUCCEEDED')
+        expect(screen.getByLabelText('开始时间')).toHaveValue('2026-09-06T15:30:45.123')
+        expect(screen.getByLabelText('开始时间')).toHaveAttribute('step', '0.001')
+    })
+
+    it('submits local date controls as absolute ISO instants', async () => {
+        renderPage('/audits')
+        await screen.findByText('LOGIN_SUCCEEDED')
+        fireEvent.change(screen.getByLabelText('开始时间'), {target: {value: '2026-09-06T15:30'}})
+        fireEvent.change(screen.getByLabelText('结束时间'), {target: {value: '2026-09-06T16:30'}})
+        fireEvent.click(screen.getByRole('button', {name: /查\s*询/}))
+        const from = encodeURIComponent(new Date(2026, 8, 6, 15, 30).toISOString())
+        const to = encodeURIComponent(new Date(2026, 8, 6, 16, 30).toISOString())
+        await waitFor(() => expect(state.request).toHaveBeenLastCalledWith(
+            `/api/v1/identity/audits?page=0&size=20&from=${from}&to=${to}`,
+        ))
+        expect(screen.getByLabelText('开始时间')).toHaveValue('2026-09-06T15:30')
+    })
+
     it('serializes submitted filters and resets to the first page', async () => {
         renderPage()
 

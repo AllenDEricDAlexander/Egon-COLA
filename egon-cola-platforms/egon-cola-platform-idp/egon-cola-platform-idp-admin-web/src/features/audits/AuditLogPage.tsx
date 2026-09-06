@@ -40,6 +40,14 @@ const toAuditSearchParams = (filter: AuditFilter): URLSearchParams => {
 
 const buildAuditQuery = (filter: AuditFilter): string => toAuditSearchParams(filter).toString()
 
+// Date controls use local wall time; URL/API filters retain absolute instants.
+const localDateTime = (value?: string): string | undefined => {
+  if (!value) return undefined
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return undefined
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, -1)
+}
+
 export const AuditLogPage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const submitted = readAuditFilter(searchParams)
@@ -62,12 +70,16 @@ export const AuditLogPage = () => {
           actorSub: submitted.actorSub,
           eventType: submitted.eventType,
           result: submitted.result,
-          from: submitted.from,
-          to: submitted.to,
+          from: localDateTime(submitted.from),
+          to: localDateTime(submitted.to),
           traceId: submitted.traceId,
         }}
         onFinish={(values) => {
-          setSearchParams(toAuditSearchParams({page: 0, size: PAGE_SIZE, ...values}))
+          setSearchParams(toAuditSearchParams({
+            page: 0, size: PAGE_SIZE, ...values,
+            from: values.from ? new Date(values.from).toISOString() : undefined,
+            to: values.to ? new Date(values.to).toISOString() : undefined,
+          }))
         }}
         style={{marginBottom: 16}}
       >
@@ -86,10 +98,10 @@ export const AuditLogPage = () => {
           />
         </Form.Item>
         <Form.Item name="from" label="开始时间">
-          <Input type="datetime-local"/>
+          <Input type="datetime-local" step="0.001"/>
         </Form.Item>
         <Form.Item name="to" label="结束时间">
-          <Input type="datetime-local"/>
+          <Input type="datetime-local" step="0.001"/>
         </Form.Item>
         <Form.Item name="traceId" label="Trace ID">
           <Input allowClear placeholder="trace-id"/>

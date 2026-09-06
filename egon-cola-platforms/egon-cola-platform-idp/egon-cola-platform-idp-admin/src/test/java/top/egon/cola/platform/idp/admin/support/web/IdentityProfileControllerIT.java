@@ -8,6 +8,8 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.platform.idp.admin.audit.controller.IdentityAuditController;
+import top.egon.cola.platform.idp.admin.audit.domain.dto.IdentityAuditQueryDTO;
+import org.mockito.ArgumentCaptor;
 import top.egon.cola.platform.idp.admin.audit.domain.vo.IdentityAuditPageVO;
 import top.egon.cola.platform.idp.admin.audit.domain.vo.IdentityAuditVO;
 import top.egon.cola.platform.idp.admin.audit.service.IdentityAuditService;
@@ -27,6 +29,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -51,6 +54,41 @@ class IdentityProfileControllerIT {
 
     @MockitoBean
     private IdpAdminAuthorizationPort authorization;
+
+    @Test
+    void bindsEveryAuditFilterWithoutDroppingItAtTheController() throws Exception {
+        when(audits.list(any())).thenReturn(new IdentityAuditPageVO(List.of(), 0, 20, 0, 0));
+        mockMvc.perform(get("/api/v1/identity/audits").with(identityJwt())
+                        .param("page", "0").param("size", "20")
+                        .param("actorSub", "alice-sub")
+                        .param("eventType", "IDENTITY_LOGIN_SUCCEEDED")
+                        .param("result", "SUCCESS")
+                        .param("traceId", "trace-1")
+                        .param("from", "2026-09-06T07:00:00Z")
+                        .param("to", "2026-09-06T08:00:00Z"))
+                .andExpect(status().isOk());
+        var criteria = ArgumentCaptor.forClass(IdentityAuditQueryDTO.class);
+        verify(audits).list(criteria.capture());
+        assertThat(criteria.getValue())
+                .hasFieldOrPropertyWithValue("actorSub", "alice-sub")
+                .hasFieldOrPropertyWithValue("eventType", "IDENTITY_LOGIN_SUCCEEDED")
+                .hasFieldOrPropertyWithValue("result", "SUCCESS")
+                .hasFieldOrPropertyWithValue("traceId", "trace-1")
+                .hasFieldOrPropertyWithValue("from", Instant.parse("2026-09-06T07:00:00Z"))
+                .hasFieldOrPropertyWithValue("to", Instant.parse("2026-09-06T08:00:00Z"));
+        verify(authorization).require(any(IdentityPrincipal.class), eq("idp:audit:read"));
+    }
+
+    @Test
+    void rejectsInvalidAuditIntervalsInsteadOfIgnoringThem() throws Exception {
+        mockMvc.perform(get("/api/v1/identity/audits").with(identityJwt())
+                        .param("from", "2026-09-06T08:00:00Z")
+                        .param("to", "2026-09-06T07:00:00Z"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/v1/identity/audits").with(identityJwt())
+                        .param("from", "2026-09-06T15:00"))
+                .andExpect(status().isBadRequest());
+    }
 
     @Test
     void returnsOnlySafePagedAuditFields() throws Exception {

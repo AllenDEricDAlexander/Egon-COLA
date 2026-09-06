@@ -1,5 +1,7 @@
 package top.egon.cola.platform.idp.admin.audit.service.impl;
 
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -13,6 +15,8 @@ import top.egon.cola.platform.idp.admin.audit.repo.IdentityAuditLogRepository;
 import top.egon.cola.platform.idp.admin.audit.service.IdentityAuditService;
 
 import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class IdentityAuditServiceImpl implements IdentityAuditService {
@@ -34,7 +38,29 @@ public class IdentityAuditServiceImpl implements IdentityAuditService {
                 || query.size() > MAXIMUM_PAGE_SIZE) {
             throw new IllegalArgumentException("invalid audit page request");
         }
-        Page<IdentityAuditLogEntity> result = audits.findAll(PageRequest.of(
+        Specification<IdentityAuditLogEntity> filters = (root, criteria, builder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            if (query.actorSub() != null) {
+                predicates.add(builder.equal(root.get("actorSub"), query.actorSub()));
+            }
+            if (query.eventType() != null) {
+                predicates.add(builder.equal(root.get("eventType"), query.eventType()));
+            }
+            if (query.result() != null) {
+                predicates.add(builder.equal(root.get("result"), query.result()));
+            }
+            if (query.traceId() != null) {
+                predicates.add(builder.equal(root.get("traceId"), query.traceId()));
+            }
+            if (query.from() != null) {
+                predicates.add(builder.greaterThanOrEqualTo(root.get("occurredAt"), query.from()));
+            }
+            if (query.to() != null) {
+                predicates.add(builder.lessThan(root.get("occurredAt"), query.to()));
+            }
+            return builder.and(predicates.toArray(Predicate[]::new));
+        };
+        Page<IdentityAuditLogEntity> result = audits.findAll(filters, PageRequest.of(
                 query.page(),
                 query.size(),
                 Sort.by(Sort.Direction.DESC, "occurredAt", "id")
