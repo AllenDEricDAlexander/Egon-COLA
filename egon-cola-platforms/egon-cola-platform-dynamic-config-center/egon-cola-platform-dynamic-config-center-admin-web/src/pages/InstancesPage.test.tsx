@@ -105,6 +105,16 @@ afterEach(() => {
 })
 
 describe('InstancesPage', () => {
+  it.each([null, undefined])('shows the host when a config client does not report a port (%s)', async (port) => {
+    mockScopeEndpoints(() => jsonResponse(pageRecord([{ ...instance, port }], 1)))
+    renderWithQueryClient(<InstancesPage />)
+    await fillCompleteScope()
+    fireEvent.click(screen.getByRole('button', { name: /查\s*询/ }))
+    expect(await screen.findByText('10.0.0.8')).toBeInTheDocument()
+    expect(screen.queryByText('10.0.0.8:null')).not.toBeInTheDocument()
+    expect(screen.queryByText('10.0.0.8:undefined')).not.toBeInTheDocument()
+  })
+
   it('requests instances with submitted scope and preserves server page metadata', async () => {
     mockScopeEndpoints(() => jsonResponse(pageRecord([instance], 21)))
     renderWithQueryClient(<InstancesPage />)

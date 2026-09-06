@@ -79,7 +79,7 @@ export default function InstancesPage() {
     {
       title: '地址',
       key: 'address',
-      render: (_: unknown, row) => <Typography.Text code>{`${row.host}:${row.port}`}</Typography.Text>,
+      render: (_: unknown, row) => <Typography.Text code>{row.port == null ? row.host : `${row.host}:${row.port}`}</Typography.Text>,
     },
     {
       title: '状态',
