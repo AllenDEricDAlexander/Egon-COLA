@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationRuntime;
+import top.egon.cola.component.ddc.model.lease.DdcLeaseSession;
 import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
 import top.egon.cola.component.ddc.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.gateway.starter.GatewayReportingProperties;
@@ -268,6 +269,7 @@ public class Rbac3PlatformIntegrationConfiguration {
      * Usage: provide contract-compliant arguments before calling `rbac3ControlPlaneRuntimeStatusPort`, then continue the business flow using its result, exception, or side effect.
      *
      * @param runtimeStatus 输入参数 `runtimeStatus`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param httpRuntime 独立的 HTTP 注册运行态；independent HTTP registration runtime.
      * @param ddcConfigStatus 输入参数 `ddcConfigStatus`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param operationalStatus 输入参数 `operationalStatus`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
@@ -277,18 +279,23 @@ public class Rbac3PlatformIntegrationConfiguration {
     @Primary
     ControlPlaneRuntimeStatusPort rbac3ControlPlaneRuntimeStatusPort(
             ObjectProvider<GatewayDdcRuntimeStatusService> runtimeStatus,
+            ObjectProvider<DdcHttpRegistrationRuntime> httpRuntime,
             ObjectProvider<DdcConfigClientStatusRepository> ddcConfigStatus,
             Rbac3OperationalRuntimeStatusService operationalStatus,
             Clock clock) {
         return () -> {
             GatewayDdcRuntimeStatusService available = runtimeStatus.getIfAvailable();
+            DdcHttpRegistrationRuntime provider = httpRuntime.getIfAvailable();
+            DdcLeaseSession lease = provider == null ? null : provider.lease().orElse(null);
             RuntimeStatusVO controlPlane = available != null
                     ? available.status()
                     : new RuntimeStatusVO(
                     new DefinitionStatusVO(
                             "UNKNOWN", null, List.of("CONTROL_PLANE_DISABLED")),
                     new ProviderLeaseStatusVO(
-                            "STOPPED", null, null),
+                            provider == null ? "STOPPED" : provider.state().name(),
+                            provider == null ? null : provider.instanceId(),
+                            lease == null ? null : lease.leaseExpireAt()),
                     new GatewayReleaseStatusVO(
                             null, "UNKNOWN", null),
                     clock.instant());
