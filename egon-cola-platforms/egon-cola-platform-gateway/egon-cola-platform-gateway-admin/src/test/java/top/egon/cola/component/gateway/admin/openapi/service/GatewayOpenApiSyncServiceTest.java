@@ -44,6 +44,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mockito.ArgumentCaptor;
+import top.egon.cola.component.gateway.admin.openapi.converter.GatewayOpenApi31ContractAdapter;
 
 class GatewayOpenApiSyncServiceTest {
 
@@ -98,7 +100,11 @@ class GatewayOpenApiSyncServiceTest {
 
         verify(syncStates).claim("sync-1", 0, NOW);
         verify(client).fetch(candidate);
-        verify(snapshots).insertOrReuse(any());
+        ArgumentCaptor<GatewayOpenApiSnapshotPO> persisted = ArgumentCaptor.forClass(GatewayOpenApiSnapshotPO.class);
+        verify(snapshots).insertOrReuse(persisted.capture());
+        assertThat(persisted.getValue().canonicalSha256())
+                .isEqualTo(new GatewayOpenApi31ContractAdapter().canonicalSha256(document));
+        assertThat(persisted.getValue().documentJson()).containsKey("servers");
         verify(coordinator).aggregateAndIngest(
                 any(top.egon.cola.component.gateway.admin.openapi.domain.dto.GatewayOpenApiAggregateDTO.class),
                 any(top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReport.Application.class));
@@ -386,14 +392,16 @@ class GatewayOpenApiSyncServiceTest {
 
     private GatewayOpenApiDocumentDTO document(
             GatewayOpenApiSyncCandidateDTO candidate) {
-        byte[] raw = "{\"openapi\":\"3.1.0\",\"info\":{}}"
-                .getBytes(StandardCharsets.UTF_8);
+        var json = JsonNodeFactory.instance.objectNode().put("openapi", "3.1.0");
+        json.putArray("servers").addObject().put("url", "https://provider.internal");
+        json.putObject("components").putObject("schemas").putObject("Order")
+                .put("type", "object").putArray("required").add("z").add("a");
+        byte[] raw = json.toString().getBytes(StandardCharsets.UTF_8);
         return new GatewayOpenApiDocumentDTO(
                 candidate,
                 raw,
                 sha(raw),
-                JsonNodeFactory.instance.objectNode()
-                        .put("openapi", "3.1.0"),
+                json,
                 "application/json",
                 200,
                 NOW);

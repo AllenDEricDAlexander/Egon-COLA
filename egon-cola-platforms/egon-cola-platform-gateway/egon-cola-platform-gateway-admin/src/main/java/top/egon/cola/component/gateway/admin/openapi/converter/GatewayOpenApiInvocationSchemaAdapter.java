@@ -12,8 +12,10 @@ import org.springframework.stereotype.Component;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -99,10 +101,10 @@ public class GatewayOpenApiInvocationSchemaAdapter {
                     location,
                     ignored -> new TreeMap<>()
             );
-            properties.put(
-                    key.name(),
-                    schema(root, parameterSchema(root, parameter), 0)
-            );
+            Map<String, Object> parameterDefinition = schema(
+                    root, parameterSchema(root, parameter), 0);
+            copyDescription(parameter, parameterDefinition);
+            properties.put(key.name(), parameterDefinition);
             boolean required = "path".equals(location)
                     || parameter.path("required").asBoolean(false);
             if (required) {
@@ -126,6 +128,7 @@ public class GatewayOpenApiInvocationSchemaAdapter {
             properties.put(
                     location,
                     groupedLocation(
+                            location,
                             locationProperties.get(location),
                             required
                     )
@@ -152,6 +155,7 @@ public class GatewayOpenApiInvocationSchemaAdapter {
                                 REQUEST_SCHEMA_MODEL
                         );
                 extractDefinitions(bodySchema, inlineDefinitions);
+                copyDescription(requestBody, bodySchema);
                 properties.put(location, bodySchema);
                 if (requestBody.path("required").asBoolean(false)) {
                     requiredLocations.add(location);
@@ -166,8 +170,8 @@ public class GatewayOpenApiInvocationSchemaAdapter {
         result.put("properties", properties);
         result.put("required", requiredLocations.stream().distinct().sorted().toList());
         result.put("additionalProperties", false);
-        appendDefinitions(root, result);
         mergeDefinitions(result, inlineDefinitions);
+        appendDefinitions(root, result);
         return result;
     }
 
@@ -205,8 +209,8 @@ public class GatewayOpenApiInvocationSchemaAdapter {
         extractDefinitions(result, inlineDefinitions);
         result.put("x-egon-schema-model", RESPONSE_SCHEMA_MODEL);
         result.putIfAbsent("$schema", JSON_SCHEMA);
-        appendDefinitions(root, result);
         mergeDefinitions(result, inlineDefinitions);
+        appendDefinitions(root, result);
         return result;
     }
 
@@ -256,14 +260,10 @@ public class GatewayOpenApiInvocationSchemaAdapter {
                         "x-egon-schema-model", RESPONSE_SCHEMA_MODEL
                 ));
             } else {
-                error.put(
-                        "schema",
-                        schemaWithModel(
-                                root,
-                                media.schema(),
-                                RESPONSE_SCHEMA_MODEL
-                        )
-                );
+                Map<String, Object> errorSchema = schemaWithModel(
+                        root, media.schema(), RESPONSE_SCHEMA_MODEL);
+                appendDefinitions(root, errorSchema);
+                error.put("schema", errorSchema);
             }
             result.add(Map.copyOf(error));
         }
@@ -380,7 +380,7 @@ public class GatewayOpenApiInvocationSchemaAdapter {
         if (!resolved.isObject()) {
             throw invalid("parameter reference target was not found");
         }
-        return resolved;
+        return referenceDocumentation(resolved, parameter);
     }
 
     private JsonNode resolveRequestBody(JsonNode root, JsonNode requestBody) {
@@ -403,6 +403,26 @@ public class GatewayOpenApiInvocationSchemaAdapter {
         if (!resolved.isObject()) {
             throw invalid("requestBody reference target was not found");
         }
+        return referenceDocumentation(resolved, requestBody);
+    }
+
+    /** Carries the Parameter/Request Body description into its displayed schema. */
+    private void copyDescription(JsonNode source, Map<String, Object> target) {
+        JsonNode description = source.get("description");
+        if (description != null && description.isTextual()) {
+            target.put("description", description.asText());
+        }
+    }
+
+    /** OpenAPI 3.1 Reference Object documentation overrides its referenced object. */
+    private JsonNode referenceDocumentation(JsonNode target, JsonNode reference) {
+        ObjectNode resolved = target.deepCopy();
+        for (String name : List.of("description", "summary")) {
+            JsonNode value = reference.get(name);
+            if (value != null && value.isTextual()) {
+                resolved.set(name, value);
+            }
+        }
         return resolved;
     }
 
@@ -417,10 +437,18 @@ public class GatewayOpenApiInvocationSchemaAdapter {
     }
 
     private Map<String, Object> groupedLocation(
+            String location,
             Map<String, Object> properties,
             List<String> required) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("type", "object");
+        result.put("description", switch (location) {
+            case "path" -> "路径参数";
+            case "query" -> "查询参数";
+            case "header" -> "请求头参数";
+            case "cookie" -> "Cookie 参数";
+            default -> throw invalid("unsupported parameter location");
+        });
         result.put("properties", new TreeMap<>(properties));
         result.put("required", required.stream().distinct().sorted().toList());
         result.put("additionalProperties", false);
@@ -479,7 +507,8 @@ public class GatewayOpenApiInvocationSchemaAdapter {
             return new LinkedHashMap<>();
         }
         if (value.isBoolean()) {
-            return new LinkedHashMap<>(Map.of("const", value.asBoolean()));
+            return value.asBoolean() ? new LinkedHashMap<>()
+                    : new LinkedHashMap<>(Map.of("not", Map.of()));
         }
         if (!value.isObject()) {
             throw invalid("schema must be an object or boolean");
@@ -499,35 +528,32 @@ public class GatewayOpenApiInvocationSchemaAdapter {
             if (root.at(reference.asText().substring(1)).isMissingNode()) {
                 throw invalid("schema reference target was not found");
             }
-            Map<String, Object> referenceSchema = new LinkedHashMap<>();
-            referenceSchema.put("$ref", "#/$defs/" + pointerToken(name));
-            value.fields().forEachRemaining(field -> {
-                if (!"$ref".equals(field.getKey())) {
-                    referenceSchema.put(
-                            field.getKey(),
-                            objectMapper.convertValue(field.getValue(), Object.class)
-                    );
-                }
-            });
-            return referenceSchema;
         }
         Map<String, Object> result = new LinkedHashMap<>();
+        if (reference != null) {
+            // The component name is already a JSON Pointer token; do not escape it twice.
+            result.put("$ref", "#/$defs/" + reference.asText().substring(
+                    "#/components/schemas/".length()));
+        }
         Iterator<Map.Entry<String, JsonNode>> fields = value.fields();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> field = fields.next();
             String name = field.getKey();
             JsonNode child = field.getValue();
-            if ("properties".equals(name) && child.isObject()) {
+            if ("$ref".equals(name)) {
+                continue;
+            }
+            if (Set.of("properties", "patternProperties", "dependentSchemas", "$defs")
+                    .contains(name) && child.isObject()) {
                 Map<String, Object> properties = new TreeMap<>();
                 child.fields().forEachRemaining(entry -> properties.put(
                         entry.getKey(),
                         schema(root, entry.getValue(), depth + 1)
                 ));
                 result.put(name, properties);
-            } else if ("items".equals(name)
-                    || "additionalProperties".equals(name)
-                    || "not".equals(name)
-                    || "contains".equals(name)) {
+            } else if (Set.of("items", "additionalProperties", "not", "contains",
+                    "propertyNames", "if", "then", "else", "unevaluatedProperties",
+                    "unevaluatedItems", "contentSchema").contains(name)) {
                 result.put(name, child.isBoolean()
                         ? child.asBoolean()
                         : schema(root, child, depth + 1));
@@ -538,13 +564,6 @@ public class GatewayOpenApiInvocationSchemaAdapter {
                         schema(root, item, depth + 1)
                 ));
                 result.put(name, children);
-            } else if ("$defs".equals(name) && child.isObject()) {
-                Map<String, Object> definitions = new TreeMap<>();
-                child.fields().forEachRemaining(entry -> definitions.put(
-                        entry.getKey(),
-                        schema(root, entry.getValue(), depth + 1)
-                ));
-                result.put(name, definitions);
             } else if (("required".equals(name) || "enum".equals(name))
                     && child.isArray()) {
                 List<Object> values = new ArrayList<>();
@@ -566,10 +585,50 @@ public class GatewayOpenApiInvocationSchemaAdapter {
             return;
         }
         Map<String, Object> definitions = new TreeMap<>();
-        schemas.fields().forEachRemaining(entry -> {
-            definitions.put(entry.getKey(), schema(root, entry.getValue(), 0));
-        });
+        Set<String> referenced = new LinkedHashSet<>();
+        collectDefinitionReferences(target, referenced);
+        ArrayDeque<String> pending = new ArrayDeque<>(referenced);
+        // Keep the complete reachable graph, including cycles, without copying unrelated schemas.
+        while (!pending.isEmpty()) {
+            String name = pending.removeFirst();
+            JsonNode source = schemas.get(name);
+            if (source == null) {
+                continue;
+            }
+            Map<String, Object> definition = schema(root, source, 0);
+            definitions.put(name, definition);
+            Set<String> dependencies = new LinkedHashSet<>();
+            collectDefinitionReferences(definition, dependencies);
+            for (String dependency : dependencies) {
+                if (referenced.add(dependency)) {
+                    pending.addLast(dependency);
+                }
+            }
+        }
         mergeDefinitions(target, definitions);
+    }
+
+    private void collectDefinitionReferences(Object value, Set<String> references) {
+        if (!(value instanceof Map<?, ?> schema)) {
+            return;
+        }
+        if (schema.get("$ref") instanceof String ref && ref.startsWith("#/$defs/")) {
+            String token = ref.substring("#/$defs/".length()).split("/", 2)[0];
+            references.add(token.replace("~1", "/").replace("~0", "~"));
+        }
+        schema.forEach((name, child) -> {
+            if (Set.of("properties", "patternProperties", "dependentSchemas", "$defs")
+                    .contains(name) && child instanceof Map<?, ?> properties) {
+                properties.values().forEach(property -> collectDefinitionReferences(property, references));
+            } else if (Set.of("items", "additionalProperties", "not", "contains",
+                    "propertyNames", "if", "then", "else", "unevaluatedProperties",
+                    "unevaluatedItems", "contentSchema").contains(name)) {
+                collectDefinitionReferences(child, references);
+            } else if (Set.of("allOf", "anyOf", "oneOf", "prefixItems").contains(name)
+                    && child instanceof List<?> items) {
+                items.forEach(item -> collectDefinitionReferences(item, references));
+            }
+        });
     }
 
     private ResponseSelection selectedResponse(JsonNode root, JsonNode operation) {
@@ -624,7 +683,7 @@ public class GatewayOpenApiInvocationSchemaAdapter {
         if (!resolved.isObject()) {
             throw invalid("response reference target was not found");
         }
-        return resolved;
+        return referenceDocumentation(resolved, value);
     }
 
     private MediaSelection selectMedia(
@@ -714,10 +773,6 @@ public class GatewayOpenApiInvocationSchemaAdapter {
         content.fieldNames().forEachRemaining(result::add);
         return result.stream().map(String::trim).filter(value -> !value.isEmpty())
                 .distinct().sorted(String.CASE_INSENSITIVE_ORDER).toList();
-    }
-
-    private static String pointerToken(String value) {
-        return value.replace("~", "~0").replace("/", "~1");
     }
 
     private int compareResponseStatus(String left, String right) {

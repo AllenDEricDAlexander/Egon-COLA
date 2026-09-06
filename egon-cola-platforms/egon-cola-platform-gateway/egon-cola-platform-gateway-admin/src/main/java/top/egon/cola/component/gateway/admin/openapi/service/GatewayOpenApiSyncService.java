@@ -1,6 +1,5 @@
 package top.egon.cola.component.gateway.admin.openapi.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,6 +23,7 @@ import top.egon.cola.component.gateway.admin.application.repository.GatewayAppli
 import top.egon.cola.component.gateway.admin.config.properties.GatewayAdminOpenApiProperties;
 import top.egon.cola.component.gateway.admin.openapi.client.GatewayOpenApiFetchException;
 import top.egon.cola.component.gateway.admin.openapi.client.GatewayProviderOpenApiClient;
+import top.egon.cola.component.gateway.admin.openapi.converter.GatewayOpenApi31ContractAdapter;
 import top.egon.cola.component.gateway.admin.openapi.domain.dto.GatewayOpenApiAggregateDTO;
 import top.egon.cola.component.gateway.admin.openapi.domain.dto.GatewayOpenApiDocumentDTO;
 import top.egon.cola.component.gateway.admin.openapi.domain.dto.GatewayOpenApiSyncCandidateDTO;
@@ -39,8 +39,6 @@ import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefini
 import top.egon.cola.component.gateway.contract.reporting.GatewayInterfaceDefinitionReportResult;
 import top.egon.cola.component.gateway.contract.reporting.openapi.GatewayOpenApiGroupManifestDTO;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -929,8 +927,9 @@ public class GatewayOpenApiSyncService {
                     new TypeReference<>() {
                     }
             );
-            byte[] canonical = objectMapper.writeValueAsBytes(json);
-            String canonicalSha = sha256(canonical);
+            // Snapshot lookup and operation provenance must use the same canonical contract.
+            String canonicalSha = new GatewayOpenApi31ContractAdapter()
+                    .canonicalSha256(document);
             JsonNode root = document.documentJson();
             int operations = root.path("paths").isObject()
                     ? root.path("paths").size()
@@ -959,7 +958,7 @@ public class GatewayOpenApiSyncService {
                     clock.instant()
             );
             return Optional.of(snapshots.insertOrReuse(snapshot));
-        } catch (JsonProcessingException failure) {
+        } catch (IllegalArgumentException failure) {
             throw new IllegalStateException(
                     "OpenAPI snapshot JSON cannot be serialized",
                     failure
@@ -1113,16 +1112,6 @@ public class GatewayOpenApiSyncService {
                 : normalized.substring(0, 1024);
     }
 
-    private static String sha256(byte[] value) {
-        try {
-            return HexFormatHolder.FORMAT.formatHex(
-                    MessageDigest.getInstance("SHA-256").digest(value)
-            );
-        } catch (NoSuchAlgorithmException impossible) {
-            throw new IllegalStateException("SHA-256 is unavailable", impossible);
-        }
-    }
-
     private record BuildKey(String applicationId, String buildId) {
     }
 
@@ -1206,12 +1195,4 @@ public class GatewayOpenApiSyncService {
         }
     }
 
-    private static final class HexFormatHolder {
-
-        private static final java.util.HexFormat FORMAT =
-                java.util.HexFormat.of();
-
-        private HexFormatHolder() {
-        }
-    }
 }
