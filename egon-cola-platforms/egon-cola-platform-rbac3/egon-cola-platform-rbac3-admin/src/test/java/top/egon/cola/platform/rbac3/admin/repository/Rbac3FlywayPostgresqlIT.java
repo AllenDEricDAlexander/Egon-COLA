@@ -18,17 +18,17 @@ import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** PostgreSQL proof for the destructive V13 schema cutover. */
+/** PostgreSQL proof for fresh current-schema initialization and repeatable migration. */
 @EnabledIfEnvironmentVariable(named = "RBAC3_IT_POSTGRES_URL", matches = ".+")
 @EnabledIfEnvironmentVariable(named = "RBAC3_IT_POSTGRES_USER", matches = ".+")
 @EnabledIfEnvironmentVariable(named = "RBAC3_IT_POSTGRES_PASSWORD_FILE", matches = ".+")
 class Rbac3FlywayPostgresqlIT {
 
-    private static final int MIGRATION_COUNT = 13;
+    private static final int BASELINE_VERSION = 14;
     private static final Pattern SAFE_SCHEMA = Pattern.compile("rbac3_it_[a-z0-9]+");
 
     @Test
-    void migratesV13IdempotentlyAndReplacesPermissionRelations() throws Exception {
+    void initializesCurrentSchemaFromBaselineWithoutReplayingLegacyMigrations() throws Exception {
         String url = requiredEnvironment("RBAC3_IT_POSTGRES_URL");
         String user = requiredEnvironment("RBAC3_IT_POSTGRES_USER");
         String password = readPasswordFile();
@@ -43,13 +43,17 @@ class Rbac3FlywayPostgresqlIT {
                     .defaultSchema(schema)
                     .schemas(schema)
                     .table("flyway_schema_history_rbac3")
-                    .target(Integer.toString(MIGRATION_COUNT))
+                    .target(Integer.toString(BASELINE_VERSION))
+                    .initSql("SET rbac3.bootstrap.tenant_ids = '1001,1002'; "
+                            + "SET rbac3.bootstrap.identity_sub = '9001'")
                     .locations("classpath:db/migration")
                     .load();
 
-            assertThat(flyway.migrate().migrationsExecuted).isEqualTo(MIGRATION_COUNT);
+            assertThat(flyway.migrate().migrationsExecuted).isEqualTo(1);
             assertThat(flyway.migrate().migrationsExecuted).isZero();
             assertThat(flyway.validateWithResult().validationSuccessful).isTrue();
+            assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("14");
+            assertThat(flyway.info().current().getScript()).isEqualTo("B14__create_current_rbac3_schema.sql");
 
             assertThat(tableExists(connection, schema, "rbac3_role_resource_grant")).isTrue();
             assertThat(tableExists(connection, schema, "rbac3_resource_api_binding")).isTrue();
@@ -61,6 +65,15 @@ class Rbac3FlywayPostgresqlIT {
                     "resource_id")).isTrue();
             assertThat(columnExists(connection, schema, "rbac3_resource_api_binding",
                     "source_resource_id")).isTrue();
+            assertThat(tableExists(connection, schema, "rbac3_tenant")).isFalse();
+            assertThat(tableExists(connection, schema, "rbac3_session")).isFalse();
+            assertThat(tableExists(connection, schema, "rbac3_user_credential")).isFalse();
+            assertThat(queryBoolean(connection, "select count(*) = 2 from " + schema
+                    + ".rbac3_tenant_authorization_state where tenant_id in (1001,1002)"))
+                    .isTrue();
+            assertThat(queryBoolean(connection, "select count(*) = 2 from " + schema
+                    + ".rbac3_user where identity_sub = '9001'"))
+                    .isTrue();
         } finally {
             if (ownsGeneratedSchema(schema, schemaCreated)) {
                 dropGeneratedSchema(url, user, password, schema);

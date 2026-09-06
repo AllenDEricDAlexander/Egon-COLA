@@ -47,6 +47,8 @@ class Rbac3MigrationContractTest {
             "db/migration/V12__seed_rbac3_about_permission.sql";
     private static final String RESOURCE_GRANTS_MIGRATION =
             "db/migration/V13__replace_role_permissions_and_add_resource_api_bindings.sql";
+    private static final String CURRENT_BASELINE =
+            "db/migration/B14__create_current_rbac3_schema.sql";
     private static final Pattern TABLE_PATTERN = Pattern.compile(
             "create\\s+table\\s+(rbac3_[a-z0-9_]+)\\s*\\((.*?)\\);",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
@@ -98,6 +100,21 @@ class Rbac3MigrationContractTest {
     );
 
     @Test
+    void freshBaselineContainsCurrentSchemaWithoutHistoricalIdentityState() throws IOException {
+        String sql = resourceSql(CURRENT_BASELINE);
+        assertThat(sql).contains("create table rbac3_role_resource_grant")
+                .contains("create table rbac3_resource_api_binding")
+                .contains("rbac3.bootstrap.tenant_ids")
+                .contains("rbac3.bootstrap.identity_sub")
+                .doesNotContain("create table rbac3_tenant (")
+                .doesNotContain("create table rbac3_user_credential")
+                .doesNotContain("create table rbac3_session")
+                .doesNotContain("create table rbac3_role_permission")
+                .doesNotContain("flyway_schema_history")
+                .doesNotContain("public.");
+    }
+
+    @Test
     void definesAllRequiredTablesAndNoRotationApprovalOrOutboxTables()
             throws IOException {
         String sql = migrationSql();
@@ -128,7 +145,7 @@ class Rbac3MigrationContractTest {
                 BUILTIN_AUTHORIZATION_MIGRATION,
                 BUILTIN_BUSINESS_ACCESS_MIGRATION,
                 RBAC3_ABOUT_PERMISSION_MIGRATION,
-                RESOURCE_GRANTS_MIGRATION);
+                RESOURCE_GRANTS_MIGRATION, CURRENT_BASELINE);
         assertThat(resourceSql(STRONG_AUTH_MIGRATION))
                 .contains("add column strong_authenticated_at timestamptz")
                 .contains("ck_rbac3_session_strong_authentication_time");
@@ -523,7 +540,7 @@ class Rbac3MigrationContractTest {
 
     private int migrationVersion(String resource) {
         int separator = resource.indexOf("__");
-        int marker = resource.lastIndexOf("/V", separator);
+        int marker = resource.lastIndexOf('/', separator);
         return Integer.parseInt(resource.substring(marker + 2, separator));
     }
 
