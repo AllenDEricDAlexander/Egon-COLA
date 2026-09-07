@@ -78,7 +78,11 @@ class DdcRpcClientInterceptorFactoryTest {
                         DdcRpcOperation.MANAGEMENT_ADMISSION_REVOKE),
                 Map.entry("GetScopeBindings", DdcRpcOperation.MANAGEMENT_SCOPE_READ),
                 Map.entry("GetServiceKeys", DdcRpcOperation.MANAGEMENT_REGISTRY_READ),
-                Map.entry("GetInstances", DdcRpcOperation.MANAGEMENT_REGISTRY_READ)
+                Map.entry("GetInstances", DdcRpcOperation.MANAGEMENT_REGISTRY_READ),
+                Map.entry("GetBiz", DdcRpcOperation.MANAGEMENT_CATALOG_READ),
+                Map.entry("ListBizs", DdcRpcOperation.MANAGEMENT_CATALOG_READ),
+                Map.entry("GetApp", DdcRpcOperation.MANAGEMENT_CATALOG_READ),
+                Map.entry("ListApps", DdcRpcOperation.MANAGEMENT_CATALOG_READ)
         );
 
         assertThat(resolver.operationsByBareMethod()).containsExactlyInAnyOrderEntriesOf(expected);
