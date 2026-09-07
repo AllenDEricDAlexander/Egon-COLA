@@ -139,7 +139,7 @@ DDC Admin 使用 `GET /actuator/health/readiness` 作为启动与就绪探针。
 <dependency>
     <groupId>top.egon</groupId>
     <artifactId>egon-cola-component-rpc-ddc-adapter</artifactId>
-    <version>5.3.3</version>
+    <version>5.4.0</version>
 </dependency>
 ```
 

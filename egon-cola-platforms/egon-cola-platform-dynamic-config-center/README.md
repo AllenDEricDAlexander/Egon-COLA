@@ -153,7 +153,7 @@ Admin processes and no DDC machine HTTP compatibility endpoint exists.
 <dependency>
     <groupId>top.egon</groupId>
     <artifactId>egon-cola-component-rpc-ddc-adapter</artifactId>
-    <version>5.3.3</version>
+    <version>5.4.0</version>
 </dependency>
 ```
 
