@@ -5,10 +5,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import top.egon.cola.component.ddc.admin.DynamicConfigCenterAdminApplication;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionClaims;
-import top.egon.cola.component.ddc.admin.security.admission.DdcAdmissionVerifier;
+import top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationCredentialVerifier;
+import top.egon.cola.component.ddc.admin.security.registration.VerifiedDdcRegistrationIdentity;
 
 import java.time.Instant;
+import java.util.Set;
 
 /**
  * Starts DDC Admin with the process test's isolated admission boundary.
@@ -38,7 +39,7 @@ public final class RpcTestDdcAdminApplication {
 
         @Bean
         @Primary
-        DdcAdmissionVerifier processTestAdmissionVerifier() {
+        DdcRegistrationCredentialVerifier processTestRegistrationVerifier() {
             return (ticket, bizCode, appCode, env, instanceId) -> {
                 if (!"test-admission-ticket".equals(ticket)) {
                     throw new IllegalArgumentException(
@@ -46,7 +47,9 @@ public final class RpcTestDdcAdminApplication {
                     );
                 }
                 Instant issuedAt = Instant.now();
-                return new DdcAdmissionClaims(
+                return new VerifiedDdcRegistrationIdentity(
+                        "rpc-process-test-app",
+                        "rpc-process-test-client",
                         "rpc-process-test-resource",
                         "urn:egon:resource:rpc-process-test",
                         1L,
@@ -55,8 +58,10 @@ public final class RpcTestDdcAdminApplication {
                         env,
                         instanceId,
                         "rpc-process-test-credential",
+                        "rpc-process-test-token",
                         issuedAt,
-                        issuedAt.plusSeconds(300)
+                        issuedAt.plusSeconds(300),
+                        Set.of("ddc:registration:write")
                 );
             };
         }
