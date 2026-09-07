@@ -38,7 +38,7 @@ class GatewayComposeConfigurationTest {
             var service = map(services.get(name));
             var environment = map(service.get("environment"));
             boolean mcp = name.startsWith("gateway-mcp");
-            assertThat(environment).containsEntry("EGON_COLA_COMPONENT_DDC_APP_CODE", "ge")
+            assertThat(environment).containsEntry("EGON_COLA_COMPONENT_DDC_APP_CODE", mcp ? "gme" : "ge")
                     .containsEntry("EGON_COLA_COMPONENT_DDC_BIZ_CODE", "${GATEWAY_BIZ_CODE}")
                     .containsEntry("EGON_COLA_COMPONENT_DDC_ENV", "${GATEWAY_ENV:-local}")
                     .containsEntry("EGON_COLA_COMPONENT_DDC_NAMESPACE", "${GATEWAY_NAMESPACE:-default}");
