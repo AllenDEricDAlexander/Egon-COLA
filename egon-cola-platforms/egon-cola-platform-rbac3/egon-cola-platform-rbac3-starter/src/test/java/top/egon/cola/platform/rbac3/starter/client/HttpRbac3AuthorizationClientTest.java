@@ -163,6 +163,7 @@ class HttpRbac3AuthorizationClientTest {
                 "rbac3UserId":"101","systemCode":"finance",
                 "authVersion":7,"policyVersion":11,
                 "activeRoleIds":["role-1"],"permissions":["payment:read"],
+                "resourceCodes":[],
                 "dataScopes":{},"fieldPolicies":{},"checksum":"sha256:alice-sub",
                 "generatedAt":"2026-08-02T05:00:00Z",
                 "expiresAt":"2026-08-02T06:00:00Z"}}
