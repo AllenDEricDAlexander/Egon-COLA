@@ -4,9 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>top.egon.internal</groupId>
+    <parent>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-archetypes-parent</artifactId>
+        <version>5.3.3</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
     <artifactId>egon-cola-archetype-source-projects</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>egon-cola-archetype-source-projects</name>
     <description>Internal reactor for validating normal source projects before archetype packaging</description>

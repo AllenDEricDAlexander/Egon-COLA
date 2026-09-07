@@ -7,6 +7,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 readonly PROJECT_ROOT
 readonly MAVEN_WRAPPER="$PROJECT_ROOT/mvnw"
 readonly VERSIONS_PLUGIN="org.codehaus.mojo:versions-maven-plugin:2.16.2:set"
+readonly ARCHETYPE_SOURCE_PROJECTS_POM="$PROJECT_ROOT/egon-cola-archetypes/source-projects/pom.xml"
 
 BACKUP_DIR=''
 ROLLBACK_REQUIRED=false
@@ -52,6 +53,22 @@ find_archetype_source_poms() {
         -type f -name pom.xml -print0
 }
 
+verify_archetype_source_projects_parent_version() {
+    local expected_version="$1"
+    local parent_block
+
+    [[ -f "$ARCHETYPE_SOURCE_PROJECTS_POM" ]] || \
+        die "archetype source-projects POM not found: $ARCHETYPE_SOURCE_PROJECTS_POM"
+
+    parent_block="$(sed -n '/<parent>/,/<\/parent>/p' "$ARCHETYPE_SOURCE_PROJECTS_POM")"
+    grep -Fq -- '<groupId>top.egon</groupId>' <<<"$parent_block" || \
+        die "$ARCHETYPE_SOURCE_PROJECTS_POM does not inherit top.egon:egon-cola-archetypes-parent"
+    grep -Fq -- '<artifactId>egon-cola-archetypes-parent</artifactId>' <<<"$parent_block" || \
+        die "$ARCHETYPE_SOURCE_PROJECTS_POM does not inherit egon-cola-archetypes-parent"
+    grep -Fq -- "<version>$expected_version</version>" <<<"$parent_block" || \
+        die "$ARCHETYPE_SOURCE_PROJECTS_POM uses an unexpected parent version; expected $expected_version"
+}
+
 verify_archetype_source_pom_versions() {
     local expected_version="$1"
     local pom_file
@@ -92,6 +109,25 @@ backup_versioned_files() {
     )
 
     ROLLBACK_REQUIRED=true
+}
+
+update_archetype_source_projects_parent_version() {
+    local current_version="$1"
+    local new_version="$2"
+    local current_tag="<version>$current_version</version>"
+    local new_tag="<version>$new_version</version>"
+    local escaped_current_tag
+    local temp_file
+
+    verify_archetype_source_projects_parent_version "$current_version"
+    escaped_current_tag="$(escape_sed_pattern "$current_tag")"
+    temp_file="$BACKUP_DIR/updated/${ARCHETYPE_SOURCE_PROJECTS_POM#"$PROJECT_ROOT"/}"
+    mkdir -p "$(dirname "$temp_file")"
+    sed "/<parent>/,/<\\/parent>/ s|$escaped_current_tag|$new_tag|" \
+        "$ARCHETYPE_SOURCE_PROJECTS_POM" >"$temp_file"
+    cp "$temp_file" "$ARCHETYPE_SOURCE_PROJECTS_POM"
+    verify_archetype_source_projects_parent_version "$new_version"
+    printf 'Updated archetype source-projects parent version to %s.\n' "$new_version"
 }
 
 restore_versioned_files() {
@@ -270,6 +306,7 @@ readonly CURRENT_VERSION
     die 'could not determine the current project version'
 
 verify_archetype_source_pom_versions "$CURRENT_VERSION"
+verify_archetype_source_projects_parent_version "$CURRENT_VERSION"
 verify_ddc_readme_versions "$CURRENT_VERSION"
 
 if [[ "$CURRENT_VERSION" == "$NEW_VERSION" ]]; then
@@ -294,6 +331,7 @@ printf 'Updating Egon-COLA from %s to %s...\n' "$CURRENT_VERSION" "$NEW_VERSION"
     -DprocessAllModules=true \
     -DnewVersion="$NEW_VERSION"
 
+update_archetype_source_projects_parent_version "$CURRENT_VERSION" "$NEW_VERSION"
 update_archetype_source_pom_versions "$CURRENT_VERSION" "$NEW_VERSION"
 verify_archetype_source_pom_versions "$NEW_VERSION"
 update_readme_archetype_versions "$NEW_VERSION"

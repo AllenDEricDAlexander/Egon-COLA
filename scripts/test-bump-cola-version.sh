@@ -34,8 +34,23 @@ write_fixture() {
   local root="$FIXTURE_ROOT/repo"
   mkdir -p \
     "$root/scripts" \
+    "$root/egon-cola-archetypes/source-projects" \
     "$root/egon-cola-archetypes/source-projects/egon-cola-source-fixture" \
     "$root/egon-cola-archetypes/.generated/egon-cola-archetype-fixture"
+
+  printf '%s\n' \
+    '<project>' \
+    '  <modelVersion>4.0.0</modelVersion>' \
+    '  <parent>' \
+    '    <groupId>top.egon</groupId>' \
+    '    <artifactId>egon-cola-archetypes-parent</artifactId>' \
+    '    <version>5.3.3</version>' \
+    '    <relativePath>../pom.xml</relativePath>' \
+    '  </parent>' \
+    '  <artifactId>egon-cola-archetype-source-projects</artifactId>' \
+    '  <packaging>pom</packaging>' \
+    '</project>' \
+    >"$root/egon-cola-archetypes/source-projects/pom.xml"
 
   printf '%s\n' \
     '<project>' \
@@ -91,6 +106,7 @@ write_fixture
 
 ROOT="$FIXTURE_ROOT/repo"
 SOURCE_POM="$ROOT/egon-cola-archetypes/source-projects/egon-cola-source-fixture/pom.xml"
+SOURCE_REACTOR_POM="$ROOT/egon-cola-archetypes/source-projects/pom.xml"
 README="$ROOT/README.md"
 GENERATED="$ROOT/egon-cola-archetypes/.generated"
 
@@ -98,6 +114,7 @@ generated_before="$(hash_tree "$GENERATED")"
 "$ROOT/scripts/bump_cola_version.sh" 5.3.4 >/dev/null
 
 assert_file_contains "$ROOT/pom.xml" '<version>5.3.4</version>'
+assert_file_contains "$SOURCE_REACTOR_POM" '<version>5.3.4</version>'
 assert_file_contains "$SOURCE_POM" '<egon-cola.version>5.3.4</egon-cola.version>'
 assert_file_contains "$SOURCE_POM" '<version>0.1.0-SNAPSHOT</version>'
 assert_file_contains "$README" "-DarchetypeVersion='5.3.4'"
@@ -105,6 +122,7 @@ assert_file_contains "$README" "-DarchetypeVersion='5.3.4'"
   die 'generated workspace changed during version update'
 
 cp -- "$ROOT/pom.xml" "$FIXTURE_ROOT/pom.success"
+cp -- "$SOURCE_REACTOR_POM" "$FIXTURE_ROOT/source-reactor.success"
 cp -- "$SOURCE_POM" "$FIXTURE_ROOT/source.success"
 cp -- "$README" "$FIXTURE_ROOT/readme.success"
 generated_before_failure="$(hash_tree "$GENERATED")"
@@ -115,6 +133,7 @@ failure_rc=$?
 set -e
 [[ "$failure_rc" -ne 0 ]] || die 'injected Maven validation failure unexpectedly succeeded'
 cmp -s "$ROOT/pom.xml" "$FIXTURE_ROOT/pom.success" || die 'root POM was not rolled back'
+cmp -s "$SOURCE_REACTOR_POM" "$FIXTURE_ROOT/source-reactor.success" || die 'source reactor POM was not rolled back'
 cmp -s "$SOURCE_POM" "$FIXTURE_ROOT/source.success" || die 'source POM was not rolled back'
 cmp -s "$README" "$FIXTURE_ROOT/readme.success" || die 'README was not rolled back'
 [[ "$(hash_tree "$GENERATED")" == "$generated_before_failure" ]] || \
