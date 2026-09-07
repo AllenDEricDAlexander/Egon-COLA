@@ -130,6 +130,14 @@
                 <version>${egon-cola.version}</version>
                 <configuration>
                     <unknownLayerPolicy>FAIL</unknownLayerPolicy>
+                    <packageMappings>
+                        <top.egon.cola.archetype.source.web.common..>COMMON</top.egon.cola.archetype.source.web.common..>
+                        <top.egon.cola.archetype.source.web.domain..>DOMAIN</top.egon.cola.archetype.source.web.domain..>
+                        <top.egon.cola.archetype.source.web.application..>APPLICATION</top.egon.cola.archetype.source.web.application..>
+                        <top.egon.cola.archetype.source.web.infrastructure..>INFRASTRUCTURE</top.egon.cola.archetype.source.web.infrastructure..>
+                        <top.egon.cola.archetype.source.web.adapter..>ADAPTER</top.egon.cola.archetype.source.web.adapter..>
+                        <top.egon.cola.archetype.source.web.starter..>STARTER</top.egon.cola.archetype.source.web.starter..>
+                    </packageMappings>
                 </configuration>
                 <executions>
                     <execution>
