@@ -12,6 +12,7 @@ import top.egon.cola.platform.idp.contract.ServiceTokenContext;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.TreeSet;
@@ -172,7 +173,8 @@ public class IdpClientCredentialsRequestEntityConverter
                         "PLATFORM context cannot carry tenantId"
                 );
             }
-            scopes = Set.copyOf(new LinkedHashSet<>(new TreeSet<>(scopes)));
+            scopes = Collections.unmodifiableSet(
+                    new LinkedHashSet<>(new TreeSet<>(scopes)));
         }
     }
 }
