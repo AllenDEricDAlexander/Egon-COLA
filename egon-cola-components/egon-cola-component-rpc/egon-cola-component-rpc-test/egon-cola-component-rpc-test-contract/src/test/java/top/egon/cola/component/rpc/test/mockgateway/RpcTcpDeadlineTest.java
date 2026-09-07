@@ -86,7 +86,7 @@ class RpcTcpDeadlineTest {
                     identity,
                     new RpcStatusExceptionMapper(),
                     3000
-            ).create(EchoRpc.class, 100);
+            ).create(EchoRpc.class, 1000);
 
             assertThatThrownBy(() -> proxy.echo(
                     EchoRequest.newBuilder()

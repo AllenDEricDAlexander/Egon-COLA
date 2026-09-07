@@ -397,7 +397,9 @@ public class RpcConsumerProxyFactory {
                 );
             } catch (io.grpc.StatusRuntimeException exception) {
                 lastFailure = statusMapper.map(exception);
-                if (attempt + 1 >= legacyChannelProvider.maxAttempts()) {
+                if (exception.getStatus().getCode()
+                        != io.grpc.Status.Code.UNAVAILABLE
+                        || attempt + 1 >= legacyChannelProvider.maxAttempts()) {
                     throw lastFailure;
                 }
                 legacyChannelProvider.recordFailure(managedChannel);
