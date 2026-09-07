@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -45,7 +46,7 @@ class DdcRegistrySubscriptionCoordinatorTest {
 
     @Test
     void subscribesBeforeInitialPullAndRefreshesFromRelevantEvent() throws Exception {
-        List<String> order = new ArrayList<>();
+        List<String> order = Collections.synchronizedList(new ArrayList<>());
         AtomicReference<DdcServiceSnapshot> snapshot =
                 new AtomicReference<>(snapshot(1L, "instance-2"));
         DdcRegistrySnapshotLoader loader = loader(snapshot, order);
@@ -64,7 +65,11 @@ class DdcRegistrySubscriptionCoordinatorTest {
         topic.listener().get().onMessage("topic", eventJson(2L));
 
         assertThat(refreshed.await(2, TimeUnit.SECONDS)).isTrue();
-        assertThat(order.subList(0, 2)).containsExactly("subscribe", "pull");
+        List<String> orderSnapshot;
+        synchronized (order) {
+            orderSnapshot = List.copyOf(order);
+        }
+        assertThat(orderSnapshot.subList(0, 2)).containsExactly("subscribe", "pull");
         verify(topic.redisson()).getTopic(
                 DdcRedisKeys.registryTopic(
                         "pay-biz", "dev", "orders-app", DdcServiceKind.RPC_PROVIDER, "grpc"
