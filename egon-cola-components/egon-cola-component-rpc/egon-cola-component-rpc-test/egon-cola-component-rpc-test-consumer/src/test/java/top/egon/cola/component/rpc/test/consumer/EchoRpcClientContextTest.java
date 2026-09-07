@@ -8,8 +8,7 @@ import top.egon.cola.component.rpc.consumer.proxy.RpcConsumerProxyFactory;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
 import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
-
-import java.lang.reflect.Proxy;
+import top.egon.cola.component.rpc.test.contract.EchoRpc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -17,7 +16,7 @@ import static org.mockito.Mockito.mock;
 class EchoRpcClientContextTest {
 
     @Test
-    void shouldInjectJdkProxyWithoutProviderAddress() {
+    void shouldInjectRpcProxyWithoutProviderAddress() {
         RpcConsumerProxyFactory proxyFactory = new RpcConsumerProxyFactory(
                 new RpcContractValidator(),
                 new GatewayRpcInvocationChannelProvider(
@@ -39,8 +38,8 @@ class EchoRpcClientContextTest {
         new EgonRpcReferenceBeanPostProcessor(proxyFactory)
                 .postProcessBeforeInitialization(client, "echoRpcClient");
 
-        assertThat(Proxy.isProxyClass(
-                client.rpcProxy().getClass()
-        )).isTrue();
+        assertThat(client.rpcProxy())
+                .isNotNull()
+                .isInstanceOf(EchoRpc.class);
     }
 }
