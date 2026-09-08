@@ -67,6 +67,7 @@ class NativeRpcConfigurationTest {
         var values = new java.util.LinkedHashMap<String, Object>();
         properties("application.yml").forEach((key, value) -> values.put(key.toString(), value));
         properties("application-test.yml").forEach((key, value) -> values.put(key.toString(), value));
+        values.put("server.port", "8181");
         environment.getPropertySources().addFirst(new org.springframework.core.env.MapPropertySource("native", values));
         var binder = org.springframework.boot.context.properties.bind.Binder.get(environment);
         var rpc = binder.bind("egon.cola.component.rpc", top.egon.cola.component.rpc.config.EgonRpcProperties.class).get();
@@ -82,6 +83,7 @@ class NativeRpcConfigurationTest {
         var registration = binder.bind("egon.cola.component.ddc.registry.http", top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties.class).get();
         assertThat(registration.getServiceName()).isEqualTo("egon-cola-source-light");
         assertThat(registration.isEnabled()).isFalse();
+        assertThat(registration.getPort()).isEqualTo(8181);
         var idp = binder.bind("egon.cola.platform.idp", top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties.class).get();
         assertThat(idp.isEnabled()).isFalse();
         assertThat(idp.isRegisterFilter()).isFalse();
