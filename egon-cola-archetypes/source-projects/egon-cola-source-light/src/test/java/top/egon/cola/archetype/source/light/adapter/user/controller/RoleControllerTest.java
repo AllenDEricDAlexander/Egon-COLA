@@ -24,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(RoleController.class)
 @ContextConfiguration(classes = {
+        top.egon.cola.archetype.source.light.start.config.NativeHttpSecurityConfiguration.class,
         RoleController.class,
         UserAdapterConvertorImpl.class,
         TraceIdFilter.class,

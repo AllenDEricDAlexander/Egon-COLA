@@ -66,7 +66,7 @@ src/main/java/top/egon/cola/archetype/source/light
 └── common/{constants,utils,enums,exceptions}
 ```
 
-`adapter` 负责 HTTP、GraphQL、Dubbo provider 和 RabbitMQ consumer 相关能力。`facade` 负责稳定的外部 RPC 契约。`application` 编排用例和事务。`domain` 负责业务状态、规则、gateway/cache/event 端口和服务契约。`infrastructure` 提供 MyBatis-Plus DAO、`EgonModel` 持久化对象以及 Domain 所有端口的实现。`common` 只包含与业务无关的基础类型。`start` 负责组装和运行时配置。
+`adapter` 负责 HTTP、GraphQL、COLA RPC provider 和 RabbitMQ consumer 相关能力。`facade` 负责稳定的外部 RPC 契约。`application` 编排用例和事务。`domain` 负责业务状态、规则、gateway/cache/event 端口和服务契约。`infrastructure` 提供 MyBatis-Plus DAO、`EgonModel` 持久化对象以及 Domain 所有端口的实现。`common` 只包含与业务无关的基础类型。`start` 负责组装和运行时配置。
 
 ## 依赖图
 
@@ -94,17 +94,17 @@ Domain Service 接口位于 `domain.<business>.service`，实现位于 `infrastr
 4. 创建学校班级和课程。
 5. 在校验班级、课程、学期和时间冲突规则后安排课程。
 
-相同的 Application 用例服务于 HTTP、GraphQL、Dubbo 和 RabbitMQ 入口。用户、权限、学校班级和课程查询都通过 Application 边界实现，而不是在各协议 adapter 中重复实现。
+相同的 Application 用例服务于 HTTP、GraphQL、COLA RPC 和 RabbitMQ 入口。用户、权限、学校班级和课程查询都通过 Application 边界实现，而不是在各协议 adapter 中重复实现。
 
 ## 持久化与集成
 
-持久化统一使用 `egon-cola-component-common-mybatis-plus-spring-boot-starter` 提供的 MyBatis-Plus。Domain service 接口继承 `EgonColaIService`，infrastructure service 实现继承 `EgonColaServiceImpl`，DAO 继承 `EgonColaMapper`，所有 PO 继承 `EgonModel` 并添加 MyBatis-Plus 表注解。Flyway 负责 H2/PostgreSQL schema。RabbitMQ、Redis、GraphQL、Dubbo Triple、Springdoc OpenAPI、AOP 监控、请求上下文过滤器和外部 HTTP client 都包含可运行的实现。
+持久化统一使用 `egon-cola-component-common-mybatis-plus-spring-boot-starter` 提供的 MyBatis-Plus。Domain service 接口继承 `EgonColaIService`，infrastructure service 实现继承 `EgonColaServiceImpl`，DAO 继承 `EgonColaMapper`，所有 PO 继承 `EgonModel` 并添加 MyBatis-Plus 表注解。Flyway 负责 H2/PostgreSQL schema。RabbitMQ、Redis、GraphQL、COLA native unary RPC、platform OpenAPI、AOP 监控、请求上下文过滤器和外部 HTTP client 都包含可运行的实现。
 
-`dev` 是本地工作站开发和 `feature/*` 分支验证的默认 profile，使用由环境变量提供的 PostgreSQL、Redis、RabbitMQ、Nacos、Dubbo 和外部 HTTP 集成。
+`dev` 是本地工作站开发和 `feature/*` 分支验证的默认 profile，使用由环境变量提供的 PostgreSQL、Redis、RabbitMQ、COLA RPC 和外部 HTTP 集成。
 
-Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 H2、内存 adapter 和确定性 stub，并关闭 RabbitMQ、Redis、Nacos、Dubbo registry 和外部 HTTP 调用。
+Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 H2、内存 adapter 和确定性 stub，并关闭 RabbitMQ、Redis、COLA RPC registry 和外部 HTTP 调用。
 
-`prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 通过 `RABBITMQ_ENABLED=true`、`REDIS_ENABLED=true`、`EXTERNAL_HTTP_ENABLED=true`、`NACOS_CONFIG_ENABLED=true`、`NACOS_DISCOVERY_ENABLED=true`、`DISCOVERY_ENABLED=true` 和 `DUBBO_REGISTRY_ADDRESS=nacos://host:8848` 等环境变量配置真实 adapter。消息代理凭据使用 Spring 自身的变量名 `SPRING_RABBITMQ_HOST`、`SPRING_RABBITMQ_PORT`、`SPRING_RABBITMQ_USERNAME`、`SPRING_RABBITMQ_PASSWORD`，而 `RABBITMQ_ENABLED` 与 `RABBITMQ_LISTENER_AUTO_STARTUP` 是应用自身的开关。
+`prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 通过 `RABBITMQ_ENABLED=true`、`REDIS_ENABLED=true`、`EXTERNAL_HTTP_ENABLED=true`、`DDC_RPC_TARGET=host:19090`、`DDC_ENABLED=true`、`DDC_REGISTRY_ENABLED=true` 和 `RPC_ENABLED=true` 等环境变量配置真实 adapter。消息代理凭据使用 Spring 自身的变量名 `SPRING_RABBITMQ_HOST`、`SPRING_RABBITMQ_PORT`、`SPRING_RABBITMQ_USERNAME`、`SPRING_RABBITMQ_PASSWORD`，而 `RABBITMQ_ENABLED` 与 `RABBITMQ_LISTENER_AUTO_STARTUP` 是应用自身的开关。
 
 ## 分片、读写分离与 Flyway
 
@@ -222,3 +222,15 @@ printf '%s' 'plain-text' | EGON_CONFIG_DECRYPT_KEY='replace-with-32-byte-secret-
 上面的管道才能送达；`spring-boot:run` 这类会派生子进程的运行方式无法给该 CLI 提供可用的标准输入。
 
 将输出的 `ENC(v1:...)` 值写入配置。请通过环境变量、挂载文件、`config/application-secrets.yml` 或 `configtree:/run/secrets/` 提供真实密钥；不要提交凭据或解密密钥。
+
+## 原生 RPC 与 DDC 配置
+
+10 个 unary 操作定义于 `src/main/proto/teaching_user_facade.proto`，由四个具名 RPC Provider 实现。platform OpenAPI MVC starter 保留 `/v3/api-docs` 及既有业务 HTTP 访问。文档治理默认关闭；启用 `egon.cola.component.gateway.openapi.enabled` 时，需要按平台合同补齐文档身份、发布分组和 JWT decoder，并使用 `gateway.openapi.read` scope。每个发布 handler 还必须显式声明 `@Operation(operationId = "...")`；现有示例业务 Controller 需完成该编目后才能开启治理。
+
+`dev` 和 `prod` 使用部署方已有的 DDC RPC 服务（`DDC_RPC_TARGET`）和 DDC Redis 服务，还需提供注册 resource URI 及独立的 runtime/registry HMAC 凭据。RPC/DDC 配置前缀分别为 `egon.cola.component.rpc`、`egon.cola.component.ddc`；应用身份由 `APP_NAME`、`APP_ENV`、`DDC_BIZ_CODE`、`DDC_APP_CODE`、`INSTANCE_ID` 指定。advertised host 必须能被消费者访问。本工程不附带 DDC 容器。`test` 关闭 RPC provider/consumer、DDC config/registry/Redis、HTTP 注册及文档发布。
+
+生产环境启用 RPC 和 DDC mTLS：通过对应的 `RPC_*`、`DDC_RPC_*` 变量传入证书链、私钥和信任证书路径，并将证书文件挂载到容器中的相同路径。开发环境显式允许明文。部署前填写 `deploy/env/.env.prod.example` 中的空白项，真实凭据通过环境变量或挂载文件提供。Compose 保留 PostgreSQL、Redis、RabbitMQ 及原有数据卷。静态和模块测试不能证明真实 DDC 注册、TLS 互通或容器就绪。
+
+DDC Provider 和 HTTP 注册还需获取带 `ddc:registration:write` 的 IdP SERVICE Token。填写 `.env` 样例中的 `IDP_*` 字段，并配置 Spring OAuth2 Client 的 `ddcregistration` registration/provider，使用 `client_credentials`、`client_secret_basic`、client ID/secret 和 token URI。Compose 已映射标准 Spring 环境变量；直接 Java 启动时，请通过外部配置提供 `spring.security.oauth2.client.registration.ddcregistration` 及 `spring.security.oauth2.client.provider.ddcregistration.token-uri`。app ID、resource server ID/URI、registration resource URI 必须与部署方的 IdP/DDC 保持一致。IdP 的 Servlet filter 自动注册关闭，以保留业务 HTTP 行为；显式启用后，平台文档安全链仍负责文档权限。
+
+排除默认 Redisson 自动配置，由 DDC 管理显式配置的 Redis client；业务 Redis 保持 Spring 原有 connection factory。关闭 DDC 的测试环境不会因此自动建立 Redis 连接。

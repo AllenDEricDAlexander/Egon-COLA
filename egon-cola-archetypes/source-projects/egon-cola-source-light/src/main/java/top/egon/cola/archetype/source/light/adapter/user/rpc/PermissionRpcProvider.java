@@ -1,28 +1,55 @@
 package top.egon.cola.archetype.source.light.adapter.user.rpc;
 
 import top.egon.cola.archetype.source.light.facade.user.PermissionFacade;
-import top.egon.cola.archetype.source.light.facade.user.dto.GrantPermissionDTO;
-import top.egon.cola.archetype.source.light.facade.user.dto.PermissionDTO;
-import top.egon.cola.archetype.source.light.facade.user.dto.PermissionDetailDTO;
+import top.egon.cola.archetype.source.light.facade.user.exceptions.UserFacadeException;
+import top.egon.cola.archetype.source.light.facade.rpc.PermissionRpcService;
+import top.egon.cola.archetype.source.light.facade.rpc.LightRpcConverter;
+import top.egon.cola.archetype.source.light.facade.rpc.NativeRpcValidationGroup;
+import top.egon.cola.archetype.source.light.facade.rpc.RpcIdQuery;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
 import lombok.RequiredArgsConstructor;
-import org.apache.dubbo.config.annotation.DubboService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
+import java.util.Objects;
+import top.egon.cola.archetype.source.light.facade.rpc.proto.GrantPermissionRpcRequest;
+import top.egon.cola.archetype.source.light.facade.rpc.proto.PermissionRpcResponse;
+import top.egon.cola.archetype.source.light.facade.rpc.proto.GetUserPermissionsRpcRequest;
+import top.egon.cola.archetype.source.light.facade.rpc.proto.PermissionListRpcResponse;
 
-import java.util.List;
-
-@DubboService(interfaceClass = PermissionFacade.class, version = "1.0.0", group = "user")
+/** Native unary adapter for the existing Permission facade. */
+@EgonRpcProvider
+@Component("permissionRpcProvider")
 @RequiredArgsConstructor
-public class PermissionRpcProvider implements PermissionFacade {
+@Slf4j
+public class PermissionRpcProvider implements PermissionRpcService {
     @Qualifier("permissionFacadeImpl")
     private final PermissionFacade delegate;
+    @Qualifier("lightRpcConverter")
+    private final LightRpcConverter converter;
+    @Qualifier("nativeRpcValidation")
+    private final ValidationUtils validation;
 
     @Override
-    public PermissionDTO grantPermission(GrantPermissionDTO request) {
-        return delegate.grantPermission(request);
+    public PermissionRpcResponse grantPermission(GrantPermissionRpcRequest request) {
+        var input = validation.validate(converter.toSource(request), NativeRpcValidationGroup.class);
+        try {
+            return converter.permissionSuccess(Objects.requireNonNull(delegate.grantPermission(input), "facade returned null"));
+        } catch (UserFacadeException exception) {
+            log.debug("grantPermission rejected: {}", exception.getCode());
+            return converter.permissionFailure(exception.getCode(), exception.getMessage(), null);
+        }
     }
 
     @Override
-    public List<PermissionDetailDTO> getUserPermissions(Long userId) {
-        return delegate.getUserPermissions(userId);
+    public PermissionListRpcResponse getUserPermissions(GetUserPermissionsRpcRequest request) {
+        var input = validation.validate(new RpcIdQuery(request.hasUserId() ? request.getUserId() : null));
+        try {
+            return converter.permissionListResponse(delegate.getUserPermissions(input.id()), true, null, null, null);
+        } catch (UserFacadeException exception) {
+            log.debug("getUserPermissions rejected: {}", exception.getCode());
+            return converter.permissionListResponse(null, false, exception.getCode(), exception.getMessage(), null);
+        }
     }
 }

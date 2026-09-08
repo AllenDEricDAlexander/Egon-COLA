@@ -19,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(CourseController.class)
 @ContextConfiguration(classes = {
+        top.egon.cola.archetype.source.light.start.config.NativeHttpSecurityConfiguration.class,
         CourseController.class,
         TeachingAdapterConvertorImpl.class,
         TraceIdFilter.class,

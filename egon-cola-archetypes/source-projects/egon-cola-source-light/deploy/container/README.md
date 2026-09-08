@@ -51,7 +51,7 @@ appropriate to the selected engine.
 ## Development Compose
 
 Development definitions build source and start the application, three PostgreSQL
-primaries, Redis, RabbitMQ, and Nacos. Use the file matching the selected runtime:
+primaries, Redis, and RabbitMQ. Use the file matching the selected runtime:
 
 ```bash
 docker compose --env-file deploy/env/.env.example \
@@ -85,12 +85,12 @@ clustered services when those properties are required.
 ## Persistent Data
 
 Ordinary `stop` and `down` retain named volumes. A command that explicitly removes
-volumes permanently deletes local database, broker, cache, Nacos, and application
+volumes permanently deletes local database, broker, cache, and application
 log data. No generated helper performs that deletion automatically.
 
 ## Health And Failure Behavior
 
-All three PostgreSQL primaries, Redis, RabbitMQ, Nacos, and the Spring Boot
+All three PostgreSQL primaries, Redis, RabbitMQ, and the Spring Boot
 readiness endpoint have health checks. Missing production variables fail Compose configuration. An enabled
 but unavailable remote Facade retains the generated application's fail-fast
 behavior.
@@ -101,3 +101,15 @@ The root `Jenkinsfile` tests, builds, and optionally publishes the image with
 Docker, Podman, or nerdctl. It never runs Compose or deploys the project.
 `PUBLISH_IMAGE` and `PUBLISH_LATEST` default to `false`; registry publication must
 be explicitly enabled with Jenkins credentials.
+
+## Native RPC and DDC configuration
+
+All 10 unary operations are declared in `src/main/proto/teaching_user_facade.proto` and implemented by the four named RPC providers. The platform OpenAPI MVC starter supplies `/v3/api-docs`; existing business HTTP access is preserved. Governance is disabled by default. Enabling `egon.cola.component.gateway.openapi.enabled` requires the platform document identity, published groups and JWT decoder settings, including `gateway.openapi.read` scope. Every published handler also needs an explicit `@Operation(operationId = "...")`; the existing sample business controllers must be catalogued before enabling governance.
+
+`dev` and `prod` require an existing DDC RPC endpoint (`DDC_RPC_TARGET`), DDC Redis endpoint, registration resource URI, and separate runtime/registry HMAC credentials. RPC/DDC configuration uses `egon.cola.component.rpc` and `egon.cola.component.ddc`; application identity uses `APP_NAME`, `APP_ENV`, `DDC_BIZ_CODE`, `DDC_APP_CODE`, and `INSTANCE_ID`. Configure advertised hosts reachable by consumers. No DDC container is supplied. The `test` profile disables RPC provider/consumer, DDC config/registry/Redis, HTTP registration and document publication.
+
+Production enables RPC and DDC mTLS: supply certificate-chain, private-key and trust-certificate paths through the corresponding `RPC_*` and `DDC_RPC_*` variables and mount those files in the container at the configured paths. The development profile explicitly permits plaintext. Configure deployment secrets outside source control; fill the blank values in `deploy/env/.env.prod.example` before deployment. Compose retains PostgreSQL, Redis, RabbitMQ and their data volumes. Static and module tests do not establish live DDC registration, TLS interoperability or container readiness.
+
+DDC provider and HTTP registration additionally obtain an IdP SERVICE token with `ddc:registration:write`. Fill the `IDP_*` entries in the environment sample and configure Spring OAuth2 Client registration/provider `ddcregistration` (`client_credentials`, `client_secret_basic`, client ID/secret and token URI). Compose maps those values to Spring's standard environment variables. For a direct Java launch, supply the equivalent `spring.security.oauth2.client.registration.ddcregistration` and `spring.security.oauth2.client.provider.ddcregistration.token-uri` properties through external configuration. The referenced app ID, resource server ID/URI and registration resource URI must match the existing IdP/DDC deployment. IdP's automatic Servlet filter is disabled to preserve current business HTTP access. The optional OpenAPI security chain still governs documents when explicitly enabled.
+
+The stock Redisson auto-configuration is excluded; DDC owns its explicitly configured Redis client, while existing business Redis configuration remains on Spring's original connection factory. This prevents a disabled DDC/test profile from silently creating a Redis connection.

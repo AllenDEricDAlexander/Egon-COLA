@@ -72,7 +72,7 @@ src/main/java/top/egon/cola/archetype/source/light
 └── common/{constants,utils,enums,exceptions}
 ```
 
-`adapter` owns HTTP, GraphQL, Dubbo provider, and RabbitMQ consumer concerns. `facade` owns stable external RPC contracts. `application` coordinates use cases and transactions. `domain` owns business state, rules, gateway/cache/event ports, and service contracts. `infrastructure` supplies MyBatis-Plus DAOs, `EgonModel` persistence objects, and implementations for Domain-owned ports. `common` contains only business-neutral primitives. `start` performs assembly and runtime configuration.
+`adapter` owns HTTP, GraphQL, COLA RPC provider, and RabbitMQ consumer concerns. `facade` owns stable external RPC contracts. `application` coordinates use cases and transactions. `domain` owns business state, rules, gateway/cache/event ports, and service contracts. `infrastructure` supplies MyBatis-Plus DAOs, `EgonModel` persistence objects, and implementations for Domain-owned ports. `common` contains only business-neutral primitives. `start` performs assembly and runtime configuration.
 
 ## Dependency Graph
 
@@ -100,17 +100,17 @@ Domain Service interfaces live under `domain.<business>.service`; implementation
 4. Create school classes and courses.
 5. Schedule a course while enforcing class, course, semester, and time-conflict rules.
 
-The same Application use cases serve HTTP, GraphQL, Dubbo, and RabbitMQ entry points. User, permission, school-class, and course queries are implemented through Application boundaries rather than duplicated in protocol adapters.
+The same Application use cases serve HTTP, GraphQL, COLA RPC, and RabbitMQ entry points. User, permission, school-class, and course queries are implemented through Application boundaries rather than duplicated in protocol adapters.
 
 ## Persistence And Integrations
 
-MyBatis-Plus through `egon-cola-component-common-mybatis-plus-spring-boot-starter` is the persistence implementation. Domain service interfaces extend `EgonColaIService`; infrastructure service implementations extend `EgonColaServiceImpl`; DAOs extend `EgonColaMapper`; and every PO extends `EgonModel` with MyBatis-Plus table annotations. Flyway owns the H2/PostgreSQL schema. RabbitMQ, Redis, GraphQL, Dubbo Triple, Springdoc OpenAPI, AOP monitoring, request-context filters, and external HTTP clients are included with exercised implementations.
+MyBatis-Plus through `egon-cola-component-common-mybatis-plus-spring-boot-starter` is the persistence implementation. Domain service interfaces extend `EgonColaIService`; infrastructure service implementations extend `EgonColaServiceImpl`; DAOs extend `EgonColaMapper`; and every PO extends `EgonModel` with MyBatis-Plus table annotations. Flyway owns the H2/PostgreSQL schema. RabbitMQ, Redis, GraphQL, COLA native unary RPC, platform OpenAPI, AOP monitoring, request-context filters, and external HTTP clients are included with exercised implementations.
 
-`dev` is the default profile for workstation development and `feature/*` branch verification. It uses environment-backed PostgreSQL, Redis, RabbitMQ, Nacos, Dubbo, and external HTTP integrations.
+`dev` is the default profile for workstation development and `feature/*` branch verification. It uses environment-backed PostgreSQL, Redis, RabbitMQ, COLA RPC, and external HTTP integrations.
 
-`test` is selected automatically by Maven tests and is used by the `dev`, `release/*`, and `hotfix/*` validation pipelines. It uses H2, in-memory adapters, and deterministic stubs; RabbitMQ, Redis, Nacos, Dubbo registry access, and external HTTP calls are disabled.
+`test` is selected automatically by Maven tests and is used by the `dev`, `release/*`, and `hotfix/*` validation pipelines. It uses H2, in-memory adapters, and deterministic stubs; RabbitMQ, Redis, COLA RPC registry access, and external HTTP calls are disabled.
 
-`prod` is reserved for runtime builds and deployments from `main`. Configure `dev` and `prod` through environment variables such as `RABBITMQ_ENABLED=true`, `REDIS_ENABLED=true`, `EXTERNAL_HTTP_ENABLED=true`, `NACOS_CONFIG_ENABLED=true`, `NACOS_DISCOVERY_ENABLED=true`, `DISCOVERY_ENABLED=true`, and `DUBBO_REGISTRY_ADDRESS=nacos://host:8848`. Broker credentials use Spring's own names — `SPRING_RABBITMQ_HOST`, `SPRING_RABBITMQ_PORT`, `SPRING_RABBITMQ_USERNAME`, and `SPRING_RABBITMQ_PASSWORD` — while `RABBITMQ_ENABLED` and `RABBITMQ_LISTENER_AUTO_STARTUP` are application switches.
+`prod` is reserved for runtime builds and deployments from `main`. Configure `dev` and `prod` through environment variables such as `RABBITMQ_ENABLED=true`, `REDIS_ENABLED=true`, `EXTERNAL_HTTP_ENABLED=true`, `DDC_RPC_TARGET=host:19090`, `DDC_ENABLED=true`, `DDC_REGISTRY_ENABLED=true`, and `RPC_ENABLED=true`. Broker credentials use Spring's own names — `SPRING_RABBITMQ_HOST`, `SPRING_RABBITMQ_PORT`, `SPRING_RABBITMQ_USERNAME`, and `SPRING_RABBITMQ_PASSWORD` — while `RABBITMQ_ENABLED` and `RABBITMQ_LISTENER_AUTO_STARTUP` are application switches.
 
 ## Sharding, Read/Write Splitting, And Flyway
 
@@ -248,3 +248,15 @@ printf '%s' 'plain-text' | EGON_CONFIG_DECRYPT_KEY='replace-with-32-byte-secret-
 runner such as `spring-boot:run` does not give the CLI a usable stdin.
 
 Use the emitted `ENC(v1:...)` value in configuration. Supply real secrets through environment variables, mounted files, `config/application-secrets.yml`, or `configtree:/run/secrets/`; never commit credentials or decryption keys.
+
+## Native RPC and DDC configuration
+
+All 10 unary operations are declared in `src/main/proto/teaching_user_facade.proto` and implemented by the four named RPC providers. The platform OpenAPI MVC starter supplies `/v3/api-docs`; existing business HTTP access is preserved. Governance is disabled by default. Enabling `egon.cola.component.gateway.openapi.enabled` requires the platform document identity, published groups and JWT decoder settings, including `gateway.openapi.read` scope. Every published handler also needs an explicit `@Operation(operationId = "...")`; the existing sample business controllers must be catalogued before enabling governance.
+
+`dev` and `prod` require an existing DDC RPC endpoint (`DDC_RPC_TARGET`), DDC Redis endpoint, registration resource URI, and separate runtime/registry HMAC credentials. RPC/DDC configuration uses `egon.cola.component.rpc` and `egon.cola.component.ddc`; application identity uses `APP_NAME`, `APP_ENV`, `DDC_BIZ_CODE`, `DDC_APP_CODE`, and `INSTANCE_ID`. Configure advertised hosts reachable by consumers. No DDC container is supplied. The `test` profile disables RPC provider/consumer, DDC config/registry/Redis, HTTP registration and document publication.
+
+Production enables RPC and DDC mTLS: supply certificate-chain, private-key and trust-certificate paths through the corresponding `RPC_*` and `DDC_RPC_*` variables and mount those files in the container at the configured paths. The development profile explicitly permits plaintext. Configure deployment secrets outside source control; fill the blank values in `deploy/env/.env.prod.example` before deployment. Compose retains PostgreSQL, Redis, RabbitMQ and their data volumes. Static and module tests do not establish live DDC registration, TLS interoperability or container readiness.
+
+DDC provider and HTTP registration additionally obtain an IdP SERVICE token with `ddc:registration:write`. Fill the `IDP_*` entries in the environment sample and configure Spring OAuth2 Client registration/provider `ddcregistration` (`client_credentials`, `client_secret_basic`, client ID/secret and token URI). Compose maps those values to Spring's standard environment variables. For a direct Java launch, supply the equivalent `spring.security.oauth2.client.registration.ddcregistration` and `spring.security.oauth2.client.provider.ddcregistration.token-uri` properties through external configuration. The referenced app ID, resource server ID/URI and registration resource URI must match the existing IdP/DDC deployment. IdP's automatic Servlet filter is disabled to preserve current business HTTP access. The optional OpenAPI security chain still governs documents when explicitly enabled.
+
+The stock Redisson auto-configuration is excluded; DDC owns its explicitly configured Redis client, while existing business Redis configuration remains on Spring's original connection factory. This prevents a disabled DDC/test profile from silently creating a Redis connection.

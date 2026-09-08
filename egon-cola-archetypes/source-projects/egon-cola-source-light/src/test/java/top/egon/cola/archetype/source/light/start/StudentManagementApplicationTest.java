@@ -11,8 +11,8 @@ import org.springframework.test.context.ActiveProfiles;
                 "app.integrations.rabbitmq.enabled=false",
                 "app.integrations.redis.enabled=false",
                 "app.integrations.external-http.enabled=false",
-                "dubbo.protocol.port=-1",
-                "dubbo.application.qos-enable=false"
+                "egon.cola.component.rpc.enabled=false",
+                "egon.cola.component.ddc.enabled=false"
         })
 class StudentManagementApplicationTest {
     @Test
