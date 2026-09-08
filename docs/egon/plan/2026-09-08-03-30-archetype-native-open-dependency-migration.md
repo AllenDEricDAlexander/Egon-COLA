@@ -503,6 +503,8 @@ Spec §7.4 是已授权补齐：具体parent版本、Components Commons owner、
 
 | PLAN-CLAR-013 | Native Compose 使用显式 DDC_APP_CODE，不在 unfiltered 文件里嵌入 source artifact 默认值 | 七产品 IT 的 Light Compose 中出现未展开 ${artifactId}；Service/Web 同结构 | .env 示例仍生成项目默认值；缺少应用编码时 Compose 明确拒绝，避免错误注册 | 分别归属 Step 3/4 的独立修正；18个 Compose 的编码和生成 sentinel 门禁必须通过 |
 
+| PLAN-CLAR-014 | 统一 create-from-project 生成的 parentArtifactId alias 为 rootArtifactId 后再 Velocity escaping | Native Service/Web 生成配置测试期待未展开的 ${parentArtifactId}；Open 既有测试资源亦有同类 alias | 保留原测试断言和源 Java，修正生成变量语义；project.parent.artifactId 等 Maven 表达式不改 | Step 6 独立修正；夹具须先 RED 再 GREEN，完整生成测试必须通过 |
+
 ## 7. Ordered File-by-file Implementation Steps
 
 ### Step 1 — Establish parent and dependency ownership

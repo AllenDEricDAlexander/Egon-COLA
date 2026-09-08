@@ -269,6 +269,9 @@ normalize_text_file() {
   replacement="$(escape_sed_replacement '${package}')"
   sed "s|$pattern|$replacement|g" "$temp" >"${temp}.2"
   mv -- "${temp}.2" "$temp"
+  # create-from-project can emit this alias in module Java/config resources.
+  sed 's|${parentArtifactId}|${rootArtifactId}|g' "$temp" >"${temp}.2"
+  mv -- "${temp}.2" "$temp"
   pattern="$(escape_sed_pattern "$MF_SOURCE_ARTIFACT_ID")"
   if [[ "$MF_EXPECTED_TOPOLOGY" == root ]]; then
     replacement="$(escape_sed_replacement '${artifactId}')"

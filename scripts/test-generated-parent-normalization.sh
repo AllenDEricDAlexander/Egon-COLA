@@ -17,9 +17,10 @@ for argument in "$@"; do
   if [[ "$argument" == -DoutputDirectory=* ]]; then output="${argument#*=}"; fi
 done
 resources="$output/src/main/resources/archetype-resources"
-mkdir -p "$resources/source-parent-common/src/main/resources"
+mkdir -p "$resources/source-parent-common/src/main/resources" "$resources/source-parent-common/src/main/java"
 printf '<project/>\n' >"$resources/pom.xml"
 printf '<project/>\n' >"$resources/source-parent-common/pom.xml"
+printf 'class Example { String name = "${parentArtifactId}"; }\n' >"$resources/source-parent-common/src/main/java/Example.java"
 printf 'value=${APP_VALUE:default}\n' >"$resources/source-parent-common/src/main/resources/application.yml"
 EOF
 chmod +x "$TEST_ROOT/mvnw"
@@ -90,6 +91,11 @@ grep -Eq '<relativePath[[:space:]]*/>' "$resources/pom.xml"
 grep -Fq '<relativePath>../pom.xml</relativePath>' "$resources/__rootArtifactId__-common/pom.xml"
 grep -Fq '<artifactId>${rootArtifactId}</artifactId>' "$resources/__rootArtifactId__-common/pom.xml"
 grep -Fq '<version>${version}</version>' "$resources/__rootArtifactId__-common/pom.xml"
+grep -Fq 'String name = "${rootArtifactId}"' "$resources/__rootArtifactId__-common/src/main/java/Example.java" || {
+  printf 'parent-normalization-test: Maven parentArtifactId alias was not normalized\n' >&2; exit 1;
+}
+! grep -Fq 'parentArtifactId' "$resources/__rootArtifactId__-common/src/main/java/Example.java"
+
 grep -Fq '${symbol_dollar}{APP_VALUE:default}' "$resources/__rootArtifactId__-common/src/main/resources/application.yml"
 grep -Fq '<relativePath>../../pom.xml</relativePath>' "$TEST_ROOT/egon-cola-archetypes/.generated/sample/pom.xml"
 cmp "$definition/src/test/resources/projects/basic/open-dependency-boundary.groovy" \
