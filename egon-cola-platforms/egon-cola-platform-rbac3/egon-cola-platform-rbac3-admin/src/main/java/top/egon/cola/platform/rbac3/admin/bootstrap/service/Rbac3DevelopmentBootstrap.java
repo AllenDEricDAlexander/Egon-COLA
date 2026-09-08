@@ -6,6 +6,8 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.domain.dto.MutationWorkDTO;
+import top.egon.cola.platform.rbac3.admin.authorization.runtime.service.RuntimeProjectionExecutor;
 import top.egon.cola.platform.rbac3.admin.bootstrap.repository.DevelopmentBootstrapPort;
 import top.egon.cola.platform.rbac3.admin.iam.user.repository.IdentityTenantMembershipDirectory;
 
@@ -26,18 +28,21 @@ public class Rbac3DevelopmentBootstrap implements ApplicationRunner {
 
     private final DevelopmentBootstrapPort bootstrap;
     private final IdentityTenantMembershipDirectory memberships;
+    private final RuntimeProjectionExecutor runtimeProjection;
     private final List<String> tenantIds;
     private final String identitySub;
 
     public Rbac3DevelopmentBootstrap(
             DevelopmentBootstrapPort bootstrap,
             IdentityTenantMembershipDirectory memberships,
+            RuntimeProjectionExecutor runtimeProjection,
             @Value("${egon.rbac3.development-bootstrap.tenant-ids:}")
             String tenantIds,
             @Value("${egon.rbac3.development-bootstrap.identity-sub:}")
             String identitySub) {
         this.bootstrap = Objects.requireNonNull(bootstrap, "bootstrap");
         this.memberships = Objects.requireNonNull(memberships, "memberships");
+        this.runtimeProjection = Objects.requireNonNull(runtimeProjection, "runtimeProjection");
         this.tenantIds = Arrays.stream(required(tenantIds, "tenantIds").split(","))
                 .map(Rbac3DevelopmentBootstrap::tenantId)
                 .distinct()
@@ -50,6 +55,10 @@ public class Rbac3DevelopmentBootstrap implements ApplicationRunner {
         tenantIds.forEach(tenantId -> {
             memberships.requireActive(tenantId, identitySub);
             bootstrap.bootstrap(tenantId, identitySub);
+            // Bootstrap commits new database versions before rebuilding the selected roles.
+            // Replaying also repairs an earlier restart that left an old Redis snapshot behind.
+            runtimeProjection.project(new MutationWorkDTO(
+                    "local-bootstrap-" + tenantId, tenantId, "TENANT", tenantId, "COMMITTED"));
         });
     }
 
