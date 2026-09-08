@@ -126,6 +126,19 @@
                     </configuration>
                 </plugin>
                 <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <!-- Library/agent modules define their own shading and manifest transformers. -->
+                    <configuration combine.self="override"/>
+                    <executions>
+                        <execution>
+                            <id>default</id>
+                            <phase>none</phase>
+                            <configuration combine.self="override"/>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
                     <artifactId>maven-source-plugin</artifactId>
                     <version>${maven.source.plugin.version}</version>
                 </plugin>
