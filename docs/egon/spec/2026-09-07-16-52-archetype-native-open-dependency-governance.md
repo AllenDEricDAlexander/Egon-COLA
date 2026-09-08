@@ -9,7 +9,7 @@
 | Complexity | `Complex` |
 | Complexity Drivers | 七个 source project、根/组件/平台/生成器多级 Maven 继承；原生与 `-open` 双技术栈；native RPC 需新增 Protobuf/gRPC 合约并联动源码、配置、测试、Compose 与 verifier；BOM 归属和 generated parent 必须保持可解析 |
 | Created | `2026-09-07 16:52 CST` |
-| Updated | `2026-09-08 13:18 CST` |
+| Updated | `2026-09-08 15:08 CST` |
 | Owner | `用户 / Egon-COLA 维护者` |
 | Repository | `Egon-COLA` |
 | Scope | `pom.xml`、`egon-cola-components`、`egon-cola-platforms`、`egon-cola-archetypes` 七个 source project、definitions、生成脚本与 archetype verifier |
@@ -474,6 +474,8 @@ Java Record/DTO 的字段名、值、顺序、nullable 意义是权威；proto �
 native bootstrap 文件中的 application name 必须迁移到 application.yml；Cloud bootstrap 不再加载后不能丢失应用身份。Nacos 的 bootstrap*.yml 从 native 删除，并把仍有效的基础属性迁移至四个 application profile。每个新增/移除基础设施 key 在 base/dev/test/prod 完整对齐；test 关闭 RPC server、DDC registry/config/HTTP-registration 和远程客户端，使用已有 fake ports/H2，不监听真实服务。dev/prod 的 DDC target/credentials/TLS 使用显式环境变量；缺失配置按既有 starter fail fast，不能改回 Nacos。
 
 18 份 native Compose、6 份 env 样例和相关 README 同步移除 Nacos service/volume/depends_on、Dubbo port/env，保留数据库/Redis/MQ及已有数据卷。DDC 是部署方提供的现有外部服务，本次不添加/启动 DDC 容器或捏造发布镜像；Compose 传入真实 starter 对应变量。
+
+用户于本次执行中确认修复配置解密的遗漏范围：三个 native `ConfigDecryptEnvironmentPostProcessor` 的执行顺序改为 Spring Boot `ConfigDataEnvironmentPostProcessor.ORDER + 1`。保留 AES-GCM、密钥来源/优先级、占位符覆盖、property source 优先级和密钥清零；旧的自动 bootstrap 文件测试迁移为显式 `spring.config.import` 文件测试，既有 Config Data/configtree/缺失密钥等测试全部保留。Light 两个文件归 Step 3，Service/Web 四个文件归 Step 4；不修改 `-open` 对应实现。
 
 #### 7.4.5 Verification and sequence corrections
 
