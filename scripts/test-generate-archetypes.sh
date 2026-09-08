@@ -120,6 +120,7 @@ EOF
   printf 'gitignore=.gitignore\n' >"$definition/src/test/resources/projects/basic/archetype.properties"
   printf 'fixture goal\n' >"$definition/src/test/resources/projects/basic/goal.txt"
   printf 'assert true\n' >"$definition/src/test/resources/projects/basic/verify.groovy"
+  printf 'true // Open dependency boundary fixture\n' >"$definition/src/test/resources/projects/basic/open-dependency-boundary.groovy"
   printf '# Fixture architecture %s\n' "$product" >"$definition/architecture-docs/architecture.md"
 }
 
@@ -315,6 +316,12 @@ test_complete_child_layout() {
       "${child} packaging"
     assert_file_contains "$child/pom.xml" '<version>9.9.9</version>' "${child} root version"
     [[ -f "$child/archetype-resources/pom.xml" ]] || fail "${child} resources are missing"
+    assert_file_contains "$child/archetype-resources/pom.xml" '<artifactId>egon-cola-archetypes-parent</artifactId>' 'consumer parent'
+    assert_file_contains "$child/archetype-resources/pom.xml" '<relativePath/>' 'consumer parent repository resolution'
+    assert_file_contains "$child/archetype-resources/pom.xml" '<version>9.9.9</version>' 'concrete consumer parent'
+    cmp "$fixture_archetypes/definitions/egon-cola-archetype-${product}/src/test/resources/projects/basic/open-dependency-boundary.groovy" \
+      "$child/src/test/resources/projects/basic/open-dependency-boundary.groovy" || fail 'auxiliary Open verifier changed'
+
     [[ -f "$child/src/main/resources/META-INF/maven/archetype-metadata.xml" ]] \
       || fail "${child} metadata is missing"
     [[ -f "$child/src/main/resources/META-INF/archetype-post-generate.groovy" ]] \

@@ -475,6 +475,32 @@ validate_topology() {
   fi
 }
 
+normalize_generated_parent() {
+  local file="$1/pom.xml" temp="$1/pom.xml.parent.tmp.$$"
+  # Only the consumer root is rewritten. Child/packaging parents retain their paths.
+  awk -v version="$ROOT_VERSION" '
+    { content = content $0 "\n" }
+    END {
+      parent = "<parent>\n        <groupId>top.egon</groupId>\n" \
+          "        <artifactId>egon-cola-archetypes-parent</artifactId>\n" \
+          "        <version>" version "</version>\n        <relativePath/>\n    </parent>"
+      if (match(content, /<parent>[[:space:]]*<groupId>[^<]*<\/groupId>[[:space:]]*<artifactId>[^<]*<\/artifactId>[[:space:]]*<version>[^<]*<\/version>[[:space:]]*(<relativePath([[:space:]]*\/>|>[^<]*<\/relativePath>)[[:space:]]*)?<\/parent>/)) {
+        content = substr(content, 1, RSTART - 1) parent substr(content, RSTART + RLENGTH)
+      } else if (content ~ /<parent>/) {
+        print "generate-archetypes: unsupported consumer parent structure" > "/dev/stderr"
+        exit 1
+      } else if (match(content, /<\/modelVersion>/) || match(content, /<project[^>]*>/)) {
+        content = substr(content, 1, RSTART + RLENGTH - 1) "\n    " parent substr(content, RSTART + RLENGTH)
+      } else {
+        print "generate-archetypes: consumer root project element is missing" > "/dev/stderr"
+        exit 1
+      }
+      printf "%s", content
+    }
+  ' "$file" >"$temp"
+  mv -- "$temp" "$file"
+}
+
 normalize_generated_product() {
   local output_root="$1" resources="$1/src/main/resources/archetype-resources"
   [[ -d "$resources" ]] || die "create-from-project did not produce archetype-resources: $resources"
@@ -488,6 +514,7 @@ normalize_generated_product() {
   normalize_text_tree "$resources"
   overlay_source_poms "$resources"
   normalize_text_tree "$resources"
+  normalize_generated_parent "$resources"
   escape_velocity_tree "$resources"
   validate_no_source_sentinels "$resources"
   validate_topology "$resources"
@@ -524,6 +551,10 @@ copy_curated_assets() {
     cp -p "$definition/src/test/resources/projects/basic/$asset" \
       "$product_root/src/test/resources/projects/basic/$asset"
   done
+  if [[ -f "$definition/src/test/resources/projects/basic/open-dependency-boundary.groovy" ]]; then
+    cp -p "$definition/src/test/resources/projects/basic/open-dependency-boundary.groovy" \
+      "$product_root/src/test/resources/projects/basic/open-dependency-boundary.groovy"
+  fi
   while IFS= read -r asset; do
     cp -p "$asset" "$product_root/architecture-docs/$(basename "$asset")"
   done < <(find "$definition/architecture-docs" -type f -print | LC_ALL=C sort)
