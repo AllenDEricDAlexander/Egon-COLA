@@ -149,10 +149,6 @@ def assertPortableDockerfile = { jarFile, exposedPorts, readinessPort ->
 
 def assertRuntimeConfigFiles = { resourcesDir ->
     [
-        "bootstrap.yml",
-        "bootstrap-dev.yml",
-        "bootstrap-test.yml",
-        "bootstrap-prod.yml",
         "application.yml",
         "application-dev.yml",
         "application-test.yml",
@@ -167,10 +163,7 @@ def assertRuntimeConfigFiles = { resourcesDir ->
     assert profileConfigNames == [
         "application-dev.yml",
         "application-prod.yml",
-        "application-test.yml",
-        "bootstrap-dev.yml",
-        "bootstrap-prod.yml",
-        "bootstrap-test.yml"
+        "application-test.yml"
     ]: "Only dev, test and prod profile configuration files are allowed"
     assertMissing("${resourcesDir}/bootstrap-local.yml")
     assertMissing("${resourcesDir}/application-local.yml")
@@ -196,11 +189,13 @@ def assertNoGenericMapStructConverterInjection = { path ->
     }
 }
 
-def assertNoInternalImports = { path, forbiddenLayers ->
+def assertNoInternalImports = { path, forbiddenLayers, allowedImports = [] ->
     javaFileTexts(path).each { text ->
         forbiddenLayers.each { layer ->
-            assert !text.contains("import it.pkg.${layer}."):
-                    "Unexpected ${layer} import under ${path}"
+            def forbidden = text.readLines().findAll {
+                it.contains("import it.pkg.${layer}.") && !allowedImports.contains(it.trim())
+            }
+            assert forbidden.isEmpty(): "Unexpected ${layer} import under ${path}: ${forbidden}"
         }
     }
 }
@@ -224,12 +219,9 @@ def productionEnv = assertFile("deploy/env/.env.prod.example").text
     "POSTGRES_IMAGE=postgres:17-alpine",
     "REDIS_IMAGE=redis:7.4-alpine",
     "RABBITMQ_IMAGE=rabbitmq:4-management",
-    "NACOS_IMAGE=nacos/nacos-server:v2.5.1",
     "POSTGRES_PASSWORD=",
     "REDIS_PASSWORD=",
-    "RABBITMQ_PASSWORD=",
-    "NACOS_PASSWORD=",
-    "NACOS_AUTH_TOKEN="
+    "RABBITMQ_PASSWORD="
 ].each { expected ->
     assert productionEnv.readLines().contains(expected):
             "Expected production env example line ${expected}"
@@ -237,14 +229,13 @@ def productionEnv = assertFile("deploy/env/.env.prod.example").text
 [
     "POSTGRES_PASSWORD=local-postgres",
     "REDIS_PASSWORD=local-redis",
-    "RABBITMQ_PASSWORD=local-rabbitmq",
-    "NACOS_PASSWORD=nacos"
+    "RABBITMQ_PASSWORD=local-rabbitmq"
 ].each { forbidden ->
     assert !productionEnv.contains(forbidden):
             "Production env example must not contain development credential ${forbidden}"
 }
 assert developmentEnv.contains("IMAGE_TAG=local")
-assert developmentEnv.contains("NACOS_AUTH_ENABLE=true")
+assert developmentEnv.contains("DDC_RPC_TARGET=")
 assert productionEnv.contains("REGISTRY=")
 assert productionEnv.contains("REGISTRY_NAMESPACE=")
 assert productionEnv.contains("IMAGE_TAG=")
@@ -254,7 +245,7 @@ assert developmentEnv.contains("EXTERNAL_HTTP_ENABLED=false")
 def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
     def text = assertFile("deploy/compose/${fileName}").text
     ["application:", "postgres-master-data:", "postgres-shard-0:",
-     "postgres-shard-1:", "redis:", "rabbitmq:", "nacos:",
+     "postgres-shard-1:", "redis:", "rabbitmq:",
      "healthcheck:", "networks:", "volumes:", "application_logs:"].each { token ->
         assert text.contains(token): "Expected ${fileName} to contain ${token}"
     }
@@ -268,8 +259,8 @@ def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
     assert text.contains('jdbc:postgresql://postgres-master-data:5432/${POSTGRES_DB}')
     assert text.contains('jdbc:postgresql://postgres-shard-0:5432/${POSTGRES_DB}')
     assert text.contains('jdbc:postgresql://postgres-shard-1:5432/${POSTGRES_DB}')
-    assert text.contains("NACOS_SERVER_ADDR: nacos:8848")
-    assert text.contains("DUBBO_REGISTRY_ADDRESS: nacos://nacos:8848")
+    assert text.contains("DDC_RPC_TARGET:")
+    assert text.contains("DDC_REGISTRY_ACCESS_KEY:")
     assert text.contains('pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"')
     assert text.contains('redis-cli --no-auth-warning -a "$${REDIS_PASSWORD}" ping')
     assert text.contains('["CMD", "rabbitmq-diagnostics", "-q", "ping"]')
@@ -292,7 +283,7 @@ developmentComposeFiles.each { fileName, engine ->
 def assertProductionCompose = { fileName, requiredApplicationLines ->
     def text = assertFile("deploy/compose/${fileName}").text
     ["application:", "postgres-master-data:", "postgres-shard-0:",
-     "postgres-shard-1:", "redis:", "rabbitmq:", "nacos:",
+     "postgres-shard-1:", "redis:", "rabbitmq:",
      "healthcheck:", "networks:", "volumes:", "application_logs:",
      "read_only: true", "tmpfs:", "mem_limit:", "cpus:",
      "restart: unless-stopped"].each { token ->
@@ -307,7 +298,7 @@ def assertProductionCompose = { fileName, requiredApplicationLines ->
     assert text.contains('${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}')
     assert text.contains('${REDIS_PASSWORD:?Set REDIS_PASSWORD}')
     assert text.contains('${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}')
-    assert text.contains('${NACOS_AUTH_TOKEN:?Set NACOS_AUTH_TOKEN}')
+    assert text.contains('DDC_REGISTRY_SECRET_KEY: ${DDC_REGISTRY_SECRET_KEY}')
     assert !text.contains("build:")
     assert !text.contains("local-postgres")
     assert !text.contains("local-redis")
@@ -457,32 +448,19 @@ def assertVersionProperty = { pomModel, propertyName ->
 }
 def assertEgonColaBom = { pomModel ->
     assertVersionProperty(pomModel, "egon-cola.version")
-    def bom = pomModel.dependencyManagement.dependencies.dependency.find {
-        it.groupId.text() == "top.egon" &&
-                it.artifactId.text() == "egon-cola-components-bom"
-    }
-    assert bom: "Expected top.egon:egon-cola-components-bom"
-    assert bom.version.text() == '${egon-cola.version}':
-            "Expected Egon-COLA BOM version to reference egon-cola.version"
-    assert bom.type.text() == "pom"
-    assert bom.scope.text() == "import"
+    assert !pomModel.dependencyManagement.dependencies.dependency.any {
+        it.artifactId.text() == "egon-cola-components-bom"
+    }: "Components BOM is inherited from the published archetypes parent"
 }
-assert pomXml.parent.groupId.text() == "org.springframework.boot"
-assert pomXml.parent.artifactId.text() == "spring-boot-starter-parent"
-assert pomXml.parent.version.text().trim(): "Expected a Spring Boot parent version"
+
 assert pomXml.properties.'java.version'.text() == "21"
-assert pomXml.properties.'shardingsphere.version'.text() == "5.5.3"
 assert pom.contains("<artifactId>shardingsphere-jdbc</artifactId>")
 assert pom.contains("<artifactId>shardingsphere-sharding-core</artifactId>")
 assert pom.contains("<artifactId>egon-cola-component-common-id-starter</artifactId>")
 [
     "lombok.version",
     "lombok.mapstruct.binding.version",
-    "mapstruct-plus.version",
-    "dubbo.version",
-    "spring-cloud.version",
-    "spring-cloud-alibaba.version",
-    "springdoc.version"
+    "mapstruct-plus.version"
 ].each { assertVersionProperty(pomXml, it) }
 assert pomXml.properties.'lombok.mapstruct.binding.version'.text() == "0.2.0"
 assertEgonColaBom(pomXml)
@@ -491,7 +469,7 @@ assertEgonColaBom(pomXml)
     "spring-boot-starter-amqp",
     "spring-boot-starter-data-redis",
     "spring-boot-starter-aop",
-    "springdoc-openapi-starter-webmvc-ui",
+    "egon-cola-platform-gateway-starter-openapi-webmvc",
     "flyway-database-postgresql",
     "spring-boot-starter-test",
     "spring-graphql-test"
@@ -505,10 +483,10 @@ assert pom.contains("<artifactId>egon-cola-component-common-core</artifactId>")
 assert !pom.contains("<artifactId>egon-cola-component-dynamic-thread-pool-starter</artifactId>")
 assert !pom.contains("<artifactId>egon-cola-component-dynamic-thread-pool-admin</artifactId>")
 assert !pom.contains("<artifactId>egon-cola-component-dynamic-thread-pool-test</artifactId>")
-assert pom.contains("<artifactId>spring-cloud-dependencies</artifactId>")
-assert pom.contains("<artifactId>spring-cloud-alibaba-dependencies</artifactId>")
+assert !pom.contains("<artifactId>spring-cloud-dependencies</artifactId>")
+assert !pom.contains("<artifactId>spring-cloud-alibaba-dependencies</artifactId>")
 assert pom.contains("<artifactId>mapstruct-plus-spring-boot-starter</artifactId>")
-assert pom.contains("<artifactId>dubbo-spring-boot-starter</artifactId>")
+assert !pom.contains("<artifactId>dubbo-spring-boot-starter</artifactId>")
 assert pom.contains("<artifactId>mapstruct-plus-processor</artifactId>")
 assert pom.contains("<artifactId>lombok-mapstruct-binding</artifactId>")
 def compilerPlugin = pomXml.build.plugins.plugin.find {
@@ -520,7 +498,6 @@ def bindingProcessor = compilerPlugin.configuration.annotationProcessorPaths.pat
 }
 assert bindingProcessor: "Expected lombok-mapstruct-binding annotation processor"
 assert bindingProcessor.version.text() == '${lombok.mapstruct.binding.version}'
-assert pom.contains("<artifactId>spring-boot-starter-parent</artifactId>")
 assert !pom.contains("<artifactId>spring-boot-dependencies</artifactId>")
 assert !pom.contains("spring-ai")
 assert !pom.contains("drools")
@@ -531,9 +508,9 @@ assert pom.contains("<enabled>true</enabled>")
 assertSpringBootLayeredJarPlugin(pomXml)
 
 def starterPomText = pom
-assert starterPomText.contains("<artifactId>spring-cloud-starter-bootstrap</artifactId>")
-assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>")
-assert starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>")
+assert !starterPomText.contains("<artifactId>spring-cloud-starter-bootstrap</artifactId>")
+assert !starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>")
+assert !starterPomText.contains("<artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>")
 assert starterPomText.contains("<artifactId>micrometer-registry-prometheus</artifactId>")
 assert starterPomText.contains("<spring.profiles.active>test</spring.profiles.active>")
 
@@ -550,18 +527,12 @@ def lombokConfig = assertFile("lombok.config").text
 
 assertRuntimeConfigFiles("src/main/resources")
 
-def assertEncryptedPasswordDefault = { path, envName ->
-    def text = assertFile(path).text
-    assert text.contains('password: ${' + envName + ':ENC(v1:'): "Expected ${path} to use encrypted ${envName} default"
-}
-assertEncryptedPasswordDefault("src/main/resources/bootstrap-dev.yml", "NACOS_PASSWORD")
-assertEncryptedPasswordDefault("src/main/resources/bootstrap-prod.yml", "NACOS_PASSWORD")
 assert assertFile("src/main/resources/application-test.yml").text.contains(
         'password: "${LIGHT_SHARDING_PASSWORD:}"')
 assertMissing("src/test/resources/application-jpa-test.yml")
 assertMissing("src/test/java/it/pkg/infrastructure/JpaTestApplication.java")
 assertFile("src/test/java/it/pkg/architecture/LightPersistenceArchitectureTest.java")
-assert !assertFile("src/main/resources/bootstrap-test.yml").text.contains('ENC(')
+assert !assertFile("src/main/resources/application-test.yml").text.contains('ENC(')
 
 def testConfig = assertFile("src/main/resources/application-test.yml").text
 assert testConfig.contains("database-name: PUBLIC")
@@ -569,7 +540,7 @@ assert !testConfig.contains("DATABASE_TO_LOWER")
 assert testConfig.contains("rabbitmq:\n      enabled: false")
 assert testConfig.contains("redis:\n      enabled: false")
 assert testConfig.contains("external-http:\n      enabled: false")
-assert testConfig.contains("export: false")
+assert testConfig.contains("provider:\n          enabled: false")
 assert testConfig.contains("rabbit:\n      enabled: false")
 assert testConfig.contains("redis:\n      enabled: false")
 
@@ -591,20 +562,13 @@ assert applicationYaml.contains('${TOMCAT_MAX_HTTP_FORM_POST_SIZE:2MB}')
 assert applicationYaml.contains('${TOMCAT_MAX_SWALLOW_SIZE:2MB}')
 assert applicationYaml.contains('${TOMCAT_PROCESSOR_CACHE:200}')
 assert applicationYaml.contains('${TOMCAT_MBEAN_REGISTRY_ENABLED:true}')
-def bootstrapYaml = assertFile("src/main/resources/bootstrap.yml").text
-assert bootstrapYaml.contains("default: dev")
-assert bootstrapYaml.contains('${NACOS_NAMESPACE:dev}')
 assert applicationYaml.contains("write-dates-as-timestamps: false")
 assert applicationYaml.contains("prometheus")
 assert applicationYaml.contains("tomcat:")
 assert applicationYaml.contains('${TOMCAT_MAX_CONNECTIONS:8192}')
-assert applicationYaml.contains("dubbo:")
-assert applicationYaml.contains('name: ${spring.application.name}')
-assert applicationYaml.contains('${DUBBO_REGISTRY_ADDRESS:N/A}')
-assert applicationYaml.contains("name: tri")
-assert applicationYaml.contains('${DUBBO_PORT:50051}')
-assert applicationYaml.contains("timeout: 3000")
-assert applicationYaml.contains("retries: 0")
+assert applicationYaml.contains('port: ${RPC_PORT:50051}')
+assert applicationYaml.contains("default-timeout-ms: 3000")
+assert applicationYaml.contains("max-retries: 0")
 
 def wrapper = assertFile(".mvn/wrapper/maven-wrapper.properties").text
 assert wrapper.contains("apache-maven/3.9.14/apache-maven-3.9.14-bin.zip")
@@ -744,9 +708,7 @@ assertFile("src/main/java/it/pkg/start/config/ActuatorConfig.java")
 assertFile("src/test/java/it/pkg/start/StudentManagementApplicationTest.java")
 assertFile("src/test/java/it/pkg/start/config/RuntimeConfigurationTest.java")
 def starterText = assertFile("src/main/java/it/pkg/start/StudentManagementApplication.java").text
-assert starterText.contains("@EnableDubbo")
-assert starterText.contains('"it.pkg.adapter.user.rpc"')
-assert starterText.contains('"it.pkg.adapter.teaching.rpc"')
+assert !starterText.contains("@EnableDubbo")
 assert starterText.contains('"it.pkg.infrastructure.user.repo.dao"')
 assert starterText.contains('"it.pkg.infrastructure.teaching.repo.dao"')
 assertFile("src/main/resources/application.yml")
@@ -1175,7 +1137,8 @@ assert allApplicationJava.every { !it.text.contains("View") }
 assert allApplicationJava.every { !it.text.contains("facade.dto") }
 assert allApplicationJava.every { !it.text.contains("common.response") }
 
-assertNoInternalImports("src/main/java/it/pkg/start", ["application", "common", "domain", "facade"])
+assertNoInternalImports("src/main/java/it/pkg/start", ["application", "common", "domain", "facade"],
+        ["import it.pkg.facade.rpc.LightRpcConverter;"])
 assertNoInternalImports("src/main/java/it/pkg/adapter", ["common", "domain", "infrastructure", "start"])
 assertNoInternalImports("src/main/java/it/pkg/application", ["adapter", "common", "facade", "infrastructure", "start"])
 assertNoInternalImports("src/main/java/it/pkg/domain", ["adapter", "application", "facade", "infrastructure", "start"])
@@ -1341,4 +1304,87 @@ assert launchCheck.waitFor() == 0: launchOutput
 assert launchOutput.contains("spring.profiles.active = dev"): launchOutput
 assert launchOutput.contains("server.port = 8080"): launchOutput
 assert launchOutput.contains("spring.config.additional-location = optional:file:./config/override.yml"): launchOutput
+true
+
+// Verify the released parent and the actual packaged runtime, separately from BOM management.
+def releasedParent = new XmlSlurper(false, false).parse(new File(generatedProjectDir, 'pom.xml'))
+assert releasedParent.parent.groupId.text() == 'top.egon'
+assert releasedParent.parent.artifactId.text() == 'egon-cola-archetypes-parent'
+assert releasedParent.parent.version.text() == releasedParent.properties.'egon-cola.version'.text()
+assert releasedParent.parent.version.text() ==~ /[0-9]+(?:\.[0-9]+)+(?:[-.][A-Za-z0-9]+)*/
+assert releasedParent.parent.relativePath.size() == 1 && !releasedParent.parent.relativePath.text()
+['commons-lang3.version', 'commons.lang3.version', 'shardingsphere.version', 'dubbo.version',
+ 'grpc.version', 'protobuf.version', 'spring-cloud.version', 'spring-cloud-alibaba.version', 'springdoc.version'].each { name ->
+    assert !releasedParent.properties."${name}".text(): "Version must be inherited: ${name}"
+}
+def releasedArchive = new File(generatedProjectDir, 'target').listFiles()?.find {
+    it.name.endsWith('.jar') && !it.name.endsWith('-sources.jar') && !it.name.endsWith('-javadoc.jar')
+}
+assert releasedArchive: 'Expected packaged consumer runtime'
+def releasedLibraries = [] as Set
+new java.util.jar.JarFile(releasedArchive).withCloseable { archive ->
+    archive.entries().each { entry ->
+        if (entry.name.startsWith('BOOT-INF/lib/')) releasedLibraries << entry.name.substring('BOOT-INF/lib/'.length())
+    }
+}
+assert releasedLibraries.contains('spring-boot-3.5.16.jar')
+assert releasedLibraries.contains('commons-lang3-3.20.0.jar')
+assert releasedLibraries.any { it.startsWith('egon-cola-component-common-core-') }
+assert releasedLibraries.contains('shardingsphere-jdbc-5.5.3.jar')
+assert releasedLibraries.contains('grpc-core-1.75.0.jar')
+assert releasedLibraries.contains('protobuf-java-4.32.0.jar')
+['egon-cola-component-rpc-starter-', 'egon-cola-component-rpc-ddc-adapter-',
+ 'egon-cola-platform-dynamic-config-center-starter-',
+ 'egon-cola-platform-dynamic-config-center-http-registration-starter-',
+ 'egon-cola-platform-gateway-starter-openapi-webmvc-'].each { required ->
+    assert releasedLibraries.any { it.startsWith(required) }: "Missing native runtime ${required}"
+}
+assert !releasedLibraries.any { it.startsWith('dubbo-') || it.startsWith('nacos-') || it.startsWith('spring-cloud-starter-alibaba-nacos-') }
+['bootstrap.yml', 'bootstrap-dev.yml', 'bootstrap-test.yml', 'bootstrap-prod.yml'].each {
+    assert !new File(generatedProjectDir, 'src/main/resources/' + it).exists()
+}
+['application.yml', 'application-dev.yml', 'application-test.yml', 'application-prod.yml'].each { profile ->
+    def config = new File(generatedProjectDir, 'src/main/resources/' + profile).text
+    ['rpc:', 'ddc:', 'provider:', 'consumer:', 'registry:', 'gateway:', 'openapi:', 'idp:'].each { token ->
+        assert config.contains(token): "Missing native configuration ${token} in ${profile}"
+    }
+    assert !config.contains('DUBBO_') && !config.contains('NACOS_')
+}
+def nativeJava = []
+generatedProjectDir.traverse(type: FileType.FILES) { candidate ->
+    def path = '/' + generatedProjectDir.toPath().relativize(candidate.toPath()).toString().replace('\\', '/')
+    if (path.contains('/src/main/java/') && !path.contains('/target/') && candidate.name.endsWith('.java')) nativeJava << candidate
+}
+assert nativeJava.every { !it.text.contains('org.apache.dubbo') }
+def nativeProviders = nativeJava.findAll { it.name.endsWith('RpcProvider.java') }
+assert nativeProviders.every { it.text.contains('@EgonRpcProvider') && it.text.contains('@RequiredArgsConstructor') }
+def nativeOperations = nativeProviders.collectMany { provider ->
+    (provider.text =~ /public\s+\w*Response\s+(\w+)\(/).collect { it[1] }
+}.sort()
+assert nativeOperations == ["createUser", "assignRole", "getUser", "grantPermission", "getUserPermissions", "createCourse", "getCourse", "createSchoolClass", "scheduleCourse", "getSchoolClass"].sort(): "Native operation inventory changed: ${nativeOperations}"
+['docker', 'podman', 'nerdctl'].each { engine ->
+    ['', '.prod'].each { profile ->
+        def compose = new File(generatedProjectDir, "deploy/compose/compose.${engine}${profile}.yaml").text
+        assert compose.contains('DDC_APP_CODE: ${DDC_APP_CODE:?Set DDC_APP_CODE}')
+        ['${artifactId}', '${rootArtifactId}', '${parentArtifactId}'].each { marker ->
+            assert !compose.contains(marker): "Unexpanded archetype variable in Compose: ${marker}"
+        }
+    }
+}
+def nativeReports = []
+generatedProjectDir.traverse(type: FileType.FILES) { candidate ->
+    if (candidate.path.replace('\\', '/').contains('/target/surefire-reports/') && candidate.name.endsWith('.xml')) nativeReports << candidate
+}
+["NativeRpcContractTest", "NativeRpcMappingTest", "NativeRpcProviderTest", "NativeRpcConfigurationTest", "NativeHttpCompatibilityTest"].each { name ->
+    def reportsForTest = nativeReports.findAll {
+        it.name.endsWith('.' + name + '.xml') || it.name.contains('.' + name + '$')
+    }
+    assert reportsForTest: "Missing generated native test ${name}"
+    def results = reportsForTest.collect { new XmlSlurper(false, false).parse(it) }
+    assert results.sum { it.@tests.text().toInteger() } > 0: "No tests ran for ${name}"
+    assert results.every { it.@failures.text() == '0' && it.@errors.text() == '0' }:
+            "Generated native test failed: ${name}"
+}
+
+println 'Published parent and light runtime boundaries passed'
 true

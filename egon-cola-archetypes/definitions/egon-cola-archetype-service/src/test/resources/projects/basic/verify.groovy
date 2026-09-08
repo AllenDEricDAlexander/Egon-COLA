@@ -167,23 +167,14 @@ def assertVersionProperty = { pomModel, propertyName ->
 }
 def assertEgonColaBom = { pomModel ->
     assertVersionProperty(pomModel, "egon-cola.version")
-    def bom = pomModel.dependencyManagement.dependencies.dependency.find {
-        it.groupId.text() == "top.egon" &&
-                it.artifactId.text() == "egon-cola-components-bom"
-    }
-    assert bom: "Expected top.egon:egon-cola-components-bom"
-    assert bom.version.text() == '${egon-cola.version}':
-            "Expected Egon-COLA BOM version to reference egon-cola.version"
-    assert bom.type.text() == "pom"
-    assert bom.scope.text() == "import"
+    assert !pomModel.dependencyManagement.dependencies.dependency.any {
+        it.artifactId.text() == "egon-cola-components-bom"
+    }: "Components BOM is inherited from the published archetypes parent"
 }
-assert rootPom.parent.groupId.text() == "org.springframework.boot"
-assert rootPom.parent.artifactId.text() == "spring-boot-starter-parent"
-assert rootPom.parent.version.text().trim(): "Expected a Spring Boot parent version"
+
 assert rootPom.properties.'java.version'.text() == "21"
-assert rootPom.properties.'shardingsphere.version'.text() == "5.5.3"
-assert rootPomText.contains("<artifactId>shardingsphere-jdbc</artifactId>")
-assert rootPomText.contains("<artifactId>shardingsphere-sharding-core</artifactId>")
+assert assertFile("student-management-evaluation-infrastructure/pom.xml").text.contains("<artifactId>shardingsphere-jdbc</artifactId>")
+assert assertFile("student-management-evaluation-infrastructure/pom.xml").text.contains("<artifactId>shardingsphere-sharding-core</artifactId>")
 assert assertFile("student-management-evaluation-common/pom.xml").text
         .contains("<artifactId>egon-cola-component-common-id-starter</artifactId>")
 assert assertFile("student-management-evaluation-domain/pom.xml").text
@@ -192,10 +183,7 @@ assert !rootPomText.contains("<artifactId>mybatis-plus-spring-boot3-starter</art
 [
     "lombok.version",
     "lombok.mapstruct.binding.version",
-    "mapstruct-plus.version",
-    "dubbo.version",
-    "spring-cloud.version",
-    "spring-cloud-alibaba.version"
+    "mapstruct-plus.version"
 ].each { assertVersionProperty(rootPom, it) }
 assert rootPom.properties.'lombok.mapstruct.binding.version'.text() == "0.2.0"
 assertEgonColaBom(rootPom)
@@ -325,8 +313,8 @@ modules.each { module ->
 
 def serviceApplication = assertFile(
         "student-management-evaluation-starter/src/main/java/it/pkg/starter/EvaluationServiceApplication.java").text
-assert serviceApplication.contains('"it.pkg.adapter.course.facade.impl"')
-assert serviceApplication.contains('"it.pkg.adapter.exam.facade.impl"')
+assert !serviceApplication.contains("@EnableDubbo")
+assert serviceApplication.contains('scanBasePackages = "it.pkg"')
 assert !serviceApplication.contains("enableDefaultTransactions")
 assert serviceApplication.contains("LongIdGenerator")
 assert serviceApplication.contains("@MapperScan")
@@ -392,7 +380,7 @@ modules.each { module ->
         assert "flyway-database-postgresql" in artifacts
         assert '${organization-facade.artifact-id}' in artifacts
         assert !('${evaluation-facade.artifact-id}' in artifacts)
-        assert "dubbo-spring-boot-starter" in artifacts
+        assert "egon-cola-component-rpc-starter" in artifacts
     } else if (module == "adapter") {
         assert '${evaluation-facade.artifact-id}' in artifacts
         assert !('${organization-facade.artifact-id}' in artifacts)
@@ -424,7 +412,7 @@ modules.each { module ->
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/exam/mq/RabbitExamEventPublisher.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/exam/mq/message/ExamPublishedMessage.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/exam/mq/message/ScoreRecordedMessage.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/DubboOrganizationDirectoryClient.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/NativeOrganizationDirectoryClient.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/LocalOrganizationDirectoryStub.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/OrganizationClientFailureMapper.java",
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/course/facade/impl/CourseFacadeImpl.java",
@@ -434,7 +422,7 @@ modules.each { module ->
     "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/exam/facade/impl/ExamFacadeImplTest.java",
     "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/exam/facade/impl/ScoreFacadeImplTest.java",
     "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/exam/mq/RecordScoreConsumerTest.java",
-    "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/rpc/EvaluationDubboTripleIntegrationTest.java",
+    "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/NativeServiceRpcProviderTest.java",
     "student-management-evaluation-domain/src/test/java/it/pkg/domain/course/CourseDomainServiceTest.java",
     "student-management-evaluation-domain/src/test/java/it/pkg/domain/exam/ExamDomainServiceTest.java",
     "student-management-evaluation-domain/src/test/java/it/pkg/domain/exam/ScoreDomainServiceTest.java",
@@ -447,7 +435,7 @@ modules.each { module ->
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/course/mq/RabbitCourseEventPublisherTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/exam/mq/RabbitExamEventPublisherTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/mq/RabbitMqConfigurationTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/client/organization/DubboOrganizationDirectoryClientTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/client/organization/NativeOrganizationDirectoryClientTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/client/organization/LocalOrganizationDirectoryStubTest.java",
     "student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationExternalFreeContextTest.java",
     "student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationDataSourceModeTest.java"
@@ -539,16 +527,13 @@ def providerImports = javaFiles.findAll {
 }
 assert providerImports.every {
     def path = javaPath(it)
-    path.startsWith("student-management-evaluation-infrastructure/src/")
+    (path.startsWith("student-management-evaluation-infrastructure/src/")
+            || path == "student-management-evaluation-infrastructure/target/generated-sources/annotations/it/pkg/infrastructure/client/organization/OrganizationDirectoryConverterImpl.java")
             && path.contains("/infrastructure/client/organization/")
 }: "Organization Facade imports escaped Infrastructure client: ${providerImports.collect(javaPath)}"
 
-def dubboReferenceImports = javaFiles.findAll {
-    it.getText("UTF-8").contains("import org.apache.dubbo.config.annotation.DubboReference;")
-}
-assert dubboReferenceImports.every {
-    javaPath(it).contains("/infrastructure/client/organization/")
-}: "Dubbo references escaped Infrastructure client: ${dubboReferenceImports.collect(javaPath)}"
+assert javaFiles.every { !it.text.contains("import org.apache.dubbo.") }:
+        "Native source must not import Dubbo"
 
 def applicationManageFiles = javaFiles.findAll {
     def path = javaPath(it)
@@ -671,25 +656,18 @@ assert applicationYaml.contains("scheduling:")
 assert applicationYaml.contains('${SCHEDULING_AWAIT_TERMINATION:30s}')
 assert applicationYaml.contains("rabbitmq:")
 assert applicationYaml.contains("organization:")
-assert applicationYaml.contains("DUBBO_CONSUMER_TIMEOUT:3000")
+assert applicationYaml.contains("ORGANIZATION_FACADE_TIMEOUT_MS:3000")
 assert !applicationYaml.contains("tomcat:")
 assert testYaml.contains("rabbitmq:\n      enabled: false")
 assert testYaml.contains("organization:\n      enabled: false")
 assert testYaml.contains("listener-auto-startup: false")
-def bootstrapYaml = assertFile(
-        "student-management-evaluation-starter/src/main/resources/bootstrap.yml").text
-assert bootstrapYaml.contains("default: dev")
-assert bootstrapYaml.contains('${NACOS_NAMESPACE:dev}')
-
-def tripleTest = assertFile(
-        "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/rpc/EvaluationDubboTripleIntegrationTest.java").text
-assert tripleTest.contains("new ServerSocket(0)")
-assert tripleTest.contains("tri://127.0.0.1:")
-assert tripleTest.contains("reference.get().create")
-assert tripleTest.contains("examReference.get().createExam")
+def nativeProviderTest = assertFile(
+        "student-management-evaluation-adapter/src/test/java/it/pkg/adapter/NativeServiceRpcProviderTest.java").text
+assert nativeProviderTest.contains("CourseRpcProvider")
+assert nativeProviderTest.contains("ExamRpcProvider")
+assert nativeProviderTest.contains("ScoreRpcProvider")
 
 [
-    "bootstrap.yml", "bootstrap-dev.yml", "bootstrap-test.yml", "bootstrap-prod.yml",
     "application.yml", "application-dev.yml", "application-test.yml", "application-prod.yml",
     "datasource/sharding.yml", "datasource/sharding-readwrite.yml",
     "sharding/shardingsphere-sharding.yml",
@@ -706,10 +684,7 @@ def serviceProfileConfigNames = new File(
 assert serviceProfileConfigNames == [
     "application-dev.yml",
     "application-prod.yml",
-    "application-test.yml",
-    "bootstrap-dev.yml",
-    "bootstrap-prod.yml",
-    "bootstrap-test.yml"
+    "application-test.yml"
 ]: "Only dev, test and prod profile configuration files are allowed"
 def serviceShardingApplication = assertFile(
         "student-management-evaluation-starter/src/main/resources/datasource/sharding.yml").text
@@ -846,12 +821,9 @@ def productionEnv = assertFile("deploy/env/.env.prod.example").text
     "POSTGRES_IMAGE=postgres:17-alpine",
     "REDIS_IMAGE=redis:7.4-alpine",
     "RABBITMQ_IMAGE=rabbitmq:4-management",
-    "NACOS_IMAGE=nacos/nacos-server:v2.5.1",
     "POSTGRES_PASSWORD=",
     "REDIS_PASSWORD=",
-    "RABBITMQ_PASSWORD=",
-    "NACOS_PASSWORD=",
-    "NACOS_AUTH_TOKEN="
+    "RABBITMQ_PASSWORD="
 ].each { expected ->
     assert productionEnv.readLines().contains(expected):
             "Expected production env example line ${expected}"
@@ -859,14 +831,13 @@ def productionEnv = assertFile("deploy/env/.env.prod.example").text
 [
     "POSTGRES_PASSWORD=local-postgres",
     "REDIS_PASSWORD=local-redis",
-    "RABBITMQ_PASSWORD=local-rabbitmq",
-    "NACOS_PASSWORD=nacos"
+    "RABBITMQ_PASSWORD=local-rabbitmq"
 ].each { forbidden ->
     assert !productionEnv.contains(forbidden):
             "Production env example must not contain development credential ${forbidden}"
 }
 assert developmentEnv.contains("IMAGE_TAG=local")
-assert developmentEnv.contains("NACOS_AUTH_ENABLE=true")
+assert developmentEnv.contains("DDC_RPC_TARGET=")
 assert productionEnv.contains("REGISTRY=")
 assert productionEnv.contains("REGISTRY_NAMESPACE=")
 assert productionEnv.contains("IMAGE_TAG=")
@@ -881,7 +852,7 @@ assert productionEnv.readLines().contains("ORGANIZATION_FACADE_ENABLED=")
 def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
     def text = assertFile("deploy/compose/${fileName}").text
     ["application:", "postgres-master-data:", "postgres-shard-0:",
-     "postgres-shard-1:", "redis:", "rabbitmq:", "nacos:",
+     "postgres-shard-1:", "redis:", "rabbitmq:",
      "healthcheck:", "networks:", "volumes:", "application_logs:",
      "postgres_master_data:", "postgres_shard_0:", "postgres_shard_1:"].each { token ->
         assert text.contains(token): "Expected ${fileName} to contain ${token}"
@@ -899,8 +870,8 @@ def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
     assert text.contains('EVALUATION_SHARDING_USERNAME: ${POSTGRES_USER}')
     assert text.contains('EVALUATION_SHARDING_PASSWORD: ${POSTGRES_PASSWORD}')
     assert !text.contains("replica")
-    assert text.contains("NACOS_SERVER_ADDR: nacos:8848")
-    assert text.contains("DUBBO_REGISTRY_ADDRESS: nacos://nacos:8848")
+    assert text.contains("DDC_RPC_TARGET:")
+    assert text.contains("DDC_REGISTRY_ACCESS_KEY:")
     assert text.contains('pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"')
     assert text.contains('redis-cli --no-auth-warning -a "$${REDIS_PASSWORD}" ping')
     assert text.contains('["CMD", "rabbitmq-diagnostics", "-q", "ping"]')
@@ -923,7 +894,7 @@ developmentComposeFiles.each { fileName, engine ->
 def assertProductionCompose = { fileName, requiredApplicationLines ->
     def text = assertFile("deploy/compose/${fileName}").text
     ["application:", "postgres-master-data:", "postgres-shard-0:",
-     "postgres-shard-1:", "redis:", "rabbitmq:", "nacos:",
+     "postgres-shard-1:", "redis:", "rabbitmq:",
      "healthcheck:", "networks:", "volumes:", "application_logs:",
      "postgres_master_data:", "postgres_shard_0:", "postgres_shard_1:",
      "read_only: true", "tmpfs:", "mem_limit:", "cpus:",
@@ -943,7 +914,7 @@ def assertProductionCompose = { fileName, requiredApplicationLines ->
     assert !text.contains("replica")
     assert text.contains('${REDIS_PASSWORD:?Set REDIS_PASSWORD}')
     assert text.contains('${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}')
-    assert text.contains('${NACOS_AUTH_TOKEN:?Set NACOS_AUTH_TOKEN}')
+    assert text.contains('DDC_REGISTRY_SECRET_KEY: ${DDC_REGISTRY_SECRET_KEY}')
     assert !text.contains("build:")
     assert !text.contains("local-postgres")
     assert !text.contains("local-redis")
@@ -1160,4 +1131,86 @@ assert launchCheck.waitFor() == 0: launchOutput
 assert launchOutput.contains("spring.profiles.active = dev"): launchOutput
 assert launchOutput.contains("server.port = 8081"): launchOutput
 assert launchOutput.contains("spring.config.additional-location = optional:file:./config/override.yml"): launchOutput
+
+// Verify the released parent and the actual packaged runtime, separately from BOM management.
+def releasedParent = new XmlSlurper(false, false).parse(new File(projectDir, 'pom.xml'))
+assert releasedParent.parent.groupId.text() == 'top.egon'
+assert releasedParent.parent.artifactId.text() == 'egon-cola-archetypes-parent'
+assert releasedParent.parent.version.text() == releasedParent.properties.'egon-cola.version'.text()
+assert releasedParent.parent.version.text() ==~ /[0-9]+(?:\.[0-9]+)+(?:[-.][A-Za-z0-9]+)*/
+assert releasedParent.parent.relativePath.size() == 1 && !releasedParent.parent.relativePath.text()
+['commons-lang3.version', 'commons.lang3.version', 'shardingsphere.version', 'dubbo.version',
+ 'grpc.version', 'protobuf.version', 'spring-cloud.version', 'spring-cloud-alibaba.version', 'springdoc.version'].each { name ->
+    assert !releasedParent.properties."${name}".text(): "Version must be inherited: ${name}"
+}
+def releasedArchive = new File(projectDir, 'student-management-evaluation-starter/target').listFiles()?.find {
+    it.name.endsWith('.jar') && !it.name.endsWith('-sources.jar') && !it.name.endsWith('-javadoc.jar')
+}
+assert releasedArchive: 'Expected packaged consumer runtime'
+def releasedLibraries = [] as Set
+new java.util.jar.JarFile(releasedArchive).withCloseable { archive ->
+    archive.entries().each { entry ->
+        if (entry.name.startsWith('BOOT-INF/lib/')) releasedLibraries << entry.name.substring('BOOT-INF/lib/'.length())
+    }
+}
+assert releasedLibraries.contains('spring-boot-3.5.16.jar')
+assert releasedLibraries.contains('commons-lang3-3.20.0.jar')
+assert releasedLibraries.any { it.startsWith('egon-cola-component-common-core-') }
+assert releasedLibraries.contains('shardingsphere-jdbc-5.5.3.jar')
+assert releasedLibraries.contains('grpc-core-1.75.0.jar')
+assert releasedLibraries.contains('protobuf-java-4.32.0.jar')
+['egon-cola-component-rpc-starter-', 'egon-cola-component-rpc-ddc-adapter-',
+ 'egon-cola-platform-dynamic-config-center-starter-',
+ 'egon-cola-platform-dynamic-config-center-http-registration-starter-',
+ 'egon-cola-platform-gateway-starter-openapi-webmvc-'].each { required ->
+    assert releasedLibraries.any { it.startsWith(required) }: "Missing native runtime ${required}"
+}
+assert !releasedLibraries.any { it.startsWith('dubbo-') || it.startsWith('nacos-') || it.startsWith('spring-cloud-starter-alibaba-nacos-') }
+['bootstrap.yml', 'bootstrap-dev.yml', 'bootstrap-test.yml', 'bootstrap-prod.yml'].each {
+    assert !new File(projectDir, 'student-management-evaluation-starter/src/main/resources/' + it).exists()
+}
+['application.yml', 'application-dev.yml', 'application-test.yml', 'application-prod.yml'].each { profile ->
+    def config = new File(projectDir, 'student-management-evaluation-starter/src/main/resources/' + profile).text
+    ['rpc:', 'ddc:', 'provider:', 'consumer:', 'registry:', 'gateway:', 'openapi:', 'idp:'].each { token ->
+        assert config.contains(token): "Missing native configuration ${token} in ${profile}"
+    }
+    assert !config.contains('DUBBO_') && !config.contains('NACOS_')
+}
+def nativeJava = []
+projectDir.traverse(type: FileType.FILES) { candidate ->
+    def path = '/' + projectDir.toPath().relativize(candidate.toPath()).toString().replace('\\', '/')
+    if (path.contains('/src/main/java/') && !path.contains('/target/') && candidate.name.endsWith('.java')) nativeJava << candidate
+}
+assert nativeJava.every { !it.text.contains('org.apache.dubbo') }
+def nativeProviders = nativeJava.findAll { it.name.endsWith('RpcProvider.java') }
+assert nativeProviders.every { it.text.contains('@EgonRpcProvider') && it.text.contains('@RequiredArgsConstructor') }
+def nativeOperations = nativeProviders.collectMany { provider ->
+    (provider.text =~ /public\s+\w*Response\s+(\w+)\(/).collect { it[1] }
+}.sort()
+assert nativeOperations == ["createCourse", "scheduleCourse", "getCourse", "pageCourses", "createExam", "attachPaper", "publishExam", "getExam", "recordScore", "getScore", "pageScores"].sort(): "Native operation inventory changed: ${nativeOperations}"
+['docker', 'podman', 'nerdctl'].each { engine ->
+    ['', '.prod'].each { profile ->
+        def compose = new File(projectDir, "deploy/compose/compose.${engine}${profile}.yaml").text
+        assert compose.contains('DDC_APP_CODE: ${DDC_APP_CODE:?Set DDC_APP_CODE}')
+        ['${artifactId}', '${rootArtifactId}', '${parentArtifactId}'].each { marker ->
+            assert !compose.contains(marker): "Unexpanded archetype variable in Compose: ${marker}"
+        }
+    }
+}
+def nativeReports = []
+projectDir.traverse(type: FileType.FILES) { candidate ->
+    if (candidate.path.replace('\\', '/').contains('/target/surefire-reports/') && candidate.name.endsWith('.xml')) nativeReports << candidate
+}
+["NativeServiceRpcProviderTest", "NativeOrganizationDirectoryClientTest", "NativeServiceConfigurationTest"].each { name ->
+    def reportsForTest = nativeReports.findAll {
+        it.name.endsWith('.' + name + '.xml') || it.name.contains('.' + name + '$')
+    }
+    assert reportsForTest: "Missing generated native test ${name}"
+    def results = reportsForTest.collect { new XmlSlurper(false, false).parse(it) }
+    assert results.sum { it.@tests.text().toInteger() } > 0: "No tests ran for ${name}"
+    assert results.every { it.@failures.text() == '0' && it.@errors.text() == '0' }:
+            "Generated native test failed: ${name}"
+}
+
+println 'Published parent and service runtime boundaries passed'
 return true

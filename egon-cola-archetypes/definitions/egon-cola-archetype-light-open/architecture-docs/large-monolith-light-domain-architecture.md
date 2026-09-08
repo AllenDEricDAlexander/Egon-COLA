@@ -93,3 +93,9 @@ Springdoc 提供 `/v3/api-docs` 和 `/swagger-ui.html`。Gateway、鉴权入口�
 ```
 
 `verify` 覆盖编译、测试、OpenAPI smoke、ArchUnit、DAO/manual-SQL 合同和 archetype verifier。它证明生成树的静态及测试 profile 合同，不证明真实 Nacos 3、Redis、PostgreSQL、RabbitMQ、外部 HTTP 或生产路由拓扑；这些由运维在执行手工 SQL、配置环境并部署后单独验收。
+
+## Dependency and runtime ownership
+
+Generated projects inherit the released `top.egon:egon-cola-archetypes-parent` at a concrete version with an empty `relativePath`. The parent imports the Components BOM, manages Common dependencies and ShardingSphere 5.5.3, and keeps Commons Lang at 3.20.0. Consumer modules inherit their own project root. Install the matching parent/BOM and required artifacts locally before validating an unpublished release; a local install does not publish artifacts.
+
+Open retains its existing Spring Cloud/Nacos stack and consumed Common Core/ID/MyBatis Plus/Dynamic Thread Pool components. Light Open retains Springdoc and has no Dubbo business contract.

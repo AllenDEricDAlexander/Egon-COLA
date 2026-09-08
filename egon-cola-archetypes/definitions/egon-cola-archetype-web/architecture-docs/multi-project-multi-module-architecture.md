@@ -103,7 +103,7 @@ adapter 是唯一入站适配层，负责 HTTP、GraphQL、入站 MQ、RPC Provi
 canonical Provider Facade，不能直接访问 Infrastructure。
 
 HTTP/GraphQL 的 ID 字段保留十进制字符串以避免 JavaScript 精度损失；进入
-application/domain 前必须解析为正数 `Long`，非法或非正数直接拒绝。Dubbo/Java
+application/domain 前必须解析为正数 `Long`，非法或非正数直接拒绝。native Protobuf/Java
 Facade 契约使用 `Long`。
 
 ### 2.6 starter
@@ -162,7 +162,7 @@ db/migration/sharding/shard
 `dev`、`test`、`prod` 三个 profile 的核心配置键保持一致。`test` 使用 H2
 PostgreSQL 兼容模式、嵌入式 ShardingSphere、Flyway SQL、Common MP Mapper XML
 和本地替身；生成项目验证只证明编译、架构规则、H2/SQL 合同、路由和迁移静态
-合同，不证明真实 PostgreSQL、Redis、RabbitMQ、Nacos、Dubbo 注册中心或生产
+合同，不证明真实 PostgreSQL、Redis、RabbitMQ、DDC 服务发现、IdP 认证或生产
 拓扑。
 
 完整验证命令为：
@@ -175,3 +175,13 @@ bash ./mvnw -B -ntp clean verify
 JPA/Hibernate 依赖和源码、八个 `EgonModel` PO、八个 `EgonColaMapper` DAO、四个
 Infrastructure ServiceImpl、四个 domain Service 契约、八份 DAO XML、Long/tenant
 迁移和四份 ShardingSphere 配置。验证期间不启动应用、不连接外部基础设施。
+
+## Dependency and runtime ownership
+
+Generated projects inherit the released `top.egon:egon-cola-archetypes-parent` at a concrete version with an empty `relativePath`. The parent imports the Components BOM, manages Common dependencies and ShardingSphere 5.5.3, and keeps Commons Lang at 3.20.0. Consumer modules inherit their own project root. Install the matching parent/BOM and required artifacts locally before validating an unpublished release; a local install does not publish artifacts.
+
+This native family uses Egon RPC unary Protobuf contracts (gRPC 1.75.0 / Protobuf 4.32.0), the RPC DDC adapter, DDC configuration and HTTP registration, and the platform OpenAPI MVC starter. Runtime configuration lives in `application.yml` plus the dev/test/prod files; imported configuration uses Spring Boot Config Data. Supply the DDC endpoints, HMAC credentials, TLS material and IdP SERVICE client settings described in the generated README. Test profiles disable external integration lifecycles.
+
+Web exposes ten Organization operations through `top.egon:egon-cola-organization-facade` and consumes Evaluation through `top.egon:egon-cola-evaluation-facade`. Existing business facade DTOs, HTTP/GraphQL/MQ behavior and database contracts are retained.
+
+Platform API document governance is opt-in. Controllers need explicit, unique `@Operation(operationId = ...)` values before enabling that catalog; existing business endpoints remain accessible with the default configuration. Live DDC/IdP/TLS discovery, cross-process RPC and production rollout require operator acceptance.

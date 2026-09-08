@@ -678,7 +678,7 @@ domainservicesimpl
 4. 不依赖 Redis。
 5. 不依赖 MQ。
 6. 不依赖 HTTP Client。
-7. 不依赖 Dubbo / gRPC。
+7. 不依赖 Egon RPC / gRPC。
 8. 不依赖 infrastructure。
 9. 不依赖 adapter。
 10. 不依赖 application。
@@ -1082,7 +1082,6 @@ student-management
 │   │       ├── application-dev.yml                          // 开发环境配置
 │   │       ├── application-test.yml                         // 测试环境配置
 │   │       ├── application-prod.yml                         // 生产环境配置
-│   │       ├── bootstrap.yml                                // 启动阶段配置，可选
 │   │       ├── logback-spring.xml                           // 日志配置
 │   │       ├── mybatis
 │   │       │   └── mapper
@@ -1604,3 +1603,13 @@ domain.teaching
 ```text
 它不是把单体拆散，而是给单体立规矩，别让它长成一锅 Java 粥。
 ```
+
+## Dependency and runtime ownership
+
+Generated projects inherit the released `top.egon:egon-cola-archetypes-parent` at a concrete version with an empty `relativePath`. The parent imports the Components BOM, manages Common dependencies and ShardingSphere 5.5.3, and keeps Commons Lang at 3.20.0. Consumer modules inherit their own project root. Install the matching parent/BOM and required artifacts locally before validating an unpublished release; a local install does not publish artifacts.
+
+This native family uses Egon RPC unary Protobuf contracts (gRPC 1.75.0 / Protobuf 4.32.0), the RPC DDC adapter, DDC configuration and HTTP registration, and the platform OpenAPI MVC starter. Runtime configuration lives in `application.yml` plus the dev/test/prod files; imported configuration uses Spring Boot Config Data. Supply the DDC endpoints, HMAC credentials, TLS material and IdP SERVICE client settings described in the generated README. Test profiles disable external integration lifecycles.
+
+Light carries its own ten-operation contract in `src/main/proto/teaching_user_facade.proto`. Existing business facade DTOs, HTTP/GraphQL/MQ behavior and database contracts are retained.
+
+Platform API document governance is opt-in. Controllers need explicit, unique `@Operation(operationId = ...)` values before enabling that catalog; existing business endpoints remain accessible with the default configuration. Live DDC/IdP/TLS discovery, cross-process RPC and production rollout require operator acceptance.

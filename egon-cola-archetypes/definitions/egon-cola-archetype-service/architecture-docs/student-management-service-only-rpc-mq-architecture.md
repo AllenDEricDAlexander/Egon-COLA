@@ -22,7 +22,7 @@
 2. 中台服务。
 3. 任务处理服务。
 4. 事件消费服务。
-5. Dubbo / gRPC Provider 服务。
+5. Egon RPC / gRPC Provider 服务。
 6. RocketMQ / Kafka / RabbitMQ Consumer 服务。
 7. 不希望该服务直接暴露 Web API 的系统。
 ```
@@ -246,7 +246,7 @@ starter
 ```text
 1. 放 Spring Boot 启动类。
 2. 放 application.yml。
-3. 放 bootstrap.yml。
+3. 放 application.yml 与 dev/test/prod 配置，外部文件通过 Spring Boot Config Data 显式导入。
 4. 放 logback-spring.xml。
 5. 放 RPC Provider 配置。
 6. 放 MQ Consumer 配置。
@@ -307,7 +307,7 @@ adapter/vo
 ### 3.2.3 能做什么
 
 ```text
-1. 暴露 Dubbo Triple 或 gRPC Provider。
+1. 暴露 Egon RPC unary Protobuf Provider。
 2. 实现 Facade 接口。
 3. 消费 Kafka / RocketMQ / RabbitMQ 等入站消息。
 4. 将 RPC DTO 或 Message DTO 转换为 Application 入参。
@@ -460,7 +460,7 @@ domain
 
 ```text
 1. 不依赖 Application、Infrastructure、Adapter 或 Facade。
-2. 不依赖 JPA、Redis、MQ、Dubbo 或 gRPC 技术实现；仅依赖 Common MP starter 暴露的共享模型/Service 抽象。
+2. 不依赖 JPA、Redis、MQ、Egon RPC 或 gRPC 技术实现；仅依赖 Common MP starter 暴露的共享模型/Service 抽象。
 ```
 
 ---
@@ -498,7 +498,7 @@ infrastructure
 
 ```text
 1. 实现 Domain Service 与外部能力端口。
-2. 调用 MyBatis-Plus DAO、外部 Facade、Dubbo、gRPC 或 HTTP Client。
+2. 调用 MyBatis-Plus DAO、外部 Facade、Egon RPC、gRPC 或 HTTP Client。
 3. 发送出站 MQ 消息。
 4. 封装缓存和基础设施配置。
 ```
@@ -807,7 +807,7 @@ student-management-evaluation
 
 Adapter 实现 `top.egon.cola.evaluation.facade.course` 与 `top.egon.cola.evaluation.facade.exam` 中的契约。外部 Organization 边界继续保留在 `domain/client/organization` 与 `infrastructure/client/organization`，不混入本地 `course` 或 `exam` 领域。
 
-该工程保持纯 Service：不创建业务 Controller、Web、Filter、GraphQL 或 VO 包；业务流量只通过 Dubbo Triple 或 RabbitMQ 进入。
+该工程保持纯 Service：不创建业务 Controller、Web、Filter、GraphQL 或 VO 包；业务流量只通过 Egon RPC 或 RabbitMQ 进入。
 
 ---
 
@@ -917,7 +917,7 @@ Application -> Application EventPublisher Interface -> Infrastructure MQ Produce
 7. domain 不依赖 JPA。
 8. domain 不依赖 Redis。
 9. domain 不依赖 MQ。
-10. domain 不依赖 Dubbo / gRPC。
+10. domain 不依赖 Egon RPC / gRPC。
 ```
 
 ## 5.7 Infrastructure 约束
@@ -1103,3 +1103,13 @@ infrastructure -> domain / canonical consumer facade
 ```text
 这是一个没有 Web 入口的后端 Service 架构，入口只走 RPC / MQ，业务只进 Application，规则只沉 Domain，技术实现只放 Infrastructure。
 ```
+
+## Dependency and runtime ownership
+
+Generated projects inherit the released `top.egon:egon-cola-archetypes-parent` at a concrete version with an empty `relativePath`. The parent imports the Components BOM, manages Common dependencies and ShardingSphere 5.5.3, and keeps Commons Lang at 3.20.0. Consumer modules inherit their own project root. Install the matching parent/BOM and required artifacts locally before validating an unpublished release; a local install does not publish artifacts.
+
+This native family uses Egon RPC unary Protobuf contracts (gRPC 1.75.0 / Protobuf 4.32.0), the RPC DDC adapter, DDC configuration and HTTP registration, and the platform OpenAPI MVC starter. Runtime configuration lives in `application.yml` plus the dev/test/prod files; imported configuration uses Spring Boot Config Data. Supply the DDC endpoints, HMAC credentials, TLS material and IdP SERVICE client settings described in the generated README. Test profiles disable external integration lifecycles.
+
+Service exposes eleven Evaluation operations through `top.egon:egon-cola-evaluation-facade` and consumes Organization through `top.egon:egon-cola-organization-facade`. Existing business facade DTOs, HTTP/GraphQL/MQ behavior and database contracts are retained.
+
+Platform API document governance is opt-in. Controllers need explicit, unique `@Operation(operationId = ...)` values before enabling that catalog; existing business endpoints remain accessible with the default configuration. Live DDC/IdP/TLS discovery, cross-process RPC and production rollout require operator acceptance.

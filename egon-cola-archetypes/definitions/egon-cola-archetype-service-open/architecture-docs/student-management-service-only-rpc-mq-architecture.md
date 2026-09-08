@@ -104,3 +104,9 @@ Evaluation 的初始拓扑是 `master_data` 主表库，以及 `shard_0`、`shar
 生成工程测试覆盖 Proto descriptor（8 services/21 methods）、Domain/Application、Common MyBatis-Plus DAO/service、ShardingSphere H2 路由、manual SQL convention、11 个 Triple provider 方法、标准 gRPC unary interop、Organization client/stub、DTP executor/context 和 ArchUnit。ArchUnit 规则取代内部 bytecode Maven plugin，并检查 facade/domain 方向、service-only 边界以及 JPA/Flyway/Gateway/Springdoc 禁止依赖。
 
 测试与 `verify` 只证明源码、生成工程和本地 H2/内存 Triple 测试；不证明真实 PostgreSQL schema、Redis DTP registry、Nacos topology、RabbitMQ、跨 Project provider、部署网络或生产权限。启动应用、执行手工 SQL、Compose、发布镜像和 live topology 验证由使用者按环境单独执行。
+
+## Dependency and runtime ownership
+
+Generated projects inherit the released `top.egon:egon-cola-archetypes-parent` at a concrete version with an empty `relativePath`. The parent imports the Components BOM, manages Common dependencies and ShardingSphere 5.5.3, and keeps Commons Lang at 3.20.0. Consumer modules inherit their own project root. Install the matching parent/BOM and required artifacts locally before validating an unpublished release; a local install does not publish artifacts.
+
+Open retains its existing Spring Cloud/Nacos stack and consumed Common Core/ID/MyBatis Plus/Dynamic Thread Pool components. Service/Web Open retain their local facade Protobuf contracts and the 21-operation external interoperability surface, using gRPC 1.73.0 / Protobuf 3.25.8 and Dubbo 3.3.6. The Open Gateway boundary remains external.

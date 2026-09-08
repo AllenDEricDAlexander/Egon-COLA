@@ -139,3 +139,9 @@ executor。
 
 这些测试证明的是生成物源码、依赖图和本地/H2/in-process 行为；它们不等价于真实
 Nacos、Redis、PostgreSQL、RabbitMQ、跨 JVM Triple/gRPC 或生产 Gateway 拓扑证明。
+
+## Dependency and runtime ownership
+
+Generated projects inherit the released `top.egon:egon-cola-archetypes-parent` at a concrete version with an empty `relativePath`. The parent imports the Components BOM, manages Common dependencies and ShardingSphere 5.5.3, and keeps Commons Lang at 3.20.0. Consumer modules inherit their own project root. Install the matching parent/BOM and required artifacts locally before validating an unpublished release; a local install does not publish artifacts.
+
+Open retains its existing Spring Cloud/Nacos stack and consumed Common Core/ID/MyBatis Plus/Dynamic Thread Pool components. Service/Web Open retain their local facade Protobuf contracts and the 21-operation external interoperability surface, using gRPC 1.73.0 / Protobuf 3.25.8 and Dubbo 3.3.6. The Open Gateway boundary remains external.

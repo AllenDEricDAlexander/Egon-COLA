@@ -106,5 +106,9 @@
         <include>**/*.xml</include>
       </includes>
     </fileSet>
+    <fileSet filtered="true" encoding="UTF-8">
+      <directory>src/main/proto</directory>
+      <includes><include>**/*.proto</include></includes>
+    </fileSet>
   </fileSets>
 </archetype-descriptor>

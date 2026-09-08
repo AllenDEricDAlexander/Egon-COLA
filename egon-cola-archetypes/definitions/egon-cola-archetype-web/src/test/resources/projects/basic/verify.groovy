@@ -36,9 +36,7 @@ assert rootPom.modules.module*.text() == moduleNames
 assert rootPom.properties.'java.version'.text() == "21"
 assert rootPom.properties.'egon-cola.version'.text()
 assert rootPom.properties.'lombok.version'.text() == "1.18.46"
-assert rootPom.properties.'shardingsphere.version'.text() == "5.5.3"
 def rootPomText = file("pom.xml").getText("UTF-8")
-assert rootPomText.contains("egon-cola-components-bom")
 assert !rootPomText.contains("spring-boot-starter-data-jpa")
 assert !rootPomText.contains("mybatis-plus.version")
 assert rootPomText.contains("<artifactId>lombok-mapstruct-binding</artifactId>")
@@ -310,4 +308,87 @@ assert launchCheck.waitFor() == 0: launchOutput
 assert launchOutput.contains("spring.profiles.active = dev"): launchOutput
 assert launchOutput.contains("server.port = 8080"): launchOutput
 assert launchOutput.contains("spring.config.additional-location = optional:file:./config/override.yml"): launchOutput
+true
+
+// Verify the released parent and the actual packaged runtime, separately from BOM management.
+def releasedParent = new XmlSlurper(false, false).parse(new File(projectDir, 'pom.xml'))
+assert releasedParent.parent.groupId.text() == 'top.egon'
+assert releasedParent.parent.artifactId.text() == 'egon-cola-archetypes-parent'
+assert releasedParent.parent.version.text() == releasedParent.properties.'egon-cola.version'.text()
+assert releasedParent.parent.version.text() ==~ /[0-9]+(?:\.[0-9]+)+(?:[-.][A-Za-z0-9]+)*/
+assert releasedParent.parent.relativePath.size() == 1 && !releasedParent.parent.relativePath.text()
+['commons-lang3.version', 'commons.lang3.version', 'shardingsphere.version', 'dubbo.version',
+ 'grpc.version', 'protobuf.version', 'spring-cloud.version', 'spring-cloud-alibaba.version', 'springdoc.version'].each { name ->
+    assert !releasedParent.properties."${name}".text(): "Version must be inherited: ${name}"
+}
+def releasedArchive = new File(projectDir, 'student-management-organization-starter/target').listFiles()?.find {
+    it.name.endsWith('.jar') && !it.name.endsWith('-sources.jar') && !it.name.endsWith('-javadoc.jar')
+}
+assert releasedArchive: 'Expected packaged consumer runtime'
+def releasedLibraries = [] as Set
+new java.util.jar.JarFile(releasedArchive).withCloseable { archive ->
+    archive.entries().each { entry ->
+        if (entry.name.startsWith('BOOT-INF/lib/')) releasedLibraries << entry.name.substring('BOOT-INF/lib/'.length())
+    }
+}
+assert releasedLibraries.contains('spring-boot-3.5.16.jar')
+assert releasedLibraries.contains('commons-lang3-3.20.0.jar')
+assert releasedLibraries.any { it.startsWith('egon-cola-component-common-core-') }
+assert releasedLibraries.contains('shardingsphere-jdbc-5.5.3.jar')
+assert releasedLibraries.contains('grpc-core-1.75.0.jar')
+assert releasedLibraries.contains('protobuf-java-4.32.0.jar')
+['egon-cola-component-rpc-starter-', 'egon-cola-component-rpc-ddc-adapter-',
+ 'egon-cola-platform-dynamic-config-center-starter-',
+ 'egon-cola-platform-dynamic-config-center-http-registration-starter-',
+ 'egon-cola-platform-gateway-starter-openapi-webmvc-'].each { required ->
+    assert releasedLibraries.any { it.startsWith(required) }: "Missing native runtime ${required}"
+}
+assert !releasedLibraries.any { it.startsWith('dubbo-') || it.startsWith('nacos-') || it.startsWith('spring-cloud-starter-alibaba-nacos-') }
+['bootstrap.yml', 'bootstrap-dev.yml', 'bootstrap-test.yml', 'bootstrap-prod.yml'].each {
+    assert !new File(projectDir, 'student-management-organization-starter/src/main/resources/' + it).exists()
+}
+['application.yml', 'application-dev.yml', 'application-test.yml', 'application-prod.yml'].each { profile ->
+    def config = new File(projectDir, 'student-management-organization-starter/src/main/resources/' + profile).text
+    ['rpc:', 'ddc:', 'provider:', 'consumer:', 'registry:', 'gateway:', 'openapi:', 'idp:'].each { token ->
+        assert config.contains(token): "Missing native configuration ${token} in ${profile}"
+    }
+    assert !config.contains('DUBBO_') && !config.contains('NACOS_')
+}
+def nativeJava = []
+projectDir.traverse(type: FileType.FILES) { candidate ->
+    def path = '/' + projectDir.toPath().relativize(candidate.toPath()).toString().replace('\\', '/')
+    if (path.contains('/src/main/java/') && !path.contains('/target/') && candidate.name.endsWith('.java')) nativeJava << candidate
+}
+assert nativeJava.every { !it.text.contains('org.apache.dubbo') }
+def nativeProviders = nativeJava.findAll { it.name.endsWith('RpcProvider.java') }
+assert nativeProviders.every { it.text.contains('@EgonRpcProvider') && it.text.contains('@RequiredArgsConstructor') }
+def nativeOperations = nativeProviders.collectMany { provider ->
+    (provider.text =~ /public\s+\w*Response\s+(\w+)\(/).collect { it[1] }
+}.sort()
+assert nativeOperations == ["createUser", "getUser", "assignRole", "grantPermission", "getPermissionTree", "createGrade", "getGrade", "createSchoolClass", "getSchoolClass", "assignUser"].sort(): "Native operation inventory changed: ${nativeOperations}"
+['docker', 'podman', 'nerdctl'].each { engine ->
+    ['', '.prod'].each { profile ->
+        def compose = new File(projectDir, "deploy/compose/compose.${engine}${profile}.yaml").text
+        assert compose.contains('DDC_APP_CODE: ${DDC_APP_CODE:?Set DDC_APP_CODE}')
+        ['${artifactId}', '${rootArtifactId}', '${parentArtifactId}'].each { marker ->
+            assert !compose.contains(marker): "Unexpanded archetype variable in Compose: ${marker}"
+        }
+    }
+}
+def nativeReports = []
+projectDir.traverse(type: FileType.FILES) { candidate ->
+    if (candidate.path.replace('\\', '/').contains('/target/surefire-reports/') && candidate.name.endsWith('.xml')) nativeReports << candidate
+}
+["NativeOrganizationRpcProviderTest", "NativeOrganizationRpcContextTest", "NativeEvaluationQueryClientTest", "NativeWebConfigurationTest", "NativeHttpCompatibilityTest"].each { name ->
+    def reportsForTest = nativeReports.findAll {
+        it.name.endsWith('.' + name + '.xml') || it.name.contains('.' + name + '$')
+    }
+    assert reportsForTest: "Missing generated native test ${name}"
+    def results = reportsForTest.collect { new XmlSlurper(false, false).parse(it) }
+    assert results.sum { it.@tests.text().toInteger() } > 0: "No tests ran for ${name}"
+    assert results.every { it.@failures.text() == '0' && it.@errors.text() == '0' }:
+            "Generated native test failed: ${name}"
+}
+
+println 'Published parent and web runtime boundaries passed'
 true

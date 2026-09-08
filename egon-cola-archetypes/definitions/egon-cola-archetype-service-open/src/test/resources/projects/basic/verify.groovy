@@ -42,13 +42,7 @@ def moduleNames = [
 def rootPomFile = file("pom.xml")
 def rootPom = new XmlSlurper(false, false).parse(rootPomFile)
 assert rootPom.modules.module*.text() == moduleNames
-assert rootPom.parent.version.text() == "3.5.16"
 assert rootPom.properties.'java.version'.text() == "21"
-assert rootPom.properties.'dubbo.version'.text() == "3.3.6"
-assert rootPom.properties.'grpc.version'.text() == "1.73.0"
-assert rootPom.properties.'spring-cloud.version'.text() == "2025.0.3"
-assert rootPom.properties.'spring-cloud-alibaba.version'.text() == "2025.0.0.0"
-assert rootPom.properties.'shardingsphere.version'.text() == "5.5.3"
 assert !rootPom.properties.'mybatis-plus.version'.text()
 assert rootPom.properties.'archunit.version'.text() == "1.4.2"
 moduleNames.each { name -> file("${name}/pom.xml") }
@@ -285,4 +279,37 @@ assert launchCheck.waitFor() == 0: launchOutput
 assert launchOutput.contains("spring.profiles.active = dev"): launchOutput
 assert launchOutput.contains("server.port = 8081"): launchOutput
 assert launchOutput.contains("spring.config.additional-location = optional:file:./config/override.yml"): launchOutput
+true
+
+// Verify the released parent and the actual packaged runtime, separately from BOM management.
+def releasedParent = new XmlSlurper(false, false).parse(new File(projectDir, 'pom.xml'))
+assert releasedParent.parent.groupId.text() == 'top.egon'
+assert releasedParent.parent.artifactId.text() == 'egon-cola-archetypes-parent'
+assert releasedParent.parent.version.text() == releasedParent.properties.'egon-cola.version'.text()
+assert releasedParent.parent.version.text() ==~ /[0-9]+(?:\.[0-9]+)+(?:[-.][A-Za-z0-9]+)*/
+assert releasedParent.parent.relativePath.size() == 1 && !releasedParent.parent.relativePath.text()
+['commons-lang3.version', 'commons.lang3.version', 'shardingsphere.version', 'dubbo.version',
+ 'grpc.version', 'protobuf.version', 'spring-cloud.version', 'spring-cloud-alibaba.version', 'springdoc.version'].each { name ->
+    assert !releasedParent.properties."${name}".text(): "Version must be inherited: ${name}"
+}
+def releasedArchive = new File(projectDir, 'student-management-evaluation-starter/target').listFiles()?.find {
+    it.name.endsWith('.jar') && !it.name.endsWith('-sources.jar') && !it.name.endsWith('-javadoc.jar')
+}
+assert releasedArchive: 'Expected packaged consumer runtime'
+def releasedLibraries = [] as Set
+new java.util.jar.JarFile(releasedArchive).withCloseable { archive ->
+    archive.entries().each { entry ->
+        if (entry.name.startsWith('BOOT-INF/lib/')) releasedLibraries << entry.name.substring('BOOT-INF/lib/'.length())
+    }
+}
+assert releasedLibraries.contains('spring-boot-3.5.16.jar')
+assert releasedLibraries.contains('commons-lang3-3.20.0.jar')
+assert releasedLibraries.any { it.startsWith('egon-cola-component-common-core-') }
+assert releasedLibraries.contains('shardingsphere-jdbc-5.5.3.jar')
+assert !releasedLibraries.any { it.startsWith('egon-cola-component-rpc-') || it.startsWith('egon-cola-platform-dynamic-config-center') }
+assert releasedLibraries.contains('grpc-api-1.73.0.jar')
+assert releasedLibraries.contains('protobuf-java-3.25.8.jar')
+assert releasedLibraries.contains('dubbo-3.3.6.jar')
+
+println 'Published parent and service-open runtime boundaries passed'
 true
