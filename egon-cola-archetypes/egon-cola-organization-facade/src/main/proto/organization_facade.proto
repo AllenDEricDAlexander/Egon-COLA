@@ -1,0 +1,155 @@
+syntax = "proto3";
+
+package top.egon.cola.organization.facade.rpc.v1;
+
+option java_package = "top.egon.cola.organization.facade.rpc.proto";
+option java_multiple_files = true;
+
+// Native transport for the existing facade operations. Business DTOs stay unchanged.
+
+service UserService {
+  rpc CreateUser(CreateUserRpcRequest) returns (UserRpcResponse);
+  rpc GetUser(GetUserRpcRequest) returns (UserRpcResponse);
+}
+
+service RoleService {
+  rpc AssignRole(AssignRoleRpcRequest) returns (RpcResponse);
+}
+
+service PermissionService {
+  rpc GrantPermission(GrantPermissionRpcRequest) returns (RpcResponse);
+  rpc GetPermissionTree(GetPermissionTreeRpcRequest) returns (PermissionTreeRpcResponse);
+}
+
+service GradeService {
+  rpc CreateGrade(CreateGradeRpcRequest) returns (GradeRpcResponse);
+  rpc GetGrade(GetGradeRpcRequest) returns (GradeRpcResponse);
+}
+
+service SchoolClassService {
+  rpc CreateSchoolClass(CreateSchoolClassRpcRequest) returns (SchoolClassRpcResponse);
+  rpc GetSchoolClass(GetSchoolClassRpcRequest) returns (SchoolClassRpcResponse);
+  rpc AssignUser(AssignUserRpcRequest) returns (RpcResponse);
+}
+
+message CreateUserRpcRequest {
+  optional string name = 1;
+  optional string email = 2;
+}
+
+message AssignRoleRpcRequest {
+  optional int64 user_id = 1;
+  optional string role_code = 2;
+}
+
+message GrantPermissionRpcRequest {
+  optional string role_code = 1;
+  optional string permission_code = 2;
+}
+
+message CreateGradeRpcRequest {
+  optional string code = 1;
+  optional string name = 2;
+}
+
+message CreateSchoolClassRpcRequest {
+  optional string name = 1;
+  optional string grade_code = 2;
+}
+
+message AssignUserRpcRequest {
+  optional int64 grade_id = 1;
+  optional int64 user_id = 2;
+  optional int64 school_class_id = 3;
+}
+
+message UserResponse {
+  optional int64 id = 1;
+  optional string name = 2;
+  optional string email = 3;
+  optional string status = 4;
+  repeated string role_codes = 5;
+}
+
+message PermissionTreeResponse {
+  optional int64 user_id = 1;
+  repeated string permission_codes = 2;
+}
+
+message GradeResponse {
+  optional int64 id = 1;
+  optional string code = 2;
+  optional string name = 3;
+  optional string status = 4;
+}
+
+message SchoolClassResponse {
+  optional int64 id = 1;
+  optional string name = 2;
+  optional string grade_code = 3;
+  optional string grade_name = 4;
+  optional string status = 5;
+  repeated int64 user_ids = 6;
+}
+
+message GetUserRpcRequest {
+  optional int64 user_id = 1;
+}
+
+message GetPermissionTreeRpcRequest {
+  optional int64 user_id = 1;
+}
+
+message GetGradeRpcRequest {
+  optional int64 grade_id = 1;
+}
+
+message GetSchoolClassRpcRequest {
+  optional int64 grade_id = 1;
+  optional int64 school_class_id = 2;
+}
+
+// Business failures retain their code/message; transport failures remain gRPC failures.
+message UserRpcResponse {
+  bool success = 1;
+  optional string code = 2;
+  optional string message = 3;
+  UserResponse data = 4;
+  optional string trace_id = 5;
+}
+
+// Business failures retain their code/message; transport failures remain gRPC failures.
+message PermissionTreeRpcResponse {
+  bool success = 1;
+  optional string code = 2;
+  optional string message = 3;
+  PermissionTreeResponse data = 4;
+  optional string trace_id = 5;
+}
+
+// Business failures retain their code/message; transport failures remain gRPC failures.
+message GradeRpcResponse {
+  bool success = 1;
+  optional string code = 2;
+  optional string message = 3;
+  GradeResponse data = 4;
+  optional string trace_id = 5;
+}
+
+// Business failures retain their code/message; transport failures remain gRPC failures.
+message SchoolClassRpcResponse {
+  bool success = 1;
+  optional string code = 2;
+  optional string message = 3;
+  SchoolClassResponse data = 4;
+  optional string trace_id = 5;
+}
+
+// Business failures retain their code/message; transport failures remain gRPC failures.
+message RpcResponse {
+  bool success = 1;
+  optional string code = 2;
+  optional string message = 3;
+  reserved 4;
+  optional string trace_id = 5;
+}

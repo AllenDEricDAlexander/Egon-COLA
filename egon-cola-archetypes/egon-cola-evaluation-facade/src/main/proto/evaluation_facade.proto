@@ -1,0 +1,218 @@
+syntax = "proto3";
+
+package top.egon.cola.evaluation.facade.rpc.v1;
+
+option java_package = "top.egon.cola.evaluation.facade.rpc.proto";
+option java_multiple_files = true;
+
+// Native transport for the existing facade operations. Business DTOs stay unchanged.
+
+service CourseService {
+  rpc CreateCourse(CreateCourseRpcRequest) returns (CourseRpcResponse);
+  rpc ScheduleCourse(ScheduleCourseRpcRequest) returns (CourseScheduleRpcResponse);
+  rpc GetCourse(GetCourseRpcRequest) returns (CourseRpcResponse);
+  rpc PageCourses(PageCourseRpcRequest) returns (PageCourseRpcResponse);
+}
+
+service ExamService {
+  rpc CreateExam(CreateExamRpcRequest) returns (ExamRpcResponse);
+  rpc AttachPaper(AttachExamPaperRpcRequest) returns (ExamPaperRpcResponse);
+  rpc PublishExam(PublishExamRpcRequest) returns (ExamRpcResponse);
+  rpc GetExam(GetExamRpcRequest) returns (ExamRpcResponse);
+}
+
+service ScoreService {
+  rpc RecordScore(RecordScoreRpcRequest) returns (ScoreRpcResponse);
+  rpc GetScore(GetScoreRpcRequest) returns (ScoreRpcResponse);
+  rpc PageScores(PageScoreRpcRequest) returns (PageScoreRpcResponse);
+}
+
+message CreateCourseRpcRequest {
+  optional string code = 1;
+  optional string name = 2;
+  int32 credit = 3;
+}
+
+message ScheduleCourseRpcRequest {
+  optional int64 course_id = 1;
+  optional int64 class_id = 2;
+  // ISO_INSTANT (UTC), including nanoseconds; absent means null.
+  optional string starts_at = 3;
+  // ISO_INSTANT (UTC), including nanoseconds; absent means null.
+  optional string ends_at = 4;
+}
+
+message GetCourseRpcRequest {
+  optional int64 course_id = 1;
+}
+
+message PageCourseRpcRequest {
+  int32 current_page = 1;
+  int32 page_size = 2;
+}
+
+message CreateExamRpcRequest {
+  optional int64 course_id = 1;
+  optional string title = 2;
+  // ISO_INSTANT (UTC), including nanoseconds; absent means null.
+  optional string starts_at = 3;
+  // ISO_INSTANT (UTC), including nanoseconds; absent means null.
+  optional string ends_at = 4;
+}
+
+message AttachExamPaperRpcRequest {
+  optional int64 exam_id = 1;
+  optional string title = 2;
+  int32 total_points = 3;
+}
+
+message PublishExamRpcRequest {
+  optional int64 exam_id = 1;
+}
+
+message GetExamRpcRequest {
+  optional int64 exam_id = 1;
+}
+
+message RecordScoreRpcRequest {
+  optional int64 exam_id = 1;
+  optional int64 student_id = 2;
+  int32 points = 3;
+}
+
+message GetScoreRpcRequest {
+  optional int64 exam_id = 1;
+  optional int64 score_id = 2;
+}
+
+message PageScoreRpcRequest {
+  optional int64 exam_id = 1;
+  int32 current_page = 2;
+  int32 page_size = 3;
+}
+
+message CourseResponse {
+  optional int64 id = 1;
+  optional string code = 2;
+  optional string name = 3;
+  int32 credit = 4;
+  optional string status = 5;
+}
+
+message CourseScheduleResponse {
+  optional int64 id = 1;
+  optional int64 course_id = 2;
+  optional int64 class_id = 3;
+  // ISO_INSTANT (UTC), including nanoseconds; absent means null.
+  optional string starts_at = 4;
+  // ISO_INSTANT (UTC), including nanoseconds; absent means null.
+  optional string ends_at = 5;
+  optional string status = 6;
+}
+
+message ExamResponse {
+  optional int64 id = 1;
+  optional int64 course_id = 2;
+  optional string title = 3;
+  // ISO_INSTANT (UTC), including nanoseconds; absent means null.
+  optional string starts_at = 4;
+  // ISO_INSTANT (UTC), including nanoseconds; absent means null.
+  optional string ends_at = 5;
+  optional string status = 6;
+}
+
+message ExamPaperResponse {
+  optional int64 id = 1;
+  optional int64 exam_id = 2;
+  optional string title = 3;
+  int32 total_points = 4;
+  optional string status = 5;
+}
+
+message ScoreResponse {
+  optional int64 id = 1;
+  optional int64 exam_id = 2;
+  optional int64 course_id = 3;
+  optional int64 student_id = 4;
+  int32 points = 5;
+  optional string status = 6;
+}
+
+message PageCourseResponse {
+  repeated CourseResponse records = 1;
+  int32 current_page = 2;
+  int32 total_pages = 3;
+  int32 page_size = 4;
+  int64 total_count = 5;
+}
+
+message PageScoreResponse {
+  repeated ScoreResponse records = 1;
+  int32 current_page = 2;
+  int32 total_pages = 3;
+  int32 page_size = 4;
+  int64 total_count = 5;
+}
+
+// Business failures retain their code/message; transport failures remain gRPC failures.
+message CourseRpcResponse {
+  bool success = 1;
+  optional string code = 2;
+  optional string message = 3;
+  CourseResponse data = 4;
+  optional string trace_id = 5;
+}
+
+// Business failures retain their code/message; transport failures remain gRPC failures.
+message CourseScheduleRpcResponse {
+  bool success = 1;
+  optional string code = 2;
+  optional string message = 3;
+  CourseScheduleResponse data = 4;
+  optional string trace_id = 5;
+}
+
+// Business failures retain their code/message; transport failures remain gRPC failures.
+message ExamRpcResponse {
+  bool success = 1;
+  optional string code = 2;
+  optional string message = 3;
+  ExamResponse data = 4;
+  optional string trace_id = 5;
+}
+
+// Business failures retain their code/message; transport failures remain gRPC failures.
+message ExamPaperRpcResponse {
+  bool success = 1;
+  optional string code = 2;
+  optional string message = 3;
+  ExamPaperResponse data = 4;
+  optional string trace_id = 5;
+}
+
+// Business failures retain their code/message; transport failures remain gRPC failures.
+message ScoreRpcResponse {
+  bool success = 1;
+  optional string code = 2;
+  optional string message = 3;
+  ScoreResponse data = 4;
+  optional string trace_id = 5;
+}
+
+// Business failures retain their code/message; transport failures remain gRPC failures.
+message PageCourseRpcResponse {
+  bool success = 1;
+  optional string code = 2;
+  optional string message = 3;
+  PageCourseResponse data = 4;
+  optional string trace_id = 5;
+}
+
+// Business failures retain their code/message; transport failures remain gRPC failures.
+message PageScoreRpcResponse {
+  bool success = 1;
+  optional string code = 2;
+  optional string message = 3;
+  PageScoreResponse data = 4;
+  optional string trace_id = 5;
+}

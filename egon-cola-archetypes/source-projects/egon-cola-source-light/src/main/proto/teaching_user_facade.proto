@@ -1,0 +1,172 @@
+syntax = "proto3";
+
+package top.egon.cola.archetype.source.light.facade.rpc.v1;
+
+option java_package = "top.egon.cola.archetype.source.light.facade.rpc.proto";
+option java_multiple_files = true;
+
+// Native transport for the existing facade operations. Business DTOs stay unchanged.
+
+service CourseService {
+  rpc CreateCourse(CreateCourseRpcRequest) returns (CourseRpcResponse);
+  rpc GetCourse(GetCourseRpcRequest) returns (CourseRpcResponse);
+}
+
+service SchoolClassService {
+  rpc CreateSchoolClass(CreateSchoolClassRpcRequest) returns (SchoolClassRpcResponse);
+  rpc ScheduleCourse(ScheduleCourseRpcRequest) returns (SchoolClassRpcResponse);
+  rpc GetSchoolClass(GetSchoolClassRpcRequest) returns (SchoolClassRpcResponse);
+}
+
+service UserService {
+  rpc CreateUser(CreateUserRpcRequest) returns (UserRpcResponse);
+  rpc AssignRole(AssignRoleRpcRequest) returns (UserRpcResponse);
+  rpc GetUser(GetUserRpcRequest) returns (UserRpcResponse);
+}
+
+service PermissionService {
+  rpc GrantPermission(GrantPermissionRpcRequest) returns (PermissionRpcResponse);
+  rpc GetUserPermissions(GetUserPermissionsRpcRequest) returns (PermissionListRpcResponse);
+}
+
+message CreateCourseRpcRequest {
+  optional string code = 1;
+  optional string name = 2;
+  optional string operator_id = 3;
+  optional string request_id = 4;
+}
+
+message CreateSchoolClassRpcRequest {
+  optional string name = 1;
+  optional string semester = 2;
+  optional string operator_id = 3;
+  optional string request_id = 4;
+}
+
+message ScheduleCourseRpcRequest {
+  optional int64 school_class_id = 1;
+  optional int64 course_id = 2;
+  // ISO_LOCAL_DATE_TIME (no zone conversion), including nanoseconds; absent means null.
+  optional string starts_at = 3;
+  // ISO_LOCAL_DATE_TIME (no zone conversion), including nanoseconds; absent means null.
+  optional string ends_at = 4;
+  optional string operator_id = 5;
+  optional string request_id = 6;
+}
+
+message CreateUserRpcRequest {
+  optional string external_id = 1;
+  optional string name = 2;
+  optional string email = 3;
+  optional string operator_id = 4;
+  optional string request_id = 5;
+}
+
+message AssignRoleRpcRequest {
+  optional int64 user_id = 1;
+  optional string role_code = 2;
+  optional string operator_id = 3;
+  optional string request_id = 4;
+}
+
+message GrantPermissionRpcRequest {
+  optional string role_code = 1;
+  optional string permission_code = 2;
+  optional string operator_id = 3;
+  optional string request_id = 4;
+}
+
+message CourseResponse {
+  optional int64 id = 1;
+  optional string code = 2;
+  optional string name = 3;
+  optional string status = 4;
+}
+
+message SchoolClassResponse {
+  optional int64 id = 1;
+  optional string name = 2;
+  optional string semester = 3;
+  optional string status = 4;
+  int32 schedule_count = 5;
+}
+
+message UserResponse {
+  optional int64 id = 1;
+  optional string name = 2;
+  optional string email = 3;
+  optional string status = 4;
+}
+
+message PermissionResponse {
+  optional string role_code = 1;
+  optional string permission_code = 2;
+  optional string status = 3;
+}
+
+message PermissionDetailResponse {
+  optional string code = 1;
+  optional string name = 2;
+  repeated PermissionDetailResponse children = 3;
+}
+
+message GetCourseRpcRequest {
+  optional int64 course_id = 1;
+}
+
+message GetSchoolClassRpcRequest {
+  optional int64 school_class_id = 1;
+}
+
+message GetUserRpcRequest {
+  optional int64 user_id = 1;
+}
+
+message GetUserPermissionsRpcRequest {
+  optional int64 user_id = 1;
+}
+
+// Business failures retain their code/message; transport failures remain gRPC failures.
+message CourseRpcResponse {
+  bool success = 1;
+  optional string code = 2;
+  optional string message = 3;
+  CourseResponse data = 4;
+  optional string trace_id = 5;
+}
+
+// Business failures retain their code/message; transport failures remain gRPC failures.
+message SchoolClassRpcResponse {
+  bool success = 1;
+  optional string code = 2;
+  optional string message = 3;
+  SchoolClassResponse data = 4;
+  optional string trace_id = 5;
+}
+
+// Business failures retain their code/message; transport failures remain gRPC failures.
+message UserRpcResponse {
+  bool success = 1;
+  optional string code = 2;
+  optional string message = 3;
+  UserResponse data = 4;
+  optional string trace_id = 5;
+}
+
+// Business failures retain their code/message; transport failures remain gRPC failures.
+message PermissionRpcResponse {
+  bool success = 1;
+  optional string code = 2;
+  optional string message = 3;
+  PermissionResponse data = 4;
+  optional string trace_id = 5;
+}
+
+// Business failures retain their code/message; transport failures remain gRPC failures.
+message PermissionListRpcResponse {
+  bool success = 1;
+  optional string code = 2;
+  optional string message = 3;
+  repeated PermissionDetailResponse data = 4;
+  optional string trace_id = 5;
+}
