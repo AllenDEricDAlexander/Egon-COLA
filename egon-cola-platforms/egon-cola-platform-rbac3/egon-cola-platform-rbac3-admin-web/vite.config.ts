@@ -12,8 +12,12 @@ export default defineConfig({
     port: 18131,
     strictPort: true,
     proxy: {
+      '/oauth2': {
+        target: process.env.RBAC3_AUTH_PROXY ?? 'http://127.0.0.1:18180',
+        changeOrigin: true,
+      },
       '/api': {
-        target: process.env.RBAC3_ADMIN_PROXY ?? 'http://127.0.0.1:18130',
+        target: process.env.RBAC3_ADMIN_PROXY ?? 'http://127.0.0.1:18180',
         changeOrigin: true,
       },
     },

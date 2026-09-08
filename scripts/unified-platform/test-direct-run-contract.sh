@@ -740,6 +740,10 @@ frontend_env="${frontend_dir}/.env.local"
 source "${frontend_env}"
 [[ "${VITE_DEFAULT_TENANT_ID}" == '77351065313480704' ]] \
   || fail 'plain npm run dev must receive the resolvable default tenant ID'
+[[ "${VITE_GATEWAY_ORIGIN}" == "${GATEWAY_BASE_URL}" ]] \
+  || fail 'plain npm run dev must use Gateway rather than the Vite HTML fallback for login'
+assert_contains "${platform_start_script}" '"${script_dir}/test-live-frontend-login.sh"' \
+  'startup must verify a fresh login and authorization before reporting success'
 printf '%s\n' 'VITE_CUSTOM_SETTING=preserve-me' >"${frontend_env}"
 if (unified_platform_write_frontend_login_env \
     "${frontend_dir}" '77351065313480704') >/dev/null 2>&1; then
@@ -857,23 +861,25 @@ assert_contains "${repo_root}/${ddc_config}" \
   'DDC must preserve its starter defaults import'
 
 assert_vite_proxy() {
-  local relative_file="$1" platform="$2" port="$3"
-  assert_contains "${repo_root}/${relative_file}" "http://127.0.0.1:${port}" \
-    "${platform} plain npm run dev must proxy to its local backend"
+  local relative_file="$1" platform="$2"
+  assert_contains "${repo_root}/${relative_file}" "'/oauth2':" \
+    "${platform} auth requests must not fall through to Vite HTML"
+  assert_contains "${repo_root}/${relative_file}" "ADMIN_PROXY ?? 'http://127.0.0.1:18180'" \
+    "${platform} USER cookies must reach the authenticated Gateway proxy"
 }
 
 assert_vite_proxy \
   'egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/vite.config.ts' \
-  IdP 18120
+  IdP
 assert_vite_proxy \
   'egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/vite.config.ts' \
-  RBAC3 18130
+  RBAC3
 assert_vite_proxy \
   'egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/vite.config.ts' \
-  Gateway 18140
+  Gateway
 assert_vite_proxy \
   'egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/vite.config.ts' \
-  DDC 18150
+  DDC
 
 prepare_script="${repo_root}/scripts/unified-platform/prepare-local-stack.sh"
 start_script="${repo_root}/scripts/unified-platform/start-local-stack.sh"
@@ -890,8 +896,8 @@ assert_contains "${prepare_script}" 'npm ci' \
   'preparation must install missing locked frontend dependencies'
 assert_contains "${prepare_script}" '.properties' \
   'preparation must verify generated Java runtime configuration'
-assert_not_contains "${start_script}" 'test-live-frontend-login.sh' \
-  'stack startup must not execute frontend login regression tests'
+assert_contains "${start_script}" 'test-live-frontend-login.sh' \
+  'stack startup must prove fresh password login and authorization before success'
 assert_contains "${identity_script}" 'publish_gateway_routes true' \
   'deferred startup must prepare HTTP routes before the unified MCP release'
 assert_contains "${identity_script}" 'publish-gateway-routes' \

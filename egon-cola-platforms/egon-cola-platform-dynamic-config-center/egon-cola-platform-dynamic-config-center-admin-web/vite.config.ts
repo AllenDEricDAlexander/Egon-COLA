@@ -12,16 +12,24 @@ export default defineConfig({
     port: 18152,
     strictPort: true,
     proxy: {
+      '/oauth2': {
+        target: process.env.DDC_AUTH_PROXY ?? 'http://127.0.0.1:18180',
+        changeOrigin: true,
+      },
       '/api': {
-        target: process.env.DDC_ADMIN_PROXY ?? 'http://127.0.0.1:18150',
+        target: process.env.DDC_ADMIN_PROXY ?? 'http://127.0.0.1:18180',
         changeOrigin: true,
       },
     },
   },
   preview: {
     proxy: {
+      '/oauth2': {
+        target: process.env.DDC_AUTH_PROXY ?? 'http://127.0.0.1:18180',
+        changeOrigin: true,
+      },
       '/api': {
-        target: process.env.DDC_ADMIN_PROXY ?? 'http://127.0.0.1:18150',
+        target: process.env.DDC_ADMIN_PROXY ?? 'http://127.0.0.1:18180',
         changeOrigin: true,
       },
     },

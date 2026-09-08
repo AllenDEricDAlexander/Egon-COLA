@@ -26,8 +26,12 @@ export default defineConfig({
     port: 18121,
     strictPort: true,
     proxy: {
+      '/oauth2': {
+        target: process.env.IDP_AUTH_PROXY ?? 'http://127.0.0.1:18180',
+        changeOrigin: true,
+      },
       '/api': {
-        target: process.env.IDP_ADMIN_PROXY ?? 'http://127.0.0.1:18120',
+        target: process.env.IDP_ADMIN_PROXY ?? 'http://127.0.0.1:18180',
         changeOrigin: true,
       },
     },

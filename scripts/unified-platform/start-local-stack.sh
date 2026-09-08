@@ -50,7 +50,7 @@ import_existing_qa_credential() {
   marker_file="${unified_platform_secret_dir}/.idp-password-imported"
   target_file="${unified_platform_secret_dir}/idp-admin.password"
   if [[ -s "${source_file}" && ! -e "${marker_file}" \
-      && "${source_file}" != "${target_file}" ]]; then
+      && ! "${source_file}" -ef "${target_file}" ]]; then
     cp "${source_file}" "${target_file}"
     chmod 600 "${target_file}"
     printf '%s\n' "${source_file}" >"${marker_file}"
@@ -102,6 +102,8 @@ prepare_admin_web_login_environments() {
     "${gateway_web_dir}" "${default_tenant_id}"
   unified_platform_write_frontend_login_env \
     "${ddc_web_dir}" "${default_tenant_id}"
+  unified_platform_write_frontend_login_env \
+    "${portal_web_dir}" "${default_tenant_id}"
 }
 
 gateway_api() {
@@ -876,6 +878,9 @@ start_portal_web() {
   (
     cd "${portal_web_dir}"
     export PORTAL_PUBLIC_DIR="${unified_platform_runtime_dir}/portal-public"
+    export PORTAL_AUTH_PROXY="${GATEWAY_BASE_URL}"
+    export PORTAL_API_PROXY="${GATEWAY_BASE_URL}"
+    export VITE_GATEWAY_ORIGIN="${GATEWAY_BASE_URL}"
     export VITE_PORTAL_ALLOW_LOCAL_CHILD_ORIGINS=true
     export VITE_IDP_ADMIN_WEB_URL="${IDP_ADMIN_WEB_URL}"
     export VITE_RBAC3_ADMIN_WEB_URL="${RBAC3_ADMIN_WEB_URL}"
@@ -935,6 +940,7 @@ if [[ "${UNIFIED_IDENTITY_START_MODE}" != "full" ]]; then
     "${ddc_web_dir}/node_modules/.bin/vite" "${DDC_ADMIN_WEB_URL}" \
     ddc-admin-web DDC_ADMIN_PROXY "${GATEWAY_BASE_URL}"
   start_portal_web
+  "${script_dir}/test-live-frontend-login.sh"
   printf 'Unified platform local stack is running in %s.\n' \
     "${unified_platform_runtime_dir}"
   "${script_dir}/status-local-stack.sh"
@@ -996,6 +1002,8 @@ start_admin_web ddc-admin-web "${ddc_web_dir}" \
   "${ddc_web_dir}/node_modules/.bin/vite" "${DDC_ADMIN_WEB_URL}" \
   ddc-admin-web DDC_ADMIN_PROXY "${GATEWAY_BASE_URL}"
 start_portal_web
+
+"${script_dir}/test-live-frontend-login.sh"
 
 printf 'Unified platform local stack is running in %s.\n' \
   "${unified_platform_runtime_dir}"

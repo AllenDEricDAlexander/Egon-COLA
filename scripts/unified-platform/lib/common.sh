@@ -183,8 +183,10 @@ unified_platform_write_frontend_login_env() {
     unified_platform_fail \
       "refusing to overwrite unmanaged frontend environment: ${file}"
   fi
-  printf '%s\nVITE_DEFAULT_TENANT_ID=%s\n' \
-    "${marker}" "${tenant_id}" >"${file}"
+  # Vite only inherits shell exports for that process. Persist both values so
+  # a later plain npm run dev uses the same authenticated Gateway entry point.
+  printf '%s\nVITE_DEFAULT_TENANT_ID=%s\nVITE_GATEWAY_ORIGIN=%s\n' \
+    "${marker}" "${tenant_id}" "${GATEWAY_BASE_URL}" >"${file}"
   chmod 600 "${file}"
 }
 

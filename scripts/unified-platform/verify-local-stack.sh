@@ -128,7 +128,7 @@ if [[ -s "${unified_platform_runtime_dir}/startup-mode" ]]; then
   startup_mode="$(<"${unified_platform_runtime_dir}/startup-mode")"
 fi
 if [[ "${startup_mode}" == "platforms" ]]; then
-  for name in ddc idp rbac3 gateway-admin \
+  for name in ddc idp rbac3 gateway-admin gateway-engine gateway-mcp-engine \
     idp-admin-web rbac3-admin-web gateway-admin-web ddc-admin-web portal-web; do
     verify_process "${name}"
   done
@@ -136,6 +136,8 @@ if [[ "${startup_mode}" == "platforms" ]]; then
   verify_http rbac3 "${RBAC3_BASE_URL}/actuator/health/readiness"
   verify_http ddc "${DDC_BASE_URL}/actuator/health/readiness"
   verify_http gateway-admin "${GATEWAY_ADMIN_BASE_URL}/actuator/health/readiness"
+  verify_http gateway-engine "${GATEWAY_ENGINE_A_BASE_URL}/actuator/health/readiness"
+  verify_http gateway-mcp-engine "${GATEWAY_MCP_ENGINE_BASE_URL}/actuator/health/readiness"
   verify_http idp-admin-web "${IDP_ADMIN_WEB_URL}/"
   verify_http rbac3-admin-web "${RBAC3_ADMIN_WEB_URL}/"
   verify_http gateway-admin-web "${GATEWAY_ADMIN_WEB_URL}/"
@@ -153,7 +155,9 @@ if [[ "${startup_mode}" == "platforms" ]]; then
       "${failures}" >&2
     exit 1
   fi
-  printf 'Unified platform core and Portal verification passed.\n'
+  "${script_dir}/test-live-frontend-login.sh" \
+    || unified_platform_fail "Admin Web login contract verification failed"
+  printf 'Unified platform core, Portal and fresh login verification passed.\n'
   exit 0
 fi
 

@@ -12,8 +12,12 @@ export default defineConfig({
     port: 18141,
     strictPort: true,
     proxy: {
+      '/oauth2': {
+        target: process.env.GATEWAY_AUTH_PROXY ?? 'http://127.0.0.1:18180',
+        changeOrigin: true,
+      },
       '/api': {
-        target: process.env.GATEWAY_ADMIN_PROXY ?? 'http://127.0.0.1:18140',
+        target: process.env.GATEWAY_ADMIN_PROXY ?? 'http://127.0.0.1:18180',
         changeOrigin: true,
       },
     },
