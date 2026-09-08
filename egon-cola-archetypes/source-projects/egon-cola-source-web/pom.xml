@@ -54,6 +54,25 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-bom</artifactId>
+                <version>${native.grpc.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-bom</artifactId>
+                <version>${native.protobuf.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.google.protobuf</groupId>
+                <artifactId>protobuf-java</artifactId>
+                <version>${native.protobuf.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>${organization-facade.group-id}</groupId>
                 <artifactId>${organization-facade.artifact-id}</artifactId>
                 <version>${organization-facade.version}</version>

@@ -2,7 +2,7 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-`egon-cola-source-service` is a service-only COLA sample for Course, Schedule, Exam, Paper, and Score workflows. Business traffic enters through Dubbo Triple RPC or RabbitMQ; HTTP is reserved for Spring Boot Actuator management endpoints.
+`egon-cola-source-service` is a service-only COLA sample for Course, Schedule, Exam, Paper, and Score workflows. Business traffic enters through COLA native unary RPC RPC or RabbitMQ; HTTP is reserved for Spring Boot Actuator management endpoints.
 
 ## Maven Profiles And External Launch Arguments
 
@@ -46,10 +46,10 @@ credentials in the existing environment/secrets mechanism, never in `run.*` prop
 ## Module Ownership
 
 - `egon-cola-source-service-common`: stable errors, constants, enums, and identifier utilities.
-- `egon-cola-source-service-domain`: entities, aggregates, value objects, generic `EgonColaIService` contracts, event ports, and the consumer-owned Organization directory port. It depends on the Common MyBatis-Plus starter only for the shared service/model contract; it contains no DAO, PO, persistence, MQ, Facade, or Dubbo implementation.
+- `egon-cola-source-service-domain`: entities, aggregates, value objects, generic `EgonColaIService` contracts, event ports, and the consumer-owned Organization directory port. It depends on the Common MyBatis-Plus starter only for the shared service/model contract; it contains no DAO, PO, persistence, MQ, Facade, or COLA RPC implementation.
 - `egon-cola-source-service-application`: commands, queries, use-case managers, application validation, and result models.
 - `egon-cola-source-service-infrastructure`: MyBatis-Plus `*PO`/`*DAO` persistence, generic domain-service implementations, Flyway migrations, RabbitMQ/local publisher implementations, and the `top.egon:egon-cola-organization-facade` anti-corruption adapter.
-- `egon-cola-source-service-adapter`: Dubbo providers for `top.egon:egon-cola-evaluation-facade`, facade conversion, validation, exception translation, and the score-command MQ consumer.
+- `egon-cola-source-service-adapter`: COLA RPC providers for `top.egon:egon-cola-evaluation-facade`, facade conversion, validation, exception translation, and the score-command MQ consumer.
 - `egon-cola-source-service-starter`: Spring Boot assembly, profiles, management configuration, and architecture/context tests.
 
 ## Domain-first package layout
@@ -65,7 +65,7 @@ adapter/course/facade/impl
 adapter/exam/mq
 ```
 
-This remains service-only: business traffic enters through Dubbo Triple or RabbitMQ, with no business Controller, Web Filter, GraphQL, or VO package. The external Organization boundary remains at `domain/client/organization` and `infrastructure/client/organization`.
+This remains service-only: business traffic enters through COLA native unary RPC or RabbitMQ, with no business Controller, Web Filter, GraphQL, or VO package. The external Organization boundary remains at `domain/client/organization` and `infrastructure/client/organization`.
 
 The allowed internal dependency graph is:
 
@@ -88,17 +88,17 @@ RabbitMQ support is intentionally basic transport. The sample does not promise r
 
 ## Profiles And Integrations
 
-`dev` is the default profile for workstation development and `feature/*` branch verification. It uses the environment-backed PostgreSQL, Nacos, RabbitMQ, and Dubbo integrations.
+`dev` is the default profile for workstation development and `feature/*` branch verification. It uses the environment-backed PostgreSQL, RabbitMQ, and COLA RPC integrations.
 
-`test` is selected automatically by Maven tests and is used by the `dev`, `release/*`, and `hotfix/*` validation pipelines. It uses H2 in PostgreSQL compatibility mode, disables RabbitMQ publishers and listeners, and selects a deterministic `OrganizationDirectoryPort` stub, so it requires no Nacos, RabbitMQ, PostgreSQL, or external Dubbo provider.
+`test` is selected automatically by Maven tests and is used by the `dev`, `release/*`, and `hotfix/*` validation pipelines. It uses H2 in PostgreSQL compatibility mode, disables RabbitMQ publishers and listeners, and selects a deterministic `OrganizationDirectoryPort` stub, so it requires no RabbitMQ, PostgreSQL, or external COLA RPC provider.
 
 The Organization Facade client is an unused infrastructure foundation; no current Application use case calls the Organization port.
 
-`prod` is reserved for runtime builds and deployments from `main`. Both `dev` and `prod` select the real Organization Dubbo client, pin `top.egon:egon-cola-organization-facade` through the generated POM, and fail explicitly when the provider is unavailable. Configure them through environment variables rather than committed secrets:
+`prod` is reserved for runtime builds and deployments from `main`. Both `dev` and `prod` select the real Organization COLA RPC client, pin `top.egon:egon-cola-organization-facade` through the generated POM, and fail explicitly when the provider is unavailable. Configure them through environment variables rather than committed secrets:
 
 - Database: configure the `master_data`, `shard_0`, and `shard_1` physical data sources described below.
-- Nacos: `NACOS_SERVER_ADDR`, `NACOS_NAMESPACE`, `NACOS_USERNAME`, `NACOS_PASSWORD`. Config and discovery carry separate groups — `NACOS_CONFIG_GROUP` and `NACOS_DISCOVERY_GROUP` — and separate switches: `NACOS_CONFIG_ENABLED`, `NACOS_DISCOVERY_ENABLED`, `NACOS_CONFIG_REFRESH_ENABLED`, and `DISCOVERY_ENABLED`.
-- Dubbo: `DUBBO_REGISTRY_ADDRESS`, `DUBBO_PORT`, `DUBBO_CONSUMER_TIMEOUT`.
+- DDC: configure `DDC_RPC_TARGET`, `DDC_NAMESPACE`, separate runtime/registry HMAC credentials and IdP SERVICE tokens. `DDC_ENABLED` and `DDC_REGISTRY_ENABLED` control configuration and registration. See the native RPC/DDC section below for connection settings.
+- COLA RPC: `DDC_RPC_TARGET`, `RPC_PORT`, `ORGANIZATION_FACADE_TIMEOUT_MS`.
 - Organization Facade: `ORGANIZATION_FACADE_ENABLED`, `ORGANIZATION_FACADE_GROUP`, `ORGANIZATION_FACADE_SERVICE_VERSION`.
 - RabbitMQ: connection settings bind through Spring's own names — `SPRING_RABBITMQ_HOST`, `SPRING_RABBITMQ_PORT`, `SPRING_RABBITMQ_USERNAME`, `SPRING_RABBITMQ_PASSWORD` — while `RABBITMQ_ENABLED` and `RABBITMQ_LISTENER_AUTO_STARTUP` are this application's own switches.
 - Configuration decryption: `EGON_CONFIG_DECRYPT_KEY`, `EGON_CONFIG_DECRYPT_KEY_FILE`, or the documented config-tree secret source.
@@ -178,7 +178,7 @@ SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp -DskipTests package
 
 The test suite includes Domain rules, Application orchestration, MyBatis-Plus DAO
 contracts, date-sequence Flyway migration contracts, broker-free MQ adapters, an actual
-Dubbo Triple proxy call, external-free Spring context assembly, and architecture
+COLA native unary RPC proxy call, external-free Spring context assembly, and architecture
 dependency checks. Building the image does not start the service.
 
 Use `verify`, not `test`. The architecture-governance plugin is bound to the `verify`
@@ -230,3 +230,13 @@ The root `Jenkinsfile` runs tests and can publish immutable images. Set
 ## Scope Boundary
 
 This generated service has no business Controller, Web Filter, GraphQL endpoint, native grpc-java module, or enabled H2 console. Its Organization Facade client is intentionally not wired into current Application behavior.
+
+## Native RPC, DDC and remote queries
+
+This project exposes 11 evaluation unary operations from the shared Protobuf contract. Providers delegate to the existing facades. Remote queries use the existing domain port, MapStruct/BaseConverter and component DIRECT proxy/strategy factories. Configure `app.integrations.organization` with the exact target biz code, app code, group/version and timeout. `ORGANIZATION_FACADE_APP_CODE` must match the peer's registered DDC app code. References use the current process environment, version `1.0` by default, a 3000ms default bounded by the component ceiling, zero retries and FAIL_CLOSED.
+
+Supply existing DDC RPC/Redis endpoints, registration resource URI, separate runtime/registry HMAC credentials, and an IdP SERVICE-token client allowed `ddc:registration:write`. Complete the `DDC_*`, `IDP_*` and advertised-host entries in the environment sample. Compose maps Spring OAuth2 Client registration/provider `ddcregistration`; direct Java launches must supply the corresponding `spring.security.oauth2.client.registration.ddcregistration` and `spring.security.oauth2.client.provider.ddcregistration.token-uri` external properties. Production enables RPC/DDC mTLS; configure and mount the certificate-chain, private-key and trust-certificate paths. No DDC or IdP container is bundled.
+
+The platform OpenAPI MVC starter preserves business HTTP access. Document governance is disabled by default. Enabling it requires the platform document identity, published groups, JWT decoder and `gateway.openapi.read` scope; published handlers also require explicit `@Operation(operationId = "...")` metadata. IdP Servlet filter auto-registration is disabled. HTTP registration follows the effective `server.port`.
+
+The `test` profile disables RPC provider/consumer, DDC config/registry/Redis, HTTP registration and remote query clients, retaining H2 and local stubs. Stock Redisson auto-configuration is excluded; DDC creates only its explicitly configured Redis client. Existing PostgreSQL, Redis, RabbitMQ and their data volumes remain. Configuration decryption runs after Spring Boot Config Data; explicit imports/configtree replace retired bootstrap loading while encryption and key rules remain unchanged. Static, module and in-process RPC tests do not establish live DDC/IdP, mTLS or container interoperability.

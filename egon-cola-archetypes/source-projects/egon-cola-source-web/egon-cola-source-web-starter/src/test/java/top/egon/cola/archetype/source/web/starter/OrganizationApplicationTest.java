@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.web.starter;
 
 import top.egon.cola.archetype.source.web.domain.client.evaluation.EvaluationQueryPort;
-import top.egon.cola.archetype.source.web.infrastructure.client.evaluation.DubboEvaluationQueryClient;
+import top.egon.cola.archetype.source.web.infrastructure.client.evaluation.NativeEvaluationQueryClient;
 import top.egon.cola.archetype.source.web.infrastructure.client.evaluation.LocalEvaluationQueryStub;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
@@ -35,12 +35,12 @@ class OrganizationApplicationTest {
         assertThat(context.getBeansOfType(ConnectionFactory.class)).isEmpty();
         assertThat(Arrays.stream(context.getBeanDefinitionNames())
                 .filter(name -> name.toLowerCase().contains("nacos"))).isEmpty();
-        assertThat(environment.getProperty("dubbo.registry.address")).isEqualTo("N/A");
-        assertThat(environment.getProperty("dubbo.protocol.name")).isEqualTo("injvm");
+        assertThat(environment.getProperty("egon.cola.component.ddc.registry.enabled")).isEqualTo("false");
+        assertThat(environment.getProperty("egon.cola.component.rpc.enabled")).isEqualTo("false");
         assertThat(environment.getProperty("organization.integrations.redis.enabled")).isEqualTo("false");
         assertThat(environment.getProperty("organization.integrations.rabbit.enabled")).isEqualTo("false");
         assertThat(environment.getProperty("organization.integrations.evaluation.enabled")).isEqualTo("false");
         assertThat(evaluationQueryPort).isInstanceOf(LocalEvaluationQueryStub.class);
-        assertThat(context.getBeansOfType(DubboEvaluationQueryClient.class)).isEmpty();
+        assertThat(context.getBeansOfType(NativeEvaluationQueryClient.class)).isEmpty();
     }
 }

@@ -117,9 +117,9 @@ class EvaluationDataSourceModeTest {
                 Map.entry("EVALUATION_SHARD_1_PRIMARY_PASSWORD", ""),
                 Map.entry("EVALUATION_SHARD_1_REPLICA_0_USERNAME", "sa"),
                 Map.entry("EVALUATION_SHARD_1_REPLICA_0_PASSWORD", ""),
-                Map.entry("dubbo.application.qos-enable", "false"),
-                Map.entry("dubbo.protocol.port", "-1"),
-                Map.entry("dubbo.provider.export", "false"),
+                Map.entry("egon.cola.component.rpc.enabled", "false"),
+                Map.entry("egon.cola.component.ddc.enabled", "false"),
+                Map.entry("egon.cola.component.ddc.registry.enabled", "false"),
                 Map.entry("spring.main.banner-mode", "off"));
     }
 

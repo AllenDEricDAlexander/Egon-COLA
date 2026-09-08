@@ -4,7 +4,7 @@ import top.egon.cola.evaluation.facade.dto.SingleResponse;
 import top.egon.cola.archetype.source.web.domain.client.ExternalDependencyException;
 import top.egon.cola.archetype.source.web.domain.client.ExternalDependencyFailure;
 import java.util.Locale;
-import org.apache.dubbo.rpc.RpcException;
+import top.egon.cola.component.rpc.exception.EgonRpcException;
 
 final class EvaluationClientFailureMapper {
 
@@ -27,11 +27,13 @@ final class EvaluationClientFailureMapper {
     }
 
     static ExternalDependencyException map(RuntimeException failure) {
-        if (failure instanceof RpcException rpcFailure) {
-            ExternalDependencyFailure category = rpcFailure.isTimeout()
-                    ? ExternalDependencyFailure.TIMEOUT
-                    : ExternalDependencyFailure.UNAVAILABLE;
-            return failure(category, "DUBBO_" + rpcFailure.getCode(), rpcFailure);
+        if (failure instanceof EgonRpcException rpcFailure) {
+            ExternalDependencyFailure category = switch (rpcFailure.getCode()) {
+                case RPC_DEADLINE_EXCEEDED -> ExternalDependencyFailure.TIMEOUT;
+                case RPC_INVALID_CONTRACT, RPC_METHOD_NOT_FOUND -> ExternalDependencyFailure.CONTRACT_INCOMPATIBLE;
+                default -> ExternalDependencyFailure.UNAVAILABLE;
+            };
+            return failure(category, rpcFailure.getCode().name(), rpcFailure);
         }
         return failure(ExternalDependencyFailure.SERVICE_FAILURE, "UNKNOWN", failure);
     }
@@ -40,7 +42,7 @@ final class EvaluationClientFailureMapper {
         return failure(category(code), code, null);
     }
 
-    private static ExternalDependencyException incompatible(String operation) {
+    static ExternalDependencyException incompatible(String operation) {
         return new ExternalDependencyException(
                 DEPENDENCY,
                 ExternalDependencyFailure.CONTRACT_INCOMPATIBLE,

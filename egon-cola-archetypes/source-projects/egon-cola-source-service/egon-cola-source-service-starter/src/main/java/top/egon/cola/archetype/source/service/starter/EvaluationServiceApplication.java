@@ -1,6 +1,5 @@
 package top.egon.cola.archetype.source.service.starter;
 
-import org.apache.dubbo.config.spring.context.annotation.EnableDubbo;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -15,10 +14,6 @@ import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusP
         scanBasePackages = "top.egon.cola.archetype.source.service",
         exclude = FlywayAutoConfiguration.class)
 @EnableConfigurationProperties(EgonColaMybatisPlusProperties.class)
-@EnableDubbo(scanBasePackages = {
-        "top.egon.cola.archetype.source.service.adapter.course.facade.impl",
-        "top.egon.cola.archetype.source.service.adapter.exam.facade.impl"
-})
 @MapperScan(basePackages = {
         "top.egon.cola.archetype.source.service.infrastructure.course.repo.dao",
         "top.egon.cola.archetype.source.service.infrastructure.exam.repo.dao"

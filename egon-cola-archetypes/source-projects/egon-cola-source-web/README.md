@@ -94,7 +94,7 @@ The complete `teaching` vertical creates and queries grades and school classes, 
 
 ## Integration Ownership
 
-- Adapter owns HTTP `/api/v1/**`, GraphQL `/graphql`, inbound RabbitMQ commands, Dubbo Facade export, request validation, filters, and protocol conversion.
+- Adapter owns HTTP `/api/v1/**`, GraphQL `/graphql`, inbound RabbitMQ commands, COLA RPC Facade export, request validation, filters, and protocol conversion.
 - Infrastructure owns Common MyBatis-Plus persistence, Flyway, Redis adapters, outbound RabbitMQ events, the Evaluation Facade anti-corruption adapter, local fallback adapters, and Application-method logging AOP.
 - Starter owns OpenAPI assembly, runtime profiles, Actuator, Prometheus, Jackson, async execution, and configuration decryption.
 - `top.egon:egon-cola-organization-facade` is the dependency-safe provider contract; `top.egon:egon-cola-evaluation-facade` is the consumed contract. Neither is generated as a local module.
@@ -105,13 +105,13 @@ RabbitMQ command retries use three total attempts with bounded backoff and dead-
 
 ## Runtime Profiles
 
-`dev` is the default profile for workstation development and `feature/*` branch verification. It uses the environment-backed PostgreSQL, Redis, RabbitMQ, Nacos, and Dubbo integrations.
+`dev` is the default profile for workstation development and `feature/*` branch verification. It uses the environment-backed PostgreSQL, Redis, RabbitMQ, and COLA RPC integrations.
 
-`test` is selected automatically by Maven tests and is used by the `dev`, `release/*`, and `hotfix/*` validation pipelines. It uses H2 in PostgreSQL compatibility mode, in-memory cache/idempotency adapters, a local event publisher, a deterministic Evaluation query stub, disabled RabbitMQ and Nacos connections, and Dubbo `injvm` with no registry.
+`test` is selected automatically by Maven tests and is used by the `dev`, `release/*`, and `hotfix/*` validation pipelines. It uses H2 in PostgreSQL compatibility mode, in-memory cache/idempotency adapters, a local event publisher, a deterministic Evaluation query stub, disabled RabbitMQ and external DDC connections, and disabled COLA RPC provider/consumer and registry.
 
-`prod` is reserved for runtime builds and deployments from `main`. Both `dev` and `prod` use the Dubbo Evaluation Facade client with a 3000 ms timeout, zero retries, and startup reference checks. Each consumed Facade has its own group variable — `EVALUATION_COURSE_FACADE_GROUP` (default `course`), `EVALUATION_EXAM_FACADE_GROUP` (default `exam`), and `EVALUATION_SCORE_FACADE_GROUP` (default `score`) — alongside `EVALUATION_FACADE_SERVICE_VERSION` (default `1.0.0`).
+`prod` is reserved for runtime builds and deployments from `main`. Both `dev` and `prod` use the COLA RPC Evaluation Facade client with a 3000 ms timeout, zero retries, and startup reference checks. Each consumed Facade has its own group variable — `EVALUATION_COURSE_FACADE_GROUP` (default `course`), `EVALUATION_EXAM_FACADE_GROUP` (default `exam`), and `EVALUATION_SCORE_FACADE_GROUP` (default `score`) — alongside `EVALUATION_FACADE_SERVICE_VERSION` (default `1.0.0`).
 
-Nacos uses `NACOS_SERVER_ADDR`, `NACOS_NAMESPACE`, `NACOS_USERNAME`, `NACOS_PASSWORD`, the separate `NACOS_CONFIG_GROUP` and `NACOS_DISCOVERY_GROUP`, and the `NACOS_CONFIG_ENABLED`, `NACOS_DISCOVERY_ENABLED`, `NACOS_CONFIG_REFRESH_ENABLED`, and `DISCOVERY_ENABLED` switches. RabbitMQ connection settings use Spring's own `SPRING_RABBITMQ_HOST`, `SPRING_RABBITMQ_PORT`, `SPRING_RABBITMQ_USERNAME`, and `SPRING_RABBITMQ_PASSWORD`. Other datasource, Redis, cache, and idempotency settings remain environment-backed.
+- DDC: configure `DDC_RPC_TARGET`, `DDC_NAMESPACE`, separate runtime/registry HMAC credentials and IdP SERVICE tokens. `DDC_ENABLED` and `DDC_REGISTRY_ENABLED` control configuration and registration. See the native RPC/DDC section below for connection settings.
 
 ## Sharding, Read/Write Splitting, And Flyway
 
@@ -255,3 +255,13 @@ SPRING_PROFILES_ACTIVE=dev bash ./mvnw -pl egon-cola-source-web-starter spring-b
 ```
 
 Sensitive values belong in environment variables, mounted files, `config/application-secrets.yml`, or `configtree:/run/secrets/`. Do not commit credentials or decryption keys.
+
+## Native RPC, DDC and remote queries
+
+This project exposes 10 organization unary operations from the shared Protobuf contract. Providers delegate to the existing facades. Remote queries use the existing domain port, MapStruct/BaseConverter and component DIRECT proxy/strategy factories. Configure `organization.integrations.evaluation` with the exact target biz code, app code, group/version and timeout. `EVALUATION_FACADE_APP_CODE` must match the peer's registered DDC app code. References use the current process environment, version `1.0` by default, a 3000ms default bounded by the component ceiling, zero retries and FAIL_CLOSED.
+
+Supply existing DDC RPC/Redis endpoints, registration resource URI, separate runtime/registry HMAC credentials, and an IdP SERVICE-token client allowed `ddc:registration:write`. Complete the `DDC_*`, `IDP_*` and advertised-host entries in the environment sample. Compose maps Spring OAuth2 Client registration/provider `ddcregistration`; direct Java launches must supply the corresponding `spring.security.oauth2.client.registration.ddcregistration` and `spring.security.oauth2.client.provider.ddcregistration.token-uri` external properties. Production enables RPC/DDC mTLS; configure and mount the certificate-chain, private-key and trust-certificate paths. No DDC or IdP container is bundled.
+
+The platform OpenAPI MVC starter preserves business HTTP access. Document governance is disabled by default. Enabling it requires the platform document identity, published groups, JWT decoder and `gateway.openapi.read` scope; published handlers also require explicit `@Operation(operationId = "...")` metadata. IdP Servlet filter auto-registration is disabled. HTTP registration follows the effective `server.port`.
+
+The `test` profile disables RPC provider/consumer, DDC config/registry/Redis, HTTP registration and remote query clients, retaining H2 and local stubs. Stock Redisson auto-configuration is excluded; DDC creates only its explicitly configured Redis client. Existing PostgreSQL, Redis, RabbitMQ and their data volumes remain. Configuration decryption runs after Spring Boot Config Data; explicit imports/configtree replace retired bootstrap loading while encryption and key rules remain unchanged. Static, module and in-process RPC tests do not establish live DDC/IdP, mTLS or container interoperability.

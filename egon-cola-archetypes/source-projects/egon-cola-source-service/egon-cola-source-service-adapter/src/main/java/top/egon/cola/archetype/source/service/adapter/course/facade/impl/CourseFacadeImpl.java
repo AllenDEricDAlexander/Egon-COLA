@@ -18,18 +18,20 @@ import top.egon.cola.evaluation.facade.course.dto.PageCourseRequest;
 import top.egon.cola.evaluation.facade.course.dto.ScheduleCourseRequest;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.apache.dubbo.config.annotation.DubboService;
+import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.validation.annotation.Validated;
 
-@DubboService(interfaceClass = CourseFacade.class, version = "1.0.0", group = "course")
+@Component("courseFacadeImpl")
+@Slf4j
 @Validated
 @RequiredArgsConstructor
 public class CourseFacadeImpl implements CourseFacade {
     @Qualifier("courseManage") private final CourseManage courseManage;
-    private final CourseFacadeConverter converter;
-    private final CourseFacadeValidator validator;
-    private final GlobalFacadeExceptionHandler exceptionHandler;
+    @Qualifier("courseFacadeConverterImpl") private final CourseFacadeConverter converter;
+    @Qualifier("courseFacadeValidator") private final CourseFacadeValidator validator;
+    @Qualifier("globalFacadeExceptionHandler") private final GlobalFacadeExceptionHandler exceptionHandler;
 
     public SingleResponse<CourseResponse> create(CreateCourseRequest request) {
         try { validator.require(request); return SingleResponse.of(converter.toResponse(

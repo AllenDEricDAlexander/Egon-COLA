@@ -8,12 +8,15 @@ import top.egon.cola.evaluation.facade.exam.ExamFacade;
 import top.egon.cola.evaluation.facade.dto.SingleResponse;
 import top.egon.cola.evaluation.facade.exam.dto.*;
 import lombok.RequiredArgsConstructor;
-import org.apache.dubbo.config.annotation.DubboService;
-@DubboService(interfaceClass = ExamFacade.class, version = "1.0.0", group = "exam")
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
+@Component("examFacadeImpl")
+@Slf4j
 @RequiredArgsConstructor
 public class ExamFacadeImpl implements ExamFacade {
-    private final ExamManage examManage; private final ExamFacadeConverter converter;
-    private final ExamFacadeValidator validator; private final GlobalFacadeExceptionHandler handler;
+    @Qualifier("evaluationExamManage") private final ExamManage examManage; @Qualifier("examFacadeConverterImpl") private final ExamFacadeConverter converter;
+    @Qualifier("examFacadeValidator") private final ExamFacadeValidator validator; @Qualifier("globalFacadeExceptionHandler") private final GlobalFacadeExceptionHandler handler;
     public SingleResponse<ExamResponse> createExam(CreateExamRequest request) { try { validator.require(request); return SingleResponse.of(converter.toResponse(examManage.create(converter.toCommand(request)))); } catch (RuntimeException e) { return handler.toFailure(e); } }
     public SingleResponse<ExamPaperResponse> attachPaper(AttachExamPaperRequest request) { try { validator.require(request); return SingleResponse.of(converter.toResponse(examManage.attachPaper(converter.toCommand(request)))); } catch (RuntimeException e) { return handler.toFailure(e); } }
     public SingleResponse<ExamResponse> publishExam(PublishExamRequest request) { try { validator.require(request); return SingleResponse.of(converter.toResponse(examManage.publish(converter.toCommand(request)))); } catch (RuntimeException e) { return handler.toFailure(e); } }

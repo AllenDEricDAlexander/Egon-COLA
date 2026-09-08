@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-`egon-cola-source-service` 是一个只面向 service 的 COLA 示例，覆盖 Course、Schedule、Exam、Paper 和 Score 流程。业务流量通过 Dubbo Triple RPC 或 RabbitMQ 进入；HTTP 仅用于 Spring Boot Actuator 管理端点。
+`egon-cola-source-service` 是一个只面向 service 的 COLA 示例，覆盖 Course、Schedule、Exam、Paper 和 Score 流程。业务流量通过 COLA native unary RPC RPC 或 RabbitMQ 进入；HTTP 仅用于 Spring Boot Actuator 管理端点。
 
 ## Maven Profiles 与外部启动参数
 
@@ -40,10 +40,10 @@ java @launch.args -Xmx3g -jar app.jar --server.port=9081
 ## 模块职责
 
 - `egon-cola-source-service-common`：稳定的错误、常量、枚举和标识符工具。
-- `egon-cola-source-service-domain`：实体、聚合、值对象、泛型 `EgonColaIService` 契约、事件端口，以及由消费者拥有的 Organization 目录端口。只为共享 Service/Model 契约依赖 Common MyBatis-Plus starter；不包含 DAO、PO、持久化、MQ、Facade 或 Dubbo 实现。
+- `egon-cola-source-service-domain`：实体、聚合、值对象、泛型 `EgonColaIService` 契约、事件端口，以及由消费者拥有的 Organization 目录端口。只为共享 Service/Model 契约依赖 Common MyBatis-Plus starter；不包含 DAO、PO、持久化、MQ、Facade 或 COLA RPC 实现。
 - `egon-cola-source-service-application`：命令、查询、用例管理器、应用校验和结果模型。
 - `egon-cola-source-service-infrastructure`：MyBatis-Plus `*PO`/`*DAO` 持久化、泛型领域 Service 实现、Flyway migration、RabbitMQ/本地发布器实现，以及 `top.egon:egon-cola-organization-facade` 防腐适配器。
-- `egon-cola-source-service-adapter`：`top.egon:egon-cola-evaluation-facade` 的 Dubbo provider、facade 转换、校验、异常转换和 score-command MQ consumer。
+- `egon-cola-source-service-adapter`：`top.egon:egon-cola-evaluation-facade` 的 COLA RPC provider、facade 转换、校验、异常转换和 score-command MQ consumer。
 - `egon-cola-source-service-starter`：Spring Boot 组装、profile、管理配置以及架构/上下文测试。
 
 ## 领域优先包布局
@@ -59,7 +59,7 @@ adapter/course/facade/impl
 adapter/exam/mq
 ```
 
-该项目保持 service-only：业务流量通过 Dubbo Triple 或 RabbitMQ 进入，不包含业务 Controller、Web Filter、GraphQL 或 VO 包。外部 Organization 边界位于 `domain/client/organization` 和 `infrastructure/client/organization`。
+该项目保持 service-only：业务流量通过 COLA native unary RPC 或 RabbitMQ 进入，不包含业务 Controller、Web Filter、GraphQL 或 VO 包。外部 Organization 边界位于 `domain/client/organization` 和 `infrastructure/client/organization`。
 
 允许的内部依赖图为：
 
@@ -82,17 +82,17 @@ RabbitMQ 支持有意保持为基础传输能力。示例不承诺重试、死�
 
 ## Profile 与集成
 
-`dev` 是本地工作站开发和 `feature/*` 分支验证的默认 profile，使用由环境变量提供的 PostgreSQL、Nacos、RabbitMQ 和 Dubbo 集成。
+`dev` 是本地工作站开发和 `feature/*` 分支验证的默认 profile，使用由环境变量提供的 PostgreSQL、RabbitMQ 和 COLA RPC 集成。
 
-Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 PostgreSQL 兼容模式的 H2，关闭 RabbitMQ publisher 和 listener，并选择确定性的 `OrganizationDirectoryPort` stub，因此不需要 Nacos、RabbitMQ、PostgreSQL 或外部 Dubbo provider。
+Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 PostgreSQL 兼容模式的 H2，关闭 RabbitMQ publisher 和 listener，并选择确定性的 `OrganizationDirectoryPort` stub，因此不需要 RabbitMQ、PostgreSQL 或外部 COLA RPC provider。
 
 Organization Facade client 仍是一个暂未使用的 infrastructure 基础能力；当前没有 Application 用例调用 Organization port。
 
-`prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 都选择真实的 Organization Dubbo client，通过生成的 POM 固定 `top.egon:egon-cola-organization-facade`，并在 provider 不可用时显式失败。请通过环境变量配置，不要提交敏感信息：
+`prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 都选择真实的 Organization COLA RPC client，通过生成的 POM 固定 `top.egon:egon-cola-organization-facade`，并在 provider 不可用时显式失败。请通过环境变量配置，不要提交敏感信息：
 
 - 数据库：按下文为 `master_data`、`shard_0`、`shard_1` 配置 ShardingSphere 物理数据源。
-- Nacos：`NACOS_SERVER_ADDR`、`NACOS_NAMESPACE`、`NACOS_USERNAME`、`NACOS_PASSWORD`。config 与 discovery 的分组是分开的：`NACOS_CONFIG_GROUP` 与 `NACOS_DISCOVERY_GROUP`；开关同样分开：`NACOS_CONFIG_ENABLED`、`NACOS_DISCOVERY_ENABLED`、`NACOS_CONFIG_REFRESH_ENABLED` 和 `DISCOVERY_ENABLED`。
-- Dubbo：`DUBBO_REGISTRY_ADDRESS`、`DUBBO_PORT`、`DUBBO_CONSUMER_TIMEOUT`。
+- DDC：使用 `DDC_RPC_TARGET`、`DDC_NAMESPACE`、独立的 runtime/registry HMAC 凭据和 IdP SERVICE Token 配置；`DDC_ENABLED` 与 `DDC_REGISTRY_ENABLED` 分别控制配置及服务注册。连接参数详见下方“原生 RPC、DDC 与远程查询”。
+- COLA RPC：`DDC_RPC_TARGET`、`RPC_PORT`、`ORGANIZATION_FACADE_TIMEOUT_MS`。
 - Organization Facade：`ORGANIZATION_FACADE_ENABLED`、`ORGANIZATION_FACADE_GROUP`、`ORGANIZATION_FACADE_SERVICE_VERSION`。
 - RabbitMQ：连接参数通过 Spring 自身的变量名绑定——`SPRING_RABBITMQ_HOST`、`SPRING_RABBITMQ_PORT`、`SPRING_RABBITMQ_USERNAME`、`SPRING_RABBITMQ_PASSWORD`；`RABBITMQ_ENABLED` 与 `RABBITMQ_LISTENER_AUTO_STARTUP` 则是本应用自己的开关。
 - 配置解密：`EGON_CONFIG_DECRYPT_KEY`、`EGON_CONFIG_DECRYPT_KEY_FILE` 或文档化的 config-tree secret source。
@@ -160,7 +160,7 @@ SPRING_PROFILES_ACTIVE=test bash ./mvnw -B -ntp -DskipTests package
 ```
 
 测试套件包括 Domain 规则、Application 编排、MyBatis-Plus DAO 契约、日期序列 Flyway
-migration 契约、无 broker 的 MQ adapter、实际 Dubbo Triple proxy 调用、
+migration 契约、无 broker 的 MQ adapter、实际 COLA native unary RPC proxy 调用、
 无外部依赖的 Spring context 组装和架构依赖检查。构建镜像不会启动服务。
 
 必须使用 `verify` 而不是 `test`：架构治理插件绑定在 `verify` 阶段并以
@@ -205,3 +205,13 @@ Podman 和 nerdctl 分别使用 `compose.podman.yaml` 和 `compose.nerdctl.yaml`
 ## 范围边界
 
 该生成的 service 项目不包含业务 Controller、Web Filter、GraphQL endpoint、native grpc-java 模块或启用的 H2 console。Organization Facade client 有意未接入当前 Application 行为。
+
+## 原生 RPC、DDC 与远程查询
+
+本工程使用共享 evaluation 的 11 个 Protobuf unary 操作。Provider 继续调用原有 Facade；远程查询通过既有领域端口、MapStruct/BaseConverter 和组件的 DIRECT proxy/strategy 工厂完成。配置 `app.integrations.organization` 下的 biz-code、app-code、group/version 与 timeout-ms；`ORGANIZATION_FACADE_APP_CODE` 必须填写对端在 DDC 中注册的实际 app code。调用使用当前进程 env，默认版本为 `1.0`、最多 3000ms（同时受组件 timeout 上限约束）、retries=0、FAIL_CLOSED，无外部协议回退。
+
+`dev`/`prod` 需提供已有 DDC RPC/Redis 服务、注册 resource URI、runtime/registry HMAC 凭据，以及具备 `ddc:registration:write` 的 IdP SERVICE Token client。填写 `.env` 样例中的 `DDC_*`、`IDP_*`、RPC/HTTP advertised host；Compose 已映射 Spring OAuth2 Client 的 `ddcregistration` registration/provider。直接 Java 启动时，须通过外部配置提供对应的 `spring.security.oauth2.client.registration.ddcregistration` 和 `spring.security.oauth2.client.provider.ddcregistration.token-uri`。生产启用 RPC/DDC mTLS，请按环境变量配置并挂载证书链、私钥和信任证书文件。DDC/IdP 服务不随 Compose 创建。
+
+文档由 platform OpenAPI MVC starter 提供，现有业务 HTTP 访问保持。文档治理默认关闭；开启前须配置平台身份、发布分组、JWT decoder/`gateway.openapi.read` scope，并为已发布 handler 显式补齐 `@Operation(operationId = "...")`。IdP Servlet filter 自动注册关闭。HTTP 注册端口跟随实际 `server.port`。
+
+`test` 关闭 RPC provider/consumer、DDC config/registry/Redis、HTTP 注册和外部查询客户端，保留既有 H2/本地 stub。默认 Redisson 自动配置被排除，由 DDC 创建其显式配置的 Redis client。原 PostgreSQL、Redis、RabbitMQ 及数据卷保持。配置解密在 Spring Boot Config Data 加载后执行，使用显式 import/configtree 替代旧 bootstrap；加解密与密钥规则不变。静态、模块和进程内 RPC 测试不能证明真实 DDC/IdP、TLS 或容器互通。

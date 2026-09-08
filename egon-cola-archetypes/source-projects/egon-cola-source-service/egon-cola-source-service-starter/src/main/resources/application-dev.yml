@@ -1,4 +1,7 @@
 spring:
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
   flyway:
     enabled: ${FLYWAY_ENABLED:true}
     validate-migration-naming: true
@@ -9,8 +12,94 @@ app:
   integrations:
     organization:
       enabled: ${ORGANIZATION_FACADE_ENABLED:true}
+      biz-code: ${ORGANIZATION_FACADE_BIZ_CODE:student-management}
+      app-code: ${ORGANIZATION_FACADE_APP_CODE:}
       group: ${ORGANIZATION_FACADE_GROUP:student-management-organization}
-      version: ${ORGANIZATION_FACADE_SERVICE_VERSION:1.0.0}
+      version: ${ORGANIZATION_FACADE_SERVICE_VERSION:1.0}
+      timeout-ms: ${ORGANIZATION_FACADE_TIMEOUT_MS:3000}
     rabbitmq:
       enabled: ${RABBITMQ_ENABLED:true}
       listener-auto-startup: ${RABBITMQ_LISTENER_AUTO_STARTUP:true}
+
+egon:
+  cola:
+    component:
+      rpc:
+        enabled: ${RPC_ENABLED:true}
+        identity:
+          env: ${APP_ENV:dev}
+          host: ${RPC_ADVERTISED_HOST:localhost}
+          instance-id: ${INSTANCE_ID:${HOSTNAME:local}}
+        provider:
+          enabled: ${RPC_ENABLED:true}
+          port: ${RPC_PORT:50051}
+          advertised-host: ${RPC_ADVERTISED_HOST:localhost}
+          registration-fail-fast: true
+        consumer:
+          enabled: ${RPC_CONSUMER_ENABLED:true}
+          default-timeout-ms: 3000
+          max-retries: 0
+        tls:
+          enabled: ${RPC_TLS_ENABLED:false}
+          development-plaintext: ${RPC_DEVELOPMENT_PLAINTEXT:true}
+          certificate-chain-path: ${RPC_CERTIFICATE_CHAIN_PATH:}
+          private-key-path: ${RPC_PRIVATE_KEY_PATH:}
+          trust-certificate-collection-path: ${RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
+      ddc:
+        enabled: ${DDC_ENABLED:true}
+        biz-code: ${DDC_BIZ_CODE:student-management}
+        app-code: ${DDC_APP_CODE:${spring.application.name}}
+        env: ${APP_ENV:dev}
+        namespace: ${DDC_NAMESPACE:default}
+        registration-resource-uri: ${DDC_REGISTRATION_RESOURCE_URI:}
+        redis:
+          enabled: ${DDC_REDIS_ENABLED:true}
+          host: ${DDC_REDIS_HOST:localhost}
+          port: ${DDC_REDIS_PORT:6379}
+          password: ${DDC_REDIS_PASSWORD:}
+          database: ${DDC_REDIS_DATABASE:0}
+        consistency:
+          fail-fast: true
+        registry:
+          enabled: ${DDC_REGISTRY_ENABLED:true}
+          http:
+            enabled: ${DDC_HTTP_REGISTRATION_ENABLED:true}
+            env: ${APP_ENV:dev}
+            namespace: ${DDC_NAMESPACE:default}
+            instance-id: ${INSTANCE_ID:${HOSTNAME:local}}
+            service-name: ${spring.application.name}
+            version: 1.0.0
+            advertised-host: ${HTTP_ADVERTISED_HOST:localhost}
+            port: ${server.port:8080}
+            fail-fast: true
+        rpc:
+          target: ${DDC_RPC_TARGET:}
+          tls:
+            enabled: ${DDC_RPC_TLS_ENABLED:false}
+            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:true}
+            certificate-chain-path: ${DDC_RPC_CERTIFICATE_CHAIN_PATH:}
+            private-key-path: ${DDC_RPC_PRIVATE_KEY_PATH:}
+            trust-certificate-collection-path: ${DDC_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
+          auth:
+            enabled: ${DDC_RPC_AUTH_ENABLED:true}
+            runtime:
+              access-key: ${DDC_RUNTIME_ACCESS_KEY:}
+              secret-key: ${DDC_RUNTIME_SECRET_KEY:}
+            registry:
+              access-key: ${DDC_REGISTRY_ACCESS_KEY:}
+              secret-key: ${DDC_REGISTRY_SECRET_KEY:}
+      gateway:
+        openapi:
+          enabled: ${OPENAPI_GOVERNANCE_ENABLED:false}
+          publish-to-ddc: ${OPENAPI_PUBLISH_TO_DDC:false}
+    platform:
+      idp:
+        enabled: ${IDP_ENABLED:true}
+        register-filter: false
+        issuer: ${IDP_ISSUER:}
+        jwk-set-uri: ${IDP_JWK_SET_URI:}
+        resource-server-id: ${IDP_RESOURCE_SERVER_ID:}
+        resource-uri: ${IDP_RESOURCE_URI:}
+        service-client:
+          app-id: ${IDP_SERVICE_APP_ID:}
+          registration-id: ddcregistration

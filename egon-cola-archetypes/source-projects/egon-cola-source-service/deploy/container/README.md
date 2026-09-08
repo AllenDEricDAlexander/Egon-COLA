@@ -51,7 +51,7 @@ appropriate to the selected engine.
 ## Development Compose
 
 Development definitions build source and start application, PostgreSQL, Redis,
-RabbitMQ, and Nacos. Use the file matching the selected runtime:
+RabbitMQ. Use the file matching the selected runtime:
 
 ```bash
 docker compose --env-file deploy/env/.env.example \
@@ -85,12 +85,12 @@ clustered services when those properties are required.
 ## Persistent Data
 
 Ordinary `stop` and `down` retain named volumes. A command that explicitly removes
-volumes permanently deletes local database, broker, cache, Nacos, and application
+volumes permanently deletes local database, broker, cache, and application
 log data. No generated helper performs that deletion automatically.
 
 ## Health And Failure Behavior
 
-All three PostgreSQL primaries, Redis, RabbitMQ, Nacos, and the Spring Boot readiness endpoint have
+All three PostgreSQL primaries, Redis, RabbitMQ, and the Spring Boot readiness endpoint have
 health checks. Missing production variables fail Compose configuration. An enabled
 but unavailable remote Facade retains the generated application's fail-fast
 behavior.
@@ -101,3 +101,13 @@ The root `Jenkinsfile` tests, builds, and optionally publishes the image with
 Docker, Podman, or nerdctl. It never runs Compose or deploys the project.
 `PUBLISH_IMAGE` and `PUBLISH_LATEST` default to `false`; registry publication must
 be explicitly enabled with Jenkins credentials.
+
+## Native RPC, DDC and remote queries
+
+This project exposes 11 evaluation unary operations from the shared Protobuf contract. Providers delegate to the existing facades. Remote queries use the existing domain port, MapStruct/BaseConverter and component DIRECT proxy/strategy factories. Configure `app.integrations.organization` with the exact target biz code, app code, group/version and timeout. `ORGANIZATION_FACADE_APP_CODE` must match the peer's registered DDC app code. References use the current process environment, version `1.0` by default, a 3000ms default bounded by the component ceiling, zero retries and FAIL_CLOSED.
+
+Supply existing DDC RPC/Redis endpoints, registration resource URI, separate runtime/registry HMAC credentials, and an IdP SERVICE-token client allowed `ddc:registration:write`. Complete the `DDC_*`, `IDP_*` and advertised-host entries in the environment sample. Compose maps Spring OAuth2 Client registration/provider `ddcregistration`; direct Java launches must supply the corresponding `spring.security.oauth2.client.registration.ddcregistration` and `spring.security.oauth2.client.provider.ddcregistration.token-uri` external properties. Production enables RPC/DDC mTLS; configure and mount the certificate-chain, private-key and trust-certificate paths. No DDC or IdP container is bundled.
+
+The platform OpenAPI MVC starter preserves business HTTP access. Document governance is disabled by default. Enabling it requires the platform document identity, published groups, JWT decoder and `gateway.openapi.read` scope; published handlers also require explicit `@Operation(operationId = "...")` metadata. IdP Servlet filter auto-registration is disabled. HTTP registration follows the effective `server.port`.
+
+The `test` profile disables RPC provider/consumer, DDC config/registry/Redis, HTTP registration and remote query clients, retaining H2 and local stubs. Stock Redisson auto-configuration is excluded; DDC creates only its explicitly configured Redis client. Existing PostgreSQL, Redis, RabbitMQ and their data volumes remain. Configuration decryption runs after Spring Boot Config Data; explicit imports/configtree replace retired bootstrap loading while encryption and key rules remain unchanged. Static, module and in-process RPC tests do not establish live DDC/IdP, mTLS or container interoperability.

@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.NONE,
-        properties = {"dubbo.protocol.port=-1", "dubbo.application.qos-enable=false"})
+        properties = {"egon.cola.component.rpc.enabled=false", "egon.cola.component.ddc.enabled=false"})
 class EvaluationExternalFreeContextTest {
 
     @Autowired private ApplicationContext context;
@@ -35,6 +35,6 @@ class EvaluationExternalFreeContextTest {
         assertThat(environment.getProperty("app.integrations.organization.enabled", Boolean.class))
                 .isFalse();
         assertThat(organizationDirectory).isInstanceOf(LocalOrganizationDirectoryStub.class);
-        assertThat(context.containsBean("dubboOrganizationDirectoryClient")).isFalse();
+        assertThat(context.containsBean("nativeOrganizationDirectoryClient")).isFalse();
     }
 }

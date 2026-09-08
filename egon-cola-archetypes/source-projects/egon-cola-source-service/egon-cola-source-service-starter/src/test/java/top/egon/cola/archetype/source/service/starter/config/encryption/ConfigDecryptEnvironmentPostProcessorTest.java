@@ -13,7 +13,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.WebApplicationType;
-import org.springframework.cloud.bootstrap.BootstrapConfigFileApplicationListener;
+import org.springframework.boot.context.config.ConfigDataEnvironmentPostProcessor;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
@@ -22,9 +22,9 @@ import org.springframework.core.env.StandardEnvironment;
 class ConfigDecryptEnvironmentPostProcessorTest {
 
     @Test
-    void runsAfterSpringCloudBootstrapConfigFileApplicationListener() {
+    void runsAfterSpringBootConfigDataEnvironmentPostProcessor() {
         assertThat(new ConfigDecryptEnvironmentPostProcessor().getOrder())
-                .isEqualTo(BootstrapConfigFileApplicationListener.DEFAULT_ORDER + 1);
+                .isEqualTo(ConfigDataEnvironmentPostProcessor.ORDER + 1);
     }
 
     @Test
@@ -57,13 +57,13 @@ class ConfigDecryptEnvironmentPostProcessorTest {
     }
 
     @Test
-    void decryptsBootstrapConfigLoadedThroughSpringFactories(@TempDir Path tempDir) throws Exception {
+    void decryptsImportedConfigLoadedThroughSpringFactories(@TempDir Path tempDir) throws Exception {
         String keyText = "12345678901234567890123456789012";
         char[] key = keyText.toCharArray();
         try {
-            String encrypted = ConfigCipherCli.encrypt(key, "from-bootstrap");
-            Path bootstrap = tempDir.resolve("bootstrap.properties");
-            Files.writeString(bootstrap, "secret.value=" + encrypted + System.lineSeparator());
+            String encrypted = ConfigCipherCli.encrypt(key, "from-imported-config");
+            Path importedConfig = tempDir.resolve("imported-secrets.properties");
+            Files.writeString(importedConfig, "secret.value=" + encrypted + System.lineSeparator());
             StandardEnvironment environment = new StandardEnvironment();
             environment.getPropertySources().replace(
                     StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME,
@@ -76,12 +76,12 @@ class ConfigDecryptEnvironmentPostProcessorTest {
             application.setWebApplicationType(WebApplicationType.NONE);
             application.setEnvironment(environment);
             application.setDefaultProperties(Map.of(
-                    "spring.cloud.bootstrap.additional-location",
-                    tempDir.toUri().toString()
+                    "spring.config.import",
+                    importedConfig.toUri().toString()
             ));
 
             try (ConfigurableApplicationContext context = application.run()) {
-                assertThat(context.getEnvironment().getProperty("secret.value")).isEqualTo("from-bootstrap");
+                assertThat(context.getEnvironment().getProperty("secret.value")).isEqualTo("from-imported-config");
             }
         } finally {
             Arrays.fill(key, '\0');

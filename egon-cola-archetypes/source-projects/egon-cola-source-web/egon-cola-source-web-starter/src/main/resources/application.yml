@@ -1,4 +1,9 @@
 spring:
+  application:
+    name: ${APP_NAME:egon-cola-source-web}
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
   profiles:
     default: dev
   config:
@@ -64,6 +69,86 @@ egon:
         meta-fill:
           enabled: true
 
+      rpc:
+        enabled: false
+        identity:
+          env: ${APP_ENV:dev}
+          host: ${RPC_ADVERTISED_HOST:localhost}
+          instance-id: ${INSTANCE_ID:${HOSTNAME:local}}
+        provider:
+          enabled: false
+          port: ${RPC_PORT:50051}
+          advertised-host: ${RPC_ADVERTISED_HOST:localhost}
+          registration-fail-fast: true
+        consumer:
+          enabled: false
+          default-timeout-ms: 3000
+          max-retries: 0
+        tls:
+          enabled: ${RPC_TLS_ENABLED:false}
+          development-plaintext: ${RPC_DEVELOPMENT_PLAINTEXT:true}
+          certificate-chain-path: ${RPC_CERTIFICATE_CHAIN_PATH:}
+          private-key-path: ${RPC_PRIVATE_KEY_PATH:}
+          trust-certificate-collection-path: ${RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
+      ddc:
+        enabled: false
+        biz-code: ${DDC_BIZ_CODE:student-management}
+        app-code: ${DDC_APP_CODE:${spring.application.name}}
+        env: ${APP_ENV:dev}
+        namespace: ${DDC_NAMESPACE:default}
+        registration-resource-uri: ${DDC_REGISTRATION_RESOURCE_URI:}
+        redis:
+          enabled: false
+          host: ${DDC_REDIS_HOST:localhost}
+          port: ${DDC_REDIS_PORT:6379}
+          password: ${DDC_REDIS_PASSWORD:}
+          database: ${DDC_REDIS_DATABASE:0}
+        consistency:
+          fail-fast: true
+        registry:
+          enabled: false
+          http:
+            enabled: false
+            env: ${APP_ENV:dev}
+            namespace: ${DDC_NAMESPACE:default}
+            instance-id: ${INSTANCE_ID:${HOSTNAME:local}}
+            service-name: ${spring.application.name}
+            version: 1.0.0
+            advertised-host: ${HTTP_ADVERTISED_HOST:localhost}
+            port: ${server.port:8080}
+            fail-fast: true
+        rpc:
+          target: ${DDC_RPC_TARGET:}
+          tls:
+            enabled: ${DDC_RPC_TLS_ENABLED:false}
+            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:true}
+            certificate-chain-path: ${DDC_RPC_CERTIFICATE_CHAIN_PATH:}
+            private-key-path: ${DDC_RPC_PRIVATE_KEY_PATH:}
+            trust-certificate-collection-path: ${DDC_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
+          auth:
+            enabled: ${DDC_RPC_AUTH_ENABLED:true}
+            runtime:
+              access-key: ${DDC_RUNTIME_ACCESS_KEY:}
+              secret-key: ${DDC_RUNTIME_SECRET_KEY:}
+            registry:
+              access-key: ${DDC_REGISTRY_ACCESS_KEY:}
+              secret-key: ${DDC_REGISTRY_SECRET_KEY:}
+      gateway:
+        openapi:
+          enabled: ${OPENAPI_GOVERNANCE_ENABLED:false}
+          publish-to-ddc: ${OPENAPI_PUBLISH_TO_DDC:false}
+    platform:
+      idp:
+        enabled: false
+        register-filter: false
+        issuer: ${IDP_ISSUER:}
+        jwk-set-uri: ${IDP_JWK_SET_URI:}
+        resource-server-id: ${IDP_RESOURCE_SERVER_ID:}
+        resource-uri: ${IDP_RESOURCE_URI:}
+        service-client:
+          app-id: ${IDP_SERVICE_APP_ID:}
+          registration-id: ddcregistration
+
 mybatis-plus:
   mapper-locations: classpath*:mybatis/mapper/**/*.xml
   configuration:
@@ -119,7 +204,7 @@ logging:
   group:
     web-stack: org.springframework.web,org.springframework.http,org.apache.catalina,org.apache.coyote
     persistence: org.mybatis,org.mybatis.spring,com.baomidou.mybatisplus,org.springframework.jdbc,org.hibernate.SQL
-    rpc: org.apache.dubbo,io.grpc
+    rpc: top.egon.cola.component.rpc,io.grpc
     messaging: org.springframework.kafka,org.springframework.amqp
   level:
     root: info
@@ -147,27 +232,14 @@ app:
       never-block: ${LOG_ASYNC_NEVER_BLOCK:false}
       max-flush-time: ${LOG_ASYNC_MAX_FLUSH_TIME:5000}
 
-dubbo:
-  application:
-    name: ${spring.application.name}
-  registry:
-    address: ${DUBBO_REGISTRY_ADDRESS:N/A}
-  protocol:
-    name: tri
-    port: ${DUBBO_PORT:50051}
-  provider:
-    timeout: 3000
-    retries: 0
-  consumer:
-    timeout: ${DUBBO_CONSUMER_TIMEOUT:3000}
-    retries: 0
-    check: true
-
 organization:
   integrations:
     evaluation:
       enabled: ${EVALUATION_FACADE_ENABLED:false}
+      biz-code: ${EVALUATION_FACADE_BIZ_CODE:student-management}
+      app-code: ${EVALUATION_FACADE_APP_CODE:}
       course-group: ${EVALUATION_COURSE_FACADE_GROUP:course}
       exam-group: ${EVALUATION_EXAM_FACADE_GROUP:exam}
       score-group: ${EVALUATION_SCORE_FACADE_GROUP:score}
-      version: ${EVALUATION_FACADE_SERVICE_VERSION:1.0.0}
+      version: ${EVALUATION_FACADE_SERVICE_VERSION:1.0}
+      timeout-ms: ${EVALUATION_FACADE_TIMEOUT_MS:3000}

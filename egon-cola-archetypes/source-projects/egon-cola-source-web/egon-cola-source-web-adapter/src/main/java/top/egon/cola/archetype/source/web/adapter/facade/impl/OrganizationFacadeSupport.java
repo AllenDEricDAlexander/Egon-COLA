@@ -4,7 +4,7 @@ import top.egon.cola.archetype.source.web.application.context.OrganizationReques
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContextHolder;
 import top.egon.cola.archetype.source.web.application.exceptions.OrganizationApplicationException;
 import top.egon.cola.organization.facade.exceptions.OrganizationFacadeException;
-import org.apache.dubbo.rpc.RpcContext;
+import top.egon.cola.component.rpc.context.invocation.RpcInvocationMetadata;
 
 import java.util.Arrays;
 import java.util.Set;
@@ -73,7 +73,20 @@ public final class OrganizationFacadeSupport {
     }
 
     private static String attachment(String name) {
-        return RpcContext.getServerAttachment().getAttachment(name);
+        OrganizationRpcContextDTO context = OrganizationRpcContextDTO.current();
+        String value = context == null ? null : switch (name) {
+            case "idempotency-key" -> context.idempotencyKey();
+            case "x-actor-id" -> context.actorId();
+            case "x-actor-roles" -> context.actorRoles();
+            case "x-trace-id" -> context.traceId();
+            default -> null;
+        };
+        RpcInvocationMetadata invocation = RpcInvocationMetadata.current();
+        if ("x-trace-id".equals(name) && (value == null || value.isBlank())
+                && invocation != null && invocation.traceContext() != null) {
+            return invocation.traceId();
+        }
+        return value;
     }
 
     private static String valueOrDefault(String value, String fallback) {

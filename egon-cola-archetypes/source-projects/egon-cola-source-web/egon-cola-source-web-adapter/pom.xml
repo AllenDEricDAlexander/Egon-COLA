@@ -41,14 +41,6 @@
             <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.dubbo</groupId>
-            <artifactId>dubbo-spring-boot-starter</artifactId>
-        </dependency>
-        <dependency>
             <groupId>io.github.linpeilie</groupId>
             <artifactId>mapstruct-plus-spring-boot-starter</artifactId>
         </dependency>
@@ -65,6 +57,15 @@
         <dependency>
             <groupId>org.springframework.graphql</groupId>
             <artifactId>spring-graphql-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-rpc-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-inprocess</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
