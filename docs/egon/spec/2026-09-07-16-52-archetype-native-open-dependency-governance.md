@@ -439,6 +439,8 @@ No relational transaction, schema migration, or business idempotency is introduc
 - 版本升级脚本必须同步七个 source root 新增的 parent 版本，保持 internal project `0.1.0-SNAPSHOT` 与 `.generated` 不变，并保留失败回滚。
 - Step 1 只收敛 owner 和 parent；native Dubbo/Nacos 实际依赖与代码在 Step 3/4 各自完整切换。不得先删运行时依赖导致 Step 2 无法编译旧 provider。
 
+根 Boot parent 的资源过滤默认值由 root 显式补齐：库模块继续支持 Maven `${...}` 版本资源过滤，确保 RPC/DDC runtime version 被替换；archetype parent 显式保留 `useDefaultDelimiters=false`，避免提前替换 Spring/Velocity 模板变量。既有 launch.args 的 `@...@` 过滤保持。
+
 #### 7.4.2 Contract ownership and representation
 
 | Owner | Proto / Java namespace | Native interfaces | Operation count | Consumers |

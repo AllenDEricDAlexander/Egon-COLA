@@ -490,6 +490,8 @@ Spec §7.4 是已授权补齐：具体parent版本、Components Commons owner、
 
 | PLAN-CLAR-009 | 对 LightRpcConverterImpl 这个 MapStruct 生成类增加精确 facadeImplementationPackages 项，同时保留 ..adapter.. | ARCH-010 仅按 Facade 层及 Impl 后缀识别，生成的纯 DTO/Protobuf converter 触发误报 | 不变更已接受的 converter 合同/位置，不改组件规则，不允许其他 Facade 实现迁出 Adapter | 归属 Step 2 的独立修正提交；真实 verify 必须0违规 |
 
+| PLAN-CLAR-010 | root 资源插件启用默认 Maven 分隔符，archetype parent 显式保持 false | Step 4 完整回归中 RpcRuntimeVersionTest 发现 Boot parent 的 @-only 默认值令库版本资源保留占位符 | 恢复库原有 ${...} 过滤，同时保持 source/generated 的 Spring/Velocity 保护和 launch.args 配置 | 归属 Step 1 独立修正；RPC/DDC版本资源为5.4.0，archetype运行配置字节不变 |
+
 ## 7. Ordered File-by-file Implementation Steps
 
 ### Step 1 — Establish parent and dependency ownership
