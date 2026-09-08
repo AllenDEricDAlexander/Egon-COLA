@@ -87,6 +87,26 @@ modules.each { module ->
     forbiddenDependencies.each { forbidden -> assert !ids.contains(forbidden): "Forbidden dependency ${forbidden} in ${module}" }
 }
 
+// Inspect packaged runtime libraries; imported BOM entries never enter this set.
+def agentArchive = new File(projectDir, "${prefix}-starter/target").listFiles()?.find {
+    it.name.endsWith(".jar") && !it.name.endsWith("-sources.jar") && !it.name.endsWith("-javadoc.jar")
+}
+assert agentArchive: "Expected packaged Agent runtime"
+def agentLibraries = [] as Set
+new java.util.jar.JarFile(agentArchive).withCloseable { archive ->
+    archive.entries().each { entry ->
+        if (entry.name.startsWith("BOOT-INF/lib/")) agentLibraries << entry.name.substring("BOOT-INF/lib/".length())
+    }
+}
+["egon-cola-component-agent-flow-starter-", "spring-ai-openai-", "spring-ai-mcp-", "google-adk-"].each { required ->
+    assert agentLibraries.any { it.startsWith(required) }: "Missing Agent runtime library ${required}"
+}
+["egon-cola-component-rpc-", "egon-cola-platform-dynamic-config-center", "nacos-", "dubbo-",
+ "shardingsphere-", "spring-cloud-starter-alibaba-nacos-"].each { forbidden ->
+    assert !agentLibraries.any { it.startsWith(forbidden) }: "Forbidden Agent runtime library ${forbidden}"
+}
+// Google ADK's gRPC/Protobuf dependencies remain allowed.
+
 def requiredFiles = [
     "${prefix}-domain/src/main/java/it/pkg/domain/research/model/DeepResearchTaskBO.java",
     "${prefix}-domain/src/main/java/it/pkg/domain/research/service/DeepResearchRunService.java",
