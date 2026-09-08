@@ -501,6 +501,8 @@ Spec §7.4 是已授权补齐：具体parent版本、Components Commons owner、
 
 | PLAN-CLAR-012 | root 清除 Boot parent 的默认 Shade configuration/执行配置并取消隐式 default phase；子模块显式执行保留 | Step 7 完整 install 因 AppendingTransformer.resource 合入 Bytecode Agent ManifestResourceTransformer 而失败 | 恢复 parent 迁移前库/Agent/JMH 各自的 Shade 配置，不修改组件源码或自定义执行 | Step 1 独立修正；Bytecode Agent/benchmark 包与 manifest 校验、完整 install 必须通过 |
 
+| PLAN-CLAR-013 | Native Compose 使用显式 DDC_APP_CODE，不在 unfiltered 文件里嵌入 source artifact 默认值 | 七产品 IT 的 Light Compose 中出现未展开 ${artifactId}；Service/Web 同结构 | .env 示例仍生成项目默认值；缺少应用编码时 Compose 明确拒绝，避免错误注册 | 分别归属 Step 3/4 的独立修正；18个 Compose 的编码和生成 sentinel 门禁必须通过 |
+
 ## 7. Ordered File-by-file Implementation Steps
 
 ### Step 1 — Establish parent and dependency ownership
