@@ -5,9 +5,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.16</version>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-archetypes-parent</artifactId>
+        <version>5.4.0</version>
         <relativePath/>
     </parent>
 
@@ -27,12 +27,6 @@
         <lombok.mapstruct.binding.version>0.2.0</lombok.mapstruct.binding.version>
         <mapstruct-plus.version>1.5.1</mapstruct-plus.version>
         <mapstruct.version>1.6.3</mapstruct.version>
-        <dubbo.version>3.3.6</dubbo.version>
-        <spring-cloud.version>2025.0.3</spring-cloud.version>
-        <spring-cloud-alibaba.version>2025.0.0.0</spring-cloud-alibaba.version>
-        <springdoc.version>2.8.17</springdoc.version>
-        <shardingsphere.version>5.5.3</shardingsphere.version>
-        <commons-lang3.version>3.18.0</commons-lang3.version>
         <exec.maven.plugin.version>3.5.0</exec.maven.plugin.version>
         <!-- Shared defaults for Maven run and the external Java argument file. -->
         <run.profile>dev</run.profile>
@@ -41,44 +35,10 @@
         <run.config-location>optional:file:./config/override.yml</run.config-location>
     </properties>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springdoc</groupId>
-                <artifactId>springdoc-openapi-bom</artifactId>
-                <version>${springdoc.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-components-bom</artifactId>
-                <version>${egon-cola.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.cloud</groupId>
-                <artifactId>spring-cloud-dependencies</artifactId>
-                <version>${spring-cloud.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.alibaba.cloud</groupId>
-                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
-                <version>${spring-cloud-alibaba.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
     <dependencies>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-jdbc</artifactId>
-            <version>${shardingsphere.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.shardingsphere</groupId>
@@ -89,47 +49,34 @@
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-sharding-core</artifactId>
-            <version>${shardingsphere.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-infra-data-source-pool-hikari</artifactId>
-            <version>${shardingsphere.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-standalone-mode-repository-memory</artifactId>
-            <version>${shardingsphere.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-authority-simple</artifactId>
-            <version>${shardingsphere.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-parser-sql-engine-sql92</artifactId>
-            <version>${shardingsphere.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-parser-sql-engine-mysql</artifactId>
-            <version>${shardingsphere.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-parser-sql-engine-postgresql</artifactId>
-            <version>${shardingsphere.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-readwrite-splitting-core</artifactId>
-            <version>${shardingsphere.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>${commons-lang3.version}</version>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
@@ -138,7 +85,6 @@
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-common-mybatis-plus-spring-boot-starter</artifactId>
-            <version>${egon-cola.version}</version>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
@@ -213,7 +159,6 @@
         <dependency>
             <groupId>org.apache.dubbo</groupId>
             <artifactId>dubbo-spring-boot-starter</artifactId>
-            <version>${dubbo.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>

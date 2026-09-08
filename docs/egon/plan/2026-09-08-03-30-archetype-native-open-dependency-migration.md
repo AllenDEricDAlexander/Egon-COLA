@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Ready` |
 | Created | `2026-09-08 03:30 CST` |
-| Updated | `2026-09-08 12:12 CST` |
+| Updated | `2026-09-08 13:18 CST` |
 | Owner | `用户 / Egon-COLA 维护者` |
 | Repository | `Egon-COLA` |
 | Scope | 根 parent、archetypes parent/source roots、native RPC/DDC/API Doc、open/agent 边界、definitions、generator/generated reactor |
@@ -14,7 +14,7 @@
 | Baseline Revision | `main @ dfd24ce3f57f77e2edc8628dac56fe8aba14b87e`；工作区保留用户未提交 POM/Agent 变更 |
 | Implements Spec | [Archetype 原生与 Open 技术栈依赖治理迁移](../spec/2026-09-07-16-52-archetype-native-open-dependency-governance.md) |
 | Spec Status | `Accepted` |
-| Spec Revision | `2026-09-08 12:12 CST`；用户确认补齐并继续执行 |
+| Spec Revision | `2026-09-08 13:18 CST`；用户确认补齐并继续执行 |
 | Effective Specs | [native/open dependency governance](../spec/2026-09-07-16-52-archetype-native-open-dependency-governance.md)、[generated reactor design](../spec/2026-09-03-11-04-archetype-generated-reactor-spring-flyway-design.md)、[open archetype family](../spec/2026-08-23-16-43-open-source-archetype-family.md) |
 | Depends On Plans | `None` |
 | Supersedes | `None` |
@@ -31,14 +31,14 @@
 
 - Path: [`docs/egon/spec/2026-09-07-16-52-archetype-native-open-dependency-governance.md`](../spec/2026-09-07-16-52-archetype-native-open-dependency-governance.md)
 - Status: `Accepted`
-- Revision: `2026-09-08 12:12 CST`
+- Revision: `2026-09-08 13:18 CST`
 - Approval evidence: 用户明确确认“补齐spec后，逐步实现、验证、提交”；本次合约/范围/验证修订完成后直接逐 Step 执行。
 
 ### 2.2 Effective Spec set
 
 | Role | Spec/link | Status/revision | Effective sections | Why included |
 | --- | --- | --- | --- | --- |
-| Primary | [native/open dependency governance](../spec/2026-09-07-16-52-archetype-native-open-dependency-governance.md) | Accepted / 2026-09-08 12:12 CST | §3–§20 | 本次依赖、parent、RPC、profile 和 generator 设计 |
+| Primary | [native/open dependency governance](../spec/2026-09-07-16-52-archetype-native-open-dependency-governance.md) | Accepted / 2026-09-08 13:18 CST | §3–§20 | 本次依赖、parent、RPC、profile 和 generator 设计 |
 | Normative dependency | [generated reactor design](../spec/2026-09-03-11-04-archetype-generated-reactor-spring-flyway-design.md) | existing | §7、§8、§14、§16、§19、§20 | `.generated`、原子生成和 IT 约束 |
 | Normative dependency | [open archetype family](../spec/2026-08-23-16-43-open-source-archetype-family.md) | existing | §3、§7、§9、§16 | `-open` 外部技术栈兼容边界 |
 
@@ -465,6 +465,8 @@ Spec §7.4 是已授权补齐：具体parent版本、Components Commons owner、
 | PLAN-CLAR-004 | 测试缺共享artifact时先按release顺序本地install | 当前source/reactor与Maven Wrapper | build前置，不是runtime或publish | 不能将skipTests记为GREEN |
 | PLAN-CLAR-005 | 无关历史全仓失败依effective generated Spec TEST-020保留并隔离 | 2026-09-03 generated Spec §14明确允许fresh baseline isolation | 不修改或掩盖无关业务；所有受影响gate仍须通过 | 最终不得误报全仓通过 |
 
+| PLAN-CLAR-006 | root Boot `commons-lang3.version` 属性桥接 Components BOM 的3.20.0，静态断言两值一致 | 最小Bootparent+ComponentsBOM effective POM实测仍为3.17.0 | 已接受版本仍为Core3.20.0，archetype/source无本地版本；只修正Maven优先级实现推断 | effective POM不为3.20.0或桥接值漂移即阻断 |
+
 ## 7. Ordered File-by-file Implementation Steps
 
 ### Step 1 — Establish parent and dependency ownership
@@ -536,7 +538,7 @@ assert injected validate failure restores every versioned file
 - Repository evidence: baseline dirty diff 仅新增 spring-boot-starter-parent:3.5.16。
 - Dependencies and consumers: baseline dirty diff 仅新增 spring-boot-starter-parent:3.5.16。；后续本Step接线及source/generated consumer。
 - Why now: 本组在前组编译/测试或转换前置之后完成，产生下一组依赖的状态；首组负责本Step最早可执行的证明点。
-- Contract/signature changes: root parent and global defaults；以Spec §7.4/§9/§10为准。
+- Contract/signature changes: root parent and global defaults；增加与Components BOM相等的Boot Commons版本桥接，详见PLAN-CLAR-006。
 - Input/output and state mapping: 保留已有共享 release/Flyway/Springdoc defaults，不新增 Cloud/Alibaba/Dubbo/Nacos root owner。
 - Error and edge behavior: parent 发布解析错误 fail fast。
 - Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-UTIL-001`, `MC-SCOPE-001`, `MC-TEST-001`, `MC-BLOCKER-001` — 将已授权的用户 Boot parent 变更纳入本 Step。 Java类遵守语义后缀、Validation、MapStruct/BaseConverter、named Bean/qualified constructor与java.time；本组非Java部分不凭空增加业务对象。
@@ -546,6 +548,7 @@ assert injected validate failure restores every versioned file
 ```xml
 retain Spring Boot parent 3.5.16 with empty relativePath
 retain current root release/global management
+set Boot commons-lang3.version=3.20.0; assert it equals the Components BOM export
 // Preserved mapping: 保留已有共享 release/Flyway/Springdoc defaults，不新增 Cloud/Alibaba/Dubbo/Nacos root owner。
 // Required failure assertion: parent 发布解析错误 fail fast。
 ```
@@ -716,6 +719,32 @@ validate; rollback on failure
 - Verification contribution: 本Step下列命令验证 verify_archetype_source_pom_versions; source parent version updates；需要非零目标测试数或明确静态断言。
 - After this file: 同步所有新增 source root parent，保持升级和回滚。 已完成；只有全部组和门禁完成后可提交本Step。
 
+#### File 9 — `MODIFY docs/egon/spec/2026-09-07-16-52-archetype-native-open-dependency-governance.md`
+
+同一责任文档：`MODIFY docs/egon/plan/2026-09-08-03-30-archetype-native-open-dependency-migration.md`。
+
+- Purpose: 将Maven实测优先级与必要全局桥接记录到已授权的Spec补齐和Plan中。
+- Symbols: Spec §7.4.1; PLAN-CLAR-006; root Commons property/effective model gate。
+- Repository evidence: baseline最小Bootparent+ComponentsBOM与Light有效模型均为3.17.0，不能声称BOM覆盖成功。
+- Dependencies and consumers: Step1 root/BOM/source模型及最终审计。
+- Why now: 在本Step提交前修正本轮新增的实现推断，后续Step顺序不变。
+- Contract/signature changes: 已接受的3.20.0与archetype无本地版本目标不变，只补足Root全局Boot桥接。
+- Input/output and state mapping: Components BOM版本与Root同名Boot属性必须相等，实际七模型必须为3.20.0。
+- Error and edge behavior: 不更新版本目标、不隐瞒第一次模型失败；任何漂移阻断提交。
+- Standards impact: `MC-SCOPE-001`, `MC-DEP-001`, `MC-TEST-001` — 证据修正与当前Step源代码一起审查。
+- Literal rule enforcement: `Rule 5`, `Rule 11` — 无新工具或架构，明确构建模型覆盖的全局责任。
+- Implementation pseudocode:
+
+```text
+record actual Maven inherited-management precedence and first 3.17.0 result
+specify root Boot Commons property bridge to the accepted Core 3.20.0
+require exact root/BOM equality plus seven resolved effective POM assertions
+retain original failure evidence and unchanged Step ordering
+```
+
+- Verification contribution: Spec/Plan strict validators、root/BOM gate及Maven实际模型。
+- After this file: 文档准确描述实际实现，不把第一次模型成功解析误报为目标版本通过。
+
 - Validation working directory: repository root（逐root help:effective-pom/dependency:tree在相应POM目录）。
 - Verification command:
 
@@ -734,7 +763,7 @@ bash scripts/test-bump-cola-version.sh
 - Failure returns to: 本Step出现失败的精确文件；前序缺陷使用归属原Step的独立corrective commit，不重写历史。
 - Completion criteria: Requirements对应证据、全部适用Manual Check和十条Literal Rule分别记录PASS或有证据N/A；无FAIL/BLOCKED/UNKNOWN。
 - Rollback: 仅回退本Step源代码commit；保留用户worktree和不可变migration，generated通过脚本重建。
-- Commit paths: `egon-cola-archetypes/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-application/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-common/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-domain/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-infrastructure/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-agent/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-light-open/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-adapter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-application/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-common/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-domain/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-facade/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-infrastructure/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-starter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service-open/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-application/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-common/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-domain/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-adapter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-application/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-common/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-domain/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-facade/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-infrastructure/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-starter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web-open/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-adapter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-application/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-common/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-domain/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-infrastructure/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-starter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/pom.xml`, `egon-cola-components/egon-cola-components-bom/pom.xml`, `egon-cola-components/pom.xml`, `pom.xml`, `scripts/bump_cola_version.sh`, `scripts/check-archetype-dependency-ownership.py`, `scripts/test-bump-cola-version.sh`
+- Commit paths: `egon-cola-archetypes/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-adapter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-application/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-common/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-domain/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-infrastructure/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-agent/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-light-open/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-adapter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-application/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-common/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-domain/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-facade/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-infrastructure/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service-open/egon-cola-source-service-open-starter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service-open/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-adapter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-application/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-common/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-domain/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-infrastructure/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-service/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-adapter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-application/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-common/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-domain/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-facade/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-infrastructure/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web-open/egon-cola-source-web-open-starter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web-open/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-adapter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-application/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-common/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-domain/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-infrastructure/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-starter/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-web/pom.xml`, `egon-cola-components/egon-cola-components-bom/pom.xml`, `egon-cola-components/pom.xml`, `pom.xml`, `scripts/bump_cola_version.sh`, `scripts/check-archetype-dependency-ownership.py`, `scripts/test-bump-cola-version.sh`, `docs/egon/spec/2026-09-07-16-52-archetype-native-open-dependency-governance.md`, `docs/egon/plan/2026-09-08-03-30-archetype-native-open-dependency-migration.md`
 
 - Commit: `refactor(archetypes): centralize parent and dependency ownership`
 

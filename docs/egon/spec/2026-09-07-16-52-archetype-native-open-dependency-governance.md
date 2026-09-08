@@ -9,7 +9,7 @@
 | Complexity | `Complex` |
 | Complexity Drivers | 七个 source project、根/组件/平台/生成器多级 Maven 继承；原生与 `-open` 双技术栈；native RPC 需新增 Protobuf/gRPC 合约并联动源码、配置、测试、Compose 与 verifier；BOM 归属和 generated parent 必须保持可解析 |
 | Created | `2026-09-07 16:52 CST` |
-| Updated | `2026-09-08 12:12 CST` |
+| Updated | `2026-09-08 13:18 CST` |
 | Owner | `用户 / Egon-COLA 维护者` |
 | Repository | `Egon-COLA` |
 | Scope | `pom.xml`、`egon-cola-components`、`egon-cola-platforms`、`egon-cola-archetypes` 七个 source project、definitions、生成脚本与 archetype verifier |
@@ -104,7 +104,7 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 | Native RPC/DDC/API Doc source/config/test | Affected | 原生 source Java/resources/test/compose | 从 Dubbo/Nacos/Springdoc 直连迁移到 Egon 能力；业务契约保持 | 目标协作、失败语义、验证 | `§7, §9, §14, §15` |
 | `-open` RPC/Cloud/config/test | Context-only | `*-open*/` Dubbo/Triple/gRPC/Nacos 文件 | 外部体系保持，版本归属集中 | 明确保留边界与回归检查 | `§7, §16` |
 | Shared native facade contracts | Affected | `egon-cola-archetypes/egon-cola-{organization,evaluation}-facade`、light `facade/rpc` | 新增 31 个 unary 协议操作和 Java 接口、MapStruct/BaseConverter；既有业务签名保持 | §7.4/§9/§10 完整合约及转换 | `§7, §8, §9, §10, §14, §16` |
-| Components utility version owner | Affected | `egon-cola-components/pom.xml`、`egon-cola-components-bom/pom.xml` | Commons Lang 3.20.0 的唯一版本 owner 移至 Components BOM，组件 parent 复用；避免 Boot 3.17.0 覆盖 | 导出管理项、版本兼容、effective model 测试 | `§7, §8, §14, §16` |
+| Components utility version owner | Affected | `egon-cola-components/pom.xml`、`egon-cola-components-bom/pom.xml` | Components BOM 导出 Core 的 Commons Lang 3.20.0；root 使用 Boot 同名 property 做全局版本桥接并检查二者相等；archetype 不自持版本 | 导出管理项、版本兼容、effective model 测试 | `§7, §8, §14, §16` |
 | Agent runtime | Affected | `source-agent/pom.xml`、Agent modules | 无 DDC/RPC/Nacos/ShardingSphere；保留 AI/ADK/Agent Flow | 依赖必要性与 verifier | `§7, §8, §14` |
 | Generated resource POM | Affected | `scripts/generate_archetypes.sh`, `.generated` | parent 使用发布坐标，禁止仓库相对路径 | 生成器规则和 deterministic check | `§7, §8, §14, §16` |
 | Definitions/metadata/verifier | Affected | `egon-cola-archetypes/definitions/**` | verifier 反映 native/open/agent 依赖边界 | 目标文件、静态 gate | `§8, §14` |
@@ -433,6 +433,7 @@ No relational transaction, schema migration, or business idempotency is introduc
 - source/generated root 的 parent 是 `top.egon:egon-cola-archetypes-parent:5.4.0`，写**具体版本**与 `<relativePath/>`。Maven 解析 parent 前不能依赖 child 自身的 `${egon-cola.version}`；该 property 继续用于普通依赖与生成参数。内部 source aggregator 仍保留 `../pom.xml`，它不交付用户项目。
 - Components BOM 在 archetypes parent 导入一次。Common/ID/MyBatis/DTP/RPC 的依赖声明不重复写版本。native/open 各自的模块集合不变，版本管理项不等于运行时依赖。
 - `commons-lang3:3.20.0` 从现有 components parent 管理项移至 Components BOM；components parent 导入该 BOM，删除重复 property/管理项。Core 仍实际提供传递依赖。当前 Boot 3.5.16 的 BOM 声明 3.17.0，必须通过有效模型证明未被降级。source 原 3.18.0 向既有 Core 3.20.0 对齐是明确的版本收敛，非新增工具库。
+- Maven 实测修正：Boot parent 的继承管理优先于 child 的 BOM import，即使移除 root 的重复 Boot BOM import，最小模型仍解析为 3.17.0。因此 root 全局 defaults 需声明 `commons-lang3.version=3.20.0` 作为 Boot 的属性桥接；Components BOM 继续导出同值，静态门禁强制二者一致，七个 effective POM 必须实际得到 3.20.0。这个必要的全局兼容桥接不能放进 archetype/source，也不新增 utility dependency；原“只导入 BOM 即可覆盖 Boot”的实现推断由本条修正。
 - archetypes parent 管 ShardingSphere 5.5.3、Cloud 2025.0.3、Alibaba 2025.0.0.0、Dubbo 3.3.6、Open gRPC 1.73.0/Protobuf 3.25.8 的版本。native codegen/runtime 使用现有 RPC 的 gRPC 1.75.0/Protobuf 4.32.0，使用独立 `native.grpc.version` / `native.protobuf.version` 属性，不得把 Open wire 栈升级为 native 版本。Open root 仅保留必要的管理选择，具体版本来自 parent。
 - Agent 保持现有 Spring AI 1.1.8/ADK/Agent Flow 和直接 Springdoc；不换成传递引入 DDC 的 platform OpenAPI starter。Agent 的第三方 gRPC（如 ADK 使用）不等同于被禁止的 Egon RPC。
 - 版本升级脚本必须同步七个 source root 新增的 parent 版本，保持 internal project `0.1.0-SNAPSHOT` 与 `.generated` 不变，并保留失败回滚。

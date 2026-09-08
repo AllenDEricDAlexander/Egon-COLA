@@ -74,9 +74,16 @@ verify_archetype_source_pom_versions() {
     local pom_file
     local version_tag
     local actual_version
+    local parent_block
     local found_count=0
 
     while IFS= read -r -d '' pom_file; do
+        parent_block="$(sed -n '/<parent>/,/<\/parent>/p' "$pom_file")"
+        if grep -Fq -- '<groupId>top.egon</groupId>' <<<"$parent_block" && \
+                grep -Fq -- '<artifactId>egon-cola-archetypes-parent</artifactId>' <<<"$parent_block"; then
+            grep -Fq -- "<version>$expected_version</version>" <<<"$parent_block" || \
+                die "$pom_file uses an unexpected archetypes parent version; expected $expected_version"
+        fi
         while IFS= read -r version_tag; do
             [[ -n "$version_tag" ]] || continue
             found_count=$((found_count + 1))
@@ -177,9 +184,12 @@ update_archetype_source_pom_versions() {
     local escaped_current_tag
     local pom_file
     local temp_file
+    local parent_block
+    local escaped_parent_tag
     local updated_count=0
 
     escaped_current_tag="$(escape_sed_pattern "$current_tag")"
+    escaped_parent_tag="$(escape_sed_pattern "<version>$current_version</version>")"
 
     while IFS= read -r -d '' pom_file; do
         if ! grep -Fq -- "$current_tag" "$pom_file"; then
@@ -188,7 +198,15 @@ update_archetype_source_pom_versions() {
 
         temp_file="$BACKUP_DIR/updated/${pom_file#"$PROJECT_ROOT"/}"
         mkdir -p "$(dirname "$temp_file")"
-        sed "s|$escaped_current_tag|$new_tag|g" "$pom_file" > "$temp_file"
+        parent_block="$(sed -n '/<parent>/,/<\/parent>/p' "$pom_file")"
+        if grep -Fq -- '<groupId>top.egon</groupId>' <<<"$parent_block" && \
+                grep -Fq -- '<artifactId>egon-cola-archetypes-parent</artifactId>' <<<"$parent_block"; then
+            sed -e "s|$escaped_current_tag|$new_tag|g" \
+                -e "/<parent>/,/<\\/parent>/ s|$escaped_parent_tag|<version>$new_version</version>|" \
+                "$pom_file" > "$temp_file"
+        else
+            sed "s|$escaped_current_tag|$new_tag|g" "$pom_file" > "$temp_file"
+        fi
         cp "$temp_file" "$pom_file"
         updated_count=$((updated_count + 1))
     done < <(find_archetype_source_poms)

@@ -20,7 +20,6 @@
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-agent-flow-starter</artifactId>
-            <version>${egon-cola.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.ai</groupId>

@@ -59,11 +59,6 @@
             <artifactId>shardingsphere-readwrite-splitting-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>${commons-lang3.version}</version>
-        </dependency>
-        <dependency>
             <groupId>top.egon.internal.archetype.source</groupId>
             <artifactId>egon-cola-source-web-domain</artifactId>
         </dependency>
@@ -74,7 +69,6 @@
         <dependency>
             <groupId>org.apache.dubbo</groupId>
             <artifactId>dubbo-spring-boot-starter</artifactId>
-            <version>${dubbo.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

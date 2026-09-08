@@ -77,7 +77,6 @@
         <sqlite.jdbc.version>3.50.3.0</sqlite.jdbc.version>
         <resilience4j.version>2.2.0</resilience4j.version>
         <guava.version>33.6.0-jre</guava.version>
-        <commons.lang3.version>3.20.0</commons.lang3.version>
         <commons.collections4.version>4.5.0</commons.collections4.version>
         <commons.io.version>2.22.0</commons.io.version>
         <commons.text.version>1.15.0</commons.text.version>
@@ -120,6 +119,13 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-components-bom</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>org.springframework.ai</groupId>
                 <artifactId>spring-ai-bom</artifactId>
@@ -175,11 +181,6 @@
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
                 <version>${guava.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-lang3</artifactId>
-                <version>${commons.lang3.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.alibaba</groupId>

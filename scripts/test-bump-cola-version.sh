@@ -35,7 +35,7 @@ write_fixture() {
   mkdir -p \
     "$root/scripts" \
     "$root/egon-cola-archetypes/source-projects" \
-    "$root/egon-cola-archetypes/source-projects/egon-cola-source-fixture" \
+    "$root/egon-cola-archetypes/source-projects/egon-cola-source-fixture/fixture-child" \
     "$root/egon-cola-archetypes/.generated/egon-cola-archetype-fixture"
 
   printf '%s\n' \
@@ -63,6 +63,12 @@ write_fixture() {
   printf '%s\n' \
     '<project>' \
     '  <modelVersion>4.0.0</modelVersion>' \
+    '  <parent>' \
+    '    <groupId>top.egon</groupId>' \
+    '    <artifactId>egon-cola-archetypes-parent</artifactId>' \
+    '    <version>5.3.3</version>' \
+    '    <relativePath/>' \
+    '  </parent>' \
     '  <groupId>top.egon.internal.archetype.source</groupId>' \
     '  <artifactId>egon-cola-source-fixture</artifactId>' \
     '  <version>0.1.0-SNAPSHOT</version>' \
@@ -71,6 +77,18 @@ write_fixture() {
     '  </properties>' \
     '</project>' \
     >"$root/egon-cola-archetypes/source-projects/egon-cola-source-fixture/pom.xml"
+
+  cat >"$root/egon-cola-archetypes/source-projects/egon-cola-source-fixture/fixture-child/pom.xml" <<'EOF'
+<project>
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>top.egon.internal.archetype.source</groupId>
+    <artifactId>egon-cola-source-fixture</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>fixture-child</artifactId>
+</project>
+EOF
 
   printf '%s\n' "./mvnw -DarchetypeVersion='5.3.3'" >"$root/README.md"
   printf '%s\n' 'generated sentinel' \
@@ -107,16 +125,20 @@ write_fixture
 ROOT="$FIXTURE_ROOT/repo"
 SOURCE_POM="$ROOT/egon-cola-archetypes/source-projects/egon-cola-source-fixture/pom.xml"
 SOURCE_REACTOR_POM="$ROOT/egon-cola-archetypes/source-projects/pom.xml"
+SOURCE_CHILD_POM="$ROOT/egon-cola-archetypes/source-projects/egon-cola-source-fixture/fixture-child/pom.xml"
 README="$ROOT/README.md"
 GENERATED="$ROOT/egon-cola-archetypes/.generated"
 
 generated_before="$(hash_tree "$GENERATED")"
+cp -- "$SOURCE_CHILD_POM" "$FIXTURE_ROOT/child.original"
 "$ROOT/scripts/bump_cola_version.sh" 5.3.4 >/dev/null
 
 assert_file_contains "$ROOT/pom.xml" '<version>5.3.4</version>'
 assert_file_contains "$SOURCE_REACTOR_POM" '<version>5.3.4</version>'
 assert_file_contains "$SOURCE_POM" '<egon-cola.version>5.3.4</egon-cola.version>'
+assert_file_contains "$SOURCE_POM" '<version>5.3.4</version>'
 assert_file_contains "$SOURCE_POM" '<version>0.1.0-SNAPSHOT</version>'
+cmp -s "$SOURCE_CHILD_POM" "$FIXTURE_ROOT/child.original" || die 'internal child parent changed'
 assert_file_contains "$README" "-DarchetypeVersion='5.3.4'"
 [[ "$(hash_tree "$GENERATED")" == "$generated_before" ]] || \
   die 'generated workspace changed during version update'
